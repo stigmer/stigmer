@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/channelapp/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_channelapp_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvY2hhbm5lbGFwcC92MS9pby5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLmNoYW5uZWxhcHAudjEiTAoLQ2hhbm5lbEFwcHMSPQoHZW50cmllcxgBIAMoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxLkNoYW5uZWxBcHAiMQoZTGlzdENoYW5uZWxBcHBzQnlPcmdJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAEi3gIKFVVwZGF0ZUNoYW5uZWxBcHBJbnB1dBJGCghyZXNvdXJjZRgBIAEoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxLkNoYW5uZWxBcHBCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATrDAbpIvwEavAEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0EktyZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBjaGFubmVsIGFwcCBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJ2IGcHJvdG8z", [file_ai_stigmer_agentic_channelapp_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvY2hhbm5lbGFwcC92MS9pby5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLmNoYW5uZWxhcHAudjEiZQoLQ2hhbm5lbEFwcHMSPQoHZW50cmllcxgBIAMoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxLkNoYW5uZWxBcHASFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJImYKFExpc3RDaGFubmVsQXBwc0lucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQARIaCglwYWdlX3NpemUYAiABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgi3gIKFVVwZGF0ZUNoYW5uZWxBcHBJbnB1dBJGCghyZXNvdXJjZRgBIAEoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxLkNoYW5uZWxBcHBCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATrDAbpIvwEavAEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0EktyZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBjaGFubmVsIGFwcCBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJ2IGcHJvdG8z", [file_ai_stigmer_agentic_channelapp_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * ChannelApps contains a list of channel app resources.
@@ -29,6 +29,14 @@ export type ChannelApps = Message<"ai.stigmer.agentic.channelapp.v1.ChannelApps"
    * @generated from field: repeated ai.stigmer.agentic.channelapp.v1.ChannelApp entries = 1;
    */
   entries: ChannelApp[];
+
+  /**
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   *
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
 };
 
 /**
@@ -39,25 +47,41 @@ export const ChannelAppsSchema: GenMessage<ChannelApps> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_channelapp_v1_io, 0);
 
 /**
- * ListChannelAppsByOrgInput specifies the organization whose channel
+ * ListChannelAppsInput specifies the organization whose channel
  * apps should be returned.
  *
- * @generated from message ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput
+ * @generated from message ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput
  */
-export type ListChannelAppsByOrgInput = Message<"ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput"> & {
+export type ListChannelAppsInput = Message<"ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput"> & {
   /**
    * Organization slug to list channel apps for.
    *
    * @generated from field: string org = 1;
    */
   org: string;
+
+  /**
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
+   *
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
 };
 
 /**
- * Describes the message ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput.
- * Use `create(ListChannelAppsByOrgInputSchema)` to create a new message.
+ * Describes the message ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput.
+ * Use `create(ListChannelAppsInputSchema)` to create a new message.
  */
-export const ListChannelAppsByOrgInputSchema: GenMessage<ListChannelAppsByOrgInput> = /*@__PURE__*/
+export const ListChannelAppsInputSchema: GenMessage<ListChannelAppsInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_channelapp_v1_io, 1);
 
 /**

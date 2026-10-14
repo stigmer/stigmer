@@ -97,7 +97,7 @@ vi.mock("../useSessionPageFlow", () => ({
     skillRefs: [],
     setSkillRefs: vi.fn(),
     workspace: stubWorkspace,
-    sessionVariables: { entries: [], isEmpty: true, clear: vi.fn() },
+    sessionVariables: { entries: [], isEmpty: true, clear: vi.fn(), nextPageToken: "" },
     autoApproveAll: false,
     setAutoApproveAll: vi.fn(),
     answerToolUse: vi.fn(),

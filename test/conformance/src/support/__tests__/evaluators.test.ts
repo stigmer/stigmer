@@ -30,9 +30,9 @@ function listing(pages: Score[][]): ConformanceClients {
   return {
     scoreQuery: {
       listByRun: async () => {
-        const items = pages[Math.min(calls, pages.length - 1)] ?? [];
+        const entries = pages[Math.min(calls, pages.length - 1)] ?? [];
         calls += 1;
-        return { items };
+        return { entries, nextPageToken: "" };
       },
     },
   } as unknown as ConformanceClients;

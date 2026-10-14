@@ -14,10 +14,11 @@
  *     copy; its business rules answer the lane's pinned copy before any
  *     row; a failed event is INTERNAL with the row in place;
  *   - get authorizes `can_view` on the invitation itself, never on its
- *     organization; listByOrg answers only what the list read scope allows,
+ *     organization; list answers only what the list read scope allows,
  *     newest first, a page at a time through the library's page loop: a
  *     positive size answers that page and a token that continues it, 0
- *     answers every row and no token, a token is refused for another
+ *     answers the default page of 50, never every row, a token is refused
+ *     for another
  *     organization, and a caller the scope refuses every row gets an empty
  *     page with a token after examining a bounded number of rows;
  *   - revoke asks `can_edit` on the invitation the request names before
@@ -475,7 +476,7 @@ describe("create", () => {
   });
 });
 
-describe("get and listByOrg", () => {
+describe("get and list", () => {
   it("get authorizes can_view on the invitation itself, and an unknown id is NOT_FOUND once authorized", async () => {
     const r = rig();
     await r.store.save(stored({ id: "inv_a" }));
@@ -500,13 +501,13 @@ describe("get and listByOrg", () => {
     expect(error.rawMessage).toBe("unauthorized to view invitation");
   });
 
-  it("listByOrg offers the organization's rows to the list read scope and answers only what it allows", async () => {
+  it("list offers the organization's rows to the list read scope and answers only what it allows", async () => {
     const r = rig({ listable: (id) => id === "inv_visible" });
     await r.store.save(stored({ id: "inv_visible", token: "t1" }));
     await r.store.save(stored({ id: "inv_hidden", token: "t2" }));
     await r.store.save(stored({ id: "inv_elsewhere", token: "t3", org: "globex" }));
 
-    const listed = await r.queries.listByOrg({ org: "acme" });
+    const listed = await r.queries.list({ org: "acme" });
     expect(listed.entries.map((entry) => entry.metadata?.id)).toEqual(["inv_visible"]);
     expect(r.offered[0]?.map((entry) => entry.id).sort()).toEqual(["inv_hidden", "inv_visible"]);
     expect(r.checks[0]).toMatchObject({
@@ -517,7 +518,7 @@ describe("get and listByOrg", () => {
   });
 });
 
-describe("listByOrg's pages", () => {
+describe("list's pages", () => {
   /** `count` rows of acme, `inv_00` the oldest, a minute apart. */
   async function seed(r: Rig, count: number): Promise<string[]> {
     const ids: string[] = [];
@@ -531,7 +532,7 @@ describe("listByOrg's pages", () => {
     return ids.reverse();
   }
 
-  it("answers a page and a token that continues it, newest first, and every row with no token at size 0", async () => {
+  it("answers a page and a token that continues it, newest first", async () => {
     const r = rig();
     const newestFirst = await seed(r, 5);
 
@@ -539,25 +540,33 @@ describe("listByOrg's pages", () => {
     let pageToken = "";
     const tokens: string[] = [];
     do {
-      const page = await r.queries.listByOrg({ org: "acme", pageSize: 2, pageToken });
+      const page = await r.queries.list({ org: "acme", pageSize: 2, pageToken });
       read.push(...page.entries.map((entry) => entry.metadata?.id ?? ""));
       pageToken = page.nextPageToken;
       tokens.push(pageToken);
     } while (pageToken !== "");
     expect(read).toEqual(newestFirst);
     expect(tokens.map((token) => token !== "")).toEqual([true, true, false]);
+  });
 
-    const all = await r.queries.listByOrg({ org: "acme", pageSize: 0, pageToken: "" });
-    expect(all.entries.map((entry) => entry.metadata?.id)).toEqual(newestFirst);
-    expect(all.nextPageToken).toBe("");
+  it("answers the default page of 50 and a token at size 0, never every row", async () => {
+    const r = rig();
+    const newestFirst = await seed(r, 55);
+
+    const first = await r.queries.list({ org: "acme", pageSize: 0, pageToken: "" });
+    expect(first.entries.map((entry) => entry.metadata?.id)).toEqual(newestFirst.slice(0, 50));
+    expect(first.nextPageToken).not.toBe("");
+    const rest = await r.queries.list({ org: "acme", pageSize: 0, pageToken: first.nextPageToken });
+    expect(rest.entries.map((entry) => entry.metadata?.id)).toEqual(newestFirst.slice(50));
+    expect(rest.nextPageToken).toBe("");
   });
 
   it("refuses a token issued for another organization's list", async () => {
     const r = rig();
     await seed(r, 3);
-    const { nextPageToken } = await r.queries.listByOrg({ org: "acme", pageSize: 1, pageToken: "" });
+    const { nextPageToken } = await r.queries.list({ org: "acme", pageSize: 1, pageToken: "" });
 
-    const error = await failure(r.queries.listByOrg({ org: "globex", pageSize: 1, pageToken: nextPageToken }));
+    const error = await failure(r.queries.list({ org: "globex", pageSize: 1, pageToken: nextPageToken }));
     expect(error.code).toBe(Code.InvalidArgument);
     expect(error.rawMessage).toBe("page_token was issued for a different request");
   });
@@ -566,7 +575,7 @@ describe("listByOrg's pages", () => {
     const r = rig({ listable: () => false });
     await seed(r, 120);
 
-    const page = await r.queries.listByOrg({ org: "acme", pageSize: 2, pageToken: "" });
+    const page = await r.queries.list({ org: "acme", pageSize: 2, pageToken: "" });
     expect(page.entries).toEqual([]);
     expect(page.nextPageToken).not.toBe("");
     const examined = r.offered.reduce((sum, batch) => sum + batch.length, 0);

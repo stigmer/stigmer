@@ -59,7 +59,7 @@ OAuthApp oAuthApp = client.oauthapps().get("oapp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 |--------|-------------|
 | [`get`](#get) | Get an OAuth app by its unique identifier. |
 | [`getByReference`](#getbyreference) | Get an OAuth app by its organization-scoped reference (org/slug). |
-| [`listByOrg`](#listbyorg) | List all OAuth apps belonging to an organization. |
+| [`list`](#list) | List the OAuth apps belonging to an organization. |
 | [`apply`](#apply) | Create or update an OAuth app. |
 | [`create`](#create) | Create an OAuth app. |
 | [`update`](#update) | Update an OAuth app: the fields update_mask names change, every other field keeps its stored value. |
@@ -158,46 +158,56 @@ OAuthApp oAuthApp = client.oauthapps().getByReference(ApiResourceReference.build
 
 **Returns**: [`OAuthApp`](#oauthapp)
 
-### listByOrg
+### list
 
-List all OAuth apps belonging to an organization.
+List the OAuth apps belonging to an organization.
 
-Returns the OAuthApps of the input org that the caller may view, newest first. Typically a small set (1-5 per org), so results are not paginated.
+Returns the OAuthApps of the input org that the caller may view, newest first, one page at a time.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const oAuthApps = await stigmer.oauthapp.listByOrg({
+const oAuthApps = await stigmer.oauthapp.list({
   org: "...",
+  pageSize: 0,
+  pageToken: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-oAuthApps, err := client.OAuthApp.ListByOrg(ctx, &stigmer.ListOAuthAppsByOrgInput{
-  Org: "...",
+oAuthApps, err := client.OAuthApp.List(ctx, &stigmer.ListOAuthAppsInput{
+  Org:       "...",
+  PageSize:  0,
+  PageToken: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-o_auth_apps = client.oauthapps.list_by_org(ListOAuthAppsByOrgInput(
+o_auth_apps = client.oauthapps.list(ListOAuthAppsInput(
     org="...",
+    page_size=0,
+    page_token="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-OAuthApps oAuthApps = client.oauthapps().listByOrg(ListOAuthAppsByOrgInput.builder()
+OAuthApps oAuthApps = client.oauthapps().list(ListOAuthAppsInput.builder()
     .org("...")
+    .pageSize(0)
+    .pageToken("...")
     .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`ListOAuthAppsByOrgInput`](#listoauthappsbyorginput)
+**Parameters**: [`ListOAuthAppsInput`](#listoauthappsinput)
 
 **Returns**: [`OAuthApps`](#oauthapps)
+
+**Every page**: `listAll` (Go `ListAll`, Python `list_all`, Java `listAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
 
 ### apply
 
@@ -613,13 +623,15 @@ Generic reference to any API resource.
   }}
 />
 
-### ListOAuthAppsByOrgInput
+### ListOAuthAppsInput
 
-ListOAuthAppsByOrgInput specifies the organization whose OAuth apps should be returned.
+ListOAuthAppsInput specifies the organization whose OAuth apps should be returned.
 
 <TypeTable
   type={{
     org: { type: "string", description: "Organization slug to list OAuth apps for." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 
@@ -630,6 +642,7 @@ OAuthApps contains a list of OAuth app resources.
 <TypeTable
   type={{
     entries: { type: "OAuthAppInput[]", description: "OAuth app entries.", typeDescriptionLink: "#oauthappinput" },
+    nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token to continue." },
   }}
 />
 

@@ -88,6 +88,14 @@
           "description": "Get an agent by its organization-scoped reference (org/slug) with version support.\n Resolves a human-readable reference like \"acme/web-search\" to the full Agent resource.\n\n Version resolution (via ApiResourceReference.version field):\n - Empty/\"latest\" → Returns the current version\n - Tag name (e.g., \"stable\", \"v1.0\") → Resolves to the version with this tag\n - SHA256 hash (64 hex chars) → Returns the exact immutable version"
         },
         {
+          "name": "List",
+          "inputType": "ListAgentsRequest",
+          "inputFullType": "ai.stigmer.agentic.agent.v1.ListAgentsRequest",
+          "outputType": "AgentList",
+          "outputFullType": "ai.stigmer.agentic.agent.v1.AgentList",
+          "description": "List an organization's agents, newest first.\n\n Returns the agents of the input org that the caller may view, one page\n at a time. Search finds agents by their words; list browses them."
+        },
+        {
           "name": "ListVersions",
           "inputType": "ListAgentVersionsInput",
           "inputFullType": "ai.stigmer.agentic.agent.v1.ListAgentVersionsInput",
@@ -106,7 +114,6 @@
       ]
     }
   ],
-  "listVia": "SearchService",
   "methodTypes": [
     {
       "name": "UpdateAgentInput",
@@ -370,6 +377,82 @@
       ]
     },
     {
+      "name": "ListAgentsRequest",
+      "description": "Input for listing an organization's agents, newest first.",
+      "protoType": "ai.stigmer.agentic.agent.v1.ListAgentsRequest",
+      "protoFile": "apis/ai/stigmer/agentic/agent/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization whose agents to list, by id or slug.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
+          }
+        }
+      ]
+    },
+    {
+      "name": "AgentList",
+      "description": "One page of an organization's agents.",
+      "protoType": "ai.stigmer.agentic.agent.v1.AgentList",
+      "protoFile": "apis/ai/stigmer/agentic/agent/v1/io.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "Agent"
+            }
+          },
+          "description": "The agents in this page, newest first.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Set when more entries may follow: pass it as page_token to continue.\n A page may be short, even empty, and still carry a token.",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "ListAgentVersionsInput",
       "description": "ListAgentVersionsInput requests the version history for an agent.\n\n Returns every version, newest first. Used by the console, SDK and CLI to\n render version timelines.",
       "protoType": "ai.stigmer.agentic.agent.v1.ListAgentVersionsInput",
@@ -408,8 +491,11 @@
           "type": {
             "kind": "string"
           },
-          "description": "Opaque token for offset pagination.\n Empty string or omitted for the first page.",
-          "required": false
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
+          }
         },
         {
           "name": "PageSize",
@@ -418,7 +504,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "Maximum number of versions to return per page.\n Server may return fewer. Default is 50, max is 100.",
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
           "required": false
         }
       ]
@@ -430,9 +516,9 @@
       "protoFile": "apis/ai/stigmer/agentic/agent/v1/version.proto",
       "fields": [
         {
-          "name": "Versions",
-          "jsonName": "versions",
-          "protoField": "versions",
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
           "type": {
             "kind": "array",
             "elementType": {
@@ -450,17 +536,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Token for fetching the next page. Empty when no more pages exist.",
-          "required": false
-        },
-        {
-          "name": "TotalCount",
-          "jsonName": "totalCount",
-          "protoField": "total_count",
-          "type": {
-            "kind": "int32"
-          },
-          "description": "Total number of versions across all pages.",
+          "description": "Set when more entries may follow: pass it as page_token to continue.\n A page may be short, even empty, and still carry a token.",
           "required": false
         }
       ]

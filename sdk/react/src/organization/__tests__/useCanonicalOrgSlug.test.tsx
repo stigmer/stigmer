@@ -24,7 +24,7 @@ const orgs = [
 function setup(get: (id: string) => Promise<Organization>) {
   const client = {
     organization: {
-      findMyOrganizations: vi.fn().mockResolvedValue({ entries: orgs }),
+      listMine: vi.fn().mockResolvedValue({ entries: orgs, nextPageToken: "" }),
       get: vi.fn(get),
     },
   };

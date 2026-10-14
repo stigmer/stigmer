@@ -4,9 +4,11 @@ package gen
 
 import (
 	"context"
+	"iter"
 
 	providerkeyv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/providerkey/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 )
 
 // ProviderKeyClient provides operations on providerkey resources.
@@ -35,4 +37,33 @@ func (p *ProviderKeyClient) Delete(ctx context.Context, input *providerkeyv1.Del
 func (p *ProviderKeyClient) List(ctx context.Context, input *providerkeyv1.ListProviderKeysInput) (*providerkeyv1.ListProviderKeysOutput, error) {
 	resp, err := p.query.List(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListAll returns every entry of List, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (p *ProviderKeyClient) ListAll(ctx context.Context, input *providerkeyv1.ListProviderKeysInput) iter.Seq2[*providerkeyv1.ProviderKey, error] {
+	return func(yield func(*providerkeyv1.ProviderKey, error) bool) {
+		req := &providerkeyv1.ListProviderKeysInput{}
+		if input != nil {
+			req = proto.Clone(input).(*providerkeyv1.ListProviderKeysInput)
+		}
+		for {
+			page, err := p.List(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }

@@ -58,6 +58,7 @@ function pluginQuery(artifactStorage: ContentAddressedArchiveStore, staging?: Ar
         logger: silentLogger,
         authorizer: newPermissiveSingleTeamAuthorizer(),
         authorizationLifecycle: undefined,
+        listReadScope: undefined,
         artifactStorage,
         outboundFetch: () => Promise.reject(new Error("no install here")),
         tools: untouchable("tools"),

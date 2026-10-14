@@ -23,7 +23,7 @@ const orgs = [
 function wrapper({ children }: { children: ReactNode }) {
   const client = {
     organization: {
-      findMyOrganizations: vi.fn().mockResolvedValue({ entries: orgs }),
+      listMine: vi.fn().mockResolvedValue({ entries: orgs, nextPageToken: "" }),
     },
   };
   return (

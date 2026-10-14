@@ -113,22 +113,22 @@ describe("AgentChannel conformance — CRUD & identity", () => {
     expect(byRef.metadata?.id).toBe(created.metadata?.id);
 
     const listed = await clients.agentChannelQuery.list({ org });
-    expect(listed.items.some((c) => c.metadata?.id === created.metadata?.id)).toBe(true);
+    expect(listed.entries.some((c) => c.metadata?.id === created.metadata?.id)).toBe(true);
   });
 
-  it("[rpc:AgentChannelQueryController.getByAgent] getByAgent returns the agent's channels; an unknown agent id yields an empty list, not an error", async () => {
+  it("[rpc:AgentChannelQueryController.listByAgent] listByAgent returns the agent's channels; an unknown agent id yields an empty list, not an error", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const created = await createChannelFixture(org, agent.metadata!.slug);
 
-    const channels = await clients.agentChannelQuery.getByAgent({ agentId: agent.metadata!.id });
-    expect(channels.items.some((c) => c.metadata?.id === created.metadata?.id)).toBe(true);
+    const channels = await clients.agentChannelQuery.listByAgent({ agentId: agent.metadata!.id });
+    expect(channels.entries.some((c) => c.metadata?.id === created.metadata?.id)).toBe(true);
 
     // "No channels" is the useful answer for the integrations surface
     // whether the agent is unknown or merely channel-less.
-    const none = await clients.agentChannelQuery.getByAgent({ agentId: "agent_01confmissing" });
-    expect(none.totalCount).toBe(0);
-    expect(none.items).toHaveLength(0);
+    const none = await clients.agentChannelQuery.listByAgent({ agentId: "agent_01confmissing" });
+    expect(none.nextPageToken).toBe("");
+    expect(none.entries).toHaveLength(0);
   });
 
   it("[rpc:AgentChannelCommandController.update] update flips mutable fields (enabled) and preserves identity", async () => {
@@ -446,20 +446,22 @@ describe("AgentChannel conformance — conversation lanes", () => {
   // fabricated channel id fails closed in authorization (PermissionDenied,
   // no existence leak) before any handler runs, so only an owned channel
   // reaches the shared truthful-emptiness contract on both editions.
-  it("[rpc:ChannelConversationQueryController.listConversations] [rpc:ChannelConversationQueryController.getTimeline] discovery reads answer truthful emptiness (no conversation traffic exists)", async () => {
+  it("[rpc:ChannelConversationQueryController.list] [rpc:ChannelConversationQueryController.countConversations] [rpc:ChannelConversationQueryController.listTimeline] discovery reads answer truthful emptiness (no conversation traffic exists)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const channel = await createChannelFixture(org, agent.metadata!.slug);
 
-    const conversations = await clients.channelConversationQuery.listConversations({ org });
-    expect(conversations.totalCount).toBe(0);
-    expect(conversations.items).toHaveLength(0);
+    const conversations = await clients.channelConversationQuery.list({ org });
+    expect(conversations.entries).toHaveLength(0);
+    expect(conversations.nextPageToken).toBe("");
+    const count = await clients.channelConversationQuery.countConversations({ org });
+    expect(count.count).toBe(0);
 
-    const timeline = await clients.channelConversationQuery.getTimeline({
+    const timeline = await clients.channelConversationQuery.listTimeline({
       agentChannelId: channel.metadata!.id,
       conversationKey: "conf-conversation",
     });
-    expect(timeline.items ?? []).toHaveLength(0);
+    expect(timeline.entries ?? []).toHaveLength(0);
   });
 
   it("[rpc:ChannelConversationQueryController.getConversation] [rpc:ChannelConversationQueryController.getMediaDownloadUrl] single-row reads answer uniform NotFound (no local probing, no existence leak)", async () => {

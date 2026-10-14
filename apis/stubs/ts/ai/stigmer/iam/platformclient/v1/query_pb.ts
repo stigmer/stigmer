@@ -10,14 +10,14 @@ import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../.
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
 import type { PlatformClientSchema } from "./api_pb.js";
 import { file_ai_stigmer_iam_platformclient_v1_api } from "./api_pb.js";
-import type { ListPlatformClientsByOrgInputSchema, PlatformClientsSchema } from "./io_pb.js";
+import type { ListPlatformClientsInputSchema, PlatformClientsSchema } from "./io_pb.js";
 import { file_ai_stigmer_iam_platformclient_v1_io } from "./io_pb.js";
 
 /**
  * Describes the file ai/stigmer/iam/platformclient/v1/query.proto.
  */
 export const file_ai_stigmer_iam_platformclient_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS9xdWVyeS5wcm90bxIgYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEykgQKHVBsYXRmb3JtQ2xpZW50UXVlcnlDb250cm9sbGVyEp0BCgNnZXQSLS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VJZBowLmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLlBsYXRmb3JtQ2xpZW50IjXCuBgxCAEQFyIFdmFsdWUqJHVuYXV0aG9yaXplZCB0byB2aWV3IHBsYXRmb3JtIGNsaWVudBJ+Cg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRowLmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLlBsYXRmb3JtQ2xpZW50IgTQuBgBEsoBCglsaXN0QnlPcmcSPy5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5MaXN0UGxhdGZvcm1DbGllbnRzQnlPcmdJbnB1dBoxLmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLlBsYXRmb3JtQ2xpZW50cyJJwrgYRQgBEB4iA29yZyo6dW5hdXRob3JpemVkIHRvIGxpc3QgcGxhdGZvcm0gY2xpZW50cyBpbiB0aGlzIG9yZ2FuaXphdGlvbhoEoP8rF2IGcHJvdG8z", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_platformclient_v1_api, file_ai_stigmer_iam_platformclient_v1_io]);
+  fileDesc("CixhaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS9xdWVyeS5wcm90bxIgYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEyiAQKHVBsYXRmb3JtQ2xpZW50UXVlcnlDb250cm9sbGVyEp0BCgNnZXQSLS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VJZBowLmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLlBsYXRmb3JtQ2xpZW50IjXCuBgxCAEQFyIFdmFsdWUqJHVuYXV0aG9yaXplZCB0byB2aWV3IHBsYXRmb3JtIGNsaWVudBJ+Cg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRowLmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLlBsYXRmb3JtQ2xpZW50IgTQuBgBEsABCgRsaXN0EjouYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuTGlzdFBsYXRmb3JtQ2xpZW50c0lucHV0GjEuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuUGxhdGZvcm1DbGllbnRzIknCuBhFCAEQHiIDb3JnKjp1bmF1dGhvcml6ZWQgdG8gbGlzdCBwbGF0Zm9ybSBjbGllbnRzIGluIHRoaXMgb3JnYW5pemF0aW9uGgSg/ysXYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_platformclient_v1_api, file_ai_stigmer_iam_platformclient_v1_io]);
 
 /**
  * PlatformClientQueryController provides read operations for platform client resources.
@@ -49,16 +49,16 @@ export const PlatformClientQueryController: GenService<{
     output: typeof PlatformClientSchema;
   },
   /**
-   * List all platform clients belonging to an organization.
+   * List the platform clients belonging to an organization.
    *
    * Returns the PlatformClients of the input org that the caller may view,
-   * newest first. Typically a small set per org, so results are not paginated.
+   * newest first, one page at a time.
    *
-   * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientQueryController.listByOrg
+   * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientQueryController.list
    */
-  listByOrg: {
+  list: {
     methodKind: "unary";
-    input: typeof ListPlatformClientsByOrgInputSchema;
+    input: typeof ListPlatformClientsInputSchema;
     output: typeof PlatformClientsSchema;
   },
 }> = /*@__PURE__*/

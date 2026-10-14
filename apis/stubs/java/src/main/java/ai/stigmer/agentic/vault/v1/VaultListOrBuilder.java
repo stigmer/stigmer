@@ -12,55 +12,67 @@ public interface VaultListOrBuilder extends
 
   /**
    * <pre>
-   * Total count of matching vaults.
+   * Vaults in the current page.
    * </pre>
    *
-   * <code>int32 total_count = 1 [json_name = "totalCount"];</code>
-   * @return The totalCount.
+   * <code>repeated .ai.stigmer.agentic.vault.v1.Vault entries = 2 [json_name = "entries"];</code>
    */
-  int getTotalCount();
+  java.util.List<ai.stigmer.agentic.vault.v1.Vault> 
+      getEntriesList();
+  /**
+   * <pre>
+   * Vaults in the current page.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.Vault entries = 2 [json_name = "entries"];</code>
+   */
+  ai.stigmer.agentic.vault.v1.Vault getEntries(int index);
+  /**
+   * <pre>
+   * Vaults in the current page.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.Vault entries = 2 [json_name = "entries"];</code>
+   */
+  int getEntriesCount();
+  /**
+   * <pre>
+   * Vaults in the current page.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.Vault entries = 2 [json_name = "entries"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.vault.v1.VaultOrBuilder> 
+      getEntriesOrBuilderList();
+  /**
+   * <pre>
+   * Vaults in the current page.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.Vault entries = 2 [json_name = "entries"];</code>
+   */
+  ai.stigmer.agentic.vault.v1.VaultOrBuilder getEntriesOrBuilder(
+      int index);
 
   /**
    * <pre>
-   * Vaults in the current page.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.vault.v1.Vault items = 2 [json_name = "items"];</code>
+   * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+   * @return The nextPageToken.
    */
-  java.util.List<ai.stigmer.agentic.vault.v1.Vault> 
-      getItemsList();
+  java.lang.String getNextPageToken();
   /**
    * <pre>
-   * Vaults in the current page.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.vault.v1.Vault items = 2 [json_name = "items"];</code>
+   * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+   * @return The bytes for nextPageToken.
    */
-  ai.stigmer.agentic.vault.v1.Vault getItems(int index);
-  /**
-   * <pre>
-   * Vaults in the current page.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.vault.v1.Vault items = 2 [json_name = "items"];</code>
-   */
-  int getItemsCount();
-  /**
-   * <pre>
-   * Vaults in the current page.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.vault.v1.Vault items = 2 [json_name = "items"];</code>
-   */
-  java.util.List<? extends ai.stigmer.agentic.vault.v1.VaultOrBuilder> 
-      getItemsOrBuilderList();
-  /**
-   * <pre>
-   * Vaults in the current page.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.vault.v1.Vault items = 2 [json_name = "items"];</code>
-   */
-  ai.stigmer.agentic.vault.v1.VaultOrBuilder getItemsOrBuilder(
-      int index);
+  com.google.protobuf.ByteString
+      getNextPageTokenBytes();
 }

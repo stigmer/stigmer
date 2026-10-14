@@ -587,14 +587,14 @@ describe("list", () => {
     const benMine = await queries(BEN).getMine({ org: ORG });
 
     const anas = await queries(ANA).list({ org: ORG });
-    const ids = anas.items.map((vault) => vault.metadata?.id);
+    const ids = anas.entries.map((vault) => vault.metadata?.id);
     expect(ids).toContain(anaMine.metadata?.id);
     expect(ids).not.toContain(benMine.metadata?.id);
-    expect(anas.items.some((vault) => personOf(vault) === undefined)).toBe(true);
-    for (const vault of anas.items) {
+    expect(anas.entries.some((vault) => personOf(vault) === undefined)).toBe(true);
+    for (const vault of anas.entries) {
       expectNoValues(vault);
     }
-    expect(anas.totalCount).toBe(anas.items.length);
+    expect(anas.nextPageToken).toBe("");
   });
 
   it("nobody reads another person's My vault by id, an admin included", async () => {

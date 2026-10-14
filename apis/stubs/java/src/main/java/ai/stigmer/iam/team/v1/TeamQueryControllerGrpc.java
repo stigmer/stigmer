@@ -80,35 +80,35 @@ public final class TeamQueryControllerGrpc {
     return getGetByReferenceMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.team.v1.ListTeamsByOrgInput,
-      ai.stigmer.iam.team.v1.Teams> getListByOrgMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.team.v1.ListTeamsInput,
+      ai.stigmer.iam.team.v1.Teams> getListMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "listByOrg",
-      requestType = ai.stigmer.iam.team.v1.ListTeamsByOrgInput.class,
+      fullMethodName = SERVICE_NAME + '/' + "list",
+      requestType = ai.stigmer.iam.team.v1.ListTeamsInput.class,
       responseType = ai.stigmer.iam.team.v1.Teams.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.iam.team.v1.ListTeamsByOrgInput,
-      ai.stigmer.iam.team.v1.Teams> getListByOrgMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.iam.team.v1.ListTeamsByOrgInput, ai.stigmer.iam.team.v1.Teams> getListByOrgMethod;
-    if ((getListByOrgMethod = TeamQueryControllerGrpc.getListByOrgMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.team.v1.ListTeamsInput,
+      ai.stigmer.iam.team.v1.Teams> getListMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.iam.team.v1.ListTeamsInput, ai.stigmer.iam.team.v1.Teams> getListMethod;
+    if ((getListMethod = TeamQueryControllerGrpc.getListMethod) == null) {
       synchronized (TeamQueryControllerGrpc.class) {
-        if ((getListByOrgMethod = TeamQueryControllerGrpc.getListByOrgMethod) == null) {
-          TeamQueryControllerGrpc.getListByOrgMethod = getListByOrgMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.iam.team.v1.ListTeamsByOrgInput, ai.stigmer.iam.team.v1.Teams>newBuilder()
+        if ((getListMethod = TeamQueryControllerGrpc.getListMethod) == null) {
+          TeamQueryControllerGrpc.getListMethod = getListMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.team.v1.ListTeamsInput, ai.stigmer.iam.team.v1.Teams>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listByOrg"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "list"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.iam.team.v1.ListTeamsByOrgInput.getDefaultInstance()))
+                  ai.stigmer.iam.team.v1.ListTeamsInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.iam.team.v1.Teams.getDefaultInstance()))
-              .setSchemaDescriptor(new TeamQueryControllerMethodDescriptorSupplier("listByOrg"))
+              .setSchemaDescriptor(new TeamQueryControllerMethodDescriptorSupplier("list"))
               .build();
         }
       }
     }
-    return getListByOrgMethod;
+    return getListMethod;
   }
 
   /**
@@ -202,12 +202,12 @@ public final class TeamQueryControllerGrpc {
 
     /**
      * <pre>
-     * List the teams of an organization.
+     * List the teams of an organization, newest first.
      * </pre>
      */
-    default void listByOrg(ai.stigmer.iam.team.v1.ListTeamsByOrgInput request,
+    default void list(ai.stigmer.iam.team.v1.ListTeamsInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.team.v1.Teams> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListByOrgMethod(), responseObserver);
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListMethod(), responseObserver);
     }
   }
 
@@ -274,13 +274,13 @@ public final class TeamQueryControllerGrpc {
 
     /**
      * <pre>
-     * List the teams of an organization.
+     * List the teams of an organization, newest first.
      * </pre>
      */
-    public void listByOrg(ai.stigmer.iam.team.v1.ListTeamsByOrgInput request,
+    public void list(ai.stigmer.iam.team.v1.ListTeamsInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.team.v1.Teams> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getListByOrgMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getListMethod(), getCallOptions()), request, responseObserver);
     }
   }
 
@@ -328,12 +328,12 @@ public final class TeamQueryControllerGrpc {
 
     /**
      * <pre>
-     * List the teams of an organization.
+     * List the teams of an organization, newest first.
      * </pre>
      */
-    public ai.stigmer.iam.team.v1.Teams listByOrg(ai.stigmer.iam.team.v1.ListTeamsByOrgInput request) throws io.grpc.StatusException {
+    public ai.stigmer.iam.team.v1.Teams list(ai.stigmer.iam.team.v1.ListTeamsInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getListByOrgMethod(), getCallOptions(), request);
+          getChannel(), getListMethod(), getCallOptions(), request);
     }
   }
 
@@ -381,12 +381,12 @@ public final class TeamQueryControllerGrpc {
 
     /**
      * <pre>
-     * List the teams of an organization.
+     * List the teams of an organization, newest first.
      * </pre>
      */
-    public ai.stigmer.iam.team.v1.Teams listByOrg(ai.stigmer.iam.team.v1.ListTeamsByOrgInput request) {
+    public ai.stigmer.iam.team.v1.Teams list(ai.stigmer.iam.team.v1.ListTeamsInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getListByOrgMethod(), getCallOptions(), request);
+          getChannel(), getListMethod(), getCallOptions(), request);
     }
   }
 
@@ -436,19 +436,19 @@ public final class TeamQueryControllerGrpc {
 
     /**
      * <pre>
-     * List the teams of an organization.
+     * List the teams of an organization, newest first.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.team.v1.Teams> listByOrg(
-        ai.stigmer.iam.team.v1.ListTeamsByOrgInput request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.team.v1.Teams> list(
+        ai.stigmer.iam.team.v1.ListTeamsInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getListByOrgMethod(), getCallOptions()), request);
+          getChannel().newCall(getListMethod(), getCallOptions()), request);
     }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_GET_BY_REFERENCE = 1;
-  private static final int METHODID_LIST_BY_ORG = 2;
+  private static final int METHODID_LIST = 2;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -475,8 +475,8 @@ public final class TeamQueryControllerGrpc {
           serviceImpl.getByReference((ai.stigmer.commons.apiresource.ApiResourceReference) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.team.v1.Team>) responseObserver);
           break;
-        case METHODID_LIST_BY_ORG:
-          serviceImpl.listByOrg((ai.stigmer.iam.team.v1.ListTeamsByOrgInput) request,
+        case METHODID_LIST:
+          serviceImpl.list((ai.stigmer.iam.team.v1.ListTeamsInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.team.v1.Teams>) responseObserver);
           break;
         default:
@@ -512,12 +512,12 @@ public final class TeamQueryControllerGrpc {
               ai.stigmer.iam.team.v1.Team>(
                 service, METHODID_GET_BY_REFERENCE)))
         .addMethod(
-          getListByOrgMethod(),
+          getListMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.iam.team.v1.ListTeamsByOrgInput,
+              ai.stigmer.iam.team.v1.ListTeamsInput,
               ai.stigmer.iam.team.v1.Teams>(
-                service, METHODID_LIST_BY_ORG)))
+                service, METHODID_LIST)))
         .build();
   }
 
@@ -568,7 +568,7 @@ public final class TeamQueryControllerGrpc {
               .setSchemaDescriptor(new TeamQueryControllerFileDescriptorSupplier())
               .addMethod(getGetMethod())
               .addMethod(getGetByReferenceMethod())
-              .addMethod(getListByOrgMethod())
+              .addMethod(getListMethod())
               .build();
         }
       }

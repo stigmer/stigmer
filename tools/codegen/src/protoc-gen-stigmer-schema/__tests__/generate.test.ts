@@ -3,8 +3,10 @@
  * @stigmer/protos: a resource's Spec message becomes one schema under its
  * namespace and subdomain, named for the message less "Spec", every type it
  * reaches lands under that resource's `types/`, and the spec's fields are the
- * ones the committed schema tree (tools/codegen/schemas) holds. Comments are
- * not under test here (the descriptors carry no source info).
+ * ones the committed schema tree (tools/codegen/schemas) holds. A resource's
+ * services become one service schema, and search's its own; neither names a
+ * service a resource lists through, since every kind lists by its own RPC.
+ * Comments are not under test here (the descriptors carry no source info).
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -14,8 +16,10 @@ import {
   FileDescriptorSetSchema,
   type FileDescriptorProto,
 } from "@bufbuild/protobuf/wkt";
+import { file_ai_stigmer_agentic_agent_v1_query } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { file_ai_stigmer_agentic_agent_v1_spec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_group } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_group_pb";
+import { file_ai_stigmer_search_v1_query } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 import { describe, expect, it } from "vitest";
 
 import { CommentIndex } from "../comments.js";
@@ -34,11 +38,12 @@ function closure(
   return seen;
 }
 
-function generate() {
-  const roots = [
+function generate(
+  roots: readonly DescFile[] = [
     file_ai_stigmer_agentic_agent_v1_spec,
     file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_group,
-  ];
+  ],
+) {
   const registry = createFileRegistry(
     create(FileDescriptorSetSchema, { file: [...closure(roots).values()] }),
   );
@@ -89,5 +94,19 @@ describe("the schema plugin's resource output", () => {
     expect(generated.fields.map((field) => field.name)).toEqual(
       committed.fields.map((field) => field.name),
     );
+  });
+
+  it("writes a resource's services and search's as service schemas, naming no list-through service", () => {
+    const files = generate([
+      file_ai_stigmer_agentic_agent_v1_spec,
+      file_ai_stigmer_agentic_agent_v1_query,
+      file_ai_stigmer_search_v1_query,
+      file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_group,
+    ]);
+    for (const name of ["services/agent.json", "services/search.json"]) {
+      const file = files.find((candidate) => candidate.name === name);
+      expect(file, name).toBeDefined();
+      expect(JSON.parse(file!.content)).not.toHaveProperty("listVia");
+    }
   });
 });

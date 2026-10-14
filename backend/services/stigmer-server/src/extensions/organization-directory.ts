@@ -1,17 +1,15 @@
 /**
- * The organization-directory extension point. Two organization query behaviors
- * fork between editions — the forks are named vocabulary as the
- * conformance capability flags, and this port is their ONE seam:
+ * The organization-directory extension point. One organization query
+ * behavior forks between editions — the fork is named vocabulary as a
+ * conformance capability flag, and this port is its ONE seam:
  *
- *   - `find` (org enumeration; capability `organizationEnumeration`):
- *     the trusted-local laptop enumerates freely; the cloud — and open
- *     source under the built-in authorization posture — refuses with
- *     UNIMPLEMENTED (no caller may list organizations they hold no role
- *     in; `find` is skip-authorization by annotation, so the refusal is
- *     the only thing standing between a member and every row).
- *   - `findMyOrganizations` (capability `multiTenant`): the trusted-local
- *     laptop answers ALL organizations (single-user semantics); the cloud
- *     and the built-in directory filter to what the caller may view.
+ *   - `listMine` (capability `multiTenant`): the trusted-local laptop
+ *     answers ALL organizations (single-user semantics); the cloud and
+ *     the built-in directory filter to what the caller may view.
+ *
+ * Organization enumeration (`find`) was removed with the one list shape
+ * (2026-10-14): no caller used it, and every edition that authorizes
+ * refused it.
  *
  * No directory composed = the trusted-local behavior, byte-identical; the
  * built-in directory (authorization/organization-directory.ts) composes
@@ -30,12 +28,7 @@ export const ALL_ORGANIZATIONS = "all";
 /** The directory contract (single-instance point, ExtensionDrivers.organizationDirectory). */
 export interface OrganizationDirectory {
   /**
-   * When true, `find` refuses org enumeration with UNIMPLEMENTED before
-   * any store read (the cloud posture).
-   */
-  readonly refusesEnumeration: boolean;
-  /**
-   * The org ids the caller may see in findMyOrganizations, or
+   * The org ids the caller may see in listMine, or
    * ALL_ORGANIZATIONS for unfiltered results. Ids the store no longer
    * holds are skipped by the controller (grants can outlive rows).
    */

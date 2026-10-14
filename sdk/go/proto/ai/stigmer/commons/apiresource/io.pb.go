@@ -9,7 +9,6 @@ package apiresource
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
-	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -189,88 +188,6 @@ func (x *ApiResourceByOrgBySlugRequest) GetSlug() string {
 	return ""
 }
 
-// Input for find (list) operations with pagination
-type FindApiResourcesRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Organization to filter by, by id or slug
-	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// API resource kind (optional filter)
-	Kind string `protobuf:"bytes,3,opt,name=kind,proto3" json:"kind,omitempty"`
-	// Pagination info
-	Page *rpc.PageInfo `protobuf:"bytes,4,opt,name=page,proto3" json:"page,omitempty"`
-	// Page number (1-indexed) - deprecated, use page.num
-	PageNumber int32 `protobuf:"varint,5,opt,name=page_number,json=pageNumber,proto3" json:"page_number,omitempty"`
-	// Number of items per page (default: 20, max: 100) - deprecated, use page.size
-	PageSize      int32 `protobuf:"varint,6,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *FindApiResourcesRequest) Reset() {
-	*x = FindApiResourcesRequest{}
-	mi := &file_ai_stigmer_commons_apiresource_io_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *FindApiResourcesRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*FindApiResourcesRequest) ProtoMessage() {}
-
-func (x *FindApiResourcesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_commons_apiresource_io_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use FindApiResourcesRequest.ProtoReflect.Descriptor instead.
-func (*FindApiResourcesRequest) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_commons_apiresource_io_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *FindApiResourcesRequest) GetOrg() string {
-	if x != nil {
-		return x.Org
-	}
-	return ""
-}
-
-func (x *FindApiResourcesRequest) GetKind() string {
-	if x != nil {
-		return x.Kind
-	}
-	return ""
-}
-
-func (x *FindApiResourcesRequest) GetPage() *rpc.PageInfo {
-	if x != nil {
-		return x.Page
-	}
-	return nil
-}
-
-func (x *FindApiResourcesRequest) GetPageNumber() int32 {
-	if x != nil {
-		return x.PageNumber
-	}
-	return 0
-}
-
-func (x *FindApiResourcesRequest) GetPageSize() int32 {
-	if x != nil {
-		return x.PageSize
-	}
-	return 0
-}
-
 // Input for updating the visibility of any API resource.
 //
 // Used by resource-specific command controllers to change visibility.
@@ -307,7 +224,7 @@ type UpdateVisibilityInput struct {
 
 func (x *UpdateVisibilityInput) Reset() {
 	*x = UpdateVisibilityInput{}
-	mi := &file_ai_stigmer_commons_apiresource_io_proto_msgTypes[4]
+	mi := &file_ai_stigmer_commons_apiresource_io_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -319,7 +236,7 @@ func (x *UpdateVisibilityInput) String() string {
 func (*UpdateVisibilityInput) ProtoMessage() {}
 
 func (x *UpdateVisibilityInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_commons_apiresource_io_proto_msgTypes[4]
+	mi := &file_ai_stigmer_commons_apiresource_io_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -332,7 +249,7 @@ func (x *UpdateVisibilityInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateVisibilityInput.ProtoReflect.Descriptor instead.
 func (*UpdateVisibilityInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_commons_apiresource_io_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_commons_apiresource_io_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *UpdateVisibilityInput) GetResourceId() string {
@@ -368,7 +285,7 @@ type RenameInput struct {
 
 func (x *RenameInput) Reset() {
 	*x = RenameInput{}
-	mi := &file_ai_stigmer_commons_apiresource_io_proto_msgTypes[5]
+	mi := &file_ai_stigmer_commons_apiresource_io_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -380,7 +297,7 @@ func (x *RenameInput) String() string {
 func (*RenameInput) ProtoMessage() {}
 
 func (x *RenameInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_commons_apiresource_io_proto_msgTypes[5]
+	mi := &file_ai_stigmer_commons_apiresource_io_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -393,7 +310,7 @@ func (x *RenameInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenameInput.ProtoReflect.Descriptor instead.
 func (*RenameInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_commons_apiresource_io_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_commons_apiresource_io_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *RenameInput) GetResourceId() string {
@@ -490,7 +407,7 @@ type ApiResourceReference struct {
 
 func (x *ApiResourceReference) Reset() {
 	*x = ApiResourceReference{}
-	mi := &file_ai_stigmer_commons_apiresource_io_proto_msgTypes[6]
+	mi := &file_ai_stigmer_commons_apiresource_io_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -502,7 +419,7 @@ func (x *ApiResourceReference) String() string {
 func (*ApiResourceReference) ProtoMessage() {}
 
 func (x *ApiResourceReference) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_commons_apiresource_io_proto_msgTypes[6]
+	mi := &file_ai_stigmer_commons_apiresource_io_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -515,7 +432,7 @@ func (x *ApiResourceReference) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApiResourceReference.ProtoReflect.Descriptor instead.
 func (*ApiResourceReference) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_commons_apiresource_io_proto_rawDescGZIP(), []int{6}
+	return file_ai_stigmer_commons_apiresource_io_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ApiResourceReference) GetOrg() string {
@@ -557,7 +474,7 @@ var File_ai_stigmer_commons_apiresource_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_commons_apiresource_io_proto_rawDesc = "" +
 	"\n" +
-	"'ai/stigmer/commons/apiresource/io.proto\x12\x1eai.stigmer.commons.apiresource\x1aFai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\"-\n" +
+	"'ai/stigmer/commons/apiresource/io.proto\x12\x1eai.stigmer.commons.apiresource\x1aFai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\"-\n" +
 	"\rApiResourceId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x80\x01\n" +
 	"\x16ApiResourceDeleteInput\x12'\n" +
@@ -567,14 +484,7 @@ const file_ai_stigmer_commons_apiresource_io_proto_rawDesc = "" +
 	"\x05force\x18\x03 \x01(\bR\x05force\"U\n" +
 	"\x1dApiResourceByOrgBySlugRequest\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1a\n" +
-	"\x04slug\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04slug\"\xbb\x01\n" +
-	"\x17FindApiResourcesRequest\x12\x18\n" +
-	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x12\n" +
-	"\x04kind\x18\x03 \x01(\tR\x04kind\x124\n" +
-	"\x04page\x18\x04 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\x04page\x12\x1f\n" +
-	"\vpage_number\x18\x05 \x01(\x05R\n" +
-	"pageNumber\x12\x1b\n" +
-	"\tpage_size\x18\x06 \x01(\x05R\bpageSize\"\xa3\x01\n" +
+	"\x04slug\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04slug\"\xa3\x01\n" +
 	"\x15UpdateVisibilityInput\x12'\n" +
 	"\vresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"resourceId\x12a\n" +
@@ -607,28 +517,25 @@ func file_ai_stigmer_commons_apiresource_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_commons_apiresource_io_proto_rawDescData
 }
 
-var file_ai_stigmer_commons_apiresource_io_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_ai_stigmer_commons_apiresource_io_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_ai_stigmer_commons_apiresource_io_proto_goTypes = []any{
 	(*ApiResourceId)(nil),                 // 0: ai.stigmer.commons.apiresource.ApiResourceId
 	(*ApiResourceDeleteInput)(nil),        // 1: ai.stigmer.commons.apiresource.ApiResourceDeleteInput
 	(*ApiResourceByOrgBySlugRequest)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceByOrgBySlugRequest
-	(*FindApiResourcesRequest)(nil),       // 3: ai.stigmer.commons.apiresource.FindApiResourcesRequest
-	(*UpdateVisibilityInput)(nil),         // 4: ai.stigmer.commons.apiresource.UpdateVisibilityInput
-	(*RenameInput)(nil),                   // 5: ai.stigmer.commons.apiresource.RenameInput
-	(*ApiResourceReference)(nil),          // 6: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*rpc.PageInfo)(nil),                  // 7: ai.stigmer.commons.rpc.PageInfo
-	(ApiResourceVisibility)(0),            // 8: ai.stigmer.commons.apiresource.ApiResourceVisibility
-	(apiresourcekind.ApiResourceKind)(0),  // 9: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
+	(*UpdateVisibilityInput)(nil),         // 3: ai.stigmer.commons.apiresource.UpdateVisibilityInput
+	(*RenameInput)(nil),                   // 4: ai.stigmer.commons.apiresource.RenameInput
+	(*ApiResourceReference)(nil),          // 5: ai.stigmer.commons.apiresource.ApiResourceReference
+	(ApiResourceVisibility)(0),            // 6: ai.stigmer.commons.apiresource.ApiResourceVisibility
+	(apiresourcekind.ApiResourceKind)(0),  // 7: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
 }
 var file_ai_stigmer_commons_apiresource_io_proto_depIdxs = []int32{
-	7, // 0: ai.stigmer.commons.apiresource.FindApiResourcesRequest.page:type_name -> ai.stigmer.commons.rpc.PageInfo
-	8, // 1: ai.stigmer.commons.apiresource.UpdateVisibilityInput.visibility:type_name -> ai.stigmer.commons.apiresource.ApiResourceVisibility
-	9, // 2: ai.stigmer.commons.apiresource.ApiResourceReference.kind:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	6, // 0: ai.stigmer.commons.apiresource.UpdateVisibilityInput.visibility:type_name -> ai.stigmer.commons.apiresource.ApiResourceVisibility
+	7, // 1: ai.stigmer.commons.apiresource.ApiResourceReference.kind:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_commons_apiresource_io_proto_init() }
@@ -643,7 +550,7 @@ func file_ai_stigmer_commons_apiresource_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_commons_apiresource_io_proto_rawDesc), len(file_ai_stigmer_commons_apiresource_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

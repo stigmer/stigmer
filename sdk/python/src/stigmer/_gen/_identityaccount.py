@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Iterator
 
 import grpc
 
@@ -106,11 +107,23 @@ class IdentityAccountClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def list_service_accounts(self, input: io_pb2.ListWithIdentityOrg) -> io_pb2.IdentityAccountsList:
+    def list_service_accounts(self, input: io_pb2.ListServiceAccountsInput) -> io_pb2.IdentityAccountsList:
         try:
             return self._query.listServiceAccounts(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
+
+    def list_service_accounts_all(self, input: io_pb2.ListServiceAccountsInput) -> Iterator[api_pb2.IdentityAccount]:
+        """Every entry of ``list_service_accounts``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListServiceAccountsInput()
+        request.CopyFrom(input)
+        while True:
+            page = self.list_service_accounts(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
 
     def get_actor_info(self, id: str) -> io_pb2.ApiResourceAuditActor:
         try:

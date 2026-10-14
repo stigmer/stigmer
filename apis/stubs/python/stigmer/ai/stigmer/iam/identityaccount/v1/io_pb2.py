@@ -24,14 +24,13 @@ _sym_db = _symbol_database.Default()
 
 from ai.stigmer.commons.apiresource import field_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_field__options__pb2
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
-from ai.stigmer.commons.rpc import pagination_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_pagination__pb2
 from ai.stigmer.iam.identityaccount.v1 import api_pb2 as ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2
 from ai.stigmer.iam.v1 import enum_pb2 as ai_dot_stigmer_dot_iam_dot_v1_dot_enum__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import field_mask_pb2 as google_dot_protobuf_dot_field__mask__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/iam/identityaccount/v1/io.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\'ai/stigmer/commons/rpc/pagination.proto\x1a+ai/stigmer/iam/identityaccount/v1/api.proto\x1a\x1c\x61i/stigmer/iam/v1/enum.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"`\n\x10IdentityAccounts\x12L\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\x32.ai.stigmer.iam.identityaccount.v1.IdentityAccountR\x07\x65ntries\"1\n\x11IdentityAccountId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"4\n\x14IdentityAccountEmail\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"%\n\x05IdpId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x84\x01\n\x1cListWithIdentityAccountIdReq\x12.\n\x13identity_account_id\x18\x01 \x01(\tR\x11identityAccountId\x12\x34\n\x04page\x18\x02 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x04page\"\x85\x01\n\x14IdentityAccountsList\x12\x1f\n\x0btotal_pages\x18\x01 \x01(\x05R\ntotalPages\x12L\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x32.ai.stigmer.iam.identityaccount.v1.IdentityAccountR\x07\x65ntries\"]\n\x13ListWithIdentityOrg\x12\x10\n\x03org\x18\x01 \x01(\tR\x03org\x12\x34\n\x04page\x18\x02 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x04page\"\xc8\x01\n\x11\x45xternalSubLookup\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12n\n\x15identity_provider_ref\x18\x02 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13identityProviderRef\x12)\n\x0c\x65xternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0b\x65xternalSub\"\xcd\x02\n\x1b\x43reateFederatedAccountInput\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12n\n\x15identity_provider_ref\x18\x02 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13identityProviderRef\x12)\n\x0c\x65xternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0b\x65xternalSub\x12\x1c\n\x05\x65mail\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05\x65mail\x12\x1d\n\nfirst_name\x18\x05 \x01(\tR\tfirstName\x12\x1b\n\tlast_name\x18\x06 \x01(\tR\x08lastName\x12\x1f\n\x0bpicture_url\x18\x07 \x01(\tR\npictureUrl\"\xcd\x02\n\x1bUpdateFederatedAccountInput\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12n\n\x15identity_provider_ref\x18\x02 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13identityProviderRef\x12)\n\x0c\x65xternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0b\x65xternalSub\x12\x1c\n\x05\x65mail\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05\x65mail\x12\x1d\n\nfirst_name\x18\x05 \x01(\tR\tfirstName\x12\x1b\n\tlast_name\x18\x06 \x01(\tR\x08lastName\x12\x1f\n\x0bpicture_url\x18\x07 \x01(\tR\npictureUrl\"\xfe\x01\n DeprovisionFederatedAccountInput\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12n\n\x15identity_provider_ref\x18\x02 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13identityProviderRef\x12)\n\x0c\x65xternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0b\x65xternalSub\x12%\n\x0e\x64\x65lete_account\x18\x04 \x01(\x08R\rdeleteAccount\"\xb9\x02\n\x19\x43reateServiceAccountInput\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1f\n\x04name\x18\x02 \x01(\tB\x0b\xbaH\x08r\x03\x18\x80\x01\xc8\x01\x01R\x04name\x12.\n\x04role\x18\x03 \x01(\x0e\x32\x1a.ai.stigmer.iam.v1.IamRoleR\x04role:\xb0\x01\xbaH\xac\x01\x1a\xa9\x01\n\x1eservice_account.role_not_owner\x12Srole must be admin, member or viewer; a service account never owns its organization\x1a\x32this.role == 2 || this.role == 3 || this.role == 4\"\x84\x03\n\x1aUpdateIdentityAccountInput\x12V\n\x08resource\x18\x01 \x01(\x0b\x32\x32.ai.stigmer.iam.identityaccount.v1.IdentityAccountB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xc8\x01\xbaH\xc4\x01\x1a\xc1\x01\n\x17update_names_its_target\x12Presource.metadata.id is required: an update names the identity account by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'B\xd9\x01\n%com.ai.stigmer.iam.identityaccount.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/iam/identityaccount/v1/io.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a+ai/stigmer/iam/identityaccount/v1/api.proto\x1a\x1c\x61i/stigmer/iam/v1/enum.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"`\n\x10IdentityAccounts\x12L\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\x32.ai.stigmer.iam.identityaccount.v1.IdentityAccountR\x07\x65ntries\"1\n\x11IdentityAccountId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"4\n\x14IdentityAccountEmail\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"%\n\x05IdpId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x9f\x01\n\x14IdentityAccountsList\x12L\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x32.ai.stigmer.iam.identityaccount.v1.IdentityAccountR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\x08\x01\x10\x02R\x0btotal_pages\"\x87\x01\n\x18ListServiceAccountsInput\x12\x10\n\x03org\x18\x01 \x01(\tR\x03org\x12$\n\tpage_size\x18\x03 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x04 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageTokenJ\x04\x08\x02\x10\x03R\x04page\"\xc8\x01\n\x11\x45xternalSubLookup\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12n\n\x15identity_provider_ref\x18\x02 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13identityProviderRef\x12)\n\x0c\x65xternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0b\x65xternalSub\"\xcd\x02\n\x1b\x43reateFederatedAccountInput\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12n\n\x15identity_provider_ref\x18\x02 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13identityProviderRef\x12)\n\x0c\x65xternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0b\x65xternalSub\x12\x1c\n\x05\x65mail\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05\x65mail\x12\x1d\n\nfirst_name\x18\x05 \x01(\tR\tfirstName\x12\x1b\n\tlast_name\x18\x06 \x01(\tR\x08lastName\x12\x1f\n\x0bpicture_url\x18\x07 \x01(\tR\npictureUrl\"\xcd\x02\n\x1bUpdateFederatedAccountInput\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12n\n\x15identity_provider_ref\x18\x02 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13identityProviderRef\x12)\n\x0c\x65xternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0b\x65xternalSub\x12\x1c\n\x05\x65mail\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05\x65mail\x12\x1d\n\nfirst_name\x18\x05 \x01(\tR\tfirstName\x12\x1b\n\tlast_name\x18\x06 \x01(\tR\x08lastName\x12\x1f\n\x0bpicture_url\x18\x07 \x01(\tR\npictureUrl\"\xfe\x01\n DeprovisionFederatedAccountInput\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12n\n\x15identity_provider_ref\x18\x02 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13identityProviderRef\x12)\n\x0c\x65xternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0b\x65xternalSub\x12%\n\x0e\x64\x65lete_account\x18\x04 \x01(\x08R\rdeleteAccount\"\xb9\x02\n\x19\x43reateServiceAccountInput\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1f\n\x04name\x18\x02 \x01(\tB\x0b\xbaH\x08r\x03\x18\x80\x01\xc8\x01\x01R\x04name\x12.\n\x04role\x18\x03 \x01(\x0e\x32\x1a.ai.stigmer.iam.v1.IamRoleR\x04role:\xb0\x01\xbaH\xac\x01\x1a\xa9\x01\n\x1eservice_account.role_not_owner\x12Srole must be admin, member or viewer; a service account never owns its organization\x1a\x32this.role == 2 || this.role == 3 || this.role == 4\"\x84\x03\n\x1aUpdateIdentityAccountInput\x12V\n\x08resource\x18\x01 \x01(\x0b\x32\x32.ai.stigmer.iam.identityaccount.v1.IdentityAccountB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xc8\x01\xbaH\xc4\x01\x1a\xc1\x01\n\x17update_names_its_target\x12Presource.metadata.id is required: an update names the identity account by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'B\xd9\x01\n%com.ai.stigmer.iam.identityaccount.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -45,6 +44,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_IDENTITYACCOUNTEMAIL'].fields_by_name['value']._serialized_options = b'\272H\003\310\001\001'
   _globals['_IDPID'].fields_by_name['value']._loaded_options = None
   _globals['_IDPID'].fields_by_name['value']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_LISTSERVICEACCOUNTSINPUT'].fields_by_name['page_size']._loaded_options = None
+  _globals['_LISTSERVICEACCOUNTSINPUT'].fields_by_name['page_size']._serialized_options = b'\272H\004\032\002(\000'
+  _globals['_LISTSERVICEACCOUNTSINPUT'].fields_by_name['page_token']._loaded_options = None
+  _globals['_LISTSERVICEACCOUNTSINPUT'].fields_by_name['page_token']._serialized_options = b'\272H\005r\003\030\200\010'
   _globals['_EXTERNALSUBLOOKUP'].fields_by_name['org']._loaded_options = None
   _globals['_EXTERNALSUBLOOKUP'].fields_by_name['org']._serialized_options = b'\272H\003\310\001\001'
   _globals['_EXTERNALSUBLOOKUP'].fields_by_name['identity_provider_ref']._loaded_options = None
@@ -85,30 +88,28 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_UPDATEIDENTITYACCOUNTINPUT'].fields_by_name['update_mask']._serialized_options = b'\272H\003\310\001\001'
   _globals['_UPDATEIDENTITYACCOUNTINPUT']._loaded_options = None
   _globals['_UPDATEIDENTITYACCOUNTINPUT']._serialized_options = b'\272H\304\001\032\301\001\n\027update_names_its_target\022Presource.metadata.id is required: an update names the identity account by its id\032Thas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\''
-  _globals['_IDENTITYACCOUNTS']._serialized_start=353
-  _globals['_IDENTITYACCOUNTS']._serialized_end=449
-  _globals['_IDENTITYACCOUNTID']._serialized_start=451
-  _globals['_IDENTITYACCOUNTID']._serialized_end=500
-  _globals['_IDENTITYACCOUNTEMAIL']._serialized_start=502
-  _globals['_IDENTITYACCOUNTEMAIL']._serialized_end=554
-  _globals['_IDPID']._serialized_start=556
-  _globals['_IDPID']._serialized_end=593
-  _globals['_LISTWITHIDENTITYACCOUNTIDREQ']._serialized_start=596
-  _globals['_LISTWITHIDENTITYACCOUNTIDREQ']._serialized_end=728
-  _globals['_IDENTITYACCOUNTSLIST']._serialized_start=731
-  _globals['_IDENTITYACCOUNTSLIST']._serialized_end=864
-  _globals['_LISTWITHIDENTITYORG']._serialized_start=866
-  _globals['_LISTWITHIDENTITYORG']._serialized_end=959
-  _globals['_EXTERNALSUBLOOKUP']._serialized_start=962
-  _globals['_EXTERNALSUBLOOKUP']._serialized_end=1162
-  _globals['_CREATEFEDERATEDACCOUNTINPUT']._serialized_start=1165
-  _globals['_CREATEFEDERATEDACCOUNTINPUT']._serialized_end=1498
-  _globals['_UPDATEFEDERATEDACCOUNTINPUT']._serialized_start=1501
-  _globals['_UPDATEFEDERATEDACCOUNTINPUT']._serialized_end=1834
-  _globals['_DEPROVISIONFEDERATEDACCOUNTINPUT']._serialized_start=1837
-  _globals['_DEPROVISIONFEDERATEDACCOUNTINPUT']._serialized_end=2091
-  _globals['_CREATESERVICEACCOUNTINPUT']._serialized_start=2094
-  _globals['_CREATESERVICEACCOUNTINPUT']._serialized_end=2407
-  _globals['_UPDATEIDENTITYACCOUNTINPUT']._serialized_start=2410
-  _globals['_UPDATEIDENTITYACCOUNTINPUT']._serialized_end=2798
+  _globals['_IDENTITYACCOUNTS']._serialized_start=312
+  _globals['_IDENTITYACCOUNTS']._serialized_end=408
+  _globals['_IDENTITYACCOUNTID']._serialized_start=410
+  _globals['_IDENTITYACCOUNTID']._serialized_end=459
+  _globals['_IDENTITYACCOUNTEMAIL']._serialized_start=461
+  _globals['_IDENTITYACCOUNTEMAIL']._serialized_end=513
+  _globals['_IDPID']._serialized_start=515
+  _globals['_IDPID']._serialized_end=552
+  _globals['_IDENTITYACCOUNTSLIST']._serialized_start=555
+  _globals['_IDENTITYACCOUNTSLIST']._serialized_end=714
+  _globals['_LISTSERVICEACCOUNTSINPUT']._serialized_start=717
+  _globals['_LISTSERVICEACCOUNTSINPUT']._serialized_end=852
+  _globals['_EXTERNALSUBLOOKUP']._serialized_start=855
+  _globals['_EXTERNALSUBLOOKUP']._serialized_end=1055
+  _globals['_CREATEFEDERATEDACCOUNTINPUT']._serialized_start=1058
+  _globals['_CREATEFEDERATEDACCOUNTINPUT']._serialized_end=1391
+  _globals['_UPDATEFEDERATEDACCOUNTINPUT']._serialized_start=1394
+  _globals['_UPDATEFEDERATEDACCOUNTINPUT']._serialized_end=1727
+  _globals['_DEPROVISIONFEDERATEDACCOUNTINPUT']._serialized_start=1730
+  _globals['_DEPROVISIONFEDERATEDACCOUNTINPUT']._serialized_end=1984
+  _globals['_CREATESERVICEACCOUNTINPUT']._serialized_start=1987
+  _globals['_CREATESERVICEACCOUNTINPUT']._serialized_end=2300
+  _globals['_UPDATEIDENTITYACCOUNTINPUT']._serialized_start=2303
+  _globals['_UPDATEIDENTITYACCOUNTINPUT']._serialized_end=2691
 # @@protoc_insertion_point(module_scope)

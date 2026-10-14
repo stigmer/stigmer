@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Iterator
 
 import grpc
 
@@ -74,17 +75,41 @@ class AgentShareClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def get_by_agent(self, input: io_pb2.GetAgentSharesByAgentRequest) -> io_pb2.AgentShareList:
+    def list_by_agent(self, input: io_pb2.ListAgentSharesByAgentRequest) -> io_pb2.AgentShareList:
         try:
-            return self._query.getByAgent(input)
+            return self._query.listByAgent(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
+
+    def list_by_agent_all(self, input: io_pb2.ListAgentSharesByAgentRequest) -> Iterator[api_pb2.AgentShare]:
+        """Every entry of ``list_by_agent``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListAgentSharesByAgentRequest()
+        request.CopyFrom(input)
+        while True:
+            page = self.list_by_agent(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
 
     def list(self, input: io_pb2.ListAgentSharesRequest) -> io_pb2.AgentShareList:
         try:
             return self._query.list(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
+
+    def list_all(self, input: io_pb2.ListAgentSharesRequest) -> Iterator[api_pb2.AgentShare]:
+        """Every entry of ``list``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListAgentSharesRequest()
+        request.CopyFrom(input)
+        while True:
+            page = self.list(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
 
     def get_shared_profile(self, input: io_pb2.GetSharedProfileRequest) -> io_pb2.SharedAgentProfile:
         try:

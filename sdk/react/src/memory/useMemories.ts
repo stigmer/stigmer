@@ -4,15 +4,9 @@ import { create } from "@bufbuild/protobuf";
 import type { Memory } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
 import { ListMemoriesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/io_pb";
 import { useStigmer } from "../hooks.js";
+import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
 import { useFetch } from "../internal/useFetch.js";
 
-/**
- * The server-enforced per-subject-per-org record ceiling (all lifecycle
- * states). Requesting one page of exactly this size fetches EVERY record
- * the caller can see, by construction — the cap is why this list needs
- * no pagination UI.
- */
-const MEMORY_CAP = 100;
 
 /** Return value of {@link useMemories}. */
 export interface UseMemoriesReturn {
@@ -37,6 +31,12 @@ export interface UseMemoriesReturn {
  * here". Ordering is newest first; group by lifecycle state for display
  * with {@link groupMemoriesByLifecycle}.
  *
+ * The server holds at most 100 records per subject in an organization, so
+ * the view needs no pager, but a page is not the whole set: the server
+ * checks each row against the caller's read scope after reading it, so a
+ * page can come back short, even empty, with a token while the caller's
+ * own records sit further on. The hook follows every token.
+ *
  * Pass `null` as `org` to skip fetching (stable no-op).
  *
  * @example
@@ -51,12 +51,11 @@ export function useMemories(org: string | null): UseMemoriesReturn {
   const { data: memories, isLoading, isRefetching, error, refetch } = useFetch(
     org
       ? () =>
-          stigmer.memory
-            .list(create(ListMemoriesRequestSchema, {
-              org,
-              pageInfo: { num: 1, size: MEMORY_CAP },
-            }))
-            .then((r) => [...r.items])
+          readEveryPage((pageToken) =>
+            stigmer.memory.list(
+              create(ListMemoriesRequestSchema, { org, pageSize: LIST_PAGE_MAX, pageToken }),
+            ),
+          )
       : null,
     [stigmer, org],
     [] as Memory[],

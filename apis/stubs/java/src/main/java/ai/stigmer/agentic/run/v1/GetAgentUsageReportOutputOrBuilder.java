@@ -184,24 +184,4 @@ public interface GetAgentUsageReportOutputOrBuilder extends
    * @return The totalRuns.
    */
   int getTotalRuns();
-
-  /**
-   * <pre>
-   * Token for the next page of sessions (empty if no more pages).
-   * </pre>
-   *
-   * <code>string next_page_token = 9 [json_name = "nextPageToken"];</code>
-   * @return The nextPageToken.
-   */
-  java.lang.String getNextPageToken();
-  /**
-   * <pre>
-   * Token for the next page of sessions (empty if no more pages).
-   * </pre>
-   *
-   * <code>string next_page_token = 9 [json_name = "nextPageToken"];</code>
-   * @return The bytes for nextPageToken.
-   */
-  com.google.protobuf.ByteString
-      getNextPageTokenBytes();
 }

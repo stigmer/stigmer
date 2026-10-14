@@ -318,11 +318,7 @@ export async function readSingleOrganization(baseUrl, { slug = "stigmer" } = {})
   if (info.singleOrg !== true) {
     throw new Error(`getServerInfo does not report a single organization: ${JSON.stringify(info)}`);
   }
-  const list = await connectJson(
-    baseUrl,
-    "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/findMyOrganizations",
-    {},
-  );
+  const list = await myOrganizations(baseUrl);
   const entries = list.entries ?? [];
   if (entries.length !== 1 || entries[0].metadata?.slug !== slug) {
     throw new Error(
@@ -332,6 +328,27 @@ export async function readSingleOrganization(baseUrl, { slug = "stigmer" } = {})
   const id = entries[0].metadata?.id;
   if (!id) throw new Error(`organization '${slug}' has no id: ${JSON.stringify(entries[0])}`);
   return id;
+}
+
+const LIST_MY_ORGANIZATIONS = "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/listMine";
+const FIND_MY_ORGANIZATIONS = "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/findMyOrganizations";
+
+/**
+ * The caller's organizations, as one page: `listMine`, or
+ * `findMyOrganizations` on a release from before the list rename, which
+ * answers `listMine` with a 404. The servers a smoke line reads hold one
+ * organization, or the few it made, so the first page is all of them.
+ */
+async function myOrganizations(baseUrl) {
+  const response = await fetch(`${baseUrl}/${LIST_MY_ORGANIZATIONS}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: "{}",
+  });
+  if (response.status === 404) return connectJson(baseUrl, FIND_MY_ORGANIZATIONS, {});
+  const text = await response.text();
+  if (!response.ok) throw new Error(`${LIST_MY_ORGANIZATIONS} -> HTTP ${response.status}: ${text.slice(0, 300)}`);
+  return JSON.parse(text);
 }
 
 /**
@@ -345,11 +362,7 @@ export async function smokeOrganization(baseUrl, name, { org } = {}) {
   if (org !== undefined) return org;
   const info = await connectJson(baseUrl, "ai.stigmer.platform.v1.PlatformQueryController/getServerInfo", {});
   if (info.singleOrg === true) {
-    const list = await connectJson(
-      baseUrl,
-      "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/findMyOrganizations",
-      {},
-    );
+    const list = await myOrganizations(baseUrl);
     const id = (list.entries ?? [])[0]?.metadata?.id;
     if (!id) throw new Error(`a server that holds one organization listed none: ${JSON.stringify(list)}`);
     return id;

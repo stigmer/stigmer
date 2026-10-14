@@ -22,13 +22,14 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
+from ai.stigmer.agentic.plugin.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_api__pb2
 from ai.stigmer.commons.apiresource import enum_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_enum__pb2
 from ai.stigmer.commons.apiresource import status_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_status__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n%ai/stigmer/agentic/plugin/v1/io.proto\x12\x1c\x61i.stigmer.agentic.plugin.v1\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"(\n\x08PluginId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xae\x03\n\x11PushPluginRequest\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1a\n\x08\x61rtifact\x18\x02 \x01(\x0cR\x08\x61rtifact\x12.\n\x13\x61rtifact_upload_ref\x18\x03 \x01(\tR\x11\x61rtifactUploadRef\x12_\n\nvisibility\x18\x04 \x01(\x0e\x32\x35.ai.stigmer.commons.apiresource.ApiResourceVisibilityB\x08\xbaH\x05\x82\x01\x02\x10\x01R\nvisibility\x12\x18\n\x07message\x18\x05 \x01(\tR\x07message:\xb7\x01\xbaH\xb3\x01\x1a\xb0\x01\n#push_plugin_request.artifact_source\x12Iexactly one of artifact (inline bytes) or artifact_upload_ref must be set\x1a>(this.artifact.size() > 0) != (this.artifact_upload_ref != \'\')\"h\n$CreatePluginArtifactUploadUrlRequest\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12&\n\nsize_bytes\x18\x02 \x01(\x03\x42\x07\xbaH\x04\"\x02 \x00R\tsizeBytes\"|\n\x17PluginArtifactUploadUrl\x12\x10\n\x03url\x18\x01 \x01(\tR\x03url\x12.\n\x13\x61rtifact_upload_ref\x18\x02 \x01(\tR\x11\x61rtifactUploadRef\x12\x1f\n\x0bttl_seconds\x18\x03 \x01(\x05R\nttlSeconds\"N\n\x12GetArtifactRequest\x12\x38\n\x14\x61rtifact_storage_key\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x12\x61rtifactStorageKey\"1\n\x13GetArtifactResponse\x12\x1a\n\x08\x61rtifact\x18\x01 \x01(\x0cR\x08\x61rtifact\"m\n\x19PluginArtifactDownloadUrl\x12\x10\n\x03url\x18\x01 \x01(\tR\x03url\x12\x1f\n\x0bttl_seconds\x18\x02 \x01(\x05R\nttlSeconds\x12\x1d\n\nsize_bytes\x18\x03 \x01(\x03R\tsizeBytes\"v\n\x14ListPluginToolsInput\x12#\n\tplugin_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x08pluginId\x12\x1e\n\x06server\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x06server\x12\x19\n\x03org\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"W\n\x15ListPluginToolsOutput\x12>\n\x05tools\x18\x01 \x03(\x0b\x32(.ai.stigmer.agentic.plugin.v1.PluginToolR\x05tools\"d\n\nPluginTool\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12 \n\x0b\x64\x65scription\x18\x02 \x01(\tR\x0b\x64\x65scription\x12 \n\x0b\x64\x65structive\x18\x03 \x01(\x08R\x0b\x64\x65structive\"\x8b\x01\n\x17ListPluginVersionsInput\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1a\n\x04slug\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04slug\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\x12\x1b\n\tpage_size\x18\x04 \x01(\x05R\x08pageSize\"\xb6\x02\n\x12PluginVersionEntry\x12\x16\n\x06\x64igest\x18\x01 \x01(\tR\x06\x64igest\x12\x37\n\tpushed_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x08pushedAt\x12R\n\tpushed_by\x18\x03 \x01(\x0b\x32\x35.ai.stigmer.commons.apiresource.ApiResourceAuditActorR\x08pushedBy\x12\x10\n\x03tag\x18\x04 \x01(\tR\x03tag\x12\x1d\n\nis_current\x18\x05 \x01(\x08R\tisCurrent\x12\x18\n\x07message\x18\x06 \x01(\tR\x07message\x12\x30\n\x14\x61rtifact_storage_key\x18\x07 \x01(\tR\x12\x61rtifactStorageKey\"\xb3\x01\n\x1aListPluginVersionsResponse\x12L\n\x08versions\x18\x01 \x03(\x0b\x32\x30.ai.stigmer.agentic.plugin.v1.PluginVersionEntryR\x08versions\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n\x0btotal_count\x18\x03 \x01(\x05R\ntotalCountB\xc0\x01\n com.ai.stigmer.agentic.plugin.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAP\xaa\x02\x1c\x41i.Stigmer.Agentic.Plugin.V1\xca\x02\x1c\x41i\\Stigmer\\Agentic\\Plugin\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Plugin::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n%ai/stigmer/agentic/plugin/v1/io.proto\x12\x1c\x61i.stigmer.agentic.plugin.v1\x1a&ai/stigmer/agentic/plugin/v1/api.proto\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"(\n\x08PluginId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xae\x03\n\x11PushPluginRequest\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1a\n\x08\x61rtifact\x18\x02 \x01(\x0cR\x08\x61rtifact\x12.\n\x13\x61rtifact_upload_ref\x18\x03 \x01(\tR\x11\x61rtifactUploadRef\x12_\n\nvisibility\x18\x04 \x01(\x0e\x32\x35.ai.stigmer.commons.apiresource.ApiResourceVisibilityB\x08\xbaH\x05\x82\x01\x02\x10\x01R\nvisibility\x12\x18\n\x07message\x18\x05 \x01(\tR\x07message:\xb7\x01\xbaH\xb3\x01\x1a\xb0\x01\n#push_plugin_request.artifact_source\x12Iexactly one of artifact (inline bytes) or artifact_upload_ref must be set\x1a>(this.artifact.size() > 0) != (this.artifact_upload_ref != \'\')\"h\n$CreatePluginArtifactUploadUrlRequest\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12&\n\nsize_bytes\x18\x02 \x01(\x03\x42\x07\xbaH\x04\"\x02 \x00R\tsizeBytes\"|\n\x17PluginArtifactUploadUrl\x12\x10\n\x03url\x18\x01 \x01(\tR\x03url\x12.\n\x13\x61rtifact_upload_ref\x18\x02 \x01(\tR\x11\x61rtifactUploadRef\x12\x1f\n\x0bttl_seconds\x18\x03 \x01(\x05R\nttlSeconds\"N\n\x12GetArtifactRequest\x12\x38\n\x14\x61rtifact_storage_key\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x12\x61rtifactStorageKey\"1\n\x13GetArtifactResponse\x12\x1a\n\x08\x61rtifact\x18\x01 \x01(\x0cR\x08\x61rtifact\"m\n\x19PluginArtifactDownloadUrl\x12\x10\n\x03url\x18\x01 \x01(\tR\x03url\x12\x1f\n\x0bttl_seconds\x18\x02 \x01(\x05R\nttlSeconds\x12\x1d\n\nsize_bytes\x18\x03 \x01(\x03R\tsizeBytes\"v\n\x14ListPluginToolsInput\x12#\n\tplugin_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x08pluginId\x12\x1e\n\x06server\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x06server\x12\x19\n\x03org\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"W\n\x15ListPluginToolsOutput\x12>\n\x05tools\x18\x01 \x03(\x0b\x32(.ai.stigmer.agentic.plugin.v1.PluginToolR\x05tools\"d\n\nPluginTool\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12 \n\x0b\x64\x65scription\x18\x02 \x01(\tR\x0b\x64\x65scription\x12 \n\x0b\x64\x65structive\x18\x03 \x01(\x08R\x0b\x64\x65structive\"\x9e\x01\n\x17ListPluginVersionsInput\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1a\n\x04slug\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04slug\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\x12$\n\tpage_size\x18\x04 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\"\xb6\x02\n\x12PluginVersionEntry\x12\x16\n\x06\x64igest\x18\x01 \x01(\tR\x06\x64igest\x12\x37\n\tpushed_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x08pushedAt\x12R\n\tpushed_by\x18\x03 \x01(\x0b\x32\x35.ai.stigmer.commons.apiresource.ApiResourceAuditActorR\x08pushedBy\x12\x10\n\x03tag\x18\x04 \x01(\tR\x03tag\x12\x1d\n\nis_current\x18\x05 \x01(\x08R\tisCurrent\x12\x18\n\x07message\x18\x06 \x01(\tR\x07message\x12\x30\n\x14\x61rtifact_storage_key\x18\x07 \x01(\tR\x12\x61rtifactStorageKey\"\xa3\x01\n\x1aListPluginVersionsResponse\x12J\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\x30.ai.stigmer.agentic.plugin.v1.PluginVersionEntryR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenJ\x04\x08\x03\x10\x04R\x0btotal_count\"~\n\x12ListPluginsRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\"t\n\nPluginList\x12>\n\x07\x65ntries\x18\x01 \x03(\x0b\x32$.ai.stigmer.agentic.plugin.v1.PluginR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenB\xc0\x01\n com.ai.stigmer.agentic.plugin.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAP\xaa\x02\x1c\x41i.Stigmer.Agentic.Plugin.V1\xca\x02\x1c\x41i\\Stigmer\\Agentic\\Plugin\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Plugin::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -60,30 +61,44 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LISTPLUGINVERSIONSINPUT'].fields_by_name['org']._serialized_options = b'\272H\003\310\001\001'
   _globals['_LISTPLUGINVERSIONSINPUT'].fields_by_name['slug']._loaded_options = None
   _globals['_LISTPLUGINVERSIONSINPUT'].fields_by_name['slug']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_PLUGINID']._serialized_start=221
-  _globals['_PLUGINID']._serialized_end=261
-  _globals['_PUSHPLUGINREQUEST']._serialized_start=264
-  _globals['_PUSHPLUGINREQUEST']._serialized_end=694
-  _globals['_CREATEPLUGINARTIFACTUPLOADURLREQUEST']._serialized_start=696
-  _globals['_CREATEPLUGINARTIFACTUPLOADURLREQUEST']._serialized_end=800
-  _globals['_PLUGINARTIFACTUPLOADURL']._serialized_start=802
-  _globals['_PLUGINARTIFACTUPLOADURL']._serialized_end=926
-  _globals['_GETARTIFACTREQUEST']._serialized_start=928
-  _globals['_GETARTIFACTREQUEST']._serialized_end=1006
-  _globals['_GETARTIFACTRESPONSE']._serialized_start=1008
-  _globals['_GETARTIFACTRESPONSE']._serialized_end=1057
-  _globals['_PLUGINARTIFACTDOWNLOADURL']._serialized_start=1059
-  _globals['_PLUGINARTIFACTDOWNLOADURL']._serialized_end=1168
-  _globals['_LISTPLUGINTOOLSINPUT']._serialized_start=1170
-  _globals['_LISTPLUGINTOOLSINPUT']._serialized_end=1288
-  _globals['_LISTPLUGINTOOLSOUTPUT']._serialized_start=1290
-  _globals['_LISTPLUGINTOOLSOUTPUT']._serialized_end=1377
-  _globals['_PLUGINTOOL']._serialized_start=1379
-  _globals['_PLUGINTOOL']._serialized_end=1479
-  _globals['_LISTPLUGINVERSIONSINPUT']._serialized_start=1482
-  _globals['_LISTPLUGINVERSIONSINPUT']._serialized_end=1621
-  _globals['_PLUGINVERSIONENTRY']._serialized_start=1624
-  _globals['_PLUGINVERSIONENTRY']._serialized_end=1934
-  _globals['_LISTPLUGINVERSIONSRESPONSE']._serialized_start=1937
-  _globals['_LISTPLUGINVERSIONSRESPONSE']._serialized_end=2116
+  _globals['_LISTPLUGINVERSIONSINPUT'].fields_by_name['page_token']._loaded_options = None
+  _globals['_LISTPLUGINVERSIONSINPUT'].fields_by_name['page_token']._serialized_options = b'\272H\005r\003\030\200\010'
+  _globals['_LISTPLUGINVERSIONSINPUT'].fields_by_name['page_size']._loaded_options = None
+  _globals['_LISTPLUGINVERSIONSINPUT'].fields_by_name['page_size']._serialized_options = b'\272H\004\032\002(\000'
+  _globals['_LISTPLUGINSREQUEST'].fields_by_name['org']._loaded_options = None
+  _globals['_LISTPLUGINSREQUEST'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_LISTPLUGINSREQUEST'].fields_by_name['page_size']._loaded_options = None
+  _globals['_LISTPLUGINSREQUEST'].fields_by_name['page_size']._serialized_options = b'\272H\004\032\002(\000'
+  _globals['_LISTPLUGINSREQUEST'].fields_by_name['page_token']._loaded_options = None
+  _globals['_LISTPLUGINSREQUEST'].fields_by_name['page_token']._serialized_options = b'\272H\005r\003\030\200\010'
+  _globals['_PLUGINID']._serialized_start=261
+  _globals['_PLUGINID']._serialized_end=301
+  _globals['_PUSHPLUGINREQUEST']._serialized_start=304
+  _globals['_PUSHPLUGINREQUEST']._serialized_end=734
+  _globals['_CREATEPLUGINARTIFACTUPLOADURLREQUEST']._serialized_start=736
+  _globals['_CREATEPLUGINARTIFACTUPLOADURLREQUEST']._serialized_end=840
+  _globals['_PLUGINARTIFACTUPLOADURL']._serialized_start=842
+  _globals['_PLUGINARTIFACTUPLOADURL']._serialized_end=966
+  _globals['_GETARTIFACTREQUEST']._serialized_start=968
+  _globals['_GETARTIFACTREQUEST']._serialized_end=1046
+  _globals['_GETARTIFACTRESPONSE']._serialized_start=1048
+  _globals['_GETARTIFACTRESPONSE']._serialized_end=1097
+  _globals['_PLUGINARTIFACTDOWNLOADURL']._serialized_start=1099
+  _globals['_PLUGINARTIFACTDOWNLOADURL']._serialized_end=1208
+  _globals['_LISTPLUGINTOOLSINPUT']._serialized_start=1210
+  _globals['_LISTPLUGINTOOLSINPUT']._serialized_end=1328
+  _globals['_LISTPLUGINTOOLSOUTPUT']._serialized_start=1330
+  _globals['_LISTPLUGINTOOLSOUTPUT']._serialized_end=1417
+  _globals['_PLUGINTOOL']._serialized_start=1419
+  _globals['_PLUGINTOOL']._serialized_end=1519
+  _globals['_LISTPLUGINVERSIONSINPUT']._serialized_start=1522
+  _globals['_LISTPLUGINVERSIONSINPUT']._serialized_end=1680
+  _globals['_PLUGINVERSIONENTRY']._serialized_start=1683
+  _globals['_PLUGINVERSIONENTRY']._serialized_end=1993
+  _globals['_LISTPLUGINVERSIONSRESPONSE']._serialized_start=1996
+  _globals['_LISTPLUGINVERSIONSRESPONSE']._serialized_end=2159
+  _globals['_LISTPLUGINSREQUEST']._serialized_start=2161
+  _globals['_LISTPLUGINSREQUEST']._serialized_end=2287
+  _globals['_PLUGINLIST']._serialized_start=2289
+  _globals['_PLUGINLIST']._serialized_end=2405
 # @@protoc_insertion_point(module_scope)

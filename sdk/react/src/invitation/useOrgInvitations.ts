@@ -2,7 +2,7 @@
 
 import { create } from "@bufbuild/protobuf";
 import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
-import { ListInvitationsByOrgInputSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/io_pb";
+import { ListInvitationsInputSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useCursorPages } from "../internal/useCursorPages.js";
 
@@ -36,7 +36,7 @@ export interface UseOrgInvitationsReturn {
 
 /**
  * Data hook that pages an organization's {@link Invitation} entries
- * through `InvitationQueryController.listByOrg`, newest first.
+ * through `InvitationQueryController.list`, newest first.
  *
  * Pass `null` to skip fetching (stable no-op). When the `org` changes,
  * the list starts again from its first page. Call `refetch()` after a
@@ -63,8 +63,8 @@ export function useOrgInvitations(
   const pages = useCursorPages<Invitation>(
     org
       ? (pageToken) =>
-          stigmer.invitation.listByOrg(
-            create(ListInvitationsByOrgInputSchema, { org, pageSize, pageToken }),
+          stigmer.invitation.list(
+            create(ListInvitationsInputSchema, { org, pageSize, pageToken }),
           )
       : null,
     [org, pageSize, stigmer],

@@ -2,9 +2,9 @@
 
 import { create } from "@bufbuild/protobuf";
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
-import { ListPlatformClientsByOrgInputSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
+import { ListPlatformClientsInputSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
 import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useCursorPages } from "../internal/useCursorPages.js";
 
 /** Return value of {@link usePlatformClientList}. */
 export interface UsePlatformClientListReturn {
@@ -18,6 +18,14 @@ export interface UsePlatformClientListReturn {
   readonly error: Error | null;
   /** Discard cached data and re-fetch from the server. */
   readonly refetch: () => void;
+  /** `true` while the server holds entries beyond those loaded. */
+  readonly hasMore: boolean;
+  /** Load the next page. No-op while one is loading or when nothing follows. */
+  readonly loadMore: () => void;
+  /** `true` while a `loadMore` read is in flight. */
+  readonly isLoadingMore: boolean;
+  /** Error from the last failed `loadMore`, or `null`. */
+  readonly loadMoreError: Error | null;
 }
 
 /**
@@ -53,16 +61,26 @@ export function usePlatformClientList(
 ): UsePlatformClientListReturn {
   const stigmer = useStigmer();
 
-  const { data: platformClients, isLoading, isRefetching, error, refetch } = useFetch(
+  const pages = useCursorPages<PlatformClient>(
     org
-      ? () =>
-          stigmer.platformclient
-            .listByOrg(create(ListPlatformClientsByOrgInputSchema, { org }))
-            .then((r) => [...r.entries])
+      ? (pageToken) =>
+          stigmer.platformclient.list(
+            create(ListPlatformClientsInputSchema, { org, pageToken }),
+          )
       : null,
     [org, stigmer],
-    [] as PlatformClient[],
+    (row) => row.metadata?.id ?? "",
   );
 
-  return { platformClients, isLoading, isRefetching, error, refetch };
+  return {
+    platformClients: pages.items,
+    hasMore: pages.hasMore,
+    loadMore: pages.loadMore,
+    isLoadingMore: pages.isLoadingMore,
+    loadMoreError: pages.loadMoreError,
+    isLoading: pages.isLoading,
+    isRefetching: pages.isRefetching,
+    error: pages.error,
+    refetch: pages.refetch,
+  };
 }

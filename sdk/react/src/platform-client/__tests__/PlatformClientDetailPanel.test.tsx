@@ -72,7 +72,7 @@ function renderPanel(
   const client = {
     platformclient: { update },
     iamPolicy: { checkMyPermission },
-    vault: { list: async () => ({ items: [], totalCount: 0 }) },
+    vault: { list: async () => ({ entries: [], nextPageToken: "" }) },
   } as never;
   return render(
     <StigmerContext.Provider value={client}>

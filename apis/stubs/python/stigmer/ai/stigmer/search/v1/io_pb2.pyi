@@ -2,7 +2,6 @@ import datetime
 
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2 as _api_resource_kind_pb2
 from ai.stigmer.commons.apiresource import enum_pb2 as _enum_pb2
-from ai.stigmer.commons.rpc import pagination_pb2 as _pagination_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import containers as _containers
@@ -14,19 +13,21 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SearchRequest(_message.Message):
-    __slots__ = ("kinds", "query", "org", "page")
+    __slots__ = ("kinds", "query", "org", "page_size", "page_token")
     KINDS_FIELD_NUMBER: _ClassVar[int]
     QUERY_FIELD_NUMBER: _ClassVar[int]
     ORG_FIELD_NUMBER: _ClassVar[int]
-    PAGE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     kinds: _containers.RepeatedScalarFieldContainer[_api_resource_kind_pb2.ApiResourceKind]
     query: str
     org: str
-    page: _pagination_pb2.PageInfo
-    def __init__(self, kinds: _Optional[_Iterable[_Union[_api_resource_kind_pb2.ApiResourceKind, str]]] = ..., query: _Optional[str] = ..., org: _Optional[str] = ..., page: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ...) -> None: ...
+    page_size: int
+    page_token: str
+    def __init__(self, kinds: _Optional[_Iterable[_Union[_api_resource_kind_pb2.ApiResourceKind, str]]] = ..., query: _Optional[str] = ..., org: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
 class SearchResponse(_message.Message):
-    __slots__ = ("entries", "counts_by_kind", "total_count", "total_pages")
+    __slots__ = ("entries", "counts_by_kind", "next_page_token")
     class CountsByKindEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -36,13 +37,11 @@ class SearchResponse(_message.Message):
         def __init__(self, key: _Optional[str] = ..., value: _Optional[int] = ...) -> None: ...
     ENTRIES_FIELD_NUMBER: _ClassVar[int]
     COUNTS_BY_KIND_FIELD_NUMBER: _ClassVar[int]
-    TOTAL_COUNT_FIELD_NUMBER: _ClassVar[int]
-    TOTAL_PAGES_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     entries: _containers.RepeatedCompositeFieldContainer[SearchResult]
     counts_by_kind: _containers.ScalarMap[str, int]
-    total_count: int
-    total_pages: int
-    def __init__(self, entries: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ..., counts_by_kind: _Optional[_Mapping[str, int]] = ..., total_count: _Optional[int] = ..., total_pages: _Optional[int] = ...) -> None: ...
+    next_page_token: str
+    def __init__(self, entries: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ..., counts_by_kind: _Optional[_Mapping[str, int]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
 
 class SearchResult(_message.Message):
     __slots__ = ("kind", "id", "name", "slug", "qualified_slug", "org", "description", "visibility", "tags", "created_at", "updated_at", "score", "icon_url")

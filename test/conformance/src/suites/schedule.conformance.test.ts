@@ -9,7 +9,7 @@
 // create/update branching, update spec replacement with the immutable
 // agent_ref (repointing would bypass the create-time consent bar on the
 // referenced agent — the AgentChannel rule), getByReference, the
-// agent-id-keyed getByAgent (unknown agent answers an empty list, not an
+// agent-id-keyed listByAgent (unknown agent answers an empty list, not an
 // error), and the org-scoped list. The FIRING contract (a trigger records
 // last_fire_at, failed fires accumulate into the platform auto-pause, resume
 // + re-trigger fires again) and the run-history surface (listFires) live in
@@ -46,7 +46,7 @@ afterAll(async () => {
 // Creates the referenced agent first: the schedule create's consent bar is
 // edit rights on the REFERENCED agent, so the agent must exist and belong to
 // the caller on both editions. Returns both handles a schedule surface uses:
-// the slug (what spec.agent.agent_ref carries) and the id (what getByAgent
+// the slug (what spec.agent.agent_ref carries) and the id (what listByAgent
 // is keyed on).
 async function createAgentFixture(org: string): Promise<{ id: string; slug: string }> {
   const agent = await clients.agentCommand.create(
@@ -279,7 +279,7 @@ describe("Schedule queries", () => {
     );
   });
 
-  it("[rpc:ScheduleQueryController.getByAgent] getByAgent returns only the agent's schedules, keyed by agent id", async () => {
+  it("[rpc:ScheduleQueryController.listByAgent] listByAgent returns only the agent's schedules, keyed by agent id", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const otherAgent = await createAgentFixture(org);
@@ -287,36 +287,36 @@ describe("Schedule queries", () => {
     const mine = await createScheduleFixture(org, agent.slug);
     await createScheduleFixture(org, otherAgent.slug);
 
-    const list = await clients.scheduleQuery.getByAgent({ agentId: agent.id });
+    const list = await clients.scheduleQuery.listByAgent({ agentId: agent.id });
 
-    const ids = list.items.map((s) => s.metadata?.id);
+    const ids = list.entries.map((s) => s.metadata?.id);
     expect(ids, "the agent's schedule is present").toContain(mine.metadata?.id);
-    for (const item of list.items) {
+    for (const item of list.entries) {
       const targetArm = item.spec?.target;
       expect(targetArm?.case, "every returned schedule targets an agent").toBe("agent");
       expect(
         targetArm?.case === "agent" ? targetArm.value.agentRef?.slug : undefined,
-        "getByAgent must not leak another agent's schedules",
+        "listByAgent must not leak another agent's schedules",
       ).toBe(agent.slug);
     }
-    expect(list.totalCount).toBe(list.items.length);
+    expect(list.nextPageToken).toBe("");
   });
 
-  it("[rpc:ScheduleQueryController.getByAgent] getByAgent of an unknown agent returns an empty list, not an error", async () => {
+  it("[rpc:ScheduleQueryController.listByAgent] listByAgent of an unknown agent returns an empty list, not an error", async () => {
     // "No schedules" is the useful answer for an operational surface
     // whether the agent is unknown or merely schedule-less.
-    const list = await clients.scheduleQuery.getByAgent({
+    const list = await clients.scheduleQuery.listByAgent({
       agentId: "agent_01conformancemissing",
     });
-    expect(list.items).toHaveLength(0);
-    expect(list.totalCount ?? 0).toBe(0);
+    expect(list.entries).toHaveLength(0);
+    expect(list.nextPageToken).toBe("");
   });
 
-  it("[rpc:ScheduleQueryController.getByAgent] getByAgent rejects an empty agent_id with InvalidArgument", () =>
+  it("[rpc:ScheduleQueryController.listByAgent] listByAgent rejects an empty agent_id with InvalidArgument", () =>
     expectGrpcCode(
-      () => clients.scheduleQuery.getByAgent({ agentId: "" }),
+      () => clients.scheduleQuery.listByAgent({ agentId: "" }),
       Code.InvalidArgument,
-      "getByAgent empty agent_id",
+      "listByAgent empty agent_id",
     ));
 
   it("[rpc:ScheduleQueryController.list] list returns the org's schedules", async () => {
@@ -326,8 +326,8 @@ describe("Schedule queries", () => {
 
     const list = await clients.scheduleQuery.list({ org });
 
-    expect(list.items.map((s) => s.metadata?.id)).toContain(created.metadata?.id);
-    expect(list.totalCount).toBe(list.items.length);
+    expect(list.entries.map((s) => s.metadata?.id)).toContain(created.metadata?.id);
+    expect(list.nextPageToken).toBe("");
   });
 
   it("[rpc:ScheduleQueryController.list] list rejects an empty org with InvalidArgument", () =>

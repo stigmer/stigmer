@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
 import { useStigmer } from "../hooks.js";
-import { useResourceCount } from "../search/index.js";
-import { createScheduleListFn } from "./scheduleListFn.js";
+import { LIST_PAGE_MAX } from "../internal/everyPage.js";
+import { useFetch } from "../internal/useFetch.js";
+import { listSchedulesPage } from "./scheduleListFn.js";
 
 /** Options for {@link useScheduleCount}. */
 export interface UseScheduleCountOptions {
@@ -14,10 +14,15 @@ export interface UseScheduleCountOptions {
 /** Return value of {@link useScheduleCount}. */
 export interface UseScheduleCountReturn {
   /**
-   * Total number of schedules in the organization. `undefined` until
-   * the first successful fetch completes.
+   * The schedules a first page holds, up to 100. `undefined` until the
+   * first successful fetch completes.
    */
   readonly count: number | undefined;
+  /**
+   * `true` when more schedules follow that page: a card reads "100+"
+   * rather than a total the list does not carry.
+   */
+  readonly isLowerBound: boolean;
   /** `true` while the count fetch is in flight. */
   readonly isLoading: boolean;
   /** Error from the last failed request, or `null` when healthy. */
@@ -26,21 +31,26 @@ export interface UseScheduleCountReturn {
   readonly refetch: () => void;
 }
 
+interface ScheduleCount {
+  readonly count: number;
+  readonly isLowerBound: boolean;
+}
+
 /**
- * Data hook that fetches the total count of an organization's schedules.
+ * Data hook that counts an organization's schedules, for the Library
+ * landing card and dashboard widgets.
  *
- * Issues a minimal direct `listSchedules` call to retrieve only the
- * total count. Useful for the Library landing card and dashboard
- * widgets. There is no scope option: schedules are org-only.
+ * Schedules are not in search, so no per-kind count exists for them: the
+ * hook reads the list's largest page and counts it, with `isLowerBound`
+ * set when more follow. There is no scope option: schedules are org-only.
  *
- * For the full paginated schedule list, use {@link useScheduleList}
- * instead.
+ * For the schedules themselves, use {@link useScheduleList} instead.
  *
  * Pass `null` as `org` to skip fetching (stable no-op).
  *
  * @example
  * ```tsx
- * const { count, isLoading } = useScheduleCount("isc");
+ * const { count, isLowerBound, isLoading } = useScheduleCount("isc");
  * ```
  */
 export function useScheduleCount(
@@ -48,10 +58,24 @@ export function useScheduleCount(
   options?: UseScheduleCountOptions,
 ): UseScheduleCountReturn {
   const stigmer = useStigmer();
+  const refetchToken = options?.refetchToken;
 
-  const listFn = useMemo(() => createScheduleListFn(stigmer), [stigmer]);
+  const { data, isLoading, error, refetch } = useFetch<ScheduleCount | undefined>(
+    org
+      ? async () => {
+          const page = await listSchedulesPage(stigmer, org, { pageSize: LIST_PAGE_MAX });
+          return { count: page.entries.length, isLowerBound: page.nextPageToken !== "" };
+        }
+      : null,
+    [stigmer, org, refetchToken],
+    undefined,
+  );
 
-  return useResourceCount(listFn, org, {
-    refetchToken: options?.refetchToken,
-  });
+  return {
+    count: data?.count,
+    isLowerBound: data?.isLowerBound ?? false,
+    isLoading,
+    error,
+    refetch,
+  };
 }

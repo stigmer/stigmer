@@ -4,7 +4,6 @@ package ai.stigmer.iam.identityaccount.v1;
 
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
-import "ai/stigmer/commons/rpc/pagination.proto";
 import "ai/stigmer/iam/identityaccount/v1/api.proto";
 import "ai/stigmer/iam/v1/enum.proto";
 import "buf/validate/validate.proto";
@@ -34,28 +33,33 @@ message IdpId {
   string value = 1 [(buf.validate.field).required = true];
 }
 
-// ListWithIdentityAccountIdReq is the input for paginated queries scoped to an identity account.
-message ListWithIdentityAccountIdReq {
-  // Unique identifier of the identity account to list resources for.
-  string identity_account_id = 1;
-  // Pagination parameters.
-  ai.stigmer.commons.rpc.PageInfo page = 2;
-}
-
 // IdentityAccountsList is a paginated response containing identity accounts.
 message IdentityAccountsList {
-  // Total number of pages available.
-  int32 total_pages = 1;
+  reserved 1;
+  reserved "total_pages";
+
   // Identity accounts in the current page.
   repeated IdentityAccount entries = 2;
+
+  // Set when more entries may follow: pass it as page_token to continue.
+  // A page may be short, even empty, and still carry a token.
+  string next_page_token = 3;
 }
 
-// ListWithIdentityOrg is the input for paginated queries scoped to an organization.
-message ListWithIdentityOrg {
+// ListServiceAccountsInput is the input for paginated queries scoped to an organization.
+message ListServiceAccountsInput {
   // Organization to list identity accounts for, by id or slug.
   string org = 1;
-  // Pagination parameters.
-  ai.stigmer.commons.rpc.PageInfo page = 2;
+  reserved 2;
+  reserved "page";
+
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 3 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 4 [(buf.validate.field).string.max_len = 1024];
 }
 
 // ExternalSubLookup identifies a federated identity account by its identity provider

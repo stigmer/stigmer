@@ -190,43 +190,34 @@ public interface SearchRequestOrBuilder extends
 
   /**
    * <pre>
-   * Pagination parameters.
-   *
-   * - num: Page number (1-indexed). Default: 1
-   * - size: Items per page. Default: 20, Maximum: 100
-   *
-   * If not provided, defaults to page 1 with 20 items.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.rpc.PageInfo page = 5 [json_name = "page"];</code>
-   * @return Whether the page field is set.
+   * <code>int32 page_size = 7 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
+   * @return The pageSize.
    */
-  boolean hasPage();
+  int getPageSize();
+
   /**
    * <pre>
-   * Pagination parameters.
-   *
-   * - num: Page number (1-indexed). Default: 1
-   * - size: Items per page. Default: 20, Maximum: 100
-   *
-   * If not provided, defaults to page 1 with 20 items.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.rpc.PageInfo page = 5 [json_name = "page"];</code>
-   * @return The page.
+   * <code>string page_token = 8 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
+   * @return The pageToken.
    */
-  ai.stigmer.commons.rpc.PageInfo getPage();
+  java.lang.String getPageToken();
   /**
    * <pre>
-   * Pagination parameters.
-   *
-   * - num: Page number (1-indexed). Default: 1
-   * - size: Items per page. Default: 20, Maximum: 100
-   *
-   * If not provided, defaults to page 1 with 20 items.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.rpc.PageInfo page = 5 [json_name = "page"];</code>
+   * <code>string page_token = 8 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for pageToken.
    */
-  ai.stigmer.commons.rpc.PageInfoOrBuilder getPageOrBuilder();
+  com.google.protobuf.ByteString
+      getPageTokenBytes();
 }

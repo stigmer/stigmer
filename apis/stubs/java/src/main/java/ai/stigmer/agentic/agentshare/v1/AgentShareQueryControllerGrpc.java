@@ -77,35 +77,35 @@ public final class AgentShareQueryControllerGrpc {
     return getGetByReferenceMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest,
-      ai.stigmer.agentic.agentshare.v1.AgentShareList> getGetByAgentMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentshare.v1.ListAgentSharesByAgentRequest,
+      ai.stigmer.agentic.agentshare.v1.AgentShareList> getListByAgentMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "getByAgent",
-      requestType = ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest.class,
+      fullMethodName = SERVICE_NAME + '/' + "listByAgent",
+      requestType = ai.stigmer.agentic.agentshare.v1.ListAgentSharesByAgentRequest.class,
       responseType = ai.stigmer.agentic.agentshare.v1.AgentShareList.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest,
-      ai.stigmer.agentic.agentshare.v1.AgentShareList> getGetByAgentMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest, ai.stigmer.agentic.agentshare.v1.AgentShareList> getGetByAgentMethod;
-    if ((getGetByAgentMethod = AgentShareQueryControllerGrpc.getGetByAgentMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentshare.v1.ListAgentSharesByAgentRequest,
+      ai.stigmer.agentic.agentshare.v1.AgentShareList> getListByAgentMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentshare.v1.ListAgentSharesByAgentRequest, ai.stigmer.agentic.agentshare.v1.AgentShareList> getListByAgentMethod;
+    if ((getListByAgentMethod = AgentShareQueryControllerGrpc.getListByAgentMethod) == null) {
       synchronized (AgentShareQueryControllerGrpc.class) {
-        if ((getGetByAgentMethod = AgentShareQueryControllerGrpc.getGetByAgentMethod) == null) {
-          AgentShareQueryControllerGrpc.getGetByAgentMethod = getGetByAgentMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest, ai.stigmer.agentic.agentshare.v1.AgentShareList>newBuilder()
+        if ((getListByAgentMethod = AgentShareQueryControllerGrpc.getListByAgentMethod) == null) {
+          AgentShareQueryControllerGrpc.getListByAgentMethod = getListByAgentMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentshare.v1.ListAgentSharesByAgentRequest, ai.stigmer.agentic.agentshare.v1.AgentShareList>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getByAgent"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listByAgent"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest.getDefaultInstance()))
+                  ai.stigmer.agentic.agentshare.v1.ListAgentSharesByAgentRequest.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.agentshare.v1.AgentShareList.getDefaultInstance()))
-              .setSchemaDescriptor(new AgentShareQueryControllerMethodDescriptorSupplier("getByAgent"))
+              .setSchemaDescriptor(new AgentShareQueryControllerMethodDescriptorSupplier("listByAgent"))
               .build();
         }
       }
     }
-    return getGetByAgentMethod;
+    return getListByAgentMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest,
@@ -289,16 +289,16 @@ public final class AgentShareQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get all shares of a specific agent.
+     * List the shares of a specific agent, newest first.
      * Returns only shares the caller has access to, optionally scoped to
      * one organization via the request's org field.
      * This is how the Share dialog and CLI resolve an agent's existing
      * share regardless of its slug (a renamed share keeps working).
      * </pre>
      */
-    default void getByAgent(ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest request,
+    default void listByAgent(ai.stigmer.agentic.agentshare.v1.ListAgentSharesByAgentRequest request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentshare.v1.AgentShareList> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetByAgentMethod(), responseObserver);
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListByAgentMethod(), responseObserver);
     }
 
     /**
@@ -415,17 +415,17 @@ public final class AgentShareQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get all shares of a specific agent.
+     * List the shares of a specific agent, newest first.
      * Returns only shares the caller has access to, optionally scoped to
      * one organization via the request's org field.
      * This is how the Share dialog and CLI resolve an agent's existing
      * share regardless of its slug (a renamed share keeps working).
      * </pre>
      */
-    public void getByAgent(ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest request,
+    public void listByAgent(ai.stigmer.agentic.agentshare.v1.ListAgentSharesByAgentRequest request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentshare.v1.AgentShareList> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getGetByAgentMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getListByAgentMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -529,16 +529,16 @@ public final class AgentShareQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get all shares of a specific agent.
+     * List the shares of a specific agent, newest first.
      * Returns only shares the caller has access to, optionally scoped to
      * one organization via the request's org field.
      * This is how the Share dialog and CLI resolve an agent's existing
      * share regardless of its slug (a renamed share keeps working).
      * </pre>
      */
-    public ai.stigmer.agentic.agentshare.v1.AgentShareList getByAgent(ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.agentshare.v1.AgentShareList listByAgent(ai.stigmer.agentic.agentshare.v1.ListAgentSharesByAgentRequest request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getGetByAgentMethod(), getCallOptions(), request);
+          getChannel(), getListByAgentMethod(), getCallOptions(), request);
     }
 
     /**
@@ -639,16 +639,16 @@ public final class AgentShareQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get all shares of a specific agent.
+     * List the shares of a specific agent, newest first.
      * Returns only shares the caller has access to, optionally scoped to
      * one organization via the request's org field.
      * This is how the Share dialog and CLI resolve an agent's existing
      * share regardless of its slug (a renamed share keeps working).
      * </pre>
      */
-    public ai.stigmer.agentic.agentshare.v1.AgentShareList getByAgent(ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest request) {
+    public ai.stigmer.agentic.agentshare.v1.AgentShareList listByAgent(ai.stigmer.agentic.agentshare.v1.ListAgentSharesByAgentRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getGetByAgentMethod(), getCallOptions(), request);
+          getChannel(), getListByAgentMethod(), getCallOptions(), request);
     }
 
     /**
@@ -751,17 +751,17 @@ public final class AgentShareQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get all shares of a specific agent.
+     * List the shares of a specific agent, newest first.
      * Returns only shares the caller has access to, optionally scoped to
      * one organization via the request's org field.
      * This is how the Share dialog and CLI resolve an agent's existing
      * share regardless of its slug (a renamed share keeps working).
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentshare.v1.AgentShareList> getByAgent(
-        ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentshare.v1.AgentShareList> listByAgent(
+        ai.stigmer.agentic.agentshare.v1.ListAgentSharesByAgentRequest request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getGetByAgentMethod(), getCallOptions()), request);
+          getChannel().newCall(getListByAgentMethod(), getCallOptions()), request);
     }
 
     /**
@@ -826,7 +826,7 @@ public final class AgentShareQueryControllerGrpc {
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_GET_BY_REFERENCE = 1;
-  private static final int METHODID_GET_BY_AGENT = 2;
+  private static final int METHODID_LIST_BY_AGENT = 2;
   private static final int METHODID_LIST = 3;
   private static final int METHODID_GET_SHARED_PROFILE = 4;
   private static final int METHODID_GET_SHARED_PROFILE_FOR_MEMBER = 5;
@@ -856,8 +856,8 @@ public final class AgentShareQueryControllerGrpc {
           serviceImpl.getByReference((ai.stigmer.commons.apiresource.ApiResourceReference) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentshare.v1.AgentShare>) responseObserver);
           break;
-        case METHODID_GET_BY_AGENT:
-          serviceImpl.getByAgent((ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest) request,
+        case METHODID_LIST_BY_AGENT:
+          serviceImpl.listByAgent((ai.stigmer.agentic.agentshare.v1.ListAgentSharesByAgentRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentshare.v1.AgentShareList>) responseObserver);
           break;
         case METHODID_LIST:
@@ -905,12 +905,12 @@ public final class AgentShareQueryControllerGrpc {
               ai.stigmer.agentic.agentshare.v1.AgentShare>(
                 service, METHODID_GET_BY_REFERENCE)))
         .addMethod(
-          getGetByAgentMethod(),
+          getListByAgentMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest,
+              ai.stigmer.agentic.agentshare.v1.ListAgentSharesByAgentRequest,
               ai.stigmer.agentic.agentshare.v1.AgentShareList>(
-                service, METHODID_GET_BY_AGENT)))
+                service, METHODID_LIST_BY_AGENT)))
         .addMethod(
           getListMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -982,7 +982,7 @@ public final class AgentShareQueryControllerGrpc {
               .setSchemaDescriptor(new AgentShareQueryControllerFileDescriptorSupplier())
               .addMethod(getGetMethod())
               .addMethod(getGetByReferenceMethod())
-              .addMethod(getGetByAgentMethod())
+              .addMethod(getListByAgentMethod())
               .addMethod(getListMethod())
               .addMethod(getGetSharedProfileMethod())
               .addMethod(getGetSharedProfileForMemberMethod())

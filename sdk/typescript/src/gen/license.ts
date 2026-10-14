@@ -2,7 +2,7 @@
 
 import { wrapError } from "./errors.js";
 import { stripUndefined, toTimestamp } from "./proto-utils.js";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { LicenseSchema, type License } from "@stigmer/protos/ai/stigmer/billing/license/v1/api_pb";
 import { LicenseCommandController } from "@stigmer/protos/ai/stigmer/billing/license/v1/command_pb";
@@ -40,6 +40,20 @@ export class LicenseClient {
     try {
       return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `list`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listAll(input: MessageInitShape<typeof ListLicensesInputSchema>): AsyncGenerator<Licenses["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.list(create(ListLicensesInputSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 }
 

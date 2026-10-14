@@ -53,7 +53,7 @@ const entries: License[] = [
   }),
 ];
 
-function clientWith(list: () => Promise<{ entries: License[] }>): Stigmer {
+function clientWith(list: () => Promise<{ entries: License[], nextPageToken: "" }>): Stigmer {
   return {
     license: {
       list,
@@ -63,7 +63,7 @@ function clientWith(list: () => Promise<{ entries: License[] }>): Stigmer {
   } as unknown as Stigmer;
 }
 
-const populated = () => clientWith(async () => ({ entries }));
+const populated = () => clientWith(async () => ({ entries, nextPageToken: "" }));
 
 afterEach(resetAudit);
 
@@ -95,7 +95,7 @@ describe("Licenses console a11y", () => {
   it.each(COLOR_MODES)("empty calendar (%s)", async (mode) => {
     const container = renderAudited(<LicensesConsole now={NOW} />, mode, {
       ...CANVAS,
-      client: clientWith(async () => ({ entries: [] })),
+      client: clientWith(async () => ({ entries: [], nextPageToken: "" })),
     });
     await screen.findByText("No licenses issued yet");
     await auditA11y(container, `licenses empty · ${mode}`);

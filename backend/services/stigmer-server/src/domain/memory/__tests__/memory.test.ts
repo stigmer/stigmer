@@ -610,11 +610,11 @@ describe("memory list", () => {
     await createMemory(other, "Another org's fact.");
 
     const listed = await query.list({ org });
-    expect(listed.totalCount).toBe(listed.items.length);
-    expect(listed.items.map((m) => m.metadata?.id)).toContain(
+    expect(listed.nextPageToken).toBe("");
+    expect(listed.entries.map((m) => m.metadata?.id)).toContain(
       mine.metadata?.id,
     );
-    for (const item of listed.items) {
+    for (const item of listed.entries) {
       expect(item.metadata?.org).toBe(idOf(org));
     }
   });
@@ -650,7 +650,7 @@ describe("memory list", () => {
     }
 
     const listed = await query.list({ org });
-    expect(listed.items.map((m) => m.spec?.content)).toEqual([
+    expect(listed.entries.map((m) => m.spec?.content)).toEqual([
       "Fact of day 3.",
       "Fact of day 2.",
       "Fact of day 1.",

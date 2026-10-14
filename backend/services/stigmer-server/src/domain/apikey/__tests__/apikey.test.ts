@@ -14,7 +14,7 @@
  *   - getByKeyHash resolves by the stored hash and answers the
  *     byte-pinned "ApiKey not found" for an unknown or deleted hash —
  *     deletion takes effect on the very next lookup (no cache);
- *   - findAll answers newest first, so a key's last-use stamp rewriting
+ *   - list answers newest first, so a key's last-use stamp rewriting
  *     its row never reorders the list (stigmer/stigmer#1255);
  *   - an update keeps a write that lands between its read and its write
  *     (pipeline/guarded-write.ts): the lost swap reruns from a fresh read,
@@ -298,11 +298,11 @@ describe("apikey domain (composed server)", () => {
     });
   });
 
-  it("findAll lists stored keys with hashes, never plaintext", async () => {
+  it("list lists stored keys with hashes, never plaintext", async () => {
     const created = await command.create(keyInput());
     const plaintext = created.spec?.keyHash ?? "";
 
-    const all = await query.findAll({});
+    const all = await query.list({});
     const mine = all.entries.find(
       (entry) => entry.metadata?.id === created.metadata?.id,
     );
@@ -310,11 +310,11 @@ describe("apikey domain (composed server)", () => {
     expect(mine?.spec?.keyHash).toBe(hashApiKey(plaintext));
   });
 
-  it("findAll answers newest first", async () => {
+  it("list answers newest first", async () => {
     for (let i = 0; i < 3; i += 1) {
       await command.create(keyInput());
     }
-    const created = (await query.findAll({})).entries.map((entry) => {
+    const created = (await query.list({})).entries.map((entry) => {
       const at = entry.status?.audit?.specAudit?.createdAt;
       expect(at, "every stored key carries its creation instant").toBeDefined();
       return timestampDate(at!).getTime();

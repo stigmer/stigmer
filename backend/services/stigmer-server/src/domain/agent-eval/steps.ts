@@ -72,6 +72,11 @@ import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
 import { evaluateAuthorizer } from "../../pipeline/steps/authorize.js";
 import { assignServerId, generateId } from "../../pipeline/steps/defaults.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
+import {
+  decodeOrSkip,
+  listPageFingerprint,
+  readListPage,
+} from "../../pipeline/steps/list-page.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import { loadVersion, resolveVersionHash } from "../../pipeline/steps/version-history.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
@@ -108,7 +113,7 @@ import {
   agentEvalOtherPluginToolMessage,
   agentEvalUnknownPluginMessage,
 } from "./constants.js";
-import { listAgentEvals } from "./queries.js";
+import { agentEvalListIndex } from "./list-index.js";
 import { agentTargetOf } from "./target.js";
 import { releaseNamesOfDeleted } from "../../pipeline/steps/names.js";
 
@@ -592,10 +597,10 @@ export function newDeleteAgentEvalTriesStep(
 }
 
 /**
- * ListAgentEvalsByAgent: the agent's evals, newest first, each kept only
- * when the caller may view it (an eval's can_view is the agent's viewers in
- * its own organization, narrower than the agent's), each answered without
- * its tries.
+ * ListAgentEvalsByAgent: one page of the agent's evals, newest first, each
+ * kept only when the caller may view it (an eval's can_view is the agent's
+ * viewers in its own organization, narrower than the agent's), each
+ * answered without its tries.
  */
 export function newListAgentEvalsByAgentStep(
   store: Store,
@@ -604,33 +609,67 @@ export function newListAgentEvalsByAgentStep(
 ): PipelineStep<typeof ListAgentEvalsByAgentRequestSchema> {
   return {
     name: "ListAgentEvalsByAgent",
-    async execute(ctx: RequestContext<typeof ListAgentEvalsByAgentRequestSchema>): Promise<void> {
-      let evals: AgentEval[];
-      try {
-        evals = await listAgentEvals(store, logger, ctx.input.agentId);
-      } catch (error) {
-        throw internalError(error, "failed to list the agent's evals");
-      }
+    async execute(
+      ctx: RequestContext<typeof ListAgentEvalsByAgentRequestSchema>,
+    ): Promise<void> {
+      const agentId = ctx.input.agentId;
+      const page = await readListPage({
+        store,
+        declaration: agentEvalListIndex,
+        query: { anyKey: [{ name: "agent", value: agentId }] },
+        request: ctx.input,
+        fingerprint: listPageFingerprint({
+          lane: "agentEval.listByAgent",
+          agentId,
+        }),
+        decode: decodeOrSkip<AgentEval>(AgentEvalSchema, {
+          logger,
+          message: "skipped an agent eval row that does not decode",
+          fields: { agentId },
+        }),
+        keep: (agentEval) => agentEval.spec?.agentId === agentId,
+        scope: async (evals) => {
+          if (isServerComposedRequest(ctx.callerIdentity)) {
+            return evals;
+          }
+          const viewable: AgentEval[] = [];
+          for (const agentEval of evals) {
+            const decision = await evaluateAuthorizer(
+              authorizer,
+              ctx.callerIdentity,
+              {
+                permission: IamPermission.can_view,
+                resourceKind: ApiResourceKind.agent_eval,
+                resourceId: agentEval.metadata?.id ?? "",
+              },
+            );
+            if (decision.kind === "unavailable") {
+              throw internalError(
+                decision.cause,
+                "failed to authorize the agent's evals",
+              );
+            }
+            if (decision.kind === "allow") {
+              viewable.push(agentEval);
+            }
+          }
+          return viewable;
+        },
+        failure: "failed to list the agent's evals",
+      });
       const answered: AgentEval[] = [];
-      for (const agentEval of evals) {
-        if (!isServerComposedRequest(ctx.callerIdentity)) {
-          const decision = await evaluateAuthorizer(authorizer, ctx.callerIdentity, {
-            permission: IamPermission.can_view,
-            resourceKind: ApiResourceKind.agent_eval,
-            resourceId: agentEval.metadata?.id ?? "",
-          });
-          if (decision.kind === "unavailable") {
-            throw internalError(decision.cause, "failed to authorize the agent's evals");
-          }
-          if (decision.kind !== "allow") {
-            continue;
-          }
-        }
+      for (const agentEval of page.entries) {
         const settled = await settleEndedAgentEval(store, agentEval);
         withoutTries(settled);
         answered.push(settled);
       }
-      ctx.set(AGENT_EVAL_RESULT_KEY, create(AgentEvalListSchema, { totalCount: answered.length, items: answered }));
+      ctx.set(
+        AGENT_EVAL_RESULT_KEY,
+        create(AgentEvalListSchema, {
+          entries: answered,
+          nextPageToken: page.nextPageToken,
+        }),
+      );
     },
   };
 }

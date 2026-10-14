@@ -11,7 +11,13 @@
  * alone, first page first: rows created since sit at the head, and a row
  * the refetch pushed off the first page is still held from the earlier
  * read, so nothing falls into a gap between the two. The continuation
- * token is always the tail's, never the refetched head's.
+ * token is always the tail's, never the refetched head's. That merge is
+ * for a poll, where rows only arrive. An explicit `refetch` follows a
+ * change the caller made (a row deleted, renamed): it walks the list again
+ * from the first page, following the fresh tokens, for as many pages as
+ * were loaded, and replaces what they held. A deleted row leaves the list,
+ * the reader keeps their depth, and a walk that follows its own tokens has
+ * no gap for a row to fall into.
  *
  * A page may come back short or empty while still carrying a token: the
  * server stops after a bounded examination when a read scope refuses most
@@ -23,7 +29,7 @@
  */
 import { type DependencyList, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toError } from "./toError.js";
-import { useFetch } from "./useFetch.js";
+import { type UseFetchOptions, useFetch } from "./useFetch.js";
 
 /** One page of a cursor-paged list response. */
 export interface CursorPage<T> {
@@ -55,13 +61,15 @@ export interface UseCursorPagesReturn<T, P extends CursorPage<T> = CursorPage<T>
   readonly isRefetching: boolean;
   /** Error from the last failed first-page read, or `null`. */
   readonly error: Error | null;
-  /** Re-read the first page; loaded older pages stay. */
+  /** Re-read the first page and every page loaded since, in place. */
   readonly refetch: () => void;
 }
 
 interface Loaded<T> {
   readonly rows: readonly T[];
   readonly nextPageToken: string;
+  /** How many pages were read after the first. */
+  readonly pages: number;
 }
 
 /**
@@ -69,22 +77,28 @@ interface Loaded<T> {
  *                   `null` to stay idle.
  * @param deps       The list's identity: any change starts a fresh list.
  * @param identityOf A row's stable identity, for the merge.
+ * @param options    The first page's fetch options (a poll interval for a
+ *                   list whose newest rows change while shown).
  */
 export function useCursorPages<T, P extends CursorPage<T> = CursorPage<T>>(
   fetchPage: ((pageToken: string) => Promise<P>) | null,
   deps: DependencyList,
   identityOf: (item: T) => string,
+  options?: UseFetchOptions,
 ): UseCursorPagesReturn<T, P> {
   const {
     data: firstPage,
     isLoading,
     isRefetching,
     error,
-    refetch,
+    refetch: refetchFirstPage,
   } = useFetch<P | null>(
-    fetchPage === null ? null : () => fetchPage(""),
+    // Async, so a reader that throws before returning a promise lands as
+    // the hook's error like a rejected read does.
+    fetchPage === null ? null : async () => fetchPage(""),
     deps,
     null,
+    options,
   );
 
   const [loaded, setLoaded] = useState<Loaded<T> | null>(null);
@@ -126,6 +140,8 @@ export function useCursorPages<T, P extends CursorPage<T> = CursorPage<T>>(
   itemsRef.current = items;
   const tailTokenRef = useRef(tailToken);
   tailTokenRef.current = tailToken;
+  const loadedRef = useRef(loaded);
+  loadedRef.current = loaded;
 
   const loadMore = useCallback(() => {
     const read = fetchPageRef.current;
@@ -140,8 +156,10 @@ export function useCursorPages<T, P extends CursorPage<T> = CursorPage<T>>(
     void (async () => {
       try {
         const fetched: T[] = [];
+        let pagesRead = loadedRef.current?.pages ?? 0;
         let pageToken = from;
         for (let pages = 0; pages < LOAD_MORE_MAX_PAGES; pages++) {
+          pagesRead += 1;
           const page = await read(pageToken);
           fetched.push(...page.entries);
           pageToken = page.nextPageToken;
@@ -153,6 +171,7 @@ export function useCursorPages<T, P extends CursorPage<T> = CursorPage<T>>(
         setLoaded({
           rows: [...base, ...fetched.filter((item) => !seen.has(identity(item)))],
           nextPageToken: pageToken,
+          pages: pagesRead,
         });
       } catch (err) {
         if (epochRef.current !== epoch) return;
@@ -165,6 +184,31 @@ export function useCursorPages<T, P extends CursorPage<T> = CursorPage<T>>(
       }
     })();
   }, []);
+
+  const refetch = useCallback(() => {
+    refetchFirstPage();
+    const read = fetchPageRef.current;
+    const held = loadedRef.current;
+    if (read === null || held === null) return;
+    const epoch = epochRef.current;
+    void (async () => {
+      try {
+        const rows: T[] = [];
+        let pageToken = "";
+        for (let pages = 0; pages <= held.pages; pages++) {
+          const page = await read(pageToken);
+          rows.push(...page.entries);
+          pageToken = page.nextPageToken;
+          if (pageToken === "") break;
+        }
+        if (epochRef.current !== epoch || loadedRef.current !== held) return;
+        setLoaded({ rows, nextPageToken: pageToken, pages: held.pages });
+      } catch (err) {
+        if (epochRef.current !== epoch) return;
+        setLoadMoreError(toError(err));
+      }
+    })();
+  }, [refetchFirstPage]);
 
   return useMemo(
     () => ({

@@ -268,44 +268,44 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "ds\"j\n\027GetPrincipalsCountInput\022\034\n\003org\030\001 \001" +
       "(\tB\n\272H\007r\002\020\001\310\001\001R\003org\0221\n\016principal_kind\030\002 " +
       "\001(\tB\n\272H\007r\002\020\001\310\001\001R\rprincipalKind\"\'\n\017Princi" +
-      "palsCount\022\024\n\005count\030\001 \001(\005R\005count\"\317\001\n\026List" +
+      "palsCount\022\024\n\005count\030\001 \001(\005R\005count\"\315\001\n\026List" +
       "AccessHistoryInput\022\034\n\003org\030\001 \001(\tB\n\272H\007r\002\020\001" +
-      "\310\001\001R\003org\022&\n\tpage_size\030\002 \001(\005B\t\272H\006\032\004\030d(\000R\010" +
-      "pageSize\022\'\n\npage_token\030\003 \001(\tB\010\272H\005r\003\030\200\010R\t" +
-      "pageToken\0223\n\016after_sequence\030\004 \001(\003B\007\272H\004\"\002" +
-      "(\000H\000R\rafterSequence\210\001\001B\021\n\017_after_sequenc" +
-      "e\"\206\001\n\021AccessHistoryPage\022I\n\007entries\030\001 \003(\013" +
-      "2/.ai.stigmer.iam.iampolicy.v1.AccessHis" +
-      "toryEntryR\007entries\022&\n\017next_page_token\030\002 " +
-      "\001(\tR\rnextPageToken\"\272\004\n\022AccessHistoryEntr" +
-      "y\022\032\n\010sequence\030\001 \001(\003R\010sequence\022;\n\013occurre" +
-      "d_at\030\002 \001(\0132\032.google.protobuf.TimestampR\n" +
-      "occurredAt\022A\n\006change\030\003 \001(\0162).ai.stigmer." +
-      "iam.iampolicy.v1.AccessChangeR\006change\022D\n" +
-      "\005cause\030\004 \001(\0162..ai.stigmer.iam.iampolicy." +
-      "v1.AccessChangeCauseR\005cause\022E\n\005actor\030\005 \001" +
-      "(\0132/.ai.stigmer.iam.iampolicy.v1.ApiReso" +
-      "urceRefViewR\005actor\022\037\n\013actor_class\030\006 \001(\tR" +
-      "\nactorClass\022M\n\tprincipal\030\007 \001(\0132/.ai.stig" +
-      "mer.iam.iampolicy.v1.ApiResourceRefViewR" +
-      "\tprincipal\0229\n\004role\030\010 \001(\0132%.ai.stigmer.ia" +
-      "m.iampolicy.v1.RoleInfoR\004role\022P\n\010resourc" +
-      "e\030\t \001(\01324.ai.stigmer.commons.apiresource" +
-      ".ApiResourceReferenceR\010resource*G\n\014Acces" +
-      "sChange\022\035\n\031access_change_unspecified\020\000\022\013" +
-      "\n\007granted\020\001\022\013\n\007revoked\020\002*\303\002\n\021AccessChang" +
-      "eCause\022#\n\037access_change_cause_unspecifie" +
-      "d\020\000\022\t\n\005grant\020\001\022\n\n\006revoke\020\002\022\016\n\nstructural" +
-      "\020\003\022\037\n\033organization_access_revoked\020\004\022\025\n\021l" +
-      "eft_organization\020\005\022\024\n\020resource_deleted\020\006" +
-      "\022\030\n\024organization_created\020\007\022\021\n\rfirst_sign" +
-      "_in\020\010\022\027\n\023role_reconciliation\020\t\022\026\n\022operat" +
-      "or_ownership\020\n\022\031\n\025platform_client_grant\020" +
-      "\013\022\033\n\027service_account_created\020\014B\232\001B\007IoPro" +
-      "toP\001\242\002\004ASII\252\002\033Ai.Stigmer.Iam.Iampolicy.V" +
-      "1\312\002\033Ai\\Stigmer\\Iam\\Iampolicy\\V1\342\002\'Ai\\Sti" +
-      "gmer\\Iam\\Iampolicy\\V1\\GPBMetadata\352\002\037Ai::" +
-      "Stigmer::Iam::Iampolicy::V1b\006proto3"
+      "\310\001\001R\003org\022$\n\tpage_size\030\002 \001(\005B\007\272H\004\032\002(\000R\010pa" +
+      "geSize\022\'\n\npage_token\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpa" +
+      "geToken\0223\n\016after_sequence\030\004 \001(\003B\007\272H\004\"\002(\000" +
+      "H\000R\rafterSequence\210\001\001B\021\n\017_after_sequence\"" +
+      "\206\001\n\021AccessHistoryPage\022I\n\007entries\030\001 \003(\0132/" +
+      ".ai.stigmer.iam.iampolicy.v1.AccessHisto" +
+      "ryEntryR\007entries\022&\n\017next_page_token\030\002 \001(" +
+      "\tR\rnextPageToken\"\272\004\n\022AccessHistoryEntry\022" +
+      "\032\n\010sequence\030\001 \001(\003R\010sequence\022;\n\013occurred_" +
+      "at\030\002 \001(\0132\032.google.protobuf.TimestampR\noc" +
+      "curredAt\022A\n\006change\030\003 \001(\0162).ai.stigmer.ia" +
+      "m.iampolicy.v1.AccessChangeR\006change\022D\n\005c" +
+      "ause\030\004 \001(\0162..ai.stigmer.iam.iampolicy.v1" +
+      ".AccessChangeCauseR\005cause\022E\n\005actor\030\005 \001(\013" +
+      "2/.ai.stigmer.iam.iampolicy.v1.ApiResour" +
+      "ceRefViewR\005actor\022\037\n\013actor_class\030\006 \001(\tR\na" +
+      "ctorClass\022M\n\tprincipal\030\007 \001(\0132/.ai.stigme" +
+      "r.iam.iampolicy.v1.ApiResourceRefViewR\tp" +
+      "rincipal\0229\n\004role\030\010 \001(\0132%.ai.stigmer.iam." +
+      "iampolicy.v1.RoleInfoR\004role\022P\n\010resource\030" +
+      "\t \001(\01324.ai.stigmer.commons.apiresource.A" +
+      "piResourceReferenceR\010resource*G\n\014AccessC" +
+      "hange\022\035\n\031access_change_unspecified\020\000\022\013\n\007" +
+      "granted\020\001\022\013\n\007revoked\020\002*\303\002\n\021AccessChangeC" +
+      "ause\022#\n\037access_change_cause_unspecified\020" +
+      "\000\022\t\n\005grant\020\001\022\n\n\006revoke\020\002\022\016\n\nstructural\020\003" +
+      "\022\037\n\033organization_access_revoked\020\004\022\025\n\021lef" +
+      "t_organization\020\005\022\024\n\020resource_deleted\020\006\022\030" +
+      "\n\024organization_created\020\007\022\021\n\rfirst_sign_i" +
+      "n\020\010\022\027\n\023role_reconciliation\020\t\022\026\n\022operator" +
+      "_ownership\020\n\022\031\n\025platform_client_grant\020\013\022" +
+      "\033\n\027service_account_created\020\014B\232\001B\007IoProto" +
+      "P\001\242\002\004ASII\252\002\033Ai.Stigmer.Iam.Iampolicy.V1\312" +
+      "\002\033Ai\\Stigmer\\Iam\\Iampolicy\\V1\342\002\'Ai\\Stigm" +
+      "er\\Iam\\Iampolicy\\V1\\GPBMetadata\352\002\037Ai::St" +
+      "igmer::Iam::Iampolicy::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

@@ -3,10 +3,9 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ChildOrgList, ListChildOrgsInput, OrganizationExternalLookup, OrganizationId, OrganizationList, Organizations } from "./io_pbjs";
+import { ChildOrgList, ListChildOrgsInput, ListMyOrganizationsInput, OrganizationExternalLookup, OrganizationId, Organizations } from "./io_pbjs";
 import { Organization } from "./api_pbjs";
-import { Empty, MethodKind } from "@bufbuild/protobuf";
-import { FindApiResourcesRequest } from "../../../commons/apiresource/io_pbjs";
+import { MethodKind } from "@bufbuild/protobuf";
 
 /**
  * OrganizationQueryController handles read operations for organizations.
@@ -28,25 +27,14 @@ export const OrganizationQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * List organizations with pagination and filtering.
-     *
-     * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.find
-     */
-    find: {
-      name: "find",
-      I: FindApiResourcesRequest,
-      O: OrganizationList,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Find organizations the authenticated user is a member of.
+     * List the organizations the authenticated caller is a member of.
      * Returns only organizations the caller has access to.
      *
-     * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.findMyOrganizations
+     * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.listMine
      */
-    findMyOrganizations: {
-      name: "findMyOrganizations",
-      I: Empty,
+    listMine: {
+      name: "listMine",
+      I: ListMyOrganizationsInput,
       O: Organizations,
       kind: MethodKind.Unary,
     },

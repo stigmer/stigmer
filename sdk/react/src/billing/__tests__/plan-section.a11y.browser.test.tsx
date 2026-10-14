@@ -20,7 +20,7 @@ const CANVAS = { width: 720, height: 1100 } as const;
 
 function client(subscribed: boolean): Stigmer {
   return {
-    plan: { list: async () => ({ entries: [TEAM, BUSINESS, RETIRED] }) },
+    plan: { list: async () => ({ entries: [TEAM, BUSINESS, RETIRED], nextPageToken: "" }) },
     subscription: {
       getForOrg: async () => {
         if (!subscribed) throw notFound();

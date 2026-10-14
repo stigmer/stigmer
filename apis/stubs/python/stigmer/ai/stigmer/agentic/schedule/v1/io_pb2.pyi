@@ -1,7 +1,6 @@
 import datetime
 
 from ai.stigmer.agentic.schedule.v1 import api_pb2 as _api_pb2
-from ai.stigmer.commons.rpc import pagination_pb2 as _pagination_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf import field_mask_pb2 as _field_mask_pb2
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
@@ -48,26 +47,28 @@ class ScheduleId(_message.Message):
     value: str
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
-class GetSchedulesByAgentRequest(_message.Message):
-    __slots__ = ("agent_id", "page_info", "org")
+class ListSchedulesByAgentRequest(_message.Message):
+    __slots__ = ("agent_id", "org", "page_size", "page_token")
     AGENT_ID_FIELD_NUMBER: _ClassVar[int]
-    PAGE_INFO_FIELD_NUMBER: _ClassVar[int]
     ORG_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     agent_id: str
-    page_info: _pagination_pb2.PageInfo
     org: str
-    def __init__(self, agent_id: _Optional[str] = ..., page_info: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ..., org: _Optional[str] = ...) -> None: ...
+    page_size: int
+    page_token: str
+    def __init__(self, agent_id: _Optional[str] = ..., org: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
 class ScheduleList(_message.Message):
-    __slots__ = ("total_count", "items")
-    TOTAL_COUNT_FIELD_NUMBER: _ClassVar[int]
-    ITEMS_FIELD_NUMBER: _ClassVar[int]
-    total_count: int
-    items: _containers.RepeatedCompositeFieldContainer[_api_pb2.Schedule]
-    def __init__(self, total_count: _Optional[int] = ..., items: _Optional[_Iterable[_Union[_api_pb2.Schedule, _Mapping]]] = ...) -> None: ...
+    __slots__ = ("entries", "next_page_token")
+    ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.Schedule]
+    next_page_token: str
+    def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.Schedule, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
 
 class ListSchedulesRequest(_message.Message):
-    __slots__ = ("org", "labels", "page_info")
+    __slots__ = ("org", "labels", "page_size", "page_token")
     class LabelsEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -77,11 +78,13 @@ class ListSchedulesRequest(_message.Message):
         def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
     ORG_FIELD_NUMBER: _ClassVar[int]
     LABELS_FIELD_NUMBER: _ClassVar[int]
-    PAGE_INFO_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     org: str
     labels: _containers.ScalarMap[str, str]
-    page_info: _pagination_pb2.PageInfo
-    def __init__(self, org: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ..., page_info: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ...) -> None: ...
+    page_size: int
+    page_token: str
+    def __init__(self, org: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
 class ScheduleTriggerResult(_message.Message):
     __slots__ = ("schedule", "outcome", "run_id", "refusal_reason")
@@ -118,20 +121,22 @@ class ScheduleFire(_message.Message):
     def __init__(self, schedule_id: _Optional[str] = ..., org: _Optional[str] = ..., nominal_fire_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., origin: _Optional[_Union[ScheduleFireOrigin, str]] = ..., outcome: _Optional[_Union[ScheduleFireOutcome, str]] = ..., reason: _Optional[str] = ..., run_id: _Optional[str] = ..., recorded_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., completed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class ListScheduleFiresRequest(_message.Message):
-    __slots__ = ("schedule_id", "page_info")
+    __slots__ = ("schedule_id", "page_size", "page_token")
     SCHEDULE_ID_FIELD_NUMBER: _ClassVar[int]
-    PAGE_INFO_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     schedule_id: str
-    page_info: _pagination_pb2.PageInfo
-    def __init__(self, schedule_id: _Optional[str] = ..., page_info: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ...) -> None: ...
+    page_size: int
+    page_token: str
+    def __init__(self, schedule_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
 class ScheduleFireList(_message.Message):
-    __slots__ = ("total_count", "items")
-    TOTAL_COUNT_FIELD_NUMBER: _ClassVar[int]
-    ITEMS_FIELD_NUMBER: _ClassVar[int]
-    total_count: int
-    items: _containers.RepeatedCompositeFieldContainer[ScheduleFire]
-    def __init__(self, total_count: _Optional[int] = ..., items: _Optional[_Iterable[_Union[ScheduleFire, _Mapping]]] = ...) -> None: ...
+    __slots__ = ("entries", "next_page_token")
+    ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    entries: _containers.RepeatedCompositeFieldContainer[ScheduleFire]
+    next_page_token: str
+    def __init__(self, entries: _Optional[_Iterable[_Union[ScheduleFire, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
 
 class UpdateScheduleInput(_message.Message):
     __slots__ = ("resource", "update_mask")

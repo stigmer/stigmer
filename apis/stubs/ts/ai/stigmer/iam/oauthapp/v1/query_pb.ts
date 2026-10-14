@@ -10,14 +10,14 @@ import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../.
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
 import type { OAuthAppSchema } from "./api_pb.js";
 import { file_ai_stigmer_iam_oauthapp_v1_api } from "./api_pb.js";
-import type { ListOAuthAppsByOrgInputSchema, OAuthAppsSchema } from "./io_pb.js";
+import type { ListOAuthAppsInputSchema, OAuthAppsSchema } from "./io_pb.js";
 import { file_ai_stigmer_iam_oauthapp_v1_io } from "./io_pb.js";
 
 /**
  * Describes the file ai/stigmer/iam/oauthapp/v1/query.proto.
  */
 export const file_ai_stigmer_iam_oauthapp_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2lhbS9vYXV0aGFwcC92MS9xdWVyeS5wcm90bxIaYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEy0AMKF09BdXRoQXBwUXVlcnlDb250cm9sbGVyEosBCgNnZXQSLS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VJZBokLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLk9BdXRoQXBwIi/CuBgrCAEQFiIFdmFsdWUqHnVuYXV0aG9yaXplZCB0byB2aWV3IG9hdXRoIGFwcBJyCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRokLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLk9BdXRoQXBwIgTQuBgBEqwBCglsaXN0QnlPcmcSMy5haS5zdGlnbWVyLmlhbS5vYXV0aGFwcC52MS5MaXN0T0F1dGhBcHBzQnlPcmdJbnB1dBolLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLk9BdXRoQXBwcyJDwrgYPwgBEB4iA29yZyo0dW5hdXRob3JpemVkIHRvIGxpc3Qgb2F1dGggYXBwcyBpbiB0aGlzIG9yZ2FuaXphdGlvbhoEoP8rFmIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_oauthapp_v1_api, file_ai_stigmer_iam_oauthapp_v1_io]);
+  fileDesc("CiZhaS9zdGlnbWVyL2lhbS9vYXV0aGFwcC92MS9xdWVyeS5wcm90bxIaYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEyxgMKF09BdXRoQXBwUXVlcnlDb250cm9sbGVyEosBCgNnZXQSLS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VJZBokLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLk9BdXRoQXBwIi/CuBgrCAEQFiIFdmFsdWUqHnVuYXV0aG9yaXplZCB0byB2aWV3IG9hdXRoIGFwcBJyCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRokLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLk9BdXRoQXBwIgTQuBgBEqIBCgRsaXN0Ei4uYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEuTGlzdE9BdXRoQXBwc0lucHV0GiUuYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEuT0F1dGhBcHBzIkPCuBg/CAEQHiIDb3JnKjR1bmF1dGhvcml6ZWQgdG8gbGlzdCBvYXV0aCBhcHBzIGluIHRoaXMgb3JnYW5pemF0aW9uGgSg/ysWYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_oauthapp_v1_api, file_ai_stigmer_iam_oauthapp_v1_io]);
 
 /**
  * OAuthAppQueryController provides read operations for OAuth app resources.
@@ -49,16 +49,16 @@ export const OAuthAppQueryController: GenService<{
     output: typeof OAuthAppSchema;
   },
   /**
-   * List all OAuth apps belonging to an organization.
+   * List the OAuth apps belonging to an organization.
    *
    * Returns the OAuthApps of the input org that the caller may view, newest
-   * first. Typically a small set (1-5 per org), so results are not paginated.
+   * first, one page at a time.
    *
-   * @generated from rpc ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController.listByOrg
+   * @generated from rpc ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController.list
    */
-  listByOrg: {
+  list: {
     methodKind: "unary";
-    input: typeof ListOAuthAppsByOrgInputSchema;
+    input: typeof ListOAuthAppsInputSchema;
     output: typeof OAuthAppsSchema;
   },
 }> = /*@__PURE__*/

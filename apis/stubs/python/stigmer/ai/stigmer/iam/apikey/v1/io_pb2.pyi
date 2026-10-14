@@ -13,10 +13,12 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class ApiKeys(_message.Message):
-    __slots__ = ("entries",)
+    __slots__ = ("entries", "next_page_token")
     ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.ApiKey]
-    def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.ApiKey, _Mapping]]] = ...) -> None: ...
+    next_page_token: str
+    def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.ApiKey, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
 
 class ApiKeyId(_message.Message):
     __slots__ = ("value",)
@@ -30,11 +32,23 @@ class ApiKeyHash(_message.Message):
     value: str
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
-class ApiKeyAccountId(_message.Message):
-    __slots__ = ("value",)
-    VALUE_FIELD_NUMBER: _ClassVar[int]
-    value: str
-    def __init__(self, value: _Optional[str] = ...) -> None: ...
+class ListApiKeysInput(_message.Message):
+    __slots__ = ("page_size", "page_token")
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    page_size: int
+    page_token: str
+    def __init__(self, page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
+
+class ListApiKeysByAccountInput(_message.Message):
+    __slots__ = ("account_id", "page_size", "page_token")
+    ACCOUNT_ID_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    account_id: str
+    page_size: int
+    page_token: str
+    def __init__(self, account_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
 class CreateServiceAccountKeyInput(_message.Message):
     __slots__ = ("service_account_id", "name", "expires_at", "never_expires")

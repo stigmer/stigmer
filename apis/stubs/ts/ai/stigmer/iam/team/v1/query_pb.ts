@@ -10,14 +10,14 @@ import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../.
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
 import type { TeamSchema } from "./api_pb.js";
 import { file_ai_stigmer_iam_team_v1_api } from "./api_pb.js";
-import type { ListTeamsByOrgInputSchema, TeamsSchema } from "./io_pb.js";
+import type { ListTeamsInputSchema, TeamsSchema } from "./io_pb.js";
 import { file_ai_stigmer_iam_team_v1_io } from "./io_pb.js";
 
 /**
  * Describes the file ai/stigmer/iam/team/v1/query.proto.
  */
 export const file_ai_stigmer_iam_team_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CiJhaS9zdGlnbWVyL2lhbS90ZWFtL3YxL3F1ZXJ5LnByb3RvEhZhaS5zdGlnbWVyLmlhbS50ZWFtLnYxMqEDChNUZWFtUXVlcnlDb250cm9sbGVyEn4KA2dldBItLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUlkGhwuYWkuc3RpZ21lci5pYW0udGVhbS52MS5UZWFtIirCuBgmCAEQGCIFdmFsdWUqGXVuYXV0aG9yaXplZCB0byB2aWV3IHRlYW0SagoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaHC5haS5zdGlnbWVyLmlhbS50ZWFtLnYxLlRlYW0iBNC4GAESlwEKCWxpc3RCeU9yZxIrLmFpLnN0aWdtZXIuaWFtLnRlYW0udjEuTGlzdFRlYW1zQnlPcmdJbnB1dBodLmFpLnN0aWdtZXIuaWFtLnRlYW0udjEuVGVhbXMiPsK4GDoIARAeIgNvcmcqL3VuYXV0aG9yaXplZCB0byBsaXN0IHRlYW1zIGluIHRoaXMgb3JnYW5pemF0aW9uGgSg/ysYYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_team_v1_api, file_ai_stigmer_iam_team_v1_io]);
+  fileDesc("CiJhaS9zdGlnbWVyL2lhbS90ZWFtL3YxL3F1ZXJ5LnByb3RvEhZhaS5zdGlnbWVyLmlhbS50ZWFtLnYxMpcDChNUZWFtUXVlcnlDb250cm9sbGVyEn4KA2dldBItLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUlkGhwuYWkuc3RpZ21lci5pYW0udGVhbS52MS5UZWFtIirCuBgmCAEQGCIFdmFsdWUqGXVuYXV0aG9yaXplZCB0byB2aWV3IHRlYW0SagoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaHC5haS5zdGlnbWVyLmlhbS50ZWFtLnYxLlRlYW0iBNC4GAESjQEKBGxpc3QSJi5haS5zdGlnbWVyLmlhbS50ZWFtLnYxLkxpc3RUZWFtc0lucHV0Gh0uYWkuc3RpZ21lci5pYW0udGVhbS52MS5UZWFtcyI+wrgYOggBEB4iA29yZyovdW5hdXRob3JpemVkIHRvIGxpc3QgdGVhbXMgaW4gdGhpcyBvcmdhbml6YXRpb24aBKD/KxhiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_team_v1_api, file_ai_stigmer_iam_team_v1_io]);
 
 /**
  * TeamQueryController provides read operations for teams.
@@ -50,13 +50,13 @@ export const TeamQueryController: GenService<{
     output: typeof TeamSchema;
   },
   /**
-   * List the teams of an organization.
+   * List the teams of an organization, newest first.
    *
-   * @generated from rpc ai.stigmer.iam.team.v1.TeamQueryController.listByOrg
+   * @generated from rpc ai.stigmer.iam.team.v1.TeamQueryController.list
    */
-  listByOrg: {
+  list: {
     methodKind: "unary";
-    input: typeof ListTeamsByOrgInputSchema;
+    input: typeof ListTeamsInputSchema;
     output: typeof TeamsSchema;
   },
 }> = /*@__PURE__*/

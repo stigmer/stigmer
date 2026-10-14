@@ -56,19 +56,14 @@ export interface ServiceSchema {
 
 /**
  * Serializes a ServiceSchema in the exact Go struct-tag order, with the
- * resource name and SearchService listVia marker applied by the caller.
+ * resource name applied by the caller.
  */
-export function serviceSchemaStruct(
-  resource: string,
-  listVia: string,
-  schema: ServiceSchema,
-): GoJsonStruct {
+export function serviceSchemaStruct(resource: string, schema: ServiceSchema): GoJsonStruct {
   return {
     resource,
     package: schema.package,
     goImportPath: schema.goImportPath,
     services: schema.services,
-    listVia: listVia !== "" ? listVia : undefined,
     methodTypes: schema.methodTypes.length > 0 ? schema.methodTypes : undefined,
     enumTypes: schema.enumTypes.length > 0 ? schema.enumTypes : undefined,
     resourceDescription: schema.resourceDescription !== "" ? schema.resourceDescription : undefined,

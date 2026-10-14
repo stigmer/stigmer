@@ -42,7 +42,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "o.proto\032\'ai/stigmer/commons/apiresource/" +
       "io.proto\0328ai/stigmer/commons/apiresource" +
       "/rpc_service_options.proto\032+ai/stigmer/c" +
-      "ommons/rpc/method_options.proto2\366\003\n\031Chan" +
+      "ommons/rpc/method_options.proto2\354\003\n\031Chan" +
       "nelAppQueryController\022\225\001\n\003get\022-.ai.stigm" +
       "er.commons.apiresource.ApiResourceId\032,.a" +
       "i.stigmer.agentic.channelapp.v1.ChannelA" +
@@ -50,17 +50,16 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "w channel app\022z\n\016getByReference\0224.ai.sti" +
       "gmer.commons.apiresource.ApiResourceRefe" +
       "rence\032,.ai.stigmer.agentic.channelapp.v1" +
-      ".ChannelApp\"\004\320\270\030\001\022\276\001\n\tlistByOrg\022;.ai.sti" +
-      "gmer.agentic.channelapp.v1.ListChannelAp" +
-      "psByOrgInput\032-.ai.stigmer.agentic.channe" +
-      "lapp.v1.ChannelApps\"E\302\270\030A\010\001\020\036\"\003org*6unau" +
-      "thorized to list channel apps in this or" +
-      "ganization\032\004\240\377+0B\261\001B\nQueryProtoP\001\242\002\004ASAC" +
-      "\252\002 Ai.Stigmer.Agentic.Channelapp.V1\312\002 Ai" +
-      "\\Stigmer\\Agentic\\Channelapp\\V1\342\002,Ai\\Stig" +
-      "mer\\Agentic\\Channelapp\\V1\\GPBMetadata\352\002$" +
-      "Ai::Stigmer::Agentic::Channelapp::V1b\006pr" +
-      "oto3"
+      ".ChannelApp\"\004\320\270\030\001\022\264\001\n\004list\0226.ai.stigmer." +
+      "agentic.channelapp.v1.ListChannelAppsInp" +
+      "ut\032-.ai.stigmer.agentic.channelapp.v1.Ch" +
+      "annelApps\"E\302\270\030A\010\001\020\036\"\003org*6unauthorized t" +
+      "o list channel apps in this organization" +
+      "\032\004\240\377+0B\261\001B\nQueryProtoP\001\242\002\004ASAC\252\002 Ai.Stig" +
+      "mer.Agentic.Channelapp.V1\312\002 Ai\\Stigmer\\A" +
+      "gentic\\Channelapp\\V1\342\002,Ai\\Stigmer\\Agenti" +
+      "c\\Channelapp\\V1\\GPBMetadata\352\002$Ai::Stigme" +
+      "r::Agentic::Channelapp::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

@@ -502,7 +502,7 @@ describe("apply round-trips with markers", () => {
 // ---------------------------------------------------------------------------
 
 describe("queries redact secrets", () => {
-  it("slack: get, getByReference, and listByOrg redact; org filter holds", async () => {
+  it("slack: get, getByReference, and list redact; org filter holds", async () => {
     const org = "acme-slack-queries";
     const created = await command.create(
       newSlackApp(uniqueName("Acme Support App"), org),
@@ -527,7 +527,7 @@ describe("queries redact secrets", () => {
         : undefined;
     expect(byRefSlack?.clientSecret).toBe(REDACTED_MARKER);
 
-    const list = await query.listByOrg({ org });
+    const list = await query.list({ org });
     expect(list.entries).toHaveLength(1);
     const listSlack =
       list.entries[0]!.spec?.providerConfig.case === "slack"
@@ -535,7 +535,7 @@ describe("queries redact secrets", () => {
         : undefined;
     expect(listSlack?.signingSecret).toBe(REDACTED_MARKER);
 
-    const other = await query.listByOrg({ org: "some-other-org" });
+    const other = await query.list({ org: "some-other-org" });
     expect(other.entries).toHaveLength(0);
   });
 
@@ -568,7 +568,7 @@ describe("queries redact secrets", () => {
         : undefined;
     expect(byRefWa?.appSecret).toBe(REDACTED_MARKER);
 
-    const list = await query.listByOrg({ org });
+    const list = await query.list({ org });
     expect(list.entries).toHaveLength(1);
     const listWa =
       list.entries[0]!.spec?.providerConfig.case === "whatsapp"

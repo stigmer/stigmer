@@ -2,11 +2,12 @@
 
 package ai.stigmer.sdk.gen;
 
-import ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest;
 import ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest;
+import ai.stigmer.agentic.schedule.v1.ListSchedulesByAgentRequest;
 import ai.stigmer.agentic.schedule.v1.ListSchedulesRequest;
 import ai.stigmer.agentic.schedule.v1.Schedule;
 import ai.stigmer.agentic.schedule.v1.ScheduleCommandControllerGrpc;
+import ai.stigmer.agentic.schedule.v1.ScheduleFire;
 import ai.stigmer.agentic.schedule.v1.ScheduleFireList;
 import ai.stigmer.agentic.schedule.v1.ScheduleId;
 import ai.stigmer.agentic.schedule.v1.ScheduleList;
@@ -86,10 +87,23 @@ public final class ScheduleClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public ScheduleList getByAgent(GetSchedulesByAgentRequest input) {
+    public ScheduleList listByAgent(ListSchedulesByAgentRequest input) {
         try {
-            return query.getByAgent(input);
+            return query.listByAgent(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code listByAgent}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<Schedule> listByAgentAll(ListSchedulesByAgentRequest input) {
+        return Pages.<ScheduleList, Schedule>iterate(
+            input.getPageToken(),
+            token -> listByAgent(input.toBuilder().setPageToken(token).build()),
+            ScheduleList::getEntriesList,
+            ScheduleList::getNextPageToken);
     }
 
     public ScheduleList list(ListSchedulesRequest input) {
@@ -98,9 +112,35 @@ public final class ScheduleClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    /**
+     * Every entry of {@code list}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<Schedule> listAll(ListSchedulesRequest input) {
+        return Pages.<ScheduleList, Schedule>iterate(
+            input.getPageToken(),
+            token -> list(input.toBuilder().setPageToken(token).build()),
+            ScheduleList::getEntriesList,
+            ScheduleList::getNextPageToken);
+    }
+
     public ScheduleFireList listFires(ListScheduleFiresRequest input) {
         try {
             return query.listFires(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code listFires}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<ScheduleFire> listFiresAll(ListScheduleFiresRequest input) {
+        return Pages.<ScheduleFireList, ScheduleFire>iterate(
+            input.getPageToken(),
+            token -> listFires(input.toBuilder().setPageToken(token).build()),
+            ScheduleFireList::getEntriesList,
+            ScheduleFireList::getNextPageToken);
     }
 }

@@ -173,15 +173,10 @@ func (x *SessionId) GetValue() string {
 // RunList contains one page of runs, newest first.
 type RunList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Not computed for this list: 1 when the response holds every run,
-	// 0 when next_page_token is set. Follow next_page_token instead.
-	TotalPages int32 `protobuf:"varint,1,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
 	// Runs in this page, newest first.
 	Entries []*Run `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
-	// Set when more runs may follow: pass it as page_token to
-	// continue. A page may hold fewer runs than page_size, even none,
-	// and still carry a token. Empty when the list is complete, and always
-	// empty from listBySession, which returns a session's runs whole.
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
 	NextPageToken string `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -217,13 +212,6 @@ func (*RunList) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *RunList) GetTotalPages() int32 {
-	if x != nil {
-		return x.TotalPages
-	}
-	return 0
-}
-
 func (x *RunList) GetEntries() []*Run {
 	if x != nil {
 		return x.Entries
@@ -241,7 +229,8 @@ func (x *RunList) GetNextPageToken() string {
 // ListRunsRequest specifies parameters for listing runs.
 type ListRunsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The most runs to return, at most 100; zero returns them all.
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
 	PageSize int32 `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
@@ -326,21 +315,17 @@ func (x *ListRunsRequest) GetOrg() string {
 	return ""
 }
 
-// ListRunsBySessionRequest lists all runs in a session.
-//
-// A session's runs are returned whole, newest first: a conversation
-// is read as one, and every consumer of this list needs all of it.
+// ListRunsBySessionRequest lists the runs of a session, newest first, one
+// page at a time.
 type ListRunsBySessionRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Session ID to filter by.
 	SessionId string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	// Not read: a session's runs are returned whole.
-	//
-	// Deprecated: Marked as deprecated in ai/stigmer/agentic/run/v1/io.proto.
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	// Not read: a session's runs are returned whole.
-	//
-	// Deprecated: Marked as deprecated in ai/stigmer/agentic/run/v1/io.proto.
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
 	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -383,7 +368,6 @@ func (x *ListRunsBySessionRequest) GetSessionId() string {
 	return ""
 }
 
-// Deprecated: Marked as deprecated in ai/stigmer/agentic/run/v1/io.proto.
 func (x *ListRunsBySessionRequest) GetPageSize() int32 {
 	if x != nil {
 		return x.PageSize
@@ -391,7 +375,6 @@ func (x *ListRunsBySessionRequest) GetPageSize() int32 {
 	return 0
 }
 
-// Deprecated: Marked as deprecated in ai/stigmer/agentic/run/v1/io.proto.
 func (x *ListRunsBySessionRequest) GetPageToken() string {
 	if x != nil {
 		return x.PageToken
@@ -1833,10 +1816,6 @@ type GetAgentUsageReportInput struct {
 	// End of the time range, inclusive: a UTC calendar day ("2026-03-13",
 	// through its last instant) or an RFC 3339 instant.
 	ToDate string `protobuf:"bytes,3,opt,name=to_date,json=toDate,proto3" json:"to_date,omitempty"`
-	// Maximum number of sessions to return per page.
-	PageSize int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	// Token for pagination, obtained from previous response.
-	PageToken string `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Organization scope for the report: usage of this agent within this
 	// organization. Only runs belonging to this organization are
 	// aggregated. The caller must hold can_view on the organization.
@@ -1896,20 +1875,6 @@ func (x *GetAgentUsageReportInput) GetToDate() string {
 	return ""
 }
 
-func (x *GetAgentUsageReportInput) GetPageSize() int32 {
-	if x != nil {
-		return x.PageSize
-	}
-	return 0
-}
-
-func (x *GetAgentUsageReportInput) GetPageToken() string {
-	if x != nil {
-		return x.PageToken
-	}
-	return ""
-}
-
 func (x *GetAgentUsageReportInput) GetOrg() string {
 	if x != nil {
 		return x.Org
@@ -1936,9 +1901,7 @@ type GetAgentUsageReportOutput struct {
 	// Total number of sessions within the time range.
 	TotalSessions int32 `protobuf:"varint,6,opt,name=total_sessions,json=totalSessions,proto3" json:"total_sessions,omitempty"`
 	// Total number of runs within the time range.
-	TotalRuns int32 `protobuf:"varint,7,opt,name=total_runs,json=totalRuns,proto3" json:"total_runs,omitempty"`
-	// Token for the next page of sessions (empty if no more pages).
-	NextPageToken string `protobuf:"bytes,9,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	TotalRuns     int32 `protobuf:"varint,7,opt,name=total_runs,json=totalRuns,proto3" json:"total_runs,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2020,13 +1983,6 @@ func (x *GetAgentUsageReportOutput) GetTotalRuns() int32 {
 		return x.TotalRuns
 	}
 	return 0
-}
-
-func (x *GetAgentUsageReportOutput) GetNextPageToken() string {
-	if x != nil {
-		return x.NextPageToken
-	}
-	return ""
 }
 
 // GetOrgUsageReportInput requests a usage report for an entire organization.
@@ -2981,25 +2937,23 @@ const file_ai_stigmer_agentic_run_v1_io_proto_rawDesc = "" +
 	"\x05RunId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\")\n" +
 	"\tSessionId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x8c\x01\n" +
-	"\aRunList\x12\x1f\n" +
-	"\vtotal_pages\x18\x01 \x01(\x05R\n" +
-	"totalPages\x128\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"~\n" +
+	"\aRunList\x128\n" +
 	"\aentries\x18\x02 \x03(\v2\x1e.ai.stigmer.agentic.run.v1.RunR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\"\xb7\x01\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\b\x01\x10\x02R\vtotal_pages\"\xc1\x01\n" +
 	"\x0fListRunsRequest\x12$\n" +
-	"\tpage_size\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12\x1d\n" +
+	"\tpage_size\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x02 \x01(\tR\tpageToken\x129\n" +
+	"page_token\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x129\n" +
 	"\x05phase\x18\x03 \x01(\x0e2#.ai.stigmer.agentic.run.v1.RunPhaseR\x05phase\x12\x12\n" +
 	"\x04tags\x18\x04 \x03(\tR\x04tags\x12\x10\n" +
-	"\x03org\x18\x05 \x01(\tR\x03org\"\x85\x01\n" +
+	"\x03org\x18\x05 \x01(\tR\x03org\"\x90\x01\n" +
 	"\x18ListRunsBySessionRequest\x12%\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tsessionId\x12\x1f\n" +
-	"\tpage_size\x18\x02 \x01(\x05B\x02\x18\x01R\bpageSize\x12!\n" +
+	"session_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tsessionId\x12$\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tB\x02\x18\x01R\tpageToken\"|\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"|\n" +
 	"\x14RunUpdateStatusInput\x12\x1e\n" +
 	"\x06run_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05runId\x12D\n" +
 	"\x06status\x18\x02 \x01(\v2$.ai.stigmer.agentic.run.v1.RunStatusB\x06\xbaH\x03\xc8\x01\x01R\x06status\"\x80\x01\n" +
@@ -3064,15 +3018,13 @@ const file_ai_stigmer_agentic_run_v1_io_proto_rawDesc = "" +
 	"\ffirst_run_at\x18\x06 \x01(\tR\n" +
 	"firstRunAt\x12\x1e\n" +
 	"\vlast_run_at\x18\a \x01(\tR\tlastRunAt\x12!\n" +
-	"\fis_estimated\x18\b \x01(\bR\visEstimated\"\xcb\x01\n" +
+	"\fis_estimated\x18\b \x01(\bR\visEstimated\"\xb2\x01\n" +
 	"\x18GetAgentUsageReportInput\x12\"\n" +
 	"\bagent_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aagentId\x12\x1b\n" +
 	"\tfrom_date\x18\x02 \x01(\tR\bfromDate\x12\x17\n" +
-	"\ato_date\x18\x03 \x01(\tR\x06toDate\x12\x1b\n" +
-	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12\x1d\n" +
-	"\n" +
-	"page_token\x18\x05 \x01(\tR\tpageToken\x12\x19\n" +
-	"\x03org\x18\x06 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\xd3\x03\n" +
+	"\ato_date\x18\x03 \x01(\tR\x06toDate\x12\x19\n" +
+	"\x03org\x18\x06 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03orgJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\tpage_sizeR\n" +
+	"page_token\"\xc2\x03\n" +
 	"\x19GetAgentUsageReportOutput\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12\x1d\n" +
 	"\n" +
@@ -3083,8 +3035,8 @@ const file_ai_stigmer_agentic_run_v1_io_proto_rawDesc = "" +
 	"\bsessions\x18\x05 \x03(\v2..ai.stigmer.agentic.run.v1.SessionUsageSummaryR\bsessions\x12%\n" +
 	"\x0etotal_sessions\x18\x06 \x01(\x05R\rtotalSessions\x12\x1d\n" +
 	"\n" +
-	"total_runs\x18\a \x01(\x05R\ttotalRuns\x12&\n" +
-	"\x0fnext_page_token\x18\t \x01(\tR\rnextPageTokenJ\x04\b\b\x10\tR\x1atotal_billable_cost_micros\"{\n" +
+	"total_runs\x18\a \x01(\x05R\ttotalRunsJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
+	"R\x1atotal_billable_cost_microsR\x0fnext_page_token\"{\n" +
 	"\x16GetOrgUsageReportInput\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
 	"\tfrom_date\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bfromDate\x12 \n" +

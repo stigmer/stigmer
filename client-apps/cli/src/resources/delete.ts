@@ -4,7 +4,7 @@
 //
 //   - run        → maps to a *cancel* (runs only, by ID): its session is
 //                  interrupted, which stops every unfinished turn of it
-//   - organization → not org-scoped; resolved via findMyOrganizations
+//   - organization → not org-scoped; resolved via listMine
 //   - api_key    → addressable by ID only (not slug)
 //
 // The deletion verbs are id-shaped mutations, so they ride the high-level

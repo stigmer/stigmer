@@ -33,6 +33,7 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | AgentCommandController.apply | metadata.org |
 | AgentCommandController.create | metadata.org |
 | AgentQueryController.getByReference | org |
+| AgentQueryController.list | org |
 | AgentQueryController.listVersions | org |
 
 ## `ai.stigmer.agentic.agentchannel.v1`
@@ -41,10 +42,11 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 |---|---|
 | AgentChannelCommandController.apply | metadata.org |
 | AgentChannelCommandController.create | metadata.org |
-| AgentChannelQueryController.getByAgent | org |
+| AgentChannelQueryController.listByAgent | org |
 | AgentChannelQueryController.getByReference | org |
 | AgentChannelQueryController.list | org |
-| ChannelConversationQueryController.listConversations | org |
+| ChannelConversationQueryController.countConversations | org |
+| ChannelConversationQueryController.list | org |
 | ChannelMessageCommandController.sendMessage | org |
 | ChannelMessageQueryController.listTemplates | org |
 
@@ -70,7 +72,7 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 |---|---|
 | AgentShareCommandController.apply | metadata.org |
 | AgentShareCommandController.create | metadata.org |
-| AgentShareQueryController.getByAgent | org |
+| AgentShareQueryController.listByAgent | org |
 | AgentShareQueryController.getByReference | org |
 | AgentShareQueryController.list | org |
 
@@ -81,7 +83,7 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | ChannelAppCommandController.apply | metadata.org |
 | ChannelAppCommandController.create | metadata.org |
 | ChannelAppQueryController.getByReference | org |
-| ChannelAppQueryController.listByOrg | org |
+| ChannelAppQueryController.list | org |
 
 ## `ai.stigmer.agentic.evaluator.v1`
 
@@ -104,6 +106,7 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | PluginCommandController.listTools | org |
 | PluginCommandController.push | org |
 | PluginQueryController.getByReference | org |
+| PluginQueryController.list | org |
 | PluginQueryController.listVersions | org |
 
 ## `ai.stigmer.agentic.plugineval.v1`
@@ -118,7 +121,7 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 |---|---|
 | ScheduleCommandController.apply | metadata.org |
 | ScheduleCommandController.create | metadata.org |
-| ScheduleQueryController.getByAgent | org |
+| ScheduleQueryController.listByAgent | org |
 | ScheduleQueryController.getByReference | org |
 | ScheduleQueryController.list | org |
 
@@ -146,6 +149,7 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | SkillCommandController.push | org |
 | SkillCommandController.pushFromRunArtifact | org |
 | SkillQueryController.getByReference | org |
+| SkillQueryController.list | org |
 | SkillQueryController.listVersions | org |
 
 ## `ai.stigmer.agentic.vault.v1`
@@ -180,7 +184,7 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | OAuthAppCommandController.apply | metadata.org |
 | OAuthAppCommandController.create | metadata.org |
 | OAuthAppQueryController.getByReference | org |
-| OAuthAppQueryController.listByOrg | org |
+| OAuthAppQueryController.list | org |
 
 ## `ai.stigmer.iam.platformclient.v1`
 
@@ -188,7 +192,7 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 |---|---|
 | PlatformClientCommandController.create | metadata.org |
 | PlatformClientQueryController.getByReference | org |
-| PlatformClientQueryController.listByOrg | org |
+| PlatformClientQueryController.list | org |
 | PlatformClientTokenController.mintUserToken | org |
 
 ## `ai.stigmer.platform.github.v1`
@@ -228,5 +232,4 @@ These kinds are owned by a person, not an organization, yet these methods take a
 | IdentityAccountCommandController.create | not filled: kind belongs to no organization |
 | OrganizationCommandController.apply | not filled: organization service |
 | OrganizationCommandController.create | not filled: organization service |
-| OrganizationQueryController.find | not filled: organization service |
 | OrganizationQueryController.listChildOrgs | not filled: organization service |

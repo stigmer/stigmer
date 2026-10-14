@@ -4,6 +4,7 @@ package gen
 
 import (
 	"context"
+	"iter"
 
 	runv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1"
 	schedulev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/schedule/v1"
@@ -11,6 +12,7 @@ import (
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
@@ -84,9 +86,38 @@ func (s *ScheduleClient) GetByReference(ctx context.Context, ref ResourceRef) (*
 	return resp, wrapErr(err)
 }
 
-func (s *ScheduleClient) GetByAgent(ctx context.Context, input *schedulev1.GetSchedulesByAgentRequest) (*schedulev1.ScheduleList, error) {
-	resp, err := s.query.GetByAgent(ctx, input)
+func (s *ScheduleClient) ListByAgent(ctx context.Context, input *schedulev1.ListSchedulesByAgentRequest) (*schedulev1.ScheduleList, error) {
+	resp, err := s.query.ListByAgent(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListByAgentAll returns every entry of ListByAgent, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (s *ScheduleClient) ListByAgentAll(ctx context.Context, input *schedulev1.ListSchedulesByAgentRequest) iter.Seq2[*schedulev1.Schedule, error] {
+	return func(yield func(*schedulev1.Schedule, error) bool) {
+		req := &schedulev1.ListSchedulesByAgentRequest{}
+		if input != nil {
+			req = proto.Clone(input).(*schedulev1.ListSchedulesByAgentRequest)
+		}
+		for {
+			page, err := s.ListByAgent(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 func (s *ScheduleClient) List(ctx context.Context, input *schedulev1.ListSchedulesRequest) (*schedulev1.ScheduleList, error) {
@@ -94,9 +125,67 @@ func (s *ScheduleClient) List(ctx context.Context, input *schedulev1.ListSchedul
 	return resp, wrapErr(err)
 }
 
+// ListAll returns every entry of List, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (s *ScheduleClient) ListAll(ctx context.Context, input *schedulev1.ListSchedulesRequest) iter.Seq2[*schedulev1.Schedule, error] {
+	return func(yield func(*schedulev1.Schedule, error) bool) {
+		req := &schedulev1.ListSchedulesRequest{}
+		if input != nil {
+			req = proto.Clone(input).(*schedulev1.ListSchedulesRequest)
+		}
+		for {
+			page, err := s.List(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
+}
+
 func (s *ScheduleClient) ListFires(ctx context.Context, input *schedulev1.ListScheduleFiresRequest) (*schedulev1.ScheduleFireList, error) {
 	resp, err := s.query.ListFires(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListFiresAll returns every entry of ListFires, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (s *ScheduleClient) ListFiresAll(ctx context.Context, input *schedulev1.ListScheduleFiresRequest) iter.Seq2[*schedulev1.ScheduleFire, error] {
+	return func(yield func(*schedulev1.ScheduleFire, error) bool) {
+		req := &schedulev1.ListScheduleFiresRequest{}
+		if input != nil {
+			req = proto.Clone(input).(*schedulev1.ListScheduleFiresRequest)
+		}
+		for {
+			page, err := s.ListFires(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 // ScheduleInput holds the fields for creating or applying a Schedule.

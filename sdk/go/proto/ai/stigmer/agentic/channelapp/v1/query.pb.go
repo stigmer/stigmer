@@ -26,28 +26,28 @@ var File_ai_stigmer_agentic_channelapp_v1_query_proto protoreflect.FileDescripto
 
 const file_ai_stigmer_agentic_channelapp_v1_query_proto_rawDesc = "" +
 	"\n" +
-	",ai/stigmer/agentic/channelapp/v1/query.proto\x12 ai.stigmer.agentic.channelapp.v1\x1a*ai/stigmer/agentic/channelapp/v1/api.proto\x1a)ai/stigmer/agentic/channelapp/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xf6\x03\n" +
+	",ai/stigmer/agentic/channelapp/v1/query.proto\x12 ai.stigmer.agentic.channelapp.v1\x1a*ai/stigmer/agentic/channelapp/v1/api.proto\x1a)ai/stigmer/agentic/channelapp/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xec\x03\n" +
 	"\x19ChannelAppQueryController\x12\x95\x01\n" +
 	"\x03get\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a,.ai.stigmer.agentic.channelapp.v1.ChannelApp\"1¸\x18-\b\x01\x100\"\x05value* unauthorized to view channel app\x12z\n" +
-	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a,.ai.stigmer.agentic.channelapp.v1.ChannelApp\"\x04и\x18\x01\x12\xbe\x01\n" +
-	"\tlistByOrg\x12;.ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput\x1a-.ai.stigmer.agentic.channelapp.v1.ChannelApps\"E¸\x18A\b\x01\x10\x1e\"\x03org*6unauthorized to list channel apps in this organization\x1a\x04\xa0\xff+0B\xb1\x02\n" +
+	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a,.ai.stigmer.agentic.channelapp.v1.ChannelApp\"\x04и\x18\x01\x12\xb4\x01\n" +
+	"\x04list\x126.ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput\x1a-.ai.stigmer.agentic.channelapp.v1.ChannelApps\"E¸\x18A\b\x01\x10\x1e\"\x03org*6unauthorized to list channel apps in this organization\x1a\x04\xa0\xff+0B\xb1\x02\n" +
 	"$com.ai.stigmer.agentic.channelapp.v1B\n" +
 	"QueryProtoP\x01ZXgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channelapp/v1;channelappv1\xa2\x02\x04ASAC\xaa\x02 Ai.Stigmer.Agentic.Channelapp.V1\xca\x02 Ai\\Stigmer\\Agentic\\Channelapp\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Channelapp\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Channelapp::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_channelapp_v1_query_proto_goTypes = []any{
 	(*apiresource.ApiResourceId)(nil),        // 0: ai.stigmer.commons.apiresource.ApiResourceId
 	(*apiresource.ApiResourceReference)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*ListChannelAppsByOrgInput)(nil),        // 2: ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput
+	(*ListChannelAppsInput)(nil),             // 2: ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput
 	(*ChannelApp)(nil),                       // 3: ai.stigmer.agentic.channelapp.v1.ChannelApp
 	(*ChannelApps)(nil),                      // 4: ai.stigmer.agentic.channelapp.v1.ChannelApps
 }
 var file_ai_stigmer_agentic_channelapp_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController.get:input_type -> ai.stigmer.commons.apiresource.ApiResourceId
 	1, // 1: ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController.getByReference:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2, // 2: ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController.listByOrg:input_type -> ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput
+	2, // 2: ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController.list:input_type -> ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput
 	3, // 3: ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController.get:output_type -> ai.stigmer.agentic.channelapp.v1.ChannelApp
 	3, // 4: ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController.getByReference:output_type -> ai.stigmer.agentic.channelapp.v1.ChannelApp
-	4, // 5: ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController.listByOrg:output_type -> ai.stigmer.agentic.channelapp.v1.ChannelApps
+	4, // 5: ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController.list:output_type -> ai.stigmer.agentic.channelapp.v1.ChannelApps
 	3, // [3:6] is the sub-list for method output_type
 	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

@@ -8,11 +8,9 @@ package organizationv1
 
 import (
 	context "context"
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -21,11 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	OrganizationQueryController_Get_FullMethodName                 = "/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/get"
-	OrganizationQueryController_Find_FullMethodName                = "/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/find"
-	OrganizationQueryController_FindMyOrganizations_FullMethodName = "/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/findMyOrganizations"
-	OrganizationQueryController_GetByExternalId_FullMethodName     = "/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/getByExternalId"
-	OrganizationQueryController_ListChildOrgs_FullMethodName       = "/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/listChildOrgs"
+	OrganizationQueryController_Get_FullMethodName             = "/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/get"
+	OrganizationQueryController_ListMine_FullMethodName        = "/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/listMine"
+	OrganizationQueryController_GetByExternalId_FullMethodName = "/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/getByExternalId"
+	OrganizationQueryController_ListChildOrgs_FullMethodName   = "/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/listChildOrgs"
 )
 
 // OrganizationQueryControllerClient is the client API for OrganizationQueryController service.
@@ -36,11 +33,9 @@ const (
 type OrganizationQueryControllerClient interface {
 	// Get an organization by ID.
 	Get(ctx context.Context, in *OrganizationId, opts ...grpc.CallOption) (*Organization, error)
-	// List organizations with pagination and filtering.
-	Find(ctx context.Context, in *apiresource.FindApiResourcesRequest, opts ...grpc.CallOption) (*OrganizationList, error)
-	// Find organizations the authenticated user is a member of.
+	// List the organizations the authenticated caller is a member of.
 	// Returns only organizations the caller has access to.
-	FindMyOrganizations(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Organizations, error)
+	ListMine(ctx context.Context, in *ListMyOrganizationsInput, opts ...grpc.CallOption) (*Organizations, error)
 	// Find a child organization by the identifier its parent keeps for it
 	// (external_id). An organization that is not a child of parent_org, or no
 	// child with that identifier, answers NotFound.
@@ -67,20 +62,10 @@ func (c *organizationQueryControllerClient) Get(ctx context.Context, in *Organiz
 	return out, nil
 }
 
-func (c *organizationQueryControllerClient) Find(ctx context.Context, in *apiresource.FindApiResourcesRequest, opts ...grpc.CallOption) (*OrganizationList, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(OrganizationList)
-	err := c.cc.Invoke(ctx, OrganizationQueryController_Find_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *organizationQueryControllerClient) FindMyOrganizations(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Organizations, error) {
+func (c *organizationQueryControllerClient) ListMine(ctx context.Context, in *ListMyOrganizationsInput, opts ...grpc.CallOption) (*Organizations, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Organizations)
-	err := c.cc.Invoke(ctx, OrganizationQueryController_FindMyOrganizations_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, OrganizationQueryController_ListMine_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -115,11 +100,9 @@ func (c *organizationQueryControllerClient) ListChildOrgs(ctx context.Context, i
 type OrganizationQueryControllerServer interface {
 	// Get an organization by ID.
 	Get(context.Context, *OrganizationId) (*Organization, error)
-	// List organizations with pagination and filtering.
-	Find(context.Context, *apiresource.FindApiResourcesRequest) (*OrganizationList, error)
-	// Find organizations the authenticated user is a member of.
+	// List the organizations the authenticated caller is a member of.
 	// Returns only organizations the caller has access to.
-	FindMyOrganizations(context.Context, *emptypb.Empty) (*Organizations, error)
+	ListMine(context.Context, *ListMyOrganizationsInput) (*Organizations, error)
 	// Find a child organization by the identifier its parent keeps for it
 	// (external_id). An organization that is not a child of parent_org, or no
 	// child with that identifier, answers NotFound.
@@ -138,11 +121,8 @@ type UnimplementedOrganizationQueryControllerServer struct{}
 func (UnimplementedOrganizationQueryControllerServer) Get(context.Context, *OrganizationId) (*Organization, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
 }
-func (UnimplementedOrganizationQueryControllerServer) Find(context.Context, *apiresource.FindApiResourcesRequest) (*OrganizationList, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Find not implemented")
-}
-func (UnimplementedOrganizationQueryControllerServer) FindMyOrganizations(context.Context, *emptypb.Empty) (*Organizations, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FindMyOrganizations not implemented")
+func (UnimplementedOrganizationQueryControllerServer) ListMine(context.Context, *ListMyOrganizationsInput) (*Organizations, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListMine not implemented")
 }
 func (UnimplementedOrganizationQueryControllerServer) GetByExternalId(context.Context, *OrganizationExternalLookup) (*Organization, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByExternalId not implemented")
@@ -188,38 +168,20 @@ func _OrganizationQueryController_Get_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
-func _OrganizationQueryController_Find_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(apiresource.FindApiResourcesRequest)
+func _OrganizationQueryController_ListMine_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListMyOrganizationsInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(OrganizationQueryControllerServer).Find(ctx, in)
+		return srv.(OrganizationQueryControllerServer).ListMine(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: OrganizationQueryController_Find_FullMethodName,
+		FullMethod: OrganizationQueryController_ListMine_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OrganizationQueryControllerServer).Find(ctx, req.(*apiresource.FindApiResourcesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _OrganizationQueryController_FindMyOrganizations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(emptypb.Empty)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(OrganizationQueryControllerServer).FindMyOrganizations(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: OrganizationQueryController_FindMyOrganizations_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OrganizationQueryControllerServer).FindMyOrganizations(ctx, req.(*emptypb.Empty))
+		return srv.(OrganizationQueryControllerServer).ListMine(ctx, req.(*ListMyOrganizationsInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -272,12 +234,8 @@ var OrganizationQueryController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _OrganizationQueryController_Get_Handler,
 		},
 		{
-			MethodName: "find",
-			Handler:    _OrganizationQueryController_Find_Handler,
-		},
-		{
-			MethodName: "findMyOrganizations",
-			Handler:    _OrganizationQueryController_FindMyOrganizations_Handler,
+			MethodName: "listMine",
+			Handler:    _OrganizationQueryController_ListMine_Handler,
 		},
 		{
 			MethodName: "getByExternalId",

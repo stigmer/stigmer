@@ -41,34 +41,38 @@ public final class ConversationQueryProto extends com.google.protobuf.GeneratedF
       "entchannel/v1/conversation_io.proto\0328ai/" +
       "stigmer/commons/apiresource/rpc_service_" +
       "options.proto\032+ai/stigmer/commons/rpc/me" +
-      "thod_options.proto2\364\006\n\"ChannelConversati" +
-      "onQueryController\022\231\001\n\021listConversations\022" +
-      "A.ai.stigmer.agentic.agentchannel.v1.Lis" +
-      "tChannelConversationsInput\032;.ai.stigmer." +
-      "agentic.agentchannel.v1.ChannelConversat" +
-      "ionList\"\004\320\270\030\001\022\333\001\n\017getConversation\022?.ai.s" +
-      "tigmer.agentic.agentchannel.v1.GetChanne" +
-      "lConversationInput\0327.ai.stigmer.agentic." +
-      "agentchannel.v1.ChannelConversation\"N\302\270\030" +
-      "J\010\001\020/\"\020agent_channel_id*2unauthorized to" +
-      " view conversations on this channel\022\331\001\n\013" +
-      "getTimeline\022@.ai.stigmer.agentic.agentch" +
-      "annel.v1.GetConversationTimelineInput\0328." +
-      "ai.stigmer.agentic.agentchannel.v1.Conve" +
-      "rsationTimeline\"N\302\270\030J\010\001\020/\"\020agent_channel" +
-      "_id*2unauthorized to view conversations " +
-      "on this channel\022\361\001\n\023getMediaDownloadUrl\022" +
-      "H.ai.stigmer.agentic.agentchannel.v1.Get" +
-      "ConversationMediaDownloadUrlInput\032@.ai.s" +
-      "tigmer.agentic.agentchannel.v1.Conversat" +
-      "ionMediaDownloadUrl\"N\302\270\030J\010\001\020/\"\020agent_cha" +
-      "nnel_id*2unauthorized to view conversati" +
-      "ons on this channel\032\004\240\377+/B\305\001B\026Conversati" +
-      "onQueryProtoP\001\242\002\004ASAA\252\002\"Ai.Stigmer.Agent" +
-      "ic.Agentchannel.V1\312\002\"Ai\\Stigmer\\Agentic\\" +
-      "Agentchannel\\V1\342\002.Ai\\Stigmer\\Agentic\\Age" +
-      "ntchannel\\V1\\GPBMetadata\352\002&Ai::Stigmer::" +
-      "Agentic::Agentchannel::V1b\006proto3"
+      "thod_options.proto2\210\010\n\"ChannelConversati" +
+      "onQueryController\022\214\001\n\004list\022A.ai.stigmer." +
+      "agentic.agentchannel.v1.ListChannelConve" +
+      "rsationsInput\032;.ai.stigmer.agentic.agent" +
+      "channel.v1.ChannelConversationList\"\004\320\270\030\001" +
+      "\022\234\001\n\022countConversations\022B.ai.stigmer.age" +
+      "ntic.agentchannel.v1.CountChannelConvers" +
+      "ationsInput\032<.ai.stigmer.agentic.agentch" +
+      "annel.v1.ChannelConversationCount\"\004\320\270\030\001\022" +
+      "\333\001\n\017getConversation\022?.ai.stigmer.agentic" +
+      ".agentchannel.v1.GetChannelConversationI" +
+      "nput\0327.ai.stigmer.agentic.agentchannel.v" +
+      "1.ChannelConversation\"N\302\270\030J\010\001\020/\"\020agent_c" +
+      "hannel_id*2unauthorized to view conversa" +
+      "tions on this channel\022\333\001\n\014listTimeline\022A" +
+      ".ai.stigmer.agentic.agentchannel.v1.List" +
+      "ConversationTimelineInput\0328.ai.stigmer.a" +
+      "gentic.agentchannel.v1.ConversationTimel" +
+      "ine\"N\302\270\030J\010\001\020/\"\020agent_channel_id*2unautho" +
+      "rized to view conversations on this chan" +
+      "nel\022\361\001\n\023getMediaDownloadUrl\022H.ai.stigmer" +
+      ".agentic.agentchannel.v1.GetConversation" +
+      "MediaDownloadUrlInput\032@.ai.stigmer.agent" +
+      "ic.agentchannel.v1.ConversationMediaDown" +
+      "loadUrl\"N\302\270\030J\010\001\020/\"\020agent_channel_id*2una" +
+      "uthorized to view conversations on this " +
+      "channel\032\004\240\377+/B\305\001B\026ConversationQueryProto" +
+      "P\001\242\002\004ASAA\252\002\"Ai.Stigmer.Agentic.Agentchan" +
+      "nel.V1\312\002\"Ai\\Stigmer\\Agentic\\Agentchannel" +
+      "\\V1\342\002.Ai\\Stigmer\\Agentic\\Agentchannel\\V1" +
+      "\\GPBMetadata\352\002&Ai::Stigmer::Agentic::Age" +
+      "ntchannel::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

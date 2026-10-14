@@ -21,14 +21,14 @@ import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
 import {
   IdentityAccountsListSchema,
-  type ListWithIdentityOrg,
+  type ListServiceAccountsInput,
 } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
 import { ResourceAccessByPrincipalListSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { StigmerContext } from "../../context";
 import { ServiceAccountListPanel } from "../ServiceAccountListPanel";
 
 const asked = vi.hoisted(() => ({
-  pages: [] as [string, number][],
+  pages: [] as [string, string][],
   accessReads: 0,
   answer: "pages" as "pages" | "none" | "refused",
 }));
@@ -46,14 +46,14 @@ const PAGES = [
 function wrapper({ children }: { children: ReactNode }) {
   const client = {
     identityAccount: {
-      listServiceAccounts: async (input: ListWithIdentityOrg) => {
-        const num = input.page?.num ?? 0;
-        asked.pages.push([input.org, num]);
+      listServiceAccounts: async (input: ListServiceAccountsInput) => {
+        asked.pages.push([input.org, input.pageToken]);
         if (asked.answer === "refused") throw new Error("unauthorized to list service accounts in this organization");
-        if (asked.answer === "none") return create(IdentityAccountsListSchema, { totalPages: 0, entries: [] });
+        if (asked.answer === "none") return create(IdentityAccountsListSchema, { entries: [], nextPageToken: "" });
+        const index = input.pageToken === "" ? 0 : Number(input.pageToken.slice("page_".length));
         return create(IdentityAccountsListSchema, {
-          totalPages: PAGES.length,
-          entries: PAGES[num - 1] ?? [],
+          entries: PAGES[index] ?? [],
+          nextPageToken: index + 1 < PAGES.length ? `page_${index + 1}` : "",
         });
       },
     },
@@ -82,7 +82,7 @@ afterEach(() => {
 });
 
 describe("ServiceAccountListPanel", () => {
-  it("reads every page, in order, and stops at the reported total", async () => {
+  it("reads every page, in order, and stops when no token follows", async () => {
     render(<ServiceAccountListPanel org="org_acme" />, { wrapper });
     const list = await screen.findByRole("list", { name: "Service accounts" });
     expect(within(list).getAllByRole("listitem").map((row) => row.textContent)).toEqual([
@@ -90,8 +90,8 @@ describe("ServiceAccountListPanel", () => {
       expect.stringContaining("ci-deploy"),
     ]);
     expect(asked.pages).toEqual([
-      ["org_acme", 1],
-      ["org_acme", 2],
+      ["org_acme", ""],
+      ["org_acme", "page_1"],
     ]);
   });
 

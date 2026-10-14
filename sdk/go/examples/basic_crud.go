@@ -10,6 +10,7 @@ import (
 	"log"
 
 	stigmer "github.com/stigmer/stigmer/sdk/go/v3"
+	agentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1"
 )
 
 func BasicCRUD() {
@@ -58,17 +59,22 @@ func BasicCRUD() {
 		log.Fatal(err)
 	}
 
-	// List agents in org
-	result, err := client.Agent.List(ctx, &stigmer.ListParams{
-		Org:  "acme",
-		Page: &stigmer.Page{Num: 1, Size: 20},
-	})
+	// List the org's agents, 20 to a page: a page carries a token while
+	// more follow.
+	page, err := client.Agent.List(ctx, &agentv1.ListAgentsRequest{Org: "acme", PageSize: 20})
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Found %d agents\n", result.TotalCount)
-	for _, entry := range result.Entries {
-		fmt.Printf("  - %s (%s)\n", entry.GetName(), entry.GetQualifiedSlug())
+	for _, a := range page.GetEntries() {
+		fmt.Printf("  - %s\n", a.GetMetadata().GetSlug())
+	}
+
+	// Every agent, page after page: ListAll follows the page tokens.
+	for a, err := range client.Agent.ListAll(ctx, &agentv1.ListAgentsRequest{Org: "acme"}) {
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("  - %s\n", a.GetMetadata().GetSlug())
 	}
 
 	// Delete

@@ -14,7 +14,7 @@ import ai.stigmer.iam.identityaccount.v1.IdentityAccountId;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryControllerGrpc;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccountsList;
 import ai.stigmer.iam.identityaccount.v1.IdpId;
-import ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg;
+import ai.stigmer.iam.identityaccount.v1.ListServiceAccountsInput;
 import ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput;
 import ai.stigmer.iam.identityaccount.v1.UpdateIdentityAccountInput;
 import com.google.protobuf.Empty;
@@ -113,10 +113,23 @@ public final class IdentityAccountClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public IdentityAccountsList listServiceAccounts(ListWithIdentityOrg input) {
+    public IdentityAccountsList listServiceAccounts(ListServiceAccountsInput input) {
         try {
             return query.listServiceAccounts(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code listServiceAccounts}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<IdentityAccount> listServiceAccountsAll(ListServiceAccountsInput input) {
+        return Pages.<IdentityAccountsList, IdentityAccount>iterate(
+            input.getPageToken(),
+            token -> listServiceAccounts(input.toBuilder().setPageToken(token).build()),
+            IdentityAccountsList::getEntriesList,
+            IdentityAccountsList::getNextPageToken);
     }
 
     public ApiResourceAuditActor getActorInfo(String id) {

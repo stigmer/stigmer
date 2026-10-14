@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.search.v1.SearchRequest",
           "outputType": "SearchResponse",
           "outputFullType": "ai.stigmer.search.v1.SearchResponse",
-          "description": "Search resources across one or more kinds.\n\n This is the unified entry point for list, search, and discover operations.\n The behavior is determined by the combination of request parameters:\n\n | Operation  | kinds   | query | org    | Behavior                               |\n |------------|---------|-------|--------|----------------------------------------|\n | List       | [X]     | \"\"    | \"acme\" | All X in org, sorted by created_at     |\n | List All   | [X]     | \"\"    | \"\"     | All accessible X, sorted by created_at |\n | Search     | [X]     | \"...\" | \"\"     | Search X by query, sorted by relevance |\n | Search Org | [X]     | \"...\" | \"acme\" | Search X in org, sorted by relevance   |\n | Discover   | []      | \"...\" | \"\"     | Search all kinds, sorted by relevance  |\n\n Sort Order:\n - With query: Results sorted by relevance score (descending)\n - Without query: Results sorted by created_at (descending, newer first)\n\n Pagination:\n Use page.num (1-indexed) and page.size to paginate results.\n Response includes total_count and total_pages for pagination controls."
+          "description": "Search resources across one or more kinds.\n\n This is the unified entry point for list, search, and discover operations.\n The behavior is determined by the combination of request parameters:\n\n | Operation  | kinds   | query | org    | Behavior                               |\n |------------|---------|-------|--------|----------------------------------------|\n | List       | [X]     | \"\"    | \"acme\" | All X in org, sorted by created_at     |\n | List All   | [X]     | \"\"    | \"\"     | All accessible X, sorted by created_at |\n | Search     | [X]     | \"...\" | \"\"     | Search X by query, sorted by relevance |\n | Search Org | [X]     | \"...\" | \"acme\" | Search X in org, sorted by relevance   |\n | Discover   | []      | \"...\" | \"\"     | Search all kinds, sorted by relevance  |\n\n Sort Order:\n - With query: Results sorted by relevance score (descending)\n - Without query: Results sorted by created_at (descending, newer first)\n\n Pagination:\n page_size and page_token page the results as every list does; a token\n continues the same query in the same order. counts_by_kind counts the\n matches per kind across every page."
         }
       ]
     }
@@ -99,15 +99,27 @@
           }
         },
         {
-          "name": "Page",
-          "jsonName": "page",
-          "protoField": "page",
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
           "type": {
-            "kind": "message",
-            "messageType": "PageInfo"
+            "kind": "int32"
           },
-          "description": "Pagination parameters.\n\n - num: Page number (1-indexed). Default: 1\n - size: Items per page. Default: 20, Maximum: 100\n\n If not provided, defaults to page 1 with 20 items.",
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
           "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
+          }
         }
       ]
     },
@@ -148,23 +160,13 @@
           "required": false
         },
         {
-          "name": "TotalCount",
-          "jsonName": "totalCount",
-          "protoField": "total_count",
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
           "type": {
-            "kind": "int32"
+            "kind": "string"
           },
-          "description": "Total count of matching resources across all kinds.\n\n This is the sum of all counts_by_kind values.\n Used for displaying \"Showing X of Y results\".",
-          "required": false
-        },
-        {
-          "name": "TotalPages",
-          "jsonName": "totalPages",
-          "protoField": "total_pages",
-          "type": {
-            "kind": "int32"
-          },
-          "description": "Total number of pages based on current page size.\n\n Calculated as: ceil(total_count / page.size)\n Used for pagination controls.",
+          "description": "Set when more entries may follow: pass it as page_token to continue.\n A page may be short, even empty, and still carry a token.",
           "required": false
         }
       ]

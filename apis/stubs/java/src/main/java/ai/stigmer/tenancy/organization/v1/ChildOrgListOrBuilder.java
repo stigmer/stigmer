@@ -56,7 +56,8 @@ public interface ChildOrgListOrBuilder extends
 
   /**
    * <pre>
-   * Set when more children may follow: pass it as page_token to continue.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -65,7 +66,8 @@ public interface ChildOrgListOrBuilder extends
   java.lang.String getNextPageToken();
   /**
    * <pre>
-   * Set when more children may follow: pass it as page_token to continue.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>

@@ -4,11 +4,13 @@ package gen
 
 import (
 	"context"
+	"iter"
 
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	identityaccountv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityaccount/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
@@ -98,9 +100,38 @@ func (i *IdentityAccountClient) GetByExternalSub(ctx context.Context, input *ide
 	return resp, wrapErr(err)
 }
 
-func (i *IdentityAccountClient) ListServiceAccounts(ctx context.Context, input *identityaccountv1.ListWithIdentityOrg) (*identityaccountv1.IdentityAccountsList, error) {
+func (i *IdentityAccountClient) ListServiceAccounts(ctx context.Context, input *identityaccountv1.ListServiceAccountsInput) (*identityaccountv1.IdentityAccountsList, error) {
 	resp, err := i.query.ListServiceAccounts(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListServiceAccountsAll returns every entry of ListServiceAccounts, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (i *IdentityAccountClient) ListServiceAccountsAll(ctx context.Context, input *identityaccountv1.ListServiceAccountsInput) iter.Seq2[*identityaccountv1.IdentityAccount, error] {
+	return func(yield func(*identityaccountv1.IdentityAccount, error) bool) {
+		req := &identityaccountv1.ListServiceAccountsInput{}
+		if input != nil {
+			req = proto.Clone(input).(*identityaccountv1.ListServiceAccountsInput)
+		}
+		for {
+			page, err := i.ListServiceAccounts(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 func (i *IdentityAccountClient) GetActorInfo(ctx context.Context, id string) (*apiresource.ApiResourceAuditActor, error) {

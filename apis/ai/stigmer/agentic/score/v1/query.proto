@@ -25,7 +25,7 @@ service ScoreQueryController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get score";
   }
 
-  // List every score of a run.
+  // List the scores of a run, newest first.
   rpc listByRun(ListScoresByRunRequest) returns (ScoreList) {
     option (ai.stigmer.commons.rpc.config).resource_kind = run;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
@@ -33,7 +33,7 @@ service ScoreQueryController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list scores of run";
   }
 
-  // List every score of every run in a session.
+  // List the scores of every run in a session, newest first.
   rpc listBySession(ListScoresBySessionRequest) returns (ScoreList) {
     option (ai.stigmer.commons.rpc.config).resource_kind = session;
     option (ai.stigmer.commons.rpc.config).permission = can_view;

@@ -64,7 +64,7 @@ waivers:
     issue: 1545
     reason: >-
       Served by the Enterprise and Cloud editions only; the open-source server routes no IdentityProvider service and the suite has no client for it.
-  - rpc: IdentityProviderQueryController.listByOrg
+  - rpc: IdentityProviderQueryController.list
     kind: gap
     issue: 1545
     reason: >-
@@ -94,7 +94,7 @@ waivers:
     issue: 1544
     reason: >-
       Served by the Enterprise and Cloud editions only; the open-source server routes no Invitation service and the suite has no client for it.
-  - rpc: InvitationQueryController.listByOrg
+  - rpc: InvitationQueryController.list
     kind: gap
     issue: 1544
     reason: >-
@@ -159,7 +159,7 @@ waivers:
     issue: 1543
     reason: >-
       Served by the Enterprise and Cloud editions only; the open-source server routes no Team service and the suite has no client for it.
-  - rpc: TeamQueryController.listByOrg
+  - rpc: TeamQueryController.list
     kind: gap
     issue: 1543
     reason: >-

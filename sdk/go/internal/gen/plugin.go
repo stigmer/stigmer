@@ -4,27 +4,25 @@ package gen
 
 import (
 	"context"
+	"iter"
 
 	pluginv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugin/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
-	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
-	searchv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 )
 
 // PluginClient provides operations on plugin resources.
 type PluginClient struct {
 	command pluginv1.PluginCommandControllerClient
 	query   pluginv1.PluginQueryControllerClient
-	search  searchv1.SearchServiceClient
 }
 
 func NewPluginClient(conn grpc.ClientConnInterface) *PluginClient {
 	return &PluginClient{
 		command: pluginv1.NewPluginCommandControllerClient(conn),
 		query:   pluginv1.NewPluginQueryControllerClient(conn),
-		search:  searchv1.NewSearchServiceClient(conn),
 	}
 }
 
@@ -64,6 +62,40 @@ func (p *PluginClient) GetByReference(ctx context.Context, ref ResourceRef) (*pl
 	return resp, wrapErr(err)
 }
 
+func (p *PluginClient) List(ctx context.Context, input *pluginv1.ListPluginsRequest) (*pluginv1.PluginList, error) {
+	resp, err := p.query.List(ctx, input)
+	return resp, wrapErr(err)
+}
+
+// ListAll returns every entry of List, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (p *PluginClient) ListAll(ctx context.Context, input *pluginv1.ListPluginsRequest) iter.Seq2[*pluginv1.Plugin, error] {
+	return func(yield func(*pluginv1.Plugin, error) bool) {
+		req := &pluginv1.ListPluginsRequest{}
+		if input != nil {
+			req = proto.Clone(input).(*pluginv1.ListPluginsRequest)
+		}
+		for {
+			page, err := p.List(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
+}
+
 func (p *PluginClient) GetArtifact(ctx context.Context, input *pluginv1.GetArtifactRequest) (*pluginv1.GetArtifactResponse, error) {
 	resp, err := p.query.GetArtifact(ctx, input)
 	return resp, wrapErr(err)
@@ -79,24 +111,33 @@ func (p *PluginClient) ListVersions(ctx context.Context, input *pluginv1.ListPlu
 	return resp, wrapErr(err)
 }
 
-func (p *PluginClient) List(ctx context.Context, params *ListParams) (*ListResult, error) {
-	req := &searchv1.SearchRequest{
-		Kinds: []apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_plugin},
-		Query: params.Query,
-		Org:   params.Org,
+// ListVersionsAll returns every entry of ListVersions, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (p *PluginClient) ListVersionsAll(ctx context.Context, input *pluginv1.ListPluginVersionsInput) iter.Seq2[*pluginv1.PluginVersionEntry, error] {
+	return func(yield func(*pluginv1.PluginVersionEntry, error) bool) {
+		req := &pluginv1.ListPluginVersionsInput{}
+		if input != nil {
+			req = proto.Clone(input).(*pluginv1.ListPluginVersionsInput)
+		}
+		for {
+			page, err := p.ListVersions(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
 	}
-	if params.Page != nil {
-		req.Page = &rpc.PageInfo{Num: params.Page.Num, Size: params.Page.Size}
-	}
-	resp, err := p.search.Search(ctx, req)
-	if err != nil {
-		return nil, wrapErr(err)
-	}
-	return &ListResult{
-		Entries:    resp.GetEntries(),
-		TotalCount: resp.GetTotalCount(),
-		TotalPages: resp.GetTotalPages(),
-	}, nil
 }
 
 // PluginInput holds the fields for creating or applying a Plugin.

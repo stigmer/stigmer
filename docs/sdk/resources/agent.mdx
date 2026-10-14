@@ -74,6 +74,7 @@ Agent agent = client.agents().get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`get`](#get) | Get a single agent by ID. |
 | [`getByReference`](#getbyreference) | Get an agent by its organization-scoped reference (org/slug) with version support. |
 | [`getVersion`](#getversion) | Get a specific version of an agent by its content hash. |
+| [`list`](#list) | List an organization's agents, newest first. |
 | [`listVersions`](#listversions) | List version history for an agent. |
 | [`apply`](#apply) | Create or update an agent. |
 | [`create`](#create) | Create an agent. |
@@ -220,6 +221,57 @@ AgentVersionEntry agentVersionEntry = client.agents().getVersion(GetAgentVersion
 
 **Returns**: [`AgentVersionEntry`](#agentversionentry)
 
+### list
+
+List an organization's agents, newest first.
+
+Returns the agents of the input org that the caller may view, one page at a time. Search finds agents by their words; list browses them.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const result = await stigmer.agent.list({
+  org: "...",
+  pageSize: 0,
+  pageToken: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.Agent.List(ctx, &stigmer.ListAgentsRequest{
+  Org:       "...",
+  PageSize:  0,
+  PageToken: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+result = client.agents.list(ListAgentsRequest(
+    org="...",
+    page_size=0,
+    page_token="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+AgentList result = client.agents().list(ListAgentsRequest.builder()
+    .org("...")
+    .pageSize(0)
+    .pageToken("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListAgentsRequest`](#listagentsrequest)
+
+**Returns**: [`AgentList`](#agentlist)
+
+**Every page**: `listAll` (Go `ListAll`, Python `list_all`, Java `listAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
+
 ### listVersions
 
 List version history for an agent.
@@ -272,6 +324,8 @@ ListAgentVersionsResponse listAgentVersionsResponse = client.agents().listVersio
 **Parameters**: [`ListAgentVersionsInput`](#listagentversionsinput)
 
 **Returns**: [`ListAgentVersionsResponse`](#listagentversionsresponse)
+
+**Every page**: `listVersionsAll` (Go `ListVersionsAll`, Python `list_versions_all`, Java `listVersionsAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
 
 ### apply
 
@@ -871,6 +925,29 @@ TagAgentVersionInput assigns or moves a tag to a specific agent version.
   }}
 />
 
+### ListAgentsRequest
+
+Input for listing an organization's agents, newest first.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization whose agents to list, by id or slug." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
+  }}
+/>
+
+### AgentList
+
+One page of an organization's agents.
+
+<TypeTable
+  type={{
+    entries: { type: "AgentInput[]", description: "The agents in this page, newest first.", typeDescriptionLink: "#agentinput" },
+    nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token to continue." },
+  }}
+/>
+
 ### ListAgentVersionsInput
 
 ListAgentVersionsInput requests the version history for an agent.
@@ -879,8 +956,8 @@ ListAgentVersionsInput requests the version history for an agent.
   type={{
     org: { type: "string", description: "Organization that owns the agent.", required: true },
     slug: { type: "string", description: "Agent slug (unique within the organization).", required: true },
-    pageToken: { type: "string", description: "Opaque token for offset pagination." },
-    pageSize: { type: "number", description: "Maximum number of versions to return per page." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
   }}
 />
 
@@ -890,9 +967,8 @@ ListAgentVersionsResponse contains a page of agent version history.
 
 <TypeTable
   type={{
-    versions: { type: "AgentVersionEntryInput[]", description: "Ordered list of versions (newest first)." },
-    nextPageToken: { type: "string", description: "Token for fetching the next page." },
-    totalCount: { type: "number", description: "Total number of versions across all pages." },
+    entries: { type: "AgentVersionEntryInput[]", description: "Ordered list of versions (newest first)." },
+    nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token to continue." },
   }}
 />
 

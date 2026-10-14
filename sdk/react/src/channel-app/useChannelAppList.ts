@@ -1,9 +1,10 @@
 "use client";
 
 import { create } from "@bufbuild/protobuf";
-import { ListChannelAppsByOrgInputSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
+import { ListChannelAppsInputSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
 import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { useStigmer } from "../hooks.js";
+import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
 import { useFetch } from "../internal/useFetch.js";
 
 /** Return value of {@link useChannelAppList}. */
@@ -26,7 +27,9 @@ export interface UseChannelAppListReturn {
  *
  * These are the customer-owned messaging-platform apps (bring-your-own
  * Slack apps) that agent channels can install through instead of the
- * shared Stigmer app. Secret fields arrive redacted.
+ * shared Stigmer app. Secret fields arrive redacted. The connect dialogs
+ * pick from them, so the hook walks every page of the list and answers
+ * the whole set (an organization holds a handful).
  *
  * Pass `null` for `org` to skip fetching (stable no-op). Useful when
  * the active organization has not been resolved yet.
@@ -47,9 +50,11 @@ export function useChannelAppList(
   const { data: channelApps, isLoading, isRefetching, error, refetch } = useFetch(
     org
       ? () =>
-          stigmer.channelapp
-            .listByOrg(create(ListChannelAppsByOrgInputSchema, { org }))
-            .then((r) => [...r.entries])
+          readEveryPage((pageToken) =>
+            stigmer.channelapp.list(
+              create(ListChannelAppsInputSchema, { org, pageSize: LIST_PAGE_MAX, pageToken }),
+            ),
+          )
       : null,
     [org, stigmer],
     [] as ChannelApp[],

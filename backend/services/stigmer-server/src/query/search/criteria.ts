@@ -39,11 +39,8 @@ import {
 
 import { goTrimSpace } from "../../gocompat/trim.js";
 import { getKindMeta } from "../../pipeline/apiresource-meta.js";
+import { listPageSizeOf } from "../../pipeline/steps/list-page.js";
 
-/** Go DefaultPageSize. */
-export const DEFAULT_PAGE_SIZE = 20;
-/** Go MaxPageSize. */
-export const MAX_PAGE_SIZE = 100;
 /** Go MaxQueryLength (the proto's max_len twin; see newSearchCriteria). */
 export const MAX_QUERY_LENGTH = 500;
 
@@ -98,14 +95,15 @@ export class SearchCriteria {
     private readonly requestedKinds: readonly ApiResourceKind[],
     private readonly queryText: string,
     private readonly orgFilterValue: string,
-    private readonly pageNumberValue: number,
+    private readonly offsetValue: number,
     private readonly pageSizeValue: number,
   ) {}
 
   /**
-   * Go NewSearchCriteria: trims query and org, clamps pagination
-   * (num < 1 → 1; size < 1 → default 20; size > 100 → 100), keeps kinds
-   * verbatim. Throws on an over-length query — defensive twin of the
+   * Go NewSearchCriteria: trims query and org, sizes the page as every
+   * list does (list-page.ts `listPageSizeOf`: 0 is the default page, above
+   * the maximum is the maximum), keeps the rank position a page token
+   * carried (negative reads as the first page), keeps kinds verbatim. Throws on an over-length query — defensive twin of the
    * proto's max_len 500, which the protovalidate interceptor answers
    * first on the wire (Go carries the same unreachable guard).
    *
@@ -119,7 +117,7 @@ export class SearchCriteria {
     kinds: readonly ApiResourceKind[],
     query: string,
     orgFilter: string,
-    pageNumber: number,
+    offset: number,
     pageSize: number,
   ): SearchCriteria {
     const normalizedQuery = goTrimSpace(query);
@@ -132,8 +130,8 @@ export class SearchCriteria {
       [...kinds],
       normalizedQuery,
       goTrimSpace(orgFilter),
-      pageNumber < 1 ? 1 : pageNumber,
-      pageSize < 1 ? DEFAULT_PAGE_SIZE : Math.min(pageSize, MAX_PAGE_SIZE),
+      Math.max(offset, 0),
+      listPageSizeOf({ pageSize: Math.max(pageSize, 0) }),
     );
   }
 
@@ -148,10 +146,6 @@ export class SearchCriteria {
 
   orgFilter(): string {
     return this.orgFilterValue;
-  }
-
-  pageNumber(): number {
-    return this.pageNumberValue;
   }
 
   pageSize(): number {
@@ -190,8 +184,8 @@ export class SearchCriteria {
     return this.requestedKinds.filter((kind) => searchable.has(kind));
   }
 
-  /** Zero-indexed row offset for the page (Go Offset). */
+  /** Zero-indexed rank position of the page's first row (Go Offset). */
   offset(): number {
-    return (this.pageNumberValue - 1) * this.pageSizeValue;
+    return this.offsetValue;
   }
 }

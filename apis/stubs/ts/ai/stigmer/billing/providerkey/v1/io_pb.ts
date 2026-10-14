@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/providerkey/v1/io.proto.
  */
 export const file_ai_stigmer_billing_providerkey_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvaW8ucHJvdG8SIWFpLnN0aWdtZXIuYmlsbGluZy5wcm92aWRlcmtleS52MSLEAgoTU2V0UHJvdmlkZXJLZXlJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESMgoIcHJvdmlkZXIYAiABKAlCILpIHXIbUglhbnRocm9waWNSBm9wZW5haVIGY3Vyc29yEhsKB2FwaV9rZXkYAyABKAlCCrpIB3IFEAgYgAQSKgoIYmFzZV91cmwYBCABKAlCGLpIFdgBAXIQGIAQOghodHRwczovL4gBATqZAbpIlQEakgEKHHByb3ZpZGVyX2tleS5jdXJzb3JfYmFzZV91cmwSQGEgQ3Vyc29yIGtleSB0YWtlcyBubyBiYXNlIFVSTDsgQ3Vyc29yIHNlcnZlcyBmcm9tIGl0cyBvd24gaG9zdHMaMHRoaXMucHJvdmlkZXIgIT0gJ2N1cnNvcicgfHwgdGhpcy5iYXNlX3VybCA9PSAnJyJiChZEZWxldGVQcm92aWRlcktleUlucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQARIyCghwcm92aWRlchgCIAEoCUIgukgdchtSCWFudGhyb3BpY1IGb3BlbmFpUgZjdXJzb3IiLQoVTGlzdFByb3ZpZGVyS2V5c0lucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQASJWChZMaXN0UHJvdmlkZXJLZXlzT3V0cHV0EjwKBGtleXMYASADKAsyLi5haS5zdGlnbWVyLmJpbGxpbmcucHJvdmlkZXJrZXkudjEuUHJvdmlkZXJLZXliBnByb3RvMw", [file_ai_stigmer_billing_providerkey_v1_api, file_buf_validate_validate]);
+  fileDesc("CiphaS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvaW8ucHJvdG8SIWFpLnN0aWdtZXIuYmlsbGluZy5wcm92aWRlcmtleS52MSLEAgoTU2V0UHJvdmlkZXJLZXlJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESMgoIcHJvdmlkZXIYAiABKAlCILpIHXIbUglhbnRocm9waWNSBm9wZW5haVIGY3Vyc29yEhsKB2FwaV9rZXkYAyABKAlCCrpIB3IFEAgYgAQSKgoIYmFzZV91cmwYBCABKAlCGLpIFdgBAXIQGIAQOghodHRwczovL4gBATqZAbpIlQEakgEKHHByb3ZpZGVyX2tleS5jdXJzb3JfYmFzZV91cmwSQGEgQ3Vyc29yIGtleSB0YWtlcyBubyBiYXNlIFVSTDsgQ3Vyc29yIHNlcnZlcyBmcm9tIGl0cyBvd24gaG9zdHMaMHRoaXMucHJvdmlkZXIgIT0gJ2N1cnNvcicgfHwgdGhpcy5iYXNlX3VybCA9PSAnJyJiChZEZWxldGVQcm92aWRlcktleUlucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQARIyCghwcm92aWRlchgCIAEoCUIgukgdchtSCWFudGhyb3BpY1IGb3BlbmFpUgZjdXJzb3IiZwoVTGlzdFByb3ZpZGVyS2V5c0lucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQARIaCglwYWdlX3NpemUYAiABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgicgoWTGlzdFByb3ZpZGVyS2V5c091dHB1dBI/CgdlbnRyaWVzGAEgAygLMi4uYWkuc3RpZ21lci5iaWxsaW5nLnByb3ZpZGVya2V5LnYxLlByb3ZpZGVyS2V5EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCWIGcHJvdG8z", [file_ai_stigmer_billing_providerkey_v1_api, file_buf_validate_validate]);
 
 /**
  * Save the organization's key for a provider, replacing any key it holds for
@@ -97,6 +97,22 @@ export type ListProviderKeysInput = Message<"ai.stigmer.billing.providerkey.v1.L
    * @generated from field: string org = 1;
    */
   org: string;
+
+  /**
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
+   *
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
 };
 
 /**
@@ -114,9 +130,17 @@ export type ListProviderKeysOutput = Message<"ai.stigmer.billing.providerkey.v1.
    * One row per provider the organization is served on its own or its
    * parent organization's key, in provider order.
    *
-   * @generated from field: repeated ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1;
+   * @generated from field: repeated ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1;
    */
-  keys: ProviderKey[];
+  entries: ProviderKey[];
+
+  /**
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   *
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
 };
 
 /**

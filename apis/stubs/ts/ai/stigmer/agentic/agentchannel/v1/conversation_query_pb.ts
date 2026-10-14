@@ -4,7 +4,7 @@
 
 import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ChannelConversationListSchema, ChannelConversationSchema, ConversationMediaDownloadUrlSchema, ConversationTimelineSchema, GetChannelConversationInputSchema, GetConversationMediaDownloadUrlInputSchema, GetConversationTimelineInputSchema, ListChannelConversationsInputSchema } from "./conversation_io_pb.js";
+import type { ChannelConversationCountSchema, ChannelConversationListSchema, ChannelConversationSchema, ConversationMediaDownloadUrlSchema, ConversationTimelineSchema, CountChannelConversationsInputSchema, GetChannelConversationInputSchema, GetConversationMediaDownloadUrlInputSchema, ListChannelConversationsInputSchema, ListConversationTimelineInputSchema } from "./conversation_io_pb.js";
 import { file_ai_stigmer_agentic_agentchannel_v1_conversation_io } from "./conversation_io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -13,7 +13,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/agentchannel/v1/conversation_query.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_conversation_query: GenFile = /*@__PURE__*/
-  fileDesc("CjthaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2NvbnZlcnNhdGlvbl9xdWVyeS5wcm90bxIiYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MTL0BgoiQ2hhbm5lbENvbnZlcnNhdGlvblF1ZXJ5Q29udHJvbGxlchKZAQoRbGlzdENvbnZlcnNhdGlvbnMSQS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkxpc3RDaGFubmVsQ29udmVyc2F0aW9uc0lucHV0GjsuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5DaGFubmVsQ29udmVyc2F0aW9uTGlzdCIE0LgYARLbAQoPZ2V0Q29udmVyc2F0aW9uEj8uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5HZXRDaGFubmVsQ29udmVyc2F0aW9uSW5wdXQaNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxDb252ZXJzYXRpb24iTsK4GEoIARAvIhBhZ2VudF9jaGFubmVsX2lkKjJ1bmF1dGhvcml6ZWQgdG8gdmlldyBjb252ZXJzYXRpb25zIG9uIHRoaXMgY2hhbm5lbBLZAQoLZ2V0VGltZWxpbmUSQC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkdldENvbnZlcnNhdGlvblRpbWVsaW5lSW5wdXQaOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNvbnZlcnNhdGlvblRpbWVsaW5lIk7CuBhKCAEQLyIQYWdlbnRfY2hhbm5lbF9pZCoydW5hdXRob3JpemVkIHRvIHZpZXcgY29udmVyc2F0aW9ucyBvbiB0aGlzIGNoYW5uZWwS8QEKE2dldE1lZGlhRG93bmxvYWRVcmwSSC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkdldENvbnZlcnNhdGlvbk1lZGlhRG93bmxvYWRVcmxJbnB1dBpALmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ29udmVyc2F0aW9uTWVkaWFEb3dubG9hZFVybCJOwrgYSggBEC8iEGFnZW50X2NoYW5uZWxfaWQqMnVuYXV0aG9yaXplZCB0byB2aWV3IGNvbnZlcnNhdGlvbnMgb24gdGhpcyBjaGFubmVsGgSg/ysvYgZwcm90bzM", [file_ai_stigmer_agentic_agentchannel_v1_conversation_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CjthaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2NvbnZlcnNhdGlvbl9xdWVyeS5wcm90bxIiYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MTKICAoiQ2hhbm5lbENvbnZlcnNhdGlvblF1ZXJ5Q29udHJvbGxlchKMAQoEbGlzdBJBLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuTGlzdENoYW5uZWxDb252ZXJzYXRpb25zSW5wdXQaOy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxDb252ZXJzYXRpb25MaXN0IgTQuBgBEpwBChJjb3VudENvbnZlcnNhdGlvbnMSQi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNvdW50Q2hhbm5lbENvbnZlcnNhdGlvbnNJbnB1dBo8LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbENvbnZlcnNhdGlvbkNvdW50IgTQuBgBEtsBCg9nZXRDb252ZXJzYXRpb24SPy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkdldENoYW5uZWxDb252ZXJzYXRpb25JbnB1dBo3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbENvbnZlcnNhdGlvbiJOwrgYSggBEC8iEGFnZW50X2NoYW5uZWxfaWQqMnVuYXV0aG9yaXplZCB0byB2aWV3IGNvbnZlcnNhdGlvbnMgb24gdGhpcyBjaGFubmVsEtsBCgxsaXN0VGltZWxpbmUSQS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkxpc3RDb252ZXJzYXRpb25UaW1lbGluZUlucHV0GjguYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5Db252ZXJzYXRpb25UaW1lbGluZSJOwrgYSggBEC8iEGFnZW50X2NoYW5uZWxfaWQqMnVuYXV0aG9yaXplZCB0byB2aWV3IGNvbnZlcnNhdGlvbnMgb24gdGhpcyBjaGFubmVsEvEBChNnZXRNZWRpYURvd25sb2FkVXJsEkguYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5HZXRDb252ZXJzYXRpb25NZWRpYURvd25sb2FkVXJsSW5wdXQaQC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNvbnZlcnNhdGlvbk1lZGlhRG93bmxvYWRVcmwiTsK4GEoIARAvIhBhZ2VudF9jaGFubmVsX2lkKjJ1bmF1dGhvcml6ZWQgdG8gdmlldyBjb252ZXJzYXRpb25zIG9uIHRoaXMgY2hhbm5lbBoEoP8rL2IGcHJvdG8z", [file_ai_stigmer_agentic_agentchannel_v1_conversation_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * ChannelConversationQueryController serves the console's conversation
@@ -30,12 +30,26 @@ export const ChannelConversationQueryController: GenService<{
    * view, optionally filtered to one channel. Entries carry participation
    * state and the customer's display name.
    *
-   * @generated from rpc ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.listConversations
+   * @generated from rpc ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.list
    */
-  listConversations: {
+  list: {
     methodKind: "unary";
     input: typeof ListChannelConversationsInputSchema;
     output: typeof ChannelConversationListSchema;
+  },
+  /**
+   * Count an organization's channel conversations that match a filter.
+   *
+   * The number behind a badge such as the inbox's "needs you": the same
+   * predicate list applies, over the same channels, so the count and the
+   * list it opens never disagree.
+   *
+   * @generated from rpc ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.countConversations
+   */
+  countConversations: {
+    methodKind: "unary";
+    input: typeof CountChannelConversationsInputSchema;
+    output: typeof ChannelConversationCountSchema;
   },
   /**
    * Get one conversation's identity and participation state.
@@ -53,18 +67,18 @@ export const ChannelConversationQueryController: GenService<{
     output: typeof ChannelConversationSchema;
   },
   /**
-   * Get one conversation's timeline, newest first, cursor-paged.
+   * List one conversation's timeline, newest first, one page at a time.
    *
    * The timeline contains customer-visible items only: inbound customer
    * messages (including non-text kinds the platform cannot render),
    * delivered agent replies, and operator or platform sends. Run
    * internals never appear.
    *
-   * @generated from rpc ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.getTimeline
+   * @generated from rpc ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.listTimeline
    */
-  getTimeline: {
+  listTimeline: {
     methodKind: "unary";
-    input: typeof GetConversationTimelineInputSchema;
+    input: typeof ListConversationTimelineInputSchema;
     output: typeof ConversationTimelineSchema;
   },
   /**

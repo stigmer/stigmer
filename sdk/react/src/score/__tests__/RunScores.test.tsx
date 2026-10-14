@@ -87,7 +87,7 @@ function client(scores: Score[]) {
       listBySession: vi
         .fn()
         .mockResolvedValue(
-          create(ScoreListSchema, { totalCount: scores.length, items: scores }),
+          create(ScoreListSchema, { entries: scores, nextPageToken: "" }),
         ),
       create: vi
         .fn()

@@ -6,8 +6,6 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { AgentChannel } from "./api_pb.js";
 import { file_ai_stigmer_agentic_agentchannel_v1_api } from "./api_pb.js";
-import type { PageInfo } from "../../../commons/rpc/pagination_pb.js";
-import { file_ai_stigmer_commons_rpc_pagination } from "../../../commons/rpc/pagination_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import type { FieldMask } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
@@ -17,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentchannel/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxIicKDkFnZW50Q2hhbm5lbElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEifAoeR2V0QWdlbnRDaGFubmVsc0J5QWdlbnRSZXF1ZXN0EhgKCGFnZW50X2lkGAEgASgJQga6SAPIAQESMwoJcGFnZV9pbmZvGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxILCgNvcmcYAyABKAkiaAoQQWdlbnRDaGFubmVsTGlzdBITCgt0b3RhbF9jb3VudBgBIAEoBRI/CgVpdGVtcxgCIAMoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQWdlbnRDaGFubmVsIu4BChhMaXN0QWdlbnRDaGFubmVsc1JlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABElgKBmxhYmVscxgCIAMoCzJILmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuTGlzdEFnZW50Q2hhbm5lbHNSZXF1ZXN0LkxhYmVsc0VudHJ5EjMKCXBhZ2VfaW5mbxgDIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8aLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASI6ChtJbml0aWF0ZUNoYW5uZWxJbnN0YWxsSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBASJbChxJbml0aWF0ZUNoYW5uZWxJbnN0YWxsT3V0cHV0EhkKEWF1dGhvcml6YXRpb25fdXJsGAEgASgJEg0KBXN0YXRlGAIgASgJEhEKCWNvbXBsZXRlZBgDIAEoCCJnChtDb21wbGV0ZUNoYW5uZWxJbnN0YWxsSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBARIVCgVzdGF0ZRgCIAEoCUIGukgDyAEBEhQKBGNvZGUYAyABKAlCBrpIA8gBASLmAgoXVXBkYXRlQWdlbnRDaGFubmVsSW5wdXQSSgoIcmVzb3VyY2UYASABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkFnZW50Q2hhbm5lbEIGukgD2AEDEjcKC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFza0IGukgDyAEBOsUBukjBARq+AQoXdXBkYXRlX25hbWVzX2l0c190YXJnZXQSTXJlc291cmNlLm1ldGFkYXRhLmlkIGlzIHJlcXVpcmVkOiBhbiB1cGRhdGUgbmFtZXMgdGhlIGFnZW50IGNoYW5uZWwgYnkgaXRzIGlkGlRoYXModGhpcy5yZXNvdXJjZSkgJiYgaGFzKHRoaXMucmVzb3VyY2UubWV0YWRhdGEpICYmIHRoaXMucmVzb3VyY2UubWV0YWRhdGEuaWQgIT0gJydiBnByb3RvMw", [file_ai_stigmer_agentic_agentchannel_v1_api, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_field_mask]);
+  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxIicKDkFnZW50Q2hhbm5lbElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEikwEKH0xpc3RBZ2VudENoYW5uZWxzQnlBZ2VudFJlcXVlc3QSGAoIYWdlbnRfaWQYASABKAlCBrpIA8gBARILCgNvcmcYAyABKAkSGgoJcGFnZV9zaXplGAQgASgFQge6SAQaAigAEhwKCnBhZ2VfdG9rZW4YBSABKAlCCLpIBXIDGIAISgQIAhADUglwYWdlX2luZm8igQEKEEFnZW50Q2hhbm5lbExpc3QSQQoHZW50cmllcxgCIAMoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQWdlbnRDaGFubmVsEhcKD25leHRfcGFnZV90b2tlbhgDIAEoCUoECAEQAlILdG90YWxfY291bnQihAIKGExpc3RBZ2VudENoYW5uZWxzUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESWAoGbGFiZWxzGAIgAygLMkguYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5MaXN0QWdlbnRDaGFubmVsc1JlcXVlc3QuTGFiZWxzRW50cnkSGgoJcGFnZV9zaXplGAQgASgFQge6SAQaAigAEhwKCnBhZ2VfdG9rZW4YBSABKAlCCLpIBXIDGIAIGi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFKBAgDEARSCXBhZ2VfaW5mbyI6ChtJbml0aWF0ZUNoYW5uZWxJbnN0YWxsSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBASJbChxJbml0aWF0ZUNoYW5uZWxJbnN0YWxsT3V0cHV0EhkKEWF1dGhvcml6YXRpb25fdXJsGAEgASgJEg0KBXN0YXRlGAIgASgJEhEKCWNvbXBsZXRlZBgDIAEoCCJnChtDb21wbGV0ZUNoYW5uZWxJbnN0YWxsSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBARIVCgVzdGF0ZRgCIAEoCUIGukgDyAEBEhQKBGNvZGUYAyABKAlCBrpIA8gBASLmAgoXVXBkYXRlQWdlbnRDaGFubmVsSW5wdXQSSgoIcmVzb3VyY2UYASABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkFnZW50Q2hhbm5lbEIGukgD2AEDEjcKC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFza0IGukgDyAEBOsUBukjBARq+AQoXdXBkYXRlX25hbWVzX2l0c190YXJnZXQSTXJlc291cmNlLm1ldGFkYXRhLmlkIGlzIHJlcXVpcmVkOiBhbiB1cGRhdGUgbmFtZXMgdGhlIGFnZW50IGNoYW5uZWwgYnkgaXRzIGlkGlRoYXModGhpcy5yZXNvdXJjZSkgJiYgaGFzKHRoaXMucmVzb3VyY2UubWV0YWRhdGEpICYmIHRoaXMucmVzb3VyY2UubWV0YWRhdGEuaWQgIT0gJydiBnByb3RvMw", [file_ai_stigmer_agentic_agentchannel_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * AgentChannelId wraps an agent channel identifier.
@@ -43,22 +41,15 @@ export const AgentChannelIdSchema: GenMessage<AgentChannelId> = /*@__PURE__*/
 /**
  * Input for retrieving all channels of a specific agent.
  *
- * @generated from message ai.stigmer.agentic.agentchannel.v1.GetAgentChannelsByAgentRequest
+ * @generated from message ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsByAgentRequest
  */
-export type GetAgentChannelsByAgentRequest = Message<"ai.stigmer.agentic.agentchannel.v1.GetAgentChannelsByAgentRequest"> & {
+export type ListAgentChannelsByAgentRequest = Message<"ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsByAgentRequest"> & {
   /**
    * Identifier of the agent whose channels to retrieve.
    *
    * @generated from field: string agent_id = 1;
    */
   agentId: string;
-
-  /**
-   * Pagination options.
-   *
-   * @generated from field: ai.stigmer.commons.rpc.PageInfo page_info = 2;
-   */
-  pageInfo?: PageInfo;
 
   /**
    * Organization slug to scope the results to.
@@ -71,13 +62,29 @@ export type GetAgentChannelsByAgentRequest = Message<"ai.stigmer.agentic.agentch
    * @generated from field: string org = 3;
    */
   org: string;
+
+  /**
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
+   *
+   * @generated from field: int32 page_size = 4;
+   */
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 5;
+   */
+  pageToken: string;
 };
 
 /**
- * Describes the message ai.stigmer.agentic.agentchannel.v1.GetAgentChannelsByAgentRequest.
- * Use `create(GetAgentChannelsByAgentRequestSchema)` to create a new message.
+ * Describes the message ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsByAgentRequest.
+ * Use `create(ListAgentChannelsByAgentRequestSchema)` to create a new message.
  */
-export const GetAgentChannelsByAgentRequestSchema: GenMessage<GetAgentChannelsByAgentRequest> = /*@__PURE__*/
+export const ListAgentChannelsByAgentRequestSchema: GenMessage<ListAgentChannelsByAgentRequest> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentchannel_v1_io, 1);
 
 /**
@@ -87,18 +94,19 @@ export const GetAgentChannelsByAgentRequestSchema: GenMessage<GetAgentChannelsBy
  */
 export type AgentChannelList = Message<"ai.stigmer.agentic.agentchannel.v1.AgentChannelList"> & {
   /**
-   * Total number of agent channels matching the query.
-   *
-   * @generated from field: int32 total_count = 1;
-   */
-  totalCount: number;
-
-  /**
    * Agent channels in the current page.
    *
-   * @generated from field: repeated ai.stigmer.agentic.agentchannel.v1.AgentChannel items = 2;
+   * @generated from field: repeated ai.stigmer.agentic.agentchannel.v1.AgentChannel entries = 2;
    */
-  items: AgentChannel[];
+  entries: AgentChannel[];
+
+  /**
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   *
+   * @generated from field: string next_page_token = 3;
+   */
+  nextPageToken: string;
 };
 
 /**
@@ -129,11 +137,20 @@ export type ListAgentChannelsRequest = Message<"ai.stigmer.agentic.agentchannel.
   labels: { [key: string]: string };
 
   /**
-   * Pagination options.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    *
-   * @generated from field: ai.stigmer.commons.rpc.PageInfo page_info = 3;
+   * @generated from field: int32 page_size = 4;
    */
-  pageInfo?: PageInfo;
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 5;
+   */
+  pageToken: string;
 };
 
 /**

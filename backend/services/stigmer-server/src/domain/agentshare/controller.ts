@@ -17,7 +17,7 @@
  * agent, then can_create_agent_share (AuthorizeResolvedTarget); create and
  * delete run the shared tuple-lifecycle steps against the composed
  * lifecycle; getByReference authorizes the loaded share as `get` would;
- * getByAgent and list narrow through the composed list read scope. The
+ * listByAgent and list narrow through the composed list read scope. The
  * public share-link read skips the Authorizer through is_public, and the
  * member read asks can_view on the loaded share's organization
  * (AuthorizeMemberAudience). Both profile reads take the share's id, the
@@ -28,7 +28,7 @@
  * __tests__/agentshare.test.ts and __tests__/store-faults.test.ts.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
-import { create, fromBinary } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
@@ -39,8 +39,8 @@ import { AgentShareListSchema } from "@stigmer/protos/ai/stigmer/agentic/agentsh
 import type {
   AgentShareId,
   AgentShareList,
-  GetAgentSharesByAgentRequest,
   GetSharedProfileRequest,
+  ListAgentSharesByAgentRequest,
   ListAgentSharesRequest,
   RotateShareLinkInput,
   SharedAgentProfile,
@@ -53,6 +53,7 @@ import { UpdateAgentShareInputSchema } from "@stigmer/protos/ai/stigmer/agentic/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
@@ -80,9 +81,15 @@ import {
   newLoadExistingForDeleteStep,
 } from "../../pipeline/steps/delete.js";
 import {
-  compareCreatedAtDesc,
   matchesAllLabels,
+  sortedLabels,
 } from "../../pipeline/steps/helpers.js";
+import {
+  decodeOrSkip,
+  listPageFingerprint,
+  readListPage,
+} from "../../pipeline/steps/list-page.js";
+import type { ListPageRequest } from "../../pipeline/steps/list-page.js";
 import {
   EXISTING_RESOURCE_KEY,
   newLoadExistingStep,
@@ -113,6 +120,8 @@ import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newResolveShareAudienceStep, shareAdmitsAnyone } from "./audience.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
+import type { ListIndexQuery } from "../../store/list-index.js";
+import { agentShareListIndex } from "./list-index.js";
 import type { Store } from "../../store/interface.js";
 import {
   buildSharedAgentProfile,
@@ -137,7 +146,7 @@ export interface AgentShareControllerDeps {
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
-  /** The composed list read scope — list/getByAgent narrow through it; undefined = the OSS full scan. */
+  /** The composed list read scope — list/listByAgent narrow through it; undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
 }
 
@@ -167,7 +176,7 @@ export function registerAgentShareServices(
   router.service(AgentShareQueryController, {
     get: (shareId, ctx) => get(deps, shareId, ctx),
     getByReference: (ref, ctx) => getByReference(deps, ref, ctx),
-    getByAgent: (req, ctx) => getByAgent(deps, req, ctx),
+    listByAgent: (req, ctx) => listByAgent(deps, req, ctx),
     list: (req, ctx) => list(deps, req, ctx),
     getSharedProfile: (req, ctx) => getSharedProfile(deps, req, ctx),
     getSharedProfileForMember: (ref, ctx) =>
@@ -575,37 +584,39 @@ async function getByReference(
 const SHARE_LIST_KEY = "agentShareList";
 
 /**
- * GetByAgent — all shares of one agent, optionally org-scoped. This is how
- * the Share dialog and CLI resolve an agent's existing share regardless of
- * its slug (rename-by-recreate). A nonexistent agent
- * yields an EMPTY list, not an error — "no shares" is the useful answer
- * either way. The org filter is contract parity, not authorization: a
- * multi-org caller asking for one org's channels must not see another
- * org's cross-org shares of the same agent.
+ * ListByAgent — one page of one agent's shares, optionally org-scoped.
+ * This is how the Share dialog and CLI resolve an agent's existing share
+ * regardless of its slug (rename-by-recreate). A nonexistent agent yields
+ * an EMPTY list, not an error — "no shares" is the useful answer either
+ * way. The org filter is contract parity, not authorization: a multi-org
+ * caller asking for one org's shares must not see another org's cross-org
+ * shares of the same agent.
  */
-async function getByAgent(
+async function listByAgent(
   deps: AgentShareControllerDeps,
-  req: GetAgentSharesByAgentRequest,
+  req: ListAgentSharesByAgentRequest,
   ctx: HandlerContext,
 ): Promise<AgentShareList> {
   const reqCtx = new RequestContext(
-    AgentShareQueryController.method.getByAgent.input,
+    AgentShareQueryController.method.listByAgent.input,
     req,
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof AgentShareQueryController.method.getByAgent.input>(
+  await newPipeline<typeof AgentShareQueryController.method.listByAgent.input>(
     "agent-share-get-by-agent",
     deps.logger,
   )
     .addStep(
       newAuthorizeStep(
-        AgentShareQueryController.method.getByAgent,
+        AgentShareQueryController.method.listByAgent,
         deps.authorizer,
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newLoadSharesByAgentStep(deps.store, deps.listReadScope))
+    .addStep(
+      newLoadSharesByAgentStep(deps.store, deps.logger, deps.listReadScope),
+    )
     .build()
     .execute(reqCtx);
 
@@ -620,70 +631,46 @@ async function getByAgent(
 }
 
 /**
- * LoadSharesByAgent — Go loadSharesByAgentStep: the shares whose
- * spec.agent_ref holds the agent's id, so a share of an agent since
+ * LoadSharesByAgent — one page of the shares whose spec.agent_ref holds
+ * the agent's id (the index's `agent` key), so a share of an agent since
  * deleted never lists under a new agent of the same name.
  */
 function newLoadSharesByAgentStep(
   store: Store,
+  logger: Logger,
   listReadScope: ListReadScope | undefined,
-): PipelineStep<typeof AgentShareQueryController.method.getByAgent.input> {
+): PipelineStep<typeof AgentShareQueryController.method.listByAgent.input> {
   return {
     name: "LoadSharesByAgent",
     async execute(
       ctx: RequestContext<
-        typeof AgentShareQueryController.method.getByAgent.input
+        typeof AgentShareQueryController.method.listByAgent.input
       >,
     ): Promise<void> {
       const req = ctx.input;
-      const emptyList = create(AgentShareListSchema, {
-        totalCount: 0,
-        items: [],
-      });
-
-      if (req.agentId === "") {
-        ctx.set(SHARE_LIST_KEY, emptyList);
-        return;
-      }
-
-      let rows: Uint8Array[];
-      try {
-        rows = await store.listResources(ApiResourceKind.agent_share);
-      } catch (error) {
-        throw internalError(error, "failed to list agent shares");
-      }
-
-      const decoded: AgentShare[] = [];
-      for (const bytes of rows) {
-        try {
-          decoded.push(fromBinary(AgentShareSchema, bytes));
-        } catch {
-          continue;
-        }
-      }
-      // The org/agent filters are contract parity in both editions and run
-      // FIRST; the scope narrows the agent's shares last (the scope is
-      // the last per-row predicate).
-      const shares = await restrictListByReadScope(
-        listReadScope,
-        ctx.callerIdentity,
-        ApiResourceKind.agent_share,
-        decoded.filter((share) => {
-          const ref = share.spec?.agentRef;
-          return (
-            (ref?.id ?? "") === req.agentId &&
-            (req.org === "" || (share.metadata?.org ?? "") === req.org)
-          );
-        }),
-        "",
-      );
-
+      // The org and agent filters are indexed predicates in both editions;
+      // the scope narrows the agent's shares last (the scope is the last
+      // per-row predicate).
       ctx.set(
         SHARE_LIST_KEY,
-        create(AgentShareListSchema, {
-          totalCount: shares.length,
-          items: shares,
-        }),
+        await readSharePage(
+          store,
+          logger,
+          listReadScope,
+          ctx.callerIdentity,
+          req,
+          {
+            query: {
+              org: req.org,
+              anyKey: [{ name: "agent", value: req.agentId }],
+            },
+            fingerprint: {
+              lane: "agentShare.listByAgent",
+              agentId: req.agentId,
+              org: req.org,
+            },
+          },
+        ),
       );
     },
   };
@@ -692,9 +679,9 @@ function newLoadSharesByAgentStep(
 const LIST_RESULT_KEY = "listResult";
 
 /**
- * List — org + labels filter (AND semantics), newest first, narrowed to
- * the caller's authorized rows by the composed list read scope.
- * Unpaginated, exactly as Go's list.go records.
+ * List — one page of an org's shares, labels filter (AND semantics),
+ * newest first, narrowed to the caller's authorized rows by the composed
+ * list read scope.
  */
 async function list(
   deps: AgentShareControllerDeps,
@@ -731,7 +718,7 @@ async function list(
   return result as AgentShareList;
 }
 
-/** ListByOrgAndLabels — Go listByOrgAndLabelsStep, warn-and-skip rows. */
+/** ListByOrgAndLabels — one page of the org's shares, warn-and-skip rows. */
 function newListByOrgAndLabelsStep(
   store: Store,
   logger: Logger,
@@ -743,54 +730,71 @@ function newListByOrgAndLabelsStep(
       ctx: RequestContext<typeof AgentShareQueryController.method.list.input>,
     ): Promise<void> {
       const { org, labels: filterLabels } = ctx.input;
-
-      let rows: Uint8Array[];
-      try {
-        rows = await store.listResources(ctx.apiResourceKind);
-      } catch (error) {
-        throw internalError(error, "failed to list agent shares");
-      }
-
-      const decoded: AgentShare[] = [];
-      for (const bytes of rows) {
-        try {
-          decoded.push(fromBinary(AgentShareSchema, bytes));
-        } catch {
-          logger.warn("Failed to unmarshal agent share, skipping");
-          continue;
-        }
-      }
-      // The org and label filters run FIRST, in both editions; the scope
-      // narrows the org's rows last (the scope is the last per-row
-      // predicate).
-      const shares = await restrictListByReadScope(
-        listReadScope,
-        ctx.callerIdentity,
-        ApiResourceKind.agent_share,
-        decoded.filter(
-          (share) =>
-            (share.metadata?.org ?? "") === org &&
-            matchesAllLabels(share.metadata?.labels ?? {}, filterLabels),
-        ),
-        "",
-      );
-
-      shares.sort((a, b) =>
-        compareCreatedAtDesc(
-          a.status?.audit?.specAudit?.createdAt,
-          b.status?.audit?.specAudit?.createdAt,
-        ),
-      );
-
+      // The org is an indexed predicate and the labels a per-row filter,
+      // in both editions; the scope narrows the org's rows last (the scope
+      // is the last per-row predicate).
       ctx.set(
         LIST_RESULT_KEY,
-        create(AgentShareListSchema, {
-          totalCount: shares.length,
-          items: shares,
-        }),
+        await readSharePage(
+          store,
+          logger,
+          listReadScope,
+          ctx.callerIdentity,
+          ctx.input,
+          {
+            query: { org },
+            keep: (share) =>
+              matchesAllLabels(share.metadata?.labels ?? {}, filterLabels),
+            fingerprint: {
+              lane: "agentShare.list",
+              org,
+              labels: sortedLabels(filterLabels),
+            },
+          },
+        ),
       );
     },
   };
+}
+
+/** The two share lanes' shared read: one page, the scope last, as an AgentShareList. */
+async function readSharePage(
+  store: Store,
+  logger: Logger,
+  listReadScope: ListReadScope | undefined,
+  caller: CallerIdentity,
+  request: ListPageRequest,
+  lane: {
+    readonly query: ListIndexQuery<"agent">;
+    readonly keep?: (share: AgentShare) => boolean;
+    readonly fingerprint: Readonly<Record<string, unknown>>;
+  },
+): Promise<AgentShareList> {
+  const page = await readListPage({
+    store,
+    declaration: agentShareListIndex,
+    query: lane.query,
+    request,
+    fingerprint: listPageFingerprint(lane.fingerprint),
+    decode: decodeOrSkip(AgentShareSchema, {
+      logger,
+      message: "Failed to unmarshal agent share, skipping",
+    }),
+    ...(lane.keep === undefined ? {} : { keep: lane.keep }),
+    scope: (shares) =>
+      restrictListByReadScope(
+        listReadScope,
+        caller,
+        ApiResourceKind.agent_share,
+        shares,
+        "",
+      ),
+    failure: "failed to list agent shares",
+  });
+  return create(AgentShareListSchema, {
+    entries: page.entries,
+    nextPageToken: page.nextPageToken,
+  });
 }
 
 // ---------------------------------------------------------------------------

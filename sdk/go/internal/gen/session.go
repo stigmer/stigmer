@@ -5,11 +5,13 @@ package gen
 import (
 	"context"
 	"io"
+	"iter"
 
 	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
@@ -102,14 +104,101 @@ func (s *SessionClient) List(ctx context.Context, input *sessionv1.ListSessionsR
 	return resp, wrapErr(err)
 }
 
+// ListAll returns every entry of List, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (s *SessionClient) ListAll(ctx context.Context, input *sessionv1.ListSessionsRequest) iter.Seq2[*sessionv1.Session, error] {
+	return func(yield func(*sessionv1.Session, error) bool) {
+		req := &sessionv1.ListSessionsRequest{}
+		if input != nil {
+			req = proto.Clone(input).(*sessionv1.ListSessionsRequest)
+		}
+		for {
+			page, err := s.List(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
+}
+
 func (s *SessionClient) ListByAgent(ctx context.Context, input *sessionv1.ListSessionsByAgentRequest) (*sessionv1.SessionList, error) {
 	resp, err := s.query.ListByAgent(ctx, input)
 	return resp, wrapErr(err)
 }
 
+// ListByAgentAll returns every entry of ListByAgent, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (s *SessionClient) ListByAgentAll(ctx context.Context, input *sessionv1.ListSessionsByAgentRequest) iter.Seq2[*sessionv1.Session, error] {
+	return func(yield func(*sessionv1.Session, error) bool) {
+		req := &sessionv1.ListSessionsByAgentRequest{}
+		if input != nil {
+			req = proto.Clone(input).(*sessionv1.ListSessionsByAgentRequest)
+		}
+		for {
+			page, err := s.ListByAgent(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
+}
+
 func (s *SessionClient) ListByChannel(ctx context.Context, input *sessionv1.ListSessionsByChannelRequest) (*sessionv1.SessionList, error) {
 	resp, err := s.query.ListByChannel(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListByChannelAll returns every entry of ListByChannel, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (s *SessionClient) ListByChannelAll(ctx context.Context, input *sessionv1.ListSessionsByChannelRequest) iter.Seq2[*sessionv1.Session, error] {
+	return func(yield func(*sessionv1.Session, error) bool) {
+		req := &sessionv1.ListSessionsByChannelRequest{}
+		if input != nil {
+			req = proto.Clone(input).(*sessionv1.ListSessionsByChannelRequest)
+		}
+		for {
+			page, err := s.ListByChannel(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 func (s *SessionClient) ListEvents(ctx context.Context, input *sessionv1.ListSessionEventsRequest) (*sessionv1.SessionEventList, error) {

@@ -19,8 +19,9 @@
  *     taken; an unknown id answers undefined and writes nothing;
  *   - findByIds answers the teams of the ids that exist, skips the unknown,
  *     and an empty list reads nothing;
- *   - an organization's list is its teams, newest first, and no other
- *     organization's; its sweep is every one of their ids;
+ *   - an organization's list is its teams, newest first, ties broken by id
+ *     in byte order, strictly after a cursor and at most a limit, and no
+ *     other organization's; its sweep is every one of their ids;
  *   - findAll is every team of every organization, oldest first;
  *   - a delete removes the team from every read, and an unknown id
  *     resolves;
@@ -69,6 +70,11 @@ function idsOf(teams: ReadonlyArray<Team>): Array<string | undefined> {
   return teams.map((held) => held.metadata?.id);
 }
 
+/** The ids of an organization's whole list, in its order. */
+async function listedIds(store: TeamStore, org: string): Promise<string[]> {
+  return (await store.pageByOrg(org, undefined, undefined)).map((row) => row.id);
+}
+
 const CASES: ReadonlyArray<PortContractDeclaration<TeamStore>> = [
   [
     "every write stores the etag its content gives: an insert, a modify and a swap",
@@ -103,7 +109,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<TeamStore>> = [
       const written = team({ id: "tm_c1", org: "acme", slug: "sre", name: "Site Reliability" });
       assert.deepEqual(await store.insert(written), { kind: "inserted" });
       assert.equal((await store.findById("tm_c1"))?.metadata?.name, "Site Reliability");
-      assert.deepEqual(idsOf(await store.listByOrg("acme")), ["tm_c1"]);
+      assert.deepEqual(await listedIds(store, "acme"), ["tm_c1"]);
       assert.equal(await store.findById("tm_unknown"), undefined, "an unknown id answers undefined");
     },
   ],
@@ -172,9 +178,31 @@ const CASES: ReadonlyArray<PortContractDeclaration<TeamStore>> = [
       await store.insert(team({ id: "tm_l1", org: "listed", slug: "l1", minute: 1 }));
       await store.insert(team({ id: "tm_o1", org: "elsewhere", slug: "o1", minute: 2 }));
       await store.insert(team({ id: "tm_l2", org: "listed", slug: "l2", minute: 3 }));
-      assert.deepEqual(idsOf(await store.listByOrg("listed")), ["tm_l2", "tm_l1"]);
+      assert.deepEqual(await listedIds(store, "listed"), ["tm_l2", "tm_l1"]);
       assert.deepEqual([...(await store.findIdsByOrg("listed"))].sort(), ["tm_l1", "tm_l2"]);
-      assert.deepEqual(await store.listByOrg("nobody"), [], "an organization with no teams lists none");
+      assert.deepEqual(await listedIds(store, "nobody"), [], "an organization with no teams lists none");
+    },
+  ],
+  [
+    "the list is newest first, ties by id in byte order, strictly after a cursor and at most a limit",
+    async ({ store }) => {
+      await store.insert(team({ id: "tm_k_old", org: "keyset", slug: "k-old", minute: 1 }));
+      await store.insert(team({ id: "tm_k_a", org: "keyset", slug: "k-a", minute: 2 }));
+      await store.insert(team({ id: "tm_k_B", org: "keyset", slug: "k-b", minute: 2 }));
+      await store.insert(team({ id: "tm_k_new", org: "keyset", slug: "k-new", minute: 3 }));
+      await store.insert(team({ id: "tm_k_other", org: "elsewhere", slug: "k-other", minute: 2 }));
+
+      // Byte order puts "B" (0x42) before "a" (0x61), so newest first reads
+      // tm_k_a before tm_k_B; a collation-aware order would not.
+      const all = await store.pageByOrg("keyset", undefined, undefined);
+      assert.deepEqual(all.map((row) => row.id), ["tm_k_new", "tm_k_a", "tm_k_B", "tm_k_old"]);
+      assert.deepEqual(all[1]?.cursor, { createdAt: "2026-09-24T10:02:00.000000Z", id: "tm_k_a" });
+
+      const first = await store.pageByOrg("keyset", undefined, 2);
+      assert.deepEqual(first.map((row) => row.id), ["tm_k_new", "tm_k_a"]);
+      const rest = await store.pageByOrg("keyset", first[1]?.cursor, 2);
+      assert.deepEqual(rest.map((row) => row.id), ["tm_k_B", "tm_k_old"]);
+      assert.deepEqual(await store.pageByOrg("keyset", rest[1]?.cursor, 2), []);
     },
   ],
   [
@@ -194,7 +222,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<TeamStore>> = [
       await store.deleteById("tm_d1");
       await assert.doesNotReject(store.deleteById("tm_never"));
       assert.equal(await store.findById("tm_d1"), undefined);
-      assert.deepEqual(idsOf(await store.listByOrg("acme")), ["tm_d2"]);
+      assert.deepEqual(await listedIds(store, "acme"), ["tm_d2"]);
       assert.deepEqual(await store.findIdsByOrg("acme"), ["tm_d2"]);
       assert.deepEqual(idsOf(await store.findAll()), ["tm_d2"]);
       assert.deepEqual(
@@ -210,7 +238,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<TeamStore>> = [
       await disconnect();
       await assert.rejects(store.findById("tm_any"));
       await assert.rejects(store.findByIds(["tm_any"]));
-      await assert.rejects(store.listByOrg("acme"));
+      await assert.rejects(store.pageByOrg("acme", undefined, undefined));
       await assert.rejects(store.findAll());
     },
   ],

@@ -14,6 +14,7 @@ import ai.stigmer.billing.v1.ModelPricingBaseline;
 import ai.stigmer.billing.v1.ModelPricingBaselinesResponse;
 import ai.stigmer.billing.v1.RetireModelPricingBaselineInput;
 import ai.stigmer.billing.v1.UpsertModelPricingBaselineInput;
+import ai.stigmer.sdk.gen.Pages;
 import ai.stigmer.sdk.gen.StigmerException;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
@@ -133,13 +134,37 @@ public final class BillingClient {
      * history) in addition to ACTIVE entries.
      */
     public ModelPricingBaselinesResponse listModelPricingBaselines(boolean includeHistory) {
+        return listModelPricingBaselines(includeHistory, 0, "");
+    }
+
+    /**
+     * Retrieves one page of the model registry baseline catalog. A
+     * {@code pageSize} of 0 asks for the default page of 50, and above 100
+     * reads 100; pass a response's next page token to continue.
+     */
+    public ModelPricingBaselinesResponse listModelPricingBaselines(boolean includeHistory, int pageSize, String pageToken) {
         try {
             return query.listModelPricingBaselines(ListModelPricingBaselinesInput.newBuilder()
                     .setIncludeHistory(includeHistory)
+                    .setPageSize(pageSize)
+                    .setPageToken(pageToken)
                     .build());
         } catch (StatusRuntimeException e) {
             throw StigmerException.wrap(e);
         }
+    }
+
+    /**
+     * Every baseline of the catalog, page after page: follows the next page
+     * token until the catalog ends. Each page is read as the iteration
+     * reaches it.
+     */
+    public Iterable<ModelPricingBaseline> listModelPricingBaselinesAll(boolean includeHistory) {
+        return Pages.<ModelPricingBaselinesResponse, ModelPricingBaseline>iterate(
+                "",
+                token -> listModelPricingBaselines(includeHistory, 0, token),
+                ModelPricingBaselinesResponse::getEntriesList,
+                ModelPricingBaselinesResponse::getNextPageToken);
     }
 
     /**

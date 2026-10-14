@@ -7,8 +7,6 @@ import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
 import type { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
-import type { PageInfo } from "../../../commons/rpc/pagination_pb.js";
-import { file_ai_stigmer_commons_rpc_pagination } from "../../../commons/rpc/pagination_pb.js";
 import type { IdentityAccount } from "./api_pb.js";
 import { file_ai_stigmer_iam_identityaccount_v1_api } from "./api_pb.js";
 import type { IamRole } from "../../v1/enum_pb.js";
@@ -22,7 +20,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/identityaccount/v1/io.proto.
  */
 export const file_ai_stigmer_iam_identityaccount_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvaW8ucHJvdG8SIWFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MSJXChBJZGVudGl0eUFjY291bnRzEkMKB2VudHJpZXMYASADKAsyMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50IioKEUlkZW50aXR5QWNjb3VudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiLQoUSWRlbnRpdHlBY2NvdW50RW1haWwSFQoFdmFsdWUYASABKAlCBrpIA8gBASIeCgVJZHBJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBImsKHExpc3RXaXRoSWRlbnRpdHlBY2NvdW50SWRSZXESGwoTaWRlbnRpdHlfYWNjb3VudF9pZBgBIAEoCRIuCgRwYWdlGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbyJwChRJZGVudGl0eUFjY291bnRzTGlzdBITCgt0b3RhbF9wYWdlcxgBIAEoBRJDCgdlbnRyaWVzGAIgAygLMjIuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudCJSChNMaXN0V2l0aElkZW50aXR5T3JnEgsKA29yZxgBIAEoCRIuCgRwYWdlGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbyKhAQoRRXh0ZXJuYWxTdWJMb29rdXASEwoDb3JnGAEgASgJQga6SAPIAQESWQoVaWRlbnRpdHlfcHJvdmlkZXJfcmVmGAIgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSwVEhwKDGV4dGVybmFsX3N1YhgDIAEoCUIGukgDyAEBIv4BChtDcmVhdGVGZWRlcmF0ZWRBY2NvdW50SW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQESWQoVaWRlbnRpdHlfcHJvdmlkZXJfcmVmGAIgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSwVEhwKDGV4dGVybmFsX3N1YhgDIAEoCUIGukgDyAEBEhUKBWVtYWlsGAQgASgJQga6SAPIAQESEgoKZmlyc3RfbmFtZRgFIAEoCRIRCglsYXN0X25hbWUYBiABKAkSEwoLcGljdHVyZV91cmwYByABKAki/gEKG1VwZGF0ZUZlZGVyYXRlZEFjY291bnRJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARJZChVpZGVudGl0eV9wcm92aWRlcl9yZWYYAiABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCBOCFLBUSHAoMZXh0ZXJuYWxfc3ViGAMgASgJQga6SAPIAQESFQoFZW1haWwYBCABKAlCBrpIA8gBARISCgpmaXJzdF9uYW1lGAUgASgJEhEKCWxhc3RfbmFtZRgGIAEoCRITCgtwaWN0dXJlX3VybBgHIAEoCSLIAQogRGVwcm92aXNpb25GZWRlcmF0ZWRBY2NvdW50SW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQESWQoVaWRlbnRpdHlfcHJvdmlkZXJfcmVmGAIgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSwVEhwKDGV4dGVybmFsX3N1YhgDIAEoCUIGukgDyAEBEhYKDmRlbGV0ZV9hY2NvdW50GAQgASgIIqgCChlDcmVhdGVTZXJ2aWNlQWNjb3VudElucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBEhkKBG5hbWUYAiABKAlCC7pICMgBAXIDGIABEigKBHJvbGUYAyABKA4yGi5haS5zdGlnbWVyLmlhbS52MS5JYW1Sb2xlOrABukisARqpAQoec2VydmljZV9hY2NvdW50LnJvbGVfbm90X293bmVyElNyb2xlIG11c3QgYmUgYWRtaW4sIG1lbWJlciBvciB2aWV3ZXI7IGEgc2VydmljZSBhY2NvdW50IG5ldmVyIG93bnMgaXRzIG9yZ2FuaXphdGlvbhoydGhpcy5yb2xlID09IDIgfHwgdGhpcy5yb2xlID09IDMgfHwgdGhpcy5yb2xlID09IDQi7gIKGlVwZGF0ZUlkZW50aXR5QWNjb3VudElucHV0EkwKCHJlc291cmNlGAEgASgLMjIuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudEIGukgD2AEDEjcKC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFza0IGukgDyAEBOsgBukjEARrBAQoXdXBkYXRlX25hbWVzX2l0c190YXJnZXQSUHJlc291cmNlLm1ldGFkYXRhLmlkIGlzIHJlcXVpcmVkOiBhbiB1cGRhdGUgbmFtZXMgdGhlIGlkZW50aXR5IGFjY291bnQgYnkgaXRzIGlkGlRoYXModGhpcy5yZXNvdXJjZSkgJiYgaGFzKHRoaXMucmVzb3VyY2UubWV0YWRhdGEpICYmIHRoaXMucmVzb3VyY2UubWV0YWRhdGEuaWQgIT0gJydiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_rpc_pagination, file_ai_stigmer_iam_identityaccount_v1_api, file_ai_stigmer_iam_v1_enum, file_buf_validate_validate, file_google_protobuf_field_mask]);
+  fileDesc("CiphaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvaW8ucHJvdG8SIWFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MSJXChBJZGVudGl0eUFjY291bnRzEkMKB2VudHJpZXMYASADKAsyMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50IioKEUlkZW50aXR5QWNjb3VudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiLQoUSWRlbnRpdHlBY2NvdW50RW1haWwSFQoFdmFsdWUYASABKAlCBrpIA8gBASIeCgVJZHBJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIocBChRJZGVudGl0eUFjY291bnRzTGlzdBJDCgdlbnRyaWVzGAIgAygLMjIuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudBIXCg9uZXh0X3BhZ2VfdG9rZW4YAyABKAlKBAgBEAJSC3RvdGFsX3BhZ2VzIm0KGExpc3RTZXJ2aWNlQWNjb3VudHNJbnB1dBILCgNvcmcYASABKAkSGgoJcGFnZV9zaXplGAMgASgFQge6SAQaAigAEhwKCnBhZ2VfdG9rZW4YBCABKAlCCLpIBXIDGIAISgQIAhADUgRwYWdlIqEBChFFeHRlcm5hbFN1Ykxvb2t1cBITCgNvcmcYASABKAlCBrpIA8gBARJZChVpZGVudGl0eV9wcm92aWRlcl9yZWYYAiABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCBOCFLBUSHAoMZXh0ZXJuYWxfc3ViGAMgASgJQga6SAPIAQEi/gEKG0NyZWF0ZUZlZGVyYXRlZEFjY291bnRJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARJZChVpZGVudGl0eV9wcm92aWRlcl9yZWYYAiABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCBOCFLBUSHAoMZXh0ZXJuYWxfc3ViGAMgASgJQga6SAPIAQESFQoFZW1haWwYBCABKAlCBrpIA8gBARISCgpmaXJzdF9uYW1lGAUgASgJEhEKCWxhc3RfbmFtZRgGIAEoCRITCgtwaWN0dXJlX3VybBgHIAEoCSL+AQobVXBkYXRlRmVkZXJhdGVkQWNjb3VudElucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBElkKFWlkZW50aXR5X3Byb3ZpZGVyX3JlZhgCIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIE4IUsFRIcCgxleHRlcm5hbF9zdWIYAyABKAlCBrpIA8gBARIVCgVlbWFpbBgEIAEoCUIGukgDyAEBEhIKCmZpcnN0X25hbWUYBSABKAkSEQoJbGFzdF9uYW1lGAYgASgJEhMKC3BpY3R1cmVfdXJsGAcgASgJIsgBCiBEZXByb3Zpc2lvbkZlZGVyYXRlZEFjY291bnRJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARJZChVpZGVudGl0eV9wcm92aWRlcl9yZWYYAiABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCBOCFLBUSHAoMZXh0ZXJuYWxfc3ViGAMgASgJQga6SAPIAQESFgoOZGVsZXRlX2FjY291bnQYBCABKAgiqAIKGUNyZWF0ZVNlcnZpY2VBY2NvdW50SW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQESGQoEbmFtZRgCIAEoCUILukgIyAEBcgMYgAESKAoEcm9sZRgDIAEoDjIaLmFpLnN0aWdtZXIuaWFtLnYxLklhbVJvbGU6sAG6SKwBGqkBCh5zZXJ2aWNlX2FjY291bnQucm9sZV9ub3Rfb3duZXISU3JvbGUgbXVzdCBiZSBhZG1pbiwgbWVtYmVyIG9yIHZpZXdlcjsgYSBzZXJ2aWNlIGFjY291bnQgbmV2ZXIgb3ducyBpdHMgb3JnYW5pemF0aW9uGjJ0aGlzLnJvbGUgPT0gMiB8fCB0aGlzLnJvbGUgPT0gMyB8fCB0aGlzLnJvbGUgPT0gNCLuAgoaVXBkYXRlSWRlbnRpdHlBY2NvdW50SW5wdXQSTAoIcmVzb3VyY2UYASABKAsyMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50Qga6SAPYAQMSNwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrQga6SAPIAQE6yAG6SMQBGsEBChd1cGRhdGVfbmFtZXNfaXRzX3RhcmdldBJQcmVzb3VyY2UubWV0YWRhdGEuaWQgaXMgcmVxdWlyZWQ6IGFuIHVwZGF0ZSBuYW1lcyB0aGUgaWRlbnRpdHkgYWNjb3VudCBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJ2IGcHJvdG8z", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_iam_identityaccount_v1_api, file_ai_stigmer_iam_v1_enum, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * IdentityAccounts contains a list of identity account resources.
@@ -109,52 +107,25 @@ export const IdpIdSchema: GenMessage<IdpId> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 3);
 
 /**
- * ListWithIdentityAccountIdReq is the input for paginated queries scoped to an identity account.
- *
- * @generated from message ai.stigmer.iam.identityaccount.v1.ListWithIdentityAccountIdReq
- */
-export type ListWithIdentityAccountIdReq = Message<"ai.stigmer.iam.identityaccount.v1.ListWithIdentityAccountIdReq"> & {
-  /**
-   * Unique identifier of the identity account to list resources for.
-   *
-   * @generated from field: string identity_account_id = 1;
-   */
-  identityAccountId: string;
-
-  /**
-   * Pagination parameters.
-   *
-   * @generated from field: ai.stigmer.commons.rpc.PageInfo page = 2;
-   */
-  page?: PageInfo;
-};
-
-/**
- * Describes the message ai.stigmer.iam.identityaccount.v1.ListWithIdentityAccountIdReq.
- * Use `create(ListWithIdentityAccountIdReqSchema)` to create a new message.
- */
-export const ListWithIdentityAccountIdReqSchema: GenMessage<ListWithIdentityAccountIdReq> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 4);
-
-/**
  * IdentityAccountsList is a paginated response containing identity accounts.
  *
  * @generated from message ai.stigmer.iam.identityaccount.v1.IdentityAccountsList
  */
 export type IdentityAccountsList = Message<"ai.stigmer.iam.identityaccount.v1.IdentityAccountsList"> & {
   /**
-   * Total number of pages available.
-   *
-   * @generated from field: int32 total_pages = 1;
-   */
-  totalPages: number;
-
-  /**
    * Identity accounts in the current page.
    *
    * @generated from field: repeated ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2;
    */
   entries: IdentityAccount[];
+
+  /**
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   *
+   * @generated from field: string next_page_token = 3;
+   */
+  nextPageToken: string;
 };
 
 /**
@@ -162,14 +133,14 @@ export type IdentityAccountsList = Message<"ai.stigmer.iam.identityaccount.v1.Id
  * Use `create(IdentityAccountsListSchema)` to create a new message.
  */
 export const IdentityAccountsListSchema: GenMessage<IdentityAccountsList> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 5);
+  messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 4);
 
 /**
- * ListWithIdentityOrg is the input for paginated queries scoped to an organization.
+ * ListServiceAccountsInput is the input for paginated queries scoped to an organization.
  *
- * @generated from message ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg
+ * @generated from message ai.stigmer.iam.identityaccount.v1.ListServiceAccountsInput
  */
-export type ListWithIdentityOrg = Message<"ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg"> & {
+export type ListServiceAccountsInput = Message<"ai.stigmer.iam.identityaccount.v1.ListServiceAccountsInput"> & {
   /**
    * Organization to list identity accounts for, by id or slug.
    *
@@ -178,19 +149,28 @@ export type ListWithIdentityOrg = Message<"ai.stigmer.iam.identityaccount.v1.Lis
   org: string;
 
   /**
-   * Pagination parameters.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    *
-   * @generated from field: ai.stigmer.commons.rpc.PageInfo page = 2;
+   * @generated from field: int32 page_size = 3;
    */
-  page?: PageInfo;
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 4;
+   */
+  pageToken: string;
 };
 
 /**
- * Describes the message ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg.
- * Use `create(ListWithIdentityOrgSchema)` to create a new message.
+ * Describes the message ai.stigmer.iam.identityaccount.v1.ListServiceAccountsInput.
+ * Use `create(ListServiceAccountsInputSchema)` to create a new message.
  */
-export const ListWithIdentityOrgSchema: GenMessage<ListWithIdentityOrg> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 6);
+export const ListServiceAccountsInputSchema: GenMessage<ListServiceAccountsInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 5);
 
 /**
  * ExternalSubLookup identifies a federated identity account by its identity provider
@@ -232,7 +212,7 @@ export type ExternalSubLookup = Message<"ai.stigmer.iam.identityaccount.v1.Exter
  * Use `create(ExternalSubLookupSchema)` to create a new message.
  */
 export const ExternalSubLookupSchema: GenMessage<ExternalSubLookup> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 7);
+  messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 6);
 
 /**
  * CreateFederatedAccountInput is the command for creating a federated identity account
@@ -308,7 +288,7 @@ export type CreateFederatedAccountInput = Message<"ai.stigmer.iam.identityaccoun
  * Use `create(CreateFederatedAccountInputSchema)` to create a new message.
  */
 export const CreateFederatedAccountInputSchema: GenMessage<CreateFederatedAccountInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 8);
+  messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 7);
 
 /**
  * UpdateFederatedAccountInput is the command for updating profile fields on a
@@ -380,7 +360,7 @@ export type UpdateFederatedAccountInput = Message<"ai.stigmer.iam.identityaccoun
  * Use `create(UpdateFederatedAccountInputSchema)` to create a new message.
  */
 export const UpdateFederatedAccountInputSchema: GenMessage<UpdateFederatedAccountInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 9);
+  messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 8);
 
 /**
  * DeprovisionFederatedAccountInput is the command for revoking a federated
@@ -446,7 +426,7 @@ export type DeprovisionFederatedAccountInput = Message<"ai.stigmer.iam.identitya
  * Use `create(DeprovisionFederatedAccountInputSchema)` to create a new message.
  */
 export const DeprovisionFederatedAccountInputSchema: GenMessage<DeprovisionFederatedAccountInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 10);
+  messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 9);
 
 /**
  * CreateServiceAccountInput is the command for creating an organization's
@@ -485,7 +465,7 @@ export type CreateServiceAccountInput = Message<"ai.stigmer.iam.identityaccount.
  * Use `create(CreateServiceAccountInputSchema)` to create a new message.
  */
 export const CreateServiceAccountInputSchema: GenMessage<CreateServiceAccountInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 11);
+  messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 10);
 
 /**
  * The changes an update makes to an identity account: the fields update_mask names,
@@ -518,5 +498,5 @@ export type UpdateIdentityAccountInput = Message<"ai.stigmer.iam.identityaccount
  * Use `create(UpdateIdentityAccountInputSchema)` to create a new message.
  */
 export const UpdateIdentityAccountInputSchema: GenMessage<UpdateIdentityAccountInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 12);
+  messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 11);
 

@@ -74,8 +74,8 @@ function clientWith(opts: { mine?: Vault | null; writes?: string[] }) {
         },
         list: () =>
           create(VaultListSchema, {
-            items: [...(opts.mine ? [opts.mine] : []), SHARED],
-            totalCount: opts.mine ? 2 : 1,
+            entries: [...(opts.mine ? [opts.mine] : []), SHARED],
+            nextPageToken: "",
           }),
       });
       service(VaultCommandController, {

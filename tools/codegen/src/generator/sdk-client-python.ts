@@ -8,7 +8,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import type { MethodSchema, ServiceDefinition, ServiceSchemaFile } from "./gen-common.js";
-import { firstMemberWinsOrder, goQuote, hasExplicitPresence, indefiniteArticle, isEmptyType, isIDType, isRealOneofMember, isSpecialType, isUpdateInputType, isValuedOneofScalar, searchListSupersedesMethod } from "./gen-common.js";
+import { firstMemberWinsOrder, goQuote, hasExplicitPresence, indefiniteArticle, isEmptyType, isIDType, isRealOneofMember, isSpecialType, isUpdateInputType, isValuedOneofScalar, assertUniqueSdkMethodNames, pageIteratorName, pagedListOf, protoFileOfMessage, sdkMethodName } from "./gen-common.js";
 import { isPythonKeyword, pyClientFieldName, pyFieldName, pyMethodName, pyProtoFileToModule, pyProtoImportLine, pyProtoModuleAlias, pyStubMethodName } from "./lang-names.js";
 import type { ResourceGenInfo, SdkResourceConfig } from "./sdk-resource-config.js";
 import { deriveResourceConfig, loadSpecSchemaWithTypes, META_FIELD_NAMES } from "./sdk-resource-config.js";
@@ -189,7 +189,6 @@ class PyImports {
   needsMetadata = false;
   needsEmptyPb2 = false;
   needsFieldMaskPb2 = false;
-  needsSearch = false;
   needsApiResKind = false;
 
   typesNames = new Set<string>();
@@ -298,13 +297,8 @@ class PyImports {
     if (this.needsFieldMaskPb2) {
       buf.push("from google.protobuf import field_mask_pb2\n");
     }
-    if (this.needsSearch || this.needsApiResKind) {
+    if (this.needsApiResKind) {
       buf.push("from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2\n");
-    }
-    if (this.needsSearch) {
-      buf.push("from ai.stigmer.search.v1 import query_pb2_grpc as search_query_pb2_grpc\n");
-      buf.push("from ai.stigmer.search.v1 import io_pb2 as search_io_pb2\n");
-      buf.push("from ai.stigmer.commons.rpc import pagination_pb2\n");
     }
     if (this.crossProtoPackages.size > 0) {
       const entries = [...this.crossProtoPackages.entries()].sort(([a], [b]) =>
@@ -390,7 +384,6 @@ function generatePythonResourceClient(
   globalEmitted: Map<string, string>,
 ): [string, ResourceGenInfo] {
   const hasInputType = specSchema !== null;
-  const needsSearch = schema.listVia === "SearchService";
 
   const genInfo: ResourceGenInfo = {
     resource: schema.resource,
@@ -399,6 +392,7 @@ function generatePythonResourceClient(
     streamTypes: [],
   };
 
+  assertUniqueSdkMethodNames(schema);
   const imports = new PyImports(schema.package);
 
   const methodTypePb2Map = new Map<string, string>();
@@ -411,9 +405,15 @@ function generatePythonResourceClient(
   for (const svc of schema.services) {
     imports.addService(svc.role, pyServiceModule(svc));
     for (const m of svc.methods) {
-      if (searchListSupersedesMethod(schema, m)) continue;
       if (isIDType(m.inputType)) {
         imports.needsIoPb2 = true;
+      }
+      const paged = pagedListOf(schema, m);
+      if (paged !== undefined) {
+        imports.needsIterator = true;
+        const entryMod = pyEntryModule(paged.entryType, paged.entryFullType, cfg);
+        if (entryMod === "io_pb2") imports.needsIoPb2 = true;
+        else if (entryMod !== "api_pb2") imports.extraPb2Modules.add(entryMod);
       }
       if (m.inputType === "ApiResourceId" || m.inputType === "ApiResourceReference" || m.inputType === "ApiResourceDeleteInput") {
         imports.needsApiResIo = true;
@@ -450,12 +450,6 @@ function generatePythonResourceClient(
     imports.needsMetadata = true;
   }
 
-  if (needsSearch) {
-    imports.needsSearch = true;
-    imports.addTypesImport("ListParams");
-    imports.addTypesImport("ListResult");
-  }
-
   const typeMap = new Map<string, TypeSchema>();
   for (const t of specTypes) typeMap.set(t.name, t);
 
@@ -473,19 +467,16 @@ function generatePythonResourceClient(
     const mod = pyServiceModule(svc);
     body.push(`        self._${svc.role} = ${mod}_pb2_grpc.${svc.name}Stub(channel)\n`);
   }
-  if (needsSearch) {
-    body.push("        self._search = search_query_pb2_grpc.SearchServiceStub(channel)\n");
-  }
   body.push("\n");
 
   for (const svc of schema.services) {
     for (const m of svc.methods) {
-      if (searchListSupersedesMethod(schema, m)) continue;
       generatePythonMethod(body, m, svc, cfg, hasInputType, methodTypePb2Map);
+      const paged = pagedListOf(schema, m);
+      if (paged !== undefined) {
+        generatePythonPageIterator(body, svc, m, paged.entryType, pyEntryModule(paged.entryType, paged.entryFullType, cfg), methodTypePb2Map);
+      }
     }
-  }
-  if (needsSearch) {
-    generatePythonSearchList(body, cfg);
   }
 
   body.push("\n");
@@ -574,7 +565,7 @@ function generatePythonMethod(
   const isApiResourceIdInput = m.inputType === "ApiResourceId";
   const isApiResourceRefInput = m.inputType === "ApiResourceReference";
 
-  const methodName = pyMethodName(m.name);
+  const methodName = pyMethodName(sdkMethodName(svc, m));
   const stubMethod = pyStubMethodName(m.name);
 
   let outputAnnotation = "api_pb2." + cfg.protoResType;
@@ -659,7 +650,7 @@ function generatePythonStreamingMethod(
   methodTypePb2Map: Map<string, string>,
 ): void {
   const isIDInput = isIDType(m.inputType);
-  const methodName = pyMethodName(m.name);
+  const methodName = pyMethodName(sdkMethodName(svc, m));
   const stubMethod = pyStubMethodName(m.name);
 
   let outputAnnotation = "api_pb2." + cfg.protoResType;
@@ -693,27 +684,37 @@ function generatePythonStreamingMethod(
   }
 }
 
-function generatePythonSearchList(buf: string[], cfg: SdkResourceConfig): void {
-  buf.push("    def list(self, params: ListParams) -> ListResult:\n");
-  buf.push("        try:\n");
-  buf.push("            req = search_io_pb2.SearchRequest(\n");
-  buf.push(`                kinds=[api_resource_kind_pb2.ApiResourceKind.${cfg.resourceKind}],\n`);
-  buf.push("                query=params.query,\n");
-  buf.push("                org=params.org,\n");
-  buf.push("            )\n");
-  buf.push("            if params.page is not None:\n");
-  buf.push("                req.page.CopyFrom(pagination_pb2.PageInfo(\n");
-  buf.push("                    num=params.page.num,\n");
-  buf.push("                    size=params.page.size,\n");
-  buf.push("                ))\n");
-  buf.push("            resp = self._search.search(req)\n");
-  buf.push("            return ListResult(\n");
-  buf.push("                entries=list(resp.entries),\n");
-  buf.push("                total_count=resp.total_count,\n");
-  buf.push("                total_pages=resp.total_pages,\n");
-  buf.push("            )\n");
-  buf.push("        except grpc.RpcError as e:\n");
-  buf.push("            raise wrap_error(e) from e\n\n");
+// The module a paged list's entries are imported from: the resource's own
+// api_pb2, else the file that declares the entry type.
+function pyEntryModule(entryType: string, entryFullType: string, cfg: SdkResourceConfig): string {
+  if (entryType === cfg.protoResType) return "api_pb2";
+  return pyProtoFileToModule(protoFileOfMessage(entryFullType));
+}
+
+// The page iterator beside a paged list: every entry, page after page,
+// following next_page_token from the token the input names. It reads a
+// copy of the input, so the caller's request is never changed.
+function generatePythonPageIterator(
+  buf: string[],
+  svc: ServiceDefinition,
+  m: MethodSchema,
+  entryType: string,
+  entryModule: string,
+  methodTypePb2Map: Map<string, string>,
+): void {
+  const methodName = pyMethodName(sdkMethodName(svc, m));
+  const inputMod = pyMethodTypePb2Prefix(m.inputType, methodTypePb2Map);
+  buf.push(`    def ${pyMethodName(pageIteratorName(sdkMethodName(svc, m)))}(self, input: ${inputMod}.${m.inputType}) -> Iterator[${entryModule}.${entryType}]:\n`);
+  buf.push(`        """Every entry of \`\`${methodName}\`\`, page after page: follows \`\`next_page_token\`\`\n`);
+  buf.push("        from the token the input names until the list ends.\"\"\"\n");
+  buf.push(`        request = ${inputMod}.${m.inputType}()\n`);
+  buf.push("        request.CopyFrom(input)\n");
+  buf.push("        while True:\n");
+  buf.push(`            page = self.${methodName}(request)\n`);
+  buf.push("            yield from page.entries\n");
+  buf.push("            if not page.next_page_token:\n");
+  buf.push("                return\n");
+  buf.push("            request.page_token = page.next_page_token\n\n");
 }
 
 // =========================================================================
@@ -1215,11 +1216,10 @@ function generatePythonTypes(outputDir: string): void {
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
-from ai.stigmer.search.v1 import io_pb2 as search_io_pb2
 
 
 @dataclass
@@ -1255,31 +1255,6 @@ class ResourceRef:
             kind=self.kind,
         )
 
-
-@dataclass
-class Page:
-    """Offset-based pagination parameters."""
-
-    num: int = 1
-    size: int = 20
-
-
-@dataclass
-class ListParams:
-    """Parameters for SearchService-backed list queries."""
-
-    org: str = ""
-    query: str = ""
-    page: Page | None = None
-
-
-@dataclass
-class ListResult:
-    """Response from a SearchService-backed list query."""
-
-    entries: list[search_io_pb2.SearchResult] = field(default_factory=list)
-    total_count: int = 0
-    total_pages: int = 0
 `;
   fs.writeFileSync(path.join(outputDir, "_types.py"), content);
 }
@@ -1331,9 +1306,6 @@ function generatePythonInit(outputDir: string, resources: ResourceGenInfo[]): vo
 
   buf.push("from ._types import (\n");
   buf.push("    DeleteResourceInput,\n");
-  buf.push("    ListParams,\n");
-  buf.push("    ListResult,\n");
-  buf.push("    Page,\n");
   buf.push("    ResourceRef,\n");
   buf.push(")\n");
 
@@ -1357,9 +1329,6 @@ function generatePythonInit(outputDir: string, resources: ResourceGenInfo[]): vo
     }
   }
   buf.push('    "DeleteResourceInput",\n');
-  buf.push('    "ListParams",\n');
-  buf.push('    "ListResult",\n');
-  buf.push('    "Page",\n');
   buf.push('    "ResourceRef",\n');
   buf.push('    "ErrorCode",\n');
   buf.push('    "StigmerError",\n');

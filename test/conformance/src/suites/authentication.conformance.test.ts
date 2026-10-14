@@ -74,13 +74,13 @@ afterAll(async () => {
 describe("authentication posture: a request with no credential", () => {
   it("is refused on a non-public method with the byte-pinned copy where authentication is required, admitted as the operator where it is not", async () => {
     const anonymous = target.anonymousClients();
-    // findMyOrganizations takes Empty and runs no validation — a pure
+    // listMine takes Empty and runs no validation — a pure
     // position-1 probe (the same reason the readiness gate uses it).
     if (target.capabilities.requiresAuthentication) {
       const error = await expectGrpcCode(
-        () => anonymous.organizationQuery.findMyOrganizations({}),
+        () => anonymous.organizationQuery.listMine({}),
         Code.Unauthenticated,
-        "tokenless findMyOrganizations under the require-authentication posture",
+        "tokenless listMine under the require-authentication posture",
       );
       expect(
         error.rawMessage,
@@ -88,7 +88,7 @@ describe("authentication posture: a request with no credential", () => {
       ).toBe(TOKEN_MISSING_MESSAGE);
       return;
     }
-    const response = await anonymous.organizationQuery.findMyOrganizations({});
+    const response = await anonymous.organizationQuery.listMine({});
     expect(
       Array.isArray(response.entries),
       "trusted-local posture: the tokenless caller IS the operator and the read answers",
@@ -119,7 +119,7 @@ describe("authentication posture: a request with a credential nothing claims", (
       // design (Java classifies the parse failure; the TS chassis names the
       // verifier walk). Both refuse — that is the contract.
       await expectGrpcCode(
-        () => presenting.organizationQuery.findMyOrganizations({}),
+        () => presenting.organizationQuery.listMine({}),
         Code.Unauthenticated,
         "an unclaimable credential under the require-authentication posture",
       );
@@ -129,7 +129,7 @@ describe("authentication posture: a request with a credential nothing claims", (
     // contract falls through SILENTLY to the trusted-local operator — the
     // runner presents a proxy bearer on every control-plane RPC and the
     // single-operator server must keep admitting it.
-    const response = await presenting.organizationQuery.findMyOrganizations({});
+    const response = await presenting.organizationQuery.listMine({});
     expect(
       Array.isArray(response.entries),
       "verifier-less posture: an unclaimed credential falls through to the operator",
@@ -213,7 +213,7 @@ describe("authentication posture: a request with an API-key credential", () => {
     );
     if (target.capabilities.requiresAuthentication) {
       const error = await expectGrpcCode(
-        () => presenting.organizationQuery.findMyOrganizations({}),
+        () => presenting.organizationQuery.listMine({}),
         Code.Unauthenticated,
         "a garbage stk_ credential under the require-authentication posture",
       );
@@ -223,7 +223,7 @@ describe("authentication posture: a request with an API-key credential", () => {
       ).toBe(INVALID_TOKEN_MESSAGE);
       return;
     }
-    const response = await presenting.organizationQuery.findMyOrganizations({});
+    const response = await presenting.organizationQuery.listMine({});
     expect(
       Array.isArray(response.entries),
       "verifier-less posture: an stk_ credential is unclaimed and falls through to the operator",
@@ -243,7 +243,7 @@ describe("authentication posture: a request with an API-key credential", () => {
       () =>
         target
           .clientsPresenting(key.plaintext)
-          .organizationQuery.findMyOrganizations({}),
+          .organizationQuery.listMine({}),
       Code.Unauthenticated,
       "a deleted key on the request after its deletion",
     );
@@ -277,7 +277,7 @@ describe("authentication posture: a request with an API-key credential", () => {
 
     await lane
       .clientsPresenting(created.spec?.keyHash ?? "")
-      .organizationQuery.findMyOrganizations({});
+      .organizationQuery.listMine({});
 
     const stamp = await lastUsed();
     expect(stamp, "a request through the key records its last use").toBeDefined();

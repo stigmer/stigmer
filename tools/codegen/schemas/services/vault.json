@@ -1121,15 +1121,27 @@
           }
         },
         {
-          "name": "PageInfo",
-          "jsonName": "pageInfo",
-          "protoField": "page_info",
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
           "type": {
-            "kind": "message",
-            "messageType": "PageInfo"
+            "kind": "int32"
           },
-          "description": "Pagination options.",
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
           "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
+          }
         }
       ]
     },
@@ -1140,19 +1152,9 @@
       "protoFile": "apis/ai/stigmer/agentic/vault/v1/io.proto",
       "fields": [
         {
-          "name": "TotalCount",
-          "jsonName": "totalCount",
-          "protoField": "total_count",
-          "type": {
-            "kind": "int32"
-          },
-          "description": "Total count of matching vaults.",
-          "required": false
-        },
-        {
-          "name": "Items",
-          "jsonName": "items",
-          "protoField": "items",
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
           "type": {
             "kind": "array",
             "elementType": {
@@ -1161,6 +1163,16 @@
             }
           },
           "description": "Vaults in the current page.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Set when more entries may follow: pass it as page_token to continue.\n A page may be short, even empty, and still carry a token.",
           "required": false
         }
       ]

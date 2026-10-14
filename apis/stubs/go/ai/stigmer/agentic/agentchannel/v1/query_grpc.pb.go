@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	AgentChannelQueryController_Get_FullMethodName            = "/ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController/get"
 	AgentChannelQueryController_GetByReference_FullMethodName = "/ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController/getByReference"
-	AgentChannelQueryController_GetByAgent_FullMethodName     = "/ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController/getByAgent"
+	AgentChannelQueryController_ListByAgent_FullMethodName    = "/ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController/listByAgent"
 	AgentChannelQueryController_List_FullMethodName           = "/ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController/list"
 )
 
@@ -36,12 +36,12 @@ type AgentChannelQueryControllerClient interface {
 	Get(ctx context.Context, in *AgentChannelId, opts ...grpc.CallOption) (*AgentChannel, error)
 	// Get an agent channel by its organization-scoped reference (org/slug).
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*AgentChannel, error)
-	// Get all channels of a specific agent.
+	// List the channels of a specific agent, newest first.
 	// Returns only channels the caller has access to.
 	//
 	// This is how the agent's integrations surface and CLI resolve an
 	// agent's existing channels regardless of slug.
-	GetByAgent(ctx context.Context, in *GetAgentChannelsByAgentRequest, opts ...grpc.CallOption) (*AgentChannelList, error)
+	ListByAgent(ctx context.Context, in *ListAgentChannelsByAgentRequest, opts ...grpc.CallOption) (*AgentChannelList, error)
 	// List agent channels with optional label filtering.
 	List(ctx context.Context, in *ListAgentChannelsRequest, opts ...grpc.CallOption) (*AgentChannelList, error)
 }
@@ -74,10 +74,10 @@ func (c *agentChannelQueryControllerClient) GetByReference(ctx context.Context, 
 	return out, nil
 }
 
-func (c *agentChannelQueryControllerClient) GetByAgent(ctx context.Context, in *GetAgentChannelsByAgentRequest, opts ...grpc.CallOption) (*AgentChannelList, error) {
+func (c *agentChannelQueryControllerClient) ListByAgent(ctx context.Context, in *ListAgentChannelsByAgentRequest, opts ...grpc.CallOption) (*AgentChannelList, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AgentChannelList)
-	err := c.cc.Invoke(ctx, AgentChannelQueryController_GetByAgent_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AgentChannelQueryController_ListByAgent_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -104,12 +104,12 @@ type AgentChannelQueryControllerServer interface {
 	Get(context.Context, *AgentChannelId) (*AgentChannel, error)
 	// Get an agent channel by its organization-scoped reference (org/slug).
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*AgentChannel, error)
-	// Get all channels of a specific agent.
+	// List the channels of a specific agent, newest first.
 	// Returns only channels the caller has access to.
 	//
 	// This is how the agent's integrations surface and CLI resolve an
 	// agent's existing channels regardless of slug.
-	GetByAgent(context.Context, *GetAgentChannelsByAgentRequest) (*AgentChannelList, error)
+	ListByAgent(context.Context, *ListAgentChannelsByAgentRequest) (*AgentChannelList, error)
 	// List agent channels with optional label filtering.
 	List(context.Context, *ListAgentChannelsRequest) (*AgentChannelList, error)
 }
@@ -127,8 +127,8 @@ func (UnimplementedAgentChannelQueryControllerServer) Get(context.Context, *Agen
 func (UnimplementedAgentChannelQueryControllerServer) GetByReference(context.Context, *apiresource.ApiResourceReference) (*AgentChannel, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByReference not implemented")
 }
-func (UnimplementedAgentChannelQueryControllerServer) GetByAgent(context.Context, *GetAgentChannelsByAgentRequest) (*AgentChannelList, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetByAgent not implemented")
+func (UnimplementedAgentChannelQueryControllerServer) ListByAgent(context.Context, *ListAgentChannelsByAgentRequest) (*AgentChannelList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListByAgent not implemented")
 }
 func (UnimplementedAgentChannelQueryControllerServer) List(context.Context, *ListAgentChannelsRequest) (*AgentChannelList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
@@ -189,20 +189,20 @@ func _AgentChannelQueryController_GetByReference_Handler(srv interface{}, ctx co
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AgentChannelQueryController_GetByAgent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetAgentChannelsByAgentRequest)
+func _AgentChannelQueryController_ListByAgent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAgentChannelsByAgentRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AgentChannelQueryControllerServer).GetByAgent(ctx, in)
+		return srv.(AgentChannelQueryControllerServer).ListByAgent(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AgentChannelQueryController_GetByAgent_FullMethodName,
+		FullMethod: AgentChannelQueryController_ListByAgent_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentChannelQueryControllerServer).GetByAgent(ctx, req.(*GetAgentChannelsByAgentRequest))
+		return srv.(AgentChannelQueryControllerServer).ListByAgent(ctx, req.(*ListAgentChannelsByAgentRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -241,8 +241,8 @@ var AgentChannelQueryController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AgentChannelQueryController_GetByReference_Handler,
 		},
 		{
-			MethodName: "getByAgent",
-			Handler:    _AgentChannelQueryController_GetByAgent_Handler,
+			MethodName: "listByAgent",
+			Handler:    _AgentChannelQueryController_ListByAgent_Handler,
 		},
 		{
 			MethodName: "list",

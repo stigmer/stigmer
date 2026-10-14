@@ -11,8 +11,8 @@ import { useConversationsWantsHumanCount } from "../useConversationsWantsHumanCo
 // broadcast only ever exercises the test that sent it.
 afterEach(cleanup);
 
-function createMockStigmer(listConversations: (input: unknown) => Promise<unknown>) {
-  return { agentChannel: { listConversations } } as never;
+function createMockStigmer(countConversations: (input: unknown) => Promise<unknown>) {
+  return { agentChannel: { countConversations } } as never;
 }
 
 function wrapper(client: unknown) {
@@ -34,47 +34,44 @@ describe("useConversationsWantsHumanCount", () => {
     vi.restoreAllMocks();
   });
 
-  it("reads the filtered list's total_count with a one-row page — zero dedicated RPCs", async () => {
-    const listConversations = vi
-      .fn()
-      .mockResolvedValue({ items: [], totalCount: 7 });
+  it("reads countConversations with the wants-human filter — the list's own predicate", async () => {
+    const countConversations = vi.fn().mockResolvedValue({ count: 7 });
     const { result } = renderHook(
       () => useConversationsWantsHumanCount("acme", NO_POLL),
-      { wrapper: wrapper(createMockStigmer(listConversations)) },
+      { wrapper: wrapper(createMockStigmer(countConversations)) },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.count).toBe(7);
-    expect(listConversations).toHaveBeenCalledWith(
+    expect(countConversations).toHaveBeenCalledWith(
       expect.objectContaining({
         org: "acme",
         filter: ChannelConversationListFilter.filter_wants_human,
-        pageInfo: expect.objectContaining({ num: 1, size: 1 }),
       }),
     );
   });
 
   it("skips fetching without an org and answers zero", async () => {
-    const listConversations = vi.fn();
+    const countConversations = vi.fn();
     const { result } = renderHook(
       () => useConversationsWantsHumanCount(null, NO_POLL),
-      { wrapper: wrapper(createMockStigmer(listConversations)) },
+      { wrapper: wrapper(createMockStigmer(countConversations)) },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(listConversations).not.toHaveBeenCalled();
+    expect(countConversations).not.toHaveBeenCalled();
     expect(result.current.count).toBe(0);
   });
 
   it("keeps the stale count visible through a failed refresh — a flapping badge teaches distrust", async () => {
-    const listConversations = vi
+    const countConversations = vi
       .fn()
-      .mockResolvedValueOnce({ items: [], totalCount: 4 })
+      .mockResolvedValueOnce({ count: 4 })
       .mockRejectedValueOnce(new Error("boom"));
     const { result } = renderHook(
       () => useConversationsWantsHumanCount("acme", NO_POLL),
-      { wrapper: wrapper(createMockStigmer(listConversations)) },
+      { wrapper: wrapper(createMockStigmer(countConversations)) },
     );
     await waitFor(() => expect(result.current.count).toBe(4));
 
@@ -85,18 +82,16 @@ describe("useConversationsWantsHumanCount", () => {
   });
 
   it("refetches when the window regains focus", async () => {
-    const listConversations = vi
-      .fn()
-      .mockResolvedValue({ items: [], totalCount: 2 });
+    const countConversations = vi.fn().mockResolvedValue({ count: 0 });
     renderHook(() => useConversationsWantsHumanCount("acme", NO_POLL), {
-      wrapper: wrapper(createMockStigmer(listConversations)),
+      wrapper: wrapper(createMockStigmer(countConversations)),
     });
-    await waitFor(() => expect(listConversations).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(countConversations).toHaveBeenCalledTimes(1));
 
     await act(async () => {
       window.dispatchEvent(new Event("focus"));
     });
 
-    await waitFor(() => expect(listConversations).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(countConversations).toHaveBeenCalledTimes(2));
   });
 });

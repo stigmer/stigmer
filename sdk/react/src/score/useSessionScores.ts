@@ -5,6 +5,7 @@ import { create } from "@bufbuild/protobuf";
 import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { ListScoresBySessionRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
 import { useStigmer } from "../hooks.js";
+import { LIST_PAGE_MAX, readWholeList } from "../internal/everyPage.js";
 import { useFetch } from "../internal/useFetch.js";
 import { isPendingJudgeScore } from "./score-view.js";
 
@@ -38,8 +39,10 @@ export const PENDING_POLL_LIMIT_MS = 3 * 60 * 1_000;
  * Data hook that fetches every score of every run in a session through
  * `score.listBySession()`: a person's thumbs, the platform's run-health
  * checks and an AI judge's verdict. One read serves the whole conversation
- * view. While a judge's grade is in progress the hook asks again on a
- * capped backoff ({@link PENDING_POLL_FIRST_MS}), for at most
+ * view, so the hook walks every page of the session's scores, with no cap,
+ * since a session's scores grow with its runs. While a judge's grade is in
+ * progress the hook asks again on a capped backoff
+ * ({@link PENDING_POLL_FIRST_MS}), for at most
  * {@link PENDING_POLL_LIMIT_MS}, and stops as soon as no grade is pending.
  *
  * Pass `null` to stay idle (no request): the audiences that never show
@@ -57,12 +60,16 @@ export function useSessionScores(
 
   const { data, isLoading, isRefetching, error, refetch } = useFetch(
     sessionId
-      ? () =>
-          stigmer.score
-            .listBySession(
-              create(ListScoresBySessionRequestSchema, { sessionId }),
-            )
-            .then((list): readonly Score[] => list.items)
+      ? (): Promise<readonly Score[]> =>
+          readWholeList((pageToken) =>
+            stigmer.score.listBySession(
+              create(ListScoresBySessionRequestSchema, {
+                sessionId,
+                pageSize: LIST_PAGE_MAX,
+                pageToken,
+              }),
+            ),
+          )
       : null,
     [sessionId, stigmer],
     NO_SCORES,

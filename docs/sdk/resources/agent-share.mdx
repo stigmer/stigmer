@@ -67,11 +67,11 @@ AgentShare agentShare = client.agentShares().get("ash_01j5q3k7m8r2s4tnz2hfp0q0c3
 | Method | Description |
 |--------|-------------|
 | [`get`](#get) | Get a single agent share by ID. |
-| [`getByAgent`](#getbyagent) | Get all shares of a specific agent. |
 | [`getByReference`](#getbyreference) | Get an agent share by its organization-scoped reference (org/slug). |
 | [`getSharedProfile`](#getsharedprofile) | Get the public profile of a shared agent by the share's id. |
 | [`getSharedProfileForMember`](#getsharedprofileformember) | Get the profile of a shared agent as a signed-in organization member. |
 | [`list`](#list) | List agent shares with optional label filtering. |
+| [`listByAgent`](#listbyagent) | List the shares of a specific agent, newest first. |
 | [`apply`](#apply) | Create or update an agent share. |
 | [`create`](#create) | Create an agent share. |
 | [`update`](#update) | Update an agent share: the fields update_mask names change, every other field keeps its stored value. |
@@ -112,55 +112,6 @@ AgentShare agentShare = client.agentShares().get(id);
 | `id` | `string` | Agent Share identifier. |
 
 **Returns**: [`AgentShare`](#agentshare)
-
-### getByAgent
-
-Get all shares of a specific agent. Returns only shares the caller has access to, optionally scoped to one organization via the request's org field.
-
-This is how the Share dialog and CLI resolve an agent's existing share regardless of its slug (a renamed share keeps working).
-
-<SDKTabs>
-<Tab value="TypeScript">
-```typescript
-const result = await stigmer.agentShare.getByAgent({
-  agentId: "...",
-  pageInfo: {},
-  org: "...",
-});
-```
-</Tab>
-<Tab value="Go">
-```go
-result, err := client.AgentShare.GetByAgent(ctx, &stigmer.GetAgentSharesByAgentRequest{
-  AgentId:  "...",
-  PageInfo: &stigmer.PageInfoInput{},
-  Org:      "...",
-})
-```
-</Tab>
-<Tab value="Python">
-```python
-result = client.agent_shares.get_by_agent(GetAgentSharesByAgentRequest(
-    agent_id="...",
-    page_info=None,
-    org="...",
-))
-```
-</Tab>
-<Tab value="Java">
-```java
-AgentShareList result = client.agentShares().getByAgent(GetAgentSharesByAgentRequest.builder()
-    .agentId("...")
-    .pageInfo(null)
-    .org("...")
-    .build());
-```
-</Tab>
-</SDKTabs>
-
-**Parameters**: [`GetAgentSharesByAgentRequest`](#getagentsharesbyagentrequest)
-
-**Returns**: [`AgentShareList`](#agentsharelist)
 
 ### getByReference
 
@@ -313,16 +264,18 @@ List agent shares with optional label filtering.
 const result = await stigmer.agentShare.list({
   org: "...",
   labels: {},
-  pageInfo: {},
+  pageSize: 0,
+  pageToken: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 result, err := client.AgentShare.List(ctx, &stigmer.ListAgentSharesRequest{
-  Org:      "...",
-  Labels:   map[string]string{},
-  PageInfo: &stigmer.PageInfoInput{},
+  Org:       "...",
+  Labels:    map[string]string{},
+  PageSize:  0,
+  PageToken: "...",
 })
 ```
 </Tab>
@@ -331,7 +284,8 @@ result, err := client.AgentShare.List(ctx, &stigmer.ListAgentSharesRequest{
 result = client.agent_shares.list(ListAgentSharesRequest(
     org="...",
     labels={},
-    page_info=None,
+    page_size=0,
+    page_token="...",
 ))
 ```
 </Tab>
@@ -340,7 +294,8 @@ result = client.agent_shares.list(ListAgentSharesRequest(
 AgentShareList result = client.agentShares().list(ListAgentSharesRequest.builder()
     .org("...")
     .labels(Map.of())
-    .pageInfo(null)
+    .pageSize(0)
+    .pageToken("...")
     .build());
 ```
 </Tab>
@@ -349,6 +304,63 @@ AgentShareList result = client.agentShares().list(ListAgentSharesRequest.builder
 **Parameters**: [`ListAgentSharesRequest`](#listagentsharesrequest)
 
 **Returns**: [`AgentShareList`](#agentsharelist)
+
+**Every page**: `listAll` (Go `ListAll`, Python `list_all`, Java `listAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
+
+### listByAgent
+
+List the shares of a specific agent, newest first. Returns only shares the caller has access to, optionally scoped to one organization via the request's org field.
+
+This is how the Share dialog and CLI resolve an agent's existing share regardless of its slug (a renamed share keeps working).
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const result = await stigmer.agentShare.listByAgent({
+  agentId: "...",
+  org: "...",
+  pageSize: 0,
+  pageToken: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.AgentShare.ListByAgent(ctx, &stigmer.ListAgentSharesByAgentRequest{
+  AgentId:   "...",
+  Org:       "...",
+  PageSize:  0,
+  PageToken: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+result = client.agent_shares.list_by_agent(ListAgentSharesByAgentRequest(
+    agent_id="...",
+    org="...",
+    page_size=0,
+    page_token="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+AgentShareList result = client.agentShares().listByAgent(ListAgentSharesByAgentRequest.builder()
+    .agentId("...")
+    .org("...")
+    .pageSize(0)
+    .pageToken("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListAgentSharesByAgentRequest`](#listagentsharesbyagentrequest)
+
+**Returns**: [`AgentShareList`](#agentsharelist)
+
+**Every page**: `listByAgentAll` (Go `ListByAgentAll`, Python `list_by_agent_all`, Java `listByAgentAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
 
 ### apply
 
@@ -727,15 +739,16 @@ Input for rotating a share's link token.
   }}
 />
 
-### GetAgentSharesByAgentRequest
+### ListAgentSharesByAgentRequest
 
 Input for retrieving all shares of a specific agent.
 
 <TypeTable
   type={{
     agentId: { type: "string", description: "Identifier of the agent whose shares to retrieve.", required: true },
-    pageInfo: { type: "PageInfoInput", description: "Pagination options." },
     org: { type: "string", description: "Organization slug to scope the results to." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 
@@ -745,8 +758,8 @@ Response containing a paginated list of agent shares.
 
 <TypeTable
   type={{
-    totalCount: { type: "number", description: "Total number of agent shares matching the query." },
-    items: { type: "AgentShareInput[]", description: "Agent shares in the current page.", typeDescriptionLink: "#agentshareinput" },
+    entries: { type: "AgentShareInput[]", description: "Agent shares in the current page.", typeDescriptionLink: "#agentshareinput" },
+    nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token to continue." },
   }}
 />
 
@@ -758,7 +771,8 @@ Input for listing agent shares within an organization.
   type={{
     org: { type: "string", description: "Organization slug to scope the listing." },
     labels: { type: "Record<string, string>", description: "Filter by metadata labels." },
-    pageInfo: { type: "PageInfoInput", description: "Pagination options." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 

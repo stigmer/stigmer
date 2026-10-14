@@ -12,55 +12,67 @@ public interface ScheduleListOrBuilder extends
 
   /**
    * <pre>
-   * Total number of schedules matching the query.
+   * Schedules in the current page.
    * </pre>
    *
-   * <code>int32 total_count = 1 [json_name = "totalCount"];</code>
-   * @return The totalCount.
+   * <code>repeated .ai.stigmer.agentic.schedule.v1.Schedule entries = 2 [json_name = "entries"];</code>
    */
-  int getTotalCount();
+  java.util.List<ai.stigmer.agentic.schedule.v1.Schedule> 
+      getEntriesList();
+  /**
+   * <pre>
+   * Schedules in the current page.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.schedule.v1.Schedule entries = 2 [json_name = "entries"];</code>
+   */
+  ai.stigmer.agentic.schedule.v1.Schedule getEntries(int index);
+  /**
+   * <pre>
+   * Schedules in the current page.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.schedule.v1.Schedule entries = 2 [json_name = "entries"];</code>
+   */
+  int getEntriesCount();
+  /**
+   * <pre>
+   * Schedules in the current page.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.schedule.v1.Schedule entries = 2 [json_name = "entries"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.schedule.v1.ScheduleOrBuilder> 
+      getEntriesOrBuilderList();
+  /**
+   * <pre>
+   * Schedules in the current page.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.schedule.v1.Schedule entries = 2 [json_name = "entries"];</code>
+   */
+  ai.stigmer.agentic.schedule.v1.ScheduleOrBuilder getEntriesOrBuilder(
+      int index);
 
   /**
    * <pre>
-   * Schedules in the current page.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.schedule.v1.Schedule items = 2 [json_name = "items"];</code>
+   * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+   * @return The nextPageToken.
    */
-  java.util.List<ai.stigmer.agentic.schedule.v1.Schedule> 
-      getItemsList();
+  java.lang.String getNextPageToken();
   /**
    * <pre>
-   * Schedules in the current page.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.schedule.v1.Schedule items = 2 [json_name = "items"];</code>
+   * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+   * @return The bytes for nextPageToken.
    */
-  ai.stigmer.agentic.schedule.v1.Schedule getItems(int index);
-  /**
-   * <pre>
-   * Schedules in the current page.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.schedule.v1.Schedule items = 2 [json_name = "items"];</code>
-   */
-  int getItemsCount();
-  /**
-   * <pre>
-   * Schedules in the current page.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.schedule.v1.Schedule items = 2 [json_name = "items"];</code>
-   */
-  java.util.List<? extends ai.stigmer.agentic.schedule.v1.ScheduleOrBuilder> 
-      getItemsOrBuilderList();
-  /**
-   * <pre>
-   * Schedules in the current page.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.schedule.v1.Schedule items = 2 [json_name = "items"];</code>
-   */
-  ai.stigmer.agentic.schedule.v1.ScheduleOrBuilder getItemsOrBuilder(
-      int index);
+  com.google.protobuf.ByteString
+      getNextPageTokenBytes();
 }

@@ -34,7 +34,7 @@ service AgentChannelQueryController {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
-  // Get all channels of a specific agent.
+  // List the channels of a specific agent, newest first.
   // Returns only channels the caller has access to.
   //
   // This is how the agent's integrations surface and CLI resolve an
@@ -42,7 +42,7 @@ service AgentChannelQueryController {
   //
   // @internal
   // Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS.
-  rpc getByAgent(GetAgentChannelsByAgentRequest) returns (AgentChannelList) {
+  rpc listByAgent(ListAgentChannelsByAgentRequest) returns (AgentChannelList) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 

@@ -30,7 +30,7 @@
  * (local-execution), and __tests__/schedule.composed.test.ts.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
-import { create, fromBinary } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 
 import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
 import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
@@ -38,8 +38,8 @@ import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/a
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleListSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import type {
-  GetSchedulesByAgentRequest,
   ListScheduleFiresRequest,
+  ListSchedulesByAgentRequest,
   ListSchedulesRequest,
   ScheduleId,
   ScheduleList,
@@ -56,6 +56,7 @@ import { UpdateScheduleInputSchema } from "@stigmer/protos/ai/stigmer/agentic/sc
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
@@ -81,9 +82,15 @@ import {
   newLoadExistingForDeleteStep,
 } from "../../pipeline/steps/delete.js";
 import {
-  compareCreatedAtDesc,
   matchesAllLabels,
+  sortedLabels,
 } from "../../pipeline/steps/helpers.js";
+import {
+  decodeOrSkip,
+  listPageFingerprint,
+  readListPage,
+} from "../../pipeline/steps/list-page.js";
+import type { ListPageRequest } from "../../pipeline/steps/list-page.js";
 import {
   EXISTING_RESOURCE_KEY,
   newLoadExistingStep,
@@ -113,6 +120,8 @@ import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
 import type { Store } from "../../store/interface.js";
+import type { ListIndexQuery } from "../../store/list-index.js";
+import { scheduleListIndex } from "./list-index.js";
 import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
 import {
   newArmResumedScheduleStep,
@@ -163,7 +172,7 @@ export interface ScheduleControllerDeps {
    * away.
    */
   readonly runner: RunnerProvider;
-  /** The composed list read scope — list/getByAgent narrow through it; undefined = the OSS full scan. */
+  /** The composed list read scope — list/listByAgent narrow through it; undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
 }
 
@@ -185,7 +194,7 @@ export function registerScheduleServices(
   router.service(ScheduleQueryController, {
     get: (scheduleId, ctx) => get(deps, scheduleId, ctx),
     getByReference: (ref, ctx) => getByReference(deps, ref, ctx),
-    getByAgent: (req, ctx) => getByAgent(deps, req, ctx),
+    listByAgent: (req, ctx) => listByAgent(deps, req, ctx),
     list: (req, ctx) => list(deps, req, ctx),
     listFires: (req, ctx) => listFires(deps, req, ctx),
   });
@@ -557,24 +566,20 @@ async function getByReference(
 const SCHEDULE_LIST_KEY = "scheduleList";
 
 /**
- * GetByAgent — resolves the agent BY ID to its org+slug identity, then
- * filters schedules whose agent target matches (get_by_agent.go).
- * Schedules reference agents by org+slug (the platform's canonical
- * reference), while this RPC is keyed on the agent ID (the stable handle a
- * detail view holds) — so the agent resolves first. A nonexistent agent
- * yields an EMPTY LIST, not an error: "no schedules" is the useful answer
- * for the operational surface either way. The org filter is contract
- * parity, not authorization: both editions must answer an org-scoped
- * request identically.
+ * ListByAgent — one page of the schedules whose agent target holds the
+ * agent's id. A nonexistent agent yields an EMPTY LIST, not an error: "no
+ * schedules" is the useful answer for the operational surface either way.
+ * The org filter is contract parity, not authorization: both editions
+ * must answer an org-scoped request identically.
  */
-async function getByAgent(
+async function listByAgent(
   deps: ScheduleControllerDeps,
-  req: GetSchedulesByAgentRequest,
+  req: ListSchedulesByAgentRequest,
   ctx: HandlerContext,
 ): Promise<ScheduleList> {
-  type ByAgentInput = typeof ScheduleQueryController.method.getByAgent.input;
+  type ByAgentInput = typeof ScheduleQueryController.method.listByAgent.input;
   const reqCtx = new RequestContext(
-    ScheduleQueryController.method.getByAgent.input,
+    ScheduleQueryController.method.listByAgent.input,
     req,
     callerIdentityOf(ctx),
     kindOf(ctx),
@@ -582,7 +587,7 @@ async function getByAgent(
   await newPipeline<ByAgentInput>("schedule-get-by-agent", deps.logger)
     .addStep(
       newAuthorizeStep(
-        ScheduleQueryController.method.getByAgent,
+        ScheduleQueryController.method.listByAgent,
         deps.authorizer,
       ),
     )
@@ -604,72 +609,39 @@ async function getByAgent(
 function newLoadSchedulesByAgentStep(
   store: Store,
   listReadScope: ListReadScope | undefined,
-): PipelineStep<typeof ScheduleQueryController.method.getByAgent.input> {
+): PipelineStep<typeof ScheduleQueryController.method.listByAgent.input> {
   return {
     name: "LoadSchedulesByAgent",
     async execute(
       ctx: RequestContext<
-        typeof ScheduleQueryController.method.getByAgent.input
+        typeof ScheduleQueryController.method.listByAgent.input
       >,
     ): Promise<void> {
       const req = ctx.input;
 
-      // A schedule's agent_ref holds its agent's id, so a schedule of an
-      // agent since deleted never lists under a new agent of the same name.
-      if (req.agentId === "") {
-        ctx.set(
-          SCHEDULE_LIST_KEY,
-          create(ScheduleListSchema, { totalCount: 0, items: [] }),
-        );
-        return;
-      }
-
-      let resources: Uint8Array[];
-      try {
-        resources = await store.listResources(ApiResourceKind.schedule);
-      } catch (error) {
-        throw internalError(error, "failed to list schedules");
-      }
-
-      const decoded: Schedule[] = [];
-      for (const data of resources) {
-        try {
-          decoded.push(fromBinary(ScheduleSchema, data));
-        } catch {
-          continue;
-        }
-      }
-      // The org/agent filters are contract parity in both editions and run
-      // FIRST; the scope narrows the agent's schedules last (the scope is
-      // the last per-row predicate).
-      const ofAgent = decoded.filter((schedule) => {
-        const ref =
-          schedule.spec?.target.case === "agent"
-            ? schedule.spec.target.value.agentRef
-            : undefined;
-        if ((ref?.id ?? "") !== req.agentId) {
-          return false;
-        }
-        // Org scope: a multi-org caller asking for one org's schedules
-        // must not see another org's schedules of the same agent.
-        // (Schedules are same-org by invariant, so today this only
-        // excludes rows when the requested org differs from the agent's —
-        // kept anyway for contract parity with the sibling RPCs.)
-        return req.org === "" || (schedule.metadata?.org ?? "") === req.org;
-      });
-      const schedules = await restrictListByReadScope(
-        listReadScope,
-        ctx.callerIdentity,
-        ApiResourceKind.schedule,
-        ofAgent,
-        "",
-      );
-
+      // A schedule's agent_ref holds its agent's id (the index's `agent`
+      // key), so a schedule of an agent since deleted never lists under a
+      // new agent of the same name.
+      //
+      // Org scope: a multi-org caller asking for one org's schedules must
+      // not see another org's schedules of the same agent. (Schedules are
+      // same-org by invariant, so today this only excludes rows when the
+      // requested org differs from the agent's — kept anyway for contract
+      // parity with the sibling RPCs.) Both filters are indexed
+      // predicates; the scope narrows the agent's schedules last (the
+      // scope is the last per-row predicate).
       ctx.set(
         SCHEDULE_LIST_KEY,
-        create(ScheduleListSchema, {
-          totalCount: schedules.length,
-          items: schedules,
+        await readSchedulePage(store, listReadScope, ctx.callerIdentity, req, {
+          query: {
+            org: req.org,
+            anyKey: [{ name: "agent", value: req.agentId }],
+          },
+          fingerprint: {
+            lane: "schedule.listByAgent",
+            agentId: req.agentId,
+            org: req.org,
+          },
         }),
       );
     },
@@ -677,8 +649,8 @@ function newLoadSchedulesByAgentStep(
 }
 
 /**
- * List — schedules filtered by organization and optional labels (AND
- * semantics), sorted by created_at descending, newest first (list.go).
+ * List — one page of the schedules of an organization, filtered by
+ * optional labels (AND semantics), newest first.
  */
 async function list(
   deps: ScheduleControllerDeps,
@@ -721,53 +693,60 @@ function newListByOrgAndLabelsStep(
       ctx: RequestContext<typeof ScheduleQueryController.method.list.input>,
     ): Promise<void> {
       const req = ctx.input;
-
-      let resources: Uint8Array[];
-      try {
-        resources = await store.listResources(ApiResourceKind.schedule);
-      } catch (error) {
-        throw internalError(error, "failed to list schedules");
-      }
-
-      const decoded: Schedule[] = [];
-      for (const data of resources) {
-        try {
-          decoded.push(fromBinary(ScheduleSchema, data));
-        } catch {
-          continue;
-        }
-      }
-      // The org and label filters run FIRST, in both editions; the scope
-      // narrows the org's rows last (the scope is the last per-row
-      // predicate).
-      const schedules = await restrictListByReadScope(
-        listReadScope,
-        ctx.callerIdentity,
-        ApiResourceKind.schedule,
-        decoded.filter(
-          (schedule) =>
-            (schedule.metadata?.org ?? "") === req.org &&
-            matchesAllLabels(schedule.metadata?.labels ?? {}, req.labels),
-        ),
-        "",
-      );
-
-      schedules.sort((a, b) =>
-        compareCreatedAtDesc(
-          a.status?.audit?.specAudit?.createdAt,
-          b.status?.audit?.specAudit?.createdAt,
-        ),
-      );
-
+      // The org is an indexed predicate and the labels a per-row filter,
+      // in both editions; the scope narrows the org's rows last (the scope
+      // is the last per-row predicate).
       ctx.set(
         SCHEDULE_LIST_KEY,
-        create(ScheduleListSchema, {
-          totalCount: schedules.length,
-          items: schedules,
+        await readSchedulePage(store, listReadScope, ctx.callerIdentity, req, {
+          query: { org: req.org },
+          keep: (schedule) =>
+            matchesAllLabels(schedule.metadata?.labels ?? {}, req.labels),
+          fingerprint: {
+            lane: "schedule.list",
+            org: req.org,
+            labels: sortedLabels(req.labels),
+          },
         }),
       );
     },
   };
+}
+
+/** The two schedule lanes' shared read: one page, the scope last, as a ScheduleList. */
+async function readSchedulePage(
+  store: Store,
+  listReadScope: ListReadScope | undefined,
+  caller: CallerIdentity,
+  request: ListPageRequest,
+  lane: {
+    readonly query: ListIndexQuery<"agent">;
+    readonly keep?: (schedule: Schedule) => boolean;
+    readonly fingerprint: Readonly<Record<string, unknown>>;
+  },
+): Promise<ScheduleList> {
+  const page = await readListPage({
+    store,
+    declaration: scheduleListIndex,
+    query: lane.query,
+    request,
+    fingerprint: listPageFingerprint(lane.fingerprint),
+    decode: decodeOrSkip(ScheduleSchema),
+    ...(lane.keep === undefined ? {} : { keep: lane.keep }),
+    scope: (schedules) =>
+      restrictListByReadScope(
+        listReadScope,
+        caller,
+        ApiResourceKind.schedule,
+        schedules,
+        "",
+      ),
+    failure: "failed to list schedules",
+  });
+  return create(ScheduleListSchema, {
+    entries: page.entries,
+    nextPageToken: page.nextPageToken,
+  });
 }
 
 /** ListFires — the fire-ledger surface (list_runs.go:44-61). */

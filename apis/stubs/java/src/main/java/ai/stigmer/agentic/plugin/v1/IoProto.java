@@ -91,6 +91,16 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_plugin_v1_ListPluginVersionsResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_plugin_v1_ListPluginsRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_plugin_v1_ListPluginsRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_plugin_v1_PluginList_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_plugin_v1_PluginList_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -101,7 +111,8 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n%ai/stigmer/agentic/plugin/v1/io.proto\022" +
-      "\034ai.stigmer.agentic.plugin.v1\032)ai/stigme" +
+      "\034ai.stigmer.agentic.plugin.v1\032&ai/stigme" +
+      "r/agentic/plugin/v1/api.proto\032)ai/stigme" +
       "r/commons/apiresource/enum.proto\032+ai/sti" +
       "gmer/commons/apiresource/status.proto\032\033b" +
       "uf/validate/validate.proto\032\037google/proto" +
@@ -137,31 +148,38 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "PluginToolR\005tools\"d\n\nPluginTool\022\022\n\004name\030" +
       "\001 \001(\tR\004name\022 \n\013description\030\002 \001(\tR\013descri" +
       "ption\022 \n\013destructive\030\003 \001(\010R\013destructive\"" +
-      "\213\001\n\027ListPluginVersionsInput\022\030\n\003org\030\001 \001(\t" +
+      "\236\001\n\027ListPluginVersionsInput\022\030\n\003org\030\001 \001(\t" +
       "B\006\272H\003\310\001\001R\003org\022\032\n\004slug\030\002 \001(\tB\006\272H\003\310\001\001R\004slu" +
-      "g\022\035\n\npage_token\030\003 \001(\tR\tpageToken\022\033\n\tpage" +
-      "_size\030\004 \001(\005R\010pageSize\"\266\002\n\022PluginVersionE" +
-      "ntry\022\026\n\006digest\030\001 \001(\tR\006digest\0227\n\tpushed_a" +
-      "t\030\002 \001(\0132\032.google.protobuf.TimestampR\010pus" +
-      "hedAt\022R\n\tpushed_by\030\003 \001(\01325.ai.stigmer.co" +
-      "mmons.apiresource.ApiResourceAuditActorR" +
-      "\010pushedBy\022\020\n\003tag\030\004 \001(\tR\003tag\022\035\n\nis_curren" +
-      "t\030\005 \001(\010R\tisCurrent\022\030\n\007message\030\006 \001(\tR\007mes" +
-      "sage\0220\n\024artifact_storage_key\030\007 \001(\tR\022arti" +
-      "factStorageKey\"\263\001\n\032ListPluginVersionsRes" +
-      "ponse\022L\n\010versions\030\001 \003(\01320.ai.stigmer.age" +
-      "ntic.plugin.v1.PluginVersionEntryR\010versi" +
-      "ons\022&\n\017next_page_token\030\002 \001(\tR\rnextPageTo" +
-      "ken\022\037\n\013total_count\030\003 \001(\005R\ntotalCountB\236\001B" +
-      "\007IoProtoP\001\242\002\004ASAP\252\002\034Ai.Stigmer.Agentic.P" +
-      "lugin.V1\312\002\034Ai\\Stigmer\\Agentic\\Plugin\\V1\342" +
-      "\002(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetada" +
-      "ta\352\002 Ai::Stigmer::Agentic::Plugin::V1b\006p" +
-      "roto3"
+      "g\022\'\n\npage_token\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageTok" +
+      "en\022$\n\tpage_size\030\004 \001(\005B\007\272H\004\032\002(\000R\010pageSize" +
+      "\"\266\002\n\022PluginVersionEntry\022\026\n\006digest\030\001 \001(\tR" +
+      "\006digest\0227\n\tpushed_at\030\002 \001(\0132\032.google.prot" +
+      "obuf.TimestampR\010pushedAt\022R\n\tpushed_by\030\003 " +
+      "\001(\01325.ai.stigmer.commons.apiresource.Api" +
+      "ResourceAuditActorR\010pushedBy\022\020\n\003tag\030\004 \001(" +
+      "\tR\003tag\022\035\n\nis_current\030\005 \001(\010R\tisCurrent\022\030\n" +
+      "\007message\030\006 \001(\tR\007message\0220\n\024artifact_stor" +
+      "age_key\030\007 \001(\tR\022artifactStorageKey\"\243\001\n\032Li" +
+      "stPluginVersionsResponse\022J\n\007entries\030\001 \003(" +
+      "\01320.ai.stigmer.agentic.plugin.v1.PluginV" +
+      "ersionEntryR\007entries\022&\n\017next_page_token\030" +
+      "\002 \001(\tR\rnextPageTokenJ\004\010\003\020\004R\013total_count\"" +
+      "~\n\022ListPluginsRequest\022\031\n\003org\030\001 \001(\tB\007\272H\004r" +
+      "\002\020\001R\003org\022$\n\tpage_size\030\002 \001(\005B\007\272H\004\032\002(\000R\010pa" +
+      "geSize\022\'\n\npage_token\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpa" +
+      "geToken\"t\n\nPluginList\022>\n\007entries\030\001 \003(\0132$" +
+      ".ai.stigmer.agentic.plugin.v1.PluginR\007en" +
+      "tries\022&\n\017next_page_token\030\002 \001(\tR\rnextPage" +
+      "TokenB\236\001B\007IoProtoP\001\242\002\004ASAP\252\002\034Ai.Stigmer." +
+      "Agentic.Plugin.V1\312\002\034Ai\\Stigmer\\Agentic\\P" +
+      "lugin\\V1\342\002(Ai\\Stigmer\\Agentic\\Plugin\\V1\\" +
+      "GPBMetadata\352\002 Ai::Stigmer::Agentic::Plug" +
+      "in::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
+          ai.stigmer.agentic.plugin.v1.ApiProto.getDescriptor(),
           ai.stigmer.commons.apiresource.EnumProto.getDescriptor(),
           ai.stigmer.commons.apiresource.StatusProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
@@ -244,8 +262,21 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_plugin_v1_ListPluginVersionsResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_plugin_v1_ListPluginVersionsResponse_descriptor,
-        new java.lang.String[] { "Versions", "NextPageToken", "TotalCount", });
+        new java.lang.String[] { "Entries", "NextPageToken", });
+    internal_static_ai_stigmer_agentic_plugin_v1_ListPluginsRequest_descriptor =
+      getDescriptor().getMessageType(13);
+    internal_static_ai_stigmer_agentic_plugin_v1_ListPluginsRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_plugin_v1_ListPluginsRequest_descriptor,
+        new java.lang.String[] { "Org", "PageSize", "PageToken", });
+    internal_static_ai_stigmer_agentic_plugin_v1_PluginList_descriptor =
+      getDescriptor().getMessageType(14);
+    internal_static_ai_stigmer_agentic_plugin_v1_PluginList_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_plugin_v1_PluginList_descriptor,
+        new java.lang.String[] { "Entries", "NextPageToken", });
     descriptor.resolveAllFeaturesImmutable();
+    ai.stigmer.agentic.plugin.v1.ApiProto.getDescriptor();
     ai.stigmer.commons.apiresource.EnumProto.getDescriptor();
     ai.stigmer.commons.apiresource.StatusProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

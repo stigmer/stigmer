@@ -67,7 +67,7 @@ vi.mock("@stigmer/react", () => {
     ),
   });
   const kind = {
-    list: async () => ({ items: [] }),
+    list: async () => ({ entries: [], nextPageToken: "" }),
     delete: async () => undefined,
   };
   return {
@@ -98,6 +98,7 @@ vi.mock("@stigmer/react", () => {
     ScheduleRowActions: () => null,
     createScheduleColumns: () => [],
     createScheduleListFn: () => kind.list,
+    createLibraryListFn: () => kind.list,
     useStigmer: () => ({
       agent: kind,
       skill: kind,

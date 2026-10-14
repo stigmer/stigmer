@@ -18,7 +18,9 @@ import {
 import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 
-import type { GuardedRead } from "@stigmer/server";
+import type { GuardedRead, ListIndexCursor, ListIndexRow } from "@stigmer/server";
+
+import { pageNewestFirst } from "../../../__test-utils__/in-memory-keyset.js";
 
 import type { TeamInsertOutcome, TeamStore } from "../store.js";
 
@@ -94,14 +96,28 @@ export class InMemoryTeamStore implements TeamStore {
     );
   }
 
-  listByOrg(org: string): Promise<ReadonlyArray<Team>> {
-    return Promise.resolve(
-      [...this.order]
-        .reverse()
-        .map((id) => this.rows.get(id))
-        .filter((team): team is Team => team?.metadata?.org === org)
-        .map((team) => clone(TeamSchema, team)),
-    );
+  pageByOrg(
+    org: string,
+    after: ListIndexCursor | undefined,
+    limit: number | undefined,
+  ): Promise<ReadonlyArray<ListIndexRow>> {
+    const entries = [...this.rows.values()]
+      .filter((team) => team.metadata?.org === org)
+      .map((team) => ({
+        id: team.metadata?.id ?? "",
+        data: toBinary(TeamSchema, team),
+        createdAt: team.status?.audit?.specAudit?.createdAt,
+      }));
+    return Promise.resolve(pageNewestFirst(entries, after, limit));
+  }
+
+  /** The organization's teams, newest first: the suites' read of what a list would hold. */
+  inOrg(org: string): ReadonlyArray<Team> {
+    return [...this.order]
+      .reverse()
+      .map((id) => this.rows.get(id))
+      .filter((team): team is Team => team?.metadata?.org === org)
+      .map((team) => clone(TeamSchema, team));
   }
 
   findIdsByOrg(org: string): Promise<ReadonlyArray<string>> {

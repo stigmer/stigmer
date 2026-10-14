@@ -42,9 +42,9 @@ describe("AgentDetailView's Quality tab", () => {
           evaluator: { getByAgent, create: vi.fn(), update: vi.fn() },
           score: {
             getAgentQualityReport: vi.fn(async () => emptyReport()),
-            listFlaggedByAgent: vi.fn(async () => ({ totalCount: 0, items: [], nextPageToken: "" })),
+            listFlaggedByAgent: vi.fn(async () => ({ entries: [], nextPageToken: "" })),
           },
-          agenteval: { listByAgent: vi.fn(async () => ({ totalCount: 0, items: [] })) },
+          agenteval: { listByAgent: vi.fn(async () => ({ entries: [], nextPageToken: "" })) },
           plugin: { getByReference: vi.fn(async () => undefined) },
           platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
           iamPolicy: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
@@ -79,14 +79,11 @@ describe("AgentDetailView's Quality tab", () => {
           },
           score: {
             getAgentQualityReport: vi.fn(async () => qualityReport()),
-            listFlaggedByAgent: vi.fn(async () => ({
-              totalCount: 1,
-              items: [flaggedScore("s1", "judge", "run_judged", ["task"])],
-              nextPageToken: "",
-            })),
+            listFlaggedByAgent: vi.fn(async () => ({ entries: [flaggedScore("s1", "judge", "run_judged", ["task"])],
+              nextPageToken: "" })),
           },
           agenteval: {
-            listByAgent: vi.fn(async () => ({ totalCount: 2, items: [newer, linked] })),
+            listByAgent: vi.fn(async () => ({ entries: [newer, linked], nextPageToken: "" })),
             get: vi.fn(async (id: string) => (id === "aev_linked" ? linked : newer)),
           },
           plugin: { getByReference: vi.fn(async () => undefined) },

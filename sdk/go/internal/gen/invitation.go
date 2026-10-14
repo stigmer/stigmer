@@ -4,12 +4,14 @@ package gen
 
 import (
 	"context"
+	"iter"
 	"time"
 
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	invitationv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/invitation/v1"
 	iamv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -50,9 +52,38 @@ func (i *InvitationClient) Get(ctx context.Context, id string) (*invitationv1.In
 	return resp, wrapErr(err)
 }
 
-func (i *InvitationClient) ListByOrg(ctx context.Context, input *invitationv1.ListInvitationsByOrgInput) (*invitationv1.Invitations, error) {
-	resp, err := i.query.ListByOrg(ctx, input)
+func (i *InvitationClient) List(ctx context.Context, input *invitationv1.ListInvitationsInput) (*invitationv1.Invitations, error) {
+	resp, err := i.query.List(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListAll returns every entry of List, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (i *InvitationClient) ListAll(ctx context.Context, input *invitationv1.ListInvitationsInput) iter.Seq2[*invitationv1.Invitation, error] {
+	return func(yield func(*invitationv1.Invitation, error) bool) {
+		req := &invitationv1.ListInvitationsInput{}
+		if input != nil {
+			req = proto.Clone(input).(*invitationv1.ListInvitationsInput)
+		}
+		for {
+			page, err := i.List(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 func (i *InvitationClient) GetByToken(ctx context.Context, input *invitationv1.InvitationTokenInput) (*invitationv1.InvitationPreview, error) {

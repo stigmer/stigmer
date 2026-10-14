@@ -150,10 +150,6 @@ describe.each(
       await opened.close();
     });
 
-    it("refuses enumeration — the cloud's posture; `find` would otherwise hand every member every organization", () => {
-      expect(directory().refusesEnumeration).toBe(true);
-    });
-
     it("the internal class — the server acting as itself — is ALL_ORGANIZATIONS, the in-process authorization skip; no account is even asked for", async () => {
       let accountReads = 0;
       const dir = newBuiltInOrganizationDirectory({

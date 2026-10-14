@@ -229,10 +229,9 @@ export function ConnectWhatsAppChannel() {
 
   const previewFixtures = useMemo(
     () => [
-      connectFixture(AgentChannelQueryController, "getByAgent", () =>
+      connectFixture(AgentChannelQueryController, "listByAgent", () =>
         create(AgentChannelListSchema, {
-          totalCount: currentChannelsRef.current.length,
-          items: [...currentChannelsRef.current],
+          entries: [...currentChannelsRef.current],
         }),
       ),
       // The dialog's pre-install advisory reads the org-wide list; empty
@@ -243,7 +242,7 @@ export function ConnectWhatsAppChannel() {
       // The org's registered Meta app, present in EVERY step: the dialog
       // preselects it as the sole serving app, and the installed card
       // resolves its serving-app name from this list.
-      connectFixture(ChannelAppQueryController, "listByOrg", () =>
+      connectFixture(ChannelAppQueryController, "list", () =>
         create(ChannelAppsSchema, { entries: [whatsappApp] }),
       ),
       // The panel gates its connect affordance on the caller's real

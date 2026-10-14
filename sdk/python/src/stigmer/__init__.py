@@ -62,9 +62,6 @@ from ._skill import MAX_INLINE_ARTIFACT_BYTES, RoutedSkillClient
 
 from ._gen._types import (
     DeleteResourceInput,
-    ListParams,
-    ListResult,
-    Page,
     ResourceRef,
 )
 
@@ -146,9 +143,6 @@ __all__ = [
     "WorkspaceEntryInput",
     "WorkspaceSourceInput",
     # Shared types
-    "ListParams",
-    "ListResult",
-    "Page",
     "ResourceRef",
     # Errors
     "ErrorCode",

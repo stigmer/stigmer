@@ -39,7 +39,7 @@ interface SearchArgs {
   readonly query?: string;
   readonly org?: string;
   readonly pageSize?: number;
-  readonly pageNum?: number;
+  readonly pageToken?: string;
 }
 
 /** Register the search tool; returns the registered tool names. */
@@ -50,7 +50,8 @@ export function registerSearchTools(server: McpServer, target: BackendTarget): s
       description:
         "Search and list Stigmer resources (agents, skills). " +
         "Set 'kinds' to filter by resource type. Set 'query' for full-text search. " +
-        "Set 'org' to scope to an organization. Omit 'query' to list all accessible resources.",
+        "Set 'org' to scope to an organization. Omit 'query' to list all accessible resources. " +
+        "A result carrying next_page_token has more: pass it as 'page_token' to continue.",
       inputSchema: {
         kinds: z
           .array(z.string())
@@ -66,8 +67,12 @@ export function registerSearchTools(server: McpServer, target: BackendTarget): s
           .string()
           .optional()
           .describe("Organization slug to scope the search. Empty searches all accessible orgs."),
-        page_size: z.number().int().optional().describe("Results per page (default 20, max 100)."),
-        page_num: z.number().int().optional().describe("Page number (1-indexed, default 1)."),
+        page_size: z.number().int().min(0).optional().describe("Results per page (default 50, max 100)."),
+        page_token: z
+          .string()
+          .max(1024)
+          .optional()
+          .describe("The previous result's next_page_token, to continue the same search."),
       },
     },
     (args, extra) =>
@@ -77,7 +82,7 @@ export function registerSearchTools(server: McpServer, target: BackendTarget): s
           query: args.query,
           org: args.org,
           pageSize: args.page_size,
-          pageNum: args.page_num,
+          pageToken: args.page_token,
         }),
       ),
   );
@@ -93,12 +98,9 @@ async function search(serverAddress: string, token: string, args: SearchArgs): P
       kinds,
       query: args.query ?? "",
       org: args.org ?? "",
+      pageSize: args.pageSize ?? 0,
+      pageToken: args.pageToken ?? "",
     };
-    // Attach pagination only when explicitly requested, letting the server apply
-    // its own defaults otherwise (Go does the same).
-    if ((args.pageSize ?? 0) > 0 || (args.pageNum ?? 0) > 0) {
-      req.page = { size: args.pageSize ?? 0, num: args.pageNum ?? 0 };
-    }
 
     let resp: SearchResponse;
     try {

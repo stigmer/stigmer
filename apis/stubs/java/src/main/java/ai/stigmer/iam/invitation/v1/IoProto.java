@@ -37,10 +37,10 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_iam_invitation_v1_Invitations_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_iam_invitation_v1_ListInvitationsByOrgInput_descriptor;
+    internal_static_ai_stigmer_iam_invitation_v1_ListInvitationsInput_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_iam_invitation_v1_ListInvitationsByOrgInput_fieldAccessorTable;
+      internal_static_ai_stigmer_iam_invitation_v1_ListInvitationsInput_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_iam_invitation_v1_InvitationTokenInput_descriptor;
   static final 
@@ -74,25 +74,25 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "R\005value\"y\n\013Invitations\022B\n\007entries\030\001 \003(\0132" +
       "(.ai.stigmer.iam.invitation.v1.Invitatio" +
       "nR\007entries\022&\n\017next_page_token\030\002 \001(\tR\rnex" +
-      "tPageToken\"\205\001\n\031ListInvitationsByOrgInput" +
-      "\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022$\n\tpage_size" +
-      "\030\002 \001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'\n\npage_token\030" +
-      "\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageToken\"5\n\024Invitation" +
-      "TokenInput\022\035\n\005token\030\001 \001(\tB\007\272H\004r\002\020\001R\005toke" +
-      "n\"6\n\025RedeemInvitationInput\022\035\n\005token\030\001 \001(" +
-      "\tB\007\272H\004r\002\020\001R\005token\"\256\002\n\021InvitationPreview\022" +
-      "\031\n\010org_name\030\001 \001(\tR\007orgName\022\031\n\010org_slug\030\002" +
-      " \001(\tR\007orgSlug\022 \n\014org_logo_url\030\003 \001(\tR\norg" +
-      "LogoUrl\022.\n\004role\030\004 \001(\0162\032.ai.stigmer.iam.v" +
-      "1.IamRoleR\004role\0229\n\nexpires_at\030\005 \001(\0132\032.go" +
-      "ogle.protobuf.TimestampR\texpiresAt\022\024\n\005la" +
-      "bel\030\006 \001(\tR\005label\022\031\n\010is_valid\030\007 \001(\010R\007isVa" +
-      "lid\022%\n\016invalid_reason\030\010 \001(\tR\rinvalidReas" +
-      "onB\236\001B\007IoProtoP\001\242\002\004ASII\252\002\034Ai.Stigmer.Iam" +
-      ".Invitation.V1\312\002\034Ai\\Stigmer\\Iam\\Invitati" +
-      "on\\V1\342\002(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPB" +
-      "Metadata\352\002 Ai::Stigmer::Iam::Invitation:" +
-      ":V1b\006proto3"
+      "tPageToken\"\200\001\n\024ListInvitationsInput\022\031\n\003o" +
+      "rg\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022$\n\tpage_size\030\002 \001(" +
+      "\005B\007\272H\004\032\002(\000R\010pageSize\022\'\n\npage_token\030\003 \001(\t" +
+      "B\010\272H\005r\003\030\200\010R\tpageToken\"5\n\024InvitationToken" +
+      "Input\022\035\n\005token\030\001 \001(\tB\007\272H\004r\002\020\001R\005token\"6\n\025" +
+      "RedeemInvitationInput\022\035\n\005token\030\001 \001(\tB\007\272H" +
+      "\004r\002\020\001R\005token\"\256\002\n\021InvitationPreview\022\031\n\010or" +
+      "g_name\030\001 \001(\tR\007orgName\022\031\n\010org_slug\030\002 \001(\tR" +
+      "\007orgSlug\022 \n\014org_logo_url\030\003 \001(\tR\norgLogoU" +
+      "rl\022.\n\004role\030\004 \001(\0162\032.ai.stigmer.iam.v1.Iam" +
+      "RoleR\004role\0229\n\nexpires_at\030\005 \001(\0132\032.google." +
+      "protobuf.TimestampR\texpiresAt\022\024\n\005label\030\006" +
+      " \001(\tR\005label\022\031\n\010is_valid\030\007 \001(\010R\007isValid\022%" +
+      "\n\016invalid_reason\030\010 \001(\tR\rinvalidReasonB\236\001" +
+      "B\007IoProtoP\001\242\002\004ASII\252\002\034Ai.Stigmer.Iam.Invi" +
+      "tation.V1\312\002\034Ai\\Stigmer\\Iam\\Invitation\\V1" +
+      "\342\002(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPBMetad" +
+      "ata\352\002 Ai::Stigmer::Iam::Invitation::V1b\006" +
+      "proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -114,11 +114,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_invitation_v1_Invitations_descriptor,
         new java.lang.String[] { "Entries", "NextPageToken", });
-    internal_static_ai_stigmer_iam_invitation_v1_ListInvitationsByOrgInput_descriptor =
+    internal_static_ai_stigmer_iam_invitation_v1_ListInvitationsInput_descriptor =
       getDescriptor().getMessageType(2);
-    internal_static_ai_stigmer_iam_invitation_v1_ListInvitationsByOrgInput_fieldAccessorTable = new
+    internal_static_ai_stigmer_iam_invitation_v1_ListInvitationsInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_iam_invitation_v1_ListInvitationsByOrgInput_descriptor,
+        internal_static_ai_stigmer_iam_invitation_v1_ListInvitationsInput_descriptor,
         new java.lang.String[] { "Org", "PageSize", "PageToken", });
     internal_static_ai_stigmer_iam_invitation_v1_InvitationTokenInput_descriptor =
       getDescriptor().getMessageType(3);

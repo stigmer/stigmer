@@ -19,13 +19,25 @@ message PlatformClientId {
 message PlatformClients {
   // Platform client entries.
   repeated PlatformClient entries = 1;
+
+  // Set when more entries may follow: pass it as page_token to continue.
+  // A page may be short, even empty, and still carry a token.
+  string next_page_token = 2;
 }
 
-// ListPlatformClientsByOrgInput specifies the organization whose platform
+// ListPlatformClientsInput specifies the organization whose platform
 // clients should be returned.
-message ListPlatformClientsByOrgInput {
+message ListPlatformClientsInput {
   // Organization slug to list platform clients for.
   string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 2 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
 }
 
 // PlatformClientCreateResponse wraps a PlatformClient resource with the

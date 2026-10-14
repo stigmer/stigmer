@@ -1,23 +1,29 @@
 "use client";
 
-import type { ListParams, ListResult } from "@stigmer/sdk";
+import { useMemo } from "react";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "../hooks.js";
+import { useCursorPages } from "../internal/useCursorPages.js";
+import { createLibraryListFn, type LibraryKind } from "./librarySource.js";
 
 export interface UseResourceListOptions {
-  /** Maximum results per page. @default 20 */
+  /** Maximum results per page, the first and each `loadMore`. @default 20 */
   readonly pageSize?: number;
-  /** Page number (1-indexed). @default 1 */
-  readonly page?: number;
   /** Text query to filter results. No debouncing is applied — the consumer controls timing. */
   readonly query?: string;
 }
 
 export interface UseResourceListReturn {
+  /** The first page, then every page loaded since. */
   readonly entries: readonly SearchResult[];
-  readonly totalCount: number;
-  readonly totalPages: number;
-  readonly currentPage: number;
+  /** `true` while the server holds entries beyond those loaded. */
+  readonly hasMore: boolean;
+  /** Load the next page. No-op while one is loading or when nothing follows. */
+  readonly loadMore: () => void;
+  /** `true` while a `loadMore` read is in flight. */
+  readonly isLoadingMore: boolean;
+  /** Error from the last failed `loadMore`, or `null`. */
+  readonly loadMoreError: Error | null;
   readonly isLoading: boolean;
   readonly isRefetching: boolean;
   readonly error: Error | null;
@@ -25,70 +31,49 @@ export interface UseResourceListReturn {
 }
 
 const DEFAULT_PAGE_SIZE = 20;
-const DEFAULT_PAGE = 1;
-
-interface ResourceListData {
-  entries: readonly SearchResult[];
-  totalCount: number;
-  totalPages: number;
-}
-
-const INITIAL_DATA: ResourceListData = {
-  entries: [],
-  totalCount: 0,
-  totalPages: 0,
-};
 
 /**
- * Internal hook that provides paginated resource listing over one
+ * Internal hook that provides token-paged resource listing over one
  * organization's rows (what the caller may read there; the server applies
- * the read scope, never the client).
+ * the read scope, never the client): the kind's `list` while `query` is
+ * empty, its search matches while `query` holds text, through the Library
+ * source (`createLibraryListFn`). Pages accumulate with `loadMore`; a list
+ * carries no total.
  *
  * Powers the public resource list hooks (`useAgentList`, `useSkillList`,
  * `usePluginList`) — not exported from the public API.
  *
  * Unlike {@link useResourceSearch} which manages its own debounced query
  * state for picker/type-ahead UX, this hook accepts all parameters
- * externally, giving the consumer full control over query timing and
- * pagination state.
+ * externally, giving the consumer full control over query timing.
  */
 export function useResourceList(
-  listFn: (params: ListParams) => Promise<ListResult>,
+  kind: LibraryKind,
   org: string | null,
   options?: UseResourceListOptions,
 ): UseResourceListReturn {
+  const stigmer = useStigmer();
   const pageSize = options?.pageSize ?? DEFAULT_PAGE_SIZE;
-  const page = options?.page ?? DEFAULT_PAGE;
-  const query = options?.query;
+  const query = options?.query ?? "";
+  const listFn = useMemo(() => createLibraryListFn(stigmer, kind), [stigmer, kind]);
 
-  const { data, isLoading, isRefetching, error, refetch } = useFetch<ResourceListData>(
+  const pages = useCursorPages<SearchResult>(
     org
-      ? async () => {
-          const params: ListParams = {
-            org,
-            query: query || undefined,
-            page: { num: page, size: pageSize },
-          };
-          const result = await listFn(params);
-          return {
-            entries: [...result.entries],
-            totalCount: result.totalCount,
-            totalPages: result.totalPages,
-          };
-        }
+      ? (pageToken) => listFn({ org, query: query || undefined, pageSize, pageToken })
       : null,
-    [listFn, org, query, page, pageSize],
-    INITIAL_DATA,
+    [listFn, org, query, pageSize],
+    (row) => row.id,
   );
 
   return {
-    entries: data.entries,
-    totalCount: data.totalCount,
-    totalPages: data.totalPages,
-    currentPage: page,
-    isLoading,
-    isRefetching,
-    error,
-    refetch,
+    entries: pages.items,
+    hasMore: pages.hasMore,
+    loadMore: pages.loadMore,
+    isLoadingMore: pages.isLoadingMore,
+    loadMoreError: pages.loadMoreError,
+    isLoading: pages.isLoading,
+    isRefetching: pages.isRefetching,
+    error: pages.error,
+    refetch: pages.refetch,
   };
 }

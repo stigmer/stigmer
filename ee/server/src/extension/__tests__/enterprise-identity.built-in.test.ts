@@ -292,7 +292,7 @@ describe("the Enterprise identity unit on open source's own authorization (compo
   }
 
   async function listedProviders(account: string): Promise<string[]> {
-    const answer = await createClient(IdentityProviderQueryController, as(account)).listByOrg({ org: ACME });
+    const answer = await createClient(IdentityProviderQueryController, as(account)).list({ org: ACME });
     return answer.entries.map((entry) => entry.metadata?.id ?? "");
   }
 
@@ -461,7 +461,7 @@ describe("the Enterprise identity unit on open source's own authorization (compo
       expect(
         (await refusalOf(outsider.getByReference({ org: ACME, slug: "acme-platform" }))).code,
       ).toBe(Code.PermissionDenied);
-      expect((await refusalOf(outsider.listByOrg({ org: ACME }))).code).toBe(Code.PermissionDenied);
+      expect((await refusalOf(outsider.list({ org: ACME }))).code).toBe(Code.PermissionDenied);
     });
 
     it("an admin who did not create it edits it; a member does not", async () => {
@@ -495,7 +495,7 @@ describe("the Enterprise identity unit on open source's own authorization (compo
       expect((await refusalOf(tokenless.getByReference({ org: ACME, slug: "acme-partner" }))).code).toBe(
         Code.Unauthenticated,
       );
-      expect((await refusalOf(tokenless.listByOrg({ org: ACME }))).code).toBe(Code.Unauthenticated);
+      expect((await refusalOf(tokenless.list({ org: ACME }))).code).toBe(Code.Unauthenticated);
       expect((await refusalOf(tokenless.get({ value: providerId }))).code).toBe(Code.Unauthenticated);
     });
 
@@ -520,14 +520,14 @@ describe("the Enterprise identity unit on open source's own authorization (compo
       expect(ownerLink.token).not.toBe("");
       const byId = await createClient(InvitationQueryController, as(ANA)).get({ value: ownerLink.id });
       expect(byId.status?.token).toBe(ownerLink.token);
-      const listed = await createClient(InvitationQueryController, as(ANA)).listByOrg({ org: ACME });
+      const listed = await createClient(InvitationQueryController, as(ANA)).list({ org: ACME });
       expect(listed.entries.map((entry) => entry.status?.token)).toContain(ownerLink.token);
     });
 
     it("a viewer cannot read an invitation by id, and a viewer's list carries none, so no token", async () => {
       const viewer = createClient(InvitationQueryController, as(VERA));
       expect((await refusalOf(viewer.get({ value: ownerLink.id }))).code).toBe(Code.PermissionDenied);
-      expect((await viewer.listByOrg({ org: ACME })).entries).toEqual([]);
+      expect((await viewer.list({ org: ACME })).entries).toEqual([]);
     });
 
     it("a viewer cannot revoke an invitation; an admin can", async () => {
@@ -662,7 +662,7 @@ describe("the Enterprise identity unit on open source's own authorization (compo
       await createOrganization("umbrella", OUTSIDER);
       const doomed = await createTeam("Doomed", "umbrella", OUTSIDER);
       await createClient(OrganizationCommandController, as(OUTSIDER)).delete({ value: "umbrella" });
-      expect(await teams.listByOrg("umbrella")).toEqual([]);
+      expect(teams.inOrg("umbrella")).toEqual([]);
       expect(rowsNaming("team", doomed)).toBe(0);
     });
   });

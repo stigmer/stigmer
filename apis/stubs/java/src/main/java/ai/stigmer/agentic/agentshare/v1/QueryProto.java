@@ -42,7 +42,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "o.proto\032\'ai/stigmer/commons/apiresource/" +
       "io.proto\0328ai/stigmer/commons/apiresource" +
       "/rpc_service_options.proto\032+ai/stigmer/c" +
-      "ommons/rpc/method_options.proto2\314\006\n\031Agen" +
+      "ommons/rpc/method_options.proto2\316\006\n\031Agen" +
       "tShareQueryController\022\225\001\n\003get\022..ai.stigm" +
       "er.agentic.agentshare.v1.AgentShareId\032,." +
       "ai.stigmer.agentic.agentshare.v1.AgentSh" +
@@ -50,25 +50,25 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "t agent share\022z\n\016getByReference\0224.ai.sti" +
       "gmer.commons.apiresource.ApiResourceRefe" +
       "rence\032,.ai.stigmer.agentic.agentshare.v1" +
-      ".AgentShare\"\004\320\270\030\001\022\204\001\n\ngetByAgent\022>.ai.st" +
-      "igmer.agentic.agentshare.v1.GetAgentShar" +
-      "esByAgentRequest\0320.ai.stigmer.agentic.ag" +
-      "entshare.v1.AgentShareList\"\004\320\270\030\001\022x\n\004list" +
-      "\0228.ai.stigmer.agentic.agentshare.v1.List" +
-      "AgentSharesRequest\0320.ai.stigmer.agentic." +
-      "agentshare.v1.AgentShareList\"\004\320\270\030\001\022\211\001\n\020g" +
-      "etSharedProfile\0229.ai.stigmer.agentic.age" +
-      "ntshare.v1.GetSharedProfileRequest\0324.ai." +
-      "stigmer.agentic.agentshare.v1.SharedAgen" +
-      "tProfile\"\004\310\270\030\001\022\207\001\n\031getSharedProfileForMe" +
-      "mber\022..ai.stigmer.agentic.agentshare.v1." +
-      "AgentShareId\0324.ai.stigmer.agentic.agents" +
-      "hare.v1.SharedAgentProfile\"\004\320\270\030\001\032\004\240\377+.B\261" +
-      "\001B\nQueryProtoP\001\242\002\004ASAA\252\002 Ai.Stigmer.Agen" +
-      "tic.Agentshare.V1\312\002 Ai\\Stigmer\\Agentic\\A" +
-      "gentshare\\V1\342\002,Ai\\Stigmer\\Agentic\\Agents" +
-      "hare\\V1\\GPBMetadata\352\002$Ai::Stigmer::Agent" +
-      "ic::Agentshare::V1b\006proto3"
+      ".AgentShare\"\004\320\270\030\001\022\206\001\n\013listByAgent\022?.ai.s" +
+      "tigmer.agentic.agentshare.v1.ListAgentSh" +
+      "aresByAgentRequest\0320.ai.stigmer.agentic." +
+      "agentshare.v1.AgentShareList\"\004\320\270\030\001\022x\n\004li" +
+      "st\0228.ai.stigmer.agentic.agentshare.v1.Li" +
+      "stAgentSharesRequest\0320.ai.stigmer.agenti" +
+      "c.agentshare.v1.AgentShareList\"\004\320\270\030\001\022\211\001\n" +
+      "\020getSharedProfile\0229.ai.stigmer.agentic.a" +
+      "gentshare.v1.GetSharedProfileRequest\0324.a" +
+      "i.stigmer.agentic.agentshare.v1.SharedAg" +
+      "entProfile\"\004\310\270\030\001\022\207\001\n\031getSharedProfileFor" +
+      "Member\022..ai.stigmer.agentic.agentshare.v" +
+      "1.AgentShareId\0324.ai.stigmer.agentic.agen" +
+      "tshare.v1.SharedAgentProfile\"\004\320\270\030\001\032\004\240\377+." +
+      "B\261\001B\nQueryProtoP\001\242\002\004ASAA\252\002 Ai.Stigmer.Ag" +
+      "entic.Agentshare.V1\312\002 Ai\\Stigmer\\Agentic" +
+      "\\Agentshare\\V1\342\002,Ai\\Stigmer\\Agentic\\Agen" +
+      "tshare\\V1\\GPBMetadata\352\002$Ai::Stigmer::Age" +
+      "ntic::Agentshare::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

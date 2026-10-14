@@ -11,7 +11,7 @@ import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInput
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { IdentityProviderSchema, type IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
-import { UpdateIdentityProviderInputSchema, ListIdentityProvidersByOrgInputSchema, IdentityProvidersSchema, type ListIdentityProvidersByOrgInput, type IdentityProviders } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
+import { UpdateIdentityProviderInputSchema, ListIdentityProvidersInputSchema, IdentityProvidersSchema, type ListIdentityProvidersInput, type IdentityProviders } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
 import { IdentityProviderQueryController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/query_pb";
 import { IdentityProviderSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/spec_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -72,10 +72,24 @@ export class IdentityProviderClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async listByOrg(input: ListIdentityProvidersByOrgInput): Promise<IdentityProviders> {
+  async list(input: ListIdentityProvidersInput): Promise<IdentityProviders> {
     try {
-      return await this.query.listByOrg(input);
+      return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `list`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listAll(input: MessageInitShape<typeof ListIdentityProvidersInputSchema>): AsyncGenerator<IdentityProviders["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.list(create(ListIdentityProvidersInputSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 }
 

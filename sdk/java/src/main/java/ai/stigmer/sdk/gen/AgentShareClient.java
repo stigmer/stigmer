@@ -7,8 +7,8 @@ import ai.stigmer.agentic.agentshare.v1.AgentShareCommandControllerGrpc;
 import ai.stigmer.agentic.agentshare.v1.AgentShareId;
 import ai.stigmer.agentic.agentshare.v1.AgentShareList;
 import ai.stigmer.agentic.agentshare.v1.AgentShareQueryControllerGrpc;
-import ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest;
 import ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest;
+import ai.stigmer.agentic.agentshare.v1.ListAgentSharesByAgentRequest;
 import ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest;
 import ai.stigmer.agentic.agentshare.v1.RotateShareLinkInput;
 import ai.stigmer.agentic.agentshare.v1.SharedAgentProfile;
@@ -73,16 +73,42 @@ public final class AgentShareClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public AgentShareList getByAgent(GetAgentSharesByAgentRequest input) {
+    public AgentShareList listByAgent(ListAgentSharesByAgentRequest input) {
         try {
-            return query.getByAgent(input);
+            return query.listByAgent(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code listByAgent}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<AgentShare> listByAgentAll(ListAgentSharesByAgentRequest input) {
+        return Pages.<AgentShareList, AgentShare>iterate(
+            input.getPageToken(),
+            token -> listByAgent(input.toBuilder().setPageToken(token).build()),
+            AgentShareList::getEntriesList,
+            AgentShareList::getNextPageToken);
     }
 
     public AgentShareList list(ListAgentSharesRequest input) {
         try {
             return query.list(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code list}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<AgentShare> listAll(ListAgentSharesRequest input) {
+        return Pages.<AgentShareList, AgentShare>iterate(
+            input.getPageToken(),
+            token -> list(input.toBuilder().setPageToken(token).build()),
+            AgentShareList::getEntriesList,
+            AgentShareList::getNextPageToken);
     }
 
     public SharedAgentProfile getSharedProfile(GetSharedProfileRequest input) {

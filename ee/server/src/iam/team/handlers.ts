@@ -1,7 +1,7 @@
 /**
  * The Team RPCs as extension services: TeamCommandController's create,
  * update and delete, TeamQueryController's get, getByReference and
- * listByOrg. Team is an enterprise-tier kind open source registers no
+ * list. Team is an enterprise-tier kind open source registers no
  * service for, so these are its only handlers; every one runs the
  * composition's unary chain (Authorize from the proto annotation, then
  * ValidateProto, then the lane's steps and its domain step).
@@ -25,6 +25,10 @@
  *                   organization's viewers and `get`'s denial to anyone else
  *                   (reference-miss.ts)
  *   get, delete     LoadTarget, then the answer (delete: the removal)
+ *   list            the organization's teams, newest first, a page at a
+ *                   time (the library's page loop over the store's keyset
+ *                   source); every viewer of the organization sees every
+ *                   team, so no per-row scope runs
  *
  * Create follows the lifecycle contract every create chain follows: the
  * row is written first, then the creation event (the organization link,
@@ -40,7 +44,7 @@
  * granted `member` on it through the IAM policy service, and the grant
  * gate (grant-gate.ts) is where that grant is checked against the team.
  */
-import { create } from "@bufbuild/protobuf";
+import { create, fromBinary } from "@bufbuild/protobuf";
 import type { ServiceImpl } from "@connectrpc/connect";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -60,6 +64,8 @@ import type {
 import {
   callerIdentityOf,
   internalError,
+  listPageFingerprint,
+  readPage,
   loadedTargetAsMethod,
   newAuthorizeResolvedTargetStep,
   newBuildNewStateStep,
@@ -231,17 +237,28 @@ export function teamQueries(deps: TeamLaneDeps): Queries {
           ],
         },
       ),
-    listByOrg: (input, ctx) =>
+    list: (input, ctx) =>
       runUnaryChain(
-        { chain: "team-list-by-org", step: "ListTeams" },
-        method.listByOrg,
+        { chain: "team-list", step: "ListTeams" },
+        method.list,
         input,
         ctx,
         deps,
-        async (reqCtx) =>
-          create(TeamsSchema, {
-            entries: [...(await deps.teams.listByOrg(reqCtx.input.org))],
-          }),
+        async (reqCtx) => {
+          const { org, pageSize, pageToken } = reqCtx.input;
+          const page = await readPage<Team>({
+            source: (after, limit) => deps.teams.pageByOrg(org, after, limit),
+            request: { pageSize, pageToken },
+            fingerprint: listPageFingerprint({ org }),
+            decode: (data) => fromBinary(TeamSchema, data),
+            scope: (rows) => Promise.resolve(rows),
+            failure: "failed to list teams",
+          });
+          return create(TeamsSchema, {
+            entries: page.entries,
+            nextPageToken: page.nextPageToken,
+          });
+        },
       ),
   };
 }

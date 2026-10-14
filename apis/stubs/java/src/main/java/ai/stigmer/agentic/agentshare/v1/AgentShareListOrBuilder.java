@@ -12,55 +12,67 @@ public interface AgentShareListOrBuilder extends
 
   /**
    * <pre>
-   * Total number of agent shares matching the query.
+   * Agent shares in the current page.
    * </pre>
    *
-   * <code>int32 total_count = 1 [json_name = "totalCount"];</code>
-   * @return The totalCount.
+   * <code>repeated .ai.stigmer.agentic.agentshare.v1.AgentShare entries = 2 [json_name = "entries"];</code>
    */
-  int getTotalCount();
+  java.util.List<ai.stigmer.agentic.agentshare.v1.AgentShare> 
+      getEntriesList();
+  /**
+   * <pre>
+   * Agent shares in the current page.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentshare.v1.AgentShare entries = 2 [json_name = "entries"];</code>
+   */
+  ai.stigmer.agentic.agentshare.v1.AgentShare getEntries(int index);
+  /**
+   * <pre>
+   * Agent shares in the current page.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentshare.v1.AgentShare entries = 2 [json_name = "entries"];</code>
+   */
+  int getEntriesCount();
+  /**
+   * <pre>
+   * Agent shares in the current page.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentshare.v1.AgentShare entries = 2 [json_name = "entries"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.agentshare.v1.AgentShareOrBuilder> 
+      getEntriesOrBuilderList();
+  /**
+   * <pre>
+   * Agent shares in the current page.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentshare.v1.AgentShare entries = 2 [json_name = "entries"];</code>
+   */
+  ai.stigmer.agentic.agentshare.v1.AgentShareOrBuilder getEntriesOrBuilder(
+      int index);
 
   /**
    * <pre>
-   * Agent shares in the current page.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentshare.v1.AgentShare items = 2 [json_name = "items"];</code>
+   * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+   * @return The nextPageToken.
    */
-  java.util.List<ai.stigmer.agentic.agentshare.v1.AgentShare> 
-      getItemsList();
+  java.lang.String getNextPageToken();
   /**
    * <pre>
-   * Agent shares in the current page.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentshare.v1.AgentShare items = 2 [json_name = "items"];</code>
+   * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+   * @return The bytes for nextPageToken.
    */
-  ai.stigmer.agentic.agentshare.v1.AgentShare getItems(int index);
-  /**
-   * <pre>
-   * Agent shares in the current page.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentshare.v1.AgentShare items = 2 [json_name = "items"];</code>
-   */
-  int getItemsCount();
-  /**
-   * <pre>
-   * Agent shares in the current page.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentshare.v1.AgentShare items = 2 [json_name = "items"];</code>
-   */
-  java.util.List<? extends ai.stigmer.agentic.agentshare.v1.AgentShareOrBuilder> 
-      getItemsOrBuilderList();
-  /**
-   * <pre>
-   * Agent shares in the current page.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentshare.v1.AgentShare items = 2 [json_name = "items"];</code>
-   */
-  ai.stigmer.agentic.agentshare.v1.AgentShareOrBuilder getItemsOrBuilder(
-      int index);
+  com.google.protobuf.ByteString
+      getNextPageTokenBytes();
 }

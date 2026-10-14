@@ -98,13 +98,8 @@ describe("fillRuleFor — one path per method, from the contract", () => {
       { path: undefined, notFilled: "organization service" },
     ],
     [
-      "the Organization service's own find is never filled",
-      OrganizationQueryController.method.find,
-      { path: undefined, notFilled: "organization service" },
-    ],
-    [
       "a method that takes no organization has no rule",
-      OrganizationQueryController.method.findMyOrganizations,
+      OrganizationQueryController.method.listMine,
       { path: undefined },
     ],
   ])("%s", (_name, method, expected) => {

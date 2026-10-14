@@ -82,10 +82,10 @@ function judge(state: ScoreState, opts: { passed?: boolean; reason?: string } = 
 function client(answers: Score[][]) {
   const listBySession = vi.fn();
   for (const scores of answers) {
-    listBySession.mockResolvedValueOnce(create(ScoreListSchema, { totalCount: scores.length, items: scores }));
+    listBySession.mockResolvedValueOnce(create(ScoreListSchema, { entries: scores, nextPageToken: "" }));
   }
   const last = answers[answers.length - 1] ?? [];
-  listBySession.mockResolvedValue(create(ScoreListSchema, { totalCount: last.length, items: last }));
+  listBySession.mockResolvedValue(create(ScoreListSchema, { entries: last, nextPageToken: "" }));
   return {
     score: { listBySession, create: vi.fn(), get: vi.fn(), update: vi.fn() },
     identityAccount: {

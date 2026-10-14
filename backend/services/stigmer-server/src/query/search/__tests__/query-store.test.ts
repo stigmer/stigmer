@@ -118,14 +118,14 @@ function criteria(overrides: {
   kinds?: ApiResourceKind[];
   query?: string;
   org?: string;
-  pageNumber?: number;
+  offset?: number;
   pageSize?: number;
 }): SearchCriteria {
   return SearchCriteria.create(
     overrides.kinds ?? [],
     overrides.query ?? "",
     overrides.org ?? "",
-    overrides.pageNumber ?? 1,
+    overrides.offset ?? 0,
     overrides.pageSize ?? 20,
   );
 }
@@ -323,7 +323,7 @@ describe("pagination through the store", () => {
       criteria({
         kinds: [ApiResourceKind.session],
         org: "acme",
-        pageNumber: 1,
+        offset: 0,
         pageSize: 2,
       }),
     );
@@ -331,13 +331,12 @@ describe("pagination through the store", () => {
       criteria({
         kinds: [ApiResourceKind.session],
         org: "acme",
-        pageNumber: 2,
+        offset: 2,
         pageSize: 2,
       }),
     );
 
     expect(first.totalCount).toBe(3);
-    expect(first.totalPages).toBe(2);
     expect(first.results).toHaveLength(2);
     expect(second.results).toHaveLength(1);
     const seen = new Set(

@@ -679,7 +679,7 @@ async function list(
   return requireListResult(reqCtx.get(EXECUTION_LIST_KEY));
 }
 
-/** ListBySession — list_by_session.go: the session's executions, whole, newest first. */
+/** ListBySession — list_by_session.go: one page of the session's executions, newest first. */
 async function listBySession(
   deps: AgentExecutionControllerDeps,
   req: ListRunsBySessionRequest,

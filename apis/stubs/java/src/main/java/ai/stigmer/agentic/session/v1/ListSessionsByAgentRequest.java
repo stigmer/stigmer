@@ -107,7 +107,8 @@ private static final long serialVersionUID = 0L;
   private int pageSize_ = 0;
   /**
    * <pre>
-   * The most sessions to return, at most 100; zero returns them all.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    * </pre>
    *
    * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
@@ -127,7 +128,7 @@ private static final long serialVersionUID = 0L;
    * other field must equal that request's, or the call is refused.
    * </pre>
    *
-   * <code>string page_token = 3 [json_name = "pageToken"];</code>
+   * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
    * @return The pageToken.
    */
   @java.lang.Override
@@ -149,7 +150,7 @@ private static final long serialVersionUID = 0L;
    * other field must equal that request's, or the call is refused.
    * </pre>
    *
-   * <code>string page_token = 3 [json_name = "pageToken"];</code>
+   * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
    * @return The bytes for pageToken.
    */
   @java.lang.Override
@@ -612,7 +613,8 @@ private static final long serialVersionUID = 0L;
     private int pageSize_ ;
     /**
      * <pre>
-     * The most sessions to return, at most 100; zero returns them all.
+     * The most entries to return: 0 asks for the default page of 50, and a
+     * size above 100 is read as 100.
      * </pre>
      *
      * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
@@ -624,7 +626,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The most sessions to return, at most 100; zero returns them all.
+     * The most entries to return: 0 asks for the default page of 50, and a
+     * size above 100 is read as 100.
      * </pre>
      *
      * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
@@ -640,7 +643,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The most sessions to return, at most 100; zero returns them all.
+     * The most entries to return: 0 asks for the default page of 50, and a
+     * size above 100 is read as 100.
      * </pre>
      *
      * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
@@ -660,7 +664,7 @@ private static final long serialVersionUID = 0L;
      * other field must equal that request's, or the call is refused.
      * </pre>
      *
-     * <code>string page_token = 3 [json_name = "pageToken"];</code>
+     * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
      * @return The pageToken.
      */
     public java.lang.String getPageToken() {
@@ -681,7 +685,7 @@ private static final long serialVersionUID = 0L;
      * other field must equal that request's, or the call is refused.
      * </pre>
      *
-     * <code>string page_token = 3 [json_name = "pageToken"];</code>
+     * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
      * @return The bytes for pageToken.
      */
     public com.google.protobuf.ByteString
@@ -703,7 +707,7 @@ private static final long serialVersionUID = 0L;
      * other field must equal that request's, or the call is refused.
      * </pre>
      *
-     * <code>string page_token = 3 [json_name = "pageToken"];</code>
+     * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
      * @param value The pageToken to set.
      * @return This builder for chaining.
      */
@@ -721,7 +725,7 @@ private static final long serialVersionUID = 0L;
      * other field must equal that request's, or the call is refused.
      * </pre>
      *
-     * <code>string page_token = 3 [json_name = "pageToken"];</code>
+     * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
     public Builder clearPageToken() {
@@ -736,7 +740,7 @@ private static final long serialVersionUID = 0L;
      * other field must equal that request's, or the call is refused.
      * </pre>
      *
-     * <code>string page_token = 3 [json_name = "pageToken"];</code>
+     * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for pageToken to set.
      * @return This builder for chaining.
      */

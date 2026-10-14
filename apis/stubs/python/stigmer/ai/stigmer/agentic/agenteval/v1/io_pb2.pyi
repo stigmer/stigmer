@@ -15,15 +15,19 @@ class AgentEvalId(_message.Message):
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
 class ListAgentEvalsByAgentRequest(_message.Message):
-    __slots__ = ("agent_id",)
+    __slots__ = ("agent_id", "page_size", "page_token")
     AGENT_ID_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     agent_id: str
-    def __init__(self, agent_id: _Optional[str] = ...) -> None: ...
+    page_size: int
+    page_token: str
+    def __init__(self, agent_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
 class AgentEvalList(_message.Message):
-    __slots__ = ("total_count", "items")
-    TOTAL_COUNT_FIELD_NUMBER: _ClassVar[int]
-    ITEMS_FIELD_NUMBER: _ClassVar[int]
-    total_count: int
-    items: _containers.RepeatedCompositeFieldContainer[_api_pb2.AgentEval]
-    def __init__(self, total_count: _Optional[int] = ..., items: _Optional[_Iterable[_Union[_api_pb2.AgentEval, _Mapping]]] = ...) -> None: ...
+    __slots__ = ("entries", "next_page_token")
+    ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.AgentEval]
+    next_page_token: str
+    def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.AgentEval, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...

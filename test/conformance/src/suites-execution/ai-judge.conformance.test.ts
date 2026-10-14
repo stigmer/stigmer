@@ -204,7 +204,7 @@ describe("AI grading", () => {
       await awaitRunHealth(clients, runId);
       await new Promise<void>((resolve) => setTimeout(resolve, 3_000));
       const scores = await clients.scoreQuery.listByRun({ runId });
-      expect(scores.items.map((score) => score.spec?.metric)).not.toContain(JUDGE);
+      expect(scores.entries.map((score) => score.spec?.metric)).not.toContain(JUDGE);
     }
   });
 });

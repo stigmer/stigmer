@@ -248,7 +248,7 @@ public final class ScoreQueryControllerGrpc {
 
     /**
      * <pre>
-     * List every score of a run.
+     * List the scores of a run, newest first.
      * </pre>
      */
     default void listByRun(ai.stigmer.agentic.score.v1.ListScoresByRunRequest request,
@@ -258,7 +258,7 @@ public final class ScoreQueryControllerGrpc {
 
     /**
      * <pre>
-     * List every score of every run in a session.
+     * List the scores of every run in a session, newest first.
      * </pre>
      */
     default void listBySession(ai.stigmer.agentic.score.v1.ListScoresBySessionRequest request,
@@ -340,7 +340,7 @@ public final class ScoreQueryControllerGrpc {
 
     /**
      * <pre>
-     * List every score of a run.
+     * List the scores of a run, newest first.
      * </pre>
      */
     public void listByRun(ai.stigmer.agentic.score.v1.ListScoresByRunRequest request,
@@ -351,7 +351,7 @@ public final class ScoreQueryControllerGrpc {
 
     /**
      * <pre>
-     * List every score of every run in a session.
+     * List the scores of every run in a session, newest first.
      * </pre>
      */
     public void listBySession(ai.stigmer.agentic.score.v1.ListScoresBySessionRequest request,
@@ -421,7 +421,7 @@ public final class ScoreQueryControllerGrpc {
 
     /**
      * <pre>
-     * List every score of a run.
+     * List the scores of a run, newest first.
      * </pre>
      */
     public ai.stigmer.agentic.score.v1.ScoreList listByRun(ai.stigmer.agentic.score.v1.ListScoresByRunRequest request) throws io.grpc.StatusException {
@@ -431,7 +431,7 @@ public final class ScoreQueryControllerGrpc {
 
     /**
      * <pre>
-     * List every score of every run in a session.
+     * List the scores of every run in a session, newest first.
      * </pre>
      */
     public ai.stigmer.agentic.score.v1.ScoreList listBySession(ai.stigmer.agentic.score.v1.ListScoresBySessionRequest request) throws io.grpc.StatusException {
@@ -498,7 +498,7 @@ public final class ScoreQueryControllerGrpc {
 
     /**
      * <pre>
-     * List every score of a run.
+     * List the scores of a run, newest first.
      * </pre>
      */
     public ai.stigmer.agentic.score.v1.ScoreList listByRun(ai.stigmer.agentic.score.v1.ListScoresByRunRequest request) {
@@ -508,7 +508,7 @@ public final class ScoreQueryControllerGrpc {
 
     /**
      * <pre>
-     * List every score of every run in a session.
+     * List the scores of every run in a session, newest first.
      * </pre>
      */
     public ai.stigmer.agentic.score.v1.ScoreList listBySession(ai.stigmer.agentic.score.v1.ListScoresBySessionRequest request) {
@@ -576,7 +576,7 @@ public final class ScoreQueryControllerGrpc {
 
     /**
      * <pre>
-     * List every score of a run.
+     * List the scores of a run, newest first.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.score.v1.ScoreList> listByRun(
@@ -587,7 +587,7 @@ public final class ScoreQueryControllerGrpc {
 
     /**
      * <pre>
-     * List every score of every run in a session.
+     * List the scores of every run in a session, newest first.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.score.v1.ScoreList> listBySession(

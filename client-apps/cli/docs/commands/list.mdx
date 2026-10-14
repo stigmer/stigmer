@@ -69,10 +69,14 @@ stigmer list agents
 stigmer list skills --output json | jq '.[].metadata.name'
 ```
 
-### Paginate through many resources
+### Read more than the default 50
+
+The CLI reads the server's pages for you, up to `--limit`; `--limit 0` reads
+every page:
 
 ```bash
-stigmer list agents --limit 100
+stigmer list agents --limit 200
+stigmer list agents --limit 0
 ```
 
 {/* AUTO_GLOBAL_FLAGS */}

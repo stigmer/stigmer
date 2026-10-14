@@ -29,8 +29,8 @@ const HASH_A = "a".repeat(64);
 const HASH_B = "b".repeat(64);
 
 const skillVersions = create(ListSkillVersionsResponseSchema, {
-  versions: [{ versionHash: HASH_A, tag: "stable", isCurrent: true }],
-  totalCount: 1,
+  entries: [{ versionHash: HASH_A, tag: "stable", isCurrent: true }],
+  nextPageToken: "v2",
 });
 
 let backend: Http2Server;

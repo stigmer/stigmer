@@ -64,11 +64,11 @@ describe("useFlaggedRuns", () => {
     return vi.fn(async (input: { pageToken: string }) => {
       switch (input.pageToken) {
         case "":
-          return { totalCount: 1, items: [flaggedScore("s1", "judge", "run_1", ["task"])], nextPageToken: "t1" };
+          return { entries: [flaggedScore("s1", "judge", "run_1", ["task"])], nextPageToken: "t1" };
         case "t1":
-          return { totalCount: 0, items: [], nextPageToken: "t2" };
+          return { entries: [], nextPageToken: "t2" };
         case "t2":
-          return { totalCount: 1, items: [flaggedScore("s2", "feedback", "run_2")], nextPageToken: "" };
+          return { entries: [flaggedScore("s2", "feedback", "run_2")], nextPageToken: "" };
         default:
           throw new Error(`unexpected token ${input.pageToken}`);
       }
@@ -101,7 +101,7 @@ describe("useFlaggedRuns", () => {
   it("keeps a failed further page as its own error, the first page still shown", async () => {
     const listFlaggedByAgent = vi.fn(async (input: { pageToken: string }) => {
       if (input.pageToken === "") {
-        return { totalCount: 1, items: [flaggedScore("s1", "judge", "run_1")], nextPageToken: "t1" };
+        return { entries: [flaggedScore("s1", "judge", "run_1")], nextPageToken: "t1" };
       }
       throw new Error("server unavailable");
     });
@@ -136,11 +136,8 @@ describe("useFlaggedRuns", () => {
   });
 
   it("reads nothing more when the list is complete", async () => {
-    const listFlaggedByAgent = vi.fn(async () => ({
-      totalCount: 1,
-      items: [flaggedScore("s1", "judge", "run_1")],
-      nextPageToken: "",
-    }));
+    const listFlaggedByAgent = vi.fn(async () => ({ entries: [flaggedScore("s1", "judge", "run_1")],
+      nextPageToken: "" }));
     const { result } = renderHook(() => useFlaggedRuns("agt_1", 30), {
       wrapper: orgWrapper({ score: { listFlaggedByAgent } }),
     });

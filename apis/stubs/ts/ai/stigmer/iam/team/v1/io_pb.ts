@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/team/v1/io.proto.
  */
 export const file_ai_stigmer_iam_team_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("Ch9haS9zdGlnbWVyL2lhbS90ZWFtL3YxL2lvLnByb3RvEhZhaS5zdGlnbWVyLmlhbS50ZWFtLnYxIjYKBVRlYW1zEi0KB2VudHJpZXMYASADKAsyHC5haS5zdGlnbWVyLmlhbS50ZWFtLnYxLlRlYW0iKwoTTGlzdFRlYW1zQnlPcmdJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAEiwQIKD1VwZGF0ZVRlYW1JbnB1dBI2CghyZXNvdXJjZRgBIAEoCzIcLmFpLnN0aWdtZXIuaWFtLnRlYW0udjEuVGVhbUIGukgD2AEDEjcKC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFza0IGukgDyAEBOrwBuki4ARq1AQoXdXBkYXRlX25hbWVzX2l0c190YXJnZXQSRHJlc291cmNlLm1ldGFkYXRhLmlkIGlzIHJlcXVpcmVkOiBhbiB1cGRhdGUgbmFtZXMgdGhlIHRlYW0gYnkgaXRzIGlkGlRoYXModGhpcy5yZXNvdXJjZSkgJiYgaGFzKHRoaXMucmVzb3VyY2UubWV0YWRhdGEpICYmIHRoaXMucmVzb3VyY2UubWV0YWRhdGEuaWQgIT0gJydiBnByb3RvMw", [file_ai_stigmer_iam_team_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
+  fileDesc("Ch9haS9zdGlnbWVyL2lhbS90ZWFtL3YxL2lvLnByb3RvEhZhaS5zdGlnbWVyLmlhbS50ZWFtLnYxIk8KBVRlYW1zEi0KB2VudHJpZXMYASADKAsyHC5haS5zdGlnbWVyLmlhbS50ZWFtLnYxLlRlYW0SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJImAKDkxpc3RUZWFtc0lucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQARIaCglwYWdlX3NpemUYAiABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgiwQIKD1VwZGF0ZVRlYW1JbnB1dBI2CghyZXNvdXJjZRgBIAEoCzIcLmFpLnN0aWdtZXIuaWFtLnRlYW0udjEuVGVhbUIGukgD2AEDEjcKC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFza0IGukgDyAEBOrwBuki4ARq1AQoXdXBkYXRlX25hbWVzX2l0c190YXJnZXQSRHJlc291cmNlLm1ldGFkYXRhLmlkIGlzIHJlcXVpcmVkOiBhbiB1cGRhdGUgbmFtZXMgdGhlIHRlYW0gYnkgaXRzIGlkGlRoYXModGhpcy5yZXNvdXJjZSkgJiYgaGFzKHRoaXMucmVzb3VyY2UubWV0YWRhdGEpICYmIHRoaXMucmVzb3VyY2UubWV0YWRhdGEuaWQgIT0gJydiBnByb3RvMw", [file_ai_stigmer_iam_team_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * Teams contains a list of team resources.
@@ -29,6 +29,14 @@ export type Teams = Message<"ai.stigmer.iam.team.v1.Teams"> & {
    * @generated from field: repeated ai.stigmer.iam.team.v1.Team entries = 1;
    */
   entries: Team[];
+
+  /**
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   *
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
 };
 
 /**
@@ -39,24 +47,40 @@ export const TeamsSchema: GenMessage<Teams> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_team_v1_io, 0);
 
 /**
- * ListTeamsByOrgInput names the organization whose teams are listed.
+ * ListTeamsInput names the organization whose teams are listed.
  *
- * @generated from message ai.stigmer.iam.team.v1.ListTeamsByOrgInput
+ * @generated from message ai.stigmer.iam.team.v1.ListTeamsInput
  */
-export type ListTeamsByOrgInput = Message<"ai.stigmer.iam.team.v1.ListTeamsByOrgInput"> & {
+export type ListTeamsInput = Message<"ai.stigmer.iam.team.v1.ListTeamsInput"> & {
   /**
    * Organization slug to list teams for.
    *
    * @generated from field: string org = 1;
    */
   org: string;
+
+  /**
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
+   *
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
 };
 
 /**
- * Describes the message ai.stigmer.iam.team.v1.ListTeamsByOrgInput.
- * Use `create(ListTeamsByOrgInputSchema)` to create a new message.
+ * Describes the message ai.stigmer.iam.team.v1.ListTeamsInput.
+ * Use `create(ListTeamsInputSchema)` to create a new message.
  */
-export const ListTeamsByOrgInputSchema: GenMessage<ListTeamsByOrgInput> = /*@__PURE__*/
+export const ListTeamsInputSchema: GenMessage<ListTeamsInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_team_v1_io, 1);
 
 /**

@@ -20,7 +20,9 @@ import {
   ConfirmDialog,
   toast,
   type WorkbenchColumnDef,
+  createLibraryListFn,
 } from "@stigmer/react";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 
 const VIEW_MODE_STORAGE_KEY = "stigmer:workbench:plugins:viewMode";
@@ -118,9 +120,10 @@ export default function PluginListPage() {
     [confirm, stigmer],
   );
 
+  // The organization's plugins, newest first, while the search box is
+  // empty; search matches once it holds text.
   const listFn = useMemo(
-    () => (params: Parameters<typeof stigmer.plugin.list>[0]) =>
-      stigmer.plugin.list(params),
+    () => createLibraryListFn(stigmer, ApiResourceKind.plugin),
     [stigmer],
   );
 

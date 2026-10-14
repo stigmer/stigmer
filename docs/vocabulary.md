@@ -586,9 +586,9 @@ outside it sees them.
   (`repeated string orgs`), `org_<attribute>` for something that describes one
   (`InvitationPreview.org_name`), `orgs` in a count (`max_orgs`), and `org` in a
   per-organization amount (`per_extra_org_micros`). RPCs and requests that
-  filter by one say `Org` (`listByOrg`, `getForOrg`). The kind itself, and the
-  messages and RPCs that return it, keep the full word (`Organization`,
-  `findMyOrganizations`), as `Agent` does.
+  filter by one say `Org` (`getForOrg`). The kind itself, and the messages that
+  return it, keep the full word (`Organization`, `ListMyOrganizationsInput`), as
+  `Agent` does.
 - **Identity**: a permanent id, `org_` and a ULID, minted when the Organization
   is made; every resource names its Organization by it in `metadata.org`. The
   slug is the name people type, unique across the server and changed only by

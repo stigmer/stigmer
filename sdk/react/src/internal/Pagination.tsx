@@ -1,12 +1,13 @@
 "use client";
 
 /**
- * Shared prev/next pagination control for paginated SDK tables.
+ * Shared previous/next pager for paginated SDK tables.
  *
- * Its consumer is `ScheduleFiresTable`. Deliberately
- * minimal — Previous / "Page N of M" / Next — because every paginated
- * surface in the SDK so far wants exactly this shape; page-number
- * jumping earns its complexity only when a consumer actually needs it.
+ * Lists page by token and carry no total, so the control says where the
+ * reader is ("Page 3") and whether a page follows. A view that pages a
+ * set it holds in memory knows its page count and passes it ("Page 3 of
+ * 7"). Its consumers are `ScheduleFiresTable` (by token) and the
+ * marketplace catalog (in memory).
  *
  * Internal (not barrel-exported): the public contract is each table
  * component, not this control.
@@ -16,12 +17,18 @@ import { cn } from "@stigmer/theme";
 
 /** Props for {@link Pagination}. */
 export interface PaginationProps {
-  /** Current page number, 1-indexed. */
-  readonly pageNum: number;
-  /** Total number of pages. Render the control only when > 1. */
-  readonly totalPages: number;
-  /** Called with the new page number when the user navigates. */
-  readonly onPageChange: (page: number) => void;
+  /** The shown page's number, 1-indexed. */
+  readonly pageNumber: number;
+  /** `true` when a page was shown before this one. */
+  readonly hasPrevious: boolean;
+  /** `true` when a page follows this one. */
+  readonly hasNext: boolean;
+  /** Show the page before. */
+  readonly onPrevious: () => void;
+  /** Show the next page. */
+  readonly onNext: () => void;
+  /** The number of pages, when the view knows it (a set held in memory). */
+  readonly pageCount?: number;
   /** Accessible label naming what is being paginated (e.g. "Run history pagination"). */
   readonly ariaLabel: string;
   /** Additional CSS classes for the root container. */
@@ -35,9 +42,12 @@ const buttonClasses = cn(
 );
 
 export function Pagination({
-  pageNum,
-  totalPages,
-  onPageChange,
+  pageNumber,
+  hasPrevious,
+  hasNext,
+  onPrevious,
+  onNext,
+  pageCount,
   ariaLabel,
   className,
 }: PaginationProps) {
@@ -49,19 +59,19 @@ export function Pagination({
     >
       <button
         type="button"
-        disabled={pageNum <= 1}
-        onClick={() => onPageChange(pageNum - 1)}
+        disabled={!hasPrevious}
+        onClick={onPrevious}
         className={buttonClasses}
       >
         Previous
       </button>
       <span className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
-        Page {pageNum} of {totalPages}
+        {pageCount === undefined ? `Page ${pageNumber}` : `Page ${pageNumber} of ${pageCount}`}
       </span>
       <button
         type="button"
-        disabled={pageNum >= totalPages}
-        onClick={() => onPageChange(pageNum + 1)}
+        disabled={!hasNext}
+        onClick={onNext}
         className={buttonClasses}
       >
         Next

@@ -3,13 +3,13 @@
 import { wrapError } from "./errors.js";
 import { stripUndefined, toTimestamp } from "./proto-utils.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
-import { EmptySchema, timestampDate } from "@bufbuild/protobuf/wkt";
+import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiKeySchema, type ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
-import { ApiKeyIdSchema, CreateServiceAccountKeyInputSchema, UpdateApiKeyInputSchema, ApiKeyHashSchema, ApiKeysSchema, ApiKeyAccountIdSchema, type CreateServiceAccountKeyInput, type ApiKeyHash, type ApiKeys } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
+import { ApiKeyIdSchema, CreateServiceAccountKeyInputSchema, UpdateApiKeyInputSchema, ApiKeyHashSchema, ListApiKeysInputSchema, ApiKeysSchema, ListApiKeysByAccountInputSchema, type CreateServiceAccountKeyInput, type ApiKeyHash, type ListApiKeysInput, type ApiKeys, type ListApiKeysByAccountInput } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
 import { ApiKeySpecSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/spec_pb";
 
@@ -59,16 +59,44 @@ export class ApiKeyClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async findAll(): Promise<ApiKeys> {
+  async list(input: ListApiKeysInput): Promise<ApiKeys> {
     try {
-      return await this.query.findAll(create(EmptySchema, {}));
+      return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async findByAccount(id: string): Promise<ApiKeys> {
+  /**
+   * Every entry of `list`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listAll(input: MessageInitShape<typeof ListApiKeysInputSchema>): AsyncGenerator<ApiKeys["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.list(create(ListApiKeysInputSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
+  }
+
+  async listByAccount(input: ListApiKeysByAccountInput): Promise<ApiKeys> {
     try {
-      return await this.query.findByAccount(create(ApiKeyAccountIdSchema, { value: id }));
+      return await this.query.listByAccount(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `listByAccount`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listByAccountAll(input: MessageInitShape<typeof ListApiKeysByAccountInputSchema>): AsyncGenerator<ApiKeys["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.listByAccount(create(ListApiKeysByAccountInputSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 }
 

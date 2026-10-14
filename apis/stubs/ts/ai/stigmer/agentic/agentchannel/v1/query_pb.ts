@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { AgentChannelSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_agentchannel_v1_api } from "./api_pb.js";
-import type { AgentChannelIdSchema, AgentChannelListSchema, GetAgentChannelsByAgentRequestSchema, ListAgentChannelsRequestSchema } from "./io_pb.js";
+import type { AgentChannelIdSchema, AgentChannelListSchema, ListAgentChannelsByAgentRequestSchema, ListAgentChannelsRequestSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_agentchannel_v1_io } from "./io_pb.js";
 import type { ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/agentchannel/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL3F1ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxMtcEChtBZ2VudENoYW5uZWxRdWVyeUNvbnRyb2xsZXISnwEKA2dldBIyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQWdlbnRDaGFubmVsSWQaMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkFnZW50Q2hhbm5lbCIywrgYLggBEC8iBXZhbHVlKiF1bmF1dGhvcml6ZWQgdG8gZ2V0IGFnZW50IGNoYW5uZWwSfgoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkFnZW50Q2hhbm5lbCIE0LgYARKMAQoKZ2V0QnlBZ2VudBJCLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuR2V0QWdlbnRDaGFubmVsc0J5QWdlbnRSZXF1ZXN0GjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5BZ2VudENoYW5uZWxMaXN0IgTQuBgBEoABCgRsaXN0EjwuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5MaXN0QWdlbnRDaGFubmVsc1JlcXVlc3QaNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkFnZW50Q2hhbm5lbExpc3QiBNC4GAEaBKD/Ky9iBnByb3RvMw", [file_ai_stigmer_agentic_agentchannel_v1_api, file_ai_stigmer_agentic_agentchannel_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL3F1ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxMtkEChtBZ2VudENoYW5uZWxRdWVyeUNvbnRyb2xsZXISnwEKA2dldBIyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQWdlbnRDaGFubmVsSWQaMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkFnZW50Q2hhbm5lbCIywrgYLggBEC8iBXZhbHVlKiF1bmF1dGhvcml6ZWQgdG8gZ2V0IGFnZW50IGNoYW5uZWwSfgoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkFnZW50Q2hhbm5lbCIE0LgYARKOAQoLbGlzdEJ5QWdlbnQSQy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkxpc3RBZ2VudENoYW5uZWxzQnlBZ2VudFJlcXVlc3QaNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkFnZW50Q2hhbm5lbExpc3QiBNC4GAESgAEKBGxpc3QSPC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkxpc3RBZ2VudENoYW5uZWxzUmVxdWVzdBo0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQWdlbnRDaGFubmVsTGlzdCIE0LgYARoEoP8rL2IGcHJvdG8z", [file_ai_stigmer_agentic_agentchannel_v1_api, file_ai_stigmer_agentic_agentchannel_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * AgentChannelQueryController handles read operations for agent channels.
@@ -46,17 +46,17 @@ export const AgentChannelQueryController: GenService<{
     output: typeof AgentChannelSchema;
   },
   /**
-   * Get all channels of a specific agent.
+   * List the channels of a specific agent, newest first.
    * Returns only channels the caller has access to.
    *
    * This is how the agent's integrations surface and CLI resolve an
    * agent's existing channels regardless of slug.
    *
-   * @generated from rpc ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController.getByAgent
+   * @generated from rpc ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController.listByAgent
    */
-  getByAgent: {
+  listByAgent: {
     methodKind: "unary";
-    input: typeof GetAgentChannelsByAgentRequestSchema;
+    input: typeof ListAgentChannelsByAgentRequestSchema;
     output: typeof AgentChannelListSchema;
   },
   /**

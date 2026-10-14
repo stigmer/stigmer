@@ -91,11 +91,11 @@ describe("OAuthApp conformance — CRUD & identity", () => {
     expect(byRef.spec?.clientSecret).toBe(OAUTHAPP_REDACTED_MARKER);
   });
 
-  it("[rpc:OAuthAppQueryController.listByOrg] listByOrg returns the org's apps, redacted", async () => {
+  it("[rpc:OAuthAppQueryController.list] list returns the org's apps, redacted", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createOAuthAppFixture(org);
 
-    const listed = await clients.oauthAppQuery.listByOrg({ org });
+    const listed = await clients.oauthAppQuery.list({ org });
 
     const match = listed.entries.find((app) => app.metadata?.id === created.metadata?.id);
     expect(match, "the created app appears in its org's list").toBeDefined();

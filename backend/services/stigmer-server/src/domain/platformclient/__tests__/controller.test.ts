@@ -2,7 +2,7 @@
  * Pins the PlatformClient chains over the OSS adapter on sqlite, through the
  * package's own interceptor chain (validation included):
  *   - create answers the secret once and a client whose stored hash never
- *     leaves: not on create, get, getByReference, listByOrg, update,
+ *     leaves: not on create, get, getByReference, list, update,
  *     rotateSecret or delete — while the ROW keeps the hash the mint needs;
  *   - update replaces the spec and keeps the credentials, addressed by id
  *     or by org-scoped slug;
@@ -19,7 +19,7 @@
  *     recorded, a missing vault is refused on either chain before anything
  *     is stored, and another organization's vault is refused with the
  *     rule's one sentence;
- *   - listByOrg answers the organization's clients, newest first.
+ *   - list answers the organization's clients, newest first.
  * Who may read a client is the enforcing lane's conformance suite's.
  */
 import {
@@ -186,7 +186,7 @@ describe("PlatformClient chains", () => {
         })
       ).spec?.clientSecretHash,
     ).toBe("");
-    const listed = await query.listByOrg({ org: "acme" });
+    const listed = await query.list({ org: "acme" });
     expect(listed.entries.map((entry) => entry.spec?.clientSecretHash)).toEqual(
       [""],
     );
@@ -385,7 +385,7 @@ describe("PlatformClient chains", () => {
     );
     expect(onCreate.code).toBe(Code.FailedPrecondition);
     expect(onCreate.rawMessage).toBe(missing);
-    expect((await query.listByOrg({ org: "acme" })).entries).toEqual([]);
+    expect((await query.list({ org: "acme" })).entries).toEqual([]);
 
     const created = await command.create(input("Dashboard"));
     const stored = created.platformClient;
@@ -454,7 +454,7 @@ describe("PlatformClient chains", () => {
     expect(await clients.findById("pcl_system")).toBeDefined();
   });
 
-  it("listByOrg answers the organization's clients newest first", async () => {
+  it("list answers the organization's clients newest first", async () => {
     for (const [id, seconds] of [
       ["pcl_older", 1_000],
       ["pcl_newer", 2_000],
@@ -469,12 +469,12 @@ describe("PlatformClient chains", () => {
         }),
       );
     }
-    const listed = await query.listByOrg({ org: "acme" });
+    const listed = await query.list({ org: "acme" });
     expect(listed.entries.map((entry) => entry.metadata?.id)).toEqual([
       "pcl_newer",
       "pcl_older",
     ]);
-    expect((await query.listByOrg({ org: "globex" })).entries).toEqual([]);
+    expect((await query.list({ org: "globex" })).entries).toEqual([]);
   });
 
   it("delete answers the client without its hash and removes it", async () => {

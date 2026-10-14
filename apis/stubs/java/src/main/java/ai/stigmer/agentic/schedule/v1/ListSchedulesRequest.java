@@ -33,6 +33,7 @@ private static final long serialVersionUID = 0L;
   }
   private ListSchedulesRequest() {
     org_ = "";
+    pageToken_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -65,7 +66,6 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.class, ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.Builder.class);
   }
 
-  private int bitField0_;
   public static final int ORG_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
   private volatile java.lang.Object org_ = "";
@@ -208,42 +208,69 @@ java.lang.String defaultValue) {
     return map.get(key);
   }
 
-  public static final int PAGE_INFO_FIELD_NUMBER = 3;
-  private ai.stigmer.commons.rpc.PageInfo pageInfo_;
+  public static final int PAGE_SIZE_FIELD_NUMBER = 4;
+  private int pageSize_ = 0;
   /**
    * <pre>
-   * Pagination options.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
-   * @return Whether the pageInfo field is set.
+   * <code>int32 page_size = 4 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
+   * @return The pageSize.
    */
   @java.lang.Override
-  public boolean hasPageInfo() {
-    return ((bitField0_ & 0x00000001) != 0);
+  public int getPageSize() {
+    return pageSize_;
+  }
+
+  public static final int PAGE_TOKEN_FIELD_NUMBER = 5;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object pageToken_ = "";
+  /**
+   * <pre>
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   * </pre>
+   *
+   * <code>string page_token = 5 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
+   * @return The pageToken.
+   */
+  @java.lang.Override
+  public java.lang.String getPageToken() {
+    java.lang.Object ref = pageToken_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      pageToken_ = s;
+      return s;
+    }
   }
   /**
    * <pre>
-   * Pagination options.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
-   * @return The pageInfo.
+   * <code>string page_token = 5 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for pageToken.
    */
   @java.lang.Override
-  public ai.stigmer.commons.rpc.PageInfo getPageInfo() {
-    return pageInfo_ == null ? ai.stigmer.commons.rpc.PageInfo.getDefaultInstance() : pageInfo_;
-  }
-  /**
-   * <pre>
-   * Pagination options.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.commons.rpc.PageInfoOrBuilder getPageInfoOrBuilder() {
-    return pageInfo_ == null ? ai.stigmer.commons.rpc.PageInfo.getDefaultInstance() : pageInfo_;
+  public com.google.protobuf.ByteString
+      getPageTokenBytes() {
+    java.lang.Object ref = pageToken_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      pageToken_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
   }
 
   private byte memoizedIsInitialized = -1;
@@ -269,8 +296,11 @@ java.lang.String defaultValue) {
         internalGetLabels(),
         LabelsDefaultEntryHolder.defaultEntry,
         2);
-    if (((bitField0_ & 0x00000001) != 0)) {
-      output.writeMessage(3, getPageInfo());
+    if (pageSize_ != 0) {
+      output.writeInt32(4, pageSize_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pageToken_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 5, pageToken_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -294,9 +324,12 @@ java.lang.String defaultValue) {
       size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(2, labels__);
     }
-    if (((bitField0_ & 0x00000001) != 0)) {
+    if (pageSize_ != 0) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(3, getPageInfo());
+        .computeInt32Size(4, pageSize_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pageToken_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(5, pageToken_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -317,11 +350,10 @@ java.lang.String defaultValue) {
         .equals(other.getOrg())) return false;
     if (!internalGetLabels().equals(
         other.internalGetLabels())) return false;
-    if (hasPageInfo() != other.hasPageInfo()) return false;
-    if (hasPageInfo()) {
-      if (!getPageInfo()
-          .equals(other.getPageInfo())) return false;
-    }
+    if (getPageSize()
+        != other.getPageSize()) return false;
+    if (!getPageToken()
+        .equals(other.getPageToken())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -339,10 +371,10 @@ java.lang.String defaultValue) {
       hash = (37 * hash) + LABELS_FIELD_NUMBER;
       hash = (53 * hash) + internalGetLabels().hashCode();
     }
-    if (hasPageInfo()) {
-      hash = (37 * hash) + PAGE_INFO_FIELD_NUMBER;
-      hash = (53 * hash) + getPageInfo().hashCode();
-    }
+    hash = (37 * hash) + PAGE_SIZE_FIELD_NUMBER;
+    hash = (53 * hash) + getPageSize();
+    hash = (37 * hash) + PAGE_TOKEN_FIELD_NUMBER;
+    hash = (53 * hash) + getPageToken().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -488,19 +520,13 @@ java.lang.String defaultValue) {
 
     // Construct using ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.newBuilder()
     private Builder() {
-      maybeForceBuilderInitialization();
+
     }
 
     private Builder(
         com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       super(parent);
-      maybeForceBuilderInitialization();
-    }
-    private void maybeForceBuilderInitialization() {
-      if (com.google.protobuf.GeneratedMessage
-              .alwaysUseFieldBuilders) {
-        internalGetPageInfoFieldBuilder();
-      }
+
     }
     @java.lang.Override
     public Builder clear() {
@@ -508,11 +534,8 @@ java.lang.String defaultValue) {
       bitField0_ = 0;
       org_ = "";
       internalGetMutableLabels().clear();
-      pageInfo_ = null;
-      if (pageInfoBuilder_ != null) {
-        pageInfoBuilder_.dispose();
-        pageInfoBuilder_ = null;
-      }
+      pageSize_ = 0;
+      pageToken_ = "";
       return this;
     }
 
@@ -553,14 +576,12 @@ java.lang.String defaultValue) {
         result.labels_ = internalGetLabels();
         result.labels_.makeImmutable();
       }
-      int to_bitField0_ = 0;
       if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.pageInfo_ = pageInfoBuilder_ == null
-            ? pageInfo_
-            : pageInfoBuilder_.build();
-        to_bitField0_ |= 0x00000001;
+        result.pageSize_ = pageSize_;
       }
-      result.bitField0_ |= to_bitField0_;
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.pageToken_ = pageToken_;
+      }
     }
 
     @java.lang.Override
@@ -583,8 +604,13 @@ java.lang.String defaultValue) {
       internalGetMutableLabels().mergeFrom(
           other.internalGetLabels());
       bitField0_ |= 0x00000002;
-      if (other.hasPageInfo()) {
-        mergePageInfo(other.getPageInfo());
+      if (other.getPageSize() != 0) {
+        setPageSize(other.getPageSize());
+      }
+      if (!other.getPageToken().isEmpty()) {
+        pageToken_ = other.pageToken_;
+        bitField0_ |= 0x00000008;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -626,13 +652,16 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00000002;
               break;
             } // case 18
-            case 26: {
-              input.readMessage(
-                  internalGetPageInfoFieldBuilder().getBuilder(),
-                  extensionRegistry);
+            case 32: {
+              pageSize_ = input.readInt32();
               bitField0_ |= 0x00000004;
               break;
-            } // case 26
+            } // case 32
+            case 42: {
+              pageToken_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 42
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -897,161 +926,148 @@ java.lang.String defaultValue) {
       return this;
     }
 
-    private ai.stigmer.commons.rpc.PageInfo pageInfo_;
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.commons.rpc.PageInfo, ai.stigmer.commons.rpc.PageInfo.Builder, ai.stigmer.commons.rpc.PageInfoOrBuilder> pageInfoBuilder_;
+    private int pageSize_ ;
     /**
      * <pre>
-     * Pagination options.
+     * The most entries to return: 0 asks for the default page of 50, and a
+     * size above 100 is read as 100.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
-     * @return Whether the pageInfo field is set.
+     * <code>int32 page_size = 4 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
+     * @return The pageSize.
      */
-    public boolean hasPageInfo() {
-      return ((bitField0_ & 0x00000004) != 0);
+    @java.lang.Override
+    public int getPageSize() {
+      return pageSize_;
     }
     /**
      * <pre>
-     * Pagination options.
+     * The most entries to return: 0 asks for the default page of 50, and a
+     * size above 100 is read as 100.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
-     * @return The pageInfo.
+     * <code>int32 page_size = 4 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
+     * @param value The pageSize to set.
+     * @return This builder for chaining.
      */
-    public ai.stigmer.commons.rpc.PageInfo getPageInfo() {
-      if (pageInfoBuilder_ == null) {
-        return pageInfo_ == null ? ai.stigmer.commons.rpc.PageInfo.getDefaultInstance() : pageInfo_;
-      } else {
-        return pageInfoBuilder_.getMessage();
-      }
-    }
-    /**
-     * <pre>
-     * Pagination options.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
-     */
-    public Builder setPageInfo(ai.stigmer.commons.rpc.PageInfo value) {
-      if (pageInfoBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        pageInfo_ = value;
-      } else {
-        pageInfoBuilder_.setMessage(value);
-      }
+    public Builder setPageSize(int value) {
+
+      pageSize_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Pagination options.
+     * The most entries to return: 0 asks for the default page of 50, and a
+     * size above 100 is read as 100.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
+     * <code>int32 page_size = 4 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
      */
-    public Builder setPageInfo(
-        ai.stigmer.commons.rpc.PageInfo.Builder builderForValue) {
-      if (pageInfoBuilder_ == null) {
-        pageInfo_ = builderForValue.build();
-      } else {
-        pageInfoBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00000004;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Pagination options.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
-     */
-    public Builder mergePageInfo(ai.stigmer.commons.rpc.PageInfo value) {
-      if (pageInfoBuilder_ == null) {
-        if (((bitField0_ & 0x00000004) != 0) &&
-          pageInfo_ != null &&
-          pageInfo_ != ai.stigmer.commons.rpc.PageInfo.getDefaultInstance()) {
-          getPageInfoBuilder().mergeFrom(value);
-        } else {
-          pageInfo_ = value;
-        }
-      } else {
-        pageInfoBuilder_.mergeFrom(value);
-      }
-      if (pageInfo_ != null) {
-        bitField0_ |= 0x00000004;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Pagination options.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
-     */
-    public Builder clearPageInfo() {
+    public Builder clearPageSize() {
       bitField0_ = (bitField0_ & ~0x00000004);
-      pageInfo_ = null;
-      if (pageInfoBuilder_ != null) {
-        pageInfoBuilder_.dispose();
-        pageInfoBuilder_ = null;
+      pageSize_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object pageToken_ = "";
+    /**
+     * <pre>
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
+     * </pre>
+     *
+     * <code>string page_token = 5 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
+     * @return The pageToken.
+     */
+    public java.lang.String getPageToken() {
+      java.lang.Object ref = pageToken_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        pageToken_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
       }
+    }
+    /**
+     * <pre>
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
+     * </pre>
+     *
+     * <code>string page_token = 5 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for pageToken.
+     */
+    public com.google.protobuf.ByteString
+        getPageTokenBytes() {
+      java.lang.Object ref = pageToken_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        pageToken_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
+     * </pre>
+     *
+     * <code>string page_token = 5 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
+     * @param value The pageToken to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPageToken(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      pageToken_ = value;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Pagination options.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
+     * <code>string page_token = 5 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
      */
-    public ai.stigmer.commons.rpc.PageInfo.Builder getPageInfoBuilder() {
-      bitField0_ |= 0x00000004;
+    public Builder clearPageToken() {
+      pageToken_ = getDefaultInstance().getPageToken();
+      bitField0_ = (bitField0_ & ~0x00000008);
       onChanged();
-      return internalGetPageInfoFieldBuilder().getBuilder();
+      return this;
     }
     /**
      * <pre>
-     * Pagination options.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
+     * <code>string page_token = 5 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for pageToken to set.
+     * @return This builder for chaining.
      */
-    public ai.stigmer.commons.rpc.PageInfoOrBuilder getPageInfoOrBuilder() {
-      if (pageInfoBuilder_ != null) {
-        return pageInfoBuilder_.getMessageOrBuilder();
-      } else {
-        return pageInfo_ == null ?
-            ai.stigmer.commons.rpc.PageInfo.getDefaultInstance() : pageInfo_;
-      }
-    }
-    /**
-     * <pre>
-     * Pagination options.
-     * </pre>
-     *
-     * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.commons.rpc.PageInfo, ai.stigmer.commons.rpc.PageInfo.Builder, ai.stigmer.commons.rpc.PageInfoOrBuilder> 
-        internalGetPageInfoFieldBuilder() {
-      if (pageInfoBuilder_ == null) {
-        pageInfoBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.commons.rpc.PageInfo, ai.stigmer.commons.rpc.PageInfo.Builder, ai.stigmer.commons.rpc.PageInfoOrBuilder>(
-                getPageInfo(),
-                getParentForChildren(),
-                isClean());
-        pageInfo_ = null;
-      }
-      return pageInfoBuilder_;
+    public Builder setPageTokenBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      pageToken_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.schedule.v1.ListSchedulesRequest)

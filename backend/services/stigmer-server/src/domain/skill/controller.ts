@@ -63,10 +63,16 @@ import type {
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { SkillStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/status_pb";
 import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+import { SkillListSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
+import type {
+  SkillList,
+  ListSkillsRequest,
+} from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import {
@@ -105,6 +111,8 @@ import {
 } from "../../pipeline/steps/load-target.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
+import { readOrgListPage } from "../../pipeline/steps/org-list-page.js";
+import { skillListIndex } from "./list-index.js";
 import {
   newRefuseChildOrgsVisibilityInChildUpdateStep,
   newValidateVisibilityUpdateStep,
@@ -162,6 +170,8 @@ export interface SkillControllerDeps {
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
+  /** The composed list read scope — list narrows through it; undefined = the OSS full scan. */
+  readonly listReadScope: ListReadScope | undefined;
   readonly artifactStorage: SkillArtifactStorage;
   /**
    * Execution artifact storage for pushFromRunArtifact (Go
@@ -196,6 +206,7 @@ export function registerSkillServices(
   router.service(SkillQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
     getByReference: (ref, ctx) => getByReference(deps, ref, ctx),
+    list: (req, ctx) => list(deps, req, ctx),
     getArtifact: (req, ctx) => getArtifact(deps, req, ctx),
     getArtifactDownloadUrl: (req, ctx) =>
       getArtifactDownloadUrl(deps, req, ctx),
@@ -893,4 +904,58 @@ async function withTimeout<T>(
   } finally {
     clearTimeout(timer);
   }
+}
+
+const SKILL_LIST_KEY = "skillList";
+
+/**
+ * List — one page of an organization's skills, newest first, through the
+ * skill list index; the read scope keeps the skills the caller could get by
+ * id, as every organization list does. Search finds skills by their
+ * words; this browses them.
+ */
+async function list(
+  deps: SkillControllerDeps,
+  req: ListSkillsRequest,
+  ctx: HandlerContext,
+): Promise<SkillList> {
+  const reqCtx = new RequestContext(
+    SkillQueryController.method.list.input,
+    req,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<typeof SkillQueryController.method.list.input>(
+    "skill-list",
+    deps.logger,
+  )
+    .addStep(
+      newAuthorizeStep(SkillQueryController.method.list, deps.authorizer),
+    )
+    .addStep(newValidateProtoStep())
+    .addStep({
+      name: "ListByOrg",
+      async execute(step): Promise<void> {
+        const page = await readOrgListPage({
+          store: deps.store,
+          logger: deps.logger,
+          listReadScope: deps.listReadScope,
+          caller: step.callerIdentity,
+          kind: ApiResourceKind.skill,
+          schema: SkillSchema,
+          declaration: skillListIndex,
+          request: step.input,
+        });
+        step.set(
+          SKILL_LIST_KEY,
+          create(SkillListSchema, {
+            entries: page.entries,
+            nextPageToken: page.nextPageToken,
+          }),
+        );
+      },
+    })
+    .build()
+    .execute(reqCtx);
+  return reqCtx.get(SKILL_LIST_KEY) as SkillList;
 }

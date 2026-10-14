@@ -114,15 +114,17 @@ Returns only memories the caller can view — for memories that is always exactl
 ```typescript
 const result = await stigmer.memory.list({
   org: "...",
-  pageInfo: {},
+  pageSize: 0,
+  pageToken: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 result, err := client.Memory.List(ctx, &stigmer.ListMemoriesRequest{
-  Org:      "...",
-  PageInfo: &stigmer.PageInfoInput{},
+  Org:       "...",
+  PageSize:  0,
+  PageToken: "...",
 })
 ```
 </Tab>
@@ -130,7 +132,8 @@ result, err := client.Memory.List(ctx, &stigmer.ListMemoriesRequest{
 ```python
 result = client.memorys.list(ListMemoriesRequest(
     org="...",
-    page_info=None,
+    page_size=0,
+    page_token="...",
 ))
 ```
 </Tab>
@@ -138,7 +141,8 @@ result = client.memorys.list(ListMemoriesRequest(
 ```java
 MemoryList result = client.memories().list(ListMemoriesRequest.builder()
     .org("...")
-    .pageInfo(null)
+    .pageSize(0)
+    .pageToken("...")
     .build());
 ```
 </Tab>
@@ -147,6 +151,8 @@ MemoryList result = client.memories().list(ListMemoriesRequest.builder()
 **Parameters**: [`ListMemoriesRequest`](#listmemoriesrequest)
 
 **Returns**: [`MemoryList`](#memorylist)
+
+**Every page**: `listAll` (Go `ListAll`, Python `list_all`, Java `listAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
 
 ### create
 
@@ -426,7 +432,8 @@ Input for listing memories within an organization.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization slug to scope the listing." },
-    pageInfo: { type: "PageInfoInput", description: "Pagination options." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 
@@ -436,8 +443,8 @@ Response containing a paginated list of memories.
 
 <TypeTable
   type={{
-    totalCount: { type: "number", description: "Total number of memories matching the query." },
-    items: { type: "MemoryInput[]", description: "Memories in the current page.", typeDescriptionLink: "#memoryinput" },
+    entries: { type: "MemoryInput[]", description: "Memories in the current page.", typeDescriptionLink: "#memoryinput" },
+    nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token to continue." },
   }}
 />
 

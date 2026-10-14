@@ -121,8 +121,8 @@
         },
         {
           "name": "ListServiceAccounts",
-          "inputType": "ListWithIdentityOrg",
-          "inputFullType": "ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg",
+          "inputType": "ListServiceAccountsInput",
+          "inputFullType": "ai.stigmer.iam.identityaccount.v1.ListServiceAccountsInput",
           "outputType": "IdentityAccountsList",
           "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountsList",
           "description": "List an organization's service accounts, newest first.\n\n Lists every service account of the organization, including one whose\n role was removed, so it can still be found and deleted.\n\n Authorization: Requires can_create_identity_account on the organization."
@@ -529,9 +529,9 @@
       ]
     },
     {
-      "name": "ListWithIdentityOrg",
-      "description": "ListWithIdentityOrg is the input for paginated queries scoped to an organization.",
-      "protoType": "ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg",
+      "name": "ListServiceAccountsInput",
+      "description": "ListServiceAccountsInput is the input for paginated queries scoped to an organization.",
+      "protoType": "ai.stigmer.iam.identityaccount.v1.ListServiceAccountsInput",
       "protoFile": "apis/ai/stigmer/iam/identityaccount/v1/io.proto",
       "fields": [
         {
@@ -545,15 +545,27 @@
           "required": false
         },
         {
-          "name": "Page",
-          "jsonName": "page",
-          "protoField": "page",
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
           "type": {
-            "kind": "message",
-            "messageType": "PageInfo"
+            "kind": "int32"
           },
-          "description": "Pagination parameters.",
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
           "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
+          }
         }
       ]
     },
@@ -563,16 +575,6 @@
       "protoType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountsList",
       "protoFile": "apis/ai/stigmer/iam/identityaccount/v1/io.proto",
       "fields": [
-        {
-          "name": "TotalPages",
-          "jsonName": "totalPages",
-          "protoField": "total_pages",
-          "type": {
-            "kind": "int32"
-          },
-          "description": "Total number of pages available.",
-          "required": false
-        },
         {
           "name": "Entries",
           "jsonName": "entries",
@@ -585,6 +587,16 @@
             }
           },
           "description": "Identity accounts in the current page.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Set when more entries may follow: pass it as page_token to continue.\n A page may be short, even empty, and still carry a token.",
           "required": false
         }
       ]

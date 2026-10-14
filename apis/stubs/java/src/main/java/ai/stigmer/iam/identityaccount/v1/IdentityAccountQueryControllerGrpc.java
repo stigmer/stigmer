@@ -170,27 +170,27 @@ public final class IdentityAccountQueryControllerGrpc {
     return getGetByExternalSubMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg,
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.ListServiceAccountsInput,
       ai.stigmer.iam.identityaccount.v1.IdentityAccountsList> getListServiceAccountsMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "listServiceAccounts",
-      requestType = ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg.class,
+      requestType = ai.stigmer.iam.identityaccount.v1.ListServiceAccountsInput.class,
       responseType = ai.stigmer.iam.identityaccount.v1.IdentityAccountsList.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg,
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.ListServiceAccountsInput,
       ai.stigmer.iam.identityaccount.v1.IdentityAccountsList> getListServiceAccountsMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg, ai.stigmer.iam.identityaccount.v1.IdentityAccountsList> getListServiceAccountsMethod;
+    io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.ListServiceAccountsInput, ai.stigmer.iam.identityaccount.v1.IdentityAccountsList> getListServiceAccountsMethod;
     if ((getListServiceAccountsMethod = IdentityAccountQueryControllerGrpc.getListServiceAccountsMethod) == null) {
       synchronized (IdentityAccountQueryControllerGrpc.class) {
         if ((getListServiceAccountsMethod = IdentityAccountQueryControllerGrpc.getListServiceAccountsMethod) == null) {
           IdentityAccountQueryControllerGrpc.getListServiceAccountsMethod = getListServiceAccountsMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg, ai.stigmer.iam.identityaccount.v1.IdentityAccountsList>newBuilder()
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.identityaccount.v1.ListServiceAccountsInput, ai.stigmer.iam.identityaccount.v1.IdentityAccountsList>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listServiceAccounts"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg.getDefaultInstance()))
+                  ai.stigmer.iam.identityaccount.v1.ListServiceAccountsInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.iam.identityaccount.v1.IdentityAccountsList.getDefaultInstance()))
               .setSchemaDescriptor(new IdentityAccountQueryControllerMethodDescriptorSupplier("listServiceAccounts"))
@@ -369,7 +369,7 @@ public final class IdentityAccountQueryControllerGrpc {
      * Authorization: Requires can_create_identity_account on the organization.
      * </pre>
      */
-    default void listServiceAccounts(ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg request,
+    default void listServiceAccounts(ai.stigmer.iam.identityaccount.v1.ListServiceAccountsInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccountsList> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListServiceAccountsMethod(), responseObserver);
     }
@@ -494,7 +494,7 @@ public final class IdentityAccountQueryControllerGrpc {
      * Authorization: Requires can_create_identity_account on the organization.
      * </pre>
      */
-    public void listServiceAccounts(ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg request,
+    public void listServiceAccounts(ai.stigmer.iam.identityaccount.v1.ListServiceAccountsInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccountsList> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getListServiceAccountsMethod(), getCallOptions()), request, responseObserver);
@@ -602,7 +602,7 @@ public final class IdentityAccountQueryControllerGrpc {
      * Authorization: Requires can_create_identity_account on the organization.
      * </pre>
      */
-    public ai.stigmer.iam.identityaccount.v1.IdentityAccountsList listServiceAccounts(ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg request) throws io.grpc.StatusException {
+    public ai.stigmer.iam.identityaccount.v1.IdentityAccountsList listServiceAccounts(ai.stigmer.iam.identityaccount.v1.ListServiceAccountsInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getListServiceAccountsMethod(), getCallOptions(), request);
     }
@@ -708,7 +708,7 @@ public final class IdentityAccountQueryControllerGrpc {
      * Authorization: Requires can_create_identity_account on the organization.
      * </pre>
      */
-    public ai.stigmer.iam.identityaccount.v1.IdentityAccountsList listServiceAccounts(ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg request) {
+    public ai.stigmer.iam.identityaccount.v1.IdentityAccountsList listServiceAccounts(ai.stigmer.iam.identityaccount.v1.ListServiceAccountsInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getListServiceAccountsMethod(), getCallOptions(), request);
     }
@@ -820,7 +820,7 @@ public final class IdentityAccountQueryControllerGrpc {
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccountsList> listServiceAccounts(
-        ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg request) {
+        ai.stigmer.iam.identityaccount.v1.ListServiceAccountsInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getListServiceAccountsMethod(), getCallOptions()), request);
     }
@@ -883,7 +883,7 @@ public final class IdentityAccountQueryControllerGrpc {
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount>) responseObserver);
           break;
         case METHODID_LIST_SERVICE_ACCOUNTS:
-          serviceImpl.listServiceAccounts((ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg) request,
+          serviceImpl.listServiceAccounts((ai.stigmer.iam.identityaccount.v1.ListServiceAccountsInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccountsList>) responseObserver);
           break;
         case METHODID_GET_ACTOR_INFO:
@@ -947,7 +947,7 @@ public final class IdentityAccountQueryControllerGrpc {
           getListServiceAccountsMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg,
+              ai.stigmer.iam.identityaccount.v1.ListServiceAccountsInput,
               ai.stigmer.iam.identityaccount.v1.IdentityAccountsList>(
                 service, METHODID_LIST_SERVICE_ACCOUNTS)))
         .addMethod(

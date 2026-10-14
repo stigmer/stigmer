@@ -22,7 +22,10 @@ import {
   isSyntheticOneof,
   isUpdateInputType,
   isValuedOneofScalar,
-  searchListSupersedesMethod,
+  assertUniqueSdkMethodNames,
+  pageIteratorName,
+  pagedListOf,
+  sdkMethodName,
   tsClientFieldName,
   TsImportSet,
   tsMethodName,
@@ -88,9 +91,9 @@ function generateTSResourceClient(
   specSchema: SpecSchema | null,
   specTypes: TypeSchema[],
 ): [string, ResourceGenInfo] {
+  assertUniqueSdkMethodNames(schema);
   const importBase = deriveTSImportBase(schema.package);
   const hasInputType = specSchema !== null;
-  const needsSearch = schema.listVia === "SearchService";
 
   const genInfo: ResourceGenInfo = {
     resource: schema.resource,
@@ -142,7 +145,10 @@ function generateTSResourceClient(
 
   for (const svc of schema.services) {
     for (const m of svc.methods) {
-      if (searchListSupersedesMethod(schema, m)) continue;
+      if (pagedListOf(schema, m) !== undefined) {
+        needsCreate = true;
+        imports.addType("@bufbuild/protobuf", "MessageInitShape");
+      }
       if (m.inputType === "ApiResourceId") needsApiResourceId = true;
       if (m.inputType === "ApiResourceReference") needsApiResourceRef = true;
       if (m.inputType === "ApiResourceDeleteInput") needsApiResourceDeleteInput = true;
@@ -207,15 +213,6 @@ function generateTSResourceClient(
     imports.addValue("@bufbuild/protobuf", "create");
   }
 
-  if (needsSearch) {
-    imports.addValue("@stigmer/protos/ai/stigmer/search/v1/query_pb", "SearchService");
-    imports.addValue("@stigmer/protos/ai/stigmer/search/v1/io_pb", "SearchRequestSchema");
-    imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb", "ApiResourceKind");
-    imports.addValue("@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb", "PageInfoSchema");
-    imports.addType("./types", "ListParams");
-    imports.addType("./types", "ListResult");
-  }
-
   const typeMap = new Map<string, TypeSchema>();
   for (const t of specTypes) {
     typeMap.set(t.name, t);
@@ -239,31 +236,23 @@ function generateTSResourceClient(
   for (const svc of schema.services) {
     body.push(`  private readonly ${svc.role}: Client<typeof ${svc.name}>;\n`);
   }
-  if (needsSearch) {
-    body.push("  private readonly search: Client<typeof SearchService>;\n");
-  }
   body.push("\n");
 
   body.push("  constructor(transport: Transport) {\n");
   for (const svc of schema.services) {
     body.push(`    this.${svc.role} = createClient(${svc.name}, transport);\n`);
   }
-  if (needsSearch) {
-    body.push("    this.search = createClient(SearchService, transport);\n");
-  }
   body.push("  }\n");
 
   for (const svc of schema.services) {
     for (const m of svc.methods) {
-      if (searchListSupersedesMethod(schema, m)) continue;
       body.push("\n");
       generateTSMethod(body, m, svc, schema, cfg, hasInputType, imports);
+      if (pagedListOf(schema, m) !== undefined) {
+        body.push("\n");
+        generateTSPageIterator(body, svc, m);
+      }
     }
-  }
-
-  if (needsSearch) {
-    body.push("\n");
-    generateTSSearchList(body, cfg);
   }
 
   body.push("}\n");
@@ -418,7 +407,6 @@ function generateTSMethod(
   const isDeleteInput = m.inputType === "ApiResourceDeleteInput";
   const isResourceInput = m.inputType === cfg.protoResType;
   const isUpdateInput = isUpdateInputType(m.inputType, cfg.protoResType);
-  const isApiResourceIdInput = m.inputType === "ApiResourceId";
   const isApiResourceRefInput = m.inputType === "ApiResourceReference";
 
   let outputType = cfg.protoResType;
@@ -431,52 +419,46 @@ function generateTSMethod(
   const returnKeyword = emptyOutput ? "" : "return ";
 
   if (emptyInput) {
-    buf.push(`  async ${tsMethodName(m.name)}(): Promise<${outputType}> {\n`);
+    buf.push(`  async ${tsMethodName(sdkMethodName(svc, m))}(): Promise<${outputType}> {\n`);
     buf.push("    try {\n");
     buf.push(`      ${returnKeyword}await this.${svc.role}.${tsMethodName(m.name)}(create(EmptySchema, {}));\n`);
     buf.push("    } catch (e) { throw wrapError(e); }\n");
     buf.push("  }\n");
   } else if (isUpdateInput) {
-    buf.push(`  async ${tsMethodName(m.name)}(resource: ${cfg.protoResType} | MessageInitShape<typeof ${cfg.protoResType}Schema>, paths: string[]): Promise<${outputType}> {\n`);
+    buf.push(`  async ${tsMethodName(sdkMethodName(svc, m))}(resource: ${cfg.protoResType} | MessageInitShape<typeof ${cfg.protoResType}Schema>, paths: string[]): Promise<${outputType}> {\n`);
     buf.push("    try {\n");
     buf.push(`      ${returnKeyword}await this.${svc.role}.${tsMethodName(m.name)}(create(${m.inputType}Schema, { resource, updateMask: { paths } }));\n`);
     buf.push("    } catch (e) { throw wrapError(e); }\n");
     buf.push("  }\n");
   } else if (isResourceInput && hasInputType) {
     const inputTypeName = cfg.inputPrefix + "Input";
-    buf.push(`  async ${tsMethodName(m.name)}(input: ${inputTypeName}): Promise<${outputType}> {\n`);
+    buf.push(`  async ${tsMethodName(sdkMethodName(svc, m))}(input: ${inputTypeName}): Promise<${outputType}> {\n`);
     buf.push("    try {\n");
     buf.push(`      ${returnKeyword}await this.${svc.role}.${tsMethodName(m.name)}(build${cfg.protoResType}Proto(input));\n`);
     buf.push("    } catch (e) { throw wrapError(e); }\n");
     buf.push("  }\n");
   } else if (isResourceInput && !hasInputType) {
-    buf.push(`  async ${tsMethodName(m.name)}(input: ${cfg.protoResType}): Promise<${outputType}> {\n`);
+    buf.push(`  async ${tsMethodName(sdkMethodName(svc, m))}(input: ${cfg.protoResType}): Promise<${outputType}> {\n`);
     buf.push("    try {\n");
     buf.push(`      ${returnKeyword}await this.${svc.role}.${tsMethodName(m.name)}(input);\n`);
     buf.push("    } catch (e) { throw wrapError(e); }\n");
     buf.push("  }\n");
   } else if (isIDInput) {
-    buf.push(`  async ${tsMethodName(m.name)}(id: string): Promise<${outputType}> {\n`);
+    buf.push(`  async ${tsMethodName(sdkMethodName(svc, m))}(id: string): Promise<${outputType}> {\n`);
     buf.push("    try {\n");
     buf.push(`      ${returnKeyword}await this.${svc.role}.${tsMethodName(m.name)}(create(${m.inputType}Schema, { value: id }));\n`);
-    buf.push("    } catch (e) { throw wrapError(e); }\n");
-    buf.push("  }\n");
-  } else if (isApiResourceIdInput) {
-    buf.push(`  async ${tsMethodName(m.name)}(id: string): Promise<${outputType}> {\n`);
-    buf.push("    try {\n");
-    buf.push(`      ${returnKeyword}await this.${svc.role}.${tsMethodName(m.name)}(create(ApiResourceIdSchema, { value: id }));\n`);
     buf.push("    } catch (e) { throw wrapError(e); }\n");
     buf.push("  }\n");
   } else if (isApiResourceRefInput) {
     imports.addType("./types", "ResourceRef");
     imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb", "ApiResourceKind");
-    buf.push(`  async ${tsMethodName(m.name)}(ref: ResourceRef): Promise<${outputType}> {\n`);
+    buf.push(`  async ${tsMethodName(sdkMethodName(svc, m))}(ref: ResourceRef): Promise<${outputType}> {\n`);
     buf.push("    try {\n");
     buf.push(`      ${returnKeyword}await this.${svc.role}.${tsMethodName(m.name)}(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.${cfg.resourceKind} }));\n`);
     buf.push("    } catch (e) { throw wrapError(e); }\n");
     buf.push("  }\n");
   } else if (isDeleteInput) {
-    buf.push(`  async ${tsMethodName(m.name)}(input: DeleteResourceInput): Promise<${outputType}> {\n`);
+    buf.push(`  async ${tsMethodName(sdkMethodName(svc, m))}(input: DeleteResourceInput): Promise<${outputType}> {\n`);
     buf.push("    try {\n");
     buf.push(`      ${returnKeyword}await this.${svc.role}.${tsMethodName(m.name)}(create(ApiResourceDeleteInputSchema, {\n`);
     buf.push("        resourceId: input.resourceId,\n");
@@ -486,7 +468,7 @@ function generateTSMethod(
     buf.push("    } catch (e) { throw wrapError(e); }\n");
     buf.push("  }\n");
   } else {
-    buf.push(`  async ${tsMethodName(m.name)}(input: ${m.inputType}): Promise<${outputType}> {\n`);
+    buf.push(`  async ${tsMethodName(sdkMethodName(svc, m))}(input: ${m.inputType}): Promise<${outputType}> {\n`);
     buf.push("    try {\n");
     buf.push(`      ${returnKeyword}await this.${svc.role}.${tsMethodName(m.name)}(input);\n`);
     buf.push("    } catch (e) { throw wrapError(e); }\n");
@@ -521,11 +503,11 @@ function generateTSStreamingMethod(
     const importBase = deriveTSImportBase(schema.package);
     imports.addType(importBase + "/io_pb", m.inputType);
     imports.addType(importBase + "/io_pb", m.outputType);
-    buf.push(`  ${tsMethodName(m.name)}(signal?: AbortSignal): BidiStream<${m.inputType}, ${outputType}> {\n`);
+    buf.push(`  ${tsMethodName(sdkMethodName(svc, m))}(signal?: AbortSignal): BidiStream<${m.inputType}, ${outputType}> {\n`);
     buf.push(`    return new BidiStream((reqs) => this.${svc.role}.${tsMethodName(m.name)}(reqs, { signal }));\n`);
     buf.push("  }\n");
   } else if (isIDInput) {
-    buf.push(`  async *${tsMethodName(m.name)}(id: string, signal?: AbortSignal): AsyncGenerator<${outputType}> {\n`);
+    buf.push(`  async *${tsMethodName(sdkMethodName(svc, m))}(id: string, signal?: AbortSignal): AsyncGenerator<${outputType}> {\n`);
     buf.push("    try {\n");
     buf.push(`      for await (const msg of this.${svc.role}.${tsMethodName(m.name)}(create(${m.inputType}Schema, { value: id }), { signal })) {\n`);
     buf.push("        yield msg;\n");
@@ -535,7 +517,7 @@ function generateTSStreamingMethod(
   } else {
     const importBase = deriveTSImportBase(schema.package);
     imports.addType(importBase + "/io_pb", m.inputType);
-    buf.push(`  async *${tsMethodName(m.name)}(input: ${m.inputType}, signal?: AbortSignal): AsyncGenerator<${outputType}> {\n`);
+    buf.push(`  async *${tsMethodName(sdkMethodName(svc, m))}(input: ${m.inputType}, signal?: AbortSignal): AsyncGenerator<${outputType}> {\n`);
     buf.push("    try {\n");
     buf.push(`      for await (const msg of this.${svc.role}.${tsMethodName(m.name)}(input, { signal })) {\n`);
     buf.push("        yield msg;\n");
@@ -545,21 +527,24 @@ function generateTSStreamingMethod(
   }
 }
 
-function generateTSSearchList(buf: string[], cfg: SdkResourceConfig): void {
-  buf.push("  async list(params: ListParams): Promise<ListResult> {\n");
-  buf.push("    try {\n");
-  buf.push("      const resp = await this.search.search(create(SearchRequestSchema, {\n");
-  buf.push(`        kinds: [ApiResourceKind.${cfg.resourceKind}],\n`);
-  buf.push("        query: params.query,\n");
-  buf.push("        org: params.org,\n");
-  buf.push("        page: params.page ? create(PageInfoSchema, params.page) : undefined,\n");
-  buf.push("      }));\n");
-  buf.push("      return {\n");
-  buf.push("        entries: resp.entries,\n");
-  buf.push("        totalCount: resp.totalCount,\n");
-  buf.push("        totalPages: resp.totalPages,\n");
-  buf.push("      };\n");
-  buf.push("    } catch (e) { throw wrapError(e); }\n");
+// The page iterator beside a paged list: every entry, page after page,
+// following next_page_token from the token the input names (none: the
+// first page). The input is an init shape, so a caller passes the list's
+// filters as a plain object.
+function generateTSPageIterator(buf: string[], svc: ServiceDefinition, m: MethodSchema): void {
+  const name = tsMethodName(sdkMethodName(svc, m));
+  buf.push("  /**\n");
+  buf.push(`   * Every entry of \`${name}\`, page after page: follows \`nextPageToken\`\n`);
+  buf.push("   * until the list ends. Breaking out of the loop stops the reads.\n");
+  buf.push("   */\n");
+  buf.push(`  async *${tsMethodName(pageIteratorName(sdkMethodName(svc, m)))}(input: MessageInitShape<typeof ${m.inputType}Schema>): AsyncGenerator<${m.outputType}["entries"][number]> {\n`);
+  buf.push("    let pageToken = input.pageToken ?? \"\";\n");
+  buf.push("    for (;;) {\n");
+  buf.push(`      const page = await this.${name}(create(${m.inputType}Schema, { ...input, pageToken }));\n`);
+  buf.push("      yield* page.entries;\n");
+  buf.push("      if (page.nextPageToken === \"\") return;\n");
+  buf.push("      pageToken = page.nextPageToken;\n");
+  buf.push("    }\n");
   buf.push("  }\n");
 }
 
@@ -1158,7 +1143,7 @@ function generateTSClientFile(outputDir: string, resources: ResourceGenInfo[]): 
       }
     }
   }
-  buf.push('export { type ListParams, type ListResult, type DeleteResourceInput, type ResourceRef, type Page } from "./types.js";\n');
+  buf.push('export { type DeleteResourceInput, type ResourceRef } from "./types.js";\n');
   buf.push('export { StigmerError, type ErrorCode, isNotFound, isUnauthenticated, isPermissionDenied, isRetryable, isUnimplemented } from "./errors.js";\n');
 
   fs.writeFileSync(path.join(outputDir, "client.ts"), buf.join(""));

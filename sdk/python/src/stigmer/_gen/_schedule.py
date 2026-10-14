@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Iterator
 
 import grpc
 
@@ -88,11 +89,23 @@ class ScheduleClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def get_by_agent(self, input: io_pb2.GetSchedulesByAgentRequest) -> io_pb2.ScheduleList:
+    def list_by_agent(self, input: io_pb2.ListSchedulesByAgentRequest) -> io_pb2.ScheduleList:
         try:
-            return self._query.getByAgent(input)
+            return self._query.listByAgent(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
+
+    def list_by_agent_all(self, input: io_pb2.ListSchedulesByAgentRequest) -> Iterator[api_pb2.Schedule]:
+        """Every entry of ``list_by_agent``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListSchedulesByAgentRequest()
+        request.CopyFrom(input)
+        while True:
+            page = self.list_by_agent(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
 
     def list(self, input: io_pb2.ListSchedulesRequest) -> io_pb2.ScheduleList:
         try:
@@ -100,11 +113,35 @@ class ScheduleClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def list_all(self, input: io_pb2.ListSchedulesRequest) -> Iterator[api_pb2.Schedule]:
+        """Every entry of ``list``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListSchedulesRequest()
+        request.CopyFrom(input)
+        while True:
+            page = self.list(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
+
     def list_fires(self, input: io_pb2.ListScheduleFiresRequest) -> io_pb2.ScheduleFireList:
         try:
             return self._query.listFires(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
+
+    def list_fires_all(self, input: io_pb2.ListScheduleFiresRequest) -> Iterator[io_pb2.ScheduleFire]:
+        """Every entry of ``list_fires``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListScheduleFiresRequest()
+        request.CopyFrom(input)
+        while True:
+            page = self.list_fires(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
 
 
 @dataclass

@@ -1591,9 +1591,9 @@ type ListAccessHistoryInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The organization, by slug or id.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// The most entries to return; 0 returns 50. At most 100. A history only
-	// grows, so there is no size that returns every entry at once: follow
-	// next_page_token.
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100. A history only grows, so there is no size
+	// that returns every entry at once: follow next_page_token.
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that read.
 	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
@@ -1950,11 +1950,11 @@ const file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDesc = "" +
 	"\x0eprincipal_kind\x18\x02 \x01(\tB\n" +
 	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\rprincipalKind\"'\n" +
 	"\x0fPrincipalsCount\x12\x14\n" +
-	"\x05count\x18\x01 \x01(\x05R\x05count\"\xcf\x01\n" +
+	"\x05count\x18\x01 \x01(\x05R\x05count\"\xcd\x01\n" +
 	"\x16ListAccessHistoryInput\x12\x1c\n" +
 	"\x03org\x18\x01 \x01(\tB\n" +
-	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\x03org\x12&\n" +
-	"\tpage_size\x18\x02 \x01(\x05B\t\xbaH\x06\x1a\x04\x18d(\x00R\bpageSize\x12'\n" +
+	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\x03org\x12$\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
 	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x123\n" +
 	"\x0eafter_sequence\x18\x04 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x00R\rafterSequence\x88\x01\x01B\x11\n" +

@@ -15,48 +15,49 @@ public interface ListAgentVersionsResponseOrBuilder extends
    * Ordered list of versions (newest first).
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<ai.stigmer.agentic.agent.v1.AgentVersionEntry> 
-      getVersionsList();
+      getEntriesList();
   /**
    * <pre>
    * Ordered list of versions (newest first).
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
    */
-  ai.stigmer.agentic.agent.v1.AgentVersionEntry getVersions(int index);
+  ai.stigmer.agentic.agent.v1.AgentVersionEntry getEntries(int index);
   /**
    * <pre>
    * Ordered list of versions (newest first).
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
    */
-  int getVersionsCount();
+  int getEntriesCount();
   /**
    * <pre>
    * Ordered list of versions (newest first).
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<? extends ai.stigmer.agentic.agent.v1.AgentVersionEntryOrBuilder> 
-      getVersionsOrBuilderList();
+      getEntriesOrBuilderList();
   /**
    * <pre>
    * Ordered list of versions (newest first).
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
    */
-  ai.stigmer.agentic.agent.v1.AgentVersionEntryOrBuilder getVersionsOrBuilder(
+  ai.stigmer.agentic.agent.v1.AgentVersionEntryOrBuilder getEntriesOrBuilder(
       int index);
 
   /**
    * <pre>
-   * Token for fetching the next page. Empty when no more pages exist.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -65,7 +66,8 @@ public interface ListAgentVersionsResponseOrBuilder extends
   java.lang.String getNextPageToken();
   /**
    * <pre>
-   * Token for fetching the next page. Empty when no more pages exist.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -73,14 +75,4 @@ public interface ListAgentVersionsResponseOrBuilder extends
    */
   com.google.protobuf.ByteString
       getNextPageTokenBytes();
-
-  /**
-   * <pre>
-   * Total number of versions across all pages.
-   * </pre>
-   *
-   * <code>int32 total_count = 3 [json_name = "totalCount"];</code>
-   * @return The totalCount.
-   */
-  int getTotalCount();
 }

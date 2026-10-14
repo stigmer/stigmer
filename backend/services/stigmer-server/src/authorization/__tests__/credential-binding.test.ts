@@ -792,7 +792,6 @@ describe("bindOrganizationDirectory", () => {
     ids: ReadonlyArray<string> | typeof ALL_ORGANIZATIONS,
   ): OrganizationDirectory {
     return {
-      refusesEnumeration: true,
       listMyOrganizationIds: () => Promise.resolve(ids),
     };
   }
@@ -800,7 +799,6 @@ describe("bindOrganizationDirectory", () => {
   it("answers an unbound caller with the inner list", async () => {
     const bound = bindOrganizationDirectory(directory([ALPHA, BETA]));
     expect(await bound.listMyOrganizationIds(unbound)).toEqual([ALPHA, BETA]);
-    expect(bound.refusesEnumeration).toBe(true);
   });
 
   it("answers a bound caller with its own organization alone, when the inner directory holds it", async () => {
@@ -962,7 +960,6 @@ describe("the deleting rule's decision seat", () => {
     ]).toEqual(["agt_a"]);
     const directory = bindOrganizationDirectory(
       {
-        refusesEnumeration: false,
         listMyOrganizationIds: () => Promise.resolve([ALPHA, BETA]),
       },
       lifecycle(reads),

@@ -3,7 +3,9 @@
 import type {
   ModelPricingBaseline,
 } from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
+import { everyEntry } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
+import { LIST_PAGE_MAX } from "../internal/everyPage.js";
 import { useFetch } from "../internal/useFetch.js";
 
 /** Options for {@link useModelPricingBaselines}. */
@@ -55,10 +57,21 @@ export function useModelPricingBaselines(
   const { data, isLoading, isRefetching, error, refetch } = useFetch(
     enabled
       ? async () => {
-          const response = await stigmer.billing.listModelPricingBaselines({
-            includeHistory,
-          });
-          return response.baselines;
+          // The catalog view prices every model, so it reads every page.
+          // The catalog is the platform's own, not a person's rows, and
+          // its history grows with each price change, so the walk has no
+          // cap of its own.
+          const baselines: ModelPricingBaseline[] = [];
+          for await (const baseline of everyEntry((pageToken) =>
+            stigmer.billing.listModelPricingBaselines({
+              includeHistory,
+              pageSize: LIST_PAGE_MAX,
+              pageToken,
+            }),
+          )) {
+            baselines.push(baseline);
+          }
+          return baselines;
         }
       : null,
     [enabled, includeHistory, stigmer],

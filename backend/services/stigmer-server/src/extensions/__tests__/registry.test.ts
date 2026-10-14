@@ -120,9 +120,10 @@ function fakeChannelRuntime(): ChannelRuntime {
       listMessagingChannels: never,
     },
     conversations: {
-      listConversations: never,
+      list: never,
+      countConversations: never,
       getConversation: never,
-      getTimeline: never,
+      listTimeline: never,
       getMediaDownloadUrl: never,
       reply: never,
       takeOver: never,

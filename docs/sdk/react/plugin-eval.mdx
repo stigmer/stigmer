@@ -102,7 +102,11 @@ function usePluginEvals(pluginId: string): UsePluginEvalsReturn
   type={{
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     evals: { type: "readonly PluginEval[]", description: "The plugin's evals, newest first; empty while loading." },
+    hasMore: { type: "boolean", description: "`true` while the server holds entries beyond those loaded." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    isLoadingMore: { type: "boolean", description: "`true` while a `loadMore` read is in flight." },
+    loadMore: { type: "() => void", description: "Load the next page. No-op while one is loading or when nothing follows." },
+    loadMoreError: { type: "Error | null", description: "Error from the last failed `loadMore`, or `null`." },
     refetch: { type: "() => void", description: "Re-fetch the list (after starting or deleting an eval)." },
   }}
 />

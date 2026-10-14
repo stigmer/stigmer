@@ -26,28 +26,28 @@ var File_ai_stigmer_iam_team_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_team_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"\"ai/stigmer/iam/team/v1/query.proto\x12\x16ai.stigmer.iam.team.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a ai/stigmer/iam/team/v1/api.proto\x1a\x1fai/stigmer/iam/team/v1/io.proto2\xa1\x03\n" +
+	"\"ai/stigmer/iam/team/v1/query.proto\x12\x16ai.stigmer.iam.team.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a ai/stigmer/iam/team/v1/api.proto\x1a\x1fai/stigmer/iam/team/v1/io.proto2\x97\x03\n" +
 	"\x13TeamQueryController\x12~\n" +
 	"\x03get\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a\x1c.ai.stigmer.iam.team.v1.Team\"*¸\x18&\b\x01\x10\x18\"\x05value*\x19unauthorized to view team\x12j\n" +
-	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a\x1c.ai.stigmer.iam.team.v1.Team\"\x04и\x18\x01\x12\x97\x01\n" +
-	"\tlistByOrg\x12+.ai.stigmer.iam.team.v1.ListTeamsByOrgInput\x1a\x1d.ai.stigmer.iam.team.v1.Teams\">¸\x18:\b\x01\x10\x1e\"\x03org*/unauthorized to list teams in this organization\x1a\x04\xa0\xff+\x18B\xef\x01\n" +
+	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a\x1c.ai.stigmer.iam.team.v1.Team\"\x04и\x18\x01\x12\x8d\x01\n" +
+	"\x04list\x12&.ai.stigmer.iam.team.v1.ListTeamsInput\x1a\x1d.ai.stigmer.iam.team.v1.Teams\">¸\x18:\b\x01\x10\x1e\"\x03org*/unauthorized to list teams in this organization\x1a\x04\xa0\xff+\x18B\xef\x01\n" +
 	"\x1acom.ai.stigmer.iam.team.v1B\n" +
 	"QueryProtoP\x01ZHgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/team/v1;teamv1\xa2\x02\x04ASIT\xaa\x02\x16Ai.Stigmer.Iam.Team.V1\xca\x02\x16Ai\\Stigmer\\Iam\\Team\\V1\xe2\x02\"Ai\\Stigmer\\Iam\\Team\\V1\\GPBMetadata\xea\x02\x1aAi::Stigmer::Iam::Team::V1b\x06proto3"
 
 var file_ai_stigmer_iam_team_v1_query_proto_goTypes = []any{
 	(*apiresource.ApiResourceId)(nil),        // 0: ai.stigmer.commons.apiresource.ApiResourceId
 	(*apiresource.ApiResourceReference)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*ListTeamsByOrgInput)(nil),              // 2: ai.stigmer.iam.team.v1.ListTeamsByOrgInput
+	(*ListTeamsInput)(nil),                   // 2: ai.stigmer.iam.team.v1.ListTeamsInput
 	(*Team)(nil),                             // 3: ai.stigmer.iam.team.v1.Team
 	(*Teams)(nil),                            // 4: ai.stigmer.iam.team.v1.Teams
 }
 var file_ai_stigmer_iam_team_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.iam.team.v1.TeamQueryController.get:input_type -> ai.stigmer.commons.apiresource.ApiResourceId
 	1, // 1: ai.stigmer.iam.team.v1.TeamQueryController.getByReference:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2, // 2: ai.stigmer.iam.team.v1.TeamQueryController.listByOrg:input_type -> ai.stigmer.iam.team.v1.ListTeamsByOrgInput
+	2, // 2: ai.stigmer.iam.team.v1.TeamQueryController.list:input_type -> ai.stigmer.iam.team.v1.ListTeamsInput
 	3, // 3: ai.stigmer.iam.team.v1.TeamQueryController.get:output_type -> ai.stigmer.iam.team.v1.Team
 	3, // 4: ai.stigmer.iam.team.v1.TeamQueryController.getByReference:output_type -> ai.stigmer.iam.team.v1.Team
-	4, // 5: ai.stigmer.iam.team.v1.TeamQueryController.listByOrg:output_type -> ai.stigmer.iam.team.v1.Teams
+	4, // 5: ai.stigmer.iam.team.v1.TeamQueryController.list:output_type -> ai.stigmer.iam.team.v1.Teams
 	3, // [3:6] is the sub-list for method output_type
 	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

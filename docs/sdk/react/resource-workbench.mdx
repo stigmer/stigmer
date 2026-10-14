@@ -12,7 +12,8 @@ description: Layout shell and collection hooks for building resource management 
 Headless hook that manages resource collection state: data fetching,
 sorting, selection, and pagination.
 
-Wraps `useFetch` for data and `@tanstack/react-table` for table state
+Pages by token (next and previous, no total) and wraps
+`@tanstack/react-table` for table state
 (sorting, selection, column visibility). The hook itself produces no
 DOM — it returns data, state, and a TanStack Table instance that view
 components (`ResourceTable`, `ResourceCards`, `ResourceList`) consume.
@@ -36,26 +37,27 @@ function useResourceCollection(options: UseResourceCollectionOptions<TData>): Us
 
 <TypeTable
   type={{
-    currentPage: { type: "number", description: "The current page number (mirrors input)." },
     error: { type: "Error | null", description: "Error from the last failed fetch, or `null`." },
+    hasNextPage: { type: "boolean", description: "`true` when a page follows the shown one." },
+    hasPreviousPage: { type: "boolean", description: "`true` when a page was shown before this one." },
     isLoading: { type: "boolean", description: "`true` during the initial data fetch (no data yet)." },
     isRefetching: { type: "boolean", description: "`true` during a background refetch while stale data is shown." },
-    items: { type: "readonly TData[]", description: "The fetched data items for the current page." },
+    items: { type: "readonly TData[]", description: "The fetched data items for the shown page." },
+    nextPage: { type: "() => void", description: "Show the next page." },
+    pageNumber: { type: "number", description: "The shown page's number, 1 on the first page." },
+    previousPage: { type: "() => void", description: "Show the page before." },
     refetch: { type: "() => void", description: "Imperatively trigger a refetch." },
     rowSelection: { type: "RowSelectionState", description: "Current row selection state (item ID -> selected)." },
     setRowSelection: { type: "Dispatch<SetStateAction<RowSelectionState>>", description: "Update row selection state directly." },
     table: { type: "Table<TData> | null", description: "The TanStack Table instance. Available for advanced consumers who need direct table API access (e.g. custom renderers). `null` when no columns are provided." },
-    totalCount: { type: "number", description: "Total number of matching items across all pages." },
-    totalPages: { type: "number", description: "Total number of pages." },
   }}
 />
 
 ```tsx
 const collection = useResourceCollection({
-  listFn: (params) => stigmer.agent.list(params),
+  listFn: createLibraryListFn(stigmer, ApiResourceKind.agent),
   org: "acme",
   query: debouncedQuery,
-  page: 1,
   columns: agentColumns,
 });
 ```
@@ -460,7 +462,7 @@ individual hooks and view components directly.
     initialFilters: { type: "readonly FilterValue[]", description: "Initial filter values (e.g. restored from URL on mount)." },
     initialQuery: { type: "string", description: "Initial search query (e.g. restored from URL on mount)." },
     initialSort: { type: "SortValue | null", description: "Initial sort (e.g. restored from URL on mount)." },
-    listFn: { type: "(params: ListParams) => Promise<ListResult> | null", description: "Async function that fetches a page of resources. Receives `ListParams` and returns `ListResult`. Pass `null` to disable fetching.", required: true },
+    listFn: { type: "WorkbenchListFn<TData> | null", description: "Reads one page of resources (`WorkbenchListFn`): the workbench passes the organization, the search box's text, the page size and the page's token. Pass `null` to disable fetching. `createLibraryListFn` builds one for agents, skills and plugins; `createScheduleListFn` for schedules.", required: true },
     onItemClick: { type: "(item: TData) => void", description: "Called when an item is clicked (navigates to detail, etc.)." },
     onRetry: { type: "() => void", description: "Called when the user clicks \"Retry\" after an error." },
     onStateChange: { type: "(state: { filters: readonly FilterValue[]; query: string; sort: SortValue | null }) => void", description: "Called when any filter/sort/query state changes (for URL sync)." },
@@ -479,7 +481,7 @@ individual hooks and view components directly.
 
 ```tsx
 <ResourceWorkbench
-  listFn={(params) => stigmer.agent.list(params)}
+  listFn={createLibraryListFn(stigmer, ApiResourceKind.agent)}
   org={activeOrg}
   columns={agentColumns}
   filterDefs={agentFilterDefs}
@@ -710,13 +712,12 @@ Options for [`useResourceCollection`](#useresourcecollection).
     columns: { type: "readonly WorkbenchColumnDef<TData>[]", description: "Column definitions for the table view. These are converted to TanStack Table column defs internally." },
     enableSelection: { type: "boolean", description: "Enable row selection state tracking." },
     getItemId: { type: "(item: TData) => string", description: "Extracts a stable unique ID from an item, used as the TanStack row id. Provide it whenever the row type does not carry a top-level `id` (e.g. full resource protos, where the id lives at `metadata.id`). When omitted, falls back to `SearchResult.id`, then the row index." },
-    listFn: { type: "(params: ListParams) => Promise<ListResult> | null", description: "Async function that fetches a page of resources. The hook passes `ListParams` (org, query, page) and expects `ListResult` back. Pass `null` to disable fetching (idle state).", required: true },
+    listFn: { type: "WorkbenchListFn<TData> | null", description: "Reads one page of resources: the hook passes the organization, the query, the page size and the page's token, and shows the page it gets back. Pass `null` to disable fetching (idle state).", required: true },
     onSortChange: { type: "(sort: SortValue | null) => void", description: "Called when the user changes the sort via a column header click." },
     org: { type: "string | null", description: "Organization id to scope the query (a slug is also accepted). Pass `null` to disable fetching.", required: true },
-    page: { type: "number", description: "Current page number (1-indexed)." },
     pageSize: { type: "number", description: "Page size." },
     query: { type: "string", description: "Text search query. No debouncing is applied — the consumer controls timing." },
-    refetchToken: { type: "unknown", description: "Opaque token that forces a background refetch whenever its value changes. Use it to re-read the list after an out-of-band mutation (e.g. applying a manifest or deleting a row) without remounting: bump a counter and pass it here. The current page stays rendered with an `isRefetching` shimmer — no full-list flash. A change to this token alone never resets pagination or sort." },
+    refetchToken: { type: "unknown", description: "Opaque token that forces a background refetch whenever its value changes. Use it to re-read the list after an out-of-band mutation (e.g. applying a manifest or deleting a row) without remounting: bump a counter and pass it here. The current page stays rendered with an `isRefetching` shimmer — no full-list flash. A change to this token alone never moves the page or the sort." },
     sort: { type: "SortValue | null", description: "Active sort. When provided, the column header shows the sort indicator." },
   }}
 />
@@ -764,16 +765,49 @@ beyond `SearchResult` while the Console uses `SearchResult` directly.
 />
 
 
+### WorkbenchListFn
+
+A workbench's data source: reads the page a request names. The
+workbench pages by token (next and previous), so a list carries no total.
+
+
+### WorkbenchPage
+
+One page of rows, as every Stigmer list answers it.
+
+<TypeTable
+  type={{
+    entries: { type: "readonly TData[]", description: "", required: true },
+    nextPageToken: { type: "string", description: "Set when more rows follow; `\"\"` on the last page.", required: true },
+  }}
+/>
+
+
+### WorkbenchPageRequest
+
+What a workbench asks its list function for: one page of an organization's rows.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization id (a slug is also accepted).", required: true },
+    pageSize: { type: "number", description: "The most rows the page holds.", required: true },
+    pageToken: { type: "string", description: "The previous page's `nextPageToken`; `\"\"` for the first page.", required: true },
+    query: { type: "string", description: "The search box's text; empty or absent when nothing is typed." },
+  }}
+/>
+
+
 ### WorkbenchState
 
-Serializable snapshot of the workbench's filter, sort, pagination,
-and view state. Passed to `onStateChange` so consumers can sync
-this state to URL search params or other persistence layers.
+Serializable snapshot of the workbench's filter, sort, page size and
+view state. Passed to `onStateChange` so consumers can sync this state
+to URL search params or other persistence layers. The shown page is not
+part of it: a page is a position in one walk of the list (a token), not
+an address a URL can hold.
 
 <TypeTable
   type={{
     filters: { type: "readonly FilterValue[]", description: "", required: true },
-    page: { type: "number", description: "", required: true },
     pageSize: { type: "number", description: "", required: true },
     query: { type: "string", description: "", required: true },
     sort: { type: "SortValue | null", description: "", required: true },

@@ -38,4 +38,17 @@ public final class LicenseClient {
             return query.list(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
+
+    /**
+     * Every entry of {@code list}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<License> listAll(ListLicensesInput input) {
+        return Pages.<Licenses, License>iterate(
+            input.getPageToken(),
+            token -> list(input.toBuilder().setPageToken(token).build()),
+            Licenses::getEntriesList,
+            Licenses::getNextPageToken);
+    }
 }

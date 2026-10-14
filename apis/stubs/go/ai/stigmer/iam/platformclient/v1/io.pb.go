@@ -73,7 +73,10 @@ func (x *PlatformClientId) GetValue() string {
 type PlatformClients struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Platform client entries.
-	Entries       []*PlatformClient `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	Entries []*PlatformClient `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -115,30 +118,43 @@ func (x *PlatformClients) GetEntries() []*PlatformClient {
 	return nil
 }
 
-// ListPlatformClientsByOrgInput specifies the organization whose platform
+func (x *PlatformClients) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+// ListPlatformClientsInput specifies the organization whose platform
 // clients should be returned.
-type ListPlatformClientsByOrgInput struct {
+type ListPlatformClientsInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization slug to list platform clients for.
-	Org           string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ListPlatformClientsByOrgInput) Reset() {
-	*x = ListPlatformClientsByOrgInput{}
+func (x *ListPlatformClientsInput) Reset() {
+	*x = ListPlatformClientsInput{}
 	mi := &file_ai_stigmer_iam_platformclient_v1_io_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ListPlatformClientsByOrgInput) String() string {
+func (x *ListPlatformClientsInput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ListPlatformClientsByOrgInput) ProtoMessage() {}
+func (*ListPlatformClientsInput) ProtoMessage() {}
 
-func (x *ListPlatformClientsByOrgInput) ProtoReflect() protoreflect.Message {
+func (x *ListPlatformClientsInput) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_stigmer_iam_platformclient_v1_io_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -150,14 +166,28 @@ func (x *ListPlatformClientsByOrgInput) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListPlatformClientsByOrgInput.ProtoReflect.Descriptor instead.
-func (*ListPlatformClientsByOrgInput) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListPlatformClientsInput.ProtoReflect.Descriptor instead.
+func (*ListPlatformClientsInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_iam_platformclient_v1_io_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *ListPlatformClientsByOrgInput) GetOrg() string {
+func (x *ListPlatformClientsInput) GetOrg() string {
 	if x != nil {
 		return x.Org
+	}
+	return ""
+}
+
+func (x *ListPlatformClientsInput) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListPlatformClientsInput) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
 	}
 	return ""
 }
@@ -292,11 +322,15 @@ const file_ai_stigmer_iam_platformclient_v1_io_proto_rawDesc = "" +
 	"\n" +
 	")ai/stigmer/iam/platformclient/v1/io.proto\x12 ai.stigmer.iam.platformclient.v1\x1a*ai/stigmer/iam/platformclient/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"3\n" +
 	"\x10PlatformClientId\x12\x1f\n" +
-	"\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"]\n" +
+	"\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"\x85\x01\n" +
 	"\x0fPlatformClients\x12J\n" +
-	"\aentries\x18\x01 \x03(\v20.ai.stigmer.iam.platformclient.v1.PlatformClientR\aentries\":\n" +
-	"\x1dListPlatformClientsByOrgInput\x12\x19\n" +
-	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\x9e\x01\n" +
+	"\aentries\x18\x01 \x03(\v20.ai.stigmer.iam.platformclient.v1.PlatformClientR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x84\x01\n" +
+	"\x18ListPlatformClientsInput\x12\x19\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x9e\x01\n" +
 	"\x1cPlatformClientCreateResponse\x12Y\n" +
 	"\x0fplatform_client\x18\x01 \x01(\v20.ai.stigmer.iam.platformclient.v1.PlatformClientR\x0eplatformClient\x12#\n" +
 	"\rclient_secret\x18\x02 \x01(\tR\fclientSecret\"\x80\x03\n" +
@@ -321,13 +355,13 @@ func file_ai_stigmer_iam_platformclient_v1_io_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_iam_platformclient_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_ai_stigmer_iam_platformclient_v1_io_proto_goTypes = []any{
-	(*PlatformClientId)(nil),              // 0: ai.stigmer.iam.platformclient.v1.PlatformClientId
-	(*PlatformClients)(nil),               // 1: ai.stigmer.iam.platformclient.v1.PlatformClients
-	(*ListPlatformClientsByOrgInput)(nil), // 2: ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput
-	(*PlatformClientCreateResponse)(nil),  // 3: ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse
-	(*UpdatePlatformClientInput)(nil),     // 4: ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput
-	(*PlatformClient)(nil),                // 5: ai.stigmer.iam.platformclient.v1.PlatformClient
-	(*fieldmaskpb.FieldMask)(nil),         // 6: google.protobuf.FieldMask
+	(*PlatformClientId)(nil),             // 0: ai.stigmer.iam.platformclient.v1.PlatformClientId
+	(*PlatformClients)(nil),              // 1: ai.stigmer.iam.platformclient.v1.PlatformClients
+	(*ListPlatformClientsInput)(nil),     // 2: ai.stigmer.iam.platformclient.v1.ListPlatformClientsInput
+	(*PlatformClientCreateResponse)(nil), // 3: ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse
+	(*UpdatePlatformClientInput)(nil),    // 4: ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput
+	(*PlatformClient)(nil),               // 5: ai.stigmer.iam.platformclient.v1.PlatformClient
+	(*fieldmaskpb.FieldMask)(nil),        // 6: google.protobuf.FieldMask
 }
 var file_ai_stigmer_iam_platformclient_v1_io_proto_depIdxs = []int32{
 	5, // 0: ai.stigmer.iam.platformclient.v1.PlatformClients.entries:type_name -> ai.stigmer.iam.platformclient.v1.PlatformClient

@@ -13,6 +13,7 @@ import { useDeleteApiKey } from "./useDeleteApiKey.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { LastUsedLabel } from "../internal/LastUsedLabel.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -64,7 +65,7 @@ export function ApiKeyListPanel({
   className,
   now,
 }: ApiKeyListPanelProps) {
-  const { apiKeys, isLoading, error, refetch } = useApiKeyList();
+  const { apiKeys, isLoading, error, refetch, ...pager } = useApiKeyList();
 
   if (onRefetchRef) {
     onRefetchRef(refetch);
@@ -79,6 +80,7 @@ export function ApiKeyListPanel({
       emptyText="No API keys yet."
       className={className}
       now={now}
+      pager={pager}
     />
   );
 }
@@ -98,6 +100,17 @@ export interface ApiKeyListViewProps {
   readonly emptyText: string;
   readonly className?: string;
   readonly now?: Date;
+  /** The list's paging state, for its "Load more" footer. */
+  readonly pager: KeyListPager;
+}
+
+/** The paging fields a key list hook returns beside its keys. */
+export interface KeyListPager {
+  readonly hasMore: boolean;
+  readonly loadMore: () => void;
+  readonly isLoadingMore: boolean;
+  readonly loadMoreError: Error | null;
+  readonly isRefetching: boolean;
 }
 
 /**
@@ -114,6 +127,7 @@ export function ApiKeyListView({
   emptyText,
   className,
   now,
+  pager,
 }: ApiKeyListViewProps) {
   const orgs = useOptionalOrg()?.orgs ?? NO_ORGS;
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
@@ -156,29 +170,28 @@ export function ApiKeyListView({
   }
 
   return (
-    <div
-      className={cn("stg:space-y-2", className)}
-      role="list"
-      aria-label="API keys"
-    >
-      {apiKeys.map((key) => {
-        const id = key.metadata?.id ?? "";
-        return (
-          <ApiKeyRow
-            key={id}
-            apiKey={key}
-            scope={describeKeyScope(key, orgs)}
-            now={now}
-            isConfirming={confirmingId === id}
-            onConfirmDelete={() => setConfirmingId(id)}
-            onCancelDelete={() => setConfirmingId(null)}
-            onDeleted={() => {
-              setConfirmingId(null);
-              onDeleted();
-            }}
-          />
-        );
-      })}
+    <div className={className}>
+      <div className="stg:space-y-2" role="list" aria-label="API keys">
+        {apiKeys.map((key) => {
+          const id = key.metadata?.id ?? "";
+          return (
+            <ApiKeyRow
+              key={id}
+              apiKey={key}
+              scope={describeKeyScope(key, orgs)}
+              now={now}
+              isConfirming={confirmingId === id}
+              onConfirmDelete={() => setConfirmingId(id)}
+              onCancelDelete={() => setConfirmingId(null)}
+              onDeleted={() => {
+                setConfirmingId(null);
+                onDeleted();
+              }}
+            />
+          );
+        })}
+      </div>
+      <LoadMoreFooter hasMore={pager.hasMore} loadMore={pager.loadMore} isLoadingMore={pager.isLoadingMore} loadMoreError={pager.loadMoreError} />
     </div>
   );
 }

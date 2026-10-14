@@ -251,7 +251,7 @@ describe("Run scores", () => {
     expect((await clients.scoreQuery.get({ value: health.metadata!.id })).spec?.value).toEqual(health.spec?.value);
 
     const session = await clients.scoreQuery.listBySession({ sessionId: sessionIdOf(run) });
-    expect(session.items.map((s) => s.spec?.metric).sort()).toEqual([FEEDBACK, RUN_HEALTH]);
+    expect(session.entries.map((s) => s.spec?.metric).sort()).toEqual([FEEDBACK, RUN_HEALTH]);
   });
 
   it("[rpc:ScoreCommandController.create] a score lives in its run's organization", async () => {
@@ -285,7 +285,7 @@ describe("Run scores", () => {
     // Grading starts on COMPLETED only; give a wrongly started workflow
     // time to write before reading.
     await new Promise<void>((resolve) => setTimeout(resolve, 3_000));
-    expect((await clients.scoreQuery.listByRun({ runId })).items).toEqual([]);
+    expect((await clients.scoreQuery.listByRun({ runId })).entries).toEqual([]);
   });
 
   it("[rpc:ScoreCommandController.delete] deleting a run removes its scores, and deleting a session its runs' scores", async () => {
@@ -427,9 +427,9 @@ describe("Run scores", () => {
     expect(JSON.stringify(report)).not.toContain(TYPED_TEXT);
 
     const founders = await lane.clients.scoreQuery.listFlaggedByAgent({ org: tenancy.org, agentId });
-    expect(founders.items.map((s) => s.spec?.runId)).not.toContain(membersRun.metadata!.id);
+    expect(founders.entries.map((s) => s.spec?.runId)).not.toContain(membersRun.metadata!.id);
     const members = await member.scoreQuery.listFlaggedByAgent({ org: tenancy.org, agentId });
-    expect(members.items.map((s) => s.spec?.runId)).toContain(membersRun.metadata!.id);
-    expect(members.items.map((s) => s.spec?.runId)).not.toContain(foundersRun.metadata!.id);
+    expect(members.entries.map((s) => s.spec?.runId)).toContain(membersRun.metadata!.id);
+    expect(members.entries.map((s) => s.spec?.runId)).not.toContain(foundersRun.metadata!.id);
   });
 });

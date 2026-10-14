@@ -75,7 +75,7 @@ ChannelApp channelApp = client.channelapps().get("chapp_01j5q3k7m8r2s4tnz2hfp0q0
 |--------|-------------|
 | [`get`](#get) | Get a channel app by its unique identifier. |
 | [`getByReference`](#getbyreference) | Get a channel app by its organization-scoped reference (org/slug). |
-| [`listByOrg`](#listbyorg) | List all channel apps belonging to an organization. |
+| [`list`](#list) | List the channel apps belonging to an organization. |
 | [`apply`](#apply) | Create or update a channel app. |
 | [`create`](#create) | Create a channel app. |
 | [`update`](#update) | Update a channel app: the fields update_mask names change, every other field keeps its stored value. |
@@ -176,46 +176,56 @@ ChannelApp channelApp = client.channelapps().getByReference(ApiResourceReference
 
 **Returns**: [`ChannelApp`](#channelapp)
 
-### listByOrg
+### list
 
-List all channel apps belonging to an organization.
+List the channel apps belonging to an organization.
 
-Returns the ChannelApps of the input org that the caller may view, newest first, with secret fields redacted. Typically a small set, so results are not paginated.
+Returns the ChannelApps of the input org that the caller may view, newest first, one page at a time, with secret fields redacted.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const channelApps = await stigmer.channelapp.listByOrg({
+const channelApps = await stigmer.channelapp.list({
   org: "...",
+  pageSize: 0,
+  pageToken: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-channelApps, err := client.ChannelApp.ListByOrg(ctx, &stigmer.ListChannelAppsByOrgInput{
-  Org: "...",
+channelApps, err := client.ChannelApp.List(ctx, &stigmer.ListChannelAppsInput{
+  Org:       "...",
+  PageSize:  0,
+  PageToken: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-channel_apps = client.channelapps.list_by_org(ListChannelAppsByOrgInput(
+channel_apps = client.channelapps.list(ListChannelAppsInput(
     org="...",
+    page_size=0,
+    page_token="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ChannelApps channelApps = client.channelapps().listByOrg(ListChannelAppsByOrgInput.builder()
+ChannelApps channelApps = client.channelapps().list(ListChannelAppsInput.builder()
     .org("...")
+    .pageSize(0)
+    .pageToken("...")
     .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`ListChannelAppsByOrgInput`](#listchannelappsbyorginput)
+**Parameters**: [`ListChannelAppsInput`](#listchannelappsinput)
 
 **Returns**: [`ChannelApps`](#channelapps)
+
+**Every page**: `listAll` (Go `ListAll`, Python `list_all`, Java `listAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
 
 ### apply
 
@@ -568,13 +578,15 @@ Generic reference to any API resource.
   }}
 />
 
-### ListChannelAppsByOrgInput
+### ListChannelAppsInput
 
-ListChannelAppsByOrgInput specifies the organization whose channel apps should be returned.
+ListChannelAppsInput specifies the organization whose channel apps should be returned.
 
 <TypeTable
   type={{
     org: { type: "string", description: "Organization slug to list channel apps for." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 
@@ -585,6 +597,7 @@ ChannelApps contains a list of channel app resources.
 <TypeTable
   type={{
     entries: { type: "ChannelAppInput[]", description: "Channel app entries.", typeDescriptionLink: "#channelappinput" },
+    nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token to continue." },
   }}
 />
 

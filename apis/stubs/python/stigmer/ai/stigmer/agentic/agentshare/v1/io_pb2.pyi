@@ -1,7 +1,6 @@
 from ai.stigmer.agentic.agentshare.v1 import api_pb2 as _api_pb2
 from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as _io_pb2
-from ai.stigmer.commons.rpc import pagination_pb2 as _pagination_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf import field_mask_pb2 as _field_mask_pb2
 from google.protobuf.internal import containers as _containers
@@ -18,26 +17,28 @@ class AgentShareId(_message.Message):
     value: str
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
-class GetAgentSharesByAgentRequest(_message.Message):
-    __slots__ = ("agent_id", "page_info", "org")
+class ListAgentSharesByAgentRequest(_message.Message):
+    __slots__ = ("agent_id", "org", "page_size", "page_token")
     AGENT_ID_FIELD_NUMBER: _ClassVar[int]
-    PAGE_INFO_FIELD_NUMBER: _ClassVar[int]
     ORG_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     agent_id: str
-    page_info: _pagination_pb2.PageInfo
     org: str
-    def __init__(self, agent_id: _Optional[str] = ..., page_info: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ..., org: _Optional[str] = ...) -> None: ...
+    page_size: int
+    page_token: str
+    def __init__(self, agent_id: _Optional[str] = ..., org: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
 class AgentShareList(_message.Message):
-    __slots__ = ("total_count", "items")
-    TOTAL_COUNT_FIELD_NUMBER: _ClassVar[int]
-    ITEMS_FIELD_NUMBER: _ClassVar[int]
-    total_count: int
-    items: _containers.RepeatedCompositeFieldContainer[_api_pb2.AgentShare]
-    def __init__(self, total_count: _Optional[int] = ..., items: _Optional[_Iterable[_Union[_api_pb2.AgentShare, _Mapping]]] = ...) -> None: ...
+    __slots__ = ("entries", "next_page_token")
+    ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.AgentShare]
+    next_page_token: str
+    def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.AgentShare, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
 
 class ListAgentSharesRequest(_message.Message):
-    __slots__ = ("org", "labels", "page_info")
+    __slots__ = ("org", "labels", "page_size", "page_token")
     class LabelsEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -47,11 +48,13 @@ class ListAgentSharesRequest(_message.Message):
         def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
     ORG_FIELD_NUMBER: _ClassVar[int]
     LABELS_FIELD_NUMBER: _ClassVar[int]
-    PAGE_INFO_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     org: str
     labels: _containers.ScalarMap[str, str]
-    page_info: _pagination_pb2.PageInfo
-    def __init__(self, org: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ..., page_info: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ...) -> None: ...
+    page_size: int
+    page_token: str
+    def __init__(self, org: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
 class RotateShareLinkInput(_message.Message):
     __slots__ = ("resource_id",)

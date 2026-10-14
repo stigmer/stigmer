@@ -43,7 +43,7 @@ service ChannelMessageQueryController {
   //
   // @internal
   // The runner's tool-attachment decision, instead of AgentChannel's
-  // getByAgent (FGA-scoped — a sandbox token structurally receives an
+  // listByAgent (FGA-scoped — a sandbox token structurally receives an
   // empty list there). Cloud
   // answers from the SAME candidate computation ChannelMessagingReach
   // uses (chain → serving proactive channels → sender-registry filter),

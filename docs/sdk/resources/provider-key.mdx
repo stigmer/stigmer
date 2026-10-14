@@ -22,13 +22,17 @@ List the keys that serve the organization, its own and any it inherits from its 
 ```typescript
 const listProviderKeysOutput = await stigmer.providerkey.list({
   org: "...",
+  pageSize: 0,
+  pageToken: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 listProviderKeysOutput, err := client.ProviderKey.List(ctx, &stigmer.ListProviderKeysInput{
-  Org: "...",
+  Org:       "...",
+  PageSize:  0,
+  PageToken: "...",
 })
 ```
 </Tab>
@@ -36,6 +40,8 @@ listProviderKeysOutput, err := client.ProviderKey.List(ctx, &stigmer.ListProvide
 ```python
 list_provider_keys_output = client.providerkeys.list(ListProviderKeysInput(
     org="...",
+    page_size=0,
+    page_token="...",
 ))
 ```
 </Tab>
@@ -43,6 +49,8 @@ list_provider_keys_output = client.providerkeys.list(ListProviderKeysInput(
 ```java
 ListProviderKeysOutput listProviderKeysOutput = client.providerkeys().list(ListProviderKeysInput.builder()
     .org("...")
+    .pageSize(0)
+    .pageToken("...")
     .build());
 ```
 </Tab>
@@ -51,6 +59,8 @@ ListProviderKeysOutput listProviderKeysOutput = client.providerkeys().list(ListP
 **Parameters**: [`ListProviderKeysInput`](#listproviderkeysinput)
 
 **Returns**: [`ListProviderKeysOutput`](#listproviderkeysoutput)
+
+**Every page**: `listAll` (Go `ListAll`, Python `list_all`, Java `listAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
 
 ### delete
 
@@ -183,6 +193,8 @@ List the organization's provider keys.
 <TypeTable
   type={{
     org: { type: "string", description: "" },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 
@@ -190,7 +202,8 @@ List the organization's provider keys.
 
 <TypeTable
   type={{
-    keys: { type: "ProviderKeyInput[]", description: "One row per provider the organization is served on its own or its parent organization's key, in provider order." },
+    entries: { type: "ProviderKeyInput[]", description: "One row per provider the organization is served on its own or its parent organization's key, in provider order." },
+    nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token to continue." },
   }}
 />
 

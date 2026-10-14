@@ -25,12 +25,11 @@ _sym_db = _symbol_database.Default()
 from ai.stigmer.agentic.agentchannel.v1 import delivery_pb2 as ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_delivery__pb2
 from ai.stigmer.agentic.agentchannel.v1 import message_io_pb2 as ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_message__io__pb2
 from ai.stigmer.agentic.agentchannel.v1 import outbound_pb2 as ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_outbound__pb2
-from ai.stigmer.commons.rpc import pagination_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_pagination__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n8ai/stigmer/agentic/agentchannel/v1/conversation_io.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a\x31\x61i/stigmer/agentic/agentchannel/v1/delivery.proto\x1a\x33\x61i/stigmer/agentic/agentchannel/v1/message_io.proto\x1a\x31\x61i/stigmer/agentic/agentchannel/v1/outbound.proto\x1a\'ai/stigmer/commons/rpc/pagination.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc5\x05\n\x13\x43hannelConversation\x12(\n\x10\x61gent_channel_id\x18\x01 \x01(\tR\x0e\x61gentChannelId\x12)\n\x10\x63onversation_key\x18\x02 \x01(\tR\x0f\x63onversationKey\x12\x10\n\x03org\x18\x03 \x01(\tR\x03org\x12Q\n\x07\x63ontrol\x18\x04 \x01(\x0e\x32\x37.ai.stigmer.agentic.agentchannel.v1.ConversationControlR\x07\x63ontrol\x12#\n\rcontrolled_by\x18\x05 \x01(\tR\x0c\x63ontrolledBy\x12H\n\x12\x63ontrol_changed_at\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x10\x63ontrolChangedAt\x12\'\n\x0fneeds_attention\x18\x07 \x01(\x08R\x0eneedsAttention\x12)\n\x10\x61ttention_reason\x18\x08 \x01(\tR\x0f\x61ttentionReason\x12L\n\x14\x61ttention_changed_at\x18\t \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x12\x61ttentionChangedAt\x12!\n\x0c\x64isplay_name\x18\n \x01(\tR\x0b\x64isplayName\x12S\n\x18last_customer_message_at\x18\x0b \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x15lastCustomerMessageAt\x12\x44\n\x10last_activity_at\x18\x0c \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x0elastActivityAt\x12%\n\x0e\x61waiting_reply\x18\r \x01(\x08R\rawaitingReply\"\xb8\x07\n\x18\x43onversationTimelineItem\x12\x17\n\x07item_id\x18\x01 \x01(\tR\x06itemId\x12H\n\x04lane\x18\x02 \x01(\x0e\x32\x34.ai.stigmer.agentic.agentchannel.v1.ConversationLaneR\x04lane\x12R\n\x06\x61uthor\x18\x03 \x01(\x0e\x32:.ai.stigmer.agentic.agentchannel.v1.ConversationItemAuthorR\x06\x61uthor\x12\x1f\n\x0b\x61uthored_by\x18\x04 \x01(\tR\nauthoredBy\x12\x12\n\x04text\x18\x05 \x01(\tR\x04text\x12\x32\n\x15provider_message_type\x18\x06 \x01(\tR\x13providerMessageType\x12*\n\x02\x61t\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x02\x61t\x12\x62\n\x0f\x64\x65livery_status\x18\x08 \x01(\x0e\x32\x39.ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatusR\x0e\x64\x65liveryStatus\x12\\\n\rreceipt_state\x18\t \x01(\x0e\x32\x37.ai.stigmer.agentic.agentchannel.v1.ChannelReceiptStateR\x0creceiptState\x12Q\n\x06origin\x18\n \x01(\x0e\x32\x39.ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOriginR\x06origin\x12%\n\x0ereceipt_detail\x18\x0b \x01(\tR\rreceiptDetail\x12,\n\x12receipt_error_code\x18\x0c \x01(\x05R\x10receiptErrorCode\x12N\n\x05media\x18\r \x01(\x0b\x32\x38.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRefR\x05media\x12%\n\x0e\x61ttempt_detail\x18\x0e \x01(\tR\rattemptDetail\x12o\n\x14\x61ttempt_failure_kind\x18\x0f \x01(\x0e\x32=.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKindR\x12\x61ttemptFailureKind\"t\n\x14\x43onversationMediaRef\x12\x1a\n\x08\x66ilename\x18\x01 \x01(\tR\x08\x66ilename\x12!\n\x0c\x63ontent_type\x18\x02 \x01(\tR\x0b\x63ontentType\x12\x1d\n\nsize_bytes\x18\x03 \x01(\x03R\tsizeBytes\"\x8a\x02\n\x1dListChannelConversationsInput\x12\x1b\n\x03org\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18?R\x03org\x12\x32\n\x10\x61gent_channel_id\x18\x02 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x01R\x0e\x61gentChannelId\x12=\n\tpage_info\x18\x03 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x08pageInfo\x12Y\n\x06\x66ilter\x18\x04 \x01(\x0e\x32\x41.ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilterR\x06\x66ilter\"\x89\x01\n\x17\x43hannelConversationList\x12\x1f\n\x0btotal_count\x18\x01 \x01(\x05R\ntotalCount\x12M\n\x05items\x18\x02 \x03(\x0b\x32\x37.ai.stigmer.agentic.agentchannel.v1.ChannelConversationR\x05items\"\x8a\x01\n\x1bGetChannelConversationInput\x12\x34\n\x10\x61gent_channel_id\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x0e\x61gentChannelId\x12\x35\n\x10\x63onversation_key\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x0f\x63onversationKey\"\xc7\x01\n\x1cGetConversationTimelineInput\x12\x34\n\x10\x61gent_channel_id\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x0e\x61gentChannelId\x12\x35\n\x10\x63onversation_key\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x0f\x63onversationKey\x12\x1b\n\tpage_size\x18\x03 \x01(\x05R\x08pageSize\x12\x1d\n\npage_token\x18\x04 \x01(\tR\tpageToken\"\x92\x01\n\x14\x43onversationTimeline\x12R\n\x05items\x18\x01 \x03(\x0b\x32<.ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItemR\x05items\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xb8\x01\n$GetConversationMediaDownloadUrlInput\x12\x34\n\x10\x61gent_channel_id\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x0e\x61gentChannelId\x12\x35\n\x10\x63onversation_key\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x0f\x63onversationKey\x12#\n\x07item_id\x18\x03 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x02R\x06itemId\"k\n\x1c\x43onversationMediaDownloadUrl\x12\x10\n\x03url\x18\x01 \x01(\tR\x03url\x12\x39\n\nexpires_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\texpiresAt\"\x87\x01\n\x18\x43onversationControlInput\x12\x34\n\x10\x61gent_channel_id\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x0e\x61gentChannelId\x12\x35\n\x10\x63onversation_key\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x0f\x63onversationKey\"\xe5\x01\n\x18ReplyToConversationInput\x12\x34\n\x10\x61gent_channel_id\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x0e\x61gentChannelId\x12\x35\n\x10\x63onversation_key\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x0f\x63onversationKey\x12\\\n\x07payload\x18\x03 \x01(\x0b\x32:.ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayloadB\x06\xbaH\x03\xc8\x01\x01R\x07payload\"?\n\x19\x45scalateConversationInput\x12\"\n\x06reason\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x08R\x06reason*a\n\x13\x43onversationControl\x12$\n conversation_control_unspecified\x10\x00\x12\x11\n\rcontrol_agent\x10\x01\x12\x11\n\rcontrol_human\x10\x02*Y\n\x10\x43onversationLane\x12!\n\x1d\x63onversation_lane_unspecified\x10\x00\x12\x0f\n\x0blane_public\x10\x01\x12\x11\n\rlane_internal\x10\x02*\x93\x01\n\x16\x43onversationItemAuthor\x12(\n$conversation_item_author_unspecified\x10\x00\x12\x13\n\x0f\x61uthor_customer\x10\x01\x12\x10\n\x0c\x61uthor_agent\x10\x02\x12\x13\n\x0f\x61uthor_teammate\x10\x03\x12\x13\n\x0f\x61uthor_platform\x10\x04*i\n\x1d\x43hannelConversationListFilter\x12\x30\n,channel_conversation_list_filter_unspecified\x10\x00\x12\x16\n\x12\x66ilter_wants_human\x10\x01\x42\xea\x01\n&com.ai.stigmer.agentic.agentchannel.v1B\x13\x43onversationIoProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n8ai/stigmer/agentic/agentchannel/v1/conversation_io.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a\x31\x61i/stigmer/agentic/agentchannel/v1/delivery.proto\x1a\x33\x61i/stigmer/agentic/agentchannel/v1/message_io.proto\x1a\x31\x61i/stigmer/agentic/agentchannel/v1/outbound.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc5\x05\n\x13\x43hannelConversation\x12(\n\x10\x61gent_channel_id\x18\x01 \x01(\tR\x0e\x61gentChannelId\x12)\n\x10\x63onversation_key\x18\x02 \x01(\tR\x0f\x63onversationKey\x12\x10\n\x03org\x18\x03 \x01(\tR\x03org\x12Q\n\x07\x63ontrol\x18\x04 \x01(\x0e\x32\x37.ai.stigmer.agentic.agentchannel.v1.ConversationControlR\x07\x63ontrol\x12#\n\rcontrolled_by\x18\x05 \x01(\tR\x0c\x63ontrolledBy\x12H\n\x12\x63ontrol_changed_at\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x10\x63ontrolChangedAt\x12\'\n\x0fneeds_attention\x18\x07 \x01(\x08R\x0eneedsAttention\x12)\n\x10\x61ttention_reason\x18\x08 \x01(\tR\x0f\x61ttentionReason\x12L\n\x14\x61ttention_changed_at\x18\t \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x12\x61ttentionChangedAt\x12!\n\x0c\x64isplay_name\x18\n \x01(\tR\x0b\x64isplayName\x12S\n\x18last_customer_message_at\x18\x0b \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x15lastCustomerMessageAt\x12\x44\n\x10last_activity_at\x18\x0c \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x0elastActivityAt\x12%\n\x0e\x61waiting_reply\x18\r \x01(\x08R\rawaitingReply\"\xb8\x07\n\x18\x43onversationTimelineItem\x12\x17\n\x07item_id\x18\x01 \x01(\tR\x06itemId\x12H\n\x04lane\x18\x02 \x01(\x0e\x32\x34.ai.stigmer.agentic.agentchannel.v1.ConversationLaneR\x04lane\x12R\n\x06\x61uthor\x18\x03 \x01(\x0e\x32:.ai.stigmer.agentic.agentchannel.v1.ConversationItemAuthorR\x06\x61uthor\x12\x1f\n\x0b\x61uthored_by\x18\x04 \x01(\tR\nauthoredBy\x12\x12\n\x04text\x18\x05 \x01(\tR\x04text\x12\x32\n\x15provider_message_type\x18\x06 \x01(\tR\x13providerMessageType\x12*\n\x02\x61t\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x02\x61t\x12\x62\n\x0f\x64\x65livery_status\x18\x08 \x01(\x0e\x32\x39.ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatusR\x0e\x64\x65liveryStatus\x12\\\n\rreceipt_state\x18\t \x01(\x0e\x32\x37.ai.stigmer.agentic.agentchannel.v1.ChannelReceiptStateR\x0creceiptState\x12Q\n\x06origin\x18\n \x01(\x0e\x32\x39.ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOriginR\x06origin\x12%\n\x0ereceipt_detail\x18\x0b \x01(\tR\rreceiptDetail\x12,\n\x12receipt_error_code\x18\x0c \x01(\x05R\x10receiptErrorCode\x12N\n\x05media\x18\r \x01(\x0b\x32\x38.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRefR\x05media\x12%\n\x0e\x61ttempt_detail\x18\x0e \x01(\tR\rattemptDetail\x12o\n\x14\x61ttempt_failure_kind\x18\x0f \x01(\x0e\x32=.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKindR\x12\x61ttemptFailureKind\"t\n\x14\x43onversationMediaRef\x12\x1a\n\x08\x66ilename\x18\x01 \x01(\tR\x08\x66ilename\x12!\n\x0c\x63ontent_type\x18\x02 \x01(\tR\x0b\x63ontentType\x12\x1d\n\nsize_bytes\x18\x03 \x01(\x03R\tsizeBytes\"\xab\x02\n\x1dListChannelConversationsInput\x12\x1b\n\x03org\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18?R\x03org\x12\x32\n\x10\x61gent_channel_id\x18\x02 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x01R\x0e\x61gentChannelId\x12Y\n\x06\x66ilter\x18\x04 \x01(\x0e\x32\x41.ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilterR\x06\x66ilter\x12$\n\tpage_size\x18\x05 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x06 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageTokenJ\x04\x08\x03\x10\x04R\tpage_info\"\xa7\x01\n\x17\x43hannelConversationList\x12Q\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x37.ai.stigmer.agentic.agentchannel.v1.ChannelConversationR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\x08\x01\x10\x02R\x0btotal_count\"\xcc\x01\n\x1e\x43ountChannelConversationsInput\x12\x1b\n\x03org\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18?R\x03org\x12\x32\n\x10\x61gent_channel_id\x18\x02 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x01R\x0e\x61gentChannelId\x12Y\n\x06\x66ilter\x18\x03 \x01(\x0e\x32\x41.ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilterR\x06\x66ilter\"0\n\x18\x43hannelConversationCount\x12\x14\n\x05\x63ount\x18\x01 \x01(\x05R\x05\x63ount\"\x8a\x01\n\x1bGetChannelConversationInput\x12\x34\n\x10\x61gent_channel_id\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x0e\x61gentChannelId\x12\x35\n\x10\x63onversation_key\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x0f\x63onversationKey\"\xdb\x01\n\x1dListConversationTimelineInput\x12\x34\n\x10\x61gent_channel_id\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x0e\x61gentChannelId\x12\x35\n\x10\x63onversation_key\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x0f\x63onversationKey\x12$\n\tpage_size\x18\x03 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x04 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\"\x96\x01\n\x14\x43onversationTimeline\x12V\n\x07\x65ntries\x18\x01 \x03(\x0b\x32<.ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItemR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xb8\x01\n$GetConversationMediaDownloadUrlInput\x12\x34\n\x10\x61gent_channel_id\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x0e\x61gentChannelId\x12\x35\n\x10\x63onversation_key\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x0f\x63onversationKey\x12#\n\x07item_id\x18\x03 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x02R\x06itemId\"k\n\x1c\x43onversationMediaDownloadUrl\x12\x10\n\x03url\x18\x01 \x01(\tR\x03url\x12\x39\n\nexpires_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\texpiresAt\"\x87\x01\n\x18\x43onversationControlInput\x12\x34\n\x10\x61gent_channel_id\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x0e\x61gentChannelId\x12\x35\n\x10\x63onversation_key\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x0f\x63onversationKey\"\xe5\x01\n\x18ReplyToConversationInput\x12\x34\n\x10\x61gent_channel_id\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x0e\x61gentChannelId\x12\x35\n\x10\x63onversation_key\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x0f\x63onversationKey\x12\\\n\x07payload\x18\x03 \x01(\x0b\x32:.ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayloadB\x06\xbaH\x03\xc8\x01\x01R\x07payload\"?\n\x19\x45scalateConversationInput\x12\"\n\x06reason\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x08R\x06reason*a\n\x13\x43onversationControl\x12$\n conversation_control_unspecified\x10\x00\x12\x11\n\rcontrol_agent\x10\x01\x12\x11\n\rcontrol_human\x10\x02*Y\n\x10\x43onversationLane\x12!\n\x1d\x63onversation_lane_unspecified\x10\x00\x12\x0f\n\x0blane_public\x10\x01\x12\x11\n\rlane_internal\x10\x02*\x93\x01\n\x16\x43onversationItemAuthor\x12(\n$conversation_item_author_unspecified\x10\x00\x12\x13\n\x0f\x61uthor_customer\x10\x01\x12\x10\n\x0c\x61uthor_agent\x10\x02\x12\x13\n\x0f\x61uthor_teammate\x10\x03\x12\x13\n\x0f\x61uthor_platform\x10\x04*i\n\x1d\x43hannelConversationListFilter\x12\x30\n,channel_conversation_list_filter_unspecified\x10\x00\x12\x16\n\x12\x66ilter_wants_human\x10\x01\x42\xea\x01\n&com.ai.stigmer.agentic.agentchannel.v1B\x13\x43onversationIoProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -42,14 +41,26 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LISTCHANNELCONVERSATIONSINPUT'].fields_by_name['org']._serialized_options = b'\272H\006r\004\020\001\030?'
   _globals['_LISTCHANNELCONVERSATIONSINPUT'].fields_by_name['agent_channel_id']._loaded_options = None
   _globals['_LISTCHANNELCONVERSATIONSINPUT'].fields_by_name['agent_channel_id']._serialized_options = b'\272H\005r\003\030\200\001'
+  _globals['_LISTCHANNELCONVERSATIONSINPUT'].fields_by_name['page_size']._loaded_options = None
+  _globals['_LISTCHANNELCONVERSATIONSINPUT'].fields_by_name['page_size']._serialized_options = b'\272H\004\032\002(\000'
+  _globals['_LISTCHANNELCONVERSATIONSINPUT'].fields_by_name['page_token']._loaded_options = None
+  _globals['_LISTCHANNELCONVERSATIONSINPUT'].fields_by_name['page_token']._serialized_options = b'\272H\005r\003\030\200\010'
+  _globals['_COUNTCHANNELCONVERSATIONSINPUT'].fields_by_name['org']._loaded_options = None
+  _globals['_COUNTCHANNELCONVERSATIONSINPUT'].fields_by_name['org']._serialized_options = b'\272H\006r\004\020\001\030?'
+  _globals['_COUNTCHANNELCONVERSATIONSINPUT'].fields_by_name['agent_channel_id']._loaded_options = None
+  _globals['_COUNTCHANNELCONVERSATIONSINPUT'].fields_by_name['agent_channel_id']._serialized_options = b'\272H\005r\003\030\200\001'
   _globals['_GETCHANNELCONVERSATIONINPUT'].fields_by_name['agent_channel_id']._loaded_options = None
   _globals['_GETCHANNELCONVERSATIONINPUT'].fields_by_name['agent_channel_id']._serialized_options = b'\272H\007r\005\020\001\030\200\001'
   _globals['_GETCHANNELCONVERSATIONINPUT'].fields_by_name['conversation_key']._loaded_options = None
   _globals['_GETCHANNELCONVERSATIONINPUT'].fields_by_name['conversation_key']._serialized_options = b'\272H\007r\005\020\001\030\200\001'
-  _globals['_GETCONVERSATIONTIMELINEINPUT'].fields_by_name['agent_channel_id']._loaded_options = None
-  _globals['_GETCONVERSATIONTIMELINEINPUT'].fields_by_name['agent_channel_id']._serialized_options = b'\272H\007r\005\020\001\030\200\001'
-  _globals['_GETCONVERSATIONTIMELINEINPUT'].fields_by_name['conversation_key']._loaded_options = None
-  _globals['_GETCONVERSATIONTIMELINEINPUT'].fields_by_name['conversation_key']._serialized_options = b'\272H\007r\005\020\001\030\200\001'
+  _globals['_LISTCONVERSATIONTIMELINEINPUT'].fields_by_name['agent_channel_id']._loaded_options = None
+  _globals['_LISTCONVERSATIONTIMELINEINPUT'].fields_by_name['agent_channel_id']._serialized_options = b'\272H\007r\005\020\001\030\200\001'
+  _globals['_LISTCONVERSATIONTIMELINEINPUT'].fields_by_name['conversation_key']._loaded_options = None
+  _globals['_LISTCONVERSATIONTIMELINEINPUT'].fields_by_name['conversation_key']._serialized_options = b'\272H\007r\005\020\001\030\200\001'
+  _globals['_LISTCONVERSATIONTIMELINEINPUT'].fields_by_name['page_size']._loaded_options = None
+  _globals['_LISTCONVERSATIONTIMELINEINPUT'].fields_by_name['page_size']._serialized_options = b'\272H\004\032\002(\000'
+  _globals['_LISTCONVERSATIONTIMELINEINPUT'].fields_by_name['page_token']._loaded_options = None
+  _globals['_LISTCONVERSATIONTIMELINEINPUT'].fields_by_name['page_token']._serialized_options = b'\272H\005r\003\030\200\010'
   _globals['_GETCONVERSATIONMEDIADOWNLOADURLINPUT'].fields_by_name['agent_channel_id']._loaded_options = None
   _globals['_GETCONVERSATIONMEDIADOWNLOADURLINPUT'].fields_by_name['agent_channel_id']._serialized_options = b'\272H\007r\005\020\001\030\200\001'
   _globals['_GETCONVERSATIONMEDIADOWNLOADURLINPUT'].fields_by_name['conversation_key']._loaded_options = None
@@ -68,38 +79,42 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_REPLYTOCONVERSATIONINPUT'].fields_by_name['payload']._serialized_options = b'\272H\003\310\001\001'
   _globals['_ESCALATECONVERSATIONINPUT'].fields_by_name['reason']._loaded_options = None
   _globals['_ESCALATECONVERSATIONINPUT'].fields_by_name['reason']._serialized_options = b'\272H\007r\005\020\001\030\200\010'
-  _globals['_CONVERSATIONCONTROL']._serialized_start=3771
-  _globals['_CONVERSATIONCONTROL']._serialized_end=3868
-  _globals['_CONVERSATIONLANE']._serialized_start=3870
-  _globals['_CONVERSATIONLANE']._serialized_end=3959
-  _globals['_CONVERSATIONITEMAUTHOR']._serialized_start=3962
-  _globals['_CONVERSATIONITEMAUTHOR']._serialized_end=4109
-  _globals['_CHANNELCONVERSATIONLISTFILTER']._serialized_start=4111
-  _globals['_CHANNELCONVERSATIONLISTFILTER']._serialized_end=4216
-  _globals['_CHANNELCONVERSATION']._serialized_start=355
-  _globals['_CHANNELCONVERSATION']._serialized_end=1064
-  _globals['_CONVERSATIONTIMELINEITEM']._serialized_start=1067
-  _globals['_CONVERSATIONTIMELINEITEM']._serialized_end=2019
-  _globals['_CONVERSATIONMEDIAREF']._serialized_start=2021
-  _globals['_CONVERSATIONMEDIAREF']._serialized_end=2137
-  _globals['_LISTCHANNELCONVERSATIONSINPUT']._serialized_start=2140
-  _globals['_LISTCHANNELCONVERSATIONSINPUT']._serialized_end=2406
-  _globals['_CHANNELCONVERSATIONLIST']._serialized_start=2409
-  _globals['_CHANNELCONVERSATIONLIST']._serialized_end=2546
-  _globals['_GETCHANNELCONVERSATIONINPUT']._serialized_start=2549
-  _globals['_GETCHANNELCONVERSATIONINPUT']._serialized_end=2687
-  _globals['_GETCONVERSATIONTIMELINEINPUT']._serialized_start=2690
-  _globals['_GETCONVERSATIONTIMELINEINPUT']._serialized_end=2889
-  _globals['_CONVERSATIONTIMELINE']._serialized_start=2892
-  _globals['_CONVERSATIONTIMELINE']._serialized_end=3038
-  _globals['_GETCONVERSATIONMEDIADOWNLOADURLINPUT']._serialized_start=3041
-  _globals['_GETCONVERSATIONMEDIADOWNLOADURLINPUT']._serialized_end=3225
-  _globals['_CONVERSATIONMEDIADOWNLOADURL']._serialized_start=3227
-  _globals['_CONVERSATIONMEDIADOWNLOADURL']._serialized_end=3334
-  _globals['_CONVERSATIONCONTROLINPUT']._serialized_start=3337
-  _globals['_CONVERSATIONCONTROLINPUT']._serialized_end=3472
-  _globals['_REPLYTOCONVERSATIONINPUT']._serialized_start=3475
-  _globals['_REPLYTOCONVERSATIONINPUT']._serialized_end=3704
-  _globals['_ESCALATECONVERSATIONINPUT']._serialized_start=3706
-  _globals['_ESCALATECONVERSATIONINPUT']._serialized_end=3769
+  _globals['_CONVERSATIONCONTROL']._serialized_start=4074
+  _globals['_CONVERSATIONCONTROL']._serialized_end=4171
+  _globals['_CONVERSATIONLANE']._serialized_start=4173
+  _globals['_CONVERSATIONLANE']._serialized_end=4262
+  _globals['_CONVERSATIONITEMAUTHOR']._serialized_start=4265
+  _globals['_CONVERSATIONITEMAUTHOR']._serialized_end=4412
+  _globals['_CHANNELCONVERSATIONLISTFILTER']._serialized_start=4414
+  _globals['_CHANNELCONVERSATIONLISTFILTER']._serialized_end=4519
+  _globals['_CHANNELCONVERSATION']._serialized_start=314
+  _globals['_CHANNELCONVERSATION']._serialized_end=1023
+  _globals['_CONVERSATIONTIMELINEITEM']._serialized_start=1026
+  _globals['_CONVERSATIONTIMELINEITEM']._serialized_end=1978
+  _globals['_CONVERSATIONMEDIAREF']._serialized_start=1980
+  _globals['_CONVERSATIONMEDIAREF']._serialized_end=2096
+  _globals['_LISTCHANNELCONVERSATIONSINPUT']._serialized_start=2099
+  _globals['_LISTCHANNELCONVERSATIONSINPUT']._serialized_end=2398
+  _globals['_CHANNELCONVERSATIONLIST']._serialized_start=2401
+  _globals['_CHANNELCONVERSATIONLIST']._serialized_end=2568
+  _globals['_COUNTCHANNELCONVERSATIONSINPUT']._serialized_start=2571
+  _globals['_COUNTCHANNELCONVERSATIONSINPUT']._serialized_end=2775
+  _globals['_CHANNELCONVERSATIONCOUNT']._serialized_start=2777
+  _globals['_CHANNELCONVERSATIONCOUNT']._serialized_end=2825
+  _globals['_GETCHANNELCONVERSATIONINPUT']._serialized_start=2828
+  _globals['_GETCHANNELCONVERSATIONINPUT']._serialized_end=2966
+  _globals['_LISTCONVERSATIONTIMELINEINPUT']._serialized_start=2969
+  _globals['_LISTCONVERSATIONTIMELINEINPUT']._serialized_end=3188
+  _globals['_CONVERSATIONTIMELINE']._serialized_start=3191
+  _globals['_CONVERSATIONTIMELINE']._serialized_end=3341
+  _globals['_GETCONVERSATIONMEDIADOWNLOADURLINPUT']._serialized_start=3344
+  _globals['_GETCONVERSATIONMEDIADOWNLOADURLINPUT']._serialized_end=3528
+  _globals['_CONVERSATIONMEDIADOWNLOADURL']._serialized_start=3530
+  _globals['_CONVERSATIONMEDIADOWNLOADURL']._serialized_end=3637
+  _globals['_CONVERSATIONCONTROLINPUT']._serialized_start=3640
+  _globals['_CONVERSATIONCONTROLINPUT']._serialized_end=3775
+  _globals['_REPLYTOCONVERSATIONINPUT']._serialized_start=3778
+  _globals['_REPLYTOCONVERSATIONINPUT']._serialized_end=4007
+  _globals['_ESCALATECONVERSATIONINPUT']._serialized_start=4009
+  _globals['_ESCALATECONVERSATIONINPUT']._serialized_end=4072
 # @@protoc_insertion_point(module_scope)

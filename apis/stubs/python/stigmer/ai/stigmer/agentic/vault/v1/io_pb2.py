@@ -23,13 +23,12 @@ _sym_db = _symbol_database.Default()
 
 
 from ai.stigmer.agentic.vault.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_api__pb2
-from ai.stigmer.commons.rpc import pagination_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_pagination__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import field_mask_pb2 as google_dot_protobuf_dot_field__mask__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/agentic/vault/v1/io.proto\x12\x1b\x61i.stigmer.agentic.vault.v1\x1a%ai/stigmer/agentic/vault/v1/api.proto\x1a\'ai/stigmer/commons/rpc/pagination.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"r\n\x0bVaultTarget\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12\x19\n\x02id\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01H\x00R\x02id\x12\x1d\n\x04mine\x18\x03 \x01(\x08\x42\x07\xbaH\x04j\x02\x08\x01H\x00R\x04mineB\x0e\n\x05vault\x12\x05\xbaH\x02\x08\x01\"a\n\x10VaultSecretInput\x12!\n\x05value\x18\x01 \x01(\tB\x0b\xbaH\x08r\x06\x10\x01\x18\x80\x80\x04R\x05value\x12*\n\x0b\x64\x65scription\x18\x02 \x01(\tB\x08\xbaH\x05r\x03\x18\xf4\x03R\x0b\x64\x65scription\"\xd1\x02\n\x14SetVaultSecretsInput\x12\x46\n\x05vault\x18\x01 \x01(\x0b\x32(.ai.stigmer.agentic.vault.v1.VaultTargetB\x06\xbaH\x03\xc8\x01\x01R\x05vault\x12\x85\x01\n\x07secrets\x18\x02 \x03(\x0b\x32>.ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.SecretsEntryB+\xbaH(\x9a\x01%\x08\x01\x10\x64\"\x1fr\x1d\x18\x80\x01\x32\x18^[A-Za-z_][A-Za-z0-9_]*$R\x07secrets\x1ai\n\x0cSecretsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x43\n\x05value\x18\x02 \x01(\x0b\x32-.ai.stigmer.agentic.vault.v1.VaultSecretInputR\x05value:\x02\x38\x01\"\x8c\x01\n\x17RemoveVaultSecretsInput\x12\x46\n\x05vault\x18\x01 \x01(\x0b\x32(.ai.stigmer.agentic.vault.v1.VaultTargetB\x06\xbaH\x03\xc8\x01\x01R\x05vault\x12)\n\x05names\x18\x02 \x03(\tB\x13\xbaH\x10\x92\x01\r\x08\x01\x10\x64\"\x07r\x05\x10\x01\x18\x80\x01R\x05names\"\xd6\x01\n\x17SetVaultConnectionInput\x12\x46\n\x05vault\x18\x01 \x01(\x0b\x32(.ai.stigmer.agentic.vault.v1.VaultTargetB\x06\xbaH\x03\xc8\x01\x01R\x05vault\x12$\n\x07\x61\x64\x64ress\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x10R\x07\x61\x64\x64ress\x12!\n\x05token\x18\x03 \x01(\tB\x0b\xbaH\x08r\x06\x10\x01\x18\x80\x80\x04R\x05token\x12*\n\x0b\x64\x65scription\x18\x04 \x01(\tB\x08\xbaH\x05r\x03\x18\xf4\x03R\x0b\x64\x65scription\"\x98\x01\n\x1bRemoveVaultConnectionsInput\x12\x46\n\x05vault\x18\x01 \x01(\x0b\x32(.ai.stigmer.agentic.vault.v1.VaultTargetB\x06\xbaH\x03\xc8\x01\x01R\x05vault\x12\x31\n\taddresses\x18\x02 \x03(\tB\x13\xbaH\x10\x92\x01\r\x08\x01\x10\x64\"\x07r\x05\x10\x01\x18\x80\x10R\taddresses\",\n\x0fGetMyVaultInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"`\n\x19GetVaultByExternalIdInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12(\n\x0b\x65xternal_id\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\nexternalId\"m\n\x11ListVaultsRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12=\n\tpage_info\x18\x02 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x08pageInfo\"f\n\tVaultList\x12\x1f\n\x0btotal_count\x18\x01 \x01(\x05R\ntotalCount\x12\x38\n\x05items\x18\x02 \x03(\x0b\x32\".ai.stigmer.agentic.vault.v1.VaultR\x05items\"\x9b\x04\n\x10StartSignInInput\x12\x46\n\x05vault\x18\x01 \x01(\x0b\x32(.ai.stigmer.agentic.vault.v1.VaultTargetB\x06\xbaH\x03\xc8\x01\x01R\x05vault\x12$\n\x07\x61\x64\x64ress\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x10R\x07\x61\x64\x64ress\x12\x46\n\treturn_to\x18\x03 \x01(\x0e\x32).ai.stigmer.agentic.vault.v1.SignInReturnR\x08returnTo\x12.\n\rloopback_port\x18\x04 \x01(\rB\t\xbaH\x06*\x04\x18\xff\xff\x03R\x0cloopbackPort:\xa0\x02\xbaH\x9c\x02\x1a\x99\x02\n\x1bstart_sign_in.loopback_port\x12\x88\x01loopback_port is required for return_to loopback (17237 to 17239, the ports Stigmer Desktop listens on) and must be left unset otherwise\x1aothis.return_to == 3 ? (this.loopback_port >= 17237u && this.loopback_port <= 17239u) : this.loopback_port == 0u\"\x93\x01\n\x11StartSignInOutput\x12+\n\x11\x61uthorization_url\x18\x01 \x01(\tR\x10\x61uthorizationUrl\x12\x14\n\x05state\x18\x02 \x01(\tR\x05state\x12#\n\rprovider_name\x18\x03 \x01(\tR\x0cproviderName\x12\x16\n\x06scopes\x18\x04 \x03(\tR\x06scopes\"W\n\x13\x43ompleteSignInInput\x12 \n\x05state\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x04R\x05state\x12\x1e\n\x04\x63ode\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80 R\x04\x63ode\"R\n\x14\x43ompleteSignInOutput\x12\x18\n\x07\x61\x64\x64ress\x18\x01 \x01(\tR\x07\x61\x64\x64ress\x12 \n\x0b\x64\x65scription\x18\x02 \x01(\tR\x0b\x64\x65scription\"\xa4\x03\n\x16\x43reateConnectLinkInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12\x36\n\x08vault_id\x18\x02 \x01(\tB\x1b\xbaH\x18r\x16\x18\x1e\x32\x12^vlt_[0-9a-z]{26}$R\x07vaultId\x12$\n\x07\x61\x64\x64ress\x18\x03 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x10R\x07\x61\x64\x64ress\x12)\n\nreturn_url\x18\x04 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x10R\treturnUrl\x12\x39\n\x12\x65xpires_in_seconds\x18\x05 \x01(\x05\x42\x0b\xbaH\x08\x1a\x06\x18\x80\xa3\x05(\x00R\x10\x65xpiresInSeconds:\xaa\x01\xbaH\xa6\x01\x1a\xa3\x01\n&create_connect_link.expires_in_seconds\x12:expires_in_seconds is 60 to 86400, or unset for 30 minutes\x1a=this.expires_in_seconds == 0 || this.expires_in_seconds >= 60\"Z\n\x0b\x43onnectLink\x12\x10\n\x03url\x18\x01 \x01(\tR\x03url\x12\x39\n\nexpires_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\texpiresAt\"\xdf\x02\n\x10UpdateVaultInput\x12\x46\n\x08resource\x18\x01 \x01(\x0b\x32\".ai.stigmer.agentic.vault.v1.VaultB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xbd\x01\xbaH\xb9\x01\x1a\xb6\x01\n\x17update_names_its_target\x12\x45resource.metadata.id is required: an update names the vault by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'*R\n\x0cSignInReturn\x12\x1e\n\x1asign_in_return_unspecified\x10\x00\x12\x07\n\x03web\x10\x01\x12\x0b\n\x07\x64\x65sktop\x10\x02\x12\x0c\n\x08loopback\x10\x03\x42\xbb\x01\n\x1f\x63om.ai.stigmer.agentic.vault.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAV\xaa\x02\x1b\x41i.Stigmer.Agentic.Vault.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Vault\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Vault::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/agentic/vault/v1/io.proto\x12\x1b\x61i.stigmer.agentic.vault.v1\x1a%ai/stigmer/agentic/vault/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"r\n\x0bVaultTarget\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12\x19\n\x02id\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01H\x00R\x02id\x12\x1d\n\x04mine\x18\x03 \x01(\x08\x42\x07\xbaH\x04j\x02\x08\x01H\x00R\x04mineB\x0e\n\x05vault\x12\x05\xbaH\x02\x08\x01\"a\n\x10VaultSecretInput\x12!\n\x05value\x18\x01 \x01(\tB\x0b\xbaH\x08r\x06\x10\x01\x18\x80\x80\x04R\x05value\x12*\n\x0b\x64\x65scription\x18\x02 \x01(\tB\x08\xbaH\x05r\x03\x18\xf4\x03R\x0b\x64\x65scription\"\xd1\x02\n\x14SetVaultSecretsInput\x12\x46\n\x05vault\x18\x01 \x01(\x0b\x32(.ai.stigmer.agentic.vault.v1.VaultTargetB\x06\xbaH\x03\xc8\x01\x01R\x05vault\x12\x85\x01\n\x07secrets\x18\x02 \x03(\x0b\x32>.ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.SecretsEntryB+\xbaH(\x9a\x01%\x08\x01\x10\x64\"\x1fr\x1d\x18\x80\x01\x32\x18^[A-Za-z_][A-Za-z0-9_]*$R\x07secrets\x1ai\n\x0cSecretsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x43\n\x05value\x18\x02 \x01(\x0b\x32-.ai.stigmer.agentic.vault.v1.VaultSecretInputR\x05value:\x02\x38\x01\"\x8c\x01\n\x17RemoveVaultSecretsInput\x12\x46\n\x05vault\x18\x01 \x01(\x0b\x32(.ai.stigmer.agentic.vault.v1.VaultTargetB\x06\xbaH\x03\xc8\x01\x01R\x05vault\x12)\n\x05names\x18\x02 \x03(\tB\x13\xbaH\x10\x92\x01\r\x08\x01\x10\x64\"\x07r\x05\x10\x01\x18\x80\x01R\x05names\"\xd6\x01\n\x17SetVaultConnectionInput\x12\x46\n\x05vault\x18\x01 \x01(\x0b\x32(.ai.stigmer.agentic.vault.v1.VaultTargetB\x06\xbaH\x03\xc8\x01\x01R\x05vault\x12$\n\x07\x61\x64\x64ress\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x10R\x07\x61\x64\x64ress\x12!\n\x05token\x18\x03 \x01(\tB\x0b\xbaH\x08r\x06\x10\x01\x18\x80\x80\x04R\x05token\x12*\n\x0b\x64\x65scription\x18\x04 \x01(\tB\x08\xbaH\x05r\x03\x18\xf4\x03R\x0b\x64\x65scription\"\x98\x01\n\x1bRemoveVaultConnectionsInput\x12\x46\n\x05vault\x18\x01 \x01(\x0b\x32(.ai.stigmer.agentic.vault.v1.VaultTargetB\x06\xbaH\x03\xc8\x01\x01R\x05vault\x12\x31\n\taddresses\x18\x02 \x03(\tB\x13\xbaH\x10\x92\x01\r\x08\x01\x10\x64\"\x07r\x05\x10\x01\x18\x80\x10R\taddresses\",\n\x0fGetMyVaultInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"`\n\x19GetVaultByExternalIdInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12(\n\x0b\x65xternal_id\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\nexternalId\"\x8e\x01\n\x11ListVaultsRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12$\n\tpage_size\x18\x03 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x04 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageTokenJ\x04\x08\x02\x10\x03R\tpage_info\"\x84\x01\n\tVaultList\x12<\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\".ai.stigmer.agentic.vault.v1.VaultR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\x08\x01\x10\x02R\x0btotal_count\"\x9b\x04\n\x10StartSignInInput\x12\x46\n\x05vault\x18\x01 \x01(\x0b\x32(.ai.stigmer.agentic.vault.v1.VaultTargetB\x06\xbaH\x03\xc8\x01\x01R\x05vault\x12$\n\x07\x61\x64\x64ress\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x10R\x07\x61\x64\x64ress\x12\x46\n\treturn_to\x18\x03 \x01(\x0e\x32).ai.stigmer.agentic.vault.v1.SignInReturnR\x08returnTo\x12.\n\rloopback_port\x18\x04 \x01(\rB\t\xbaH\x06*\x04\x18\xff\xff\x03R\x0cloopbackPort:\xa0\x02\xbaH\x9c\x02\x1a\x99\x02\n\x1bstart_sign_in.loopback_port\x12\x88\x01loopback_port is required for return_to loopback (17237 to 17239, the ports Stigmer Desktop listens on) and must be left unset otherwise\x1aothis.return_to == 3 ? (this.loopback_port >= 17237u && this.loopback_port <= 17239u) : this.loopback_port == 0u\"\x93\x01\n\x11StartSignInOutput\x12+\n\x11\x61uthorization_url\x18\x01 \x01(\tR\x10\x61uthorizationUrl\x12\x14\n\x05state\x18\x02 \x01(\tR\x05state\x12#\n\rprovider_name\x18\x03 \x01(\tR\x0cproviderName\x12\x16\n\x06scopes\x18\x04 \x03(\tR\x06scopes\"W\n\x13\x43ompleteSignInInput\x12 \n\x05state\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x04R\x05state\x12\x1e\n\x04\x63ode\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80 R\x04\x63ode\"R\n\x14\x43ompleteSignInOutput\x12\x18\n\x07\x61\x64\x64ress\x18\x01 \x01(\tR\x07\x61\x64\x64ress\x12 \n\x0b\x64\x65scription\x18\x02 \x01(\tR\x0b\x64\x65scription\"\xa4\x03\n\x16\x43reateConnectLinkInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12\x36\n\x08vault_id\x18\x02 \x01(\tB\x1b\xbaH\x18r\x16\x18\x1e\x32\x12^vlt_[0-9a-z]{26}$R\x07vaultId\x12$\n\x07\x61\x64\x64ress\x18\x03 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x10R\x07\x61\x64\x64ress\x12)\n\nreturn_url\x18\x04 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x10R\treturnUrl\x12\x39\n\x12\x65xpires_in_seconds\x18\x05 \x01(\x05\x42\x0b\xbaH\x08\x1a\x06\x18\x80\xa3\x05(\x00R\x10\x65xpiresInSeconds:\xaa\x01\xbaH\xa6\x01\x1a\xa3\x01\n&create_connect_link.expires_in_seconds\x12:expires_in_seconds is 60 to 86400, or unset for 30 minutes\x1a=this.expires_in_seconds == 0 || this.expires_in_seconds >= 60\"Z\n\x0b\x43onnectLink\x12\x10\n\x03url\x18\x01 \x01(\tR\x03url\x12\x39\n\nexpires_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\texpiresAt\"\xdf\x02\n\x10UpdateVaultInput\x12\x46\n\x08resource\x18\x01 \x01(\x0b\x32\".ai.stigmer.agentic.vault.v1.VaultB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xbd\x01\xbaH\xb9\x01\x1a\xb6\x01\n\x17update_names_its_target\x12\x45resource.metadata.id is required: an update names the vault by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'*R\n\x0cSignInReturn\x12\x1e\n\x1asign_in_return_unspecified\x10\x00\x12\x07\n\x03web\x10\x01\x12\x0b\n\x07\x64\x65sktop\x10\x02\x12\x0c\n\x08loopback\x10\x03\x42\xbb\x01\n\x1f\x63om.ai.stigmer.agentic.vault.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAV\xaa\x02\x1b\x41i.Stigmer.Agentic.Vault.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Vault\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Vault::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -79,6 +78,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_GETVAULTBYEXTERNALIDINPUT'].fields_by_name['external_id']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_LISTVAULTSREQUEST'].fields_by_name['org']._loaded_options = None
   _globals['_LISTVAULTSREQUEST'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_LISTVAULTSREQUEST'].fields_by_name['page_size']._loaded_options = None
+  _globals['_LISTVAULTSREQUEST'].fields_by_name['page_size']._serialized_options = b'\272H\004\032\002(\000'
+  _globals['_LISTVAULTSREQUEST'].fields_by_name['page_token']._loaded_options = None
+  _globals['_LISTVAULTSREQUEST'].fields_by_name['page_token']._serialized_options = b'\272H\005r\003\030\200\010'
   _globals['_STARTSIGNININPUT'].fields_by_name['vault']._loaded_options = None
   _globals['_STARTSIGNININPUT'].fields_by_name['vault']._serialized_options = b'\272H\003\310\001\001'
   _globals['_STARTSIGNININPUT'].fields_by_name['address']._loaded_options = None
@@ -109,42 +112,42 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_UPDATEVAULTINPUT'].fields_by_name['update_mask']._serialized_options = b'\272H\003\310\001\001'
   _globals['_UPDATEVAULTINPUT']._loaded_options = None
   _globals['_UPDATEVAULTINPUT']._serialized_options = b'\272H\271\001\032\266\001\n\027update_names_its_target\022Eresource.metadata.id is required: an update names the vault by its id\032Thas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\''
-  _globals['_SIGNINRETURN']._serialized_start=3408
-  _globals['_SIGNINRETURN']._serialized_end=3490
-  _globals['_VAULTTARGET']._serialized_start=245
-  _globals['_VAULTTARGET']._serialized_end=359
-  _globals['_VAULTSECRETINPUT']._serialized_start=361
-  _globals['_VAULTSECRETINPUT']._serialized_end=458
-  _globals['_SETVAULTSECRETSINPUT']._serialized_start=461
-  _globals['_SETVAULTSECRETSINPUT']._serialized_end=798
-  _globals['_SETVAULTSECRETSINPUT_SECRETSENTRY']._serialized_start=693
-  _globals['_SETVAULTSECRETSINPUT_SECRETSENTRY']._serialized_end=798
-  _globals['_REMOVEVAULTSECRETSINPUT']._serialized_start=801
-  _globals['_REMOVEVAULTSECRETSINPUT']._serialized_end=941
-  _globals['_SETVAULTCONNECTIONINPUT']._serialized_start=944
-  _globals['_SETVAULTCONNECTIONINPUT']._serialized_end=1158
-  _globals['_REMOVEVAULTCONNECTIONSINPUT']._serialized_start=1161
-  _globals['_REMOVEVAULTCONNECTIONSINPUT']._serialized_end=1313
-  _globals['_GETMYVAULTINPUT']._serialized_start=1315
-  _globals['_GETMYVAULTINPUT']._serialized_end=1359
-  _globals['_GETVAULTBYEXTERNALIDINPUT']._serialized_start=1361
-  _globals['_GETVAULTBYEXTERNALIDINPUT']._serialized_end=1457
-  _globals['_LISTVAULTSREQUEST']._serialized_start=1459
-  _globals['_LISTVAULTSREQUEST']._serialized_end=1568
-  _globals['_VAULTLIST']._serialized_start=1570
-  _globals['_VAULTLIST']._serialized_end=1672
-  _globals['_STARTSIGNININPUT']._serialized_start=1675
-  _globals['_STARTSIGNININPUT']._serialized_end=2214
-  _globals['_STARTSIGNINOUTPUT']._serialized_start=2217
-  _globals['_STARTSIGNINOUTPUT']._serialized_end=2364
-  _globals['_COMPLETESIGNININPUT']._serialized_start=2366
-  _globals['_COMPLETESIGNININPUT']._serialized_end=2453
-  _globals['_COMPLETESIGNINOUTPUT']._serialized_start=2455
-  _globals['_COMPLETESIGNINOUTPUT']._serialized_end=2537
-  _globals['_CREATECONNECTLINKINPUT']._serialized_start=2540
-  _globals['_CREATECONNECTLINKINPUT']._serialized_end=2960
-  _globals['_CONNECTLINK']._serialized_start=2962
-  _globals['_CONNECTLINK']._serialized_end=3052
-  _globals['_UPDATEVAULTINPUT']._serialized_start=3055
-  _globals['_UPDATEVAULTINPUT']._serialized_end=3406
+  _globals['_SIGNINRETURN']._serialized_start=3432
+  _globals['_SIGNINRETURN']._serialized_end=3514
+  _globals['_VAULTTARGET']._serialized_start=204
+  _globals['_VAULTTARGET']._serialized_end=318
+  _globals['_VAULTSECRETINPUT']._serialized_start=320
+  _globals['_VAULTSECRETINPUT']._serialized_end=417
+  _globals['_SETVAULTSECRETSINPUT']._serialized_start=420
+  _globals['_SETVAULTSECRETSINPUT']._serialized_end=757
+  _globals['_SETVAULTSECRETSINPUT_SECRETSENTRY']._serialized_start=652
+  _globals['_SETVAULTSECRETSINPUT_SECRETSENTRY']._serialized_end=757
+  _globals['_REMOVEVAULTSECRETSINPUT']._serialized_start=760
+  _globals['_REMOVEVAULTSECRETSINPUT']._serialized_end=900
+  _globals['_SETVAULTCONNECTIONINPUT']._serialized_start=903
+  _globals['_SETVAULTCONNECTIONINPUT']._serialized_end=1117
+  _globals['_REMOVEVAULTCONNECTIONSINPUT']._serialized_start=1120
+  _globals['_REMOVEVAULTCONNECTIONSINPUT']._serialized_end=1272
+  _globals['_GETMYVAULTINPUT']._serialized_start=1274
+  _globals['_GETMYVAULTINPUT']._serialized_end=1318
+  _globals['_GETVAULTBYEXTERNALIDINPUT']._serialized_start=1320
+  _globals['_GETVAULTBYEXTERNALIDINPUT']._serialized_end=1416
+  _globals['_LISTVAULTSREQUEST']._serialized_start=1419
+  _globals['_LISTVAULTSREQUEST']._serialized_end=1561
+  _globals['_VAULTLIST']._serialized_start=1564
+  _globals['_VAULTLIST']._serialized_end=1696
+  _globals['_STARTSIGNININPUT']._serialized_start=1699
+  _globals['_STARTSIGNININPUT']._serialized_end=2238
+  _globals['_STARTSIGNINOUTPUT']._serialized_start=2241
+  _globals['_STARTSIGNINOUTPUT']._serialized_end=2388
+  _globals['_COMPLETESIGNININPUT']._serialized_start=2390
+  _globals['_COMPLETESIGNININPUT']._serialized_end=2477
+  _globals['_COMPLETESIGNINOUTPUT']._serialized_start=2479
+  _globals['_COMPLETESIGNINOUTPUT']._serialized_end=2561
+  _globals['_CREATECONNECTLINKINPUT']._serialized_start=2564
+  _globals['_CREATECONNECTLINKINPUT']._serialized_end=2984
+  _globals['_CONNECTLINK']._serialized_start=2986
+  _globals['_CONNECTLINK']._serialized_end=3076
+  _globals['_UPDATEVAULTINPUT']._serialized_start=3079
+  _globals['_UPDATEVAULTINPUT']._serialized_end=3430
 # @@protoc_insertion_point(module_scope)

@@ -9,7 +9,6 @@ package identityaccountv1
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	rpc "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
 	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -210,75 +209,21 @@ func (x *IdpId) GetValue() string {
 	return ""
 }
 
-// ListWithIdentityAccountIdReq is the input for paginated queries scoped to an identity account.
-type ListWithIdentityAccountIdReq struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Unique identifier of the identity account to list resources for.
-	IdentityAccountId string `protobuf:"bytes,1,opt,name=identity_account_id,json=identityAccountId,proto3" json:"identity_account_id,omitempty"`
-	// Pagination parameters.
-	Page          *rpc.PageInfo `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListWithIdentityAccountIdReq) Reset() {
-	*x = ListWithIdentityAccountIdReq{}
-	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListWithIdentityAccountIdReq) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListWithIdentityAccountIdReq) ProtoMessage() {}
-
-func (x *ListWithIdentityAccountIdReq) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListWithIdentityAccountIdReq.ProtoReflect.Descriptor instead.
-func (*ListWithIdentityAccountIdReq) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *ListWithIdentityAccountIdReq) GetIdentityAccountId() string {
-	if x != nil {
-		return x.IdentityAccountId
-	}
-	return ""
-}
-
-func (x *ListWithIdentityAccountIdReq) GetPage() *rpc.PageInfo {
-	if x != nil {
-		return x.Page
-	}
-	return nil
-}
-
 // IdentityAccountsList is a paginated response containing identity accounts.
 type IdentityAccountsList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Total number of pages available.
-	TotalPages int32 `protobuf:"varint,1,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
 	// Identity accounts in the current page.
-	Entries       []*IdentityAccount `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+	Entries []*IdentityAccount `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
+	NextPageToken string `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *IdentityAccountsList) Reset() {
 	*x = IdentityAccountsList{}
-	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[5]
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -290,7 +235,7 @@ func (x *IdentityAccountsList) String() string {
 func (*IdentityAccountsList) ProtoMessage() {}
 
 func (x *IdentityAccountsList) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[5]
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -303,14 +248,7 @@ func (x *IdentityAccountsList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IdentityAccountsList.ProtoReflect.Descriptor instead.
 func (*IdentityAccountsList) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *IdentityAccountsList) GetTotalPages() int32 {
-	if x != nil {
-		return x.TotalPages
-	}
-	return 0
+	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *IdentityAccountsList) GetEntries() []*IdentityAccount {
@@ -320,32 +258,43 @@ func (x *IdentityAccountsList) GetEntries() []*IdentityAccount {
 	return nil
 }
 
-// ListWithIdentityOrg is the input for paginated queries scoped to an organization.
-type ListWithIdentityOrg struct {
+func (x *IdentityAccountsList) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+// ListServiceAccountsInput is the input for paginated queries scoped to an organization.
+type ListServiceAccountsInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization to list identity accounts for, by id or slug.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// Pagination parameters.
-	Page          *rpc.PageInfo `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
+	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ListWithIdentityOrg) Reset() {
-	*x = ListWithIdentityOrg{}
-	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[6]
+func (x *ListServiceAccountsInput) Reset() {
+	*x = ListServiceAccountsInput{}
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ListWithIdentityOrg) String() string {
+func (x *ListServiceAccountsInput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ListWithIdentityOrg) ProtoMessage() {}
+func (*ListServiceAccountsInput) ProtoMessage() {}
 
-func (x *ListWithIdentityOrg) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[6]
+func (x *ListServiceAccountsInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -356,23 +305,30 @@ func (x *ListWithIdentityOrg) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListWithIdentityOrg.ProtoReflect.Descriptor instead.
-func (*ListWithIdentityOrg) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP(), []int{6}
+// Deprecated: Use ListServiceAccountsInput.ProtoReflect.Descriptor instead.
+func (*ListServiceAccountsInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *ListWithIdentityOrg) GetOrg() string {
+func (x *ListServiceAccountsInput) GetOrg() string {
 	if x != nil {
 		return x.Org
 	}
 	return ""
 }
 
-func (x *ListWithIdentityOrg) GetPage() *rpc.PageInfo {
+func (x *ListServiceAccountsInput) GetPageSize() int32 {
 	if x != nil {
-		return x.Page
+		return x.PageSize
 	}
-	return nil
+	return 0
+}
+
+func (x *ListServiceAccountsInput) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
 }
 
 // ExternalSubLookup identifies a federated identity account by its identity provider
@@ -397,7 +353,7 @@ type ExternalSubLookup struct {
 
 func (x *ExternalSubLookup) Reset() {
 	*x = ExternalSubLookup{}
-	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[7]
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -409,7 +365,7 @@ func (x *ExternalSubLookup) String() string {
 func (*ExternalSubLookup) ProtoMessage() {}
 
 func (x *ExternalSubLookup) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[7]
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -422,7 +378,7 @@ func (x *ExternalSubLookup) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExternalSubLookup.ProtoReflect.Descriptor instead.
 func (*ExternalSubLookup) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP(), []int{7}
+	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ExternalSubLookup) GetOrg() string {
@@ -482,7 +438,7 @@ type CreateFederatedAccountInput struct {
 
 func (x *CreateFederatedAccountInput) Reset() {
 	*x = CreateFederatedAccountInput{}
-	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[8]
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -494,7 +450,7 @@ func (x *CreateFederatedAccountInput) String() string {
 func (*CreateFederatedAccountInput) ProtoMessage() {}
 
 func (x *CreateFederatedAccountInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[8]
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -507,7 +463,7 @@ func (x *CreateFederatedAccountInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateFederatedAccountInput.ProtoReflect.Descriptor instead.
 func (*CreateFederatedAccountInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP(), []int{8}
+	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *CreateFederatedAccountInput) GetOrg() string {
@@ -591,7 +547,7 @@ type UpdateFederatedAccountInput struct {
 
 func (x *UpdateFederatedAccountInput) Reset() {
 	*x = UpdateFederatedAccountInput{}
-	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[9]
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -603,7 +559,7 @@ func (x *UpdateFederatedAccountInput) String() string {
 func (*UpdateFederatedAccountInput) ProtoMessage() {}
 
 func (x *UpdateFederatedAccountInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[9]
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -616,7 +572,7 @@ func (x *UpdateFederatedAccountInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateFederatedAccountInput.ProtoReflect.Descriptor instead.
 func (*UpdateFederatedAccountInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP(), []int{9}
+	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *UpdateFederatedAccountInput) GetOrg() string {
@@ -709,7 +665,7 @@ type DeprovisionFederatedAccountInput struct {
 
 func (x *DeprovisionFederatedAccountInput) Reset() {
 	*x = DeprovisionFederatedAccountInput{}
-	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[10]
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -721,7 +677,7 @@ func (x *DeprovisionFederatedAccountInput) String() string {
 func (*DeprovisionFederatedAccountInput) ProtoMessage() {}
 
 func (x *DeprovisionFederatedAccountInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[10]
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -734,7 +690,7 @@ func (x *DeprovisionFederatedAccountInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeprovisionFederatedAccountInput.ProtoReflect.Descriptor instead.
 func (*DeprovisionFederatedAccountInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP(), []int{10}
+	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *DeprovisionFederatedAccountInput) GetOrg() string {
@@ -784,7 +740,7 @@ type CreateServiceAccountInput struct {
 
 func (x *CreateServiceAccountInput) Reset() {
 	*x = CreateServiceAccountInput{}
-	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[11]
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -796,7 +752,7 @@ func (x *CreateServiceAccountInput) String() string {
 func (*CreateServiceAccountInput) ProtoMessage() {}
 
 func (x *CreateServiceAccountInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[11]
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -809,7 +765,7 @@ func (x *CreateServiceAccountInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateServiceAccountInput.ProtoReflect.Descriptor instead.
 func (*CreateServiceAccountInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP(), []int{11}
+	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *CreateServiceAccountInput) GetOrg() string {
@@ -851,7 +807,7 @@ type UpdateIdentityAccountInput struct {
 
 func (x *UpdateIdentityAccountInput) Reset() {
 	*x = UpdateIdentityAccountInput{}
-	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[12]
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -863,7 +819,7 @@ func (x *UpdateIdentityAccountInput) String() string {
 func (*UpdateIdentityAccountInput) ProtoMessage() {}
 
 func (x *UpdateIdentityAccountInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[12]
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -876,7 +832,7 @@ func (x *UpdateIdentityAccountInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateIdentityAccountInput.ProtoReflect.Descriptor instead.
 func (*UpdateIdentityAccountInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP(), []int{12}
+	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *UpdateIdentityAccountInput) GetResource() *IdentityAccount {
@@ -897,7 +853,7 @@ var File_ai_stigmer_iam_identityaccount_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/iam/identityaccount/v1/io.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a+ai/stigmer/iam/identityaccount/v1/api.proto\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"`\n" +
+	"*ai/stigmer/iam/identityaccount/v1/io.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a+ai/stigmer/iam/identityaccount/v1/api.proto\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"`\n" +
 	"\x10IdentityAccounts\x12L\n" +
 	"\aentries\x18\x01 \x03(\v22.ai.stigmer.iam.identityaccount.v1.IdentityAccountR\aentries\"1\n" +
 	"\x11IdentityAccountId\x12\x1c\n" +
@@ -905,17 +861,15 @@ const file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDesc = "" +
 	"\x14IdentityAccountEmail\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"%\n" +
 	"\x05IdpId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x84\x01\n" +
-	"\x1cListWithIdentityAccountIdReq\x12.\n" +
-	"\x13identity_account_id\x18\x01 \x01(\tR\x11identityAccountId\x124\n" +
-	"\x04page\x18\x02 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\x04page\"\x85\x01\n" +
-	"\x14IdentityAccountsList\x12\x1f\n" +
-	"\vtotal_pages\x18\x01 \x01(\x05R\n" +
-	"totalPages\x12L\n" +
-	"\aentries\x18\x02 \x03(\v22.ai.stigmer.iam.identityaccount.v1.IdentityAccountR\aentries\"]\n" +
-	"\x13ListWithIdentityOrg\x12\x10\n" +
-	"\x03org\x18\x01 \x01(\tR\x03org\x124\n" +
-	"\x04page\x18\x02 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\x04page\"\xc8\x01\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x9f\x01\n" +
+	"\x14IdentityAccountsList\x12L\n" +
+	"\aentries\x18\x02 \x03(\v22.ai.stigmer.iam.identityaccount.v1.IdentityAccountR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\b\x01\x10\x02R\vtotal_pages\"\x87\x01\n" +
+	"\x18ListServiceAccountsInput\x12\x10\n" +
+	"\x03org\x18\x01 \x01(\tR\x03org\x12$\n" +
+	"\tpage_size\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageTokenJ\x04\b\x02\x10\x03R\x04page\"\xc8\x01\n" +
 	"\x11ExternalSubLookup\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12n\n" +
 	"\x15identity_provider_ref\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13identityProviderRef\x12)\n" +
@@ -969,44 +923,40 @@ func file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_ai_stigmer_iam_identityaccount_v1_io_proto_goTypes = []any{
 	(*IdentityAccounts)(nil),                 // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccounts
 	(*IdentityAccountId)(nil),                // 1: ai.stigmer.iam.identityaccount.v1.IdentityAccountId
 	(*IdentityAccountEmail)(nil),             // 2: ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail
 	(*IdpId)(nil),                            // 3: ai.stigmer.iam.identityaccount.v1.IdpId
-	(*ListWithIdentityAccountIdReq)(nil),     // 4: ai.stigmer.iam.identityaccount.v1.ListWithIdentityAccountIdReq
-	(*IdentityAccountsList)(nil),             // 5: ai.stigmer.iam.identityaccount.v1.IdentityAccountsList
-	(*ListWithIdentityOrg)(nil),              // 6: ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg
-	(*ExternalSubLookup)(nil),                // 7: ai.stigmer.iam.identityaccount.v1.ExternalSubLookup
-	(*CreateFederatedAccountInput)(nil),      // 8: ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput
-	(*UpdateFederatedAccountInput)(nil),      // 9: ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput
-	(*DeprovisionFederatedAccountInput)(nil), // 10: ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput
-	(*CreateServiceAccountInput)(nil),        // 11: ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput
-	(*UpdateIdentityAccountInput)(nil),       // 12: ai.stigmer.iam.identityaccount.v1.UpdateIdentityAccountInput
-	(*IdentityAccount)(nil),                  // 13: ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	(*rpc.PageInfo)(nil),                     // 14: ai.stigmer.commons.rpc.PageInfo
-	(*apiresource.ApiResourceReference)(nil), // 15: ai.stigmer.commons.apiresource.ApiResourceReference
-	(v1.IamRole)(0),                          // 16: ai.stigmer.iam.v1.IamRole
-	(*fieldmaskpb.FieldMask)(nil),            // 17: google.protobuf.FieldMask
+	(*IdentityAccountsList)(nil),             // 4: ai.stigmer.iam.identityaccount.v1.IdentityAccountsList
+	(*ListServiceAccountsInput)(nil),         // 5: ai.stigmer.iam.identityaccount.v1.ListServiceAccountsInput
+	(*ExternalSubLookup)(nil),                // 6: ai.stigmer.iam.identityaccount.v1.ExternalSubLookup
+	(*CreateFederatedAccountInput)(nil),      // 7: ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput
+	(*UpdateFederatedAccountInput)(nil),      // 8: ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput
+	(*DeprovisionFederatedAccountInput)(nil), // 9: ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput
+	(*CreateServiceAccountInput)(nil),        // 10: ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput
+	(*UpdateIdentityAccountInput)(nil),       // 11: ai.stigmer.iam.identityaccount.v1.UpdateIdentityAccountInput
+	(*IdentityAccount)(nil),                  // 12: ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	(*apiresource.ApiResourceReference)(nil), // 13: ai.stigmer.commons.apiresource.ApiResourceReference
+	(v1.IamRole)(0),                          // 14: ai.stigmer.iam.v1.IamRole
+	(*fieldmaskpb.FieldMask)(nil),            // 15: google.protobuf.FieldMask
 }
 var file_ai_stigmer_iam_identityaccount_v1_io_proto_depIdxs = []int32{
-	13, // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccounts.entries:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	14, // 1: ai.stigmer.iam.identityaccount.v1.ListWithIdentityAccountIdReq.page:type_name -> ai.stigmer.commons.rpc.PageInfo
-	13, // 2: ai.stigmer.iam.identityaccount.v1.IdentityAccountsList.entries:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	14, // 3: ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg.page:type_name -> ai.stigmer.commons.rpc.PageInfo
-	15, // 4: ai.stigmer.iam.identityaccount.v1.ExternalSubLookup.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	15, // 5: ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	15, // 6: ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	15, // 7: ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	16, // 8: ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput.role:type_name -> ai.stigmer.iam.v1.IamRole
-	13, // 9: ai.stigmer.iam.identityaccount.v1.UpdateIdentityAccountInput.resource:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	17, // 10: ai.stigmer.iam.identityaccount.v1.UpdateIdentityAccountInput.update_mask:type_name -> google.protobuf.FieldMask
-	11, // [11:11] is the sub-list for method output_type
-	11, // [11:11] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	12, // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccounts.entries:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	12, // 1: ai.stigmer.iam.identityaccount.v1.IdentityAccountsList.entries:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	13, // 2: ai.stigmer.iam.identityaccount.v1.ExternalSubLookup.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	13, // 3: ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	13, // 4: ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	13, // 5: ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	14, // 6: ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput.role:type_name -> ai.stigmer.iam.v1.IamRole
+	12, // 7: ai.stigmer.iam.identityaccount.v1.UpdateIdentityAccountInput.resource:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	15, // 8: ai.stigmer.iam.identityaccount.v1.UpdateIdentityAccountInput.update_mask:type_name -> google.protobuf.FieldMask
+	9,  // [9:9] is the sub-list for method output_type
+	9,  // [9:9] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_identityaccount_v1_io_proto_init() }
@@ -1021,7 +971,7 @@ func file_ai_stigmer_iam_identityaccount_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDesc), len(file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

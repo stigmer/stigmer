@@ -4,7 +4,6 @@ package ai.stigmer.commons.apiresource;
 
 import "ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto";
 import "ai/stigmer/commons/apiresource/enum.proto";
-import "ai/stigmer/commons/rpc/pagination.proto";
 import "buf/validate/validate.proto";
 
 // Wraps a system-generated resource identifier.
@@ -29,20 +28,6 @@ message ApiResourceByOrgBySlugRequest {
   string org = 1 [(buf.validate.field).required = true];
   // Slug of the resource
   string slug = 2 [(buf.validate.field).required = true];
-}
-
-// Input for find (list) operations with pagination
-message FindApiResourcesRequest {
-  // Organization to filter by, by id or slug
-  string org = 1 [(buf.validate.field).required = true];
-  // API resource kind (optional filter)
-  string kind = 3;
-  // Pagination info
-  ai.stigmer.commons.rpc.PageInfo page = 4;
-  // Page number (1-indexed) - deprecated, use page.num
-  int32 page_number = 5;
-  // Number of items per page (default: 20, max: 100) - deprecated, use page.size
-  int32 page_size = 6;
 }
 
 // Input for updating the visibility of any API resource.

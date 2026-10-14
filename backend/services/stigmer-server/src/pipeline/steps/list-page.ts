@@ -8,9 +8,11 @@
  *   lane's per-row filter runs on each batch, then the read scope, which
  *   stays the last per-row predicate (extensions/list-read-scope.ts);
  *   neither reorders, so a page is in the store's order.
- * - `page_size` 0 reads every matching row and returns no token, the
- *   behaviour every list lane had before it paged; a positive size is
- *   capped at `LIST_PAGE_MAX_SIZE`.
+ * - `listPageSizeOf` is the only reader of `page_size`: 0 asks for
+ *   `LIST_PAGE_DEFAULT_SIZE`, a size above `LIST_PAGE_MAX_SIZE` is read as
+ *   that maximum (coerced, never refused: AIP-158), and a negative size is
+ *   refused. No request reads every row; a caller that needs the whole list
+ *   walks its tokens with `readEveryPage`, which refuses past a cap.
  * - A page fills batch by batch until it is full, the rows run out, or
  *   `examineBudgetOf(size)` rows have been examined. A caller who may see
  *   few of the organization's rows gets a short page, possibly empty, with
@@ -35,6 +37,12 @@
  */
 import { createHash } from "node:crypto";
 
+import { fromBinary, toBinary } from "@bufbuild/protobuf";
+import { ConnectError } from "@connectrpc/connect";
+import type { DescMessage, Message, MessageShape } from "@bufbuild/protobuf";
+import type { GenMessage } from "@bufbuild/protobuf/codegenv1";
+
+import type { LogFields, Logger } from "../../boot/logger.js";
 import type { Store } from "../../store/interface.js";
 import type {
   ListIndexCursor,
@@ -42,10 +50,21 @@ import type {
   ListIndexQuery,
   ListIndexRow,
 } from "../../store/list-index.js";
-import { internalError, invalidArgumentError } from "../errors.js";
+import {
+  compareListIndexOrder,
+  listIndexInstant,
+} from "../../store/list-index.js";
+import {
+  failedPreconditionError,
+  internalError,
+  invalidArgumentError,
+} from "../errors.js";
 
 /** The most entries one page returns, the contract's word on every paged request. */
 export const LIST_PAGE_MAX_SIZE = 100;
+
+/** The entries a page returns when the request names no size (`page_size` 0). */
+export const LIST_PAGE_DEFAULT_SIZE = 50;
 
 /**
  * The most rows one request examines for a page of `size`: five pages'
@@ -64,9 +83,27 @@ export interface ListPageRequest {
 }
 
 /**
+ * The size of the page a request asks for: the default at 0, the maximum
+ * above it. The one reader of `page_size`, so no lane grows a default of
+ * its own. The edge validator refuses a negative size before a handler
+ * runs; this refuses one again for in-process callers that skip it.
+ */
+export function listPageSizeOf(
+  request: Pick<ListPageRequest, "pageSize">,
+): number {
+  if (request.pageSize < 0) {
+    throw invalidArgumentError("page_size must not be negative");
+  }
+  if (request.pageSize === 0) {
+    return LIST_PAGE_DEFAULT_SIZE;
+  }
+  return Math.min(request.pageSize, LIST_PAGE_MAX_SIZE);
+}
+
+/**
  * Where a page's rows come from: the rows after `after` (from the start
  * when undefined) in the list index's order, newest first, ties broken by
- * id in byte order, at most `limit` of them (every one when undefined).
+ * id in byte order, at most `limit` of them.
  * Each row carries the cursor a later read continues after.
  *
  * `after` comes from the client's page token: opaque, but not signed, so
@@ -77,7 +114,7 @@ export interface ListPageRequest {
  */
 export type ListPageSource = (
   after: ListIndexCursor | undefined,
-  limit: number | undefined,
+  limit: number,
 ) => Promise<ReadonlyArray<ListIndexRow>>;
 
 /** What one page needs, whatever its rows' source. */
@@ -115,7 +152,7 @@ export interface ListPage<T> {
   readonly nextPageToken: string;
 }
 
-/** Reads one page (or, at `page_size` 0, the whole list) through the list index. */
+/** Reads one page through the list index. */
 export function readListPage<T, K extends string>(
   params: ListPageParams<T, K>,
 ): Promise<ListPage<T>> {
@@ -126,33 +163,22 @@ export function readListPage<T, K extends string>(
       store.queryResources(declaration, {
         ...query,
         ...(after === undefined ? {} : { after }),
-        ...(limit === undefined ? {} : { limit }),
+        limit,
       }),
   });
 }
 
-/** Reads one page (or, at `page_size` 0, the whole list) from `source`. */
+/** Reads one page from `source`. */
 export async function readPage<T>(
   params: ReadPageParams<T>,
 ): Promise<ListPage<T>> {
   const { request } = params;
-  if (request.pageSize < 0) {
-    throw invalidArgumentError("page_size must not be negative");
-  }
+  const size = listPageSizeOf(request);
   let after =
     request.pageToken === ""
       ? undefined
       : decodeListPageToken(request.pageToken, params.fingerprint).cursor;
 
-  if (request.pageSize === 0) {
-    const rows = await queryOrFail(params, after, undefined);
-    return {
-      entries: await admit(params, rows).then((a) => a.map((e) => e.row)),
-      nextPageToken: "",
-    };
-  }
-
-  const size = Math.min(request.pageSize, LIST_PAGE_MAX_SIZE);
   const budget = examineBudgetOf(size);
   const kept: Array<Admitted<T>> = [];
   let examined = 0;
@@ -196,6 +222,121 @@ export async function readPage<T>(
   }
 }
 
+/** What `inHandListPageSource` reads off a resource for its place in the order. */
+interface InHandResource {
+  readonly metadata?: { readonly id?: string };
+  readonly status?: {
+    readonly audit?: {
+      readonly specAudit?: {
+        readonly createdAt?: {
+          readonly seconds: bigint;
+          readonly nanos: number;
+        };
+      };
+    };
+  };
+}
+
+/**
+ * A source over resources already in hand: those a port answers as a
+ * whole set (an edition's own table of an organization's accounts) or an
+ * authorization engine names by id. It orders them as the list index
+ * does (creation instant, then id, newest first) and hands out the rows
+ * after a cursor, so such a lane pages by the one loop and the one token,
+ * and a row created between two pages lands before the first rather than
+ * shifting an offset.
+ */
+export function inHandListPageSource<Desc extends DescMessage>(
+  schema: Desc,
+  resources: ReadonlyArray<MessageShape<Desc>>,
+): ListPageSource {
+  const rows: ListIndexRow[] = resources
+    .map((resource) => {
+      const shaped = resource as InHandResource;
+      const id = shaped.metadata?.id ?? "";
+      return {
+        id,
+        data: toBinary(schema, resource),
+        cursor: {
+          createdAt: listIndexInstant(
+            shaped.status?.audit?.specAudit?.createdAt,
+          ),
+          id,
+        },
+      };
+    })
+    .sort((a, b) => compareListIndexOrder(a.cursor, b.cursor));
+  return (after, limit) =>
+    Promise.resolve(
+      (after === undefined
+        ? rows
+        : rows.filter((row) => compareListIndexOrder(row.cursor, after) > 0)
+      ).slice(0, limit),
+    );
+}
+
+/** The most entries `readEveryPage` gathers before it refuses. */
+export const READ_EVERY_PAGE_DEFAULT_CAP = 1000;
+
+/**
+ * Every entry of a list, read page by page through its tokens: for an
+ * in-process reader that needs the whole set (the channels that gate an
+ * inbox, a parent's children). `read` returns the page a token names, ""
+ * naming the first. Past `cap` entries it refuses rather than return a
+ * cut list a caller would mistake for the whole; the default cap is the
+ * one the authorization enumeration refuses past.
+ */
+export async function readEveryPage<T>(
+  read: (pageToken: string) => Promise<ListPage<T>>,
+  options: { readonly what: string; readonly cap?: number },
+): Promise<T[]> {
+  const cap = options.cap ?? READ_EVERY_PAGE_DEFAULT_CAP;
+  const entries: T[] = [];
+  let token = "";
+  for (;;) {
+    const page = await read(token);
+    entries.push(...page.entries);
+    if (entries.length > cap) {
+      throw failedPreconditionError(
+        `${options.what} holds more than ${cap} entries; read it a page at a time`,
+      );
+    }
+    if (page.nextPageToken === "") {
+      return entries;
+    }
+    token = page.nextPageToken;
+  }
+}
+
+/** What `decodeOrSkip` logs when a stored row does not decode. */
+export interface SkippedRowLog {
+  readonly logger: Logger;
+  readonly message: string;
+  readonly fields?: LogFields;
+}
+
+/**
+ * A lane's `decode` over one message kind: a stored row whose bytes do not
+ * decode is skipped, so one bad record never takes a list down, and when
+ * `log` is given a warning names it with the decoder's reason.
+ */
+export function decodeOrSkip<T extends Message>(
+  schema: GenMessage<T>,
+  log?: SkippedRowLog,
+): (data: Uint8Array) => T | undefined {
+  return (data) => {
+    try {
+      return fromBinary(schema, data);
+    } catch (error) {
+      log?.logger.warn(log.message, {
+        ...log.fields,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return undefined;
+    }
+  };
+}
+
 interface Admitted<T> {
   readonly row: T;
   readonly cursor: ListIndexCursor;
@@ -204,11 +345,17 @@ interface Admitted<T> {
 async function queryOrFail<T>(
   params: ReadPageParams<T>,
   after: ListIndexCursor | undefined,
-  limit: number | undefined,
+  limit: number,
 ): Promise<ReadonlyArray<ListIndexRow>> {
   try {
     return await params.source(after, limit);
   } catch (error) {
+    // A source's own refusal (a cursor it cannot read answers
+    // `invalid page_token`, as the source contract above asks) is the
+    // caller's answer; any other failure is a fault behind the lane.
+    if (error instanceof ConnectError) {
+      throw error;
+    }
     throw internalError(error, params.failure);
   }
 }

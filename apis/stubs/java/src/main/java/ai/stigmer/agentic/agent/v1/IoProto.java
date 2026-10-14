@@ -36,6 +36,16 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agent_v1_UpdateAgentInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agent_v1_ListAgentsRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agent_v1_ListAgentsRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agent_v1_AgentList_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agent_v1_AgentList_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -59,11 +69,17 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "d: an update names the agent by its id\032T" +
       "has(this.resource) && has(this.resource." +
       "metadata) && this.resource.metadata.id !" +
-      "= \'\'B\232\001B\007IoProtoP\001\242\002\004ASAA\252\002\033Ai.Stigmer.A" +
-      "gentic.Agent.V1\312\002\033Ai\\Stigmer\\Agentic\\Age" +
-      "nt\\V1\342\002\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBM" +
-      "etadata\352\002\037Ai::Stigmer::Agentic::Agent::V" +
-      "1b\006proto3"
+      "= \'\'\"}\n\021ListAgentsRequest\022\031\n\003org\030\001 \001(\tB\007" +
+      "\272H\004r\002\020\001R\003org\022$\n\tpage_size\030\002 \001(\005B\007\272H\004\032\002(\000" +
+      "R\010pageSize\022\'\n\npage_token\030\003 \001(\tB\010\272H\005r\003\030\200\010" +
+      "R\tpageToken\"q\n\tAgentList\022<\n\007entries\030\001 \003(" +
+      "\0132\".ai.stigmer.agentic.agent.v1.AgentR\007e" +
+      "ntries\022&\n\017next_page_token\030\002 \001(\tR\rnextPag" +
+      "eTokenB\232\001B\007IoProtoP\001\242\002\004ASAA\252\002\033Ai.Stigmer" +
+      ".Agentic.Agent.V1\312\002\033Ai\\Stigmer\\Agentic\\A" +
+      "gent\\V1\342\002\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GP" +
+      "BMetadata\352\002\037Ai::Stigmer::Agentic::Agent:" +
+      ":V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -84,6 +100,18 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_UpdateAgentInput_descriptor,
         new java.lang.String[] { "Resource", "UpdateMask", });
+    internal_static_ai_stigmer_agentic_agent_v1_ListAgentsRequest_descriptor =
+      getDescriptor().getMessageType(2);
+    internal_static_ai_stigmer_agentic_agent_v1_ListAgentsRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agent_v1_ListAgentsRequest_descriptor,
+        new java.lang.String[] { "Org", "PageSize", "PageToken", });
+    internal_static_ai_stigmer_agentic_agent_v1_AgentList_descriptor =
+      getDescriptor().getMessageType(3);
+    internal_static_ai_stigmer_agentic_agent_v1_AgentList_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agent_v1_AgentList_descriptor,
+        new java.lang.String[] { "Entries", "NextPageToken", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agent.v1.ApiProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

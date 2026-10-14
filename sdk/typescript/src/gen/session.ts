@@ -105,16 +105,58 @@ export class SessionClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  /**
+   * Every entry of `list`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listAll(input: MessageInitShape<typeof ListSessionsRequestSchema>): AsyncGenerator<SessionList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.list(create(ListSessionsRequestSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
+  }
+
   async listByAgent(input: ListSessionsByAgentRequest): Promise<SessionList> {
     try {
       return await this.query.listByAgent(input);
     } catch (e) { throw wrapError(e); }
   }
 
+  /**
+   * Every entry of `listByAgent`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listByAgentAll(input: MessageInitShape<typeof ListSessionsByAgentRequestSchema>): AsyncGenerator<SessionList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.listByAgent(create(ListSessionsByAgentRequestSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
+  }
+
   async listByChannel(input: ListSessionsByChannelRequest): Promise<SessionList> {
     try {
       return await this.query.listByChannel(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `listByChannel`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listByChannelAll(input: MessageInitShape<typeof ListSessionsByChannelRequestSchema>): AsyncGenerator<SessionList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.listByChannel(create(ListSessionsByChannelRequestSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 
   async listEvents(input: ListSessionEventsRequest): Promise<SessionEventList> {

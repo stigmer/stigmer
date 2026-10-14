@@ -73,7 +73,10 @@ func (x *OAuthAppId) GetValue() string {
 type OAuthApps struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// OAuth app entries.
-	Entries       []*OAuthApp `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	Entries []*OAuthApp `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -115,30 +118,43 @@ func (x *OAuthApps) GetEntries() []*OAuthApp {
 	return nil
 }
 
-// ListOAuthAppsByOrgInput specifies the organization whose OAuth apps
+func (x *OAuthApps) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+// ListOAuthAppsInput specifies the organization whose OAuth apps
 // should be returned.
-type ListOAuthAppsByOrgInput struct {
+type ListOAuthAppsInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization slug to list OAuth apps for.
-	Org           string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ListOAuthAppsByOrgInput) Reset() {
-	*x = ListOAuthAppsByOrgInput{}
+func (x *ListOAuthAppsInput) Reset() {
+	*x = ListOAuthAppsInput{}
 	mi := &file_ai_stigmer_iam_oauthapp_v1_io_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ListOAuthAppsByOrgInput) String() string {
+func (x *ListOAuthAppsInput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ListOAuthAppsByOrgInput) ProtoMessage() {}
+func (*ListOAuthAppsInput) ProtoMessage() {}
 
-func (x *ListOAuthAppsByOrgInput) ProtoReflect() protoreflect.Message {
+func (x *ListOAuthAppsInput) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_stigmer_iam_oauthapp_v1_io_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -150,14 +166,28 @@ func (x *ListOAuthAppsByOrgInput) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListOAuthAppsByOrgInput.ProtoReflect.Descriptor instead.
-func (*ListOAuthAppsByOrgInput) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListOAuthAppsInput.ProtoReflect.Descriptor instead.
+func (*ListOAuthAppsInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_iam_oauthapp_v1_io_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *ListOAuthAppsByOrgInput) GetOrg() string {
+func (x *ListOAuthAppsInput) GetOrg() string {
 	if x != nil {
 		return x.Org
+	}
+	return ""
+}
+
+func (x *ListOAuthAppsInput) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListOAuthAppsInput) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
 	}
 	return ""
 }
@@ -229,11 +259,15 @@ const file_ai_stigmer_iam_oauthapp_v1_io_proto_rawDesc = "" +
 	"#ai/stigmer/iam/oauthapp/v1/io.proto\x12\x1aai.stigmer.iam.oauthapp.v1\x1a$ai/stigmer/iam/oauthapp/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"-\n" +
 	"\n" +
 	"OAuthAppId\x12\x1f\n" +
-	"\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"K\n" +
+	"\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"s\n" +
 	"\tOAuthApps\x12>\n" +
-	"\aentries\x18\x01 \x03(\v2$.ai.stigmer.iam.oauthapp.v1.OAuthAppR\aentries\"4\n" +
-	"\x17ListOAuthAppsByOrgInput\x12\x19\n" +
-	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\xe8\x02\n" +
+	"\aentries\x18\x01 \x03(\v2$.ai.stigmer.iam.oauthapp.v1.OAuthAppR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"~\n" +
+	"\x12ListOAuthAppsInput\x12\x19\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\xe8\x02\n" +
 	"\x13UpdateOAuthAppInput\x12H\n" +
 	"\bresource\x18\x01 \x01(\v2$.ai.stigmer.iam.oauthapp.v1.OAuthAppB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
@@ -255,12 +289,12 @@ func file_ai_stigmer_iam_oauthapp_v1_io_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_iam_oauthapp_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_iam_oauthapp_v1_io_proto_goTypes = []any{
-	(*OAuthAppId)(nil),              // 0: ai.stigmer.iam.oauthapp.v1.OAuthAppId
-	(*OAuthApps)(nil),               // 1: ai.stigmer.iam.oauthapp.v1.OAuthApps
-	(*ListOAuthAppsByOrgInput)(nil), // 2: ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput
-	(*UpdateOAuthAppInput)(nil),     // 3: ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput
-	(*OAuthApp)(nil),                // 4: ai.stigmer.iam.oauthapp.v1.OAuthApp
-	(*fieldmaskpb.FieldMask)(nil),   // 5: google.protobuf.FieldMask
+	(*OAuthAppId)(nil),            // 0: ai.stigmer.iam.oauthapp.v1.OAuthAppId
+	(*OAuthApps)(nil),             // 1: ai.stigmer.iam.oauthapp.v1.OAuthApps
+	(*ListOAuthAppsInput)(nil),    // 2: ai.stigmer.iam.oauthapp.v1.ListOAuthAppsInput
+	(*UpdateOAuthAppInput)(nil),   // 3: ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput
+	(*OAuthApp)(nil),              // 4: ai.stigmer.iam.oauthapp.v1.OAuthApp
+	(*fieldmaskpb.FieldMask)(nil), // 5: google.protobuf.FieldMask
 }
 var file_ai_stigmer_iam_oauthapp_v1_io_proto_depIdxs = []int32{
 	4, // 0: ai.stigmer.iam.oauthapp.v1.OAuthApps.entries:type_name -> ai.stigmer.iam.oauthapp.v1.OAuthApp

@@ -20,7 +20,8 @@
  * history holds the first push and the re-push, each once. The same race
  * over a single-use upload reference lands: the retried push reuses the
  * bytes the first attempt consumed. A re-push keeps the level
- * updateVisibility set, since a push names no visibility.
+ * updateVisibility set, since a push names no visibility. The
+ * organization's skills list newest first, one page at a time.
  */
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import http2 from "node:http2";
@@ -209,8 +210,8 @@ describe("push — identity and versioning", () => {
 
     // Exactly TWO history rows — the A re-push repointed, never duplicated.
     const history = await query.listVersions({ org: ORG, slug: name });
-    expect(history.totalCount).toBe(2);
-    const current = history.versions.filter((v) => v.isCurrent);
+    expect(history.entries).toHaveLength(2);
+    const current = history.entries.filter((v) => v.isCurrent);
     expect(current).toHaveLength(1);
     expect(current[0]?.versionHash).toBe(pushA.status?.versionHash);
     // Direct store proof: two audit rows, not three.
@@ -225,7 +226,7 @@ describe("push — identity and versioning", () => {
     await command.push({ org: ORG, artifact: makeArtifact(name, { body: "# B" }), tag: "stable" });
 
     const history = await query.listVersions({ org: ORG, slug: name });
-    const tagged = history.versions.filter((v) => v.tag === "stable");
+    const tagged = history.entries.filter((v) => v.tag === "stable");
     expect(tagged).toHaveLength(1);
     expect(tagged[0]?.isCurrent).toBe(true);
   });
@@ -455,16 +456,22 @@ describe("get / getByReference — the version ladder", () => {
 });
 
 describe("listVersions — pagination", () => {
-  it("pages newest-first with base64 cursors and a stable total", async () => {
+  it("pages newest first by token, and a push between two pages repeats nothing", async () => {
     const name = uniqueName();
     for (const body of ["# 1", "# 2", "# 3"]) {
       await command.push({ org: ORG, artifact: makeArtifact(name, { body }) });
     }
 
     const page1 = await query.listVersions({ org: ORG, slug: name, pageSize: 2 });
-    expect(page1.totalCount).toBe(3);
-    expect(page1.versions).toHaveLength(2);
+    expect(page1.entries).toHaveLength(2);
     expect(page1.nextPageToken).not.toBe("");
+
+    // A version pushed between two pages lands before the first page:
+    // the next page continues after the last row it returned.
+    const pushed = await command.push({
+      org: ORG,
+      artifact: makeArtifact(name, { body: "# 4" }),
+    });
 
     const page2 = await query.listVersions({
       org: ORG,
@@ -472,11 +479,18 @@ describe("listVersions — pagination", () => {
       pageSize: 2,
       pageToken: page1.nextPageToken,
     });
-    expect(page2.versions).toHaveLength(1);
+    expect(page2.entries).toHaveLength(1);
     expect(page2.nextPageToken).toBe("");
 
-    const hashes = [...page1.versions, ...page2.versions].map((v) => v.versionHash);
+    const hashes = [...page1.entries, ...page2.entries].map((v) => v.versionHash);
     expect(new Set(hashes).size).toBe(3);
+    expect(hashes).not.toContain(pushed.status?.versionHash);
+
+    // A fresh walk sees the new version first, marked current once.
+    const fresh = await query.listVersions({ org: ORG, slug: name, pageSize: 1 });
+    expect(fresh.entries.map((v) => [v.versionHash, v.isCurrent])).toEqual([
+      [pushed.status?.versionHash, true],
+    ]);
   });
 
   it("rejects malformed page tokens", async () => {
@@ -821,5 +835,27 @@ describe("pushFromRunArtifact — reading the run's artifact", () => {
       "download failure",
     );
     expect(err.rawMessage).toBe("failed to download execution artifact");
+  });
+});
+
+describe("list — an organization's skills", () => {
+  it("pages newest first by token, every skill once", async () => {
+    const older = await command.push({ org: ORG, artifact: makeArtifact(uniqueName()) });
+    const newer = await command.push({ org: ORG, artifact: makeArtifact(uniqueName()) });
+
+    const ids: string[] = [];
+    let pageToken = "";
+    do {
+      const page = await query.list({ org: ORG, pageSize: 1, pageToken });
+      expect(page.entries.length).toBeLessThanOrEqual(1);
+      ids.push(...page.entries.map((skill) => skill.metadata!.id));
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
+
+    expect(new Set(ids).size).toBe(ids.length);
+    const newerAt = ids.indexOf(newer.metadata!.id);
+    const olderAt = ids.indexOf(older.metadata!.id);
+    expect(newerAt).toBeGreaterThanOrEqual(0);
+    expect(olderAt).toBeGreaterThan(newerAt);
   });
 });

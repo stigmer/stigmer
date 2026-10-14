@@ -116,10 +116,36 @@ public final class RunClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    /**
+     * Every entry of {@code list}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<Run> listAll(ListRunsRequest input) {
+        return Pages.<RunList, Run>iterate(
+            input.getPageToken(),
+            token -> list(input.toBuilder().setPageToken(token).build()),
+            RunList::getEntriesList,
+            RunList::getNextPageToken);
+    }
+
     public RunList listBySession(ListRunsBySessionRequest input) {
         try {
             return query.listBySession(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code listBySession}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<Run> listBySessionAll(ListRunsBySessionRequest input) {
+        return Pages.<RunList, Run>iterate(
+            input.getPageToken(),
+            token -> listBySession(input.toBuilder().setPageToken(token).build()),
+            RunList::getEntriesList,
+            RunList::getNextPageToken);
     }
 
     public GetArtifactDownloadUrlResponse getArtifactDownloadUrl(GetArtifactDownloadUrlRequest input) {

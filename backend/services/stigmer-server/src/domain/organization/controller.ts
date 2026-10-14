@@ -12,9 +12,8 @@
  * no owner for it, the update keeps both, the delete refuses a parent
  * that still has a live child, and getByExternalId and listChildOrgs are
  * ordinary annotated lanes on the parent (`can_manage_child_orgs`). The
- * composed OrganizationDirectory carries the two edition forks: find's
- * enumeration posture and findMyOrganizations' filtering (see
- * organization-directory.ts).
+ * composed OrganizationDirectory carries the edition fork of listMine's
+ * filtering (see organization-directory.ts).
  *
  * Deleting is "mark, then purge" (deletion.ts, purge/): the delete answers
  * once the organization is marked and its access revoked, the deleting
@@ -30,30 +29,24 @@
  * Per-RPC posture: docs/authorization-coverage.md §2.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
-import { Code, ConnectError } from "@connectrpc/connect";
-import { fromBinary } from "@bufbuild/protobuf";
 import { create } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type {
-  FindApiResourcesRequest,
-  RenameInput,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import type { RenameInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import {
   ChildOrgListSchema,
-  OrganizationListSchema,
   OrganizationsSchema,
 } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 import type {
   ChildOrgList,
   ListChildOrgsInput,
+  ListMyOrganizationsInput,
   OrganizationExternalLookup,
   OrganizationId,
-  OrganizationList,
   Organizations,
   UpdateOrganizationPoliciesInput,
 } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
@@ -79,7 +72,6 @@ import {
   newPreservePoliciesStep,
 } from "./policies.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
-import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
@@ -104,7 +96,12 @@ import {
   TARGET_RESOURCE_KEY,
 } from "../../pipeline/steps/load-target.js";
 import { newCreateAuthorizationTuplesStep } from "../../pipeline/steps/authorization-tuples.js";
-import { readListPage } from "../../pipeline/steps/list-page.js";
+import {
+  inHandListPageSource,
+  listPageFingerprint,
+  readListPage,
+  readPage,
+} from "../../pipeline/steps/list-page.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 import { everyPathUpdate, updateContext } from "../../pipeline/steps/update-input.js";
@@ -199,8 +196,7 @@ export function registerOrganizationServices(
   });
   router.service(OrganizationQueryController, {
     get: (orgId, ctx) => get(deps, orgId, ctx),
-    find: (req, ctx) => find(deps, req, ctx),
-    findMyOrganizations: (_, ctx) => findMyOrganizations(deps, ctx),
+    listMine: (input, ctx) => listMine(deps, input, ctx),
     getByExternalId: (lookup, ctx) => getByExternalId(deps, lookup, ctx),
     listChildOrgs: (input, ctx) => listChildOrgs(deps, input, ctx),
   });
@@ -641,138 +637,19 @@ async function get(
   return reqCtx.get(TARGET_RESOURCE_KEY) as Organization;
 }
 
-const FIND_RESULT_KEY = "findResult";
-
 /**
- * Find — enumerates ALL organizations with manual pagination (page size
- * default 20, cap 100). The request's org field is accepted but IGNORED
- * for filtering: organizations are the top-level scope and belong to no
- * org. Single-tenant OSS enumerates freely; a composed directory with
- * refusesEnumeration answers UNIMPLEMENTED before any work — the
- * organizationEnumeration capability fork, byte-matching the
- * absent-method semantics the cloud edition pins.
+ * ListMine — deliberately pipeline-less (Go): there is nothing to
+ * authorize, and single-user OSS applies no IAM filtering — ALL
+ * organizations are "mine", read a page at a time through the list
+ * index. A composed directory filters to the caller's authorized set
+ * instead (the multiTenant capability fork): the directory answers ids,
+ * the controller loads them, skips the ids whose rows are gone (grants
+ * can outlive rows) and pages the set in hand by the same token. An
+ * organization being deleted is left out on every arm (lifecycle.ts).
  */
-async function find(
+async function listMine(
   deps: OrganizationControllerDeps,
-  req: FindApiResourcesRequest,
-  ctx: HandlerContext,
-): Promise<OrganizationList> {
-  if (deps.organizationDirectory?.refusesEnumeration === true) {
-    throw new ConnectError(
-      "ai.stigmer.tenancy.organization.v1.OrganizationQueryController.find is not implemented",
-      Code.Unimplemented,
-    );
-  }
-  const reqCtx = new RequestContext(
-    OrganizationQueryController.method.find.input,
-    req,
-    callerIdentityOf(ctx),
-    kindOf(ctx),
-  );
-  await newPipeline<typeof OrganizationQueryController.method.find.input>(
-    "organization-find",
-    deps.logger,
-  )
-    .addStep(
-      newAuthorizeStep(
-        OrganizationQueryController.method.find,
-        deps.authorizer,
-      ),
-    )
-    .addStep(newValidateProtoStep())
-    .addStep(newListAllOrganizationsStep(deps.store))
-    .build()
-    .execute(reqCtx);
-  return reqCtx.get(FIND_RESULT_KEY) as OrganizationList;
-}
-
-/**
- * ListAllOrganizations — the domain-local find step (Go
- * listAllOrganizationsStep): full list, malformed rows skipped, then
- * legacy pageSize/pageNumber fields overridden by the newer page message
- * when present, defaults 20/1, cap 100.
- */
-function newListAllOrganizationsStep(
-  store: Store,
-): PipelineStep<typeof OrganizationQueryController.method.find.input> {
-  return {
-    name: "ListAllOrganizations",
-    async execute(
-      ctx: RequestContext<typeof OrganizationQueryController.method.find.input>,
-    ): Promise<void> {
-      let data: Uint8Array[];
-      try {
-        data = await store.listResources(ctx.apiResourceKind);
-      } catch (error) {
-        throw internalError(error, "failed to list organizations");
-      }
-
-      let deleting: ReadonlySet<string>;
-      try {
-        deleting = await deletingOrganizationIds(store);
-      } catch (error) {
-        throw internalError(error, "failed to list organizations");
-      }
-      const orgs: Organization[] = [];
-      for (const bytes of data) {
-        let org: Organization;
-        try {
-          org = fromBinary(OrganizationSchema, bytes);
-        } catch {
-          continue; // skip malformed rows, as Go does
-        }
-        // An organization being deleted no longer exists (lifecycle.ts).
-        if (!deleting.has(org.metadata?.id ?? "")) {
-          orgs.push(org);
-        }
-      }
-
-      const req = ctx.input;
-      let pageSize = req.pageSize;
-      let pageNumber = req.pageNumber;
-      if (req.page !== undefined) {
-        if (req.page.size > 0) {
-          pageSize = req.page.size;
-        }
-        if (req.page.num > 0) {
-          pageNumber = req.page.num;
-        }
-      }
-      if (pageSize <= 0) {
-        pageSize = 20;
-      }
-      if (pageSize > 100) {
-        pageSize = 100;
-      }
-      if (pageNumber <= 0) {
-        pageNumber = 1;
-      }
-
-      const totalPages = Math.ceil(orgs.length / pageSize);
-      const start = (pageNumber - 1) * pageSize;
-      const entries =
-        start >= orgs.length ? [] : orgs.slice(start, start + pageSize);
-
-      ctx.set(
-        FIND_RESULT_KEY,
-        create(OrganizationListSchema, { totalPages, entries }),
-      );
-    },
-  };
-}
-
-/**
- * FindMyOrganizations — deliberately pipeline-less (Go): the input is
- * Empty, there is nothing to validate, and single-user OSS applies no IAM
- * filtering — ALL organizations are "mine". A composed directory filters
- * to the caller's authorized set instead (the multiTenant capability
- * fork): the directory answers ids, the controller loads
- * them, and ids whose rows are gone are skipped (grants can outlive
- * rows). An organization being deleted is left out on every arm
- * (lifecycle.ts).
- */
-async function findMyOrganizations(
-  deps: OrganizationControllerDeps,
+  input: ListMyOrganizationsInput,
   ctx: HandlerContext,
 ): Promise<Organizations> {
   let deleting: ReadonlySet<string>;
@@ -781,19 +658,22 @@ async function findMyOrganizations(
   } catch (error) {
     throw internalError(error, "failed to list organizations");
   }
+  const request = { pageSize: input.pageSize, pageToken: input.pageToken };
+  const keep = (org: Organization): boolean =>
+    !deleting.has(org.metadata?.id ?? "");
   const directory = deps.organizationDirectory;
   if (directory !== undefined) {
     const authorized = await directory.listMyOrganizationIds(
       callerIdentityOf(ctx),
     );
     if (authorized !== ALL_ORGANIZATIONS) {
-      const entries: Organization[] = [];
+      const loaded: Organization[] = [];
       for (const id of authorized) {
         if (deleting.has(id)) {
           continue;
         }
         try {
-          entries.push(
+          loaded.push(
             await deps.store.getResource(
               ApiResourceKind.organization,
               id,
@@ -807,28 +687,36 @@ async function findMyOrganizations(
           throw internalError(error, "failed to list organizations");
         }
       }
-      return create(OrganizationsSchema, { entries });
+      const page = await readPage({
+        source: inHandListPageSource(OrganizationSchema, loaded),
+        request,
+        fingerprint: listPageFingerprint({}),
+        decode: decodeOrganization,
+        keep,
+        scope: (rows) => Promise.resolve(rows),
+        failure: "failed to list organizations",
+      });
+      return create(OrganizationsSchema, {
+        entries: page.entries,
+        nextPageToken: page.nextPageToken,
+      });
     }
   }
-  let data: Uint8Array[];
-  try {
-    data = await deps.store.listResources(ApiResourceKind.organization);
-  } catch (error) {
-    throw internalError(error, "failed to list organizations");
-  }
-  const entries: Organization[] = [];
-  for (const bytes of data) {
-    let org: Organization;
-    try {
-      org = fromBinary(OrganizationSchema, bytes);
-    } catch {
-      continue;
-    }
-    if (!deleting.has(org.metadata?.id ?? "")) {
-      entries.push(org);
-    }
-  }
-  return create(OrganizationsSchema, { entries });
+  const page = await readListPage({
+    store: deps.store,
+    declaration: organizationListIndex,
+    query: {},
+    request,
+    fingerprint: listPageFingerprint({}),
+    decode: decodeOrganization,
+    keep,
+    scope: (rows) => Promise.resolve(rows),
+    failure: "failed to list organizations",
+  });
+  return create(OrganizationsSchema, {
+    entries: page.entries,
+    nextPageToken: page.nextPageToken,
+  });
 }
 
 /** The organizations being deleted (lifecycle.ts): the lists leave them out. */

@@ -15,13 +15,19 @@ class PlanId(_message.Message):
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
 class Plans(_message.Message):
-    __slots__ = ("entries",)
+    __slots__ = ("entries", "next_page_token")
     ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.Plan]
-    def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.Plan, _Mapping]]] = ...) -> None: ...
+    next_page_token: str
+    def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.Plan, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
 
 class ListPlansInput(_message.Message):
-    __slots__ = ("include_retired",)
+    __slots__ = ("include_retired", "page_size", "page_token")
     INCLUDE_RETIRED_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     include_retired: bool
-    def __init__(self, include_retired: bool = ...) -> None: ...
+    page_size: int
+    page_token: str
+    def __init__(self, include_retired: bool = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...

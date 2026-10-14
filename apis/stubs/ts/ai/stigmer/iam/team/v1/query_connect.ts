@@ -6,7 +6,7 @@
 import { ApiResourceId, ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
 import { Team } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { ListTeamsByOrgInput, Teams } from "./io_pbjs";
+import { ListTeamsInput, Teams } from "./io_pbjs";
 
 /**
  * TeamQueryController provides read operations for teams.
@@ -43,13 +43,13 @@ export const TeamQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * List the teams of an organization.
+     * List the teams of an organization, newest first.
      *
-     * @generated from rpc ai.stigmer.iam.team.v1.TeamQueryController.listByOrg
+     * @generated from rpc ai.stigmer.iam.team.v1.TeamQueryController.list
      */
-    listByOrg: {
-      name: "listByOrg",
-      I: ListTeamsByOrgInput,
+    list: {
+      name: "list",
+      I: ListTeamsInput,
       O: Teams,
       kind: MethodKind.Unary,
     },

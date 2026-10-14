@@ -54,17 +54,19 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "to\022\037ai.stigmer.agentic.agenteval.v1\032)ai/" +
       "stigmer/agentic/agenteval/v1/api.proto\032\033" +
       "buf/validate/validate.proto\"0\n\013AgentEval" +
-      "Id\022!\n\005value\030\001 \001(\tB\013\272H\010r\003\030\200\001\310\001\001R\005value\"E\n" +
-      "\034ListAgentEvalsByAgentRequest\022%\n\010agent_i" +
-      "d\030\001 \001(\tB\n\272H\007r\005\020\001\030\200\001R\007agentId\"r\n\rAgentEva" +
-      "lList\022\037\n\013total_count\030\001 \001(\005R\ntotalCount\022@" +
-      "\n\005items\030\002 \003(\0132*.ai.stigmer.agentic.agent" +
-      "eval.v1.AgentEvalR\005itemsB\252\001B\007IoProtoP\001\242\002" +
-      "\004ASAA\252\002\037Ai.Stigmer.Agentic.Agenteval.V1\312" +
-      "\002\037Ai\\Stigmer\\Agentic\\Agenteval\\V1\342\002+Ai\\S" +
-      "tigmer\\Agentic\\Agenteval\\V1\\GPBMetadata\352" +
-      "\002#Ai::Stigmer::Agentic::Agenteval::V1b\006p" +
-      "roto3"
+      "Id\022!\n\005value\030\001 \001(\tB\013\272H\010r\003\030\200\001\310\001\001R\005value\"\224\001" +
+      "\n\034ListAgentEvalsByAgentRequest\022%\n\010agent_" +
+      "id\030\001 \001(\tB\n\272H\007r\005\020\001\030\200\001R\007agentId\022$\n\tpage_si" +
+      "ze\030\002 \001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'\n\npage_toke" +
+      "n\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageToken\"\220\001\n\rAgentEv" +
+      "alList\022D\n\007entries\030\002 \003(\0132*.ai.stigmer.age" +
+      "ntic.agenteval.v1.AgentEvalR\007entries\022&\n\017" +
+      "next_page_token\030\003 \001(\tR\rnextPageTokenJ\004\010\001" +
+      "\020\002R\013total_countB\252\001B\007IoProtoP\001\242\002\004ASAA\252\002\037A" +
+      "i.Stigmer.Agentic.Agenteval.V1\312\002\037Ai\\Stig" +
+      "mer\\Agentic\\Agenteval\\V1\342\002+Ai\\Stigmer\\Ag" +
+      "entic\\Agenteval\\V1\\GPBMetadata\352\002#Ai::Sti" +
+      "gmer::Agentic::Agenteval::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -83,13 +85,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agenteval_v1_ListAgentEvalsByAgentRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agenteval_v1_ListAgentEvalsByAgentRequest_descriptor,
-        new java.lang.String[] { "AgentId", });
+        new java.lang.String[] { "AgentId", "PageSize", "PageToken", });
     internal_static_ai_stigmer_agentic_agenteval_v1_AgentEvalList_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_agenteval_v1_AgentEvalList_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agenteval_v1_AgentEvalList_descriptor,
-        new java.lang.String[] { "TotalCount", "Items", });
+        new java.lang.String[] { "Entries", "NextPageToken", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agenteval.v1.ApiProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

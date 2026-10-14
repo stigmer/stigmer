@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Iterator
 
 import grpc
 
@@ -76,11 +77,23 @@ class PlatformClientClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def list_by_org(self, input: io_pb2.ListPlatformClientsByOrgInput) -> io_pb2.PlatformClients:
+    def list(self, input: io_pb2.ListPlatformClientsInput) -> io_pb2.PlatformClients:
         try:
-            return self._query.listByOrg(input)
+            return self._query.list(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
+
+    def list_all(self, input: io_pb2.ListPlatformClientsInput) -> Iterator[api_pb2.PlatformClient]:
+        """Every entry of ``list``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListPlatformClientsInput()
+        request.CopyFrom(input)
+        while True:
+            page = self.list(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
 
     def mint_user_token(self, input: token_pb2.MintUserTokenRequest) -> token_pb2.MintUserTokenResponse:
         try:

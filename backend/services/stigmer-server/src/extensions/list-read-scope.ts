@@ -1,8 +1,8 @@
 /**
  * The list-read-scope extension point (it generalizes and ABSORBS the
  * earlier execution-only read scope, whose two summary consumers now ride
- * the enumeration verb below). OSS list-shaped reads — the list/getByAgent
- * chains, apikey findAll, search, recent activity, the two dashboard
+ * the enumeration verb below). OSS list-shaped reads — the list/listByAgent
+ * chains, apikey list, search, recent activity, the two dashboard
  * summaries — are deliberate full scans on OSS (single-user: everything
  * is yours). On a multi-tenant edition the same scans serve OTHER
  * tenants' rows, so the cloud baseline (the Java list handlers) narrows
@@ -87,7 +87,7 @@
  *     scope call), passing `""`; the small org-scoped lists (vault,
  *     memory, schedule, agent-share and agent-channel; the
  *     getBy* parent filters) apply their own filter above the helper call
- *     and pass `""` too. `apiKey.findAll` has no org on the wire and offers
+ *     and pass `""` too. `apiKey.list` has no org on the wire and offers
  *     the kind: a few rows per person.
  *   - A KIND WHOSE AUTHORIZATION IS ITS PARENT'S CARRIES THAT PARENT ON
  *     EVERY CANDIDATE. When

@@ -16,11 +16,11 @@ const V1 = "a".repeat(64);
 describe("renderAgentVersionHistory", () => {
   it("lists the versions newest first, marking the current one", async () => {
     const listVersions = vi.fn(async () => ({
-      versions: [
+      entries: [
         create(AgentVersionEntrySchema, { versionHash: V2, isCurrent: true, tag: "stable", message: "tighter review" }),
         create(AgentVersionEntrySchema, { versionHash: V1, message: "" }),
       ],
-      totalCount: 2,
+      nextPageToken: "",
     }));
     const client = { agent: { listVersions } } as unknown as Stigmer;
 
@@ -28,16 +28,31 @@ describe("renderAgentVersionHistory", () => {
 
     expect(listVersions).toHaveBeenCalledWith(expect.objectContaining({ org: "", slug: "reviewer", pageSize: 50 }));
     const lines = rendered.split("\n");
-    expect(lines).toContain("Version History (2 total)");
+    expect(lines).toContain("Version History (2)");
     const rows = lines.filter((line) => line.includes("bbbbbbbbbbbb") || line.includes("aaaaaaaaaaaa"));
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatch(/^ {2}bbbbbbbbbbbb +stable +- +\* +tighter review$/);
     expect(rows[1]).toMatch(/^ {2}aaaaaaaaaaaa +- +- +-$/);
   });
 
+  it("counts the page and marks older versions following it with +", async () => {
+    const client = {
+      agent: {
+        listVersions: async () => ({
+          entries: [create(AgentVersionEntrySchema, { versionHash: V2, isCurrent: true })],
+          nextPageToken: "older",
+        }),
+      },
+    } as unknown as Stigmer;
+
+    const rendered = await renderAgentVersionHistory(client, "", "reviewer");
+
+    expect(rendered.split("\n")).toContain("Version History (1+)");
+  });
+
   it("points an empty history at applying an agent", async () => {
     const client = {
-      agent: { listVersions: async () => ({ versions: [], totalCount: 0 }) },
+      agent: { listVersions: async () => ({ entries: [], nextPageToken: "" }) },
     } as unknown as Stigmer;
 
     const rendered = await renderAgentVersionHistory(client, "", "reviewer");

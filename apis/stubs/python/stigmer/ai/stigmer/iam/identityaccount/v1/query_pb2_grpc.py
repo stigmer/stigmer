@@ -45,7 +45,7 @@ class IdentityAccountQueryControllerStub(object):
                 _registered_method=True)
         self.listServiceAccounts = channel.unary_unary(
                 '/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/listServiceAccounts',
-                request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.ListWithIdentityOrg.SerializeToString,
+                request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.ListServiceAccountsInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.IdentityAccountsList.FromString,
                 _registered_method=True)
         self.getActorInfo = channel.unary_unary(
@@ -162,7 +162,7 @@ def add_IdentityAccountQueryControllerServicer_to_server(servicer, server):
             ),
             'listServiceAccounts': grpc.unary_unary_rpc_method_handler(
                     servicer.listServiceAccounts,
-                    request_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.ListWithIdentityOrg.FromString,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.ListServiceAccountsInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.IdentityAccountsList.SerializeToString,
             ),
             'getActorInfo': grpc.unary_unary_rpc_method_handler(
@@ -332,7 +332,7 @@ class IdentityAccountQueryController(object):
             request,
             target,
             '/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/listServiceAccounts',
-            ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.ListWithIdentityOrg.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.ListServiceAccountsInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.IdentityAccountsList.FromString,
             options,
             channel_credentials,

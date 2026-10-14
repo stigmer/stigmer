@@ -3,7 +3,6 @@ syntax = "proto3";
 package ai.stigmer.agentic.memory.v1;
 
 import "ai/stigmer/agentic/memory/v1/api.proto";
-import "ai/stigmer/commons/rpc/pagination.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/field_mask.proto";
 
@@ -25,17 +24,29 @@ message ListMemoriesRequest {
   // Organization slug to scope the listing.
   string org = 1 [(buf.validate.field).string.min_len = 1];
 
-  // Pagination options.
-  ai.stigmer.commons.rpc.PageInfo page_info = 2;
+  reserved 2;
+  reserved "page_info";
+
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 3 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 4 [(buf.validate.field).string.max_len = 1024];
 }
 
 // Response containing a paginated list of memories.
 message MemoryList {
-  // Total number of memories matching the query.
-  int32 total_count = 1;
+  reserved 1;
+  reserved "total_count";
 
   // Memories in the current page.
-  repeated Memory items = 2;
+  repeated Memory entries = 2;
+
+  // Set when more entries may follow: pass it as page_token to continue.
+  // A page may be short, even empty, and still carry a token.
+  string next_page_token = 3;
 }
 
 // The changes an update makes to a memory: the fields update_mask names,

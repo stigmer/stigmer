@@ -69,7 +69,7 @@ import type {
   IdentityAccountId,
   IdentityAccountsList,
   IdpId,
-  ListWithIdentityOrg,
+  ListServiceAccountsInput,
 } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
@@ -310,7 +310,7 @@ function createServiceAccount(
 
 function listServiceAccounts(
   deps: IdentityAccountControllerDeps,
-  input: ListWithIdentityOrg,
+  input: ListServiceAccountsInput,
   ctx: HandlerContext,
 ): Promise<IdentityAccountsList> {
   return listServiceAccountsHandler(serviceAccountDepsOf(deps), input, ctx);

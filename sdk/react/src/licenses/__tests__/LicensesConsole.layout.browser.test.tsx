@@ -69,7 +69,7 @@ function makeClient(): Stigmer {
       throw new Error("network disabled in test");
     }) as unknown as typeof globalThis.fetch,
     license: {
-      list: async () => ({ entries }),
+      list: async () => ({ entries, nextPageToken: "" }),
       get: async () => entries[0],
       create: async () => entries[0],
     },

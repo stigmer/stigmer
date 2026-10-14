@@ -58,7 +58,6 @@ describe("isRunAlias", () => {
 
 describe("renderRunList", () => {
   const list = create(RunListSchema, {
-    totalPages: 1,
     entries: [
       create(RunSchema, {
         metadata: { id: "aex_1" },
@@ -76,7 +75,6 @@ describe("renderRunList", () => {
 
   it("renders the full list envelope as protojson for json", () => {
     const json = JSON.parse(renderRunList(result, "json"));
-    expect(json.total_pages).toBe(1);
     expect(json.entries[0].metadata.id).toBe("aex_1");
   });
 

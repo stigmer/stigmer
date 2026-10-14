@@ -141,8 +141,7 @@ stigmer org delete my-org
 | `rename` | Organization owner, or the parent's admin (`can_delete`) | Changes the slug. The id, and everything filed under it, stays; the old slug leads to the organization for 30 days. |
 | `delete` | Organization owner, or the parent's admin (`can_delete`) | Deletes the organization and every access grant on it. Its slug is released. Refused while it has child organizations. |
 | `get` | Organization member, or the parent's admin (`can_view_settings`) | Gets a single organization by ID. |
-| `list` | Platform admin | Paginated list of all organizations (admin only). |
-| `findMyOrganizations` | Any authenticated user | Returns organizations the caller is a member of. |
+| `listMine` | Any authenticated user | Lists the organizations the caller is a member of, a page at a time. |
 | `getByExternalId` | The parent's admin (`can_manage_child_orgs` on `parent_org`) | Finds a child organization by its parent and external id. |
 | `listChildOrgs` | The parent's admin (`can_manage_child_orgs` on `org`) | Lists an organization's child organizations, newest first, paged. |
 

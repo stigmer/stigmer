@@ -581,3 +581,31 @@ describe("agent update — a write that lands mid-update", () => {
     expect(live.spec?.instructions).toBe(UPDATED_INSTRUCTIONS);
   });
 });
+
+describe("agent list — an organization's agents, one page at a time", () => {
+  it("walks the organization's agents newest first by token", async () => {
+    const created: string[] = [];
+    for (let i = 0; i < 3; i += 1) {
+      const agent = await command.create(agentInput());
+      created.push(agent.metadata?.id ?? "");
+    }
+
+    const walked: string[] = [];
+    let pageToken = "";
+    do {
+      const page = await query.list({ org: ORG, pageSize: 2, pageToken });
+      expect(page.entries.length).toBeLessThanOrEqual(2);
+      for (const agent of page.entries) {
+        expect(agent.metadata?.org).toBe(ORG_ID);
+      }
+      walked.push(...page.entries.map((agent) => agent.metadata?.id ?? ""));
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
+
+    const mine = walked.filter((id) => created.includes(id));
+    expect(mine).toEqual([...created].reverse());
+    for (const id of created) {
+      await command.delete({ value: id });
+    }
+  });
+});

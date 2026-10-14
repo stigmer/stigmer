@@ -34,6 +34,18 @@ service PluginQueryController {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
+  // List an organization's plugins, newest first.
+  //
+  // Returns the plugins of the input org that the caller may view, one page
+  // at a time. Search finds plugins by their words; list browses them.
+  //
+  // @internal
+  // Authorization in-handler: the list read scope keeps the plugins the
+  // caller could get by id, as every organization list does.
+  rpc list(ListPluginsRequest) returns (PluginList) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
   // Download a plugin archive from storage by its storage key.
   // Returns the ZIP file the plugin was installed from.
   //

@@ -31,7 +31,7 @@ afterEach(cleanup);
 function renderView(onNavigateToRun: (runId: string) => void) {
   const latest = evalWith([{ name: "review-fires", score: 1, delta: 0.67 }]);
   const listByPlugin = vi.fn(() =>
-    create(PluginEvalListSchema, { totalCount: 1, items: [latest] }),
+    create(PluginEvalListSchema, { entries: [latest], nextPageToken: "" }),
   );
   const transport = createRouterTransport(({ service }) => {
     service(PluginQueryController, {

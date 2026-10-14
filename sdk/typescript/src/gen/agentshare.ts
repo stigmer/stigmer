@@ -7,7 +7,7 @@ import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { AgentShareSchema, type AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
-import { AgentShareIdSchema, UpdateAgentShareInputSchema, RotateShareLinkInputSchema, GetAgentSharesByAgentRequestSchema, AgentShareListSchema, ListAgentSharesRequestSchema, GetSharedProfileRequestSchema, SharedAgentProfileSchema, type RotateShareLinkInput, type GetAgentSharesByAgentRequest, type AgentShareList, type ListAgentSharesRequest, type GetSharedProfileRequest, type SharedAgentProfile } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
+import { AgentShareIdSchema, UpdateAgentShareInputSchema, RotateShareLinkInputSchema, ListAgentSharesByAgentRequestSchema, AgentShareListSchema, ListAgentSharesRequestSchema, GetSharedProfileRequestSchema, SharedAgentProfileSchema, type RotateShareLinkInput, type ListAgentSharesByAgentRequest, type AgentShareList, type ListAgentSharesRequest, type GetSharedProfileRequest, type SharedAgentProfile } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
 import { AgentShareQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/query_pb";
 import { AgentShareSpecSchema, AgentShareAudience, AgentShareMessagesSchema, type AgentShareMessages } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -69,16 +69,44 @@ export class AgentShareClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async getByAgent(input: GetAgentSharesByAgentRequest): Promise<AgentShareList> {
+  async listByAgent(input: ListAgentSharesByAgentRequest): Promise<AgentShareList> {
     try {
-      return await this.query.getByAgent(input);
+      return await this.query.listByAgent(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `listByAgent`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listByAgentAll(input: MessageInitShape<typeof ListAgentSharesByAgentRequestSchema>): AsyncGenerator<AgentShareList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.listByAgent(create(ListAgentSharesByAgentRequestSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 
   async list(input: ListAgentSharesRequest): Promise<AgentShareList> {
     try {
       return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `list`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listAll(input: MessageInitShape<typeof ListAgentSharesRequestSchema>): AsyncGenerator<AgentShareList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.list(create(ListAgentSharesRequestSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 
   async getSharedProfile(input: GetSharedProfileRequest): Promise<SharedAgentProfile> {

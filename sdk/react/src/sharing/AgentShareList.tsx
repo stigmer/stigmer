@@ -52,7 +52,7 @@ export interface AgentShareListProps {
  * rendered in the agent detail view's Shares tab.
  *
  * Lists the agent's organization's channels of the agent: a share lives
- * in its agent's organization, so that org scopes the `getByAgent` call
+ * in its agent's organization, so that org scopes the `listByAgent` call
  * server-side. Per-row actions: copy link, edit, pause/resume, reset
  * link, delete. Creation goes through the same {@link ShareAgentDialog}
  * and lands in the agent's organization; the create bar mirrors the

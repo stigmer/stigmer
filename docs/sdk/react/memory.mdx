@@ -85,6 +85,12 @@ mode), so this list is always "what the platform remembers about ME
 here". Ordering is newest first; group by lifecycle state for display
 with [`groupMemoriesByLifecycle`](#groupmemoriesbylifecycle).
 
+The server holds at most 100 records per subject in an organization, so
+the view needs no pager, but a page is not the whole set: the server
+checks each row against the caller's read scope after reading it, so a
+page can come back short, even empty, with a token while the caller's
+own records sit further on. The hook follows every token.
+
 Pass `null` as `org` to skip fetching (stable no-op).
 
 **Signature**

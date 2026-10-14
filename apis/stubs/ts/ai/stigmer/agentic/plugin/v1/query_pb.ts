@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { PluginSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_plugin_v1_api } from "./api_pb.js";
-import type { GetArtifactRequestSchema, GetArtifactResponseSchema, ListPluginVersionsInputSchema, ListPluginVersionsResponseSchema, PluginArtifactDownloadUrlSchema, PluginIdSchema } from "./io_pb.js";
+import type { GetArtifactRequestSchema, GetArtifactResponseSchema, ListPluginsRequestSchema, ListPluginVersionsInputSchema, ListPluginVersionsResponseSchema, PluginArtifactDownloadUrlSchema, PluginIdSchema, PluginListSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_plugin_v1_io } from "./io_pb.js";
 import type { ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/plugin/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_plugin_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luL3YxL3F1ZXJ5LnByb3RvEhxhaS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxMqIFChVQbHVnaW5RdWVyeUNvbnRyb2xsZXISgAEKA2dldBImLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luSWQaJC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpbiIrwrgYJwgBEDoiBXZhbHVlKhp1bmF1dGhvcml6ZWQgdG8gZ2V0IHBsdWdpbhJyCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRokLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luIgTQuBgBEngKC2dldEFydGlmYWN0EjAuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5HZXRBcnRpZmFjdFJlcXVlc3QaMS5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLkdldEFydGlmYWN0UmVzcG9uc2UiBNC4GAESiQEKFmdldEFydGlmYWN0RG93bmxvYWRVcmwSMC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLkdldEFydGlmYWN0UmVxdWVzdBo3LmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luQXJ0aWZhY3REb3dubG9hZFVybCIE0LgYARKFAQoMbGlzdFZlcnNpb25zEjUuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5MaXN0UGx1Z2luVmVyc2lvbnNJbnB1dBo4LmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuTGlzdFBsdWdpblZlcnNpb25zUmVzcG9uc2UiBNC4GAEaBKD/KzpiBnByb3RvMw", [file_ai_stigmer_agentic_plugin_v1_api, file_ai_stigmer_agentic_plugin_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luL3YxL3F1ZXJ5LnByb3RvEhxhaS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxMowGChVQbHVnaW5RdWVyeUNvbnRyb2xsZXISgAEKA2dldBImLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luSWQaJC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpbiIrwrgYJwgBEDoiBXZhbHVlKhp1bmF1dGhvcml6ZWQgdG8gZ2V0IHBsdWdpbhJyCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRokLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luIgTQuBgBEmgKBGxpc3QSMC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLkxpc3RQbHVnaW5zUmVxdWVzdBooLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luTGlzdCIE0LgYARJ4CgtnZXRBcnRpZmFjdBIwLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuR2V0QXJ0aWZhY3RSZXF1ZXN0GjEuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5HZXRBcnRpZmFjdFJlc3BvbnNlIgTQuBgBEokBChZnZXRBcnRpZmFjdERvd25sb2FkVXJsEjAuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5HZXRBcnRpZmFjdFJlcXVlc3QaNy5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpbkFydGlmYWN0RG93bmxvYWRVcmwiBNC4GAEShQEKDGxpc3RWZXJzaW9ucxI1LmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuTGlzdFBsdWdpblZlcnNpb25zSW5wdXQaOC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLkxpc3RQbHVnaW5WZXJzaW9uc1Jlc3BvbnNlIgTQuBgBGgSg/ys6YgZwcm90bzM", [file_ai_stigmer_agentic_plugin_v1_api, file_ai_stigmer_agentic_plugin_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * PluginQueryController handles read operations for plugins.
@@ -49,6 +49,19 @@ export const PluginQueryController: GenService<{
     methodKind: "unary";
     input: typeof ApiResourceReferenceSchema;
     output: typeof PluginSchema;
+  },
+  /**
+   * List an organization's plugins, newest first.
+   *
+   * Returns the plugins of the input org that the caller may view, one page
+   * at a time. Search finds plugins by their words; list browses them.
+   *
+   * @generated from rpc ai.stigmer.agentic.plugin.v1.PluginQueryController.list
+   */
+  list: {
+    methodKind: "unary";
+    input: typeof ListPluginsRequestSchema;
+    output: typeof PluginListSchema;
   },
   /**
    * Download a plugin archive from storage by its storage key.

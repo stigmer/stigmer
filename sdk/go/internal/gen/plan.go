@@ -4,10 +4,12 @@ package gen
 
 import (
 	"context"
+	"iter"
 
 	planv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/plan/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 )
 
 // PlanClient provides operations on plan resources.
@@ -45,6 +47,35 @@ func (p *PlanClient) Get(ctx context.Context, id string) (*planv1.Plan, error) {
 func (p *PlanClient) List(ctx context.Context, input *planv1.ListPlansInput) (*planv1.Plans, error) {
 	resp, err := p.query.List(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListAll returns every entry of List, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (p *PlanClient) ListAll(ctx context.Context, input *planv1.ListPlansInput) iter.Seq2[*planv1.Plan, error] {
+	return func(yield func(*planv1.Plan, error) bool) {
+		req := &planv1.ListPlansInput{}
+		if input != nil {
+			req = proto.Clone(input).(*planv1.ListPlansInput)
+		}
+		for {
+			page, err := p.List(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 // PlanInput holds the fields for creating or applying a Plan.

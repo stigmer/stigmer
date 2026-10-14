@@ -103,7 +103,13 @@ describe("the purge stages' row reader", () => {
   it("pages a kind with no list index by keyset, past a full scan page", async () => {
     const mine = await saveAgents(ORG, 4);
     await saveAgents(OTHER, 520);
-    const rows = newOrganizationRows(fx.store, LIST_INDEXES, ORG);
+    // Agents carry a list index since every list pages; the reader is
+    // composed without it, so the keyset arm is the one under test.
+    const rows = newOrganizationRows(
+      fx.store,
+      LIST_INDEXES.filter((index) => index.kind !== ApiResourceKind.agent),
+      ORG,
+    );
     const read = await allPages(rows, ApiResourceKind.agent, AgentSchema, 3);
     expect(read.ids).toEqual(mine);
     expect(read.pages).toBe(2);

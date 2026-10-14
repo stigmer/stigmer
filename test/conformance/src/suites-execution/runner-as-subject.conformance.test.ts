@@ -1094,10 +1094,10 @@ describe.skipIf(!runnerActsAsRunCreator)(
       // — the server derived both from the credential, nothing the child said.
       const mine = await people.member.memoryQuery.list({
         org: people.org,
-        pageInfo: { num: 1, size: MEMORY_CAP },
+        pageSize: MEMORY_CAP,
       });
-      expect(mine.items.map((m) => m.spec?.content)).toEqual([fact]);
-      const memory = mine.items[0]!;
+      expect(mine.entries.map((m) => m.spec?.content)).toEqual([fact]);
+      const memory = mine.entries[0]!;
       fixtures.defer(() =>
         people.member.memoryCommand.delete({ value: memory.metadata!.id }),
       );
@@ -1109,9 +1109,9 @@ describe.skipIf(!runnerActsAsRunCreator)(
       // is not the memory's subject and sees nothing.
       const operatorSees = await people.founder.memoryQuery.list({
         org: people.org,
-        pageInfo: { num: 1, size: MEMORY_CAP },
+        pageSize: MEMORY_CAP,
       });
-      expect(operatorSees.items).toEqual([]);
+      expect(operatorSees.entries).toEqual([]);
     });
   },
 );

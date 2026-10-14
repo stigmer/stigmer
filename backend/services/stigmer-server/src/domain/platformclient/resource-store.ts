@@ -9,7 +9,8 @@
  * domain/apikey/lookup.ts: a decode-and-scan per mint, watched by
  * stigmer#987) and `findByOrg` by listing the kind. A PlatformClient
  * census is a handful of rows per organization, and neither sits on a
- * per-request path. A lookup by slug reads the name table, then this
+ * per-request path. `pageByOrg` reads one organization's rows through the
+ * kind's list index (list-index.ts), a page at a time. A lookup by slug reads the name table, then this
  * store by id (steps.ts findClientByName).
  *
  * `save` is read-then-write because the generic Store's saveResource is an
@@ -36,6 +37,7 @@ import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformcli
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { GuardedRead } from "../../store/guarded-port.js";
 import type { Store } from "../../store/interface.js";
+import { platformClientListIndex } from "./list-index.js";
 import { DuplicatePlatformClientError } from "./store.js";
 import type { PlatformClientStore } from "./store.js";
 
@@ -160,5 +162,12 @@ export function newResourcePlatformClientStore(
     findByClientId: readByClientId,
 
     findByOrg: listOrg,
+
+    pageByOrg: (org, after, limit) =>
+      store.queryResources(platformClientListIndex, {
+        org,
+        ...(after === undefined ? {} : { after }),
+        limit,
+      }),
   };
 }

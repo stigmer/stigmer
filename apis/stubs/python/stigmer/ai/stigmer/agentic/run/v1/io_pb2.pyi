@@ -41,14 +41,12 @@ class SessionId(_message.Message):
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
 class RunList(_message.Message):
-    __slots__ = ("total_pages", "entries", "next_page_token")
-    TOTAL_PAGES_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("entries", "next_page_token")
     ENTRIES_FIELD_NUMBER: _ClassVar[int]
     NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
-    total_pages: int
     entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.Run]
     next_page_token: str
-    def __init__(self, total_pages: _Optional[int] = ..., entries: _Optional[_Iterable[_Union[_api_pb2.Run, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
+    def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.Run, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
 
 class ListRunsRequest(_message.Message):
     __slots__ = ("page_size", "page_token", "phase", "tags", "org")
@@ -217,23 +215,19 @@ class GetSessionUsageReportOutput(_message.Message):
     def __init__(self, session_id: _Optional[str] = ..., run_count: _Optional[int] = ..., total_usage: _Optional[_Union[_usage_pb2.UsageReportAggregate, _Mapping]] = ..., runs: _Optional[_Iterable[_Union[RunUsageSummary, _Mapping]]] = ..., model_breakdown: _Optional[_Iterable[_Union[_usage_pb2.ModelUsage, _Mapping]]] = ..., first_run_at: _Optional[str] = ..., last_run_at: _Optional[str] = ..., is_estimated: bool = ...) -> None: ...
 
 class GetAgentUsageReportInput(_message.Message):
-    __slots__ = ("agent_id", "from_date", "to_date", "page_size", "page_token", "org")
+    __slots__ = ("agent_id", "from_date", "to_date", "org")
     AGENT_ID_FIELD_NUMBER: _ClassVar[int]
     FROM_DATE_FIELD_NUMBER: _ClassVar[int]
     TO_DATE_FIELD_NUMBER: _ClassVar[int]
-    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
-    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     ORG_FIELD_NUMBER: _ClassVar[int]
     agent_id: str
     from_date: str
     to_date: str
-    page_size: int
-    page_token: str
     org: str
-    def __init__(self, agent_id: _Optional[str] = ..., from_date: _Optional[str] = ..., to_date: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., org: _Optional[str] = ...) -> None: ...
+    def __init__(self, agent_id: _Optional[str] = ..., from_date: _Optional[str] = ..., to_date: _Optional[str] = ..., org: _Optional[str] = ...) -> None: ...
 
 class GetAgentUsageReportOutput(_message.Message):
-    __slots__ = ("agent_id", "agent_name", "total_usage", "model_breakdown", "sessions", "total_sessions", "total_runs", "next_page_token")
+    __slots__ = ("agent_id", "agent_name", "total_usage", "model_breakdown", "sessions", "total_sessions", "total_runs")
     AGENT_ID_FIELD_NUMBER: _ClassVar[int]
     AGENT_NAME_FIELD_NUMBER: _ClassVar[int]
     TOTAL_USAGE_FIELD_NUMBER: _ClassVar[int]
@@ -241,7 +235,6 @@ class GetAgentUsageReportOutput(_message.Message):
     SESSIONS_FIELD_NUMBER: _ClassVar[int]
     TOTAL_SESSIONS_FIELD_NUMBER: _ClassVar[int]
     TOTAL_RUNS_FIELD_NUMBER: _ClassVar[int]
-    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     agent_id: str
     agent_name: str
     total_usage: _usage_pb2.UsageReportAggregate
@@ -249,8 +242,7 @@ class GetAgentUsageReportOutput(_message.Message):
     sessions: _containers.RepeatedCompositeFieldContainer[SessionUsageSummary]
     total_sessions: int
     total_runs: int
-    next_page_token: str
-    def __init__(self, agent_id: _Optional[str] = ..., agent_name: _Optional[str] = ..., total_usage: _Optional[_Union[_usage_pb2.UsageReportAggregate, _Mapping]] = ..., model_breakdown: _Optional[_Iterable[_Union[_usage_pb2.ModelUsage, _Mapping]]] = ..., sessions: _Optional[_Iterable[_Union[SessionUsageSummary, _Mapping]]] = ..., total_sessions: _Optional[int] = ..., total_runs: _Optional[int] = ..., next_page_token: _Optional[str] = ...) -> None: ...
+    def __init__(self, agent_id: _Optional[str] = ..., agent_name: _Optional[str] = ..., total_usage: _Optional[_Union[_usage_pb2.UsageReportAggregate, _Mapping]] = ..., model_breakdown: _Optional[_Iterable[_Union[_usage_pb2.ModelUsage, _Mapping]]] = ..., sessions: _Optional[_Iterable[_Union[SessionUsageSummary, _Mapping]]] = ..., total_sessions: _Optional[int] = ..., total_runs: _Optional[int] = ...) -> None: ...
 
 class GetOrgUsageReportInput(_message.Message):
     __slots__ = ("org", "from_date", "to_date")

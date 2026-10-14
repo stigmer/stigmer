@@ -55,14 +55,14 @@ class ScoreQueryControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def listByRun(self, request, context):
-        """List every score of a run.
+        """List the scores of a run, newest first.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def listBySession(self, request, context):
-        """List every score of every run in a session.
+        """List the scores of every run in a session, newest first.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

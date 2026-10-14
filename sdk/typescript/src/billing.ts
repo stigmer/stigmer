@@ -17,6 +17,7 @@ import {
 import type { ModelPricingBaseline } from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import type { BillingAccount } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
 import { wrapError } from "./gen/errors.js";
+import { everyEntry } from "./pages.js";
 
 /** Parameters for creating a Stripe Billing Portal session. */
 export interface CreateBillingPortalSessionParams {
@@ -59,6 +60,10 @@ export interface ListModelPricingBaselinesParams {
    * audit history). Default: ACTIVE documents only.
    */
   readonly includeHistory?: boolean;
+  /** The most entries to return: 0 or unset asks for the default page of 50, and above 100 reads 100. */
+  readonly pageSize?: number;
+  /** The previous response's `nextPageToken`, to continue the same list. */
+  readonly pageToken?: string;
 }
 
 /**
@@ -169,11 +174,27 @@ export class BillingClient {
       return await this.query.listModelPricingBaselines(
         create(ListModelPricingBaselinesInputSchema, {
           includeHistory: params?.includeHistory ?? false,
+          pageSize: params?.pageSize ?? 0,
+          pageToken: params?.pageToken ?? "",
         }),
       );
     } catch (e) {
       throw wrapError(e);
     }
+  }
+
+  /**
+   * Every baseline of the catalog, page after page, following
+   * `nextPageToken` from the token the params name. Breaking out of the
+   * loop stops the reads.
+   */
+  listModelPricingBaselinesAll(
+    params?: ListModelPricingBaselinesParams,
+  ): AsyncGenerator<ModelPricingBaseline> {
+    return everyEntry(
+      (pageToken) => this.listModelPricingBaselines({ ...params, pageToken }),
+      params?.pageToken ?? "",
+    );
   }
 
   /**

@@ -33,7 +33,7 @@ export function WhenOrgsLoaded({ children }: { children: ReactNode }) {
 
 /**
  * A wrapper mounting `OrgProvider` over a client whose
- * `findMyOrganizations` answers `orgs`; `client` adds the other services the
+ * `listMine` answers `orgs`; `client` adds the other services the
  * component under test calls. With `waitForOrgs`, the children mount only
  * once the organizations have loaded.
  */
@@ -46,7 +46,7 @@ export function orgWrapper(
     ...client,
     organization: {
       ...(client.organization as Record<string, unknown> | undefined),
-      findMyOrganizations: vi.fn().mockResolvedValue({ entries: orgs }),
+      listMine: vi.fn().mockResolvedValue({ entries: orgs, nextPageToken: "" }),
     },
   };
   return function OrgFixture({ children }: { children: ReactNode }) {

@@ -27,6 +27,11 @@ class PluginQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_api__pb2.Plugin.FromString,
                 _registered_method=True)
+        self.list = channel.unary_unary(
+                '/ai.stigmer.agentic.plugin.v1.PluginQueryController/list',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.ListPluginsRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.PluginList.FromString,
+                _registered_method=True)
         self.getArtifact = channel.unary_unary(
                 '/ai.stigmer.agentic.plugin.v1.PluginQueryController/getArtifact',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.GetArtifactRequest.SerializeToString,
@@ -62,6 +67,16 @@ class PluginQueryControllerServicer(object):
         - Empty/"latest" → Returns the installed version
         - Tag name (the manifest version, e.g. "1.2.0") → Resolves to the version holding this tag
         - SHA-256 digest (64 hex chars) → Returns the exact immutable version
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def list(self, request, context):
+        """List an organization's plugins, newest first.
+
+        Returns the plugins of the input org that the caller may view, one page
+        at a time. Search finds plugins by their words; list browses them.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -108,6 +123,11 @@ def add_PluginQueryControllerServicer_to_server(servicer, server):
                     servicer.getByReference,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_api__pb2.Plugin.SerializeToString,
+            ),
+            'list': grpc.unary_unary_rpc_method_handler(
+                    servicer.list,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.ListPluginsRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.PluginList.SerializeToString,
             ),
             'getArtifact': grpc.unary_unary_rpc_method_handler(
                     servicer.getArtifact,
@@ -180,6 +200,33 @@ class PluginQueryController(object):
             '/ai.stigmer.agentic.plugin.v1.PluginQueryController/getByReference',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_api__pb2.Plugin.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def list(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.plugin.v1.PluginQueryController/list',
+            ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.ListPluginsRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.PluginList.FromString,
             options,
             channel_credentials,
             insecure,

@@ -11,7 +11,7 @@ function createMockStigmer(overrides: {
 } = {}) {
   return {
     run: {
-      list: overrides.agentList ?? vi.fn().mockResolvedValue({ entries: [] }),
+      list: overrides.agentList ?? vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
     },
   } as never;
 }
@@ -30,7 +30,7 @@ function wrapper(client: unknown) {
 
 describe("useDashboardFailedRuns", () => {
   it("scopes the list request to the active org and the FAILED phase", async () => {
-    const agentList = vi.fn().mockResolvedValue({ entries: [] });
+    const agentList = vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" });
     const client = createMockStigmer({ agentList });
 
     const { result } = renderHook(() => useDashboardFailedRuns("acme"), {
@@ -48,7 +48,7 @@ describe("useDashboardFailedRuns", () => {
   });
 
   it("does not fetch until an org is available", async () => {
-    const agentList = vi.fn().mockResolvedValue({ entries: [] });
+    const agentList = vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" });
     const client = createMockStigmer({ agentList });
 
     renderHook(() => useDashboardFailedRuns(null), {
@@ -61,6 +61,23 @@ describe("useDashboardFailedRuns", () => {
     expect(agentList).not.toHaveBeenCalled();
   });
 
+  it("follows tokens past a short page until it holds five, and reads no further", async () => {
+    const failed = (n: number) => ({ metadata: { id: `aex_${n}`, name: `run ${n}` }, status: { error: "boom" } });
+    const pages: Record<string, { entries: ReturnType<typeof failed>[]; nextPageToken: string }> = {
+      "": { entries: [], nextPageToken: "p2" },
+      p2: { entries: [failed(1), failed(2)], nextPageToken: "p3" },
+      p3: { entries: [failed(3), failed(4), failed(5)], nextPageToken: "p4" },
+      p4: { entries: [failed(6)], nextPageToken: "" },
+    };
+    const agentList = vi.fn(async (...args: unknown[]) => pages[(args[0] as { pageToken: string }).pageToken]!);
+    const { result } = renderHook(() => useDashboardFailedRuns("acme"), {
+      wrapper: wrapper(createMockStigmer({ agentList })),
+    });
+
+    await waitFor(() => expect(result.current.failedRuns).toHaveLength(5));
+    expect(agentList).toHaveBeenCalledTimes(3);
+  });
+
   it("orders failures newest-first and names the agent each ran", async () => {
     const ts = (secs: number) => ({ seconds: BigInt(secs), nanos: 0 });
     const agentEntries = [2, 5, 1, 4, 3].map((n) => ({
@@ -68,7 +85,7 @@ describe("useDashboardFailedRuns", () => {
       status: { error: "boom", agentId: `agt_${n}`, audit: { specAudit: { createdAt: ts(n) } } },
     }));
     const client = createMockStigmer({
-      agentList: vi.fn().mockResolvedValue({ entries: agentEntries }),
+      agentList: vi.fn().mockResolvedValue({ entries: agentEntries, nextPageToken: "" }),
     });
 
     const { result } = renderHook(() => useDashboardFailedRuns("acme"), {

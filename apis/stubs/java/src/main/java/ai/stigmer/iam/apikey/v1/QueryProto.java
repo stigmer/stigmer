@@ -40,24 +40,24 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "mons/apiresource/rpc_service_options.pro" +
       "to\032+ai/stigmer/commons/rpc/method_option" +
       "s.proto\032\"ai/stigmer/iam/apikey/v1/api.pr" +
-      "oto\032!ai/stigmer/iam/apikey/v1/io.proto\032\033" +
-      "google/protobuf/empty.proto2\342\003\n\025ApiKeyQu" +
-      "eryController\022z\n\003get\022\".ai.stigmer.iam.ap" +
-      "ikey.v1.ApiKeyId\032 .ai.stigmer.iam.apikey" +
-      ".v1.ApiKey\"-\302\270\030)\010\001\020\014\"\005value*\034unauthorize" +
-      "d to view api key\022\\\n\014getByKeyHash\022$.ai.s" +
-      "tigmer.iam.apikey.v1.ApiKeyHash\032 .ai.sti" +
-      "gmer.iam.apikey.v1.ApiKey\"\004\320\270\030\001\022J\n\007findA" +
-      "ll\022\026.google.protobuf.Empty\032!.ai.stigmer." +
-      "iam.apikey.v1.ApiKeys\"\004\320\270\030\001\022\234\001\n\rfindByAc" +
-      "count\022).ai.stigmer.iam.apikey.v1.ApiKeyA" +
-      "ccountId\032!.ai.stigmer.iam.apikey.v1.ApiK" +
-      "eys\"=\302\270\0309\010\001\020\013\"\005value*,unauthorized to li" +
-      "st this account\'s api keys\032\004\240\377+\014B\221\001B\nQue" +
-      "ryProtoP\001\242\002\004ASIA\252\002\030Ai.Stigmer.Iam.Apikey" +
-      ".V1\312\002\030Ai\\Stigmer\\Iam\\Apikey\\V1\342\002$Ai\\Stig" +
-      "mer\\Iam\\Apikey\\V1\\GPBMetadata\352\002\034Ai::Stig" +
-      "mer::Iam::Apikey::V1b\006proto3"
+      "oto\032!ai/stigmer/iam/apikey/v1/io.proto2\202" +
+      "\004\n\025ApiKeyQueryController\022z\n\003get\022\".ai.sti" +
+      "gmer.iam.apikey.v1.ApiKeyId\032 .ai.stigmer" +
+      ".iam.apikey.v1.ApiKey\"-\302\270\030)\010\001\020\014\"\005value*\034" +
+      "unauthorized to view api key\022\\\n\014getByKey" +
+      "Hash\022$.ai.stigmer.iam.apikey.v1.ApiKeyHa" +
+      "sh\032 .ai.stigmer.iam.apikey.v1.ApiKey\"\004\320\270" +
+      "\030\001\022[\n\004list\022*.ai.stigmer.iam.apikey.v1.Li" +
+      "stApiKeysInput\032!.ai.stigmer.iam.apikey.v" +
+      "1.ApiKeys\"\004\320\270\030\001\022\253\001\n\rlistByAccount\0223.ai.s" +
+      "tigmer.iam.apikey.v1.ListApiKeysByAccoun" +
+      "tInput\032!.ai.stigmer.iam.apikey.v1.ApiKey" +
+      "s\"B\302\270\030>\010\001\020\013\"\naccount_id*,unauthorized to" +
+      " list this account\'s api keys\032\004\240\377+\014B\221\001B\n" +
+      "QueryProtoP\001\242\002\004ASIA\252\002\030Ai.Stigmer.Iam.Api" +
+      "key.V1\312\002\030Ai\\Stigmer\\Iam\\Apikey\\V1\342\002$Ai\\S" +
+      "tigmer\\Iam\\Apikey\\V1\\GPBMetadata\352\002\034Ai::S" +
+      "tigmer::Iam::Apikey::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -66,14 +66,12 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
           ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
           ai.stigmer.iam.apikey.v1.ApiProto.getDescriptor(),
           ai.stigmer.iam.apikey.v1.IoProto.getDescriptor(),
-          com.google.protobuf.EmptyProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
     ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     ai.stigmer.iam.apikey.v1.ApiProto.getDescriptor();
     ai.stigmer.iam.apikey.v1.IoProto.getDescriptor();
-    com.google.protobuf.EmptyProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);

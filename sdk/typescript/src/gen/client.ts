@@ -149,5 +149,5 @@ export { TeamClient } from "./team.js";
 export { type TeamInput } from "./team.js";
 export { VaultClient } from "./vault.js";
 export { type VaultInput, type VaultSecretInput, type VaultConnectionInput, type VaultConnectionSignInInput } from "./vault.js";
-export { type ListParams, type ListResult, type DeleteResourceInput, type ResourceRef, type Page } from "./types.js";
+export { type DeleteResourceInput, type ResourceRef } from "./types.js";
 export { StigmerError, type ErrorCode, isNotFound, isUnauthenticated, isPermissionDenied, isRetryable, isUnimplemented } from "./errors.js";

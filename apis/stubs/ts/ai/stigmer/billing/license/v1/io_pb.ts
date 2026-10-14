@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/license/v1/io.proto.
  */
 export const file_ai_stigmer_billing_license_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2JpbGxpbmcvbGljZW5zZS92MS9pby5wcm90bxIdYWkuc3RpZ21lci5iaWxsaW5nLmxpY2Vuc2UudjEiJQoJTGljZW5zZUlkEhgKBXZhbHVlGAEgASgJQgm6SAZyBBABGEAiQwoITGljZW5zZXMSNwoHZW50cmllcxgBIAMoCzImLmFpLnN0aWdtZXIuYmlsbGluZy5saWNlbnNlLnYxLkxpY2Vuc2UiKAoRTGlzdExpY2Vuc2VzSW5wdXQSEwoLY3VzdG9tZXJfaWQYASABKAliBnByb3RvMw", [file_ai_stigmer_billing_license_v1_api, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2JpbGxpbmcvbGljZW5zZS92MS9pby5wcm90bxIdYWkuc3RpZ21lci5iaWxsaW5nLmxpY2Vuc2UudjEiJQoJTGljZW5zZUlkEhgKBXZhbHVlGAEgASgJQgm6SAZyBBABGEAiXAoITGljZW5zZXMSNwoHZW50cmllcxgBIAMoCzImLmFpLnN0aWdtZXIuYmlsbGluZy5saWNlbnNlLnYxLkxpY2Vuc2USFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJImIKEUxpc3RMaWNlbnNlc0lucHV0EhMKC2N1c3RvbWVyX2lkGAEgASgJEhoKCXBhZ2Vfc2l6ZRgCIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACGIGcHJvdG8z", [file_ai_stigmer_billing_license_v1_api, file_buf_validate_validate]);
 
 /**
  * LicenseId identifies a license by its unique identifier.
@@ -48,6 +48,14 @@ export type Licenses = Message<"ai.stigmer.billing.license.v1.Licenses"> & {
    * @generated from field: repeated ai.stigmer.billing.license.v1.License entries = 1;
    */
   entries: License[];
+
+  /**
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   *
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
 };
 
 /**
@@ -70,6 +78,22 @@ export type ListLicensesInput = Message<"ai.stigmer.billing.license.v1.ListLicen
    * @generated from field: string customer_id = 1;
    */
   customerId: string;
+
+  /**
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
+   *
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
 };
 
 /**

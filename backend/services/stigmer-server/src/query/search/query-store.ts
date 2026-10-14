@@ -108,12 +108,7 @@ export class SqliteSearchQueryStore implements SearchQueryStore {
       }
     }
 
-    return newSearchPagedResult(
-      results,
-      countsByKind,
-      totalCount,
-      criteria.pageSize(),
-    );
+    return newSearchPagedResult(results, countsByKind, totalCount);
   }
 
   /** Go loadAndConvertResource: load the hit, convert via its extractor. */

@@ -857,21 +857,21 @@ describe("an agent's quality, composed (trusted local)", () => {
 
     const all = await query.listFlaggedByAgent({ org, agentId });
     expect(all.nextPageToken).toBe("");
-    expect(all.totalCount).toBe(all.items.length);
+    expect(all.nextPageToken).toBe("");
     expect(
-      all.items.every(
+      all.entries.every(
         (s) => s.spec?.value.case === "passed" && !s.spec.value.value,
       ),
     ).toBe(true);
-    expect(all.items.some((s) => s.spec?.runId === run)).toBe(true);
+    expect(all.entries.some((s) => s.spec?.runId === run)).toBe(true);
     expect(
-      all.items.some(
+      all.entries.some(
         (s) => s.metadata?.labels[PLUGIN_EVAL_LABEL] !== undefined,
       ),
     ).toBe(false);
 
     const first = await query.listFlaggedByAgent({ org, agentId, pageSize: 1 });
-    expect(first.items).toHaveLength(1);
+    expect(first.entries).toHaveLength(1);
     expect(first.nextPageToken).not.toBe("");
     const second = await query.listFlaggedByAgent({
       org,
@@ -879,10 +879,10 @@ describe("an agent's quality, composed (trusted local)", () => {
       pageSize: 1,
       pageToken: first.nextPageToken,
     });
-    expect(second.items[0]?.metadata?.id).not.toBe(
-      first.items[0]?.metadata?.id,
+    expect(second.entries[0]?.metadata?.id).not.toBe(
+      first.entries[0]?.metadata?.id,
     );
-    expect(all.items[1]?.metadata?.id).toBe(second.items[0]?.metadata?.id);
+    expect(all.entries[1]?.metadata?.id).toBe(second.entries[0]?.metadata?.id);
   });
 
   it("refuses a person's thumbs that names an evaluator version, which would split the report's thumbs", async () => {

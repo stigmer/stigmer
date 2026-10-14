@@ -2,10 +2,10 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 import { SearchRequestSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { wrapError } from "./gen/errors.js";
+import { everyEntry } from "./pages.js";
 
 /** Re-export ApiResourceKind for use with SearchClient. */
 export { ApiResourceKind };
@@ -18,23 +18,27 @@ export interface SearchParams {
   readonly org: string;
   /** Free-text search query. */
   readonly query?: string;
-  /** Pagination parameters. */
-  readonly page?: { num: number; size: number };
+  /** The most results to return: 0 or unset asks for the default page of 50, and above 100 reads 100. */
+  readonly pageSize?: number;
+  /** The previous response's `nextPageToken`, to continue the same query. */
+  readonly pageToken?: string;
 }
 
 /** A page of cross-resource search results. */
 export interface SearchResponse {
   readonly entries: SearchResult[];
-  readonly totalCount: number;
-  readonly totalPages: number;
+  /** Matches per resource kind across every page, keyed by kind name. */
+  readonly countsByKind: Readonly<Record<string, number>>;
+  /** Set when more results may follow: pass it as `pageToken` to continue. */
+  readonly nextPageToken: string;
 }
 
 /**
  * Cross-resource search client.
  *
- * Unlike the per-resource `list()` methods (which search within a single
- * resource kind), `SearchClient.query()` searches across multiple resource
- * kinds in a single call.
+ * The per-resource `list()` methods browse one kind's resources, newest
+ * first; `SearchClient.query()` finds resources of one or more kinds by
+ * their words, in relevance order. Both page by token.
  */
 export class SearchClient {
   private readonly search: Client<typeof SearchService>;
@@ -51,18 +55,28 @@ export class SearchClient {
           kinds: params.kinds,
           query: params.query,
           org: params.org,
-          page: params.page
-            ? create(PageInfoSchema, params.page)
-            : undefined,
+          pageSize: params.pageSize,
+          pageToken: params.pageToken,
         }),
       );
       return {
         entries: resp.entries,
-        totalCount: resp.totalCount,
-        totalPages: resp.totalPages,
+        countsByKind: resp.countsByKind,
+        nextPageToken: resp.nextPageToken,
       };
     } catch (e) {
       throw wrapError(e);
     }
+  }
+
+  /**
+   * Every result of a search, page after page, following `nextPageToken`
+   * from the token the params name. Breaking out of the loop stops the reads.
+   */
+  queryAll(params: SearchParams): AsyncGenerator<SearchResult> {
+    return everyEntry(
+      (pageToken) => this.query({ ...params, pageToken }),
+      params.pageToken ?? "",
+    );
   }
 }

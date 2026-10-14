@@ -64,7 +64,7 @@ function makeClient(memories: Memory[] = [PROPOSED, CONFIRMED, REJECTED]) {
       list: vi
         .fn()
         .mockResolvedValue(
-          create(MemoryListSchema, { totalCount: memories.length, items: memories }),
+          create(MemoryListSchema, { entries: memories, nextPageToken: "" }),
         ),
       confirm: vi.fn().mockResolvedValue(CONFIRMED),
       reject: vi.fn().mockResolvedValue(REJECTED),

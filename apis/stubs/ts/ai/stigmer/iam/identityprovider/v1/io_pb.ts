@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/identityprovider/v1/io.proto.
  */
 export const file_ai_stigmer_iam_identityprovider_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxIi4KEklkZW50aXR5UHJvdmlkZXJJZBIYCgV2YWx1ZRgBIAEoCUIJukgGcgQQARhAIloKEUlkZW50aXR5UHJvdmlkZXJzEkUKB2VudHJpZXMYASADKAsyNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIicgoUSWRlbnRpdHlQcm92aWRlckxpc3QSEwoLdG90YWxfcGFnZXMYASABKAUSRQoHZW50cmllcxgCIAMoCzI0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlciI3Ch9MaXN0SWRlbnRpdHlQcm92aWRlcnNCeU9yZ0lucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQASLyAgobVXBkYXRlSWRlbnRpdHlQcm92aWRlcklucHV0Ek4KCHJlc291cmNlGAEgASgLMjQuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlwcm92aWRlci52MS5JZGVudGl0eVByb3ZpZGVyQga6SAPYAQMSNwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrQga6SAPIAQE6yQG6SMUBGsIBChd1cGRhdGVfbmFtZXNfaXRzX3RhcmdldBJRcmVzb3VyY2UubWV0YWRhdGEuaWQgaXMgcmVxdWlyZWQ6IGFuIHVwZGF0ZSBuYW1lcyB0aGUgaWRlbnRpdHkgcHJvdmlkZXIgYnkgaXRzIGlkGlRoYXModGhpcy5yZXNvdXJjZSkgJiYgaGFzKHRoaXMucmVzb3VyY2UubWV0YWRhdGEpICYmIHRoaXMucmVzb3VyY2UubWV0YWRhdGEuaWQgIT0gJydiBnByb3RvMw", [file_ai_stigmer_iam_identityprovider_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
+  fileDesc("CithaS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxIi4KEklkZW50aXR5UHJvdmlkZXJJZBIYCgV2YWx1ZRgBIAEoCUIJukgGcgQQARhAInMKEUlkZW50aXR5UHJvdmlkZXJzEkUKB2VudHJpZXMYASADKAsyNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXISFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJImwKGkxpc3RJZGVudGl0eVByb3ZpZGVyc0lucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQARIaCglwYWdlX3NpemUYAiABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgi8gIKG1VwZGF0ZUlkZW50aXR5UHJvdmlkZXJJbnB1dBJOCghyZXNvdXJjZRgBIAEoCzI0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlckIGukgD2AEDEjcKC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFza0IGukgDyAEBOskBukjFARrCAQoXdXBkYXRlX25hbWVzX2l0c190YXJnZXQSUXJlc291cmNlLm1ldGFkYXRhLmlkIGlzIHJlcXVpcmVkOiBhbiB1cGRhdGUgbmFtZXMgdGhlIGlkZW50aXR5IHByb3ZpZGVyIGJ5IGl0cyBpZBpUaGFzKHRoaXMucmVzb3VyY2UpICYmIGhhcyh0aGlzLnJlc291cmNlLm1ldGFkYXRhKSAmJiB0aGlzLnJlc291cmNlLm1ldGFkYXRhLmlkICE9ICcnYgZwcm90bzM", [file_ai_stigmer_iam_identityprovider_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * IdentityProviderId identifies an identity provider by its unique identifier.
@@ -50,6 +50,14 @@ export type IdentityProviders = Message<"ai.stigmer.iam.identityprovider.v1.Iden
    * @generated from field: repeated ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1;
    */
   entries: IdentityProvider[];
+
+  /**
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   *
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
 };
 
 /**
@@ -60,54 +68,42 @@ export const IdentityProvidersSchema: GenMessage<IdentityProviders> = /*@__PURE_
   messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 1);
 
 /**
- * IdentityProviderList is a paginated response containing identity providers.
- *
- * @generated from message ai.stigmer.iam.identityprovider.v1.IdentityProviderList
- */
-export type IdentityProviderList = Message<"ai.stigmer.iam.identityprovider.v1.IdentityProviderList"> & {
-  /**
-   * Total number of pages available.
-   *
-   * @generated from field: int32 total_pages = 1;
-   */
-  totalPages: number;
-
-  /**
-   * Identity providers in the current page.
-   *
-   * @generated from field: repeated ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 2;
-   */
-  entries: IdentityProvider[];
-};
-
-/**
- * Describes the message ai.stigmer.iam.identityprovider.v1.IdentityProviderList.
- * Use `create(IdentityProviderListSchema)` to create a new message.
- */
-export const IdentityProviderListSchema: GenMessage<IdentityProviderList> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 2);
-
-/**
- * ListIdentityProvidersByOrgInput specifies the organization whose identity
+ * ListIdentityProvidersInput specifies the organization whose identity
  * providers should be returned.
  *
- * @generated from message ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput
+ * @generated from message ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersInput
  */
-export type ListIdentityProvidersByOrgInput = Message<"ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput"> & {
+export type ListIdentityProvidersInput = Message<"ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersInput"> & {
   /**
    * Organization slug to list identity providers for.
    *
    * @generated from field: string org = 1;
    */
   org: string;
+
+  /**
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
+   *
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
 };
 
 /**
- * Describes the message ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput.
- * Use `create(ListIdentityProvidersByOrgInputSchema)` to create a new message.
+ * Describes the message ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersInput.
+ * Use `create(ListIdentityProvidersInputSchema)` to create a new message.
  */
-export const ListIdentityProvidersByOrgInputSchema: GenMessage<ListIdentityProvidersByOrgInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 3);
+export const ListIdentityProvidersInputSchema: GenMessage<ListIdentityProvidersInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 2);
 
 /**
  * The changes an update makes to an identity provider: the fields update_mask names,
@@ -140,5 +136,5 @@ export type UpdateIdentityProviderInput = Message<"ai.stigmer.iam.identityprovid
  * Use `create(UpdateIdentityProviderInputSchema)` to create a new message.
  */
 export const UpdateIdentityProviderInputSchema: GenMessage<UpdateIdentityProviderInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 4);
+  messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 3);
 

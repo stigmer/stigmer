@@ -16,9 +16,10 @@
  *
  * Reading. Without `after_sequence` the entries come newest first; with it
  * oldest first, strictly after that number, the read a tool that keeps its
- * own copy resumes with. A page holds `page_size` entries (0 is 50, at most
- * 100: a history only grows, so no size means "all"). The store is asked
- * for one more than the page, so the token is set only when more entries
+ * own copy resumes with. A page holds `page_size` entries, read by the one
+ * page rule (`listPageSizeOf`: 0 is 50, above 100 reads as 100; a history
+ * only grows, so no size means "all"). The store is asked for one more than
+ * the page, so the token is set only when more entries
  * exist; a follow read that reaches the newest entry ends without one, and
  * the tool next asks after the last number it holds. The token is opaque
  * and versioned: the last number returned and a hash of the request's
@@ -96,7 +97,7 @@ import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
-import { listPageFingerprint } from "../../pipeline/steps/list-page.js";
+import { listPageFingerprint, listPageSizeOf } from "../../pipeline/steps/list-page.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { resolvePrincipalViews } from "./access-lists.js";
 import type { PrincipalDisplayResolver } from "./access-lists.js";
@@ -104,12 +105,6 @@ import type { PolicyChange, PolicyChangeCause, PolicyChangePage } from "./change
 import { ACCESS_HISTORY_UNIMPLEMENTED_MESSAGE } from "./constants.js";
 import { roleInfoFromRelation } from "./roles.js";
 import type { IamPolicyStore } from "./store.js";
-
-/** A page's size when the request names none. */
-export const ACCESS_HISTORY_DEFAULT_PAGE_SIZE = 50;
-
-/** The most entries one page returns (the contract's validation says the same). */
-export const ACCESS_HISTORY_MAX_PAGE_SIZE = 100;
 
 /**
  * Every stored cause and its wire value. A record over the union, so a
@@ -232,10 +227,7 @@ async function readAccessHistory(
     input.pageToken === ""
       ? undefined
       : decodeAccessHistoryToken(input.pageToken, fingerprint);
-  const size =
-    input.pageSize === 0
-      ? ACCESS_HISTORY_DEFAULT_PAGE_SIZE
-      : Math.min(input.pageSize, ACCESS_HISTORY_MAX_PAGE_SIZE);
+  const size = listPageSizeOf(input);
   const page: PolicyChangePage = ascending
     ? { limit: size + 1, after: resumed ?? input.afterSequence ?? 0n }
     : resumed === undefined

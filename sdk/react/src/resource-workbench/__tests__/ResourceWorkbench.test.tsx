@@ -1,13 +1,14 @@
 /**
  * ResourceWorkbench lists a collection as a table, cards or rows: the search
  * input is optional, a server that holds one organization hides the
- * organization column, and the default card and row layouts name a row's
- * organization by its slug.
+ * organization column, the default card and row layouts name a row's
+ * organization by its slug, and the pager follows page tokens next and
+ * previous with no total.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, renderHook, screen, waitFor, cleanup } from "@testing-library/react";
+import { fireEvent, render, renderHook, screen, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { ListResult } from "@stigmer/sdk";
+import type { WorkbenchPage, WorkbenchPageRequest } from "../types";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { ResourceWorkbench } from "../components/ResourceWorkbench";
 import { useResourceCollection } from "../hooks/useResourceCollection";
@@ -38,12 +39,11 @@ interface ProtoLikeRow {
   readonly metadata: { readonly id: string; readonly slug: string };
 }
 
-function listFnReturning(entries: unknown[], totalCount = entries.length) {
+function listFnReturning<T = WorkbenchPage["entries"][number]>(entries: unknown[]) {
   return vi.fn(
-    async (): Promise<ListResult> => ({
-      entries: entries as ListResult["entries"],
-      totalCount,
-      totalPages: 1,
+    async (): Promise<WorkbenchPage<T>> => ({
+      entries: entries as T[],
+      nextPageToken: "",
     }),
   );
 }
@@ -133,7 +133,7 @@ describe("useResourceCollection row identity", () => {
 
   it("uses getItemId for rows without a top-level id", async () => {
     // Hoisted: a listFn re-created per render would retrigger useFetch.
-    const listFn = listFnReturning(protoRows);
+    const listFn = listFnReturning<ProtoLikeRow>(protoRows);
     const { result } = renderHook(
       () =>
         useResourceCollection<ProtoLikeRow>({
@@ -196,5 +196,36 @@ describe("ResourceWorkbench default layouts name a row's organization by slug", 
     await waitFor(() => expect(screen.getByText("Helper")).toBeTruthy());
     await waitFor(() => expect(screen.getByText("globex")).toBeTruthy());
     expect(screen.queryByText(GLOBEX_ID)).toBeNull();
+  });
+});
+
+describe("ResourceWorkbench pages by token", () => {
+  const pageOne = [{ id: "agt_new", name: "Newest", slug: "newest", org: "acme", description: "" }];
+  const pageTwo = [{ id: "agt_old", name: "Older", slug: "older", org: "acme", description: "" }];
+
+  it("shows next and previous with no total, and follows the token", async () => {
+    const listFn = vi.fn(async (request: WorkbenchPageRequest): Promise<WorkbenchPage> =>
+      request.pageToken === ""
+        ? { entries: pageOne as unknown as WorkbenchPage["entries"], nextPageToken: "tok_2" }
+        : { entries: pageTwo as unknown as WorkbenchPage["entries"], nextPageToken: "" },
+    );
+    render(<ResourceWorkbench listFn={listFn} org="acme" viewModes={["list"]} defaultViewMode="list" />, {
+      wrapper: Wrapper,
+    });
+
+    await waitFor(() => expect(screen.getByText("Newest")).toBeTruthy());
+    expect(screen.getByText("Page 1")).toBeTruthy();
+    expect(screen.queryByText(/results?$/)).toBeNull();
+    expect(screen.getByRole("button", { name: "Previous page" }).hasAttribute("disabled")).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+    await waitFor(() => expect(screen.getByText("Older")).toBeTruthy());
+    expect(screen.getByText("Page 2")).toBeTruthy();
+    expect(listFn.mock.calls[1][0]).toMatchObject({ org: "acme", pageToken: "tok_2" });
+    expect(screen.getByRole("button", { name: "Next page" }).hasAttribute("disabled")).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous page" }));
+    await waitFor(() => expect(screen.getByText("Newest")).toBeTruthy());
+    expect(screen.getByText("Page 1")).toBeTruthy();
   });
 });

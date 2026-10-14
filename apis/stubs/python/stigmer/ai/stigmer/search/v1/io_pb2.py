@@ -24,12 +24,11 @@ _sym_db = _symbol_database.Default()
 
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_apiresourcekind_dot_api__resource__kind__pb2
 from ai.stigmer.commons.apiresource import enum_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_enum__pb2
-from ai.stigmer.commons.rpc import pagination_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_pagination__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1d\x61i/stigmer/search/v1/io.proto\x12\x14\x61i.stigmer.search.v1\x1a\x46\x61i/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\'ai/stigmer/commons/rpc/pagination.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xbd\x02\n\rSearchRequest\x12\x64\n\x05kinds\x18\x01 \x03(\x0e\x32?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindB\r\xbaH\n\x92\x01\x07\"\x05\x82\x01\x02\x10\x01R\x05kinds\x12\x1e\n\x05query\x18\x02 \x01(\tB\x08\xbaH\x05r\x03\x18\xf4\x03R\x05query\x12\x42\n\x03org\x18\x03 \x01(\tB0\xbaH-r+\x18?2\'^$|^[a-z][a-z0-9-]*$|^org_[0-9a-z]{26}$R\x03org\x12\x34\n\x04page\x18\x05 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x04pageJ\x04\x08\x04\x10\x05J\x04\x08\x06\x10\x07R\x0e\x65xclude_publicR\x10\x63ross_org_public\"\xaf\x02\n\x0eSearchResponse\x12<\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\".ai.stigmer.search.v1.SearchResultR\x07\x65ntries\x12\\\n\x0e\x63ounts_by_kind\x18\x02 \x03(\x0b\x32\x36.ai.stigmer.search.v1.SearchResponse.CountsByKindEntryR\x0c\x63ountsByKind\x12\x1f\n\x0btotal_count\x18\x03 \x01(\x05R\ntotalCount\x12\x1f\n\x0btotal_pages\x18\x04 \x01(\x05R\ntotalPages\x1a?\n\x11\x43ountsByKindEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\x05R\x05value:\x02\x38\x01\"\x88\x04\n\x0cSearchResult\x12S\n\x04kind\x18\x01 \x01(\x0e\x32?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\x04kind\x12\x0e\n\x02id\x18\x02 \x01(\tR\x02id\x12\x12\n\x04name\x18\x03 \x01(\tR\x04name\x12\x12\n\x04slug\x18\x04 \x01(\tR\x04slug\x12%\n\x0equalified_slug\x18\x05 \x01(\tR\rqualifiedSlug\x12\x10\n\x03org\x18\x06 \x01(\tR\x03org\x12 \n\x0b\x64\x65scription\x18\x07 \x01(\tR\x0b\x64\x65scription\x12U\n\nvisibility\x18\x08 \x01(\x0e\x32\x35.ai.stigmer.commons.apiresource.ApiResourceVisibilityR\nvisibility\x12\x12\n\x04tags\x18\t \x03(\tR\x04tags\x12\x39\n\ncreated_at\x18\n \x01(\x0b\x32\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x39\n\nupdated_at\x18\x0b \x01(\x0b\x32\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x14\n\x05score\x18\x0c \x01(\x02R\x05score\x12\x19\n\x08icon_url\x18\r \x01(\tR\x07iconUrlB\x96\x01\n\x18\x63om.ai.stigmer.search.v1B\x07IoProtoP\x01\xa2\x02\x03\x41SS\xaa\x02\x14\x41i.Stigmer.Search.V1\xca\x02\x14\x41i\\Stigmer\\Search\\V1\xe2\x02 Ai\\Stigmer\\Search\\V1\\GPBMetadata\xea\x02\x17\x41i::Stigmer::Search::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1d\x61i/stigmer/search/v1/io.proto\x12\x14\x61i.stigmer.search.v1\x1a\x46\x61i/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe2\x02\n\rSearchRequest\x12\x64\n\x05kinds\x18\x01 \x03(\x0e\x32?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindB\r\xbaH\n\x92\x01\x07\"\x05\x82\x01\x02\x10\x01R\x05kinds\x12\x1e\n\x05query\x18\x02 \x01(\tB\x08\xbaH\x05r\x03\x18\xf4\x03R\x05query\x12\x42\n\x03org\x18\x03 \x01(\tB0\xbaH-r+\x18?2\'^$|^[a-z][a-z0-9-]*$|^org_[0-9a-z]{26}$R\x03org\x12$\n\tpage_size\x18\x07 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x08 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageTokenJ\x04\x08\x04\x10\x05J\x04\x08\x06\x10\x07J\x04\x08\x05\x10\x06R\x0e\x65xclude_publicR\x10\x63ross_org_publicR\x04page\"\xbb\x02\n\x0eSearchResponse\x12<\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\".ai.stigmer.search.v1.SearchResultR\x07\x65ntries\x12\\\n\x0e\x63ounts_by_kind\x18\x02 \x03(\x0b\x32\x36.ai.stigmer.search.v1.SearchResponse.CountsByKindEntryR\x0c\x63ountsByKind\x12&\n\x0fnext_page_token\x18\x05 \x01(\tR\rnextPageToken\x1a?\n\x11\x43ountsByKindEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\x05R\x05value:\x02\x38\x01J\x04\x08\x03\x10\x04J\x04\x08\x04\x10\x05R\x0btotal_countR\x0btotal_pages\"\x88\x04\n\x0cSearchResult\x12S\n\x04kind\x18\x01 \x01(\x0e\x32?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\x04kind\x12\x0e\n\x02id\x18\x02 \x01(\tR\x02id\x12\x12\n\x04name\x18\x03 \x01(\tR\x04name\x12\x12\n\x04slug\x18\x04 \x01(\tR\x04slug\x12%\n\x0equalified_slug\x18\x05 \x01(\tR\rqualifiedSlug\x12\x10\n\x03org\x18\x06 \x01(\tR\x03org\x12 \n\x0b\x64\x65scription\x18\x07 \x01(\tR\x0b\x64\x65scription\x12U\n\nvisibility\x18\x08 \x01(\x0e\x32\x35.ai.stigmer.commons.apiresource.ApiResourceVisibilityR\nvisibility\x12\x12\n\x04tags\x18\t \x03(\tR\x04tags\x12\x39\n\ncreated_at\x18\n \x01(\x0b\x32\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x39\n\nupdated_at\x18\x0b \x01(\x0b\x32\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x14\n\x05score\x18\x0c \x01(\x02R\x05score\x12\x19\n\x08icon_url\x18\r \x01(\tR\x07iconUrlB\x96\x01\n\x18\x63om.ai.stigmer.search.v1B\x07IoProtoP\x01\xa2\x02\x03\x41SS\xaa\x02\x14\x41i.Stigmer.Search.V1\xca\x02\x14\x41i\\Stigmer\\Search\\V1\xe2\x02 Ai\\Stigmer\\Search\\V1\\GPBMetadata\xea\x02\x17\x41i::Stigmer::Search::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -43,14 +42,18 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SEARCHREQUEST'].fields_by_name['query']._serialized_options = b'\272H\005r\003\030\364\003'
   _globals['_SEARCHREQUEST'].fields_by_name['org']._loaded_options = None
   _globals['_SEARCHREQUEST'].fields_by_name['org']._serialized_options = b'\272H-r+\030?2\'^$|^[a-z][a-z0-9-]*$|^org_[0-9a-z]{26}$'
+  _globals['_SEARCHREQUEST'].fields_by_name['page_size']._loaded_options = None
+  _globals['_SEARCHREQUEST'].fields_by_name['page_size']._serialized_options = b'\272H\004\032\002(\000'
+  _globals['_SEARCHREQUEST'].fields_by_name['page_token']._loaded_options = None
+  _globals['_SEARCHREQUEST'].fields_by_name['page_token']._serialized_options = b'\272H\005r\003\030\200\010'
   _globals['_SEARCHRESPONSE_COUNTSBYKINDENTRY']._loaded_options = None
   _globals['_SEARCHRESPONSE_COUNTSBYKINDENTRY']._serialized_options = b'8\001'
-  _globals['_SEARCHREQUEST']._serialized_start=274
-  _globals['_SEARCHREQUEST']._serialized_end=591
-  _globals['_SEARCHRESPONSE']._serialized_start=594
-  _globals['_SEARCHRESPONSE']._serialized_end=897
-  _globals['_SEARCHRESPONSE_COUNTSBYKINDENTRY']._serialized_start=834
-  _globals['_SEARCHRESPONSE_COUNTSBYKINDENTRY']._serialized_end=897
-  _globals['_SEARCHRESULT']._serialized_start=900
-  _globals['_SEARCHRESULT']._serialized_end=1420
+  _globals['_SEARCHREQUEST']._serialized_start=233
+  _globals['_SEARCHREQUEST']._serialized_end=587
+  _globals['_SEARCHRESPONSE']._serialized_start=590
+  _globals['_SEARCHRESPONSE']._serialized_end=905
+  _globals['_SEARCHRESPONSE_COUNTSBYKINDENTRY']._serialized_start=804
+  _globals['_SEARCHRESPONSE_COUNTSBYKINDENTRY']._serialized_end=867
+  _globals['_SEARCHRESULT']._serialized_start=908
+  _globals['_SEARCHRESULT']._serialized_end=1428
 # @@protoc_insertion_point(module_scope)

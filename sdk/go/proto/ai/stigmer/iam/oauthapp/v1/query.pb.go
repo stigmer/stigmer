@@ -26,28 +26,28 @@ var File_ai_stigmer_iam_oauthapp_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_oauthapp_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"&ai/stigmer/iam/oauthapp/v1/query.proto\x12\x1aai.stigmer.iam.oauthapp.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a$ai/stigmer/iam/oauthapp/v1/api.proto\x1a#ai/stigmer/iam/oauthapp/v1/io.proto2\xd0\x03\n" +
+	"&ai/stigmer/iam/oauthapp/v1/query.proto\x12\x1aai.stigmer.iam.oauthapp.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a$ai/stigmer/iam/oauthapp/v1/api.proto\x1a#ai/stigmer/iam/oauthapp/v1/io.proto2\xc6\x03\n" +
 	"\x17OAuthAppQueryController\x12\x8b\x01\n" +
 	"\x03get\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a$.ai.stigmer.iam.oauthapp.v1.OAuthApp\"/¸\x18+\b\x01\x10\x16\"\x05value*\x1eunauthorized to view oauth app\x12r\n" +
-	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a$.ai.stigmer.iam.oauthapp.v1.OAuthApp\"\x04и\x18\x01\x12\xac\x01\n" +
-	"\tlistByOrg\x123.ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput\x1a%.ai.stigmer.iam.oauthapp.v1.OAuthApps\"C¸\x18?\b\x01\x10\x1e\"\x03org*4unauthorized to list oauth apps in this organization\x1a\x04\xa0\xff+\x16B\x8b\x02\n" +
+	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a$.ai.stigmer.iam.oauthapp.v1.OAuthApp\"\x04и\x18\x01\x12\xa2\x01\n" +
+	"\x04list\x12..ai.stigmer.iam.oauthapp.v1.ListOAuthAppsInput\x1a%.ai.stigmer.iam.oauthapp.v1.OAuthApps\"C¸\x18?\b\x01\x10\x1e\"\x03org*4unauthorized to list oauth apps in this organization\x1a\x04\xa0\xff+\x16B\x8b\x02\n" +
 	"\x1ecom.ai.stigmer.iam.oauthapp.v1B\n" +
 	"QueryProtoP\x01ZPgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/oauthapp/v1;oauthappv1\xa2\x02\x04ASIO\xaa\x02\x1aAi.Stigmer.Iam.Oauthapp.V1\xca\x02\x1aAi\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Iam::Oauthapp::V1b\x06proto3"
 
 var file_ai_stigmer_iam_oauthapp_v1_query_proto_goTypes = []any{
 	(*apiresource.ApiResourceId)(nil),        // 0: ai.stigmer.commons.apiresource.ApiResourceId
 	(*apiresource.ApiResourceReference)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*ListOAuthAppsByOrgInput)(nil),          // 2: ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput
+	(*ListOAuthAppsInput)(nil),               // 2: ai.stigmer.iam.oauthapp.v1.ListOAuthAppsInput
 	(*OAuthApp)(nil),                         // 3: ai.stigmer.iam.oauthapp.v1.OAuthApp
 	(*OAuthApps)(nil),                        // 4: ai.stigmer.iam.oauthapp.v1.OAuthApps
 }
 var file_ai_stigmer_iam_oauthapp_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController.get:input_type -> ai.stigmer.commons.apiresource.ApiResourceId
 	1, // 1: ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController.getByReference:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2, // 2: ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController.listByOrg:input_type -> ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput
+	2, // 2: ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController.list:input_type -> ai.stigmer.iam.oauthapp.v1.ListOAuthAppsInput
 	3, // 3: ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController.get:output_type -> ai.stigmer.iam.oauthapp.v1.OAuthApp
 	3, // 4: ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController.getByReference:output_type -> ai.stigmer.iam.oauthapp.v1.OAuthApp
-	4, // 5: ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController.listByOrg:output_type -> ai.stigmer.iam.oauthapp.v1.OAuthApps
+	4, // 5: ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController.list:output_type -> ai.stigmer.iam.oauthapp.v1.OAuthApps
 	3, // [3:6] is the sub-list for method output_type
 	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

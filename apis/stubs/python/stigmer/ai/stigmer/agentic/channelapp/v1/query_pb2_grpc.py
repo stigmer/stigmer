@@ -27,9 +27,9 @@ class ChannelAppQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_api__pb2.ChannelApp.FromString,
                 _registered_method=True)
-        self.listByOrg = channel.unary_unary(
-                '/ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController/listByOrg',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_io__pb2.ListChannelAppsByOrgInput.SerializeToString,
+        self.list = channel.unary_unary(
+                '/ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController/list',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_io__pb2.ListChannelAppsInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_io__pb2.ChannelApps.FromString,
                 _registered_method=True)
 
@@ -56,12 +56,11 @@ class ChannelAppQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def listByOrg(self, request, context):
-        """List all channel apps belonging to an organization.
+    def list(self, request, context):
+        """List the channel apps belonging to an organization.
 
         Returns the ChannelApps of the input org that the caller may view,
-        newest first, with secret fields redacted. Typically a small set, so
-        results are not paginated.
+        newest first, one page at a time, with secret fields redacted.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -80,9 +79,9 @@ def add_ChannelAppQueryControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_api__pb2.ChannelApp.SerializeToString,
             ),
-            'listByOrg': grpc.unary_unary_rpc_method_handler(
-                    servicer.listByOrg,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_io__pb2.ListChannelAppsByOrgInput.FromString,
+            'list': grpc.unary_unary_rpc_method_handler(
+                    servicer.list,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_io__pb2.ListChannelAppsInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_io__pb2.ChannelApps.SerializeToString,
             ),
     }
@@ -152,7 +151,7 @@ class ChannelAppQueryController(object):
             _registered_method=True)
 
     @staticmethod
-    def listByOrg(request,
+    def list(request,
             target,
             options=(),
             channel_credentials=None,
@@ -165,8 +164,8 @@ class ChannelAppQueryController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController/listByOrg',
-            ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_io__pb2.ListChannelAppsByOrgInput.SerializeToString,
+            '/ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController/list',
+            ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_io__pb2.ListChannelAppsInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_io__pb2.ChannelApps.FromString,
             options,
             channel_credentials,

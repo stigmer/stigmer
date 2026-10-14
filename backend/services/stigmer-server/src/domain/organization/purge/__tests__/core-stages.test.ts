@@ -384,7 +384,7 @@ describe("the final stage", () => {
     const { stage } = rig();
     await stage.run(context);
     expect(await store.deleteSearchIndexByOrg(ORG)).toBe(0);
-    expect((await store.listScheduleFires("sch_left", 0, 0)).total).toBe(0);
+    expect((await store.listScheduleFires("sch_left", undefined, 10)).length).toBe(0);
   });
 
   it("sweeps the session events left behind (a run created into a session while it was deleted)", async () => {

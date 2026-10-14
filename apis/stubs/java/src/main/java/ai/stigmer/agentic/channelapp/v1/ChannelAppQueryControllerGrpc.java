@@ -77,35 +77,35 @@ public final class ChannelAppQueryControllerGrpc {
     return getGetByReferenceMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput,
-      ai.stigmer.agentic.channelapp.v1.ChannelApps> getListByOrgMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput,
+      ai.stigmer.agentic.channelapp.v1.ChannelApps> getListMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "listByOrg",
-      requestType = ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput.class,
+      fullMethodName = SERVICE_NAME + '/' + "list",
+      requestType = ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput.class,
       responseType = ai.stigmer.agentic.channelapp.v1.ChannelApps.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput,
-      ai.stigmer.agentic.channelapp.v1.ChannelApps> getListByOrgMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput, ai.stigmer.agentic.channelapp.v1.ChannelApps> getListByOrgMethod;
-    if ((getListByOrgMethod = ChannelAppQueryControllerGrpc.getListByOrgMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput,
+      ai.stigmer.agentic.channelapp.v1.ChannelApps> getListMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput, ai.stigmer.agentic.channelapp.v1.ChannelApps> getListMethod;
+    if ((getListMethod = ChannelAppQueryControllerGrpc.getListMethod) == null) {
       synchronized (ChannelAppQueryControllerGrpc.class) {
-        if ((getListByOrgMethod = ChannelAppQueryControllerGrpc.getListByOrgMethod) == null) {
-          ChannelAppQueryControllerGrpc.getListByOrgMethod = getListByOrgMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput, ai.stigmer.agentic.channelapp.v1.ChannelApps>newBuilder()
+        if ((getListMethod = ChannelAppQueryControllerGrpc.getListMethod) == null) {
+          ChannelAppQueryControllerGrpc.getListMethod = getListMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput, ai.stigmer.agentic.channelapp.v1.ChannelApps>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listByOrg"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "list"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput.getDefaultInstance()))
+                  ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.channelapp.v1.ChannelApps.getDefaultInstance()))
-              .setSchemaDescriptor(new ChannelAppQueryControllerMethodDescriptorSupplier("listByOrg"))
+              .setSchemaDescriptor(new ChannelAppQueryControllerMethodDescriptorSupplier("list"))
               .build();
         }
       }
     }
-    return getListByOrgMethod;
+    return getListMethod;
   }
 
   /**
@@ -198,15 +198,14 @@ public final class ChannelAppQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all channel apps belonging to an organization.
+     * List the channel apps belonging to an organization.
      * Returns the ChannelApps of the input org that the caller may view,
-     * newest first, with secret fields redacted. Typically a small set, so
-     * results are not paginated.
+     * newest first, one page at a time, with secret fields redacted.
      * </pre>
      */
-    default void listByOrg(ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput request,
+    default void list(ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.channelapp.v1.ChannelApps> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListByOrgMethod(), responseObserver);
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListMethod(), responseObserver);
     }
   }
 
@@ -269,16 +268,15 @@ public final class ChannelAppQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all channel apps belonging to an organization.
+     * List the channel apps belonging to an organization.
      * Returns the ChannelApps of the input org that the caller may view,
-     * newest first, with secret fields redacted. Typically a small set, so
-     * results are not paginated.
+     * newest first, one page at a time, with secret fields redacted.
      * </pre>
      */
-    public void listByOrg(ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput request,
+    public void list(ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.channelapp.v1.ChannelApps> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getListByOrgMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getListMethod(), getCallOptions()), request, responseObserver);
     }
   }
 
@@ -325,15 +323,14 @@ public final class ChannelAppQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all channel apps belonging to an organization.
+     * List the channel apps belonging to an organization.
      * Returns the ChannelApps of the input org that the caller may view,
-     * newest first, with secret fields redacted. Typically a small set, so
-     * results are not paginated.
+     * newest first, one page at a time, with secret fields redacted.
      * </pre>
      */
-    public ai.stigmer.agentic.channelapp.v1.ChannelApps listByOrg(ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.channelapp.v1.ChannelApps list(ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getListByOrgMethod(), getCallOptions(), request);
+          getChannel(), getListMethod(), getCallOptions(), request);
     }
   }
 
@@ -380,15 +377,14 @@ public final class ChannelAppQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all channel apps belonging to an organization.
+     * List the channel apps belonging to an organization.
      * Returns the ChannelApps of the input org that the caller may view,
-     * newest first, with secret fields redacted. Typically a small set, so
-     * results are not paginated.
+     * newest first, one page at a time, with secret fields redacted.
      * </pre>
      */
-    public ai.stigmer.agentic.channelapp.v1.ChannelApps listByOrg(ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput request) {
+    public ai.stigmer.agentic.channelapp.v1.ChannelApps list(ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getListByOrgMethod(), getCallOptions(), request);
+          getChannel(), getListMethod(), getCallOptions(), request);
     }
   }
 
@@ -437,22 +433,21 @@ public final class ChannelAppQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all channel apps belonging to an organization.
+     * List the channel apps belonging to an organization.
      * Returns the ChannelApps of the input org that the caller may view,
-     * newest first, with secret fields redacted. Typically a small set, so
-     * results are not paginated.
+     * newest first, one page at a time, with secret fields redacted.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.channelapp.v1.ChannelApps> listByOrg(
-        ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.channelapp.v1.ChannelApps> list(
+        ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getListByOrgMethod(), getCallOptions()), request);
+          getChannel().newCall(getListMethod(), getCallOptions()), request);
     }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_GET_BY_REFERENCE = 1;
-  private static final int METHODID_LIST_BY_ORG = 2;
+  private static final int METHODID_LIST = 2;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -479,8 +474,8 @@ public final class ChannelAppQueryControllerGrpc {
           serviceImpl.getByReference((ai.stigmer.commons.apiresource.ApiResourceReference) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.channelapp.v1.ChannelApp>) responseObserver);
           break;
-        case METHODID_LIST_BY_ORG:
-          serviceImpl.listByOrg((ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput) request,
+        case METHODID_LIST:
+          serviceImpl.list((ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.channelapp.v1.ChannelApps>) responseObserver);
           break;
         default:
@@ -516,12 +511,12 @@ public final class ChannelAppQueryControllerGrpc {
               ai.stigmer.agentic.channelapp.v1.ChannelApp>(
                 service, METHODID_GET_BY_REFERENCE)))
         .addMethod(
-          getListByOrgMethod(),
+          getListMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput,
+              ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput,
               ai.stigmer.agentic.channelapp.v1.ChannelApps>(
-                service, METHODID_LIST_BY_ORG)))
+                service, METHODID_LIST)))
         .build();
   }
 
@@ -572,7 +567,7 @@ public final class ChannelAppQueryControllerGrpc {
               .setSchemaDescriptor(new ChannelAppQueryControllerFileDescriptorSupplier())
               .addMethod(getGetMethod())
               .addMethod(getGetByReferenceMethod())
-              .addMethod(getListByOrgMethod())
+              .addMethod(getListMethod())
               .build();
         }
       }

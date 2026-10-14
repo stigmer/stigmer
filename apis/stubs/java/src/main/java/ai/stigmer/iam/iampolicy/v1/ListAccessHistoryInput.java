@@ -107,9 +107,9 @@ private static final long serialVersionUID = 0L;
   private int pageSize_ = 0;
   /**
    * <pre>
-   * The most entries to return; 0 returns 50. At most 100. A history only
-   * grows, so there is no size that returns every entry at once: follow
-   * next_page_token.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100. A history only grows, so there is no size
+   * that returns every entry at once: follow next_page_token.
    * </pre>
    *
    * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
@@ -671,9 +671,9 @@ private static final long serialVersionUID = 0L;
     private int pageSize_ ;
     /**
      * <pre>
-     * The most entries to return; 0 returns 50. At most 100. A history only
-     * grows, so there is no size that returns every entry at once: follow
-     * next_page_token.
+     * The most entries to return: 0 asks for the default page of 50, and a
+     * size above 100 is read as 100. A history only grows, so there is no size
+     * that returns every entry at once: follow next_page_token.
      * </pre>
      *
      * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
@@ -685,9 +685,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The most entries to return; 0 returns 50. At most 100. A history only
-     * grows, so there is no size that returns every entry at once: follow
-     * next_page_token.
+     * The most entries to return: 0 asks for the default page of 50, and a
+     * size above 100 is read as 100. A history only grows, so there is no size
+     * that returns every entry at once: follow next_page_token.
      * </pre>
      *
      * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
@@ -703,9 +703,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The most entries to return; 0 returns 50. At most 100. A history only
-     * grows, so there is no size that returns every entry at once: follow
-     * next_page_token.
+     * The most entries to return: 0 asks for the default page of 50, and a
+     * size above 100 is read as 100. A history only grows, so there is no size
+     * that returns every entry at once: follow next_page_token.
      * </pre>
      *
      * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>

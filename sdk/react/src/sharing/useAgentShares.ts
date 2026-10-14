@@ -2,8 +2,9 @@
 
 import { create } from "@bufbuild/protobuf";
 import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
-import { GetAgentSharesByAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
+import { ListAgentSharesByAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
 import { useStigmer } from "../hooks.js";
+import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
 import { useFetch } from "../internal/useFetch.js";
 
 /** Return value of {@link useAgentShares}. */
@@ -41,6 +42,9 @@ export interface UseAgentSharesReturn {
  * several organizations may also carry shares written before sharing
  * across organizations was retired.
  *
+ * An agent has a handful of shares and the share dialog shows them all, so
+ * the hook walks every page of the list.
+ *
  * Pass an empty `agentId` to skip fetching (stable no-op) — useful
  * while the agent is still loading.
  *
@@ -56,12 +60,17 @@ export function useAgentShares(agentId: string, org?: string): UseAgentSharesRet
   const stigmer = useStigmer();
 
   const fetchFn = agentId
-    ? async () => {
-        const result = await stigmer.agentShare.getByAgent(
-          create(GetAgentSharesByAgentRequestSchema, { agentId, org: org ?? "" }),
-        );
-        return result.items;
-      }
+    ? () =>
+        readEveryPage((pageToken) =>
+          stigmer.agentShare.listByAgent(
+            create(ListAgentSharesByAgentRequestSchema, {
+              agentId,
+              org: org ?? "",
+              pageSize: LIST_PAGE_MAX,
+              pageToken,
+            }),
+          ),
+        )
     : null;
 
   const { data: shares, isLoading, isRefetching, error, refetch } = useFetch(

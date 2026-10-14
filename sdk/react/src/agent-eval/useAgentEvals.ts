@@ -6,10 +6,12 @@
  *
  * The list is a summary, as a plugin eval's is: each eval with its
  * plugins, aggregates and scores, its tries possibly emptied, so a view
- * that shows tries reads the one eval through `useAgentEval`. While any
- * listed eval is pending or running the list is read again every
- * {@link AGENT_EVAL_POLL_MS}, so a row shows the eval finished once it
- * has; it stops once all have finished. An empty agent id asks nothing.
+ * that shows tries reads the one eval through `useAgentEval`. While an
+ * eval on the first page is pending or running that page is read again
+ * every {@link AGENT_EVAL_POLL_MS}, so a row shows the eval finished once
+ * it has; it stops once all there have finished. A poll refreshes only the
+ * first page, so only its rows start one (a new eval lands there, newest
+ * first). An empty agent id asks nothing.
  * Pinned by `__tests__/hooks.test.tsx`.
  */
 
@@ -18,7 +20,7 @@ import { create } from "@bufbuild/protobuf";
 import type { AgentEval } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
 import { ListAgentEvalsByAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/io_pb";
 import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useCursorPages } from "../internal/useCursorPages.js";
 import { isEvalActive } from "../plugin-eval/eval-view.js";
 import { AGENT_EVAL_POLL_MS } from "./useAgentEval.js";
 
@@ -32,9 +34,16 @@ export interface UseAgentEvalsReturn {
   readonly error: Error | null;
   /** Re-fetch the list (after starting or cancelling an eval). */
   readonly refetch: () => void;
+  /** `true` while the server holds entries beyond those loaded. */
+  readonly hasMore: boolean;
+  /** Load the next page. No-op while one is loading or when nothing follows. */
+  readonly loadMore: () => void;
+  /** `true` while a `loadMore` read is in flight. */
+  readonly isLoadingMore: boolean;
+  /** Error from the last failed `loadMore`, or `null`. */
+  readonly loadMoreError: Error | null;
 }
 
-const NO_EVALS: readonly AgentEval[] = [];
 
 /**
  * Data hook that lists an agent's {@link AgentEval}s, newest first,
@@ -52,26 +61,27 @@ export function useAgentEvals(agentId: string): UseAgentEvalsReturn {
   // Asks again while the last answer holds an eval that has not finished.
   const [polling, setPolling] = useState(false);
 
-  const { data, isLoading, error, refetch } = useFetch(
+  const pages = useCursorPages<AgentEval>(
     agentId
-      ? async (): Promise<readonly AgentEval[]> =>
-          (
-            await stigmer.agenteval.listByAgent(
-              create(ListAgentEvalsByAgentRequestSchema, { agentId }),
-            )
-          ).items
+      ? (pageToken) =>
+          stigmer.agenteval.listByAgent(
+            create(ListAgentEvalsByAgentRequestSchema, { agentId, pageToken }),
+          )
       : null,
     [agentId, stigmer],
-    NO_EVALS,
+    (row) => row.metadata?.id ?? "",
     { refetchInterval: polling ? AGENT_EVAL_POLL_MS : false },
   );
+  const data = pages.items;
+  const firstPage = pages.firstPage;
 
   useEffect(() => {
-    setPolling(data.some(isEvalActive));
-  }, [data]);
+    setPolling(firstPage?.entries.some(isEvalActive) ?? false);
+  }, [firstPage]);
 
+  const { hasMore, loadMore, isLoadingMore, loadMoreError, isLoading, error, refetch } = pages;
   return useMemo(
-    () => ({ evals: data, isLoading, error, refetch }),
-    [data, isLoading, error, refetch],
+    () => ({ evals: data, hasMore, loadMore, isLoadingMore, loadMoreError, isLoading, error, refetch }),
+    [data, hasMore, loadMore, isLoadingMore, loadMoreError, isLoading, error, refetch],
   );
 }

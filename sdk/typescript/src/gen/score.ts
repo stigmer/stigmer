@@ -53,10 +53,38 @@ export class ScoreClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  /**
+   * Every entry of `listByRun`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listByRunAll(input: MessageInitShape<typeof ListScoresByRunRequestSchema>): AsyncGenerator<ScoreList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.listByRun(create(ListScoresByRunRequestSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
+  }
+
   async listBySession(input: ListScoresBySessionRequest): Promise<ScoreList> {
     try {
       return await this.query.listBySession(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `listBySession`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listBySessionAll(input: MessageInitShape<typeof ListScoresBySessionRequestSchema>): AsyncGenerator<ScoreList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.listBySession(create(ListScoresBySessionRequestSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 
   async getAgentQualityReport(input: GetAgentQualityReportRequest): Promise<AgentQualityReport> {
@@ -69,6 +97,20 @@ export class ScoreClient {
     try {
       return await this.query.listFlaggedByAgent(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `listFlaggedByAgent`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listFlaggedByAgentAll(input: MessageInitShape<typeof ListFlaggedScoresByAgentRequestSchema>): AsyncGenerator<ScoreList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.listFlaggedByAgent(create(ListFlaggedScoresByAgentRequestSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 }
 

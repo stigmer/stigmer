@@ -2,8 +2,9 @@
  * The memory kind's shared reads, all through the list index (list-index.ts
  * beside this file; the store's contract in store/interface.ts): recall
  * (domain/run/create-steps.ts) and the per-subject cap read one
- * subject's rows in one organization, `memory.list` reads one
- * organization's. Rows come newest created first, the index order, which
+ * subject's rows in one organization (`memory.list` pages one
+ * organization's through the page loop, steps.ts). Rows come newest
+ * created first, the index order, which
  * is exactly `compareCreatedAtDesc` (store/list-index.ts states it).
  *
  * Every row is re-checked against the organization and the subject it was
@@ -11,7 +12,7 @@
  * re-checks its principal (domain/iampolicy/resource-store.ts): it keeps
  * the "" subject exact, which reads the whole organization because an
  * empty value is no key. Undecodable rows are skipped — one bad record
- * must not take recall, the cap or the list down. A store fault is
+ * must not take recall or the cap down. A store fault is
  * thrown as it came; each caller maps it with its own copy.
  *
  * Proven by __tests__/queries.test.ts and, end to end, by
@@ -45,17 +46,6 @@ export async function listSubjectMemories(
     (memory) =>
       (memory.metadata?.org ?? "") === org &&
       (memory.spec?.subjectIdentityAccountId ?? "") === subject,
-  );
-}
-
-/** Every memory in `org`, whoever it is about. */
-export async function listOrganizationMemories(
-  store: Store,
-  org: string,
-): Promise<Memory[]> {
-  const rows = await store.queryResources(memoryListIndex, { org });
-  return decodeMemories(rows).filter(
-    (memory) => (memory.metadata?.org ?? "") === org,
   );
 }
 

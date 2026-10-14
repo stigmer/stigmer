@@ -59,12 +59,10 @@ const CREATED = create(ScheduleSchema, {
   spec: { cron: "0 9 * * *", timeZone: "Asia/Kolkata", enabled: false },
 });
 
-const AGENT_RESULT = {
-  id: "agt_01example",
-  org: "isc",
-  slug: "fee-reminder",
-  name: "Fee Reminder",
-  description: "Sends fee reminders.",
+/** The org's one agent, as `agent.list` answers it (the picker's first page). */
+const AGENT = {
+  metadata: { id: "agt_01example", org: "isc", slug: "fee-reminder", name: "Fee Reminder", tags: [] },
+  spec: { description: "Sends fee reminders.", instructions: "" },
 };
 
 beforeEach(() => vi.clearAllMocks());
@@ -217,7 +215,7 @@ function createClient(overrides?: {
     schedule: { apply: overrides?.apply ?? vi.fn().mockResolvedValue(CREATED) },
     agent: {
       list:
-        overrides?.list ?? vi.fn().mockResolvedValue({ entries: [AGENT_RESULT] }),
+        overrides?.list ?? vi.fn().mockResolvedValue({ entries: [AGENT], nextPageToken: "" }),
     },
     ...(overrides?.vault ? { vault: overrides.vault } : {}),
   };
@@ -238,7 +236,7 @@ function vaultClient(apply = vi.fn().mockResolvedValue(CREATED)) {
     apply,
     vault: {
       getMine: vi.fn().mockResolvedValue(MY_VAULT),
-      list: vi.fn().mockResolvedValue({ items: [MY_VAULT, TEAM_VAULT], totalCount: 2 }),
+      list: vi.fn().mockResolvedValue({ entries: [MY_VAULT, TEAM_VAULT], nextPageToken: "" }),
     },
   });
 }

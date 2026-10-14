@@ -11,7 +11,7 @@ import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInput
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { TeamSchema, type Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import { TeamCommandController } from "@stigmer/protos/ai/stigmer/iam/team/v1/command_pb";
-import { UpdateTeamInputSchema, ListTeamsByOrgInputSchema, TeamsSchema, type ListTeamsByOrgInput, type Teams } from "@stigmer/protos/ai/stigmer/iam/team/v1/io_pb";
+import { UpdateTeamInputSchema, ListTeamsInputSchema, TeamsSchema, type ListTeamsInput, type Teams } from "@stigmer/protos/ai/stigmer/iam/team/v1/io_pb";
 import { TeamQueryController } from "@stigmer/protos/ai/stigmer/iam/team/v1/query_pb";
 import { TeamSpecSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/spec_pb";
 
@@ -65,10 +65,24 @@ export class TeamClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async listByOrg(input: ListTeamsByOrgInput): Promise<Teams> {
+  async list(input: ListTeamsInput): Promise<Teams> {
     try {
-      return await this.query.listByOrg(input);
+      return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `list`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listAll(input: MessageInitShape<typeof ListTeamsInputSchema>): AsyncGenerator<Teams["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.list(create(ListTeamsInputSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 }
 

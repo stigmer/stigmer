@@ -54,10 +54,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "i.stigmer.billing.plan.v1\032$ai/stigmer/bi" +
       "lling/plan/v1/api.proto\032\033buf/validate/va" +
       "lidate.proto\")\n\006PlanId\022\037\n\005value\030\001 \001(\tB\t\272" +
-      "H\006r\004\020\001\030@R\005value\"C\n\005Plans\022:\n\007entries\030\001 \003(" +
+      "H\006r\004\020\001\030@R\005value\"k\n\005Plans\022:\n\007entries\030\001 \003(" +
       "\0132 .ai.stigmer.billing.plan.v1.PlanR\007ent" +
-      "ries\"9\n\016ListPlansInput\022\'\n\017include_retire" +
-      "d\030\001 \001(\010R\016includeRetiredB\226\001B\007IoProtoP\001\242\002\004" +
+      "ries\022&\n\017next_page_token\030\002 \001(\tR\rnextPageT" +
+      "oken\"\210\001\n\016ListPlansInput\022\'\n\017include_retir" +
+      "ed\030\001 \001(\010R\016includeRetired\022$\n\tpage_size\030\002 " +
+      "\001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'\n\npage_token\030\003 \001" +
+      "(\tB\010\272H\005r\003\030\200\010R\tpageTokenB\226\001B\007IoProtoP\001\242\002\004" +
       "ASBP\252\002\032Ai.Stigmer.Billing.Plan.V1\312\002\032Ai\\S" +
       "tigmer\\Billing\\Plan\\V1\342\002&Ai\\Stigmer\\Bill" +
       "ing\\Plan\\V1\\GPBMetadata\352\002\036Ai::Stigmer::B" +
@@ -80,13 +83,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_billing_plan_v1_Plans_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_plan_v1_Plans_descriptor,
-        new java.lang.String[] { "Entries", });
+        new java.lang.String[] { "Entries", "NextPageToken", });
     internal_static_ai_stigmer_billing_plan_v1_ListPlansInput_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_billing_plan_v1_ListPlansInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_plan_v1_ListPlansInput_descriptor,
-        new java.lang.String[] { "IncludeRetired", });
+        new java.lang.String[] { "IncludeRetired", "PageSize", "PageToken", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.billing.plan.v1.ApiProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

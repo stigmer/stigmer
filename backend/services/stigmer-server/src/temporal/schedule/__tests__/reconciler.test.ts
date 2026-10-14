@@ -285,7 +285,8 @@ describe("runPass — the four phases", () => {
 
     await reconciler().runPass();
 
-    const { fires: runs, total } = await store.listScheduleFires("sch_prune", 0, 10);
+    const runs = await store.listScheduleFires("sch_prune", undefined, 10);
+    const total = runs.length;
     expect(total).toBe(1);
     expect(runs[0]?.nominalFireTime).toBe("2099-01-01T00:00:00Z");
   });

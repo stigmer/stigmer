@@ -246,7 +246,7 @@ export function isFinishedEval(agentEval: AgentEval): boolean {
 
 /**
  * The latest finished agent eval of each agent version, by version hash.
- * `evals` is newest first, as `useAgentEvals` lists them.
+ * `evals` is newest first, as the evals list pages them.
  */
 export function latestFinishedEvalByVersion(
   evals: readonly AgentEval[],

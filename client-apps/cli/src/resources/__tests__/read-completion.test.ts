@@ -85,17 +85,17 @@ beforeAll(async () => {
         if (req.value !== "aex_1") throw new ConnectError("execution not found", Code.NotFound);
         return knownExec;
       },
-      list: () => ({ totalPages: 1, entries: [knownExec] }),
+      list: () => ({ entries: [knownExec] }),
       getSessionUsageReport: (req) => {
         if (req.sessionId !== "ses_1") throw new ConnectError("session not found", Code.NotFound);
         return knownUsage;
       },
     });
     router.service(SessionQueryController, {
-      list: () => ({ totalPages: 1, entries: [knownSession, assistantSession] }),
+      list: () => ({ entries: [knownSession, assistantSession] }),
     });
     router.service(SearchService, {
-      search: () => ({ entries: [knownSearchResult], totalCount: 1, totalPages: 1 }),
+      search: () => ({ entries: [knownSearchResult], countsByKind: { agent: 3 }, nextPageToken: "next" }),
     });
     router.service(OrganizationQueryController, {
       get: (req) => {
@@ -123,20 +123,22 @@ describe("search integration", () => {
   it("queries the SearchService and renders entries as protojson", async () => {
     const outcome = await searchResources(client, ApiResourceKind.agent, "review", {
       org: "acme",
-      page: 1,
       pageSize: 20,
+      pageToken: "",
     }, "json");
     expect(JSON.parse(outcome.rendered)).toEqual([
       toJson(SearchResultSchema, knownSearchResult, { useProtoFieldName: true }),
     ]);
-    expect(outcome.totalPages).toBe(1);
+    // The kind's count across every page, and the token for the next one.
+    expect(outcome.matches).toBe(3);
+    expect(outcome.nextPageToken).toBe("next");
   });
 
   it("renders a human table for search results, naming the organization by slug", async () => {
     const outcome = await searchResources(client, ApiResourceKind.agent, "review", {
       org: "acme",
-      page: 1,
       pageSize: 20,
+      pageToken: "",
     }, "table");
     expect(outcome.rendered).toContain("acme/reviewer");
     expect(outcome.rendered).not.toContain(ACME_ID);

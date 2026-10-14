@@ -4,7 +4,6 @@ package ai.stigmer.search.v1;
 
 import "ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto";
 import "ai/stigmer/commons/apiresource/enum.proto";
-import "ai/stigmer/commons/rpc/pagination.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
 
@@ -74,13 +73,16 @@ message SearchRequest {
   reserved 4, 6;
   reserved "exclude_public", "cross_org_public";
 
-  // Pagination parameters.
-  //
-  // - num: Page number (1-indexed). Default: 1
-  // - size: Items per page. Default: 20, Maximum: 100
-  //
-  // If not provided, defaults to page 1 with 20 items.
-  ai.stigmer.commons.rpc.PageInfo page = 5;
+  reserved 5;
+  reserved "page";
+
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 7 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 8 [(buf.validate.field).string.max_len = 1024];
 }
 
 // SearchResponse contains paginated search results with metadata.
@@ -110,17 +112,15 @@ message SearchResponse {
   // Example: {"agent": 5, "skill": 12, "plugin": 3}
   map<string, int32> counts_by_kind = 2;
 
-  // Total count of matching resources across all kinds.
-  //
-  // This is the sum of all counts_by_kind values.
-  // Used for displaying "Showing X of Y results".
-  int32 total_count = 3;
+  reserved 3;
+  reserved "total_count";
 
-  // Total number of pages based on current page size.
-  //
-  // Calculated as: ceil(total_count / page.size)
-  // Used for pagination controls.
-  int32 total_pages = 4;
+  reserved 4;
+  reserved "total_pages";
+
+  // Set when more entries may follow: pass it as page_token to continue.
+  // A page may be short, even empty, and still carry a token.
+  string next_page_token = 5;
 }
 
 // SearchResult is a lightweight summary of an API resource returned by search.

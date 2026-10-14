@@ -60,10 +60,36 @@ public final class ScoreClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    /**
+     * Every entry of {@code listByRun}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<Score> listByRunAll(ListScoresByRunRequest input) {
+        return Pages.<ScoreList, Score>iterate(
+            input.getPageToken(),
+            token -> listByRun(input.toBuilder().setPageToken(token).build()),
+            ScoreList::getEntriesList,
+            ScoreList::getNextPageToken);
+    }
+
     public ScoreList listBySession(ListScoresBySessionRequest input) {
         try {
             return query.listBySession(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code listBySession}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<Score> listBySessionAll(ListScoresBySessionRequest input) {
+        return Pages.<ScoreList, Score>iterate(
+            input.getPageToken(),
+            token -> listBySession(input.toBuilder().setPageToken(token).build()),
+            ScoreList::getEntriesList,
+            ScoreList::getNextPageToken);
     }
 
     public AgentQualityReport getAgentQualityReport(GetAgentQualityReportRequest input) {
@@ -76,5 +102,18 @@ public final class ScoreClient {
         try {
             return query.listFlaggedByAgent(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code listFlaggedByAgent}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<Score> listFlaggedByAgentAll(ListFlaggedScoresByAgentRequest input) {
+        return Pages.<ScoreList, Score>iterate(
+            input.getPageToken(),
+            token -> listFlaggedByAgent(input.toBuilder().setPageToken(token).build()),
+            ScoreList::getEntriesList,
+            ScoreList::getNextPageToken);
     }
 }

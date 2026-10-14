@@ -12,65 +12,52 @@ public interface ScoreListOrBuilder extends
 
   /**
    * <pre>
-   * Number of scores in this response. On a paged list it counts this page
-   * only; follow next_page_token for the rest.
-   * </pre>
-   *
-   * <code>int32 total_count = 1 [json_name = "totalCount"];</code>
-   * @return The totalCount.
-   */
-  int getTotalCount();
-
-  /**
-   * <pre>
    * The scores, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
    */
   java.util.List<ai.stigmer.agentic.score.v1.Score> 
-      getItemsList();
+      getEntriesList();
   /**
    * <pre>
    * The scores, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
    */
-  ai.stigmer.agentic.score.v1.Score getItems(int index);
+  ai.stigmer.agentic.score.v1.Score getEntries(int index);
   /**
    * <pre>
    * The scores, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
    */
-  int getItemsCount();
+  int getEntriesCount();
   /**
    * <pre>
    * The scores, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
    */
   java.util.List<? extends ai.stigmer.agentic.score.v1.ScoreOrBuilder> 
-      getItemsOrBuilderList();
+      getEntriesOrBuilderList();
   /**
    * <pre>
    * The scores, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
    */
-  ai.stigmer.agentic.score.v1.ScoreOrBuilder getItemsOrBuilder(
+  ai.stigmer.agentic.score.v1.ScoreOrBuilder getEntriesOrBuilder(
       int index);
 
   /**
    * <pre>
-   * Set when more scores may follow: pass it as page_token to continue. A
-   * page may hold fewer scores than page_size, even none, and still carry a
-   * token. Empty when the list is complete, and always empty on the lists
-   * of one run or one session, which are returned whole.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -79,10 +66,8 @@ public interface ScoreListOrBuilder extends
   java.lang.String getNextPageToken();
   /**
    * <pre>
-   * Set when more scores may follow: pass it as page_token to continue. A
-   * page may hold fewer scores than page_size, even none, and still carry a
-   * token. Empty when the list is complete, and always empty on the lists
-   * of one run or one session, which are returned whole.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>

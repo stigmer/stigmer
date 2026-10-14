@@ -43,9 +43,9 @@ function sessionIn(id: string, org: string): Session {
 function createMockStigmer(orgs: Promise<Organization[]>) {
   return {
     organization: {
-      findMyOrganizations: vi
+      listMine: vi
         .fn()
-        .mockImplementation(async () => ({ entries: await orgs })),
+        .mockImplementation(async () => ({ entries: await orgs, nextPageToken: "" })),
     },
   } as never;
 }

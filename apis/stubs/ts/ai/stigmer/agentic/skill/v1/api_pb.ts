@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/skill/v1/api.proto.
  */
 export const file_ai_stigmer_agentic_skill_v1_api: GenFile = /*@__PURE__*/
-  fileDesc("CiVhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvYXBpLnByb3RvEhthaS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEilQIKBVNraWxsEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEhoKBGtpbmQYAiABKAlCDLpICXIHCgVTa2lsbBJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESNAoEc3BlYxgEIAEoCzImLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbFNwZWMSOAoGc3RhdHVzGAUgASgLMiguYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlNraWxsU3RhdHVzImEKCVNraWxsTGlzdBITCgthcGlfdmVyc2lvbhgBIAEoCRIMCgRraW5kGAIgASgJEjEKBWl0ZW1zGAMgAygLMiIuYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlNraWxsYgZwcm90bzM", [file_ai_stigmer_agentic_skill_v1_spec, file_ai_stigmer_agentic_skill_v1_status, file_ai_stigmer_commons_apiresource_metadata, file_buf_validate_validate]);
+  fileDesc("CiVhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvYXBpLnByb3RvEhthaS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEilQIKBVNraWxsEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEhoKBGtpbmQYAiABKAlCDLpICXIHCgVTa2lsbBJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESNAoEc3BlYxgEIAEoCzImLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbFNwZWMSOAoGc3RhdHVzGAUgASgLMiguYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlNraWxsU3RhdHVzYgZwcm90bzM", [file_ai_stigmer_agentic_skill_v1_spec, file_ai_stigmer_agentic_skill_v1_status, file_ai_stigmer_commons_apiresource_metadata, file_buf_validate_validate]);
 
 /**
  * Skill represents a versioned, reusable unit of agent capability.
@@ -71,39 +71,4 @@ export type Skill = Message<"ai.stigmer.agentic.skill.v1.Skill"> & {
  */
 export const SkillSchema: GenMessage<Skill> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_skill_v1_api, 0);
-
-/**
- * SkillList represents a paginated list of skills.
- *
- * @generated from message ai.stigmer.agentic.skill.v1.SkillList
- */
-export type SkillList = Message<"ai.stigmer.agentic.skill.v1.SkillList"> & {
-  /**
-   * API version for this list type.
-   *
-   * @generated from field: string api_version = 1;
-   */
-  apiVersion: string;
-
-  /**
-   * Resource kind identifier for the list.
-   *
-   * @generated from field: string kind = 2;
-   */
-  kind: string;
-
-  /**
-   * List of skill resources.
-   *
-   * @generated from field: repeated ai.stigmer.agentic.skill.v1.Skill items = 3;
-   */
-  items: Skill[];
-};
-
-/**
- * Describes the message ai.stigmer.agentic.skill.v1.SkillList.
- * Use `create(SkillListSchema)` to create a new message.
- */
-export const SkillListSchema: GenMessage<SkillList> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_skill_v1_api, 1);
 

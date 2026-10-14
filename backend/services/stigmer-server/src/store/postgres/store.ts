@@ -68,6 +68,7 @@ import type {
   PendingOAuthStateStore,
   RawResourceDocument,
   ResourceReadForWrite,
+  ScheduleFireCursor,
   ScheduleFireRecord,
   SearchIndexEntry,
   SearchIndexHit,
@@ -1253,22 +1254,39 @@ export class PostgresStore implements Store {
     resourceId: string,
   ): Promise<AuditRecord[]> {
     const result = await this.open().query(
-      `SELECT data, version_hash, tag FROM resource_audit
+      `SELECT id, data, version_hash, tag FROM resource_audit
        WHERE kind = $1 AND resource_id = $2
        ORDER BY archived_at DESC, id DESC`,
       [apiResourceKindName(kind), resourceId],
     );
-    return (
-      result.rows as Array<{
-        data: Uint8Array;
-        version_hash: string | null;
-        tag: string | null;
-      }>
-    ).map((row) => ({
-      data: row.data,
-      versionHash: row.version_hash ?? "",
-      tag: row.tag ?? "",
-    }));
+    return (result.rows as PostgresAuditRow[]).map(auditRecordOf);
+  }
+
+  async listAuditRecordsPage(
+    kind: ApiResourceKind,
+    resourceId: string,
+    after: string | undefined,
+    limit: number,
+  ): Promise<AuditRecord[]> {
+    const params: unknown[] = [apiResourceKindName(kind), resourceId, limit];
+    // The cursor row's own (archived_at, id) bounds the page, so the
+    // instant never travels as text; a row-value comparison matches the
+    // ORDER BY's descending pair exactly.
+    let afterClause = "";
+    if (after !== undefined) {
+      params.push(after);
+      afterClause = `AND (archived_at, id) < (
+         SELECT archived_at, id FROM resource_audit
+         WHERE kind = $1 AND resource_id = $2 AND id = $4::bigint)`;
+    }
+    const result = await this.open().query(
+      `SELECT id, data, version_hash, tag FROM resource_audit
+       WHERE kind = $1 AND resource_id = $2 ${afterClause}
+       ORDER BY archived_at DESC, id DESC
+       LIMIT $3`,
+      params,
+    );
+    return (result.rows as PostgresAuditRow[]).map(auditRecordOf);
   }
 
   async getAuditRecordByHash(
@@ -1279,21 +1297,19 @@ export class PostgresStore implements Store {
     const kindName = apiResourceKindName(kind);
     // Duplicates for one hash are legal — newest wins.
     const result = await this.open().query(
-      `SELECT data, tag FROM resource_audit
+      `SELECT id, data, version_hash, tag FROM resource_audit
        WHERE kind = $1 AND resource_id = $2 AND version_hash = $3
        ORDER BY archived_at DESC, id DESC
        LIMIT 1`,
       [kindName, resourceId, versionHash],
     );
-    const row = result.rows[0] as
-      | { data: Uint8Array; tag: string | null }
-      | undefined;
+    const row = result.rows[0] as PostgresAuditRow | undefined;
     if (row === undefined) {
       throw new AuditNotFoundError(
         `${kindName}/${resourceId} (hash=${versionHash})`,
       );
     }
-    return { data: row.data, versionHash, tag: row.tag ?? "" };
+    return auditRecordOf(row);
   }
 
   async getAuditRecordByTag(
@@ -1303,19 +1319,17 @@ export class PostgresStore implements Store {
   ): Promise<AuditRecord> {
     const kindName = apiResourceKindName(kind);
     const result = await this.open().query(
-      `SELECT data, version_hash FROM resource_audit
+      `SELECT id, data, version_hash, tag FROM resource_audit
        WHERE kind = $1 AND resource_id = $2 AND tag = $3
        ORDER BY archived_at DESC, id DESC
        LIMIT 1`,
       [kindName, resourceId, tag],
     );
-    const row = result.rows[0] as
-      | { data: Uint8Array; version_hash: string | null }
-      | undefined;
+    const row = result.rows[0] as PostgresAuditRow | undefined;
     if (row === undefined) {
       throw new AuditNotFoundError(`${kindName}/${resourceId} (tag=${tag})`);
     }
-    return { data: row.data, versionHash: row.version_hash ?? "", tag };
+    return auditRecordOf(row);
   }
 
   // ---------------------------------------------------------------------------
@@ -1374,30 +1388,26 @@ export class PostgresStore implements Store {
 
   async listScheduleFires(
     scheduleId: string,
-    offset: number,
+    after: ScheduleFireCursor | undefined,
     limit: number,
-  ): Promise<{ fires: ScheduleFireRecord[]; total: number }> {
-    const effectiveLimit = limit <= 0 ? 50 : limit;
-    const effectiveOffset = offset < 0 ? 0 : offset;
-
-    const totalResult = await this.open().query(
-      `SELECT COUNT(*) AS total FROM schedule_runs WHERE schedule_id = $1`,
-      [scheduleId],
-    );
-
+  ): Promise<ScheduleFireRecord[]> {
+    // The ledger's key orders the read: COLLATE "C" compares as bytes, so
+    // this driver and sqlite (BINARY) agree, and the cursor's row
+    // comparison continues exactly where the previous read stopped.
     const result = await this.open().query(
       `SELECT schedule_id, org, nominal_fire_time, origin, outcome, reason, execution_id, recorded_at, completed_at
        FROM schedule_runs
        WHERE schedule_id = $1
-       ORDER BY nominal_fire_time DESC, origin DESC
-       LIMIT $2 OFFSET $3`,
-      [scheduleId, effectiveLimit, effectiveOffset],
+         AND ($2::text IS NULL
+              OR (nominal_fire_time COLLATE "C", origin COLLATE "C") < ($2::text COLLATE "C", $3::text COLLATE "C"))
+       ORDER BY nominal_fire_time COLLATE "C" DESC, origin COLLATE "C" DESC
+       LIMIT $4`,
+      [scheduleId, after?.nominalFireTime ?? null, after?.origin ?? "", limit],
     );
 
-    return {
-      total: Number((totalResult.rows[0] as { total: string | number }).total),
-      fires: (
-        result.rows as Array<{
+    return (
+      result.rows as
+        Array<{
           schedule_id: string;
           org: string;
           nominal_fire_time: string;
@@ -1418,9 +1428,9 @@ export class PostgresStore implements Store {
         executionId: row.execution_id,
         recordedAt: row.recorded_at,
         completedAt: row.completed_at,
-      })),
-    };
+      }));
   }
+
 
   async deleteScheduleFiresBySchedule(scheduleId: string): Promise<number> {
     const result = await this.open().query(
@@ -2500,6 +2510,23 @@ function provenReadSql(
           WHERE ${where.join(" AND ")}
           ORDER BY ${created} DESC, ${id} DESC${limit}`,
     params,
+  };
+}
+
+/** An audit row as the audit reads select it; node-postgres returns BIGSERIAL as text. */
+interface PostgresAuditRow {
+  readonly id: string;
+  readonly data: Uint8Array;
+  readonly version_hash: string | null;
+  readonly tag: string | null;
+}
+
+function auditRecordOf(row: PostgresAuditRow): AuditRecord {
+  return {
+    data: row.data,
+    versionHash: row.version_hash ?? "",
+    tag: row.tag ?? "",
+    seq: String(row.id),
   };
 }
 

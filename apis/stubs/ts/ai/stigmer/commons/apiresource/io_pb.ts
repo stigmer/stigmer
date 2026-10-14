@@ -8,8 +8,6 @@ import type { ApiResourceKind } from "./apiresourcekind/api_resource_kind_pb.js"
 import { file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind } from "./apiresourcekind/api_resource_kind_pb.js";
 import type { ApiResourceVisibility } from "./enum_pb.js";
 import { file_ai_stigmer_commons_apiresource_enum } from "./enum_pb.js";
-import type { PageInfo } from "../rpc/pagination_pb.js";
-import { file_ai_stigmer_commons_rpc_pagination } from "../rpc/pagination_pb.js";
 import { file_buf_validate_validate } from "../../../../buf/validate/validate_pb.js";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -17,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/commons/apiresource/io.proto.
  */
 export const file_ai_stigmer_commons_apiresource_io: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvaW8ucHJvdG8SHmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZSImCg1BcGlSZXNvdXJjZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiXQoWQXBpUmVzb3VyY2VEZWxldGVJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBEhcKD3ZlcnNpb25fbWVzc2FnZRgCIAEoCRINCgVmb3JjZRgDIAEoCCJKCh1BcGlSZXNvdXJjZUJ5T3JnQnlTbHVnUmVxdWVzdBITCgNvcmcYASABKAlCBrpIA8gBARIUCgRzbHVnGAIgASgJQga6SAPIAQEilAEKF0ZpbmRBcGlSZXNvdXJjZXNSZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEgwKBGtpbmQYAyABKAkSLgoEcGFnZRgEIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8SEwoLcGFnZV9udW1iZXIYBSABKAUSEQoJcGFnZV9zaXplGAYgASgFIosBChVVcGRhdGVWaXNpYmlsaXR5SW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBARJVCgp2aXNpYmlsaXR5GAIgASgOMjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlVmlzaWJpbGl0eUIKukgHggEEEAEgACJhCgtSZW5hbWVJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBEjUKBHNsdWcYAiABKAlCJ7pIJMgBAXIfEAIYPzIZXlthLXpdW2EtejAtOS1dKlthLXowLTldJCKuAwoUQXBpUmVzb3VyY2VSZWZlcmVuY2USRQoDb3JnGAEgASgJQji6SDVyMxg/Mi9eJHxeW2Etel1bYS16MC05LV0qW2EtejAtOV0kfF5vcmdfWzAtOWEtel17MjZ9JBJNCgRraW5kGAIgASgOMj8uYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5BcGlSZXNvdXJjZUtpbmQSNQoEc2x1ZxgDIAEoCUInukgk2AEBch8QAhg/MhleW2Etel1bYS16MC05LV0qW2EtejAtOV0kEkQKB3ZlcnNpb24YBCABKAlCM7pIMHIuMixeJHxebGF0ZXN0JHxeW2EtekEtWjAtOS5fLV0rJHxeW2EtZjAtOV17NjR9JBITCgJpZBgFIAEoCUIHukgEcgIYQDpuukhrGmkKFHJlZmVyZW5jZS5pZF9vcl9zbHVnEi9hIHJlZmVyZW5jZSBuYW1lcyBpdHMgcmVzb3VyY2UgYnkgaWQgb3IgYnkgc2x1ZxogdGhpcy5pZCAhPSAnJyB8fCB0aGlzLnNsdWcgIT0gJydiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, file_ai_stigmer_commons_apiresource_enum, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
+  fileDesc("CidhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvaW8ucHJvdG8SHmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZSImCg1BcGlSZXNvdXJjZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiXQoWQXBpUmVzb3VyY2VEZWxldGVJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBEhcKD3ZlcnNpb25fbWVzc2FnZRgCIAEoCRINCgVmb3JjZRgDIAEoCCJKCh1BcGlSZXNvdXJjZUJ5T3JnQnlTbHVnUmVxdWVzdBITCgNvcmcYASABKAlCBrpIA8gBARIUCgRzbHVnGAIgASgJQga6SAPIAQEiiwEKFVVwZGF0ZVZpc2liaWxpdHlJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBElUKCnZpc2liaWxpdHkYAiABKA4yNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VWaXNpYmlsaXR5Qgq6SAeCAQQQASAAImEKC1JlbmFtZUlucHV0EhsKC3Jlc291cmNlX2lkGAEgASgJQga6SAPIAQESNQoEc2x1ZxgCIAEoCUInukgkyAEBch8QAhg/MhleW2Etel1bYS16MC05LV0qW2EtejAtOV0kIq4DChRBcGlSZXNvdXJjZVJlZmVyZW5jZRJFCgNvcmcYASABKAlCOLpINXIzGD8yL14kfF5bYS16XVthLXowLTktXSpbYS16MC05XSR8Xm9yZ19bMC05YS16XXsyNn0kEk0KBGtpbmQYAiABKA4yPy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkFwaVJlc291cmNlS2luZBI1CgRzbHVnGAMgASgJQie6SCTYAQFyHxACGD8yGV5bYS16XVthLXowLTktXSpbYS16MC05XSQSRAoHdmVyc2lvbhgEIAEoCUIzukgwci4yLF4kfF5sYXRlc3QkfF5bYS16QS1aMC05Ll8tXSskfF5bYS1mMC05XXs2NH0kEhMKAmlkGAUgASgJQge6SARyAhhAOm66SGsaaQoUcmVmZXJlbmNlLmlkX29yX3NsdWcSL2EgcmVmZXJlbmNlIG5hbWVzIGl0cyByZXNvdXJjZSBieSBpZCBvciBieSBzbHVnGiB0aGlzLmlkICE9ICcnIHx8IHRoaXMuc2x1ZyAhPSAnJ2IGcHJvdG8z", [file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, file_ai_stigmer_commons_apiresource_enum, file_buf_validate_validate]);
 
 /**
  * Wraps a system-generated resource identifier.
@@ -103,55 +101,6 @@ export const ApiResourceByOrgBySlugRequestSchema: GenMessage<ApiResourceByOrgByS
   messageDesc(file_ai_stigmer_commons_apiresource_io, 2);
 
 /**
- * Input for find (list) operations with pagination
- *
- * @generated from message ai.stigmer.commons.apiresource.FindApiResourcesRequest
- */
-export type FindApiResourcesRequest = Message<"ai.stigmer.commons.apiresource.FindApiResourcesRequest"> & {
-  /**
-   * Organization to filter by, by id or slug
-   *
-   * @generated from field: string org = 1;
-   */
-  org: string;
-
-  /**
-   * API resource kind (optional filter)
-   *
-   * @generated from field: string kind = 3;
-   */
-  kind: string;
-
-  /**
-   * Pagination info
-   *
-   * @generated from field: ai.stigmer.commons.rpc.PageInfo page = 4;
-   */
-  page?: PageInfo;
-
-  /**
-   * Page number (1-indexed) - deprecated, use page.num
-   *
-   * @generated from field: int32 page_number = 5;
-   */
-  pageNumber: number;
-
-  /**
-   * Number of items per page (default: 20, max: 100) - deprecated, use page.size
-   *
-   * @generated from field: int32 page_size = 6;
-   */
-  pageSize: number;
-};
-
-/**
- * Describes the message ai.stigmer.commons.apiresource.FindApiResourcesRequest.
- * Use `create(FindApiResourcesRequestSchema)` to create a new message.
- */
-export const FindApiResourcesRequestSchema: GenMessage<FindApiResourcesRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_commons_apiresource_io, 3);
-
-/**
  * Input for updating the visibility of any API resource.
  *
  * Used by resource-specific command controllers to change visibility.
@@ -200,7 +149,7 @@ export type UpdateVisibilityInput = Message<"ai.stigmer.commons.apiresource.Upda
  * Use `create(UpdateVisibilityInputSchema)` to create a new message.
  */
 export const UpdateVisibilityInputSchema: GenMessage<UpdateVisibilityInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_commons_apiresource_io, 4);
+  messageDesc(file_ai_stigmer_commons_apiresource_io, 3);
 
 /**
  * Input for renaming any API resource: changing its slug.
@@ -234,7 +183,7 @@ export type RenameInput = Message<"ai.stigmer.commons.apiresource.RenameInput"> 
  * Use `create(RenameInputSchema)` to create a new message.
  */
 export const RenameInputSchema: GenMessage<RenameInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_commons_apiresource_io, 5);
+  messageDesc(file_ai_stigmer_commons_apiresource_io, 4);
 
 /**
  * Generic reference to any API resource.
@@ -344,5 +293,5 @@ export type ApiResourceReference = Message<"ai.stigmer.commons.apiresource.ApiRe
  * Use `create(ApiResourceReferenceSchema)` to create a new message.
  */
 export const ApiResourceReferenceSchema: GenMessage<ApiResourceReference> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_commons_apiresource_io, 6);
+  messageDesc(file_ai_stigmer_commons_apiresource_io, 5);
 

@@ -227,9 +227,9 @@ async function runOf(runId: string): Promise<Run> {
 
 async function evalScoreOf(runId: string): Promise<Score> {
   const scores = await clients.scoreQuery.listByRun({ runId });
-  const score = scores.items.find((item) => item.spec?.metric === EVAL_METRIC);
+  const score = scores.entries.find((item) => item.spec?.metric === EVAL_METRIC);
   if (score === undefined) {
-    throw new Error(`run ${runId} carries no eval score; metrics: [${scores.items.map((s) => s.spec?.metric).join(", ")}]`);
+    throw new Error(`run ${runId} carries no eval score; metrics: [${scores.entries.map((s) => s.spec?.metric).join(", ")}]`);
   }
   return score;
 }

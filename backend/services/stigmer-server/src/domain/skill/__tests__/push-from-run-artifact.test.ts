@@ -41,6 +41,7 @@ function skillCommand(
         logger: silentLogger,
         authorizer: newPermissiveSingleTeamAuthorizer(),
         authorizationLifecycle: undefined,
+        listReadScope: undefined,
         artifactStorage: untouchable("artifactStorage"),
         executionArtifactStorage,
       });

@@ -10,7 +10,8 @@
  * The methods are exactly the lookups the domain asks: by id (every
  * chain, the verifier's liveness read, and every lookup by slug, which
  * reads the name table first: pipeline/steps/names.ts), by client_id (the
- * mint), by organization (listByOrg). A port carries nothing only one
+ * mint), by organization (the purge), and a page of an organization (list).
+ * A port carries nothing only one
  * edition calls. A client's slug is a name in the server's one name table,
  * claimed by the create chain in every edition, so uniqueness of a slug is
  * not the port's: an implementation may keep its own unique index as a
@@ -39,7 +40,12 @@
  *     and a `modify` that throws writes nothing and rejects with its error;
  *   - `deleteById` of an unknown id resolves;
  *   - `findByOrg` answers every client of the organization and no other,
- *     in no promised order (the chain sorts);
+ *     in no promised order;
+ *   - `pageByOrg` answers the organization's clients after a cursor,
+ *     newest first by creation instant (status.audit.spec_audit.created_at)
+ *     then by id, both compared as bytes, at most `limit`, each with the
+ *     cursor a later page continues after, so the pages of a list repeat
+ *     and skip nothing;
  *   - a typed not-found reads as `undefined`; any other storage failure
  *     propagates as the infrastructure fault it is (the store-fault
  *     mapping — an outage must never read as "no client", which
@@ -48,6 +54,7 @@
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 
 import type { GuardedWritePort } from "../../store/guarded-port.js";
+import type { ListIndexCursor, ListIndexRow } from "../../store/list-index.js";
 
 /**
  * Raised by `save` when the id or the client_id is already held (or when
@@ -84,4 +91,16 @@ export interface PlatformClientStore extends GuardedWritePort<PlatformClient> {
   findByClientId(clientId: string): Promise<PlatformClient | undefined>;
   /** Every client of the organization, in no promised order. */
   findByOrg(org: string): Promise<ReadonlyArray<PlatformClient>>;
+  /**
+   * One page of the organization's clients, the list lane's row source
+   * (pipeline/steps/list-page.ts ListPageSource): the stored rows after
+   * `after` (from the newest when undefined), newest first, at most
+   * `limit`. A cursor the implementation cannot read over its typed
+   * columns is refused with `invalidArgumentError("invalid page_token")`.
+   */
+  pageByOrg(
+    org: string,
+    after: ListIndexCursor | undefined,
+    limit: number,
+  ): Promise<ReadonlyArray<ListIndexRow>>;
 }

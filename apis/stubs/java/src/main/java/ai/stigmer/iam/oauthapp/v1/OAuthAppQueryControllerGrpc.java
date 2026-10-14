@@ -77,35 +77,35 @@ public final class OAuthAppQueryControllerGrpc {
     return getGetByReferenceMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput,
-      ai.stigmer.iam.oauthapp.v1.OAuthApps> getListByOrgMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.oauthapp.v1.ListOAuthAppsInput,
+      ai.stigmer.iam.oauthapp.v1.OAuthApps> getListMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "listByOrg",
-      requestType = ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput.class,
+      fullMethodName = SERVICE_NAME + '/' + "list",
+      requestType = ai.stigmer.iam.oauthapp.v1.ListOAuthAppsInput.class,
       responseType = ai.stigmer.iam.oauthapp.v1.OAuthApps.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput,
-      ai.stigmer.iam.oauthapp.v1.OAuthApps> getListByOrgMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput, ai.stigmer.iam.oauthapp.v1.OAuthApps> getListByOrgMethod;
-    if ((getListByOrgMethod = OAuthAppQueryControllerGrpc.getListByOrgMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.oauthapp.v1.ListOAuthAppsInput,
+      ai.stigmer.iam.oauthapp.v1.OAuthApps> getListMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.iam.oauthapp.v1.ListOAuthAppsInput, ai.stigmer.iam.oauthapp.v1.OAuthApps> getListMethod;
+    if ((getListMethod = OAuthAppQueryControllerGrpc.getListMethod) == null) {
       synchronized (OAuthAppQueryControllerGrpc.class) {
-        if ((getListByOrgMethod = OAuthAppQueryControllerGrpc.getListByOrgMethod) == null) {
-          OAuthAppQueryControllerGrpc.getListByOrgMethod = getListByOrgMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput, ai.stigmer.iam.oauthapp.v1.OAuthApps>newBuilder()
+        if ((getListMethod = OAuthAppQueryControllerGrpc.getListMethod) == null) {
+          OAuthAppQueryControllerGrpc.getListMethod = getListMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.oauthapp.v1.ListOAuthAppsInput, ai.stigmer.iam.oauthapp.v1.OAuthApps>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listByOrg"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "list"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput.getDefaultInstance()))
+                  ai.stigmer.iam.oauthapp.v1.ListOAuthAppsInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.iam.oauthapp.v1.OAuthApps.getDefaultInstance()))
-              .setSchemaDescriptor(new OAuthAppQueryControllerMethodDescriptorSupplier("listByOrg"))
+              .setSchemaDescriptor(new OAuthAppQueryControllerMethodDescriptorSupplier("list"))
               .build();
         }
       }
     }
-    return getListByOrgMethod;
+    return getListMethod;
   }
 
   /**
@@ -198,14 +198,14 @@ public final class OAuthAppQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all OAuth apps belonging to an organization.
+     * List the OAuth apps belonging to an organization.
      * Returns the OAuthApps of the input org that the caller may view, newest
-     * first. Typically a small set (1-5 per org), so results are not paginated.
+     * first, one page at a time.
      * </pre>
      */
-    default void listByOrg(ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput request,
+    default void list(ai.stigmer.iam.oauthapp.v1.ListOAuthAppsInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.oauthapp.v1.OAuthApps> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListByOrgMethod(), responseObserver);
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListMethod(), responseObserver);
     }
   }
 
@@ -268,15 +268,15 @@ public final class OAuthAppQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all OAuth apps belonging to an organization.
+     * List the OAuth apps belonging to an organization.
      * Returns the OAuthApps of the input org that the caller may view, newest
-     * first. Typically a small set (1-5 per org), so results are not paginated.
+     * first, one page at a time.
      * </pre>
      */
-    public void listByOrg(ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput request,
+    public void list(ai.stigmer.iam.oauthapp.v1.ListOAuthAppsInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.oauthapp.v1.OAuthApps> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getListByOrgMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getListMethod(), getCallOptions()), request, responseObserver);
     }
   }
 
@@ -323,14 +323,14 @@ public final class OAuthAppQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all OAuth apps belonging to an organization.
+     * List the OAuth apps belonging to an organization.
      * Returns the OAuthApps of the input org that the caller may view, newest
-     * first. Typically a small set (1-5 per org), so results are not paginated.
+     * first, one page at a time.
      * </pre>
      */
-    public ai.stigmer.iam.oauthapp.v1.OAuthApps listByOrg(ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput request) throws io.grpc.StatusException {
+    public ai.stigmer.iam.oauthapp.v1.OAuthApps list(ai.stigmer.iam.oauthapp.v1.ListOAuthAppsInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getListByOrgMethod(), getCallOptions(), request);
+          getChannel(), getListMethod(), getCallOptions(), request);
     }
   }
 
@@ -377,14 +377,14 @@ public final class OAuthAppQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all OAuth apps belonging to an organization.
+     * List the OAuth apps belonging to an organization.
      * Returns the OAuthApps of the input org that the caller may view, newest
-     * first. Typically a small set (1-5 per org), so results are not paginated.
+     * first, one page at a time.
      * </pre>
      */
-    public ai.stigmer.iam.oauthapp.v1.OAuthApps listByOrg(ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput request) {
+    public ai.stigmer.iam.oauthapp.v1.OAuthApps list(ai.stigmer.iam.oauthapp.v1.ListOAuthAppsInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getListByOrgMethod(), getCallOptions(), request);
+          getChannel(), getListMethod(), getCallOptions(), request);
     }
   }
 
@@ -433,21 +433,21 @@ public final class OAuthAppQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all OAuth apps belonging to an organization.
+     * List the OAuth apps belonging to an organization.
      * Returns the OAuthApps of the input org that the caller may view, newest
-     * first. Typically a small set (1-5 per org), so results are not paginated.
+     * first, one page at a time.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.oauthapp.v1.OAuthApps> listByOrg(
-        ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.oauthapp.v1.OAuthApps> list(
+        ai.stigmer.iam.oauthapp.v1.ListOAuthAppsInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getListByOrgMethod(), getCallOptions()), request);
+          getChannel().newCall(getListMethod(), getCallOptions()), request);
     }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_GET_BY_REFERENCE = 1;
-  private static final int METHODID_LIST_BY_ORG = 2;
+  private static final int METHODID_LIST = 2;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -474,8 +474,8 @@ public final class OAuthAppQueryControllerGrpc {
           serviceImpl.getByReference((ai.stigmer.commons.apiresource.ApiResourceReference) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.oauthapp.v1.OAuthApp>) responseObserver);
           break;
-        case METHODID_LIST_BY_ORG:
-          serviceImpl.listByOrg((ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput) request,
+        case METHODID_LIST:
+          serviceImpl.list((ai.stigmer.iam.oauthapp.v1.ListOAuthAppsInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.oauthapp.v1.OAuthApps>) responseObserver);
           break;
         default:
@@ -511,12 +511,12 @@ public final class OAuthAppQueryControllerGrpc {
               ai.stigmer.iam.oauthapp.v1.OAuthApp>(
                 service, METHODID_GET_BY_REFERENCE)))
         .addMethod(
-          getListByOrgMethod(),
+          getListMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput,
+              ai.stigmer.iam.oauthapp.v1.ListOAuthAppsInput,
               ai.stigmer.iam.oauthapp.v1.OAuthApps>(
-                service, METHODID_LIST_BY_ORG)))
+                service, METHODID_LIST)))
         .build();
   }
 
@@ -567,7 +567,7 @@ public final class OAuthAppQueryControllerGrpc {
               .setSchemaDescriptor(new OAuthAppQueryControllerFileDescriptorSupplier())
               .addMethod(getGetMethod())
               .addMethod(getGetByReferenceMethod())
-              .addMethod(getListByOrgMethod())
+              .addMethod(getListMethod())
               .build();
         }
       }

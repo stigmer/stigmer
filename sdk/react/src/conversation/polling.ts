@@ -16,7 +16,7 @@
  * | dismiss, reply)                          |                              | `applyServerState` seams — zero polls involved   |
  * | The open conversation (row + timeline)   | ≤ 5s                         | detail polls                                     |
  * | The inbox list                           | ≤ 20s, immediate on refocus  | list poll + focus refetch                        |
- * | The nav badge                            | ≤ 60s, immediate on refocus  | count poll (the filtered list's `total_count`)   |
+ * | The nav badge                            | ≤ 60s, immediate on refocus  | count poll (`countConversations`)                |
  */
 
 /** Default poll interval for the org-wide conversation list. */

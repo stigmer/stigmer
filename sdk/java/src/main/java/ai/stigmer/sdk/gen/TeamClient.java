@@ -6,7 +6,7 @@ import ai.stigmer.commons.apiresource.ApiResourceDeleteInput;
 import ai.stigmer.commons.apiresource.ApiResourceId;
 import ai.stigmer.commons.apiresource.RenameInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
-import ai.stigmer.iam.team.v1.ListTeamsByOrgInput;
+import ai.stigmer.iam.team.v1.ListTeamsInput;
 import ai.stigmer.iam.team.v1.Team;
 import ai.stigmer.iam.team.v1.TeamCommandControllerGrpc;
 import ai.stigmer.iam.team.v1.TeamQueryControllerGrpc;
@@ -71,9 +71,22 @@ public final class TeamClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public Teams listByOrg(ListTeamsByOrgInput input) {
+    public Teams list(ListTeamsInput input) {
         try {
-            return query.listByOrg(input);
+            return query.list(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code list}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<Team> listAll(ListTeamsInput input) {
+        return Pages.<Teams, Team>iterate(
+            input.getPageToken(),
+            token -> list(input.toBuilder().setPageToken(token).build()),
+            Teams::getEntriesList,
+            Teams::getNextPageToken);
     }
 }

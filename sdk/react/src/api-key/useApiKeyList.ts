@@ -2,7 +2,9 @@
 
 import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { create } from "@bufbuild/protobuf";
+import { ListApiKeysInputSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
+import { useCursorPages } from "../internal/useCursorPages.js";
 
 /** Return value of {@link useApiKeyList}. */
 export interface UseApiKeyListReturn {
@@ -16,17 +18,26 @@ export interface UseApiKeyListReturn {
   readonly error: Error | null;
   /** Discard cached data and re-fetch the key list from the server. */
   readonly refetch: () => void;
+  /** `true` while the server holds entries beyond those loaded. */
+  readonly hasMore: boolean;
+  /** Load the next page. No-op while one is loading or when nothing follows. */
+  readonly loadMore: () => void;
+  /** `true` while a `loadMore` read is in flight. */
+  readonly isLoadingMore: boolean;
+  /** Error from the last failed `loadMore`, or `null`. */
+  readonly loadMoreError: Error | null;
 }
 
 /**
  * Data hook that fetches all {@link ApiKey} entries for the
  * authenticated identity.
  *
- * API keys are identity-scoped — the server returns every key owned
- * by the identity in the auth header, regardless of organization.
+ * API keys are identity-scoped — the server returns the keys owned by
+ * the identity in the auth header, regardless of organization, one page
+ * at a time (`hasMore` / `loadMore`).
  * Call `refetch()` to re-query after mutations (create / delete).
  *
- * The raw key value is never returned by `findAll` — only the
+ * The raw key value is never returned by `list` — only the
  * `fingerprint` (last 6 characters) is available for display.
  *
  * @example
@@ -40,11 +51,21 @@ export interface UseApiKeyListReturn {
 export function useApiKeyList(): UseApiKeyListReturn {
   const stigmer = useStigmer();
 
-  const { data: apiKeys, isLoading, isRefetching, error, refetch } = useFetch(
-    () => stigmer.apiKey.findAll().then((r) => [...r.entries]),
+  const pages = useCursorPages<ApiKey>(
+    (pageToken) => stigmer.apiKey.list(create(ListApiKeysInputSchema, { pageToken })),
     [stigmer],
-    [] as ApiKey[],
+    (key) => key.metadata?.id ?? "",
   );
 
-  return { apiKeys, isLoading, isRefetching, error, refetch };
+  return {
+    apiKeys: pages.items,
+    hasMore: pages.hasMore,
+    loadMore: pages.loadMore,
+    isLoadingMore: pages.isLoadingMore,
+    loadMoreError: pages.loadMoreError,
+    isLoading: pages.isLoading,
+    isRefetching: pages.isRefetching,
+    error: pages.error,
+    refetch: pages.refetch,
+  };
 }

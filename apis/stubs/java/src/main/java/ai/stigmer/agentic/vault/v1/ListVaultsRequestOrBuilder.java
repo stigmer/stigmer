@@ -32,28 +32,34 @@ public interface ListVaultsRequestOrBuilder extends
 
   /**
    * <pre>
-   * Pagination options.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 2 [json_name = "pageInfo"];</code>
-   * @return Whether the pageInfo field is set.
+   * <code>int32 page_size = 3 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
+   * @return The pageSize.
    */
-  boolean hasPageInfo();
+  int getPageSize();
+
   /**
    * <pre>
-   * Pagination options.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 2 [json_name = "pageInfo"];</code>
-   * @return The pageInfo.
+   * <code>string page_token = 4 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
+   * @return The pageToken.
    */
-  ai.stigmer.commons.rpc.PageInfo getPageInfo();
+  java.lang.String getPageToken();
   /**
    * <pre>
-   * Pagination options.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 2 [json_name = "pageInfo"];</code>
+   * <code>string page_token = 4 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for pageToken.
    */
-  ai.stigmer.commons.rpc.PageInfoOrBuilder getPageInfoOrBuilder();
+  com.google.protobuf.ByteString
+      getPageTokenBytes();
 }

@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ChannelConversation, ChannelConversationList, ConversationMediaDownloadUrl, ConversationTimeline, GetChannelConversationInput, GetConversationMediaDownloadUrlInput, GetConversationTimelineInput, ListChannelConversationsInput } from "./conversation_io_pbjs";
+import { ChannelConversation, ChannelConversationCount, ChannelConversationList, ConversationMediaDownloadUrl, ConversationTimeline, CountChannelConversationsInput, GetChannelConversationInput, GetConversationMediaDownloadUrlInput, ListChannelConversationsInput, ListConversationTimelineInput } from "./conversation_io_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -23,12 +23,27 @@ export const ChannelConversationQueryController = {
      * view, optionally filtered to one channel. Entries carry participation
      * state and the customer's display name.
      *
-     * @generated from rpc ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.listConversations
+     * @generated from rpc ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.list
      */
-    listConversations: {
-      name: "listConversations",
+    list: {
+      name: "list",
       I: ListChannelConversationsInput,
       O: ChannelConversationList,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Count an organization's channel conversations that match a filter.
+     *
+     * The number behind a badge such as the inbox's "needs you": the same
+     * predicate list applies, over the same channels, so the count and the
+     * list it opens never disagree.
+     *
+     * @generated from rpc ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.countConversations
+     */
+    countConversations: {
+      name: "countConversations",
+      I: CountChannelConversationsInput,
+      O: ChannelConversationCount,
       kind: MethodKind.Unary,
     },
     /**
@@ -48,18 +63,18 @@ export const ChannelConversationQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Get one conversation's timeline, newest first, cursor-paged.
+     * List one conversation's timeline, newest first, one page at a time.
      *
      * The timeline contains customer-visible items only: inbound customer
      * messages (including non-text kinds the platform cannot render),
      * delivered agent replies, and operator or platform sends. Run
      * internals never appear.
      *
-     * @generated from rpc ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.getTimeline
+     * @generated from rpc ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.listTimeline
      */
-    getTimeline: {
-      name: "getTimeline",
-      I: GetConversationTimelineInput,
+    listTimeline: {
+      name: "listTimeline",
+      I: ListConversationTimelineInput,
       O: ConversationTimeline,
       kind: MethodKind.Unary,
     },

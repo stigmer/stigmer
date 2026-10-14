@@ -1,8 +1,8 @@
 // In-process test for the search tool. Verifies resource_uri
 // enrichment for every searchable kind, the empty-response short-circuit,
 // a valid kinds filter reaching the backend as its enum values, the
-// unknown-kind validation error (no backend call), and pagination
-// passthrough.
+// unknown-kind validation error (no backend call), and the page size and
+// token passed through, with the response's next_page_token returned.
 
 import { create, toJson } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -17,7 +17,6 @@ import type { AddressInfo } from "node:net";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { PageInfo } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
 import {
   type SearchResponse,
   SearchResponseSchema,
@@ -42,7 +41,7 @@ const emptyResponse = create(SearchResponseSchema, { entries: [] });
 let backend: Http2Server;
 let client: Client;
 let nextResponse: SearchResponse = allKindsResponse;
-let lastPage: PageInfo | undefined;
+let lastPage: { size: number; token: string } | undefined;
 let lastKinds: ApiResourceKind[] | undefined;
 let backendCalls = 0;
 const openSessions = new Set<ServerHttp2Session>();
@@ -61,7 +60,7 @@ beforeAll(async () => {
     router.service(SearchService, {
       search: (req) => {
         backendCalls++;
-        lastPage = req.page;
+        lastPage = { size: req.pageSize, token: req.pageToken };
         lastKinds = req.kinds;
         return nextResponse;
       },
@@ -137,13 +136,17 @@ describe("search tool integration", () => {
     expect(backendCalls).toBe(0);
   });
 
-  it("forwards pagination only when requested", async () => {
+  it("asks for the default page when no size is named", async () => {
     nextResponse = allKindsResponse;
-    lastPage = undefined;
     await callSearch({ query: "code" });
-    expect(lastPage).toBeUndefined();
+    expect(lastPage).toEqual({ size: 0, token: "" });
+  });
 
-    await callSearch({ query: "code", page_size: 5, page_num: 2 });
-    expect(lastPage).toMatchObject({ size: 5, num: 2 });
+  it("forwards the page size and token, and returns the next token", async () => {
+    nextResponse = create(SearchResponseSchema, { ...allKindsResponse, nextPageToken: "t3" });
+    const result = await callSearch({ query: "code", page_size: 5, page_token: "t2" });
+    expect(lastPage).toEqual({ size: 5, token: "t2" });
+    const data = JSON.parse(result.content[0]?.text ?? "{}") as { next_page_token?: string };
+    expect(data.next_page_token).toBe("t3");
   });
 });

@@ -78,36 +78,6 @@ public interface GetAgentUsageReportInputOrBuilder extends
 
   /**
    * <pre>
-   * Maximum number of sessions to return per page.
-   * </pre>
-   *
-   * <code>int32 page_size = 4 [json_name = "pageSize"];</code>
-   * @return The pageSize.
-   */
-  int getPageSize();
-
-  /**
-   * <pre>
-   * Token for pagination, obtained from previous response.
-   * </pre>
-   *
-   * <code>string page_token = 5 [json_name = "pageToken"];</code>
-   * @return The pageToken.
-   */
-  java.lang.String getPageToken();
-  /**
-   * <pre>
-   * Token for pagination, obtained from previous response.
-   * </pre>
-   *
-   * <code>string page_token = 5 [json_name = "pageToken"];</code>
-   * @return The bytes for pageToken.
-   */
-  com.google.protobuf.ByteString
-      getPageTokenBytes();
-
-  /**
-   * <pre>
    * Organization scope for the report: usage of this agent within this
    * organization. Only runs belonging to this organization are
    * aggregated. The caller must hold can_view on the organization.

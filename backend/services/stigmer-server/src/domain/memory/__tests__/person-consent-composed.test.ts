@@ -163,7 +163,7 @@ describe("memory where callers are persons (built-in posture, composed server)",
       memoryId,
     );
     expect(
-      (await carolReads.list({ org: ORG })).items.map((m) => m.metadata?.id),
+      (await carolReads.list({ org: ORG })).entries.map((m) => m.metadata?.id),
     ).toContain(memoryId);
 
     // Dave shares the organization, not the memory.
@@ -171,7 +171,7 @@ describe("memory where callers are persons (built-in posture, composed server)",
     const failure = await failureOf(daveReads.get({ value: memoryId }));
     expect(failure.code).toBe(Code.PermissionDenied);
     expect(
-      (await daveReads.list({ org: ORG })).items.map((m) => m.metadata?.id),
+      (await daveReads.list({ org: ORG })).entries.map((m) => m.metadata?.id),
     ).not.toContain(memoryId);
   });
 

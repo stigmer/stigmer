@@ -775,11 +775,16 @@ export type {
 } from "./store/list-index.js";
 // The page loop every paged lane runs (pipeline/steps/list-page.ts), over a
 // row source: an extension that keeps its own table pages its list by the
-// same size cap, examination budget, scope order and token as every lane
-// here, instead of writing a second loop.
+// same default and maximum size, examination budget, scope order and token
+// as every lane here, instead of writing a second loop; readEveryPage walks
+// a list's tokens for an in-process reader that needs the whole set.
 export {
+  LIST_PAGE_DEFAULT_SIZE,
   LIST_PAGE_MAX_SIZE,
+  READ_EVERY_PAGE_DEFAULT_CAP,
   listPageFingerprint,
+  listPageSizeOf,
+  readEveryPage,
   readPage,
 } from "./pipeline/steps/list-page.js";
 export type {

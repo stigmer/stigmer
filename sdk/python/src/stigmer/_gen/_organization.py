@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Iterator
 
 import grpc
 
@@ -12,7 +13,6 @@ from ai.stigmer.tenancy.organization.v1 import query_pb2_grpc
 from ai.stigmer.tenancy.organization.v1 import io_pb2
 from ai.stigmer.tenancy.organization.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
-from google.protobuf import empty_pb2
 from google.protobuf import field_mask_pb2
 
 from ._errors import wrap_error
@@ -69,17 +69,23 @@ class OrganizationClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def find(self, input: io_pb2.FindApiResourcesRequest) -> io_pb2.OrganizationList:
+    def list_mine(self, input: io_pb2.ListMyOrganizationsInput) -> io_pb2.Organizations:
         try:
-            return self._query.find(input)
+            return self._query.listMine(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def find_my_organizations(self) -> io_pb2.Organizations:
-        try:
-            return self._query.findMyOrganizations(empty_pb2.Empty())
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
+    def list_mine_all(self, input: io_pb2.ListMyOrganizationsInput) -> Iterator[api_pb2.Organization]:
+        """Every entry of ``list_mine``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListMyOrganizationsInput()
+        request.CopyFrom(input)
+        while True:
+            page = self.list_mine(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
 
     def get_by_external_id(self, input: io_pb2.OrganizationExternalLookup) -> api_pb2.Organization:
         try:
@@ -92,6 +98,18 @@ class OrganizationClient:
             return self._query.listChildOrgs(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
+
+    def list_child_orgs_all(self, input: io_pb2.ListChildOrgsInput) -> Iterator[api_pb2.Organization]:
+        """Every entry of ``list_child_orgs``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListChildOrgsInput()
+        request.CopyFrom(input)
+        while True:
+            page = self.list_child_orgs(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
 
 
 @dataclass

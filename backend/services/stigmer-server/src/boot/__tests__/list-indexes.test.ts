@@ -73,6 +73,24 @@ const PINNED: Readonly<
     revision: 1,
     fingerprint: "vault{person=field:spec.person}",
   },
+  agent: { revision: 1, fingerprint: "agent{}" },
+  skill: { revision: 1, fingerprint: "skill{}" },
+  plugin: { revision: 1, fingerprint: "plugin{}" },
+  schedule: {
+    revision: 1,
+    fingerprint: "schedule{agent=field:spec.agent.agent_ref.id}",
+  },
+  agent_channel: {
+    revision: 1,
+    fingerprint: "agent_channel{agent=field:spec.agent_ref.id}",
+  },
+  agent_share: {
+    revision: 1,
+    fingerprint: "agent_share{agent=field:spec.agent_ref.id}",
+  },
+  oauth_app: { revision: 1, fingerprint: "oauth_app{}" },
+  channel_app: { revision: 1, fingerprint: "channel_app{}" },
+  platform_client: { revision: 1, fingerprint: "platform_client{}" },
 };
 
 describe("the list-indexed surface", () => {

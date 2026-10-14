@@ -33,7 +33,7 @@ import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
-import type { ConnectError } from "@connectrpc/connect";
+import { Code, ConnectError } from "@connectrpc/connect";
 import type { SearchHandler } from "./handler.js";
 
 export interface SearchControllerDeps {
@@ -79,6 +79,10 @@ async function search(
  * error.
  */
 function toGrpcError(error: unknown): ConnectError {
+  // The page token's refusal is already the wire's answer (list-page.ts).
+  if (error instanceof ConnectError && error.code === Code.InvalidArgument) {
+    return error;
+  }
   const text = error instanceof Error ? error.message : String(error);
   if (
     text.includes("validation failed") ||

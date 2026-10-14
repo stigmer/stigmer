@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/score/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_score_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvc2NvcmUvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MSIgCgdTY29yZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiMQoWTGlzdFNjb3Jlc0J5UnVuUmVxdWVzdBIXCgZydW5faWQYASABKAlCB7pIBHICEAEiOQoaTGlzdFNjb3Jlc0J5U2Vzc2lvblJlcXVlc3QSGwoKc2Vzc2lvbl9pZBgBIAEoCUIHukgEcgIQASJsCglTY29yZUxpc3QSEwoLdG90YWxfY291bnQYASABKAUSMQoFaXRlbXMYAiADKAsyIi5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuU2NvcmUSFwoPbmV4dF9wYWdlX3Rva2VuGAMgASgJImgKHEdldEFnZW50UXVhbGl0eVJlcG9ydFJlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABEhkKCGFnZW50X2lkGAIgASgJQge6SARyAhABEhcKBGRheXMYAyABKAVCCbpIBhoEGFooACKqAgoSQWdlbnRRdWFsaXR5UmVwb3J0EhEKCWZyb21fZGF0ZRgBIAEoCRIPCgd0b19kYXRlGAIgASgJEjoKBXRvdGFsGAMgASgLMisuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLlF1YWxpdHlTdW1tYXJ5EjUKBGRheXMYBCADKAsyJy5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuUXVhbGl0eURheRI9Cgh2ZXJzaW9ucxgFIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5RdWFsaXR5VmVyc2lvbhI+CglhZ3JlZW1lbnQYBiADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuSnVkZ2VBZ3JlZW1lbnQilQEKDkp1ZGdlQWdyZWVtZW50EhkKEWV2YWx1YXRvcl92ZXJzaW9uGAEgASgJEgwKBHJ1bnMYAiABKAUSHwoXdGh1bWJzX2Rvd25fbm9uZV9mYWlsZWQYAyABKAUSOQoFcnVsZXMYBCADKAsyKi5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuUnVsZUFncmVlbWVudCKJAQoNUnVsZUFncmVlbWVudBIMCgRuYW1lGAEgASgJEhoKEmZhaWxlZF90aHVtYnNfZG93bhgCIAEoBRIYChBmYWlsZWRfdGh1bWJzX3VwGAMgASgFEhoKEnBhc3NlZF90aHVtYnNfZG93bhgEIAEoBRIYChBwYXNzZWRfdGh1bWJzX3VwGAUgASgFIlkKDlF1YWxpdHlTdW1tYXJ5EgwKBHJ1bnMYASABKAUSOQoHbWV0cmljcxgCIAMoCzIoLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5NZXRyaWNUYWxseSK8AQoLTWV0cmljVGFsbHkSDgoGbWV0cmljGAEgASgJEhkKEWV2YWx1YXRvcl92ZXJzaW9uGAIgASgJEg4KBnBhc3NlZBgDIAEoBRIOCgZmYWlsZWQYBCABKAUSEgoKbm90X2dyYWRlZBgFIAEoBRIPCgdwZW5kaW5nGAYgASgFEj0KCGNyaXRlcmlhGAcgAygLMisuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLkNyaXRlcmlvblRhbGx5IlYKDkNyaXRlcmlvblRhbGx5EgwKBG5hbWUYASABKAkSDgoGcGFzc2VkGAIgASgFEg4KBmZhaWxlZBgDIAEoBRIWCg5ub3RfYXBwbGljYWJsZRgEIAEoBSJYCgpRdWFsaXR5RGF5EgwKBGRhdGUYASABKAkSPAoHc3VtbWFyeRgCIAEoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5RdWFsaXR5U3VtbWFyeSKRAQoOUXVhbGl0eVZlcnNpb24SGgoSYWdlbnRfdmVyc2lvbl9oYXNoGAEgASgJEhIKCmZpcnN0X2RhdGUYAiABKAkSEQoJbGFzdF9kYXRlGAMgASgJEjwKB3N1bW1hcnkYBCABKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuUXVhbGl0eVN1bW1hcnkimwEKH0xpc3RGbGFnZ2VkU2NvcmVzQnlBZ2VudFJlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABEhkKCGFnZW50X2lkGAIgASgJQge6SARyAhABEhcKBGRheXMYAyABKAVCCbpIBhoEGFooABIaCglwYWdlX3NpemUYBCABKAVCB7pIBBoCKAASEgoKcGFnZV90b2tlbhgFIAEoCSLJAgoQVXBkYXRlU2NvcmVJbnB1dBI8CghyZXNvdXJjZRgBIAEoCzIiLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5TY29yZUIGukgD2AEDEjcKC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFza0IGukgDyAEBOr0Buki5ARq2AQoXdXBkYXRlX25hbWVzX2l0c190YXJnZXQSRXJlc291cmNlLm1ldGFkYXRhLmlkIGlzIHJlcXVpcmVkOiBhbiB1cGRhdGUgbmFtZXMgdGhlIHNjb3JlIGJ5IGl0cyBpZBpUaGFzKHRoaXMucmVzb3VyY2UpICYmIGhhcyh0aGlzLnJlc291cmNlLm1ldGFkYXRhKSAmJiB0aGlzLnJlc291cmNlLm1ldGFkYXRhLmlkICE9ICcnYgZwcm90bzM", [file_ai_stigmer_agentic_score_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
+  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvc2NvcmUvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MSIgCgdTY29yZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiawoWTGlzdFNjb3Jlc0J5UnVuUmVxdWVzdBIXCgZydW5faWQYASABKAlCB7pIBHICEAESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhwKCnBhZ2VfdG9rZW4YAyABKAlCCLpIBXIDGIAIInMKGkxpc3RTY29yZXNCeVNlc3Npb25SZXF1ZXN0EhsKCnNlc3Npb25faWQYASABKAlCB7pIBHICEAESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhwKCnBhZ2VfdG9rZW4YAyABKAlCCLpIBXIDGIAIImwKCVNjb3JlTGlzdBIzCgdlbnRyaWVzGAIgAygLMiIuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLlNjb3JlEhcKD25leHRfcGFnZV90b2tlbhgDIAEoCUoECAEQAlILdG90YWxfY291bnQiaAocR2V0QWdlbnRRdWFsaXR5UmVwb3J0UmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESGQoIYWdlbnRfaWQYAiABKAlCB7pIBHICEAESFwoEZGF5cxgDIAEoBUIJukgGGgQYWigAIqoCChJBZ2VudFF1YWxpdHlSZXBvcnQSEQoJZnJvbV9kYXRlGAEgASgJEg8KB3RvX2RhdGUYAiABKAkSOgoFdG90YWwYAyABKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuUXVhbGl0eVN1bW1hcnkSNQoEZGF5cxgEIAMoCzInLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5RdWFsaXR5RGF5Ej0KCHZlcnNpb25zGAUgAygLMisuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLlF1YWxpdHlWZXJzaW9uEj4KCWFncmVlbWVudBgGIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5KdWRnZUFncmVlbWVudCKVAQoOSnVkZ2VBZ3JlZW1lbnQSGQoRZXZhbHVhdG9yX3ZlcnNpb24YASABKAkSDAoEcnVucxgCIAEoBRIfChd0aHVtYnNfZG93bl9ub25lX2ZhaWxlZBgDIAEoBRI5CgVydWxlcxgEIAMoCzIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5SdWxlQWdyZWVtZW50IokBCg1SdWxlQWdyZWVtZW50EgwKBG5hbWUYASABKAkSGgoSZmFpbGVkX3RodW1ic19kb3duGAIgASgFEhgKEGZhaWxlZF90aHVtYnNfdXAYAyABKAUSGgoScGFzc2VkX3RodW1ic19kb3duGAQgASgFEhgKEHBhc3NlZF90aHVtYnNfdXAYBSABKAUiWQoOUXVhbGl0eVN1bW1hcnkSDAoEcnVucxgBIAEoBRI5CgdtZXRyaWNzGAIgAygLMiguYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLk1ldHJpY1RhbGx5IrwBCgtNZXRyaWNUYWxseRIOCgZtZXRyaWMYASABKAkSGQoRZXZhbHVhdG9yX3ZlcnNpb24YAiABKAkSDgoGcGFzc2VkGAMgASgFEg4KBmZhaWxlZBgEIAEoBRISCgpub3RfZ3JhZGVkGAUgASgFEg8KB3BlbmRpbmcYBiABKAUSPQoIY3JpdGVyaWEYByADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuQ3JpdGVyaW9uVGFsbHkiVgoOQ3JpdGVyaW9uVGFsbHkSDAoEbmFtZRgBIAEoCRIOCgZwYXNzZWQYAiABKAUSDgoGZmFpbGVkGAMgASgFEhYKDm5vdF9hcHBsaWNhYmxlGAQgASgFIlgKClF1YWxpdHlEYXkSDAoEZGF0ZRgBIAEoCRI8CgdzdW1tYXJ5GAIgASgLMisuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLlF1YWxpdHlTdW1tYXJ5IpEBCg5RdWFsaXR5VmVyc2lvbhIaChJhZ2VudF92ZXJzaW9uX2hhc2gYASABKAkSEgoKZmlyc3RfZGF0ZRgCIAEoCRIRCglsYXN0X2RhdGUYAyABKAkSPAoHc3VtbWFyeRgEIAEoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5RdWFsaXR5U3VtbWFyeSKlAQofTGlzdEZsYWdnZWRTY29yZXNCeUFnZW50UmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESGQoIYWdlbnRfaWQYAiABKAlCB7pIBHICEAESFwoEZGF5cxgDIAEoBUIJukgGGgQYWigAEhoKCXBhZ2Vfc2l6ZRgEIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAUgASgJQgi6SAVyAxiACCLJAgoQVXBkYXRlU2NvcmVJbnB1dBI8CghyZXNvdXJjZRgBIAEoCzIiLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5TY29yZUIGukgD2AEDEjcKC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFza0IGukgDyAEBOr0Buki5ARq2AQoXdXBkYXRlX25hbWVzX2l0c190YXJnZXQSRXJlc291cmNlLm1ldGFkYXRhLmlkIGlzIHJlcXVpcmVkOiBhbiB1cGRhdGUgbmFtZXMgdGhlIHNjb3JlIGJ5IGl0cyBpZBpUaGFzKHRoaXMucmVzb3VyY2UpICYmIGhhcyh0aGlzLnJlc291cmNlLm1ldGFkYXRhKSAmJiB0aGlzLnJlc291cmNlLm1ldGFkYXRhLmlkICE9ICcnYgZwcm90bzM", [file_ai_stigmer_agentic_score_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * ScoreId wraps a score identifier.
@@ -39,9 +39,7 @@ export const ScoreIdSchema: GenMessage<ScoreId> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_score_v1_io, 0);
 
 /**
- * ListScoresByRunRequest lists every score of one run.
- *
- * A run's scores are returned whole: a run has a handful.
+ * ListScoresByRunRequest lists the scores of one run, newest first.
  *
  * @generated from message ai.stigmer.agentic.score.v1.ListScoresByRunRequest
  */
@@ -52,6 +50,22 @@ export type ListScoresByRunRequest = Message<"ai.stigmer.agentic.score.v1.ListSc
    * @generated from field: string run_id = 1;
    */
   runId: string;
+
+  /**
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
+   *
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
 };
 
 /**
@@ -62,10 +76,8 @@ export const ListScoresByRunRequestSchema: GenMessage<ListScoresByRunRequest> = 
   messageDesc(file_ai_stigmer_agentic_score_v1_io, 1);
 
 /**
- * ListScoresBySessionRequest lists every score of every run in a session.
- *
- * A session's scores are returned whole, as its runs are: a conversation
- * is read as one.
+ * ListScoresBySessionRequest lists the scores of every run in a session,
+ * newest first.
  *
  * @generated from message ai.stigmer.agentic.score.v1.ListScoresBySessionRequest
  */
@@ -76,6 +88,22 @@ export type ListScoresBySessionRequest = Message<"ai.stigmer.agentic.score.v1.Li
    * @generated from field: string session_id = 1;
    */
   sessionId: string;
+
+  /**
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
+   *
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
 };
 
 /**
@@ -92,25 +120,15 @@ export const ListScoresBySessionRequestSchema: GenMessage<ListScoresBySessionReq
  */
 export type ScoreList = Message<"ai.stigmer.agentic.score.v1.ScoreList"> & {
   /**
-   * Number of scores in this response. On a paged list it counts this page
-   * only; follow next_page_token for the rest.
-   *
-   * @generated from field: int32 total_count = 1;
-   */
-  totalCount: number;
-
-  /**
    * The scores, newest first.
    *
-   * @generated from field: repeated ai.stigmer.agentic.score.v1.Score items = 2;
+   * @generated from field: repeated ai.stigmer.agentic.score.v1.Score entries = 2;
    */
-  items: Score[];
+  entries: Score[];
 
   /**
-   * Set when more scores may follow: pass it as page_token to continue. A
-   * page may hold fewer scores than page_size, even none, and still carry a
-   * token. Empty when the list is complete, and always empty on the lists
-   * of one run or one session, which are returned whole.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    *
    * @generated from field: string next_page_token = 3;
    */
@@ -559,8 +577,8 @@ export type ListFlaggedScoresByAgentRequest = Message<"ai.stigmer.agentic.score.
   days: number;
 
   /**
-   * The most scores to return, at most 100; zero returns a page of 100.
-   * Follow next_page_token for the rest.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    *
    * @generated from field: int32 page_size = 4;
    */

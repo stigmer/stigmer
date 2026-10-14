@@ -65,7 +65,6 @@ vi.mock("../../../backend.js", async () => {
           listServiceAccounts: async (input: { org: string }) => {
             listedOrgs.push(input.org);
             return create(IdentityAccountsListSchema, {
-              totalPages: 1,
               entries: [{ metadata: { id: "ida_sa_ci", name: "ci-deploy" } }],
             });
           },

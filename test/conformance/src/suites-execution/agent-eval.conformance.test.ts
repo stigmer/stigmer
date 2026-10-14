@@ -630,8 +630,8 @@ describe.skipIf(!runnerServesTries)("AgentEval — what a try is given and where
     expect(byAgent, `try session ${only!.attempt.sessionId} is not on the agent's list`).not.toContain(only!.attempt.sessionId);
 
     const evals = await clients.agentEvalQuery.listByAgent({ agentId: agent.metadata!.id });
-    expect(evals.items.map((e) => e.metadata?.id)).toEqual([created.metadata!.id]);
-    const [summary] = evals.items;
+    expect(evals.entries.map((e) => e.metadata?.id)).toEqual([created.metadata!.id]);
+    const [summary] = evals.entries;
     expect(summary?.status?.triesFinished).toBe(1);
     const listedResult = summary?.status?.plugins[0]?.cases[0]?.targets[0]?.withPlugin;
     expect(listedResult?.score, "the list keeps the score").toBe(ended.status!.plugins[0]!.cases[0]!.targets[0]!.withPlugin!.score);

@@ -9,6 +9,7 @@ import {
   type AgentVersionEntry as ProtoAgentVersionEntry,
 } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
 import { useStigmer } from "../hooks.js";
+import { useCursorPages } from "../internal/useCursorPages.js";
 import { useFetch } from "../internal/useFetch.js";
 import type { VersionEntry } from "../version-history/types.js";
 
@@ -26,16 +27,25 @@ export interface UseAgentVersionsReturn {
   readonly refetch: () => void;
   /**
    * The spec a version stored, by its hash: what a turn recorded on that
-   * version runs. `null` for a hash the history does not hold.
+   * version runs. `null` for a hash the loaded pages do not hold.
    */
   readonly getSpec: (versionHash: string) => AgentSpec | null;
+  /** `true` while the server holds entries beyond those loaded. */
+  readonly hasMore: boolean;
+  /** Load the next page. No-op while one is loading or when nothing follows. */
+  readonly loadMore: () => void;
+  /** `true` while a `loadMore` read is in flight. */
+  readonly isLoadingMore: boolean;
+  /** Error from the last failed `loadMore`, or `null`. */
+  readonly loadMoreError: Error | null;
 }
 
 /**
  * Data hook that fetches an agent's version history.
  *
  * Every apply that changes an agent records a version under its content
- * hash; this hook calls the `listVersions` RPC and maps each entry to the
+ * hash; this hook pages the `listVersions` RPC (newest first, `hasMore` /
+ * `loadMore` for older ones) and maps each entry to the
  * generic {@link VersionEntry} the shared `VersionTimeline` renders, keeping
  * each version's full spec for {@link UseAgentVersionsReturn.getSpec}.
  *
@@ -59,23 +69,18 @@ export function useAgentVersions(
 ): UseAgentVersionsReturn {
   const stigmer = useStigmer();
 
-  const {
-    data: rawVersions,
-    isLoading,
-    error,
-    refetch,
-  } = useFetch(
+  const pages = useCursorPages<ProtoAgentVersionEntry>(
     org && slug
-      ? async () => {
-          const response = await stigmer.agent.listVersions(
-            create(ListAgentVersionsInputSchema, { org, slug }),
-          );
-          return response.versions;
-        }
+      ? (pageToken) =>
+          stigmer.agent.listVersions(
+            create(ListAgentVersionsInputSchema, { org, slug, pageToken }),
+          )
       : null,
     [org, slug, stigmer],
-    [] as ProtoAgentVersionEntry[],
+    (entry) => entry.versionHash,
   );
+  const rawVersions = pages.items;
+  const { hasMore, loadMore, isLoadingMore, loadMoreError, isLoading, error, refetch } = pages;
 
   const versions = useMemo(
     () => rawVersions.map(mapProtoToVersionEntry),
@@ -101,33 +106,59 @@ export function useAgentVersions(
   const isEmpty = versions.length === 0;
 
   return useMemo(
-    () => ({ versions, isEmpty, isLoading, error, refetch, getSpec }),
-    [versions, isEmpty, isLoading, error, refetch, getSpec],
+    () => ({
+      versions,
+      isEmpty,
+      hasMore,
+      loadMore,
+      isLoadingMore,
+      loadMoreError,
+      isLoading,
+      error,
+      refetch,
+      getSpec,
+    }),
+    [versions, isEmpty, hasMore, loadMore, isLoadingMore, loadMoreError, isLoading, error, refetch, getSpec],
   );
 }
 
+/** How many versions an agent has, as far as a count of them reaches. */
+export interface AgentVersionCount {
+  /** The versions on the history's first page; `0` while loading. */
+  readonly count: number;
+  /**
+   * `true` when more versions follow the first page: the history carries
+   * no total, so a badge reads "50+" rather than a number it cannot know.
+   */
+  readonly isLowerBound: boolean;
+}
+
+const NO_VERSION_COUNT: AgentVersionCount = { count: 0, isLowerBound: false };
+
 /**
- * How many versions an agent has, read as one entry and the history's total
- * so a count (a tab badge) never loads the history's specs. `0` while
- * loading, for an agent with no version yet, and when `org` or `slug` is
- * `null`.
+ * How many versions an agent has, for a count (a tab badge): the length of
+ * the history's first page, and whether more follow. `0` while loading,
+ * for an agent with no version yet, and when `org` or `slug` is `null`.
  */
 export function useAgentVersionCount(
   org: string | null,
   slug: string | null,
-): number {
+): AgentVersionCount {
   const stigmer = useStigmer();
   const { data } = useFetch(
     org && slug
-      ? async () => {
+      ? async (): Promise<AgentVersionCount> => {
           const response = await stigmer.agent.listVersions(
-            create(ListAgentVersionsInputSchema, { org, slug, pageSize: 1 }),
+            create(ListAgentVersionsInputSchema, { org, slug }),
           );
-          return response.totalCount;
+          return {
+            count: response.entries.length,
+            isLowerBound: response.nextPageToken !== "",
+          };
         }
       : null,
     [org, slug, stigmer],
-    0,
+    NO_VERSION_COUNT,
   );
   return data;
 }

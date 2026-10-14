@@ -27,9 +27,9 @@ class PlatformClientQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.FromString,
                 _registered_method=True)
-        self.listByOrg = channel.unary_unary(
-                '/ai.stigmer.iam.platformclient.v1.PlatformClientQueryController/listByOrg',
-                request_serializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_io__pb2.ListPlatformClientsByOrgInput.SerializeToString,
+        self.list = channel.unary_unary(
+                '/ai.stigmer.iam.platformclient.v1.PlatformClientQueryController/list',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_io__pb2.ListPlatformClientsInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_io__pb2.PlatformClients.FromString,
                 _registered_method=True)
 
@@ -55,11 +55,11 @@ class PlatformClientQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def listByOrg(self, request, context):
-        """List all platform clients belonging to an organization.
+    def list(self, request, context):
+        """List the platform clients belonging to an organization.
 
         Returns the PlatformClients of the input org that the caller may view,
-        newest first. Typically a small set per org, so results are not paginated.
+        newest first, one page at a time.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -78,9 +78,9 @@ def add_PlatformClientQueryControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.SerializeToString,
             ),
-            'listByOrg': grpc.unary_unary_rpc_method_handler(
-                    servicer.listByOrg,
-                    request_deserializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_io__pb2.ListPlatformClientsByOrgInput.FromString,
+            'list': grpc.unary_unary_rpc_method_handler(
+                    servicer.list,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_io__pb2.ListPlatformClientsInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_io__pb2.PlatformClients.SerializeToString,
             ),
     }
@@ -150,7 +150,7 @@ class PlatformClientQueryController(object):
             _registered_method=True)
 
     @staticmethod
-    def listByOrg(request,
+    def list(request,
             target,
             options=(),
             channel_credentials=None,
@@ -163,8 +163,8 @@ class PlatformClientQueryController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.iam.platformclient.v1.PlatformClientQueryController/listByOrg',
-            ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_io__pb2.ListPlatformClientsByOrgInput.SerializeToString,
+            '/ai.stigmer.iam.platformclient.v1.PlatformClientQueryController/list',
+            ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_io__pb2.ListPlatformClientsInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_io__pb2.PlatformClients.FromString,
             options,
             channel_credentials,

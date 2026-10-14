@@ -73,8 +73,8 @@ const { agent } = useAgent(org, slug ?? null);
 
 Data hook that fetches the total count of agents.
 
-Issues a minimal `stigmer.agent.list()` call to retrieve only the
-total count — no agent entries are returned or stored. Useful for
+Reads search's count of the organization's agents for this kind —
+no agent entries are returned or stored. Useful for
 summary cards, badges, and dashboard widgets.
 
 For the full paginated agent list, use [`useAgentList`](#useagentlist) instead.
@@ -112,11 +112,11 @@ const { count, isLoading } = useAgentCount("acme");
 
 ### useAgentList
 
-Data hook that fetches a paginated list of agents for the Library.
-
-Wraps `stigmer.agent.list()` with pagination and text search over the
-organization's agents. All parameters are externally controlled — the
-consumer manages page state and query debouncing.
+Data hook that lists an organization's agents for the Library, a page at
+a time: `stigmer.agent.list()` newest first while `query` is empty,
+search matches while it holds text. All parameters are externally
+controlled — the consumer manages query debouncing. A list carries no
+total; use [`useAgentCount`](#useagentcount) for a count.
 
 For picker/type-ahead search with internal debouncing and query
 state management, use [`useAgentSearch`](#useagentsearch) instead.
@@ -140,21 +140,19 @@ function useAgentList(org: string | null, options?: UseAgentListOptions): UseAge
 
 <TypeTable
   type={{
-    agents: { type: "readonly SearchResult[]", description: "Paginated agent entries for the current page." },
-    currentPage: { type: "number", description: "The current page number (mirrors the `page` option)." },
+    agents: { type: "readonly SearchResult[]", description: "The first page of agents, then every page loaded since." },
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
-    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
-    refetch: { type: "() => void", description: "Discard cached data and re-fetch the current page from the server." },
-    totalCount: { type: "number", description: "Total number of agents matching the current filters." },
-    totalPages: { type: "number", description: "Total pages available at the current page size." },
+    hasMore: { type: "boolean", description: "`true` while the server holds agents beyond those loaded." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    isLoadingMore: { type: "boolean", description: "`true` while a `loadMore` read is in flight." },
+    loadMore: { type: "() => void", description: "Load the next page. No-op while one is loading or when nothing follows." },
+    loadMoreError: { type: "Error | null", description: "Error from the last failed `loadMore`, or `null`." },
+    refetch: { type: "() => void", description: "Re-read the first page; pages loaded since stay." },
   }}
 />
 
 ```tsx
-const { agents, totalCount, isLoading } = useAgentList("acme", {
-  page: 1,
-  pageSize: 20,
-});
+const { agents, hasMore, loadMore, isLoading } = useAgentList("acme", { pageSize: 20 });
 ```
 
 
@@ -162,7 +160,8 @@ const { agents, totalCount, isLoading } = useAgentList("acme", {
 
 Data hook that searches agents available to the user.
 
-Wraps `stigmer.agent.list()` with debounced search, loading/error
+Lists the organization's agents, newest first, while nothing is typed
+and searches them once something is, with a debounce, loading/error
 tracking, and cancellation-safe fetching. Platform builders use this
 when they want full control over rendering; the [`AgentPicker`](#agentpicker)
 styled component uses it internally. Results are the given
@@ -258,15 +257,14 @@ if (result.status === "needsEnvVars") {
 
 ### useAgentVersionCount
 
-How many versions an agent has, read as one entry and the history's total
-so a count (a tab badge) never loads the history's specs. `0` while
-loading, for an agent with no version yet, and when `org` or `slug` is
-`null`.
+How many versions an agent has, for a count (a tab badge): the length of
+the history's first page, and whether more follow. `0` while loading,
+for an agent with no version yet, and when `org` or `slug` is `null`.
 
 **Signature**
 
 ```tsx
-function useAgentVersionCount(org: string | null, slug: string | null): number
+function useAgentVersionCount(org: string | null, slug: string | null): AgentVersionCount
 ```
 
 <TypeTable
@@ -282,7 +280,8 @@ function useAgentVersionCount(org: string | null, slug: string | null): number
 Data hook that fetches an agent's version history.
 
 Every apply that changes an agent records a version under its content
-hash; this hook calls the `listVersions` RPC and maps each entry to the
+hash; this hook pages the `listVersions` RPC (newest first, `hasMore` /
+`loadMore` for older ones) and maps each entry to the
 generic [`VersionEntry`](/docs/sdk/react/version-history#versionentry) the shared `VersionTimeline` renders, keeping
 each version's full spec for `UseAgentVersionsReturn.getSpec`.
 
@@ -309,9 +308,13 @@ function useAgentVersions(org: string | null, slug: string | null): UseAgentVers
 <TypeTable
   type={{
     error: { type: "Error | null", description: "Error from the last failed request, or `null`." },
-    getSpec: { type: "(versionHash: string) => AgentSpec | null", description: "The spec a version stored, by its hash: what a turn recorded on that version runs. `null` for a hash the history does not hold." },
+    getSpec: { type: "(versionHash: string) => AgentSpec | null", description: "The spec a version stored, by its hash: what a turn recorded on that version runs. `null` for a hash the loaded pages do not hold." },
+    hasMore: { type: "boolean", description: "`true` while the server holds entries beyond those loaded." },
     isEmpty: { type: "boolean", description: "`true` when the agent has no recorded version yet." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    isLoadingMore: { type: "boolean", description: "`true` while a `loadMore` read is in flight." },
+    loadMore: { type: "() => void", description: "Load the next page. No-op while one is loading or when nothing follows." },
+    loadMoreError: { type: "Error | null", description: "Error from the last failed `loadMore`, or `null`." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
     versions: { type: "readonly VersionEntry[]", description: "Version entries mapped to the generic timeline format (newest first)." },
   }}
@@ -951,8 +954,7 @@ Options for [`useAgentList`](#useagentlist).
 
 <TypeTable
   type={{
-    page: { type: "number", description: "Page number (1-indexed)." },
-    pageSize: { type: "number", description: "Maximum agents per page." },
+    pageSize: { type: "number", description: "Maximum agents per page, the first and each `loadMore`." },
     query: { type: "string", description: "Text query to filter agents by name, description, or tags." },
   }}
 />

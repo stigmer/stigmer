@@ -54,7 +54,8 @@ A channel serves traffic only when its provider install completed
 on (`spec.enabled`) — the two axes the Channels tab renders.
 
 Pass `org` to scope the list to one organization's channels; the server
-only ever narrows the permission-bounded view. Pass an empty `agentId`
+only ever narrows the permission-bounded view. An agent has a handful of
+channels and the tab shows them all, so the hook walks every page. Pass an empty `agentId`
 to skip fetching (stable no-op) — useful while the agent is still
 loading.
 
@@ -123,8 +124,12 @@ function useChannelSessions(channelId: string): UseChannelSessionsReturn
 <TypeTable
   type={{
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy. A PERMISSION_DENIED here means the caller cannot view the channel — conversations are visible to exactly the channel's viewers (the connector and org admins)." },
+    hasMore: { type: "boolean", description: "`true` while the server holds entries beyond those loaded." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight and no data is shown." },
+    isLoadingMore: { type: "boolean", description: "`true` while a `loadMore` read is in flight." },
     isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
+    loadMore: { type: "() => void", description: "Load the next page. No-op while one is loading or when nothing follows." },
+    loadMoreError: { type: "Error | null", description: "Error from the last failed `loadMore`, or `null`." },
     refetch: { type: "() => void", description: "Re-fetch the conversations from the server." },
     sessions: { type: "readonly Session[]", description: "The channel's conversations (one session per external conversation), newest activity first. Empty while loading, on error, or when nobody has messaged the channel yet — `sessions.length === 0 && !isLoading && !error` means \"no conversations yet\"." },
   }}

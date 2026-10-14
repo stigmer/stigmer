@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Iterator
 
 import grpc
 
@@ -67,11 +68,23 @@ class TeamClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def list_by_org(self, input: io_pb2.ListTeamsByOrgInput) -> io_pb2.Teams:
+    def list(self, input: io_pb2.ListTeamsInput) -> io_pb2.Teams:
         try:
-            return self._query.listByOrg(input)
+            return self._query.list(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
+
+    def list_all(self, input: io_pb2.ListTeamsInput) -> Iterator[api_pb2.Team]:
+        """Every entry of ``list``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListTeamsInput()
+        request.CopyFrom(input)
+        while True:
+            page = self.list(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
 
 
 @dataclass

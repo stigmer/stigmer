@@ -33,7 +33,8 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private ChannelConversationList() {
-    items_ = java.util.Collections.emptyList();
+    entries_ = java.util.Collections.emptyList();
+    nextPageToken_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -54,80 +55,114 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.agentchannel.v1.ChannelConversationList.class, ai.stigmer.agentic.agentchannel.v1.ChannelConversationList.Builder.class);
   }
 
-  public static final int TOTAL_COUNT_FIELD_NUMBER = 1;
-  private int totalCount_ = 0;
-  /**
-   * <pre>
-   * Total number of conversations matching the filter.
-   * </pre>
-   *
-   * <code>int32 total_count = 1 [json_name = "totalCount"];</code>
-   * @return The totalCount.
-   */
-  @java.lang.Override
-  public int getTotalCount() {
-    return totalCount_;
-  }
-
-  public static final int ITEMS_FIELD_NUMBER = 2;
+  public static final int ENTRIES_FIELD_NUMBER = 2;
   @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.agentchannel.v1.ChannelConversation> items_;
+  private java.util.List<ai.stigmer.agentic.agentchannel.v1.ChannelConversation> entries_;
   /**
    * <pre>
    * Conversations in the current page.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.agentchannel.v1.ChannelConversation> getItemsList() {
-    return items_;
+  public java.util.List<ai.stigmer.agentic.agentchannel.v1.ChannelConversation> getEntriesList() {
+    return entries_;
   }
   /**
    * <pre>
    * Conversations in the current page.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2 [json_name = "entries"];</code>
    */
   @java.lang.Override
   public java.util.List<? extends ai.stigmer.agentic.agentchannel.v1.ChannelConversationOrBuilder> 
-      getItemsOrBuilderList() {
-    return items_;
+      getEntriesOrBuilderList() {
+    return entries_;
   }
   /**
    * <pre>
    * Conversations in the current page.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public int getItemsCount() {
-    return items_.size();
+  public int getEntriesCount() {
+    return entries_.size();
   }
   /**
    * <pre>
    * Conversations in the current page.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentchannel.v1.ChannelConversation getItems(int index) {
-    return items_.get(index);
+  public ai.stigmer.agentic.agentchannel.v1.ChannelConversation getEntries(int index) {
+    return entries_.get(index);
   }
   /**
    * <pre>
    * Conversations in the current page.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentchannel.v1.ChannelConversationOrBuilder getItemsOrBuilder(
+  public ai.stigmer.agentic.agentchannel.v1.ChannelConversationOrBuilder getEntriesOrBuilder(
       int index) {
-    return items_.get(index);
+    return entries_.get(index);
+  }
+
+  public static final int NEXT_PAGE_TOKEN_FIELD_NUMBER = 3;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object nextPageToken_ = "";
+  /**
+   * <pre>
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   * </pre>
+   *
+   * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+   * @return The nextPageToken.
+   */
+  @java.lang.Override
+  public java.lang.String getNextPageToken() {
+    java.lang.Object ref = nextPageToken_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      nextPageToken_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   * </pre>
+   *
+   * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+   * @return The bytes for nextPageToken.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getNextPageTokenBytes() {
+    java.lang.Object ref = nextPageToken_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      nextPageToken_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
   }
 
   private byte memoizedIsInitialized = -1;
@@ -144,11 +179,11 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (totalCount_ != 0) {
-      output.writeInt32(1, totalCount_);
+    for (int i = 0; i < entries_.size(); i++) {
+      output.writeMessage(2, entries_.get(i));
     }
-    for (int i = 0; i < items_.size(); i++) {
-      output.writeMessage(2, items_.get(i));
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(nextPageToken_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 3, nextPageToken_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -159,19 +194,18 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (totalCount_ != 0) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(1, totalCount_);
-    }
 
         {
-          final int count = items_.size();
+          final int count = entries_.size();
           for (int i = 0; i < count; i++) {
             size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(items_.get(i));
+              .computeMessageSizeNoTag(entries_.get(i));
           }
           size += 1 * count;
         }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(nextPageToken_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, nextPageToken_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -187,10 +221,10 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.agentic.agentchannel.v1.ChannelConversationList other = (ai.stigmer.agentic.agentchannel.v1.ChannelConversationList) obj;
 
-    if (getTotalCount()
-        != other.getTotalCount()) return false;
-    if (!getItemsList()
-        .equals(other.getItemsList())) return false;
+    if (!getEntriesList()
+        .equals(other.getEntriesList())) return false;
+    if (!getNextPageToken()
+        .equals(other.getNextPageToken())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -202,12 +236,12 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + TOTAL_COUNT_FIELD_NUMBER;
-    hash = (53 * hash) + getTotalCount();
-    if (getItemsCount() > 0) {
-      hash = (37 * hash) + ITEMS_FIELD_NUMBER;
-      hash = (53 * hash) + getItemsList().hashCode();
+    if (getEntriesCount() > 0) {
+      hash = (37 * hash) + ENTRIES_FIELD_NUMBER;
+      hash = (53 * hash) + getEntriesList().hashCode();
     }
+    hash = (37 * hash) + NEXT_PAGE_TOKEN_FIELD_NUMBER;
+    hash = (53 * hash) + getNextPageToken().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -344,14 +378,14 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      totalCount_ = 0;
-      if (itemsBuilder_ == null) {
-        items_ = java.util.Collections.emptyList();
+      if (entriesBuilder_ == null) {
+        entries_ = java.util.Collections.emptyList();
       } else {
-        items_ = null;
-        itemsBuilder_.clear();
+        entries_ = null;
+        entriesBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000002);
+      bitField0_ = (bitField0_ & ~0x00000001);
+      nextPageToken_ = "";
       return this;
     }
 
@@ -385,21 +419,21 @@ private static final long serialVersionUID = 0L;
     }
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.agentchannel.v1.ChannelConversationList result) {
-      if (itemsBuilder_ == null) {
-        if (((bitField0_ & 0x00000002) != 0)) {
-          items_ = java.util.Collections.unmodifiableList(items_);
-          bitField0_ = (bitField0_ & ~0x00000002);
+      if (entriesBuilder_ == null) {
+        if (((bitField0_ & 0x00000001) != 0)) {
+          entries_ = java.util.Collections.unmodifiableList(entries_);
+          bitField0_ = (bitField0_ & ~0x00000001);
         }
-        result.items_ = items_;
+        result.entries_ = entries_;
       } else {
-        result.items_ = itemsBuilder_.build();
+        result.entries_ = entriesBuilder_.build();
       }
     }
 
     private void buildPartial0(ai.stigmer.agentic.agentchannel.v1.ChannelConversationList result) {
       int from_bitField0_ = bitField0_;
-      if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.totalCount_ = totalCount_;
+      if (((from_bitField0_ & 0x00000002) != 0)) {
+        result.nextPageToken_ = nextPageToken_;
       }
     }
 
@@ -415,34 +449,36 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.agentic.agentchannel.v1.ChannelConversationList other) {
       if (other == ai.stigmer.agentic.agentchannel.v1.ChannelConversationList.getDefaultInstance()) return this;
-      if (other.getTotalCount() != 0) {
-        setTotalCount(other.getTotalCount());
-      }
-      if (itemsBuilder_ == null) {
-        if (!other.items_.isEmpty()) {
-          if (items_.isEmpty()) {
-            items_ = other.items_;
-            bitField0_ = (bitField0_ & ~0x00000002);
+      if (entriesBuilder_ == null) {
+        if (!other.entries_.isEmpty()) {
+          if (entries_.isEmpty()) {
+            entries_ = other.entries_;
+            bitField0_ = (bitField0_ & ~0x00000001);
           } else {
-            ensureItemsIsMutable();
-            items_.addAll(other.items_);
+            ensureEntriesIsMutable();
+            entries_.addAll(other.entries_);
           }
           onChanged();
         }
       } else {
-        if (!other.items_.isEmpty()) {
-          if (itemsBuilder_.isEmpty()) {
-            itemsBuilder_.dispose();
-            itemsBuilder_ = null;
-            items_ = other.items_;
-            bitField0_ = (bitField0_ & ~0x00000002);
-            itemsBuilder_ = 
+        if (!other.entries_.isEmpty()) {
+          if (entriesBuilder_.isEmpty()) {
+            entriesBuilder_.dispose();
+            entriesBuilder_ = null;
+            entries_ = other.entries_;
+            bitField0_ = (bitField0_ & ~0x00000001);
+            entriesBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetItemsFieldBuilder() : null;
+                 internalGetEntriesFieldBuilder() : null;
           } else {
-            itemsBuilder_.addAllMessages(other.items_);
+            entriesBuilder_.addAllMessages(other.entries_);
           }
         }
+      }
+      if (!other.getNextPageToken().isEmpty()) {
+        nextPageToken_ = other.nextPageToken_;
+        bitField0_ |= 0x00000002;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -470,24 +506,24 @@ private static final long serialVersionUID = 0L;
             case 0:
               done = true;
               break;
-            case 8: {
-              totalCount_ = input.readInt32();
-              bitField0_ |= 0x00000001;
-              break;
-            } // case 8
             case 18: {
               ai.stigmer.agentic.agentchannel.v1.ChannelConversation m =
                   input.readMessage(
                       ai.stigmer.agentic.agentchannel.v1.ChannelConversation.parser(),
                       extensionRegistry);
-              if (itemsBuilder_ == null) {
-                ensureItemsIsMutable();
-                items_.add(m);
+              if (entriesBuilder_ == null) {
+                ensureEntriesIsMutable();
+                entries_.add(m);
               } else {
-                itemsBuilder_.addMessage(m);
+                entriesBuilder_.addMessage(m);
               }
               break;
             } // case 18
+            case 26: {
+              nextPageToken_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000002;
+              break;
+            } // case 26
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -505,74 +541,30 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private int totalCount_ ;
-    /**
-     * <pre>
-     * Total number of conversations matching the filter.
-     * </pre>
-     *
-     * <code>int32 total_count = 1 [json_name = "totalCount"];</code>
-     * @return The totalCount.
-     */
-    @java.lang.Override
-    public int getTotalCount() {
-      return totalCount_;
-    }
-    /**
-     * <pre>
-     * Total number of conversations matching the filter.
-     * </pre>
-     *
-     * <code>int32 total_count = 1 [json_name = "totalCount"];</code>
-     * @param value The totalCount to set.
-     * @return This builder for chaining.
-     */
-    public Builder setTotalCount(int value) {
-
-      totalCount_ = value;
-      bitField0_ |= 0x00000001;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Total number of conversations matching the filter.
-     * </pre>
-     *
-     * <code>int32 total_count = 1 [json_name = "totalCount"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearTotalCount() {
-      bitField0_ = (bitField0_ & ~0x00000001);
-      totalCount_ = 0;
-      onChanged();
-      return this;
-    }
-
-    private java.util.List<ai.stigmer.agentic.agentchannel.v1.ChannelConversation> items_ =
+    private java.util.List<ai.stigmer.agentic.agentchannel.v1.ChannelConversation> entries_ =
       java.util.Collections.emptyList();
-    private void ensureItemsIsMutable() {
-      if (!((bitField0_ & 0x00000002) != 0)) {
-        items_ = new java.util.ArrayList<ai.stigmer.agentic.agentchannel.v1.ChannelConversation>(items_);
-        bitField0_ |= 0x00000002;
+    private void ensureEntriesIsMutable() {
+      if (!((bitField0_ & 0x00000001) != 0)) {
+        entries_ = new java.util.ArrayList<ai.stigmer.agentic.agentchannel.v1.ChannelConversation>(entries_);
+        bitField0_ |= 0x00000001;
        }
     }
 
     private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.agentchannel.v1.ChannelConversation, ai.stigmer.agentic.agentchannel.v1.ChannelConversation.Builder, ai.stigmer.agentic.agentchannel.v1.ChannelConversationOrBuilder> itemsBuilder_;
+        ai.stigmer.agentic.agentchannel.v1.ChannelConversation, ai.stigmer.agentic.agentchannel.v1.ChannelConversation.Builder, ai.stigmer.agentic.agentchannel.v1.ChannelConversationOrBuilder> entriesBuilder_;
 
     /**
      * <pre>
      * Conversations in the current page.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2 [json_name = "entries"];</code>
      */
-    public java.util.List<ai.stigmer.agentic.agentchannel.v1.ChannelConversation> getItemsList() {
-      if (itemsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(items_);
+    public java.util.List<ai.stigmer.agentic.agentchannel.v1.ChannelConversation> getEntriesList() {
+      if (entriesBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(entries_);
       } else {
-        return itemsBuilder_.getMessageList();
+        return entriesBuilder_.getMessageList();
       }
     }
     /**
@@ -580,13 +572,13 @@ private static final long serialVersionUID = 0L;
      * Conversations in the current page.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2 [json_name = "entries"];</code>
      */
-    public int getItemsCount() {
-      if (itemsBuilder_ == null) {
-        return items_.size();
+    public int getEntriesCount() {
+      if (entriesBuilder_ == null) {
+        return entries_.size();
       } else {
-        return itemsBuilder_.getCount();
+        return entriesBuilder_.getCount();
       }
     }
     /**
@@ -594,13 +586,13 @@ private static final long serialVersionUID = 0L;
      * Conversations in the current page.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2 [json_name = "entries"];</code>
      */
-    public ai.stigmer.agentic.agentchannel.v1.ChannelConversation getItems(int index) {
-      if (itemsBuilder_ == null) {
-        return items_.get(index);
+    public ai.stigmer.agentic.agentchannel.v1.ChannelConversation getEntries(int index) {
+      if (entriesBuilder_ == null) {
+        return entries_.get(index);
       } else {
-        return itemsBuilder_.getMessage(index);
+        return entriesBuilder_.getMessage(index);
       }
     }
     /**
@@ -608,19 +600,19 @@ private static final long serialVersionUID = 0L;
      * Conversations in the current page.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2 [json_name = "entries"];</code>
      */
-    public Builder setItems(
+    public Builder setEntries(
         int index, ai.stigmer.agentic.agentchannel.v1.ChannelConversation value) {
-      if (itemsBuilder_ == null) {
+      if (entriesBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureItemsIsMutable();
-        items_.set(index, value);
+        ensureEntriesIsMutable();
+        entries_.set(index, value);
         onChanged();
       } else {
-        itemsBuilder_.setMessage(index, value);
+        entriesBuilder_.setMessage(index, value);
       }
       return this;
     }
@@ -629,16 +621,16 @@ private static final long serialVersionUID = 0L;
      * Conversations in the current page.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2 [json_name = "entries"];</code>
      */
-    public Builder setItems(
+    public Builder setEntries(
         int index, ai.stigmer.agentic.agentchannel.v1.ChannelConversation.Builder builderForValue) {
-      if (itemsBuilder_ == null) {
-        ensureItemsIsMutable();
-        items_.set(index, builderForValue.build());
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.set(index, builderForValue.build());
         onChanged();
       } else {
-        itemsBuilder_.setMessage(index, builderForValue.build());
+        entriesBuilder_.setMessage(index, builderForValue.build());
       }
       return this;
     }
@@ -647,18 +639,18 @@ private static final long serialVersionUID = 0L;
      * Conversations in the current page.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2 [json_name = "entries"];</code>
      */
-    public Builder addItems(ai.stigmer.agentic.agentchannel.v1.ChannelConversation value) {
-      if (itemsBuilder_ == null) {
+    public Builder addEntries(ai.stigmer.agentic.agentchannel.v1.ChannelConversation value) {
+      if (entriesBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureItemsIsMutable();
-        items_.add(value);
+        ensureEntriesIsMutable();
+        entries_.add(value);
         onChanged();
       } else {
-        itemsBuilder_.addMessage(value);
+        entriesBuilder_.addMessage(value);
       }
       return this;
     }
@@ -667,19 +659,19 @@ private static final long serialVersionUID = 0L;
      * Conversations in the current page.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2 [json_name = "entries"];</code>
      */
-    public Builder addItems(
+    public Builder addEntries(
         int index, ai.stigmer.agentic.agentchannel.v1.ChannelConversation value) {
-      if (itemsBuilder_ == null) {
+      if (entriesBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureItemsIsMutable();
-        items_.add(index, value);
+        ensureEntriesIsMutable();
+        entries_.add(index, value);
         onChanged();
       } else {
-        itemsBuilder_.addMessage(index, value);
+        entriesBuilder_.addMessage(index, value);
       }
       return this;
     }
@@ -688,16 +680,16 @@ private static final long serialVersionUID = 0L;
      * Conversations in the current page.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2 [json_name = "entries"];</code>
      */
-    public Builder addItems(
+    public Builder addEntries(
         ai.stigmer.agentic.agentchannel.v1.ChannelConversation.Builder builderForValue) {
-      if (itemsBuilder_ == null) {
-        ensureItemsIsMutable();
-        items_.add(builderForValue.build());
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.add(builderForValue.build());
         onChanged();
       } else {
-        itemsBuilder_.addMessage(builderForValue.build());
+        entriesBuilder_.addMessage(builderForValue.build());
       }
       return this;
     }
@@ -706,16 +698,16 @@ private static final long serialVersionUID = 0L;
      * Conversations in the current page.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2 [json_name = "entries"];</code>
      */
-    public Builder addItems(
+    public Builder addEntries(
         int index, ai.stigmer.agentic.agentchannel.v1.ChannelConversation.Builder builderForValue) {
-      if (itemsBuilder_ == null) {
-        ensureItemsIsMutable();
-        items_.add(index, builderForValue.build());
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.add(index, builderForValue.build());
         onChanged();
       } else {
-        itemsBuilder_.addMessage(index, builderForValue.build());
+        entriesBuilder_.addMessage(index, builderForValue.build());
       }
       return this;
     }
@@ -724,17 +716,17 @@ private static final long serialVersionUID = 0L;
      * Conversations in the current page.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2 [json_name = "entries"];</code>
      */
-    public Builder addAllItems(
+    public Builder addAllEntries(
         java.lang.Iterable<? extends ai.stigmer.agentic.agentchannel.v1.ChannelConversation> values) {
-      if (itemsBuilder_ == null) {
-        ensureItemsIsMutable();
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
         com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, items_);
+            values, entries_);
         onChanged();
       } else {
-        itemsBuilder_.addAllMessages(values);
+        entriesBuilder_.addAllMessages(values);
       }
       return this;
     }
@@ -743,15 +735,15 @@ private static final long serialVersionUID = 0L;
      * Conversations in the current page.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2 [json_name = "entries"];</code>
      */
-    public Builder clearItems() {
-      if (itemsBuilder_ == null) {
-        items_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000002);
+    public Builder clearEntries() {
+      if (entriesBuilder_ == null) {
+        entries_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000001);
         onChanged();
       } else {
-        itemsBuilder_.clear();
+        entriesBuilder_.clear();
       }
       return this;
     }
@@ -760,15 +752,15 @@ private static final long serialVersionUID = 0L;
      * Conversations in the current page.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2 [json_name = "entries"];</code>
      */
-    public Builder removeItems(int index) {
-      if (itemsBuilder_ == null) {
-        ensureItemsIsMutable();
-        items_.remove(index);
+    public Builder removeEntries(int index) {
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.remove(index);
         onChanged();
       } else {
-        itemsBuilder_.remove(index);
+        entriesBuilder_.remove(index);
       }
       return this;
     }
@@ -777,24 +769,24 @@ private static final long serialVersionUID = 0L;
      * Conversations in the current page.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2 [json_name = "entries"];</code>
      */
-    public ai.stigmer.agentic.agentchannel.v1.ChannelConversation.Builder getItemsBuilder(
+    public ai.stigmer.agentic.agentchannel.v1.ChannelConversation.Builder getEntriesBuilder(
         int index) {
-      return internalGetItemsFieldBuilder().getBuilder(index);
+      return internalGetEntriesFieldBuilder().getBuilder(index);
     }
     /**
      * <pre>
      * Conversations in the current page.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2 [json_name = "entries"];</code>
      */
-    public ai.stigmer.agentic.agentchannel.v1.ChannelConversationOrBuilder getItemsOrBuilder(
+    public ai.stigmer.agentic.agentchannel.v1.ChannelConversationOrBuilder getEntriesOrBuilder(
         int index) {
-      if (itemsBuilder_ == null) {
-        return items_.get(index);  } else {
-        return itemsBuilder_.getMessageOrBuilder(index);
+      if (entriesBuilder_ == null) {
+        return entries_.get(index);  } else {
+        return entriesBuilder_.getMessageOrBuilder(index);
       }
     }
     /**
@@ -802,14 +794,14 @@ private static final long serialVersionUID = 0L;
      * Conversations in the current page.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2 [json_name = "entries"];</code>
      */
     public java.util.List<? extends ai.stigmer.agentic.agentchannel.v1.ChannelConversationOrBuilder> 
-         getItemsOrBuilderList() {
-      if (itemsBuilder_ != null) {
-        return itemsBuilder_.getMessageOrBuilderList();
+         getEntriesOrBuilderList() {
+      if (entriesBuilder_ != null) {
+        return entriesBuilder_.getMessageOrBuilderList();
       } else {
-        return java.util.Collections.unmodifiableList(items_);
+        return java.util.Collections.unmodifiableList(entries_);
       }
     }
     /**
@@ -817,10 +809,10 @@ private static final long serialVersionUID = 0L;
      * Conversations in the current page.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2 [json_name = "entries"];</code>
      */
-    public ai.stigmer.agentic.agentchannel.v1.ChannelConversation.Builder addItemsBuilder() {
-      return internalGetItemsFieldBuilder().addBuilder(
+    public ai.stigmer.agentic.agentchannel.v1.ChannelConversation.Builder addEntriesBuilder() {
+      return internalGetEntriesFieldBuilder().addBuilder(
           ai.stigmer.agentic.agentchannel.v1.ChannelConversation.getDefaultInstance());
     }
     /**
@@ -828,11 +820,11 @@ private static final long serialVersionUID = 0L;
      * Conversations in the current page.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2 [json_name = "entries"];</code>
      */
-    public ai.stigmer.agentic.agentchannel.v1.ChannelConversation.Builder addItemsBuilder(
+    public ai.stigmer.agentic.agentchannel.v1.ChannelConversation.Builder addEntriesBuilder(
         int index) {
-      return internalGetItemsFieldBuilder().addBuilder(
+      return internalGetEntriesFieldBuilder().addBuilder(
           index, ai.stigmer.agentic.agentchannel.v1.ChannelConversation.getDefaultInstance());
     }
     /**
@@ -840,25 +832,122 @@ private static final long serialVersionUID = 0L;
      * Conversations in the current page.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2 [json_name = "entries"];</code>
      */
     public java.util.List<ai.stigmer.agentic.agentchannel.v1.ChannelConversation.Builder> 
-         getItemsBuilderList() {
-      return internalGetItemsFieldBuilder().getBuilderList();
+         getEntriesBuilderList() {
+      return internalGetEntriesFieldBuilder().getBuilderList();
     }
     private com.google.protobuf.RepeatedFieldBuilder<
         ai.stigmer.agentic.agentchannel.v1.ChannelConversation, ai.stigmer.agentic.agentchannel.v1.ChannelConversation.Builder, ai.stigmer.agentic.agentchannel.v1.ChannelConversationOrBuilder> 
-        internalGetItemsFieldBuilder() {
-      if (itemsBuilder_ == null) {
-        itemsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+        internalGetEntriesFieldBuilder() {
+      if (entriesBuilder_ == null) {
+        entriesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.agentchannel.v1.ChannelConversation, ai.stigmer.agentic.agentchannel.v1.ChannelConversation.Builder, ai.stigmer.agentic.agentchannel.v1.ChannelConversationOrBuilder>(
-                items_,
-                ((bitField0_ & 0x00000002) != 0),
+                entries_,
+                ((bitField0_ & 0x00000001) != 0),
                 getParentForChildren(),
                 isClean());
-        items_ = null;
+        entries_ = null;
       }
-      return itemsBuilder_;
+      return entriesBuilder_;
+    }
+
+    private java.lang.Object nextPageToken_ = "";
+    /**
+     * <pre>
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
+     * </pre>
+     *
+     * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+     * @return The nextPageToken.
+     */
+    public java.lang.String getNextPageToken() {
+      java.lang.Object ref = nextPageToken_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        nextPageToken_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
+     * </pre>
+     *
+     * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+     * @return The bytes for nextPageToken.
+     */
+    public com.google.protobuf.ByteString
+        getNextPageTokenBytes() {
+      java.lang.Object ref = nextPageToken_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        nextPageToken_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
+     * </pre>
+     *
+     * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+     * @param value The nextPageToken to set.
+     * @return This builder for chaining.
+     */
+    public Builder setNextPageToken(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      nextPageToken_ = value;
+      bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
+     * </pre>
+     *
+     * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearNextPageToken() {
+      nextPageToken_ = getDefaultInstance().getNextPageToken();
+      bitField0_ = (bitField0_ & ~0x00000002);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
+     * </pre>
+     *
+     * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+     * @param value The bytes for nextPageToken to set.
+     * @return This builder for chaining.
+     */
+    public Builder setNextPageTokenBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      nextPageToken_ = value;
+      bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentchannel.v1.ChannelConversationList)

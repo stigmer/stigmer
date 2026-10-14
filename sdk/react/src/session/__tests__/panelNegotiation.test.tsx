@@ -48,7 +48,7 @@ const stubWorkspace = {
   clear: vi.fn(),
 };
 
-const stubSessionVariables = { entries: [], isEmpty: true, clear: vi.fn() };
+const stubSessionVariables = { entries: [], isEmpty: true, clear: vi.fn(), nextPageToken: "" };
 
 const stubNewSessionFlow = {
   harness: "native" as const,

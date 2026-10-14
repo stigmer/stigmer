@@ -23,8 +23,12 @@
  * listVersions marks is_current by HEAD-HASH match, not recency: under
  * repoint semantics (#475) re-pushing archived content re-activates its
  * existing row, so the current version need not be the newest-archived
- * one. Tags come from the audit COLUMN (the single-holder source of
- * truth), never from the snapshot.
+ * one. The current record is the newest one holding the head's hash, read
+ * once per request, so every page marks the same record. Tags come from
+ * the audit COLUMN (the single-holder source of truth), never from the
+ * snapshot. A page is a keyset over the history's own order (archive
+ * instant, then row sequence) with the shared page token, so a version
+ * archived between two pages lands before the first and repeats nothing.
  *
  * Proven by the skill domain's __tests__/skill.test.ts (ladder and
  * pagination blocks), the agent domain's version tests, and
@@ -54,7 +58,14 @@ import {
   ResourceNotFoundError,
 } from "../../store/interface.js";
 import type { AuditRecord, Store } from "../../store/interface.js";
+import type { ListIndexCursor } from "../../store/list-index.js";
 import { requireOrgForReference } from "./helpers.js";
+import {
+  decodeListPageToken,
+  encodeListPageToken,
+  listPageFingerprint,
+  listPageSizeOf,
+} from "./list-page.js";
 import { findResourceByName } from "./names.js";
 import { findByReference } from "./references.js";
 import type { ResolvedTargetResolver } from "./authorize-resolved-target.js";
@@ -297,9 +308,6 @@ function decodeArchived<Desc extends DescMessage>(
 
 // ─── listVersions ────────────────────────────────────────────────────────
 
-const DEFAULT_PAGE_SIZE = 50;
-const MAX_PAGE_SIZE = 100;
-
 export const LIST_VERSIONS_RESOURCE_ID_KEY = "listVersionsResourceId";
 export const LIST_VERSIONS_HEAD_HASH_KEY = "listVersionsHeadHash";
 export const LIST_VERSIONS_RESPONSE_KEY = "listVersionsResponse";
@@ -358,11 +366,7 @@ export interface VersionHistoryBinding<
     isCurrent: boolean,
     tag: string,
   ): Entry;
-  response(
-    entries: Entry[],
-    nextPageToken: string,
-    totalCount: number,
-  ): Response;
+  response(entries: Entry[], nextPageToken: string): Response;
 }
 
 /** Resolves the head by slug and captures its id and hash (Go ResolveSkillBySlugStep, generalised). */
@@ -398,7 +402,7 @@ export function newResolveBySlugForVersionsStep<
   };
 }
 
-/** Audit records → entries → one page (Go LoadAndMapVersionsStep, generalised). */
+/** One page of audit records → entries (Go LoadAndMapVersionsStep, generalised). */
 export function newLoadAndMapVersionsStep<
   Desc extends DescMessage,
   InputDesc extends DescMessage,
@@ -414,84 +418,97 @@ export function newLoadAndMapVersionsStep<
     async execute(ctx: RequestContext<InputDesc>): Promise<void> {
       const req = binding.input(ctx.input);
       const resourceId = ctx.get(LIST_VERSIONS_RESOURCE_ID_KEY) as string;
+      const size = listPageSizeOf(req);
+      const fingerprint = listPageFingerprint({ org: req.org, slug: req.slug });
+      const after =
+        req.pageToken === ""
+          ? undefined
+          : auditSeqOf(decodeListPageToken(req.pageToken, fingerprint).cursor);
 
-      let records;
+      // is_current = the newest record whose hash is the live head's, not
+      // the newest row. Legacy data may hold duplicate-hash rows
+      // (predating repoint semantics); naming one record keeps
+      // exactly-one-current true for them, on whichever page it falls.
+      const headHash = ctx.get(LIST_VERSIONS_HEAD_HASH_KEY) as string;
+      let records: AuditRecord[];
+      let currentSeq = "";
       try {
-        records = await store.listAuditRecords(ctx.apiResourceKind, resourceId);
+        // One row past the page is read only to learn whether more follow.
+        records = await store.listAuditRecordsPage(
+          ctx.apiResourceKind,
+          resourceId,
+          after,
+          size + 1,
+        );
+        if (headHash !== "") {
+          currentSeq = await currentRecordSeq(
+            store,
+            ctx.apiResourceKind,
+            resourceId,
+            headHash,
+          );
+        }
       } catch (error) {
         throw internalError(error, "failed to load version history");
       }
 
-      // is_current = the entry whose hash matches the live head, not the
-      // newest row. Legacy data may hold duplicate-hash rows (predating
-      // repoint semantics); marking only the first match keeps
-      // exactly-one-current true for them too.
-      const headHash = ctx.get(LIST_VERSIONS_HEAD_HASH_KEY) as string;
-      let currentMarked = false;
+      const more = records.length > size;
+      const page = more ? records.slice(0, size) : records;
       const entries: Entry[] = [];
-      for (const record of records) {
+      for (const record of page) {
         let snapshot: MessageShape<Desc>;
         try {
           snapshot = fromBinary(binding.schema, record.data);
         } catch {
           continue;
         }
-        const isCurrent: boolean =
-          !currentMarked &&
-          headHash !== "" &&
-          binding.headHashOf(snapshot) === headHash;
-        currentMarked = currentMarked || isCurrent;
         // Tag comes from the audit column (source of truth), not the snapshot.
-        entries.push(binding.mapEntry(snapshot, isCurrent, record.tag));
+        entries.push(
+          binding.mapEntry(snapshot, record.seq === currentSeq, record.tag),
+        );
       }
-
-      let pageSize = req.pageSize;
-      if (pageSize <= 0) {
-        pageSize = DEFAULT_PAGE_SIZE;
-      }
-      if (pageSize > MAX_PAGE_SIZE) {
-        pageSize = MAX_PAGE_SIZE;
-      }
-
-      let startIndex = 0;
-      if (req.pageToken !== "") {
-        startIndex = decodePageToken(req.pageToken);
-      }
-
-      let pageEntries: Entry[] = [];
-      let nextPageToken = "";
-      if (startIndex < entries.length) {
-        const end = Math.min(startIndex + pageSize, entries.length);
-        pageEntries = entries.slice(startIndex, end);
-        if (end < entries.length) {
-          nextPageToken = Buffer.from(String(end)).toString("base64");
-        }
-      }
+      const last = page[page.length - 1];
+      const nextPageToken =
+        more && last !== undefined
+          ? encodeListPageToken({ createdAt: "", id: last.seq }, fingerprint)
+          : "";
 
       ctx.set(
         LIST_VERSIONS_RESPONSE_KEY,
-        binding.response(pageEntries, nextPageToken, entries.length),
+        binding.response(entries, nextPageToken),
       );
     },
   };
 }
 
+/** The sequence of the newest record holding `hash`, or "" when none does. */
+async function currentRecordSeq(
+  store: Store,
+  kind: ApiResourceKind,
+  resourceId: string,
+  hash: string,
+): Promise<string> {
+  try {
+    return (await store.getAuditRecordByHash(kind, resourceId, hash)).seq;
+  } catch (error) {
+    if (error instanceof AuditNotFoundError) {
+      return "";
+    }
+    throw error;
+  }
+}
+
 /**
- * Decodes the base64 cursor with Go's strictness: base64.StdEncoding
- * rejects malformed input and strconv.Atoi rejects trailing garbage —
- * Buffer.from is lenient on both, so validity is checked explicitly.
+ * The audit sequence a version page token carries. The token is opaque
+ * but not signed, so its position is whatever text the client sent: a
+ * sequence is refused unless it is a positive decimal the store's id
+ * column can hold.
  */
-export function decodePageToken(token: string): number {
-  const decoded = Buffer.from(token, "base64");
-  if (decoded.toString("base64") !== token) {
+function auditSeqOf(cursor: ListIndexCursor): string {
+  if (!/^[1-9][0-9]{0,17}$/.test(cursor.id)) {
     throw invalidArgumentError("invalid page_token");
   }
-  const text = decoded.toString("utf8");
-  const index = Number.parseInt(text, 10);
-  if (!Number.isSafeInteger(index) || String(index) !== text || index < 0) {
-    throw invalidArgumentError("invalid page_token");
-  }
-  return index;
+  return cursor.id;
 }
 
 // ─── getVersion ──────────────────────────────────────────────────────────

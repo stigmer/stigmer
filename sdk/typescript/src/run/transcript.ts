@@ -66,6 +66,7 @@ import {
   type Turn,
   type TurnItem,
 } from "@stigmer/session-log";
+import { everyEntry } from "../pages.js";
 import { resolvedSubject } from "../session.js";
 import { deletedReferenceLabel, isDeletedReference } from "../references.js";
 import { isBuildFromPlanTurn, supersededRunIds } from "./conversation-rules.js";
@@ -268,39 +269,27 @@ export interface FetchSessionTranscriptOptions {
 /** The most events one listEvents page returns. */
 const EVENT_PAGE_SIZE = 1000;
 
+/** The most runs one listBySession page returns. */
+const RUN_PAGE_SIZE = 100;
+
 /**
  * Fetches everything a session's transcript needs and assembles it: the
- * session, its whole event log (every page, oldest first), and its runs.
- *
- * One `listBySession` call returns the complete run set: the RPC
- * returns a session's runs whole by contract, and its paging fields
- * are deprecated. A response claiming more than one page (`total_pages >
- * 1`) fails with a descriptive error rather than silently exporting a
- * conversation whose superseded turns cannot all be known.
+ * session, its whole event log (every page, oldest first), and every one
+ * of its runs, walked page by page, so no superseded turn is misjudged for
+ * want of a run on a later page.
  */
 export async function fetchSessionTranscript(
   client: SessionTranscriptClient,
   sessionId: string,
   options?: FetchSessionTranscriptOptions,
 ): Promise<SessionTranscript> {
-  const [session, list, events] = await Promise.all([
+  const [session, runs, events] = await Promise.all([
     client.session.get(sessionId),
-    client.run.listBySession(
-      create(ListRunsBySessionRequestSchema, { sessionId }),
-    ),
+    listAllRuns(client, sessionId),
     listAllEvents(client, sessionId),
   ]);
 
-  if (list.totalPages > 1) {
-    throw new Error(
-      `Session ${sessionId} has ${list.totalPages} pages of runs but ` +
-        "transcript export reads a single page. The server has started " +
-        "paginating listBySession; teach fetchSessionTranscript to walk " +
-        "pages before exporting, so no turn is misjudged.",
-    );
-  }
-
-  const transcript = assembleSessionTranscript(session, events, list.entries, {
+  const transcript = assembleSessionTranscript(session, events, runs, {
     includeSuperseded: options?.includeSuperseded,
   });
   if (options?.resolveOutputs === false) {
@@ -312,6 +301,21 @@ export async function fetchSessionTranscript(
     { concurrency: options?.concurrency },
   );
   return { ...transcript, resolvedOutputs };
+}
+
+/** Every run of a session, walking every page. */
+async function listAllRuns(
+  client: Pick<SessionTranscriptClient, "run">,
+  sessionId: string,
+): Promise<Run[]> {
+  const runs: Run[] = [];
+  const pages = everyEntry((pageToken) =>
+    client.run.listBySession(
+      create(ListRunsBySessionRequestSchema, { sessionId, pageSize: RUN_PAGE_SIZE, pageToken }),
+    ),
+  );
+  for await (const run of pages) runs.push(run);
+  return runs;
 }
 
 /** Every event of a session, oldest first, walking every page. */

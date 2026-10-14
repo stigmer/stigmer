@@ -6,7 +6,7 @@ import ai.stigmer.commons.apiresource.ApiResourceDeleteInput;
 import ai.stigmer.commons.apiresource.ApiResourceId;
 import ai.stigmer.commons.apiresource.RenameInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
-import ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput;
+import ai.stigmer.iam.platformclient.v1.ListPlatformClientsInput;
 import ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest;
 import ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse;
 import ai.stigmer.iam.platformclient.v1.MintUserTokenRequest;
@@ -86,10 +86,23 @@ public final class PlatformClientClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public PlatformClients listByOrg(ListPlatformClientsByOrgInput input) {
+    public PlatformClients list(ListPlatformClientsInput input) {
         try {
-            return query.listByOrg(input);
+            return query.list(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code list}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<PlatformClient> listAll(ListPlatformClientsInput input) {
+        return Pages.<PlatformClients, PlatformClient>iterate(
+            input.getPageToken(),
+            token -> list(input.toBuilder().setPageToken(token).build()),
+            PlatformClients::getEntriesList,
+            PlatformClients::getNextPageToken);
     }
 
     public MintUserTokenResponse mintUserToken(MintUserTokenRequest input) {

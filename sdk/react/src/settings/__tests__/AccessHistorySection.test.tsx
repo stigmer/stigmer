@@ -148,7 +148,7 @@ function renderSection(mode: DeploymentMode, verdict = true, read: ReadMode = "p
     getAccessToken: () => "test-token",
     customTransport: createRouterTransport((router) => {
       router.service(OrganizationQueryController, {
-        findMyOrganizations: () => create(OrganizationsSchema, { entries: [ACME] }),
+        listMine: () => create(OrganizationsSchema, { entries: [ACME] }),
       });
       router.service(IamPolicyQueryController, {
         checkMyPermission: (input) => {

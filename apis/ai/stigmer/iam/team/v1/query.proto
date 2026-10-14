@@ -41,12 +41,12 @@ service TeamQueryController {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
-  // List the teams of an organization.
+  // List the teams of an organization, newest first.
   //
   // @internal
   // Authorization: can_view on the organization. Every organization viewer
   // sees every team, so the list needs no per-row scope.
-  rpc listByOrg(ListTeamsByOrgInput) returns (Teams) {
+  rpc list(ListTeamsInput) returns (Teams) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
     option (ai.stigmer.commons.rpc.config).field_path = "org";

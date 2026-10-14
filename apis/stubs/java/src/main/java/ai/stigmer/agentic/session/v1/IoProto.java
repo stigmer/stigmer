@@ -163,127 +163,128 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "s.proto\032\033buf/validate/validate.proto\032 go" +
       "ogle/protobuf/field_mask.proto\")\n\tSessio" +
       "nId\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"\'\n\007Age" +
-      "ntId\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"\230\001\n\013S" +
-      "essionList\022\037\n\013total_pages\030\001 \001(\005R\ntotalPa" +
-      "ges\022@\n\007entries\030\002 \003(\0132&.ai.stigmer.agenti" +
-      "c.session.v1.SessionR\007entries\022&\n\017next_pa" +
-      "ge_token\030\003 \001(\tR\rnextPageToken\"\200\001\n\023ListSe" +
-      "ssionsRequest\022$\n\tpage_size\030\001 \001(\005B\007\272H\004\032\002(" +
-      "\000R\010pageSize\022\035\n\npage_token\030\002 \001(\tR\tpageTok" +
-      "en\022\022\n\004tags\030\003 \003(\tR\004tags\022\020\n\003org\030\004 \001(\tR\003org" +
-      "\"\204\001\n\032ListSessionsByAgentRequest\022!\n\010agent" +
-      "_id\030\001 \001(\tB\006\272H\003\310\001\001R\007agentId\022$\n\tpage_size\030" +
-      "\002 \001(\005B\007\272H\004\032\002(\000R\010pageSize\022\035\n\npage_token\030\003" +
-      " \001(\tR\tpageToken\"\212\001\n\034ListSessionsByChanne" +
-      "lRequest\022%\n\nchannel_id\030\001 \001(\tB\006\272H\003\310\001\001R\tch" +
-      "annelId\022$\n\tpage_size\030\002 \001(\005B\007\272H\004\032\002(\000R\010pag" +
-      "eSize\022\035\n\npage_token\030\003 \001(\tR\tpageToken\"O\n\033" +
-      "UpdateSessionSubjectRequest\022\026\n\002id\030\001 \001(\tB" +
-      "\006\272H\003\310\001\001R\002id\022\030\n\007subject\030\002 \001(\tR\007subject\"\220\004" +
-      "\n\026ReviewFileChangesInput\022&\n\nsession_id\030\001" +
-      " \001(\tB\007\272H\004r\002\020\001R\tsessionId\022+\n\rchange_set_i" +
-      "d\030\002 \001(\tB\007\272H\004r\002\020\001R\013changeSetId\022-\n\005scope\030\003" +
-      " \001(\tB\027\272H\024r\022R\nchange_setR\004fileR\005scope\022$\n\016" +
-      "file_change_id\030\004 \001(\tR\014fileChangeId\022)\n\006ac" +
-      "tion\030\005 \001(\tB\021\272H\016r\014R\004keepR\004undoR\006action\0220\n" +
-      "\017expected_digest\030\006 \001(\tB\007\272H\004r\002\020\001R\016expecte" +
-      "dDigest\022 \n\006reason\030\007 \001(\tB\010\272H\005r\003\030\320\017R\006reaso" +
-      "n\0229\n\030acknowledge_unreviewable\030\010 \001(\010R\027ack" +
-      "nowledgeUnreviewable:\221\001\272H\215\001\032\212\001\n\"review_f" +
-      "ile_changes.file_change_id\022-file_change_" +
-      "id is required when scope is file\0325this." +
-      "scope != \'file\' || size(this.file_change" +
-      "_id) > 0\"E\n\031ReviewFileChangesResponse\022(\n" +
-      "\020reconcile_run_id\030\001 \001(\tR\016reconcileRunId\"" +
-      "\321\002\n\023ConfirmToolUseInput\022&\n\nsession_id\030\001 " +
-      "\001(\tB\007\272H\004r\002\020\001R\tsessionId\022\'\n\013tool_use_id\030\002" +
-      " \001(\tB\007\272H\004r\002\020\001R\ttoolUseId\022*\n\006result\030\003 \001(\t" +
-      "B\022\272H\017r\rR\005allowR\004denyR\006result\022+\n\014deny_mes" +
-      "sage\030\004 \001(\tB\010\272H\005r\003\030\320\017R\013denyMessage:\217\001\272H\213\001" +
-      "\032\210\001\n\035confirm_tool_use.deny_message\0220deny" +
-      "_message is only allowed when result is " +
-      "deny\0325this.result == \'deny\' || size(this" +
-      ".deny_message) == 0\"g\n\024GrantPermissionIn" +
-      "put\022&\n\nsession_id\030\001 \001(\tB\007\272H\004r\002\020\001R\tsessio" +
-      "nId\022\'\n\013tool_use_id\030\002 \001(\tB\007\272H\004r\002\020\001R\ttoolU" +
-      "seId\"\257\001\n\027GrantPermissionResponse\022A\n\005gran" +
-      "t\030\001 \001(\0132+.ai.stigmer.agentic.session.v1." +
-      "SessionEventR\005grant\022Q\n\rconfirmations\030\002 \003" +
-      "(\0132+.ai.stigmer.agentic.session.v1.Sessi" +
-      "onEventR\rconfirmations\"k\n\025InterruptSessi" +
-      "onInput\022&\n\nsession_id\030\001 \001(\tB\007\272H\004r\002\020\001R\tse" +
-      "ssionId\022*\n\021session_thread_id\030\002 \001(\tR\017sess" +
-      "ionThreadId\"\205\001\n\030InterruptSessionResponse" +
-      "\022A\n\005event\030\001 \001(\0132+.ai.stigmer.agentic.ses" +
-      "sion.v1.SessionEventR\005event\022&\n\017stopped_r" +
-      "un_ids\030\002 \003(\tR\rstoppedRunIds\"\232\003\n\030ListSess" +
+      "ntId\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"\212\001\n\013S" +
+      "essionList\022@\n\007entries\030\002 \003(\0132&.ai.stigmer" +
+      ".agentic.session.v1.SessionR\007entries\022&\n\017" +
+      "next_page_token\030\003 \001(\tR\rnextPageTokenJ\004\010\001" +
+      "\020\002R\013total_pages\"\212\001\n\023ListSessionsRequest\022" +
+      "$\n\tpage_size\030\001 \001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'\n" +
+      "\npage_token\030\002 \001(\tB\010\272H\005r\003\030\200\010R\tpageToken\022\022" +
+      "\n\004tags\030\003 \003(\tR\004tags\022\020\n\003org\030\004 \001(\tR\003org\"\216\001\n" +
+      "\032ListSessionsByAgentRequest\022!\n\010agent_id\030" +
+      "\001 \001(\tB\006\272H\003\310\001\001R\007agentId\022$\n\tpage_size\030\002 \001(" +
+      "\005B\007\272H\004\032\002(\000R\010pageSize\022\'\n\npage_token\030\003 \001(\t" +
+      "B\010\272H\005r\003\030\200\010R\tpageToken\"\224\001\n\034ListSessionsBy" +
+      "ChannelRequest\022%\n\nchannel_id\030\001 \001(\tB\006\272H\003\310" +
+      "\001\001R\tchannelId\022$\n\tpage_size\030\002 \001(\005B\007\272H\004\032\002(" +
+      "\000R\010pageSize\022\'\n\npage_token\030\003 \001(\tB\010\272H\005r\003\030\200" +
+      "\010R\tpageToken\"O\n\033UpdateSessionSubjectRequ" +
+      "est\022\026\n\002id\030\001 \001(\tB\006\272H\003\310\001\001R\002id\022\030\n\007subject\030\002" +
+      " \001(\tR\007subject\"\220\004\n\026ReviewFileChangesInput" +
+      "\022&\n\nsession_id\030\001 \001(\tB\007\272H\004r\002\020\001R\tsessionId" +
+      "\022+\n\rchange_set_id\030\002 \001(\tB\007\272H\004r\002\020\001R\013change" +
+      "SetId\022-\n\005scope\030\003 \001(\tB\027\272H\024r\022R\nchange_setR" +
+      "\004fileR\005scope\022$\n\016file_change_id\030\004 \001(\tR\014fi" +
+      "leChangeId\022)\n\006action\030\005 \001(\tB\021\272H\016r\014R\004keepR" +
+      "\004undoR\006action\0220\n\017expected_digest\030\006 \001(\tB\007" +
+      "\272H\004r\002\020\001R\016expectedDigest\022 \n\006reason\030\007 \001(\tB" +
+      "\010\272H\005r\003\030\320\017R\006reason\0229\n\030acknowledge_unrevie" +
+      "wable\030\010 \001(\010R\027acknowledgeUnreviewable:\221\001\272" +
+      "H\215\001\032\212\001\n\"review_file_changes.file_change_" +
+      "id\022-file_change_id is required when scop" +
+      "e is file\0325this.scope != \'file\' || size(" +
+      "this.file_change_id) > 0\"E\n\031ReviewFileCh" +
+      "angesResponse\022(\n\020reconcile_run_id\030\001 \001(\tR" +
+      "\016reconcileRunId\"\321\002\n\023ConfirmToolUseInput\022" +
+      "&\n\nsession_id\030\001 \001(\tB\007\272H\004r\002\020\001R\tsessionId\022" +
+      "\'\n\013tool_use_id\030\002 \001(\tB\007\272H\004r\002\020\001R\ttoolUseId" +
+      "\022*\n\006result\030\003 \001(\tB\022\272H\017r\rR\005allowR\004denyR\006re" +
+      "sult\022+\n\014deny_message\030\004 \001(\tB\010\272H\005r\003\030\320\017R\013de" +
+      "nyMessage:\217\001\272H\213\001\032\210\001\n\035confirm_tool_use.de" +
+      "ny_message\0220deny_message is only allowed" +
+      " when result is deny\0325this.result == \'de" +
+      "ny\' || size(this.deny_message) == 0\"g\n\024G" +
+      "rantPermissionInput\022&\n\nsession_id\030\001 \001(\tB" +
+      "\007\272H\004r\002\020\001R\tsessionId\022\'\n\013tool_use_id\030\002 \001(\t" +
+      "B\007\272H\004r\002\020\001R\ttoolUseId\"\257\001\n\027GrantPermission" +
+      "Response\022A\n\005grant\030\001 \001(\0132+.ai.stigmer.age" +
+      "ntic.session.v1.SessionEventR\005grant\022Q\n\rc" +
+      "onfirmations\030\002 \003(\0132+.ai.stigmer.agentic." +
+      "session.v1.SessionEventR\rconfirmations\"k" +
+      "\n\025InterruptSessionInput\022&\n\nsession_id\030\001 " +
+      "\001(\tB\007\272H\004r\002\020\001R\tsessionId\022*\n\021session_threa" +
+      "d_id\030\002 \001(\tR\017sessionThreadId\"\205\001\n\030Interrup" +
+      "tSessionResponse\022A\n\005event\030\001 \001(\0132+.ai.sti" +
+      "gmer.agentic.session.v1.SessionEventR\005ev" +
+      "ent\022&\n\017stopped_run_ids\030\002 \003(\tR\rstoppedRun" +
+      "Ids\"\232\003\n\030ListSessionEventsRequest\022%\n\nsess" +
+      "ion_id\030\001 \001(\tB\006\272H\003\310\001\001R\tsessionId\022\'\n\tpage_" +
+      "size\030\002 \001(\005B\n\272H\007\032\005\030\350\007(\000R\010pageSize\022\035\n\npage" +
+      "_token\030\003 \001(\tR\tpageToken\022)\n\005order\030\004 \001(\tB\023" +
+      "\272H\020r\013R\003ascR\004desc\330\001\001R\005order\0229\n\005types\030\005 \003(" +
+      "\tB#\272H \222\001\035\020@\"\031r\0272\025^[a-z_]+(\\.[a-z_]+)+$R\005" +
+      "types\022\"\n\rcreated_at_gt\030\006 \001(\tR\013createdAtG" +
+      "t\022$\n\016created_at_gte\030\007 \001(\tR\014createdAtGte\022" +
+      "\"\n\rcreated_at_lt\030\010 \001(\tR\013createdAtLt\022$\n\016c" +
+      "reated_at_lte\030\t \001(\tR\014createdAtLte\022\025\n\006run" +
+      "_id\030\n \001(\tR\005runId\"\177\n\020SessionEventList\022C\n\006" +
+      "events\030\001 \003(\0132+.ai.stigmer.agentic.sessio" +
+      "n.v1.SessionEventR\006events\022&\n\017next_page_t" +
+      "oken\030\002 \001(\tR\rnextPageToken\"\351\001\n\032StreamSess" +
       "ionEventsRequest\022%\n\nsession_id\030\001 \001(\tB\006\272H" +
-      "\003\310\001\001R\tsessionId\022\'\n\tpage_size\030\002 \001(\005B\n\272H\007\032" +
-      "\005\030\350\007(\000R\010pageSize\022\035\n\npage_token\030\003 \001(\tR\tpa" +
-      "geToken\022)\n\005order\030\004 \001(\tB\023\272H\020r\013R\003ascR\004desc" +
-      "\330\001\001R\005order\0229\n\005types\030\005 \003(\tB#\272H \222\001\035\020@\"\031r\0272" +
-      "\025^[a-z_]+(\\.[a-z_]+)+$R\005types\022\"\n\rcreated" +
-      "_at_gt\030\006 \001(\tR\013createdAtGt\022$\n\016created_at_" +
-      "gte\030\007 \001(\tR\014createdAtGte\022\"\n\rcreated_at_lt" +
-      "\030\010 \001(\tR\013createdAtLt\022$\n\016created_at_lte\030\t " +
-      "\001(\tR\014createdAtLte\022\025\n\006run_id\030\n \001(\tR\005runId" +
-      "\"\177\n\020SessionEventList\022C\n\006events\030\001 \003(\0132+.a" +
-      "i.stigmer.agentic.session.v1.SessionEven" +
-      "tR\006events\022&\n\017next_page_token\030\002 \001(\tR\rnext" +
-      "PageToken\"\351\001\n\032StreamSessionEventsRequest" +
-      "\022%\n\nsession_id\030\001 \001(\tB\006\272H\003\310\001\001R\tsessionId\022" +
-      "k\n\014event_deltas\030\002 \003(\tBH\272HE\222\001B\020\003\030\001\"<r:R\ra" +
-      "gent.messageR\016agent.thinkingR\031stigmer.to" +
-      "ol_output_deltaR\013eventDeltas\022)\n\tafter_se" +
-      "q\030\003 \001(\003B\007\272H\004\"\002(\000H\000R\010afterSeq\210\001\001B\014\n\n_afte" +
-      "r_seq\"\266\003\n\033StreamSessionEventsResponse\022C\n" +
-      "\005event\030\001 \001(\0132+.ai.stigmer.agentic.sessio" +
-      "n.v1.SessionEventH\000R\005event\022]\n\013event_star" +
-      "t\030\002 \001(\0132).ai.stigmer.agentic.session.v1." +
-      "EventStartB\017\362\205,\013event_startH\000R\neventStar" +
-      "t\022]\n\013event_delta\030\003 \001(\0132).ai.stigmer.agen" +
-      "tic.session.v1.EventDeltaB\017\362\205,\013event_del" +
-      "taH\000R\neventDelta\022\212\001\n\031stigmer_tool_output" +
-      "_delta\030\004 \001(\0132..ai.stigmer.agentic.sessio" +
-      "n.v1.ToolOutputDeltaB\035\362\205,\031stigmer.tool_o" +
-      "utput_deltaH\000R\026stigmerToolOutputDeltaB\007\n" +
-      "\005frame\"\362\002\n\023SessionEventPreview\022]\n\013event_" +
-      "start\030\001 \001(\0132).ai.stigmer.agentic.session" +
-      ".v1.EventStartB\017\362\205,\013event_startH\000R\nevent" +
-      "Start\022]\n\013event_delta\030\002 \001(\0132).ai.stigmer." +
-      "agentic.session.v1.EventDeltaB\017\362\205,\013event" +
-      "_deltaH\000R\neventDelta\022\212\001\n\031stigmer_tool_ou" +
-      "tput_delta\030\003 \001(\0132..ai.stigmer.agentic.se" +
-      "ssion.v1.ToolOutputDeltaB\035\362\205,\031stigmer.to" +
-      "ol_output_deltaH\000R\026stigmerToolOutputDelt" +
-      "aB\020\n\007preview\022\005\272H\002\010\001\"\344\001\n\030AppendSessionEve" +
-      "ntsInput\022\035\n\006run_id\030\001 \001(\tB\006\272H\003\310\001\001R\005runId\022" +
-      "N\n\006events\030\002 \003(\0132+.ai.stigmer.agentic.ses" +
-      "sion.v1.SessionEventB\t\272H\006\222\001\003\020\350\007R\006events\022" +
-      "Y\n\010previews\030\003 \003(\01322.ai.stigmer.agentic.s" +
-      "ession.v1.SessionEventPreviewB\t\272H\006\222\001\003\020\350\007" +
-      "R\010previews\"b\n\033AppendSessionEventsRespons" +
-      "e\022C\n\006events\030\001 \003(\0132+.ai.stigmer.agentic.s" +
-      "ession.v1.SessionEventR\006events\"\347\002\n\022Updat" +
-      "eSessionInput\022J\n\010resource\030\001 \001(\0132&.ai.sti" +
-      "gmer.agentic.session.v1.SessionB\006\272H\003\330\001\003R" +
-      "\010resource\022C\n\013update_mask\030\002 \001(\0132\032.google." +
-      "protobuf.FieldMaskB\006\272H\003\310\001\001R\nupdateMask:\277" +
-      "\001\272H\273\001\032\270\001\n\027update_names_its_target\022Gresou" +
-      "rce.metadata.id is required: an update n" +
-      "ames the session by its id\032Thas(this.res" +
-      "ource) && has(this.resource.metadata) &&" +
-      " this.resource.metadata.id != \'\'\"h\n\025Bind" +
-      "HarnessStateInput\022\035\n\006run_id\030\001 \001(\tB\006\272H\003\310\001" +
-      "\001R\005runId\0220\n\020harness_state_id\030\002 \001(\tB\006\272H\003\310" +
-      "\001\001R\016harnessStateId\"}\n\030BindHarnessStateRe" +
-      "sponse\022(\n\020harness_state_id\030\001 \001(\tR\016harnes" +
-      "sStateId\0227\n\030harness_state_id_history\030\002 \003" +
-      "(\tR\025harnessStateIdHistoryB\242\001B\007IoProtoP\001\242" +
-      "\002\004ASAS\252\002\035Ai.Stigmer.Agentic.Session.V1\312\002" +
-      "\035Ai\\Stigmer\\Agentic\\Session\\V1\342\002)Ai\\Stig" +
-      "mer\\Agentic\\Session\\V1\\GPBMetadata\352\002!Ai:" +
-      ":Stigmer::Agentic::Session::V1b\006proto3"
+      "\003\310\001\001R\tsessionId\022k\n\014event_deltas\030\002 \003(\tBH\272" +
+      "HE\222\001B\020\003\030\001\"<r:R\ragent.messageR\016agent.thin" +
+      "kingR\031stigmer.tool_output_deltaR\013eventDe" +
+      "ltas\022)\n\tafter_seq\030\003 \001(\003B\007\272H\004\"\002(\000H\000R\010afte" +
+      "rSeq\210\001\001B\014\n\n_after_seq\"\266\003\n\033StreamSessionE" +
+      "ventsResponse\022C\n\005event\030\001 \001(\0132+.ai.stigme" +
+      "r.agentic.session.v1.SessionEventH\000R\005eve" +
+      "nt\022]\n\013event_start\030\002 \001(\0132).ai.stigmer.age" +
+      "ntic.session.v1.EventStartB\017\362\205,\013event_st" +
+      "artH\000R\neventStart\022]\n\013event_delta\030\003 \001(\0132)" +
+      ".ai.stigmer.agentic.session.v1.EventDelt" +
+      "aB\017\362\205,\013event_deltaH\000R\neventDelta\022\212\001\n\031sti" +
+      "gmer_tool_output_delta\030\004 \001(\0132..ai.stigme" +
+      "r.agentic.session.v1.ToolOutputDeltaB\035\362\205" +
+      ",\031stigmer.tool_output_deltaH\000R\026stigmerTo" +
+      "olOutputDeltaB\007\n\005frame\"\362\002\n\023SessionEventP" +
+      "review\022]\n\013event_start\030\001 \001(\0132).ai.stigmer" +
+      ".agentic.session.v1.EventStartB\017\362\205,\013even" +
+      "t_startH\000R\neventStart\022]\n\013event_delta\030\002 \001" +
+      "(\0132).ai.stigmer.agentic.session.v1.Event" +
+      "DeltaB\017\362\205,\013event_deltaH\000R\neventDelta\022\212\001\n" +
+      "\031stigmer_tool_output_delta\030\003 \001(\0132..ai.st" +
+      "igmer.agentic.session.v1.ToolOutputDelta" +
+      "B\035\362\205,\031stigmer.tool_output_deltaH\000R\026stigm" +
+      "erToolOutputDeltaB\020\n\007preview\022\005\272H\002\010\001\"\344\001\n\030" +
+      "AppendSessionEventsInput\022\035\n\006run_id\030\001 \001(\t" +
+      "B\006\272H\003\310\001\001R\005runId\022N\n\006events\030\002 \003(\0132+.ai.sti" +
+      "gmer.agentic.session.v1.SessionEventB\t\272H" +
+      "\006\222\001\003\020\350\007R\006events\022Y\n\010previews\030\003 \003(\01322.ai.s" +
+      "tigmer.agentic.session.v1.SessionEventPr" +
+      "eviewB\t\272H\006\222\001\003\020\350\007R\010previews\"b\n\033AppendSess" +
+      "ionEventsResponse\022C\n\006events\030\001 \003(\0132+.ai.s" +
+      "tigmer.agentic.session.v1.SessionEventR\006" +
+      "events\"\347\002\n\022UpdateSessionInput\022J\n\010resourc" +
+      "e\030\001 \001(\0132&.ai.stigmer.agentic.session.v1." +
+      "SessionB\006\272H\003\330\001\003R\010resource\022C\n\013update_mask" +
+      "\030\002 \001(\0132\032.google.protobuf.FieldMaskB\006\272H\003\310" +
+      "\001\001R\nupdateMask:\277\001\272H\273\001\032\270\001\n\027update_names_i" +
+      "ts_target\022Gresource.metadata.id is requi" +
+      "red: an update names the session by its " +
+      "id\032Thas(this.resource) && has(this.resou" +
+      "rce.metadata) && this.resource.metadata." +
+      "id != \'\'\"h\n\025BindHarnessStateInput\022\035\n\006run" +
+      "_id\030\001 \001(\tB\006\272H\003\310\001\001R\005runId\0220\n\020harness_stat" +
+      "e_id\030\002 \001(\tB\006\272H\003\310\001\001R\016harnessStateId\"}\n\030Bi" +
+      "ndHarnessStateResponse\022(\n\020harness_state_" +
+      "id\030\001 \001(\tR\016harnessStateId\0227\n\030harness_stat" +
+      "e_id_history\030\002 \003(\tR\025harnessStateIdHistor" +
+      "yB\242\001B\007IoProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agen" +
+      "tic.Session.V1\312\002\035Ai\\Stigmer\\Agentic\\Sess" +
+      "ion\\V1\342\002)Ai\\Stigmer\\Agentic\\Session\\V1\\G" +
+      "PBMetadata\352\002!Ai::Stigmer::Agentic::Sessi" +
+      "on::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -311,7 +312,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_session_v1_SessionList_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_SessionList_descriptor,
-        new java.lang.String[] { "TotalPages", "Entries", "NextPageToken", });
+        new java.lang.String[] { "Entries", "NextPageToken", });
     internal_static_ai_stigmer_agentic_session_v1_ListSessionsRequest_descriptor =
       getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_agentic_session_v1_ListSessionsRequest_fieldAccessorTable = new

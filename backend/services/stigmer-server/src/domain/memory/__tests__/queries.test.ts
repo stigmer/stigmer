@@ -3,10 +3,11 @@
  * store opened with the server's list indexes (stigmer#1405): a subject's
  * read answers that subject's rows in the one organization, in every
  * lifecycle state, newest first; the "" sentinel reads by organization
- * and stays exact against a named subject's rows; the organization read
- * answers every subject's rows there and none elsewhere; and rows a
- * binary that does not know the index wrote (a second handle opened with
- * no declarations, the overlap of a roll) answer the same.
+ * and stays exact against a named subject's rows; and rows a binary that
+ * does not know the index wrote (a second handle opened with no
+ * declarations, the overlap of a roll) answer the same. The organization's
+ * list pages through the list index; memory.test.ts and the list-pages
+ * conformance suite pin it.
  */
 import { DatabaseSync } from "node:sqlite";
 
@@ -24,7 +25,7 @@ import { apiResourceKindName } from "../../../store/proto-fields.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
-import { listOrganizationMemories, listSubjectMemories } from "../queries.js";
+import { listSubjectMemories } from "../queries.js";
 
 let temp: TempStore;
 
@@ -153,21 +154,6 @@ describe("listSubjectMemories", () => {
     ).toEqual(["mem_carol_2", "mem_carol_1"]);
     expect(ids(await listSubjectMemories(temp.store, "acme", ""))).toEqual([
       "mem_local",
-    ]);
-  });
-});
-
-describe("listOrganizationMemories", () => {
-  it("answers every subject's rows in the organization, newest first, and none elsewhere", async () => {
-    await seedTwoOrganizations(temp.store);
-    expect(ids(await listOrganizationMemories(temp.store, "acme"))).toEqual([
-      "mem_local",
-      "mem_carol_2",
-      "mem_dave",
-      "mem_carol_1",
-    ]);
-    expect(ids(await listOrganizationMemories(temp.store, "zeta"))).toEqual([
-      "mem_carol_zeta",
     ]);
   });
 });

@@ -269,7 +269,7 @@ async function failureOf(promise: Promise<unknown>): Promise<ConnectError> {
 }
 
 async function scoresOf(runId: string, metric: string): Promise<Score[]> {
-  return (await scores.listByRun({ runId })).items.filter((score) => score.spec?.metric === metric);
+  return (await scores.listByRun({ runId })).entries.filter((score) => score.spec?.metric === metric);
 }
 
 /** The server's own score writes, over the in-process lane as `internal`. */

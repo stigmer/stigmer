@@ -27,9 +27,9 @@ class IdentityProviderQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_api__pb2.IdentityProvider.FromString,
                 _registered_method=True)
-        self.listByOrg = channel.unary_unary(
-                '/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/listByOrg',
-                request_serializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.ListIdentityProvidersByOrgInput.SerializeToString,
+        self.list = channel.unary_unary(
+                '/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/list',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.ListIdentityProvidersInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.IdentityProviders.FromString,
                 _registered_method=True)
 
@@ -55,12 +55,11 @@ class IdentityProviderQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def listByOrg(self, request, context):
+    def list(self, request, context):
         """List the identity providers of an organization that the caller may view.
 
         Returns the IdentityProviders whose metadata.org matches the input org and
-        that the caller could get by id. Typically a small set (1-3 per org), so
-        results are not paginated.
+        that the caller could get by id, newest first, one page at a time.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -79,9 +78,9 @@ def add_IdentityProviderQueryControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_api__pb2.IdentityProvider.SerializeToString,
             ),
-            'listByOrg': grpc.unary_unary_rpc_method_handler(
-                    servicer.listByOrg,
-                    request_deserializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.ListIdentityProvidersByOrgInput.FromString,
+            'list': grpc.unary_unary_rpc_method_handler(
+                    servicer.list,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.ListIdentityProvidersInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.IdentityProviders.SerializeToString,
             ),
     }
@@ -151,7 +150,7 @@ class IdentityProviderQueryController(object):
             _registered_method=True)
 
     @staticmethod
-    def listByOrg(request,
+    def list(request,
             target,
             options=(),
             channel_credentials=None,
@@ -164,8 +163,8 @@ class IdentityProviderQueryController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/listByOrg',
-            ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.ListIdentityProvidersByOrgInput.SerializeToString,
+            '/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/list',
+            ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.ListIdentityProvidersInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.IdentityProviders.FromString,
             options,
             channel_credentials,

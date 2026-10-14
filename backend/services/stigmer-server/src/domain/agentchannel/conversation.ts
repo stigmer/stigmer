@@ -41,10 +41,12 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { ChannelConversationCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_command_pb";
 import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_query_pb";
 import {
+  ChannelConversationCountSchema,
   ChannelConversationListSchema,
   ConversationTimelineSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
 import type {
+  ChannelConversationCount,
   ChannelConversationList,
   ConversationTimeline,
   GetChannelConversationInput,
@@ -73,10 +75,13 @@ export function registerChannelConversationServices(
 ): void {
   if (channelRuntime === undefined) {
     router.service(ChannelConversationQueryController, {
-      // Discovery-shaped reads answer truthful emptiness.
-      listConversations: (): ChannelConversationList =>
+      // Discovery-shaped reads answer truthful emptiness, and the count
+      // of an empty list is 0.
+      list: (): ChannelConversationList =>
         create(ChannelConversationListSchema),
-      getTimeline: (): ConversationTimeline =>
+      countConversations: (): ChannelConversationCount =>
+        create(ChannelConversationCountSchema, { count: 0 }),
+      listTimeline: (): ConversationTimeline =>
         create(ConversationTimelineSchema),
       // Single-row reads answer the uniform miss, with no local probing.
       getConversation: (input: GetChannelConversationInput) => {
@@ -127,14 +132,18 @@ export function registerChannelConversationServices(
   router.service(ChannelConversationQueryController, {
     // A credential bound to one organization lists no other's
     // conversations (refuse-bound-elsewhere.ts); the runtime decides the rest.
-    listConversations: (input, ctx) => {
+    list: (input, ctx) => {
       refuseBoundElsewhere(callerIdentityOf(ctx), input.org);
-      return conversations.listConversations(input, callerIdentityOf(ctx));
+      return conversations.list(input, callerIdentityOf(ctx));
+    },
+    countConversations: (input, ctx) => {
+      refuseBoundElsewhere(callerIdentityOf(ctx), input.org);
+      return conversations.countConversations(input, callerIdentityOf(ctx));
     },
     getConversation: (input, ctx) =>
       conversations.getConversation(input, callerIdentityOf(ctx)),
-    getTimeline: (input, ctx) =>
-      conversations.getTimeline(input, callerIdentityOf(ctx)),
+    listTimeline: (input, ctx) =>
+      conversations.listTimeline(input, callerIdentityOf(ctx)),
     getMediaDownloadUrl: (input, ctx) =>
       conversations.getMediaDownloadUrl(input, callerIdentityOf(ctx)),
   });

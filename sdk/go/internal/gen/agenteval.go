@@ -4,6 +4,7 @@ package gen
 
 import (
 	"context"
+	"iter"
 
 	agentevalv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agenteval/v1"
 	pluginevalv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugineval/v1"
@@ -11,6 +12,7 @@ import (
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 )
 
 // AgentEvalClient provides operations on agenteval resources.
@@ -53,6 +55,35 @@ func (a *AgentEvalClient) Get(ctx context.Context, id string) (*agentevalv1.Agen
 func (a *AgentEvalClient) ListByAgent(ctx context.Context, input *agentevalv1.ListAgentEvalsByAgentRequest) (*agentevalv1.AgentEvalList, error) {
 	resp, err := a.query.ListByAgent(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListByAgentAll returns every entry of ListByAgent, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (a *AgentEvalClient) ListByAgentAll(ctx context.Context, input *agentevalv1.ListAgentEvalsByAgentRequest) iter.Seq2[*agentevalv1.AgentEval, error] {
+	return func(yield func(*agentevalv1.AgentEval, error) bool) {
+		req := &agentevalv1.ListAgentEvalsByAgentRequest{}
+		if input != nil {
+			req = proto.Clone(input).(*agentevalv1.ListAgentEvalsByAgentRequest)
+		}
+		for {
+			page, err := a.ListByAgent(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 // AgentEvalInput holds the fields for creating or applying a AgentEval.

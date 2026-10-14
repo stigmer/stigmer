@@ -59,12 +59,8 @@ const pluginVersionBinding: VersionHistoryBinding<
     }
     return entry;
   },
-  response: (versions, nextPageToken, totalCount) =>
-    create(ListPluginVersionsResponseSchema, {
-      versions,
-      nextPageToken,
-      totalCount,
-    }),
+  response: (entries, nextPageToken) =>
+    create(ListPluginVersionsResponseSchema, { entries, nextPageToken }),
 };
 
 /**

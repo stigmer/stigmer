@@ -4,10 +4,12 @@ package gen
 
 import (
 	"context"
+	"iter"
 
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	iampolicyv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/iampolicy/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 )
 
 // IamPolicyClient provides operations on iampolicy resources.
@@ -96,6 +98,35 @@ func (i *IamPolicyClient) GetPrincipalsCount(ctx context.Context, input *iampoli
 func (i *IamPolicyClient) ListAccessHistory(ctx context.Context, input *iampolicyv1.ListAccessHistoryInput) (*iampolicyv1.AccessHistoryPage, error) {
 	resp, err := i.query.ListAccessHistory(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListAccessHistoryAll returns every entry of ListAccessHistory, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (i *IamPolicyClient) ListAccessHistoryAll(ctx context.Context, input *iampolicyv1.ListAccessHistoryInput) iter.Seq2[*iampolicyv1.AccessHistoryEntry, error] {
+	return func(yield func(*iampolicyv1.AccessHistoryEntry, error) bool) {
+		req := &iampolicyv1.ListAccessHistoryInput{}
+		if input != nil {
+			req = proto.Clone(input).(*iampolicyv1.ListAccessHistoryInput)
+		}
+		for {
+			page, err := i.ListAccessHistory(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 // IamPolicyInput holds the fields for creating or applying a IamPolicy.

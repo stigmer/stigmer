@@ -28,15 +28,3 @@ message Skill {
   // System-managed skill state (observed state).
   SkillStatus status = 5;
 }
-
-// SkillList represents a paginated list of skills.
-message SkillList {
-  // API version for this list type.
-  string api_version = 1;
-
-  // Resource kind identifier for the list.
-  string kind = 2;
-
-  // List of skill resources.
-  repeated Skill items = 3;
-}

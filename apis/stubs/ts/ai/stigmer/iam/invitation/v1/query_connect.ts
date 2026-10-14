@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { InvitationId, InvitationPreview, Invitations, InvitationTokenInput, ListInvitationsByOrgInput } from "./io_pbjs";
+import { InvitationId, InvitationPreview, Invitations, InvitationTokenInput, ListInvitationsInput } from "./io_pbjs";
 import { Invitation } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -27,15 +27,15 @@ export const InvitationQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * List all invitations belonging to an organization.
+     * List the invitations belonging to an organization.
      *
      * Returns invitations ordered by creation time (newest first).
      *
-     * @generated from rpc ai.stigmer.iam.invitation.v1.InvitationQueryController.listByOrg
+     * @generated from rpc ai.stigmer.iam.invitation.v1.InvitationQueryController.list
      */
-    listByOrg: {
-      name: "listByOrg",
-      I: ListInvitationsByOrgInput,
+    list: {
+      name: "list",
+      I: ListInvitationsInput,
       O: Invitations,
       kind: MethodKind.Unary,
     },

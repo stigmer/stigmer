@@ -48,7 +48,7 @@ function mockClient(options: { admin?: boolean; keys?: ProviderKey[]; setError?:
   const keys = [...(options.keys ?? [])];
   return {
     providerkey: {
-      list: vi.fn().mockImplementation(() => Promise.resolve({ keys: [...keys] })),
+      list: vi.fn().mockImplementation(() => Promise.resolve({ entries: [...keys], nextPageToken: "" })),
       set: options.setError
         ? vi.fn().mockRejectedValue(options.setError)
         : vi.fn().mockImplementation((input: { provider: string; apiKey: string; baseUrl: string }) => {

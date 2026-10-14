@@ -181,6 +181,19 @@ public final class VaultClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    /**
+     * Every entry of {@code list}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<Vault> listAll(ListVaultsRequest input) {
+        return Pages.<VaultList, Vault>iterate(
+            input.getPageToken(),
+            token -> list(input.toBuilder().setPageToken(token).build()),
+            VaultList::getEntriesList,
+            VaultList::getNextPageToken);
+    }
+
     public ExecutionValues fetchValues(FetchExecutionValuesInput input) {
         try {
             return vaultValue.fetchValues(input);

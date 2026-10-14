@@ -7,10 +7,11 @@
  * The list is a summary: the server returns each eval with its aggregates,
  * per-target scores and notes but its cases' tries emptied, so a long
  * history stays small; a view that shows tries reads the one eval through
- * `usePluginEval`. While any listed eval is pending or running the list is
- * read again every {@link PLUGIN_EVAL_POLL_MS}, so a row shows the eval
- * finished once it has; it stops once all have finished. An empty plugin
- * id asks nothing. Pinned by `__tests__/hooks.test.tsx`.
+ * `usePluginEval`. While an eval on the first page is pending or running
+ * that page is read again every {@link PLUGIN_EVAL_POLL_MS}, so a row shows
+ * the eval finished once it has; it stops once all there have finished. A
+ * poll refreshes only the first page, so only its rows start one (a new
+ * eval lands there, newest first). An empty plugin id asks nothing. Pinned by `__tests__/hooks.test.tsx`.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -18,7 +19,7 @@ import { create } from "@bufbuild/protobuf";
 import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { ListPluginEvalsByPluginRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/io_pb";
 import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useCursorPages } from "../internal/useCursorPages.js";
 import { isEvalActive } from "./eval-view.js";
 import { PLUGIN_EVAL_POLL_MS } from "./usePluginEval.js";
 
@@ -32,9 +33,16 @@ export interface UsePluginEvalsReturn {
   readonly error: Error | null;
   /** Re-fetch the list (after starting or deleting an eval). */
   readonly refetch: () => void;
+  /** `true` while the server holds entries beyond those loaded. */
+  readonly hasMore: boolean;
+  /** Load the next page. No-op while one is loading or when nothing follows. */
+  readonly loadMore: () => void;
+  /** `true` while a `loadMore` read is in flight. */
+  readonly isLoadingMore: boolean;
+  /** Error from the last failed `loadMore`, or `null`. */
+  readonly loadMoreError: Error | null;
 }
 
-const NO_EVALS: readonly PluginEval[] = [];
 
 /**
  * Data hook that lists a plugin's {@link PluginEval}s, newest first,
@@ -55,26 +63,27 @@ export function usePluginEvals(pluginId: string): UsePluginEvalsReturn {
   // Asks again while the last answer holds an eval that has not finished.
   const [polling, setPolling] = useState(false);
 
-  const { data, isLoading, error, refetch } = useFetch(
+  const pages = useCursorPages<PluginEval>(
     pluginId
-      ? async (): Promise<readonly PluginEval[]> =>
-          (
-            await stigmer.plugineval.listByPlugin(
-              create(ListPluginEvalsByPluginRequestSchema, { pluginId }),
-            )
-          ).items
+      ? (pageToken) =>
+          stigmer.plugineval.listByPlugin(
+            create(ListPluginEvalsByPluginRequestSchema, { pluginId, pageToken }),
+          )
       : null,
     [pluginId, stigmer],
-    NO_EVALS,
+    (row) => row.metadata?.id ?? "",
     { refetchInterval: polling ? PLUGIN_EVAL_POLL_MS : false },
   );
+  const data = pages.items;
+  const firstPage = pages.firstPage;
 
   useEffect(() => {
-    setPolling(data.some(isEvalActive));
-  }, [data]);
+    setPolling(firstPage?.entries.some(isEvalActive) ?? false);
+  }, [firstPage]);
 
+  const { hasMore, loadMore, isLoadingMore, loadMoreError, isLoading, error, refetch } = pages;
   return useMemo(
-    () => ({ evals: data, isLoading, error, refetch }),
-    [data, isLoading, error, refetch],
+    () => ({ evals: data, hasMore, loadMore, isLoadingMore, loadMoreError, isLoading, error, refetch }),
+    [data, hasMore, loadMore, isLoadingMore, loadMoreError, isLoading, error, refetch],
   );
 }

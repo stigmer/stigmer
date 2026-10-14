@@ -4,12 +4,13 @@ package gen
 
 import (
 	"context"
+	"iter"
 	"time"
 
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apikeyv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/apikey/v1"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -64,14 +65,72 @@ func (a *ApiKeyClient) GetByKeyHash(ctx context.Context, input *apikeyv1.ApiKeyH
 	return resp, wrapErr(err)
 }
 
-func (a *ApiKeyClient) FindAll(ctx context.Context) (*apikeyv1.ApiKeys, error) {
-	resp, err := a.query.FindAll(ctx, &emptypb.Empty{})
+func (a *ApiKeyClient) List(ctx context.Context, input *apikeyv1.ListApiKeysInput) (*apikeyv1.ApiKeys, error) {
+	resp, err := a.query.List(ctx, input)
 	return resp, wrapErr(err)
 }
 
-func (a *ApiKeyClient) FindByAccount(ctx context.Context, id string) (*apikeyv1.ApiKeys, error) {
-	resp, err := a.query.FindByAccount(ctx, &apikeyv1.ApiKeyAccountId{Value: id})
+// ListAll returns every entry of List, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (a *ApiKeyClient) ListAll(ctx context.Context, input *apikeyv1.ListApiKeysInput) iter.Seq2[*apikeyv1.ApiKey, error] {
+	return func(yield func(*apikeyv1.ApiKey, error) bool) {
+		req := &apikeyv1.ListApiKeysInput{}
+		if input != nil {
+			req = proto.Clone(input).(*apikeyv1.ListApiKeysInput)
+		}
+		for {
+			page, err := a.List(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
+}
+
+func (a *ApiKeyClient) ListByAccount(ctx context.Context, input *apikeyv1.ListApiKeysByAccountInput) (*apikeyv1.ApiKeys, error) {
+	resp, err := a.query.ListByAccount(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListByAccountAll returns every entry of ListByAccount, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (a *ApiKeyClient) ListByAccountAll(ctx context.Context, input *apikeyv1.ListApiKeysByAccountInput) iter.Seq2[*apikeyv1.ApiKey, error] {
+	return func(yield func(*apikeyv1.ApiKey, error) bool) {
+		req := &apikeyv1.ListApiKeysByAccountInput{}
+		if input != nil {
+			req = proto.Clone(input).(*apikeyv1.ListApiKeysByAccountInput)
+		}
+		for {
+			page, err := a.ListByAccount(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 // ApiKeyInput holds the fields for creating or applying a ApiKey.

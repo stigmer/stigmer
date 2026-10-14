@@ -2,6 +2,7 @@ package stigmer
 
 import (
 	"context"
+	"iter"
 
 	"github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
 	billingv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/v1"
@@ -43,6 +44,12 @@ type ListModelPricingBaselinesParams struct {
 	// IncludeHistory true includes SUPERSEDED and RETIRED revisions (the full
 	// audit history). Default: ACTIVE documents only.
 	IncludeHistory bool
+	// PageSize is the most entries to return: 0 asks for the default page
+	// of 50, and above 100 reads 100.
+	PageSize int32
+	// PageToken is the previous response's NextPageToken, to continue the
+	// same list.
+	PageToken string
 }
 
 // UpsertModelPricingBaselineParams creates or revises a baseline entry.
@@ -141,15 +148,47 @@ func (b *BillingClient) CreatePaymentMethodSetupSession(ctx context.Context, par
 // Platform-operator surface (can_manage_model_pricing on platform:stigmer):
 // rates are the providers' list prices.
 func (b *BillingClient) ListModelPricingBaselines(ctx context.Context, params *ListModelPricingBaselinesParams) (*ModelPricingBaselinesResponse, error) {
-	req := &billingv1.ListModelPricingBaselinesInput{}
-	if params != nil {
-		req.IncludeHistory = params.IncludeHistory
-	}
-	resp, err := b.query.ListModelPricingBaselines(ctx, req)
+	resp, err := b.query.ListModelPricingBaselines(ctx, baselinesRequest(params))
 	if err != nil {
 		return nil, gen.WrapErr(err)
 	}
 	return resp, nil
+}
+
+// ListModelPricingBaselinesAll returns every baseline of the catalog, page
+// after page: it follows NextPageToken from the token params names until
+// the catalog ends. The sequence yields the first error and stops;
+// breaking out of the loop stops the reads.
+func (b *BillingClient) ListModelPricingBaselinesAll(ctx context.Context, params *ListModelPricingBaselinesParams) iter.Seq2[*ModelPricingBaseline, error] {
+	return func(yield func(*ModelPricingBaseline, error) bool) {
+		req := baselinesRequest(params)
+		for {
+			page, err := b.query.ListModelPricingBaselines(ctx, req)
+			if err != nil {
+				yield(nil, gen.WrapErr(err))
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
+}
+
+func baselinesRequest(params *ListModelPricingBaselinesParams) *billingv1.ListModelPricingBaselinesInput {
+	req := &billingv1.ListModelPricingBaselinesInput{}
+	if params != nil {
+		req.IncludeHistory = params.IncludeHistory
+		req.PageSize = params.PageSize
+		req.PageToken = params.PageToken
+	}
+	return req
 }
 
 // UpsertModelPricingBaseline creates or revises one model registry baseline

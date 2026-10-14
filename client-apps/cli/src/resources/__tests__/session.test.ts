@@ -1,6 +1,6 @@
 // Unit tests for the session read helpers resume is built on: a session is
-// read by its id, and its runs are listed in one call for that session,
-// returned in the server's order (newest first). A session's events are
+// read by its id, and its runs are listed for that session, every page
+// followed, returned in the server's order (newest first). A session's events are
 // listed oldest first, every page followed, optionally only one run's; a run
 // names its session by its target, and a run that names none is refused. The
 // client is a double recording what it was asked.
@@ -34,26 +34,32 @@ describe("session reads", () => {
     expect(session.metadata?.id).toBe("ses_1");
   });
 
-  it("lists a session's runs in one call, in the server's order", async () => {
+  it("lists a session's runs following every page, in the server's order", async () => {
     const requests: ListRunsBySessionRequest[] = [];
     const client = {
       run: {
         listBySession: async (req: ListRunsBySessionRequest) => {
           requests.push(req);
-          return {
-            entries: [
-              create(RunSchema, { metadata: { id: "aex_2" } }),
-              create(RunSchema, { metadata: { id: "aex_1" } }),
-            ],
-          };
+          return req.pageToken === ""
+            ? { entries: [create(RunSchema, { metadata: { id: "aex_3" } })], nextPageToken: "page-2" }
+            : {
+                entries: [
+                  create(RunSchema, { metadata: { id: "aex_2" } }),
+                  create(RunSchema, { metadata: { id: "aex_1" } }),
+                ],
+                nextPageToken: "",
+              };
         },
       },
     } as unknown as Stigmer;
 
     const runs = await listRunsBySession(client, "ses_1");
 
-    expect(requests.map((r) => r.sessionId)).toEqual(["ses_1"]);
-    expect(runs.map((r) => r.metadata?.id)).toEqual(["aex_2", "aex_1"]);
+    expect(requests.map((r) => [r.sessionId, r.pageToken])).toEqual([
+      ["ses_1", ""],
+      ["ses_1", "page-2"],
+    ]);
+    expect(runs.map((r) => r.metadata?.id)).toEqual(["aex_3", "aex_2", "aex_1"]);
   });
 
   it("lists a session's events oldest first, following every page", async () => {

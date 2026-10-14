@@ -4,7 +4,7 @@ import { create, equals } from "@bufbuild/protobuf";
 import type { ConversationTimelineItem } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
 import {
   ConversationTimelineItemSchema,
-  GetConversationTimelineInputSchema,
+  ListConversationTimelineInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStigmer } from "../hooks.js";
@@ -104,14 +104,14 @@ export function useConversationTimeline(
 
   const fetchFn = enabled
     ? async (): Promise<HeadPage> => {
-        const result = await stigmer.agentChannel.getTimeline(
-          create(GetConversationTimelineInputSchema, {
+        const result = await stigmer.agentChannel.listTimeline(
+          create(ListConversationTimelineInputSchema, {
             agentChannelId,
             conversationKey,
             pageSize,
           }),
         );
-        return { items: result.items, nextPageToken: result.nextPageToken };
+        return { items: result.entries, nextPageToken: result.nextPageToken };
       }
     : null;
 
@@ -162,8 +162,8 @@ export function useConversationTimeline(
     setLoadOlderError(null);
 
     stigmer.agentChannel
-      .getTimeline(
-        create(GetConversationTimelineInputSchema, {
+      .listTimeline(
+        create(ListConversationTimelineInputSchema, {
           agentChannelId,
           conversationKey,
           pageSize,
@@ -173,7 +173,7 @@ export function useConversationTimeline(
       .then(
         (result) => {
           if (epochRef.current !== epoch) return;
-          setKnown((current) => upsert(current, result.items));
+          setKnown((current) => upsert(current, result.entries));
           setOlderCursor(result.nextPageToken);
           setIsLoadingOlder(false);
         },

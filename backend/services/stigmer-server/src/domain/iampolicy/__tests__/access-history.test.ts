@@ -60,6 +60,7 @@ import type { PrincipalDisplay } from "../../../extensions/principal-display.js"
 import { createApiResourceInterceptor } from "../../../pipeline/interceptors/apiresource.js";
 import { callerIdentityKey } from "../../../pipeline/interceptors/auth.js";
 import type { PipelineStep } from "../../../pipeline/pipeline.js";
+import { LIST_PAGE_MAX_SIZE } from "../../../pipeline/steps/list-page.js";
 import { fakeIdentityAccountStore } from "../../identityaccount/__tests__/support.js";
 import {
   CAUSE_ON_WIRE,
@@ -286,10 +287,19 @@ describe("listAccessHistory's chain", () => {
     );
   });
 
-  it("refuses a page size above the most a page holds", async () => {
-    const h = await harness();
-    const error = await rejection(h.query.listAccessHistory({ org: ACME, pageSize: 101 }));
-    expect(error.code).toBe(Code.InvalidArgument);
+  it("reads a page size above the most a page holds as that most", async () => {
+    const limits: number[] = [];
+    const base = fakeIamPolicyStore();
+    const policies: IamPolicyStore = {
+      ...base,
+      listChanges: (org, page) => {
+        limits.push(page.limit);
+        return base.listChanges(org, page);
+      },
+    };
+    const h = await harness({ policies });
+    await h.query.listAccessHistory({ org: ACME, pageSize: 101 });
+    expect(limits).toEqual([LIST_PAGE_MAX_SIZE + 1]);
   });
 
   it("answers a fault naming the people as INTERNAL with a static message", async () => {

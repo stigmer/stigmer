@@ -3,10 +3,10 @@
 // rubric's FAIL line comes from the judge's failing reason, else a plugin
 // eval's failing check, else a person's thumbs-down comment; --skill adds the
 // skill check; a run that continued a conversation is noted (an earlier run
-// of its session, or any other run when the run has no creation time), and
-// a run outside a session never reads one; a run with no request, an
-// existing case directory, a bad --name and a bad --skill are refused before
-// anything is written.
+// of its session, found on any page of its runs, or any other run when the
+// run has no creation time), and a run outside a session never reads one; a
+// run with no request, an existing case directory, a bad --name and a bad
+// --skill are refused before anything is written.
 
 import { create } from "@bufbuild/protobuf";
 import { timestampFromMs } from "@bufbuild/protobuf/wkt";
@@ -26,13 +26,20 @@ function runAt(id: string, ms: number, message = "Look over my diff and find the
   });
 }
 
+// The session's runs answer one run a page, newest first as the server
+// orders them, so a run that only a later page holds is still found.
 function fakeClient(run: Run, scores: Score[], sessionRuns: Run[] = [run]): Stigmer {
+  const newestFirst = [...sessionRuns].reverse();
   return {
     run: {
       get: async () => run,
-      listBySession: async () => ({ entries: sessionRuns }),
+      listBySession: async (req: { pageToken: string }) => {
+        const at = req.pageToken === "" ? 0 : Number(req.pageToken);
+        const next = at + 1 < newestFirst.length ? String(at + 1) : "";
+        return { entries: newestFirst.slice(at, at + 1), nextPageToken: next };
+      },
     },
-    score: { listByRun: async () => ({ items: scores }) },
+    score: { listByRun: async () => ({ entries: scores, nextPageToken: "" }) },
   } as unknown as Stigmer;
 }
 
@@ -107,6 +114,14 @@ describe("writeEvalCaseFromRun", () => {
     expect(folder.err()).toContain("Note: built from the last request; resumed conversations are not run yet.");
   });
 
+  it("finds the earlier run on a later page of the session's runs", async () => {
+    const folder = fakeFolder();
+    const run = runAt("run_2", 20);
+    const oldestFirst = [runAt("run_1", 10), run, runAt("run_3", 30), runAt("run_4", 40)];
+    await writeEvalCaseFromRun(fakeClient(run, [], oldestFirst), "run_2", { name: "a" }, folder.io);
+    expect(folder.err()).toContain("Note: built from the last request");
+  });
+
   it("reads the session's runs only for a run that joined one, and without a creation time counts any other run", async () => {
     const newSessionRun = create(RunSchema, {
       metadata: { id: "run_1" },
@@ -116,9 +131,9 @@ describe("writeEvalCaseFromRun", () => {
     const newSessionClient = {
       run: {
         get: async () => newSessionRun,
-        listBySession: async () => ((sessionReads += 1), { entries: [] }),
+        listBySession: async () => ((sessionReads += 1), { entries: [], nextPageToken: "" }),
       },
-      score: { listByRun: async () => ({ items: [] }) },
+      score: { listByRun: async () => ({ entries: [], nextPageToken: "" }) },
     } as unknown as Stigmer;
     const alone = fakeFolder();
     await writeEvalCaseFromRun(newSessionClient, "run_1", { name: "a" }, alone.io);

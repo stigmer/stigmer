@@ -77,35 +77,35 @@ public final class ScheduleQueryControllerGrpc {
     return getGetByReferenceMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest,
-      ai.stigmer.agentic.schedule.v1.ScheduleList> getGetByAgentMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ListSchedulesByAgentRequest,
+      ai.stigmer.agentic.schedule.v1.ScheduleList> getListByAgentMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "getByAgent",
-      requestType = ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest.class,
+      fullMethodName = SERVICE_NAME + '/' + "listByAgent",
+      requestType = ai.stigmer.agentic.schedule.v1.ListSchedulesByAgentRequest.class,
       responseType = ai.stigmer.agentic.schedule.v1.ScheduleList.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest,
-      ai.stigmer.agentic.schedule.v1.ScheduleList> getGetByAgentMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest, ai.stigmer.agentic.schedule.v1.ScheduleList> getGetByAgentMethod;
-    if ((getGetByAgentMethod = ScheduleQueryControllerGrpc.getGetByAgentMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ListSchedulesByAgentRequest,
+      ai.stigmer.agentic.schedule.v1.ScheduleList> getListByAgentMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ListSchedulesByAgentRequest, ai.stigmer.agentic.schedule.v1.ScheduleList> getListByAgentMethod;
+    if ((getListByAgentMethod = ScheduleQueryControllerGrpc.getListByAgentMethod) == null) {
       synchronized (ScheduleQueryControllerGrpc.class) {
-        if ((getGetByAgentMethod = ScheduleQueryControllerGrpc.getGetByAgentMethod) == null) {
-          ScheduleQueryControllerGrpc.getGetByAgentMethod = getGetByAgentMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest, ai.stigmer.agentic.schedule.v1.ScheduleList>newBuilder()
+        if ((getListByAgentMethod = ScheduleQueryControllerGrpc.getListByAgentMethod) == null) {
+          ScheduleQueryControllerGrpc.getListByAgentMethod = getListByAgentMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.schedule.v1.ListSchedulesByAgentRequest, ai.stigmer.agentic.schedule.v1.ScheduleList>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getByAgent"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listByAgent"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest.getDefaultInstance()))
+                  ai.stigmer.agentic.schedule.v1.ListSchedulesByAgentRequest.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.schedule.v1.ScheduleList.getDefaultInstance()))
-              .setSchemaDescriptor(new ScheduleQueryControllerMethodDescriptorSupplier("getByAgent"))
+              .setSchemaDescriptor(new ScheduleQueryControllerMethodDescriptorSupplier("listByAgent"))
               .build();
         }
       }
     }
-    return getGetByAgentMethod;
+    return getListByAgentMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ListSchedulesRequest,
@@ -258,15 +258,15 @@ public final class ScheduleQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get all schedules of a specific agent.
+     * List the schedules of a specific agent, newest first.
      * Returns only schedules the caller has access to.
      * This is how the agent's operational surfaces and CLI resolve an
      * agent's existing schedules regardless of slug.
      * </pre>
      */
-    default void getByAgent(ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest request,
+    default void listByAgent(ai.stigmer.agentic.schedule.v1.ListSchedulesByAgentRequest request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.ScheduleList> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetByAgentMethod(), responseObserver);
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListByAgentMethod(), responseObserver);
     }
 
     /**
@@ -351,16 +351,16 @@ public final class ScheduleQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get all schedules of a specific agent.
+     * List the schedules of a specific agent, newest first.
      * Returns only schedules the caller has access to.
      * This is how the agent's operational surfaces and CLI resolve an
      * agent's existing schedules regardless of slug.
      * </pre>
      */
-    public void getByAgent(ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest request,
+    public void listByAgent(ai.stigmer.agentic.schedule.v1.ListSchedulesByAgentRequest request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.ScheduleList> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getGetByAgentMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getListByAgentMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -431,15 +431,15 @@ public final class ScheduleQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get all schedules of a specific agent.
+     * List the schedules of a specific agent, newest first.
      * Returns only schedules the caller has access to.
      * This is how the agent's operational surfaces and CLI resolve an
      * agent's existing schedules regardless of slug.
      * </pre>
      */
-    public ai.stigmer.agentic.schedule.v1.ScheduleList getByAgent(ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.schedule.v1.ScheduleList listByAgent(ai.stigmer.agentic.schedule.v1.ListSchedulesByAgentRequest request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getGetByAgentMethod(), getCallOptions(), request);
+          getChannel(), getListByAgentMethod(), getCallOptions(), request);
     }
 
     /**
@@ -508,15 +508,15 @@ public final class ScheduleQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get all schedules of a specific agent.
+     * List the schedules of a specific agent, newest first.
      * Returns only schedules the caller has access to.
      * This is how the agent's operational surfaces and CLI resolve an
      * agent's existing schedules regardless of slug.
      * </pre>
      */
-    public ai.stigmer.agentic.schedule.v1.ScheduleList getByAgent(ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest request) {
+    public ai.stigmer.agentic.schedule.v1.ScheduleList listByAgent(ai.stigmer.agentic.schedule.v1.ListSchedulesByAgentRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getGetByAgentMethod(), getCallOptions(), request);
+          getChannel(), getListByAgentMethod(), getCallOptions(), request);
     }
 
     /**
@@ -587,16 +587,16 @@ public final class ScheduleQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get all schedules of a specific agent.
+     * List the schedules of a specific agent, newest first.
      * Returns only schedules the caller has access to.
      * This is how the agent's operational surfaces and CLI resolve an
      * agent's existing schedules regardless of slug.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.schedule.v1.ScheduleList> getByAgent(
-        ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.schedule.v1.ScheduleList> listByAgent(
+        ai.stigmer.agentic.schedule.v1.ListSchedulesByAgentRequest request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getGetByAgentMethod(), getCallOptions()), request);
+          getChannel().newCall(getListByAgentMethod(), getCallOptions()), request);
     }
 
     /**
@@ -628,7 +628,7 @@ public final class ScheduleQueryControllerGrpc {
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_GET_BY_REFERENCE = 1;
-  private static final int METHODID_GET_BY_AGENT = 2;
+  private static final int METHODID_LIST_BY_AGENT = 2;
   private static final int METHODID_LIST = 3;
   private static final int METHODID_LIST_FIRES = 4;
 
@@ -657,8 +657,8 @@ public final class ScheduleQueryControllerGrpc {
           serviceImpl.getByReference((ai.stigmer.commons.apiresource.ApiResourceReference) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule>) responseObserver);
           break;
-        case METHODID_GET_BY_AGENT:
-          serviceImpl.getByAgent((ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest) request,
+        case METHODID_LIST_BY_AGENT:
+          serviceImpl.listByAgent((ai.stigmer.agentic.schedule.v1.ListSchedulesByAgentRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.ScheduleList>) responseObserver);
           break;
         case METHODID_LIST:
@@ -702,12 +702,12 @@ public final class ScheduleQueryControllerGrpc {
               ai.stigmer.agentic.schedule.v1.Schedule>(
                 service, METHODID_GET_BY_REFERENCE)))
         .addMethod(
-          getGetByAgentMethod(),
+          getListByAgentMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest,
+              ai.stigmer.agentic.schedule.v1.ListSchedulesByAgentRequest,
               ai.stigmer.agentic.schedule.v1.ScheduleList>(
-                service, METHODID_GET_BY_AGENT)))
+                service, METHODID_LIST_BY_AGENT)))
         .addMethod(
           getListMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -772,7 +772,7 @@ public final class ScheduleQueryControllerGrpc {
               .setSchemaDescriptor(new ScheduleQueryControllerFileDescriptorSupplier())
               .addMethod(getGetMethod())
               .addMethod(getGetByReferenceMethod())
-              .addMethod(getGetByAgentMethod())
+              .addMethod(getListByAgentMethod())
               .addMethod(getListMethod())
               .addMethod(getListFiresMethod())
               .build();

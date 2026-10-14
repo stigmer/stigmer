@@ -4,6 +4,7 @@ package gen
 
 import (
 	"context"
+	"iter"
 
 	agentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1"
 	pluginv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugin/v1"
@@ -12,9 +13,8 @@ import (
 	vaultv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/vault/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
-	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
-	searchv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
@@ -22,14 +22,12 @@ import (
 type AgentClient struct {
 	command agentv1.AgentCommandControllerClient
 	query   agentv1.AgentQueryControllerClient
-	search  searchv1.SearchServiceClient
 }
 
 func NewAgentClient(conn grpc.ClientConnInterface) *AgentClient {
 	return &AgentClient{
 		command: agentv1.NewAgentCommandControllerClient(conn),
 		query:   agentv1.NewAgentQueryControllerClient(conn),
-		search:  searchv1.NewSearchServiceClient(conn),
 	}
 }
 
@@ -90,34 +88,77 @@ func (a *AgentClient) GetByReference(ctx context.Context, ref ResourceRef) (*age
 	return resp, wrapErr(err)
 }
 
+func (a *AgentClient) List(ctx context.Context, input *agentv1.ListAgentsRequest) (*agentv1.AgentList, error) {
+	resp, err := a.query.List(ctx, input)
+	return resp, wrapErr(err)
+}
+
+// ListAll returns every entry of List, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (a *AgentClient) ListAll(ctx context.Context, input *agentv1.ListAgentsRequest) iter.Seq2[*agentv1.Agent, error] {
+	return func(yield func(*agentv1.Agent, error) bool) {
+		req := &agentv1.ListAgentsRequest{}
+		if input != nil {
+			req = proto.Clone(input).(*agentv1.ListAgentsRequest)
+		}
+		for {
+			page, err := a.List(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
+}
+
 func (a *AgentClient) ListVersions(ctx context.Context, input *agentv1.ListAgentVersionsInput) (*agentv1.ListAgentVersionsResponse, error) {
 	resp, err := a.query.ListVersions(ctx, input)
 	return resp, wrapErr(err)
 }
 
+// ListVersionsAll returns every entry of ListVersions, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (a *AgentClient) ListVersionsAll(ctx context.Context, input *agentv1.ListAgentVersionsInput) iter.Seq2[*agentv1.AgentVersionEntry, error] {
+	return func(yield func(*agentv1.AgentVersionEntry, error) bool) {
+		req := &agentv1.ListAgentVersionsInput{}
+		if input != nil {
+			req = proto.Clone(input).(*agentv1.ListAgentVersionsInput)
+		}
+		for {
+			page, err := a.ListVersions(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
+}
+
 func (a *AgentClient) GetVersion(ctx context.Context, input *agentv1.GetAgentVersionInput) (*agentv1.AgentVersionEntry, error) {
 	resp, err := a.query.GetVersion(ctx, input)
 	return resp, wrapErr(err)
-}
-
-func (a *AgentClient) List(ctx context.Context, params *ListParams) (*ListResult, error) {
-	req := &searchv1.SearchRequest{
-		Kinds: []apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_agent},
-		Query: params.Query,
-		Org:   params.Org,
-	}
-	if params.Page != nil {
-		req.Page = &rpc.PageInfo{Num: params.Page.Num, Size: params.Page.Size}
-	}
-	resp, err := a.search.Search(ctx, req)
-	if err != nil {
-		return nil, wrapErr(err)
-	}
-	return &ListResult{
-		Entries:    resp.GetEntries(),
-		TotalCount: resp.GetTotalCount(),
-		TotalPages: resp.GetTotalPages(),
-	}, nil
 }
 
 // AgentInput holds the fields for creating or applying a Agent.

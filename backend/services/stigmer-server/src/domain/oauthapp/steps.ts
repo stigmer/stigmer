@@ -58,7 +58,7 @@ export function newCheckLoginEndpointsStep(): PipelineStep<typeof OAuthAppSchema
  *
  * A function rather than a pipeline step because redaction applies at
  * different points per operation: create/update after persist on newState;
- * get/getByReference after load on the target; listByOrg per entry; delete
+ * get/getByReference after load on the target; list per entry; delete
  * on the removed row after its chain. Every response is redacted, the
  * delete's included: the Go port returned the stored secret from delete —
  * ciphertext, or plaintext on a keyless server — which no reader needs

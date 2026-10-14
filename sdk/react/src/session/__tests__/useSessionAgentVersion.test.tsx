@@ -35,10 +35,11 @@ function makeClient(current: string, get = vi.fn()) {
     status: { versionHash: current },
   });
   const listVersions = vi.fn().mockResolvedValue({
-    versions: [
+    entries: [
       { versionHash: "h_new", tag: "v3", isCurrent: true },
       { versionHash: "h_old", tag: "", isCurrent: false },
     ],
+    nextPageToken: "",
   });
   return { agent: { get, listVersions } } as unknown as Stigmer & {
     agent: { get: ReturnType<typeof vi.fn> };

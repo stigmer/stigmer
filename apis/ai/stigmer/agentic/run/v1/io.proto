@@ -21,28 +21,26 @@ message SessionId {
 
 // RunList contains one page of runs, newest first.
 message RunList {
-  // Not computed for this list: 1 when the response holds every run,
-  // 0 when next_page_token is set. Follow next_page_token instead.
-  int32 total_pages = 1;
+  reserved 1;
+  reserved "total_pages";
 
   // Runs in this page, newest first.
   repeated Run entries = 2;
 
-  // Set when more runs may follow: pass it as page_token to
-  // continue. A page may hold fewer runs than page_size, even none,
-  // and still carry a token. Empty when the list is complete, and always
-  // empty from listBySession, which returns a session's runs whole.
+  // Set when more entries may follow: pass it as page_token to continue.
+  // A page may be short, even empty, and still carry a token.
   string next_page_token = 3;
 }
 
 // ListRunsRequest specifies parameters for listing runs.
 message ListRunsRequest {
-  // The most runs to return, at most 100; zero returns them all.
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
   int32 page_size = 1 [(buf.validate.field).int32.gte = 0];
 
   // The previous response's next_page_token, to continue that list; every
   // other field must equal that request's, or the call is refused.
-  string page_token = 2;
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
 
   // Filter by run phase (optional).
   RunPhase phase = 3;
@@ -64,19 +62,19 @@ message ListRunsRequest {
   string org = 5;
 }
 
-// ListRunsBySessionRequest lists all runs in a session.
-//
-// A session's runs are returned whole, newest first: a conversation
-// is read as one, and every consumer of this list needs all of it.
+// ListRunsBySessionRequest lists the runs of a session, newest first, one
+// page at a time.
 message ListRunsBySessionRequest {
   // Session ID to filter by.
   string session_id = 1 [(buf.validate.field).required = true];
 
-  // Not read: a session's runs are returned whole.
-  int32 page_size = 2 [deprecated = true];
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 2 [(buf.validate.field).int32.gte = 0];
 
-  // Not read: a session's runs are returned whole.
-  string page_token = 3 [deprecated = true];
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
 }
 
 // Input message for updateStatus RPC.
@@ -764,11 +762,11 @@ message GetAgentUsageReportInput {
   // through its last instant) or an RFC 3339 instant.
   string to_date = 3;
 
-  // Maximum number of sessions to return per page.
-  int32 page_size = 4;
+  reserved 4;
+  reserved "page_size";
 
-  // Token for pagination, obtained from previous response.
-  string page_token = 5;
+  reserved 5;
+  reserved "page_token";
 
   // Organization scope for the report: usage of this agent within this
   // organization. Only runs belonging to this organization are
@@ -808,8 +806,8 @@ message GetAgentUsageReportOutput {
   reserved 8;
   reserved "total_billable_cost_micros";
 
-  // Token for the next page of sessions (empty if no more pages).
-  string next_page_token = 9;
+  reserved 9;
+  reserved "next_page_token";
 }
 
 // GetOrgUsageReportInput requests a usage report for an entire organization.

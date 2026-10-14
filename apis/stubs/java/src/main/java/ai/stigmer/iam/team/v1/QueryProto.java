@@ -41,21 +41,21 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "s/apiresource/rpc_service_options.proto\032" +
       "+ai/stigmer/commons/rpc/method_options.p" +
       "roto\032 ai/stigmer/iam/team/v1/api.proto\032\037" +
-      "ai/stigmer/iam/team/v1/io.proto2\241\003\n\023Team" +
+      "ai/stigmer/iam/team/v1/io.proto2\227\003\n\023Team" +
       "QueryController\022~\n\003get\022-.ai.stigmer.comm" +
       "ons.apiresource.ApiResourceId\032\034.ai.stigm" +
       "er.iam.team.v1.Team\"*\302\270\030&\010\001\020\030\"\005value*\031un" +
       "authorized to view team\022j\n\016getByReferenc" +
       "e\0224.ai.stigmer.commons.apiresource.ApiRe" +
       "sourceReference\032\034.ai.stigmer.iam.team.v1" +
-      ".Team\"\004\320\270\030\001\022\227\001\n\tlistByOrg\022+.ai.stigmer.i" +
-      "am.team.v1.ListTeamsByOrgInput\032\035.ai.stig" +
-      "mer.iam.team.v1.Teams\">\302\270\030:\010\001\020\036\"\003org*/un" +
-      "authorized to list teams in this organiz" +
-      "ation\032\004\240\377+\030B\211\001B\nQueryProtoP\001\242\002\004ASIT\252\002\026Ai" +
-      ".Stigmer.Iam.Team.V1\312\002\026Ai\\Stigmer\\Iam\\Te" +
-      "am\\V1\342\002\"Ai\\Stigmer\\Iam\\Team\\V1\\GPBMetada" +
-      "ta\352\002\032Ai::Stigmer::Iam::Team::V1b\006proto3"
+      ".Team\"\004\320\270\030\001\022\215\001\n\004list\022&.ai.stigmer.iam.te" +
+      "am.v1.ListTeamsInput\032\035.ai.stigmer.iam.te" +
+      "am.v1.Teams\">\302\270\030:\010\001\020\036\"\003org*/unauthorized" +
+      " to list teams in this organization\032\004\240\377+" +
+      "\030B\211\001B\nQueryProtoP\001\242\002\004ASIT\252\002\026Ai.Stigmer.I" +
+      "am.Team.V1\312\002\026Ai\\Stigmer\\Iam\\Team\\V1\342\002\"Ai" +
+      "\\Stigmer\\Iam\\Team\\V1\\GPBMetadata\352\002\032Ai::S" +
+      "tigmer::Iam::Team::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

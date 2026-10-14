@@ -72,12 +72,12 @@
           "description": "Get a channel app by its organization-scoped reference (org/slug).\n\n Secret fields are redacted in the response."
         },
         {
-          "name": "ListByOrg",
-          "inputType": "ListChannelAppsByOrgInput",
-          "inputFullType": "ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput",
+          "name": "List",
+          "inputType": "ListChannelAppsInput",
+          "inputFullType": "ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput",
           "outputType": "ChannelApps",
           "outputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApps",
-          "description": "List all channel apps belonging to an organization.\n\n Returns the ChannelApps of the input org that the caller may view,\n newest first, with secret fields redacted. Typically a small set, so\n results are not paginated."
+          "description": "List the channel apps belonging to an organization.\n\n Returns the ChannelApps of the input org that the caller may view,\n newest first, one page at a time, with secret fields redacted."
         }
       ]
     }
@@ -259,9 +259,9 @@
       ]
     },
     {
-      "name": "ListChannelAppsByOrgInput",
-      "description": "ListChannelAppsByOrgInput specifies the organization whose channel\n apps should be returned.",
-      "protoType": "ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput",
+      "name": "ListChannelAppsInput",
+      "description": "ListChannelAppsInput specifies the organization whose channel\n apps should be returned.",
+      "protoType": "ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput",
       "protoFile": "apis/ai/stigmer/agentic/channelapp/v1/io.proto",
       "fields": [
         {
@@ -275,6 +275,29 @@
           "required": false,
           "validation": {
             "minLength": 1
+          }
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
           }
         }
       ]
@@ -297,6 +320,16 @@
             }
           },
           "description": "Channel app entries.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Set when more entries may follow: pass it as page_token to continue.\n A page may be short, even empty, and still carry a token.",
           "required": false
         }
       ]

@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AgentShareId, AgentShareList, GetAgentSharesByAgentRequest, GetSharedProfileRequest, ListAgentSharesRequest, SharedAgentProfile } from "./io_pbjs";
+import { AgentShareId, AgentShareList, GetSharedProfileRequest, ListAgentSharesByAgentRequest, ListAgentSharesRequest, SharedAgentProfile } from "./io_pbjs";
 import { AgentShare } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
@@ -39,18 +39,18 @@ export const AgentShareQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Get all shares of a specific agent.
+     * List the shares of a specific agent, newest first.
      * Returns only shares the caller has access to, optionally scoped to
      * one organization via the request's org field.
      *
      * This is how the Share dialog and CLI resolve an agent's existing
      * share regardless of its slug (a renamed share keeps working).
      *
-     * @generated from rpc ai.stigmer.agentic.agentshare.v1.AgentShareQueryController.getByAgent
+     * @generated from rpc ai.stigmer.agentic.agentshare.v1.AgentShareQueryController.listByAgent
      */
-    getByAgent: {
-      name: "getByAgent",
-      I: GetAgentSharesByAgentRequest,
+    listByAgent: {
+      name: "listByAgent",
+      I: ListAgentSharesByAgentRequest,
       O: AgentShareList,
       kind: MethodKind.Unary,
     },

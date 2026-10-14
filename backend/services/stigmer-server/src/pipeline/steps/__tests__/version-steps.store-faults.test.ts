@@ -19,7 +19,9 @@
  *     Internal;
  *   - the version-metadata rule leaves a head with no hash or no metadata as
  *     it is, and on an unchanged hash keeps the stored chain, repairing an
- *     empty stored version id from the hash.
+ *     empty stored version id from the hash;
+ *   - a version page whose head hash no audit row holds marks no version
+ *     current, and a failing read of the current record is Internal.
  */
 import { create, toBinary } from "@bufbuild/protobuf";
 import { ConnectError, Code } from "@connectrpc/connect";
@@ -27,7 +29,11 @@ import { describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { TagAgentVersionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
+import {
+  ListAgentVersionsInputSchema,
+  TagAgentVersionInputSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
+import type { ListAgentVersionsResponse } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 
@@ -42,7 +48,11 @@ import type { AuditRecord, Store } from "../../../store/interface.js";
 import { EXISTING_RESOURCE_KEY } from "../load-existing.js";
 import { VERSION_HASH_KEY, newPopulateVersionStep } from "../version-archive.js";
 import {
+  LIST_VERSIONS_HEAD_HASH_KEY,
+  LIST_VERSIONS_RESOURCE_ID_KEY,
+  LIST_VERSIONS_RESPONSE_KEY,
   getVersionEntry,
+  newLoadAndMapVersionsStep,
   newLoadByReferenceWithVersionStep,
   loadByReferenceWithVersion,
   newLoadForTagVersionStep,
@@ -349,5 +359,40 @@ describe("the version-metadata rule", () => {
     noMetadata.set(VERSION_HASH_KEY, OLD);
     populate.execute(noMetadata);
     expect(noMetadata.newState.status?.versionHash).toBe(HEAD);
+  });
+});
+
+describe("a version page", () => {
+  async function page(getAuditRecordByHash: () => Promise<AuditRecord>): Promise<ListAgentVersionsResponse> {
+    const ctx = new RequestContext(
+      ListAgentVersionsInputSchema,
+      create(ListAgentVersionsInputSchema, { org: "acme", slug: "reviewer" }),
+      testCallerIdentity(),
+      ApiResourceKind.agent,
+    );
+    ctx.set(LIST_VERSIONS_RESOURCE_ID_KEY, "agt_1");
+    ctx.set(LIST_VERSIONS_HEAD_HASH_KEY, HEAD);
+    await newLoadAndMapVersionsStep(
+      storeWith({
+        listAuditRecordsPage: async () => [
+          { ...record(OLD, ""), seq: "2" },
+          { ...record(HEAD, ""), seq: "1" },
+        ],
+        getAuditRecordByHash,
+      }),
+      agentVersionBinding,
+      "LoadAndMapAgentVersions",
+    ).execute(ctx);
+    return ctx.get(LIST_VERSIONS_RESPONSE_KEY) as ListAgentVersionsResponse;
+  }
+
+  it("marks no version current when no audit row holds the head's hash", async () => {
+    const listed = await page(async () => Promise.reject(new AuditNotFoundError("none")));
+    expect(listed.entries.map((entry) => entry.isCurrent)).toEqual([false, false]);
+  });
+
+  it("is Internal when the read of the current record fails", async () => {
+    const failure = await failureOf(page(async () => Promise.reject(STORE_DOWN)));
+    expect([failure.code, failure.rawMessage]).toEqual([Code.Internal, "failed to load version history"]);
   });
 });

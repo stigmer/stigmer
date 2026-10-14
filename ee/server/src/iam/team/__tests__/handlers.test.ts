@@ -25,7 +25,9 @@
  *     with `get`'s copy on a denial, and answers a missing slug NOT_FOUND
  *     only to a viewer of the organization and `get`'s denial to anyone
  *     else, after asking only the organization's `can_view`;
- *   - listByOrg answers the organization's teams, newest first;
+ *   - list answers the organization's teams, newest first, a page and a
+ *     token at a time to the end, 50 at size 0, and refuses a token issued
+ *     for another organization;
  *   - rename asks can_delete on the team, keeps its id, moves its name so
  *     the old slug still leads to it and is refused to a create with
  *     SLUG_RESERVED, takes its old slug back, and stamps the audit; an
@@ -277,7 +279,7 @@ describe("create", () => {
     const failed = await failure(r.commands.create(newTeam("SRE")));
     expect(failed.code).toBe(Code.Internal);
     expect(failed.rawMessage).toBe("failed to create authorization tuples");
-    expect((await r.teams.listByOrg("acme")).map((team) => team.metadata?.slug)).toContain("sre");
+    expect(r.teams.inOrg("acme").map((team) => team.metadata?.slug)).toContain("sre");
   });
 
   it("refuses a team in an organization whose plan lacks teams, writing nothing, and creates one where it has them", async () => {
@@ -299,7 +301,7 @@ describe("create", () => {
     expect(refused.findDetails(ErrorInfoSchema).map((info) => [info.reason, info.metadata])).toEqual([
       ["PLAN_UPGRADE_REQUIRED", { feature: "teams", org: "acme" }],
     ]);
-    expect(await r.teams.listByOrg("acme")).toEqual([]);
+    expect(r.teams.inOrg("acme")).toEqual([]);
     expect(r.created).toEqual([]);
 
     expect((await r.commands.create(newTeam("SRE", "paying"))).metadata?.org).toBe("paying");
@@ -312,7 +314,7 @@ describe("create", () => {
     const denied = await failure(r.commands.create(newTeam("SRE")));
     expect(denied.code).toBe(Code.PermissionDenied);
     expect(denied.rawMessage).toBe("unauthorized to create team in this organization");
-    expect(await r.teams.listByOrg("acme")).toEqual([]);
+    expect(r.teams.inOrg("acme")).toEqual([]);
     expect(r.created).toEqual([]);
   });
 });
@@ -589,13 +591,13 @@ describe("reads", () => {
     expect(inProcess.rawMessage).toBe("slug or id is required in reference");
   });
 
-  it("listByOrg answers the organization's teams, newest first", async () => {
+  it("list answers the organization's teams, newest first", async () => {
     const r = rig();
     await r.seed(storedTeam({ id: "tm_a", org: "acme", slug: "a" }));
     await r.seed(storedTeam({ id: "tm_x", org: "other", slug: "x" }));
     await r.seed(storedTeam({ id: "tm_b", org: "acme", slug: "b" }));
 
-    const listed = await r.queries.listByOrg({ org: "acme" });
+    const listed = await r.queries.list({ org: "acme" });
     expect(listed.entries.map((team) => team.metadata?.id)).toEqual(["tm_b", "tm_a"]);
     expect(r.checks).toEqual([
       {
@@ -604,5 +606,51 @@ describe("reads", () => {
         resourceId: "acme",
       },
     ]);
+  });
+
+  /** Seeds `count` of acme's teams a minute apart; their ids, newest first. */
+  async function seedTeams(r: ReturnType<typeof rig>, count: number): Promise<string[]> {
+    const ids: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const id = `tm_${String(i).padStart(3, "0")}`;
+      await r.seed(storedTeam({ id, org: "acme", slug: `team-${i}`, createdAt: new Date(Date.UTC(2026, 8, 24, 10, i)) }));
+      ids.push(id);
+    }
+    return ids.reverse();
+  }
+
+  it("list answers a page and a token that continues it, newest first, to the end", async () => {
+    const r = rig();
+    const newestFirst = await seedTeams(r, 5);
+    const read: string[] = [];
+    const tokens: string[] = [];
+    let pageToken = "";
+    do {
+      const page = await r.queries.list({ org: "acme", pageSize: 2, pageToken });
+      read.push(...page.entries.map((team) => team.metadata?.id ?? ""));
+      pageToken = page.nextPageToken;
+      tokens.push(pageToken);
+    } while (pageToken !== "");
+    expect(read).toEqual(newestFirst);
+    expect(tokens.map((token) => token !== "")).toEqual([true, true, false]);
+  });
+
+  it("list answers the default page of 50 and a token at size 0, never every team", async () => {
+    const r = rig();
+    const newestFirst = await seedTeams(r, 55);
+    const first = await r.queries.list({ org: "acme", pageSize: 0, pageToken: "" });
+    expect(first.entries.map((team) => team.metadata?.id)).toEqual(newestFirst.slice(0, 50));
+    const rest = await r.queries.list({ org: "acme", pageSize: 0, pageToken: first.nextPageToken });
+    expect(rest.entries.map((team) => team.metadata?.id)).toEqual(newestFirst.slice(50));
+    expect(rest.nextPageToken).toBe("");
+  });
+
+  it("list refuses a token issued for another organization's list", async () => {
+    const r = rig();
+    await seedTeams(r, 3);
+    const { nextPageToken } = await r.queries.list({ org: "acme", pageSize: 1, pageToken: "" });
+    const error = await failure(r.queries.list({ org: "globex", pageSize: 1, pageToken: nextPageToken }));
+    expect(error.code).toBe(Code.InvalidArgument);
+    expect(error.rawMessage).toBe("page_token was issued for a different request");
   });
 });

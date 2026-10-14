@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Iterator
 
 import grpc
 
@@ -56,11 +57,35 @@ class ScoreClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def list_by_run_all(self, input: io_pb2.ListScoresByRunRequest) -> Iterator[api_pb2.Score]:
+        """Every entry of ``list_by_run``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListScoresByRunRequest()
+        request.CopyFrom(input)
+        while True:
+            page = self.list_by_run(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
+
     def list_by_session(self, input: io_pb2.ListScoresBySessionRequest) -> io_pb2.ScoreList:
         try:
             return self._query.listBySession(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
+
+    def list_by_session_all(self, input: io_pb2.ListScoresBySessionRequest) -> Iterator[api_pb2.Score]:
+        """Every entry of ``list_by_session``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListScoresBySessionRequest()
+        request.CopyFrom(input)
+        while True:
+            page = self.list_by_session(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
 
     def get_agent_quality_report(self, input: io_pb2.GetAgentQualityReportRequest) -> io_pb2.AgentQualityReport:
         try:
@@ -73,6 +98,18 @@ class ScoreClient:
             return self._query.listFlaggedByAgent(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
+
+    def list_flagged_by_agent_all(self, input: io_pb2.ListFlaggedScoresByAgentRequest) -> Iterator[api_pb2.Score]:
+        """Every entry of ``list_flagged_by_agent``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListFlaggedScoresByAgentRequest()
+        request.CopyFrom(input)
+        while True:
+            page = self.list_flagged_by_agent(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
 
 
 @dataclass

@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetArtifactRequest, GetArtifactResponse, ListPluginVersionsInput, ListPluginVersionsResponse, PluginArtifactDownloadUrl, PluginId } from "./io_pbjs";
+import { GetArtifactRequest, GetArtifactResponse, ListPluginsRequest, ListPluginVersionsInput, ListPluginVersionsResponse, PluginArtifactDownloadUrl, PluginId, PluginList } from "./io_pbjs";
 import { Plugin } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
@@ -41,6 +41,20 @@ export const PluginQueryController = {
       name: "getByReference",
       I: ApiResourceReference,
       O: Plugin,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List an organization's plugins, newest first.
+     *
+     * Returns the plugins of the input org that the caller may view, one page
+     * at a time. Search finds plugins by their words; list browses them.
+     *
+     * @generated from rpc ai.stigmer.agentic.plugin.v1.PluginQueryController.list
+     */
+    list: {
+      name: "list",
+      I: ListPluginsRequest,
+      O: PluginList,
       kind: MethodKind.Unary,
     },
     /**

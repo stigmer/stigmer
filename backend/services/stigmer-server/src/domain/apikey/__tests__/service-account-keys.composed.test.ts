@@ -10,9 +10,9 @@
  * keys carry the subject as their stamp: the owner read answers both of a
  * person's names, which is what these lists exercise.
  *
- *   - findAll answers the caller's own keys only: another person's never
+ *   - list answers the caller's own keys only: another person's never
  *     appear, and an admin's list never includes a service account's
- *     keys, which the admin reaches through findByAccount instead;
+ *     keys, which the admin reaches through listByAccount instead;
  *   - a key's name is unique among its owner's keys, not its
  *     organization's (stigmer#2111): two people of one organization may
  *     each name a key "ci"; one person naming a second key "ci" is
@@ -26,7 +26,7 @@
  *     FAILED_PRECONDITION past a permissive Authorizer, where the
  *     controller's own check is what refuses it); a service account's own
  *     key is refused even where its admin role would admit it;
- *   - findByAccount: an admin lists a service account's keys, a member is
+ *   - listByAccount: an admin lists a service account's keys, a member is
  *     refused, a person lists their own;
  *   - a service account's key may not create or change a key.
  */
@@ -313,19 +313,19 @@ describe("API keys and service accounts (composed server, built-in Authorizer)",
     });
   });
 
-  describe("findByAccount", () => {
+  describe("listByAccount", () => {
     it("an admin lists a service account's keys", async () => {
       const listed = await createClient(
         ApiKeyQueryController,
         asFounder(),
-      ).findByAccount({ value: adminSa.id });
+      ).listByAccount({ accountId: adminSa.id });
       expect(idsOf(listed.entries)).toEqual([adminSa.keyId]);
     });
 
     it("a member is refused", async () => {
       const error = await refusal(
-        createClient(ApiKeyQueryController, asMember()).findByAccount({
-          value: memberSa.id,
+        createClient(ApiKeyQueryController, asMember()).listByAccount({
+          accountId: memberSa.id,
         }),
       );
       expect(error.code).toBe(Code.PermissionDenied);
@@ -339,7 +339,7 @@ describe("API keys and service accounts (composed server, built-in Authorizer)",
       const listed = await createClient(
         ApiKeyQueryController,
         asMember(),
-      ).findByAccount({ value: memberId });
+      ).listByAccount({ accountId: memberId });
       expect(idsOf(listed.entries)).toContain(own.metadata?.id ?? "");
       // The fake verifier stamps the raw subject, so the person's keys
       // carry it rather than the account id: both names are the person's.
@@ -351,7 +351,7 @@ describe("API keys and service accounts (composed server, built-in Authorizer)",
     });
   });
 
-  describe("findAll answers the caller's own keys", () => {
+  describe("list answers the caller's own keys", () => {
     it("never another person's, and never a service account's for an admin", async () => {
       const founderKey = await createClient(
         ApiKeyCommandController,
@@ -365,7 +365,7 @@ describe("API keys and service accounts (composed server, built-in Authorizer)",
       const founders = await createClient(
         ApiKeyQueryController,
         asFounder(),
-      ).findAll({});
+      ).list({});
       const founderIds = idsOf(founders.entries);
       expect(founderIds).toContain(founderKey.metadata?.id ?? "");
       expect(founderIds).not.toContain(memberKey.metadata?.id ?? "");
@@ -380,18 +380,18 @@ describe("API keys and service accounts (composed server, built-in Authorizer)",
       const members = await createClient(
         ApiKeyQueryController,
         asMember(),
-      ).findAll({});
+      ).list({});
       expect(idsOf(members.entries)).toContain(memberKey.metadata?.id ?? "");
       expect(idsOf(members.entries)).not.toContain(
         founderKey.metadata?.id ?? "",
       );
     });
 
-    it("a service account's findAll is its own keys", async () => {
+    it("a service account's list is its own keys", async () => {
       const listed = await createClient(
         ApiKeyQueryController,
         presenting(adminSa.key),
-      ).findAll({});
+      ).list({});
       expect(idsOf(listed.entries)).toEqual([adminSa.keyId]);
     });
   });
@@ -431,7 +431,7 @@ describe("API keys and service accounts (composed server, built-in Authorizer)",
       const keys = await createClient(
         ApiKeyQueryController,
         asFounder(),
-      ).findByAccount({ value: memberSa.id });
+      ).listByAccount({ accountId: memberSa.id });
       expect(keys.entries.some((key) => key.metadata?.slug === "deploy")).toBe(
         true,
       );

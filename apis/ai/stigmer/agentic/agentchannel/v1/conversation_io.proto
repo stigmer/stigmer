@@ -5,7 +5,6 @@ package ai.stigmer.agentic.agentchannel.v1;
 import "ai/stigmer/agentic/agentchannel/v1/delivery.proto";
 import "ai/stigmer/agentic/agentchannel/v1/message_io.proto";
 import "ai/stigmer/agentic/agentchannel/v1/outbound.proto";
-import "ai/stigmer/commons/rpc/pagination.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
 
@@ -309,12 +308,20 @@ message ListChannelConversationsInput {
   // Optional filter: only conversations on this agent channel.
   string agent_channel_id = 2 [(buf.validate.field).string.max_len = 128];
 
-  // Pagination options. Conversations are returned newest activity first.
-  ai.stigmer.commons.rpc.PageInfo page_info = 3;
+  reserved 3;
+  reserved "page_info";
 
   // Optional filter: narrow the list to a server-evaluated predicate.
   // Unspecified lists every conversation on the authorized channels.
   ChannelConversationListFilter filter = 4;
+
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 5 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 6 [(buf.validate.field).string.max_len = 1024];
 }
 
 // ChannelConversationListFilter names the server-evaluated predicates the
@@ -322,8 +329,8 @@ message ListChannelConversationsInput {
 //
 // @internal
 // filter_wants_human expresses
-// EXACTLY the nav badge's union, and the badge count is the filtered
-// list's total_count — one predicate in one handler, so the count and the
+// EXACTLY the nav badge's union, and the badge count is countConversations
+// over the same filter — one predicate in one handler, so the count and the
 // list it opens can never disagree. Server-side deliberately: a
 // client-side tab over one fetched page would
 // silently lie across pages. Values carry the filter_ prefix — proto3
@@ -341,11 +348,37 @@ enum ChannelConversationListFilter {
 // ChannelConversationList contains a page of channel conversations,
 // newest activity first.
 message ChannelConversationList {
-  // Total number of conversations matching the filter.
-  int32 total_count = 1;
+  reserved 1;
+  reserved "total_count";
 
   // Conversations in the current page.
-  repeated ChannelConversation items = 2;
+  repeated ChannelConversation entries = 2;
+
+  // Set when more entries may follow: pass it as page_token to continue.
+  // A page may be short, even empty, and still carry a token.
+  string next_page_token = 3;
+}
+
+// Input for counting an organization's channel conversations.
+message CountChannelConversationsInput {
+  // Organization whose conversations to count.
+  string org = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 63
+  ];
+
+  // Optional filter: only conversations on this agent channel.
+  string agent_channel_id = 2 [(buf.validate.field).string.max_len = 128];
+
+  // Optional filter: count only the conversations matching this predicate.
+  ChannelConversationListFilter filter = 3;
+}
+
+// ChannelConversationCount is how many conversations match a count's
+// filter, over the channels the caller can view.
+message ChannelConversationCount {
+  // The number of matching conversations.
+  int32 count = 1;
 }
 
 // Input for reading one conversation's identity and participation state.
@@ -364,7 +397,7 @@ message GetChannelConversationInput {
 }
 
 // Input for reading one conversation's timeline.
-message GetConversationTimelineInput {
+message ListConversationTimelineInput {
   // AgentChannel the conversation belongs to.
   string agent_channel_id = 1 [
     (buf.validate.field).string.min_len = 1,
@@ -377,28 +410,28 @@ message GetConversationTimelineInput {
     (buf.validate.field).string.max_len = 128
   ];
 
-  // Maximum number of items to return per page. Server may return fewer.
-  int32 page_size = 3;
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 3 [(buf.validate.field).int32.gte = 0];
 
-  // Opaque cursor from a previous response. Empty for the newest page.
-  string page_token = 4;
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 4 [(buf.validate.field).string.max_len = 1024];
 }
 
 // ConversationTimeline contains one page of a conversation's timeline,
 // newest first.
 //
 // @internal
-// Cursor pagination, not PageInfo, deliberately: the
-// timeline is stitched across three stores at read time, so an offset is
-// neither cheap nor stable while new items land; the cursor encodes
-// (instant, item_id). No total_count for the same reason — a
-// cross-store count would be a second full stitch pretending to be a
-// number.
+// The timeline is stitched across three stores at read time, so its token
+// carries its own cursor, (instant, item_id), rather than a stored row's;
+// the request and response take every list's shape all the same.
 message ConversationTimeline {
   // Timeline items in the current page, newest first.
-  repeated ConversationTimelineItem items = 1;
+  repeated ConversationTimelineItem entries = 1;
 
-  // Cursor for the next (older) page. Empty when no more items exist.
+  // Set when more entries may follow: pass it as page_token to continue.
+  // A page may be short, even empty, and still carry a token.
   string next_page_token = 2;
 }
 

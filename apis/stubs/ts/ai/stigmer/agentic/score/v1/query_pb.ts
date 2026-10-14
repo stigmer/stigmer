@@ -34,7 +34,7 @@ export const ScoreQueryController: GenService<{
     output: typeof ScoreSchema;
   },
   /**
-   * List every score of a run.
+   * List the scores of a run, newest first.
    *
    * @generated from rpc ai.stigmer.agentic.score.v1.ScoreQueryController.listByRun
    */
@@ -44,7 +44,7 @@ export const ScoreQueryController: GenService<{
     output: typeof ScoreListSchema;
   },
   /**
-   * List every score of every run in a session.
+   * List the scores of every run in a session, newest first.
    *
    * @generated from rpc ai.stigmer.agentic.score.v1.ScoreQueryController.listBySession
    */

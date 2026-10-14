@@ -12,55 +12,67 @@ public interface AgentChannelListOrBuilder extends
 
   /**
    * <pre>
-   * Total number of agent channels matching the query.
+   * Agent channels in the current page.
    * </pre>
    *
-   * <code>int32 total_count = 1 [json_name = "totalCount"];</code>
-   * @return The totalCount.
+   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.AgentChannel entries = 2 [json_name = "entries"];</code>
    */
-  int getTotalCount();
+  java.util.List<ai.stigmer.agentic.agentchannel.v1.AgentChannel> 
+      getEntriesList();
+  /**
+   * <pre>
+   * Agent channels in the current page.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.AgentChannel entries = 2 [json_name = "entries"];</code>
+   */
+  ai.stigmer.agentic.agentchannel.v1.AgentChannel getEntries(int index);
+  /**
+   * <pre>
+   * Agent channels in the current page.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.AgentChannel entries = 2 [json_name = "entries"];</code>
+   */
+  int getEntriesCount();
+  /**
+   * <pre>
+   * Agent channels in the current page.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.AgentChannel entries = 2 [json_name = "entries"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.agentchannel.v1.AgentChannelOrBuilder> 
+      getEntriesOrBuilderList();
+  /**
+   * <pre>
+   * Agent channels in the current page.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.AgentChannel entries = 2 [json_name = "entries"];</code>
+   */
+  ai.stigmer.agentic.agentchannel.v1.AgentChannelOrBuilder getEntriesOrBuilder(
+      int index);
 
   /**
    * <pre>
-   * Agent channels in the current page.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.AgentChannel items = 2 [json_name = "items"];</code>
+   * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+   * @return The nextPageToken.
    */
-  java.util.List<ai.stigmer.agentic.agentchannel.v1.AgentChannel> 
-      getItemsList();
+  java.lang.String getNextPageToken();
   /**
    * <pre>
-   * Agent channels in the current page.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.AgentChannel items = 2 [json_name = "items"];</code>
+   * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+   * @return The bytes for nextPageToken.
    */
-  ai.stigmer.agentic.agentchannel.v1.AgentChannel getItems(int index);
-  /**
-   * <pre>
-   * Agent channels in the current page.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.AgentChannel items = 2 [json_name = "items"];</code>
-   */
-  int getItemsCount();
-  /**
-   * <pre>
-   * Agent channels in the current page.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.AgentChannel items = 2 [json_name = "items"];</code>
-   */
-  java.util.List<? extends ai.stigmer.agentic.agentchannel.v1.AgentChannelOrBuilder> 
-      getItemsOrBuilderList();
-  /**
-   * <pre>
-   * Agent channels in the current page.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.AgentChannel items = 2 [json_name = "items"];</code>
-   */
-  ai.stigmer.agentic.agentchannel.v1.AgentChannelOrBuilder getItemsOrBuilder(
-      int index);
+  com.google.protobuf.ByteString
+      getNextPageTokenBytes();
 }

@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	AgentShareQueryController_Get_FullMethodName                       = "/ai.stigmer.agentic.agentshare.v1.AgentShareQueryController/get"
 	AgentShareQueryController_GetByReference_FullMethodName            = "/ai.stigmer.agentic.agentshare.v1.AgentShareQueryController/getByReference"
-	AgentShareQueryController_GetByAgent_FullMethodName                = "/ai.stigmer.agentic.agentshare.v1.AgentShareQueryController/getByAgent"
+	AgentShareQueryController_ListByAgent_FullMethodName               = "/ai.stigmer.agentic.agentshare.v1.AgentShareQueryController/listByAgent"
 	AgentShareQueryController_List_FullMethodName                      = "/ai.stigmer.agentic.agentshare.v1.AgentShareQueryController/list"
 	AgentShareQueryController_GetSharedProfile_FullMethodName          = "/ai.stigmer.agentic.agentshare.v1.AgentShareQueryController/getSharedProfile"
 	AgentShareQueryController_GetSharedProfileForMember_FullMethodName = "/ai.stigmer.agentic.agentshare.v1.AgentShareQueryController/getSharedProfileForMember"
@@ -38,13 +38,13 @@ type AgentShareQueryControllerClient interface {
 	Get(ctx context.Context, in *AgentShareId, opts ...grpc.CallOption) (*AgentShare, error)
 	// Get an agent share by its organization-scoped reference (org/slug).
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*AgentShare, error)
-	// Get all shares of a specific agent.
+	// List the shares of a specific agent, newest first.
 	// Returns only shares the caller has access to, optionally scoped to
 	// one organization via the request's org field.
 	//
 	// This is how the Share dialog and CLI resolve an agent's existing
 	// share regardless of its slug (a renamed share keeps working).
-	GetByAgent(ctx context.Context, in *GetAgentSharesByAgentRequest, opts ...grpc.CallOption) (*AgentShareList, error)
+	ListByAgent(ctx context.Context, in *ListAgentSharesByAgentRequest, opts ...grpc.CallOption) (*AgentShareList, error)
 	// List agent shares with optional label filtering.
 	List(ctx context.Context, in *ListAgentSharesRequest, opts ...grpc.CallOption) (*AgentShareList, error)
 	// Get the public profile of a shared agent by the share's id.
@@ -111,10 +111,10 @@ func (c *agentShareQueryControllerClient) GetByReference(ctx context.Context, in
 	return out, nil
 }
 
-func (c *agentShareQueryControllerClient) GetByAgent(ctx context.Context, in *GetAgentSharesByAgentRequest, opts ...grpc.CallOption) (*AgentShareList, error) {
+func (c *agentShareQueryControllerClient) ListByAgent(ctx context.Context, in *ListAgentSharesByAgentRequest, opts ...grpc.CallOption) (*AgentShareList, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AgentShareList)
-	err := c.cc.Invoke(ctx, AgentShareQueryController_GetByAgent_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AgentShareQueryController_ListByAgent_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -161,13 +161,13 @@ type AgentShareQueryControllerServer interface {
 	Get(context.Context, *AgentShareId) (*AgentShare, error)
 	// Get an agent share by its organization-scoped reference (org/slug).
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*AgentShare, error)
-	// Get all shares of a specific agent.
+	// List the shares of a specific agent, newest first.
 	// Returns only shares the caller has access to, optionally scoped to
 	// one organization via the request's org field.
 	//
 	// This is how the Share dialog and CLI resolve an agent's existing
 	// share regardless of its slug (a renamed share keeps working).
-	GetByAgent(context.Context, *GetAgentSharesByAgentRequest) (*AgentShareList, error)
+	ListByAgent(context.Context, *ListAgentSharesByAgentRequest) (*AgentShareList, error)
 	// List agent shares with optional label filtering.
 	List(context.Context, *ListAgentSharesRequest) (*AgentShareList, error)
 	// Get the public profile of a shared agent by the share's id.
@@ -219,8 +219,8 @@ func (UnimplementedAgentShareQueryControllerServer) Get(context.Context, *AgentS
 func (UnimplementedAgentShareQueryControllerServer) GetByReference(context.Context, *apiresource.ApiResourceReference) (*AgentShare, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByReference not implemented")
 }
-func (UnimplementedAgentShareQueryControllerServer) GetByAgent(context.Context, *GetAgentSharesByAgentRequest) (*AgentShareList, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetByAgent not implemented")
+func (UnimplementedAgentShareQueryControllerServer) ListByAgent(context.Context, *ListAgentSharesByAgentRequest) (*AgentShareList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListByAgent not implemented")
 }
 func (UnimplementedAgentShareQueryControllerServer) List(context.Context, *ListAgentSharesRequest) (*AgentShareList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
@@ -287,20 +287,20 @@ func _AgentShareQueryController_GetByReference_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AgentShareQueryController_GetByAgent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetAgentSharesByAgentRequest)
+func _AgentShareQueryController_ListByAgent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAgentSharesByAgentRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AgentShareQueryControllerServer).GetByAgent(ctx, in)
+		return srv.(AgentShareQueryControllerServer).ListByAgent(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AgentShareQueryController_GetByAgent_FullMethodName,
+		FullMethod: AgentShareQueryController_ListByAgent_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentShareQueryControllerServer).GetByAgent(ctx, req.(*GetAgentSharesByAgentRequest))
+		return srv.(AgentShareQueryControllerServer).ListByAgent(ctx, req.(*ListAgentSharesByAgentRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -375,8 +375,8 @@ var AgentShareQueryController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AgentShareQueryController_GetByReference_Handler,
 		},
 		{
-			MethodName: "getByAgent",
-			Handler:    _AgentShareQueryController_GetByAgent_Handler,
+			MethodName: "listByAgent",
+			Handler:    _AgentShareQueryController_ListByAgent_Handler,
 		},
 		{
 			MethodName: "list",

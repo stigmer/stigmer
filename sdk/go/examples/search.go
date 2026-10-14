@@ -21,16 +21,27 @@ func CrossResourceSearch() {
 		Kinds: []stigmer.ResourceKind{stigmer.KindAgent, stigmer.KindSkill},
 		Query: "code review",
 		Org:   "acme",
-		Page:  &stigmer.Page{Num: 1, Size: 20},
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("Found %d results across %d pages\n", result.TotalCount, result.TotalPages)
+	fmt.Printf("Found %d agents and %d skills\n", result.CountsByKind["agent"], result.CountsByKind["skill"])
 	for _, entry := range result.Entries {
 		fmt.Printf("  [%s] %s — %s (score: %.2f)\n",
 			entry.GetKind(), entry.GetName(), entry.GetDescription(), entry.GetScore(),
 		)
+	}
+
+	// Every result, page after page: QueryAll follows the page tokens.
+	for entry, err := range client.Search.QueryAll(ctx, &stigmer.SearchParams{
+		Kinds: []stigmer.ResourceKind{stigmer.KindAgent},
+		Query: "code review",
+		Org:   "acme",
+	}) {
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(entry.GetName())
 	}
 }

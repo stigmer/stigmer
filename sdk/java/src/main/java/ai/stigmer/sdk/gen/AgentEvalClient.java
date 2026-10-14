@@ -50,4 +50,17 @@ public final class AgentEvalClient {
             return query.listByAgent(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
+
+    /**
+     * Every entry of {@code listByAgent}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<AgentEval> listByAgentAll(ListAgentEvalsByAgentRequest input) {
+        return Pages.<AgentEvalList, AgentEval>iterate(
+            input.getPageToken(),
+            token -> listByAgent(input.toBuilder().setPageToken(token).build()),
+            AgentEvalList::getEntriesList,
+            AgentEvalList::getNextPageToken);
+    }
 }

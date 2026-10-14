@@ -1,7 +1,7 @@
 /**
  * The IdentityProvider RPCs as extension services: the command side's
  * create, update, apply and delete, the query side's get, getByReference
- * and listByOrg. IdentityProvider is an enterprise-tier
+ * and list. IdentityProvider is an enterprise-tier
  * kind open source registers no service for, so these are its only
  * handlers; every one runs the composition's unary chain (Authorize from
  * the proto annotation, then ValidateProto, then the lane's steps and its
@@ -46,8 +46,10 @@
  *                   (reference-miss.ts), so the code never tells an
  *                   outsider whether a provider exists; the trust
  *                   configuration is what a caller must be allowed to see
- *   listByOrg       the organization's rows, narrowed by the list read
- *                   scope to what the caller could `get`
+ *   list            the organization's rows, newest first, a page at a
+ *                   time (the library's page loop over the store's keyset
+ *                   source), narrowed by the list read scope to what the
+ *                   caller could `get`
  *   rename          the library's rename chain over this table
  *                   (`renameResource`): RefuseServiceAccountCaller,
  *                   LoadForRename, RefuseBeingDeleted, ValidateNewSlug,
@@ -68,7 +70,7 @@
  * until its cache expires.
  */
 import type { DescMessage } from "@bufbuild/protobuf";
-import { create } from "@bufbuild/protobuf";
+import { create, fromBinary } from "@bufbuild/protobuf";
 import type { ServiceImpl } from "@connectrpc/connect";
 import type { OutboundFetch } from "@stigmer/outbound/egress";
 
@@ -97,6 +99,7 @@ import {
   callerIdentityOf,
   everyPathUpdate,
   internalError,
+  listPageFingerprint,
   loadedTargetAsMethod,
   newAuthorizeResolvedTargetStep,
   newBuildNewStateStep,
@@ -107,6 +110,7 @@ import {
   newClaimNameStep,
   newResolveSlugStep,
   portRenameRows,
+  readPage,
   releaseNameOnFailure,
   renameResource,
   resolveResourceCreatedEvent,
@@ -346,23 +350,28 @@ export function providerQueries(deps: IdentityProviderLaneDeps): Queries {
           ],
         },
       ),
-    listByOrg: (input, ctx) =>
+    list: (input, ctx) =>
       runUnaryChain(
-        { chain: "identity-provider-list-by-org", step: "ListIdentityProviders" },
-        method.listByOrg,
+        { chain: "identity-provider-list", step: "ListIdentityProviders" },
+        method.list,
         input,
         ctx,
         deps,
         async (reqCtx) => {
-          const org = reqCtx.input.org;
-          const visible = await restrictListByReadScope(
-            deps.listReadScope,
-            reqCtx.callerIdentity,
-            KIND,
-            await deps.store.findByOrg(org),
-            org,
-          );
-          return create(IdentityProvidersSchema, { entries: visible });
+          const { org, pageSize, pageToken } = reqCtx.input;
+          const page = await readPage<IdentityProvider>({
+            source: (after, limit) => deps.store.pageByOrg(org, after, limit),
+            request: { pageSize, pageToken },
+            fingerprint: listPageFingerprint({ org }),
+            decode: (data) => fromBinary(IdentityProviderSchema, data),
+            scope: (rows) =>
+              restrictListByReadScope(deps.listReadScope, reqCtx.callerIdentity, KIND, rows, org),
+            failure: "failed to list identity providers",
+          });
+          return create(IdentityProvidersSchema, {
+            entries: page.entries,
+            nextPageToken: page.nextPageToken,
+          });
         },
       ),
   };

@@ -113,6 +113,8 @@ Returns the active plans; set include_retired to see retired ones too. Any signe
 ```typescript
 const plans = await stigmer.plan.list({
   includeRetired: false,
+  pageSize: 0,
+  pageToken: "...",
 });
 ```
 </Tab>
@@ -120,6 +122,8 @@ const plans = await stigmer.plan.list({
 ```go
 plans, err := client.Plan.List(ctx, &stigmer.ListPlansInput{
   IncludeRetired: false,
+  PageSize:       0,
+  PageToken:      "...",
 })
 ```
 </Tab>
@@ -127,6 +131,8 @@ plans, err := client.Plan.List(ctx, &stigmer.ListPlansInput{
 ```python
 plans = client.plans.list(ListPlansInput(
     include_retired=False,
+    page_size=0,
+    page_token="...",
 ))
 ```
 </Tab>
@@ -134,6 +140,8 @@ plans = client.plans.list(ListPlansInput(
 ```java
 Plans plans = client.plans().list(ListPlansInput.builder()
     .includeRetired(false)
+    .pageSize(0)
+    .pageToken("...")
     .build());
 ```
 </Tab>
@@ -142,6 +150,8 @@ Plans plans = client.plans().list(ListPlansInput.builder()
 **Parameters**: [`ListPlansInput`](#listplansinput)
 
 **Returns**: [`Plans`](#plans)
+
+**Every page**: `listAll` (Go `ListAll`, Python `list_all`, Java `listAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
 
 ### create
 
@@ -309,6 +319,8 @@ ListPlansInput selects which plans to list.
 <TypeTable
   type={{
     includeRetired: { type: "boolean", description: "When true, retired plans are included beside the active ones; by default only plans that can still be bought are returned." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 
@@ -319,6 +331,7 @@ Plans contains a list of plan resources.
 <TypeTable
   type={{
     entries: { type: "PlanInput[]", description: "Plan entries.", typeDescriptionLink: "#planinput" },
+    nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token to continue." },
   }}
 />
 

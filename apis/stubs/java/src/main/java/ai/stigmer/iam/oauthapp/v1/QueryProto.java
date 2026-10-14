@@ -42,22 +42,22 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "s.proto\032+ai/stigmer/commons/rpc/method_o" +
       "ptions.proto\032$ai/stigmer/iam/oauthapp/v1" +
       "/api.proto\032#ai/stigmer/iam/oauthapp/v1/i" +
-      "o.proto2\320\003\n\027OAuthAppQueryController\022\213\001\n\003" +
+      "o.proto2\306\003\n\027OAuthAppQueryController\022\213\001\n\003" +
       "get\022-.ai.stigmer.commons.apiresource.Api" +
       "ResourceId\032$.ai.stigmer.iam.oauthapp.v1." +
       "OAuthApp\"/\302\270\030+\010\001\020\026\"\005value*\036unauthorized " +
       "to view oauth app\022r\n\016getByReference\0224.ai" +
       ".stigmer.commons.apiresource.ApiResource" +
       "Reference\032$.ai.stigmer.iam.oauthapp.v1.O" +
-      "AuthApp\"\004\320\270\030\001\022\254\001\n\tlistByOrg\0223.ai.stigmer" +
-      ".iam.oauthapp.v1.ListOAuthAppsByOrgInput" +
-      "\032%.ai.stigmer.iam.oauthapp.v1.OAuthApps\"" +
-      "C\302\270\030?\010\001\020\036\"\003org*4unauthorized to list oau" +
-      "th apps in this organization\032\004\240\377+\026B\231\001B\nQ" +
-      "ueryProtoP\001\242\002\004ASIO\252\002\032Ai.Stigmer.Iam.Oaut" +
-      "happ.V1\312\002\032Ai\\Stigmer\\Iam\\Oauthapp\\V1\342\002&A" +
-      "i\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\352\002\036" +
-      "Ai::Stigmer::Iam::Oauthapp::V1b\006proto3"
+      "AuthApp\"\004\320\270\030\001\022\242\001\n\004list\022..ai.stigmer.iam." +
+      "oauthapp.v1.ListOAuthAppsInput\032%.ai.stig" +
+      "mer.iam.oauthapp.v1.OAuthApps\"C\302\270\030?\010\001\020\036\"" +
+      "\003org*4unauthorized to list oauth apps in" +
+      " this organization\032\004\240\377+\026B\231\001B\nQueryProtoP" +
+      "\001\242\002\004ASIO\252\002\032Ai.Stigmer.Iam.Oauthapp.V1\312\002\032" +
+      "Ai\\Stigmer\\Iam\\Oauthapp\\V1\342\002&Ai\\Stigmer\\" +
+      "Iam\\Oauthapp\\V1\\GPBMetadata\352\002\036Ai::Stigme" +
+      "r::Iam::Oauthapp::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

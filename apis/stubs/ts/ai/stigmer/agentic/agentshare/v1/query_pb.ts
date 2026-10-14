@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { AgentShareSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_agentshare_v1_api } from "./api_pb.js";
-import type { AgentShareIdSchema, AgentShareListSchema, GetAgentSharesByAgentRequestSchema, GetSharedProfileRequestSchema, ListAgentSharesRequestSchema, SharedAgentProfileSchema } from "./io_pb.js";
+import type { AgentShareIdSchema, AgentShareListSchema, GetSharedProfileRequestSchema, ListAgentSharesByAgentRequestSchema, ListAgentSharesRequestSchema, SharedAgentProfileSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_agentshare_v1_io } from "./io_pb.js";
 import type { ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/agentshare/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_agentshare_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9xdWVyeS5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEyzAYKGUFnZW50U2hhcmVRdWVyeUNvbnRyb2xsZXISlQEKA2dldBIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmVJZBosLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmUiMMK4GCwIARAuIgV2YWx1ZSofdW5hdXRob3JpemVkIHRvIGdldCBhZ2VudCBzaGFyZRJ6Cg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRosLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmUiBNC4GAEShAEKCmdldEJ5QWdlbnQSPi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5HZXRBZ2VudFNoYXJlc0J5QWdlbnRSZXF1ZXN0GjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuQWdlbnRTaGFyZUxpc3QiBNC4GAESeAoEbGlzdBI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkxpc3RBZ2VudFNoYXJlc1JlcXVlc3QaMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5BZ2VudFNoYXJlTGlzdCIE0LgYARKJAQoQZ2V0U2hhcmVkUHJvZmlsZRI5LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkdldFNoYXJlZFByb2ZpbGVSZXF1ZXN0GjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuU2hhcmVkQWdlbnRQcm9maWxlIgTIuBgBEocBChlnZXRTaGFyZWRQcm9maWxlRm9yTWVtYmVyEi4uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuQWdlbnRTaGFyZUlkGjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuU2hhcmVkQWdlbnRQcm9maWxlIgTQuBgBGgSg/ysuYgZwcm90bzM", [file_ai_stigmer_agentic_agentshare_v1_api, file_ai_stigmer_agentic_agentshare_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9xdWVyeS5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEyzgYKGUFnZW50U2hhcmVRdWVyeUNvbnRyb2xsZXISlQEKA2dldBIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmVJZBosLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmUiMMK4GCwIARAuIgV2YWx1ZSofdW5hdXRob3JpemVkIHRvIGdldCBhZ2VudCBzaGFyZRJ6Cg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRosLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmUiBNC4GAEShgEKC2xpc3RCeUFnZW50Ej8uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuTGlzdEFnZW50U2hhcmVzQnlBZ2VudFJlcXVlc3QaMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5BZ2VudFNoYXJlTGlzdCIE0LgYARJ4CgRsaXN0EjguYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuTGlzdEFnZW50U2hhcmVzUmVxdWVzdBowLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmVMaXN0IgTQuBgBEokBChBnZXRTaGFyZWRQcm9maWxlEjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuR2V0U2hhcmVkUHJvZmlsZVJlcXVlc3QaNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5TaGFyZWRBZ2VudFByb2ZpbGUiBMi4GAEShwEKGWdldFNoYXJlZFByb2ZpbGVGb3JNZW1iZXISLi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5BZ2VudFNoYXJlSWQaNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5TaGFyZWRBZ2VudFByb2ZpbGUiBNC4GAEaBKD/Ky5iBnByb3RvMw", [file_ai_stigmer_agentic_agentshare_v1_api, file_ai_stigmer_agentic_agentshare_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * AgentShareQueryController handles read operations for agent shares.
@@ -46,18 +46,18 @@ export const AgentShareQueryController: GenService<{
     output: typeof AgentShareSchema;
   },
   /**
-   * Get all shares of a specific agent.
+   * List the shares of a specific agent, newest first.
    * Returns only shares the caller has access to, optionally scoped to
    * one organization via the request's org field.
    *
    * This is how the Share dialog and CLI resolve an agent's existing
    * share regardless of its slug (a renamed share keeps working).
    *
-   * @generated from rpc ai.stigmer.agentic.agentshare.v1.AgentShareQueryController.getByAgent
+   * @generated from rpc ai.stigmer.agentic.agentshare.v1.AgentShareQueryController.listByAgent
    */
-  getByAgent: {
+  listByAgent: {
     methodKind: "unary";
-    input: typeof GetAgentSharesByAgentRequestSchema;
+    input: typeof ListAgentSharesByAgentRequestSchema;
     output: typeof AgentShareListSchema;
   },
   /**

@@ -26,29 +26,29 @@ var File_ai_stigmer_iam_invitation_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_invitation_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/iam/invitation/v1/query.proto\x12\x1cai.stigmer.iam.invitation.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a&ai/stigmer/iam/invitation/v1/api.proto\x1a%ai/stigmer/iam/invitation/v1/io.proto2\xe2\x03\n" +
+	"(ai/stigmer/iam/invitation/v1/query.proto\x12\x1cai.stigmer.iam.invitation.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a&ai/stigmer/iam/invitation/v1/api.proto\x1a%ai/stigmer/iam/invitation/v1/io.proto2\xd8\x03\n" +
 	"\x19InvitationQueryController\x12\x8d\x01\n" +
-	"\x03get\x12*.ai.stigmer.iam.invitation.v1.InvitationId\x1a(.ai.stigmer.iam.invitation.v1.Invitation\"0¸\x18,\b\x01\x10\x14\"\x05value*\x1funauthorized to view invitation\x12\xb5\x01\n" +
-	"\tlistByOrg\x127.ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput\x1a).ai.stigmer.iam.invitation.v1.Invitations\"D¸\x18@\b\x05\x10\x1e\"\x03org*5unauthorized to list invitations in this organization\x12w\n" +
+	"\x03get\x12*.ai.stigmer.iam.invitation.v1.InvitationId\x1a(.ai.stigmer.iam.invitation.v1.Invitation\"0¸\x18,\b\x01\x10\x14\"\x05value*\x1funauthorized to view invitation\x12\xab\x01\n" +
+	"\x04list\x122.ai.stigmer.iam.invitation.v1.ListInvitationsInput\x1a).ai.stigmer.iam.invitation.v1.Invitations\"D¸\x18@\b\x05\x10\x1e\"\x03org*5unauthorized to list invitations in this organization\x12w\n" +
 	"\n" +
 	"getByToken\x122.ai.stigmer.iam.invitation.v1.InvitationTokenInput\x1a/.ai.stigmer.iam.invitation.v1.InvitationPreview\"\x04ȸ\x18\x01\x1a\x04\xa0\xff+\x14B\x99\x02\n" +
 	" com.ai.stigmer.iam.invitation.v1B\n" +
 	"QueryProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/invitation/v1;invitationv1\xa2\x02\x04ASII\xaa\x02\x1cAi.Stigmer.Iam.Invitation.V1\xca\x02\x1cAi\\Stigmer\\Iam\\Invitation\\V1\xe2\x02(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Iam::Invitation::V1b\x06proto3"
 
 var file_ai_stigmer_iam_invitation_v1_query_proto_goTypes = []any{
-	(*InvitationId)(nil),              // 0: ai.stigmer.iam.invitation.v1.InvitationId
-	(*ListInvitationsByOrgInput)(nil), // 1: ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput
-	(*InvitationTokenInput)(nil),      // 2: ai.stigmer.iam.invitation.v1.InvitationTokenInput
-	(*Invitation)(nil),                // 3: ai.stigmer.iam.invitation.v1.Invitation
-	(*Invitations)(nil),               // 4: ai.stigmer.iam.invitation.v1.Invitations
-	(*InvitationPreview)(nil),         // 5: ai.stigmer.iam.invitation.v1.InvitationPreview
+	(*InvitationId)(nil),         // 0: ai.stigmer.iam.invitation.v1.InvitationId
+	(*ListInvitationsInput)(nil), // 1: ai.stigmer.iam.invitation.v1.ListInvitationsInput
+	(*InvitationTokenInput)(nil), // 2: ai.stigmer.iam.invitation.v1.InvitationTokenInput
+	(*Invitation)(nil),           // 3: ai.stigmer.iam.invitation.v1.Invitation
+	(*Invitations)(nil),          // 4: ai.stigmer.iam.invitation.v1.Invitations
+	(*InvitationPreview)(nil),    // 5: ai.stigmer.iam.invitation.v1.InvitationPreview
 }
 var file_ai_stigmer_iam_invitation_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.iam.invitation.v1.InvitationQueryController.get:input_type -> ai.stigmer.iam.invitation.v1.InvitationId
-	1, // 1: ai.stigmer.iam.invitation.v1.InvitationQueryController.listByOrg:input_type -> ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput
+	1, // 1: ai.stigmer.iam.invitation.v1.InvitationQueryController.list:input_type -> ai.stigmer.iam.invitation.v1.ListInvitationsInput
 	2, // 2: ai.stigmer.iam.invitation.v1.InvitationQueryController.getByToken:input_type -> ai.stigmer.iam.invitation.v1.InvitationTokenInput
 	3, // 3: ai.stigmer.iam.invitation.v1.InvitationQueryController.get:output_type -> ai.stigmer.iam.invitation.v1.Invitation
-	4, // 4: ai.stigmer.iam.invitation.v1.InvitationQueryController.listByOrg:output_type -> ai.stigmer.iam.invitation.v1.Invitations
+	4, // 4: ai.stigmer.iam.invitation.v1.InvitationQueryController.list:output_type -> ai.stigmer.iam.invitation.v1.Invitations
 	5, // 5: ai.stigmer.iam.invitation.v1.InvitationQueryController.getByToken:output_type -> ai.stigmer.iam.invitation.v1.InvitationPreview
 	3, // [3:6] is the sub-list for method output_type
 	0, // [0:3] is the sub-list for method input_type

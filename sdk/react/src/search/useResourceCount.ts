@@ -1,7 +1,9 @@
 "use client";
 
-import type { ListParams, ListResult } from "@stigmer/sdk";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
+import type { LibraryKind } from "./librarySource.js";
 
 export interface UseResourceCountOptions {
   /** Text query to filter results before counting. */
@@ -29,44 +31,41 @@ export interface UseResourceCountReturn {
 }
 
 /**
- * Internal hook that fetches the total count of a resource type.
+ * Internal hook that fetches the total count of a Library kind.
  *
  * Powers the public resource count hooks (`useAgentCount`, `useSkillCount`,
  * `usePluginCount`) — not exported from the public API.
  *
- * Issues a minimal `list()` call with `page: { num: 1, size: 1 }` and
- * reads only `totalCount` from the response. The single returned entry
- * is discarded — no entries state is maintained.
- *
- * Unlike {@link useResourceList} which manages full pagination state
- * (entries, page, pageSize, totalPages), this hook tracks only the
- * scalar count, resulting in fewer state updates and re-renders.
+ * A list carries no total; search counts its matches per kind
+ * (`countsByKind`) across every page, so the count is a one-row search
+ * scoped to the kind, read for that kind alone. With no query it counts
+ * every row of the kind the caller may read in the organization: the rows
+ * the Library's list pages through.
  */
 export function useResourceCount(
-  listFn: (params: ListParams) => Promise<ListResult>,
+  kind: LibraryKind,
   org: string | null,
   options?: UseResourceCountOptions,
 ): UseResourceCountReturn {
+  const stigmer = useStigmer();
   const query = options?.query;
   const refetchToken = options?.refetchToken;
 
   const { data: count, isLoading, isRefetching, error, refetch } = useFetch<number | undefined>(
     org
       ? async () => {
-          // Identical params to useResourceList so a card's count always matches
-          // the list page it links to. `org` is ALWAYS sent: an empty org means
-          // "every org the caller can access" to the search backend (a global FGA
-          // dump).
-          const params: ListParams = {
+          // `org` is ALWAYS sent: an empty org means "every org the caller
+          // can access" to the search backend (a global authorization dump).
+          const page = await stigmer.search.query({
+            kinds: [kind],
             org,
             query: query || undefined,
-            page: { num: 1, size: 1 },
-          };
-          const result = await listFn(params);
-          return result.totalCount;
+            pageSize: 1,
+          });
+          return page.countsByKind[ApiResourceKind[kind]] ?? 0;
         }
       : null,
-    [listFn, org, query, refetchToken],
+    [stigmer, kind, org, query, refetchToken],
     undefined,
   );
 

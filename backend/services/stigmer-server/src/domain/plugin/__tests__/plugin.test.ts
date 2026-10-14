@@ -30,6 +30,7 @@
  * lands between the re-push's read and its swap leaves its status_audit
  * stamp on the stored plugin beside the new digest at the level the push
  * declares, and the history holds the first push and the upgrade, each once.
+ * The organization's plugins list newest first, one page at a time.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -529,8 +530,8 @@ describe("Plugin push — one row", () => {
       first.status?.audit?.specAudit?.updatedAt,
     );
     const versions = await pluginQuery.listVersions({ org: ORG, slug: name });
-    expect(versions.totalCount).toBe(1);
-    expect(versions.versions[0]?.tag).toBe("1.2.0");
+    expect(versions.entries).toHaveLength(1);
+    expect(versions.entries[0]?.tag).toBe("1.2.0");
   });
 
   it("an upgrade replaces the lists and grows the version history; getByReference resolves latest, the digest and the tag", async () => {
@@ -560,9 +561,9 @@ describe("Plugin push — one row", () => {
     expect(second.status?.digest).not.toBe(first.status?.digest);
     expect(second.status?.skills.map((s) => s.name)).toEqual(["second"]);
     const versions = await pluginQuery.listVersions({ org: ORG, slug: name });
-    expect(versions.totalCount).toBe(2);
+    expect(versions.entries).toHaveLength(2);
     expect(
-      versions.versions.filter((v) => v.isCurrent).map((v) => v.digest),
+      versions.entries.filter((v) => v.isCurrent).map((v) => v.digest),
     ).toEqual([second.status?.digest]);
     for (const version of ["", "latest", second.status!.digest, "1.3.0"]) {
       const resolved = await pluginQuery.getByReference(
@@ -921,8 +922,30 @@ describe("Plugin delete and visibility", () => {
     );
     expect(await rowCount(ApiResourceKind.skill)).toBe(skillsBefore);
     const versions = await pluginQuery.listVersions({ org: ORG, slug: name });
-    expect(versions.totalCount).toBe(1);
+    expect(versions.entries).toHaveLength(1);
 
     await agents.delete({ value: mine.metadata!.id });
+  });
+});
+
+describe("Plugin list — an organization's plugins", () => {
+  it("pages newest first by token, every plugin once", async () => {
+    const older = await plugins.push({ org: ORG, artifact: archiveOf(thermosLike(uniqueName("listed-older"))) });
+    const newer = await plugins.push({ org: ORG, artifact: archiveOf(thermosLike(uniqueName("listed-newer"))) });
+
+    const ids: string[] = [];
+    let pageToken = "";
+    do {
+      const page = await pluginQuery.list({ org: ORG, pageSize: 1, pageToken });
+      expect(page.entries.length).toBeLessThanOrEqual(1);
+      ids.push(...page.entries.map((plugin) => plugin.metadata!.id));
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
+
+    expect(new Set(ids).size).toBe(ids.length);
+    const newerAt = ids.indexOf(newer.metadata!.id);
+    const olderAt = ids.indexOf(older.metadata!.id);
+    expect(newerAt).toBeGreaterThanOrEqual(0);
+    expect(olderAt).toBeGreaterThan(newerAt);
   });
 });

@@ -60,6 +60,7 @@ Skill skill = client.skills().get("skl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`getArtifact`](#getartifact) | Download skill artifact from storage by its storage key. |
 | [`getArtifactDownloadUrl`](#getartifactdownloadurl) | Mint a URL for downloading a skill artifact over HTTP. |
 | [`getByReference`](#getbyreference) | Get a skill by API resource reference with version support. |
+| [`list`](#list) | List an organization's skills, newest first. |
 | [`listVersions`](#listversions) | List version history for a skill. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of an existing skill. |
 | [`delete`](#delete) | Delete a skill and all its versions. |
@@ -239,6 +240,57 @@ Skill skill = client.skills().getByReference(ApiResourceReference.builder()
 
 **Returns**: [`Skill`](#skill)
 
+### list
+
+List an organization's skills, newest first.
+
+Returns the skills of the input org that the caller may view, one page at a time. Search finds skills by their words; list browses them.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const result = await stigmer.skill.list({
+  org: "...",
+  pageSize: 0,
+  pageToken: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.Skill.List(ctx, &stigmer.ListSkillsRequest{
+  Org:       "...",
+  PageSize:  0,
+  PageToken: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+result = client.skills.list(ListSkillsRequest(
+    org="...",
+    page_size=0,
+    page_token="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+SkillList result = client.skills().list(ListSkillsRequest.builder()
+    .org("...")
+    .pageSize(0)
+    .pageToken("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListSkillsRequest`](#listskillsrequest)
+
+**Returns**: [`SkillList`](#skilllist)
+
+**Every page**: `listAll` (Go `ListAll`, Python `list_all`, Java `listAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
+
 ### listVersions
 
 List version history for a skill.
@@ -291,6 +343,8 @@ ListSkillVersionsResponse listSkillVersionsResponse = client.skills().listVersio
 **Parameters**: [`ListSkillVersionsInput`](#listskillversionsinput)
 
 **Returns**: [`ListSkillVersionsResponse`](#listskillversionsresponse)
+
+**Every page**: `listVersionsAll` (Go `ListVersionsAll`, Python `list_versions_all`, Java `listVersionsAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
 
 ### updateVisibility
 
@@ -626,6 +680,29 @@ Generic reference to any API resource.
   }}
 />
 
+### ListSkillsRequest
+
+Input for listing an organization's skills, newest first.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization whose skills to list, by id or slug." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
+  }}
+/>
+
+### SkillList
+
+One page of an organization's skills.
+
+<TypeTable
+  type={{
+    entries: { type: "SkillInput[]", description: "The skills in this page, newest first.", typeDescriptionLink: "#skillinput" },
+    nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token to continue." },
+  }}
+/>
+
 ### GetArtifactRequest
 
 GetArtifactRequest requests download of a skill artifact by storage key.
@@ -666,8 +743,8 @@ ListSkillVersionsInput requests the version history for a skill.
   type={{
     org: { type: "string", description: "Organization that owns the skill.", required: true },
     slug: { type: "string", description: "Skill slug (unique within the organization).", required: true },
-    pageToken: { type: "string", description: "Opaque token for cursor-based pagination." },
-    pageSize: { type: "number", description: "Maximum number of versions to return per page." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
   }}
 />
 
@@ -677,9 +754,8 @@ ListSkillVersionsResponse contains a page of skill version history.
 
 <TypeTable
   type={{
-    versions: { type: "SkillVersionEntryInput[]", description: "Ordered list of versions (newest first)." },
-    nextPageToken: { type: "string", description: "Token for fetching the next page." },
-    totalCount: { type: "number", description: "Total number of versions across all pages." },
+    entries: { type: "SkillVersionEntryInput[]", description: "Ordered list of versions (newest first)." },
+    nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token to continue." },
   }}
 />
 

@@ -7,6 +7,7 @@ import { VersionTimeline } from "../version-history/VersionTimeline.js";
 import { DiffViewer } from "../version-history/DiffViewer.js";
 import { computeDiff } from "../version-history/computeDiff.js";
 import { useAgentVersions } from "./useAgentVersions.js";
+import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
 
 /** Props for {@link AgentVersionsTab}. */
 export interface AgentVersionsTabProps {
@@ -35,10 +36,11 @@ export interface AgentVersionsTabProps {
  */
 export function AgentVersionsTab({ agent, className }: AgentVersionsTabProps) {
   const [selectedHash, setSelectedHash] = useState<string | null>(null);
-  const { versions, isLoading, getSpec } = useAgentVersions(
+  const versionPages = useAgentVersions(
     agent.metadata?.org ?? "",
     agent.metadata?.slug ?? "",
   );
+  const { versions, isLoading, getSpec } = versionPages;
   // The current version, when the loaded history holds it; with none
   // loaded there is nothing to compare against, so no diff is shown.
   const currentHash = versions.find((v) => v.isCurrent)?.id ?? "";
@@ -68,6 +70,7 @@ export function AgentVersionsTab({ agent, className }: AgentVersionsTabProps) {
           onEntrySelect={setSelectedHash}
           emptyMessage="No versions yet. The agent's next change records its first version."
         />
+        <LoadMoreFooter hasMore={versionPages.hasMore} loadMore={versionPages.loadMore} isLoadingMore={versionPages.isLoadingMore} loadMoreError={versionPages.loadMoreError} />
       </div>
 
       {showDiff && (

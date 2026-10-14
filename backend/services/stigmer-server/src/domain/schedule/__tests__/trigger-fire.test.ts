@@ -100,7 +100,8 @@ describe("FireDirectRun — a run the starter started", () => {
     // The answer is the post-fire row, its fire instant stamped.
     expect(result.schedule?.status?.lastFireAt).toBeDefined();
 
-    const { fires: runs, total } = await store.listScheduleFires(SCHEDULE_ID, 0, 10);
+    const runs = await store.listScheduleFires(SCHEDULE_ID, undefined, 10);
+    const total = runs.length;
     expect(total).toBe(1);
     expect(runs[0]).toMatchObject({
       scheduleId: SCHEDULE_ID,
@@ -143,7 +144,8 @@ describe("FireDirectRun — a run a launch gate refused", () => {
     expect(result.outcome).toBe(ScheduleFireOutcome.REFUSED);
     expect(result.refusalReason).toBe("over budget for the month");
     expect(result.runId).toBe("");
-    const { fires, total } = await store.listScheduleFires(SCHEDULE_ID, 0, 10);
+    const fires = await store.listScheduleFires(SCHEDULE_ID, undefined, 10);
+    const total = fires.length;
     expect(total).toBe(1);
     expect(fires[0]).toMatchObject({ origin: "manual", outcome: "refused", executionId: "" });
   });

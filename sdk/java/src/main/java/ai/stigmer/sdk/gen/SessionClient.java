@@ -123,16 +123,55 @@ public final class SessionClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    /**
+     * Every entry of {@code list}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<Session> listAll(ListSessionsRequest input) {
+        return Pages.<SessionList, Session>iterate(
+            input.getPageToken(),
+            token -> list(input.toBuilder().setPageToken(token).build()),
+            SessionList::getEntriesList,
+            SessionList::getNextPageToken);
+    }
+
     public SessionList listByAgent(ListSessionsByAgentRequest input) {
         try {
             return query.listByAgent(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    /**
+     * Every entry of {@code listByAgent}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<Session> listByAgentAll(ListSessionsByAgentRequest input) {
+        return Pages.<SessionList, Session>iterate(
+            input.getPageToken(),
+            token -> listByAgent(input.toBuilder().setPageToken(token).build()),
+            SessionList::getEntriesList,
+            SessionList::getNextPageToken);
+    }
+
     public SessionList listByChannel(ListSessionsByChannelRequest input) {
         try {
             return query.listByChannel(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code listByChannel}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<Session> listByChannelAll(ListSessionsByChannelRequest input) {
+        return Pages.<SessionList, Session>iterate(
+            input.getPageToken(),
+            token -> listByChannel(input.toBuilder().setPageToken(token).build()),
+            SessionList::getEntriesList,
+            SessionList::getNextPageToken);
     }
 
     public SessionEventList listEvents(ListSessionEventsRequest input) {

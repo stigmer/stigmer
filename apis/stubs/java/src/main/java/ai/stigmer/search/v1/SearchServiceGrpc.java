@@ -138,8 +138,9 @@ public final class SearchServiceGrpc {
      * - With query: Results sorted by relevance score (descending)
      * - Without query: Results sorted by created_at (descending, newer first)
      * Pagination:
-     * Use page.num (1-indexed) and page.size to paginate results.
-     * Response includes total_count and total_pages for pagination controls.
+     * page_size and page_token page the results as every list does; a token
+     * continues the same query in the same order. counts_by_kind counts the
+     * matches per kind across every page.
      * </pre>
      */
     default void search(ai.stigmer.search.v1.SearchRequest request,
@@ -207,8 +208,9 @@ public final class SearchServiceGrpc {
      * - With query: Results sorted by relevance score (descending)
      * - Without query: Results sorted by created_at (descending, newer first)
      * Pagination:
-     * Use page.num (1-indexed) and page.size to paginate results.
-     * Response includes total_count and total_pages for pagination controls.
+     * page_size and page_token page the results as every list does; a token
+     * continues the same query in the same order. counts_by_kind counts the
+     * matches per kind across every page.
      * </pre>
      */
     public void search(ai.stigmer.search.v1.SearchRequest request,
@@ -258,8 +260,9 @@ public final class SearchServiceGrpc {
      * - With query: Results sorted by relevance score (descending)
      * - Without query: Results sorted by created_at (descending, newer first)
      * Pagination:
-     * Use page.num (1-indexed) and page.size to paginate results.
-     * Response includes total_count and total_pages for pagination controls.
+     * page_size and page_token page the results as every list does; a token
+     * continues the same query in the same order. counts_by_kind counts the
+     * matches per kind across every page.
      * </pre>
      */
     public ai.stigmer.search.v1.SearchResponse search(ai.stigmer.search.v1.SearchRequest request) throws io.grpc.StatusException {
@@ -308,8 +311,9 @@ public final class SearchServiceGrpc {
      * - With query: Results sorted by relevance score (descending)
      * - Without query: Results sorted by created_at (descending, newer first)
      * Pagination:
-     * Use page.num (1-indexed) and page.size to paginate results.
-     * Response includes total_count and total_pages for pagination controls.
+     * page_size and page_token page the results as every list does; a token
+     * continues the same query in the same order. counts_by_kind counts the
+     * matches per kind across every page.
      * </pre>
      */
     public ai.stigmer.search.v1.SearchResponse search(ai.stigmer.search.v1.SearchRequest request) {
@@ -358,8 +362,9 @@ public final class SearchServiceGrpc {
      * - With query: Results sorted by relevance score (descending)
      * - Without query: Results sorted by created_at (descending, newer first)
      * Pagination:
-     * Use page.num (1-indexed) and page.size to paginate results.
-     * Response includes total_count and total_pages for pagination controls.
+     * page_size and page_token page the results as every list does; a token
+     * continues the same query in the same order. counts_by_kind counts the
+     * matches per kind across every page.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.search.v1.SearchResponse> search(

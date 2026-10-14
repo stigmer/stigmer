@@ -158,8 +158,12 @@ function usePlatformClientList(org: string | null): UsePlatformClientListReturn
 <TypeTable
   type={{
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    hasMore: { type: "boolean", description: "`true` while the server holds entries beyond those loaded." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    isLoadingMore: { type: "boolean", description: "`true` while a `loadMore` read is in flight." },
     isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
+    loadMore: { type: "() => void", description: "Load the next page. No-op while one is loading or when nothing follows." },
+    loadMoreError: { type: "Error | null", description: "Error from the last failed `loadMore`, or `null`." },
     platformClients: { type: "readonly PlatformClient[]", description: "All platform clients for the organization. Empty while loading or on error." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
   }}

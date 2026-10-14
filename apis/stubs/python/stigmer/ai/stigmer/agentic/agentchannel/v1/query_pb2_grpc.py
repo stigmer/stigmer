@@ -27,9 +27,9 @@ class AgentChannelQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_api__pb2.AgentChannel.FromString,
                 _registered_method=True)
-        self.getByAgent = channel.unary_unary(
-                '/ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController/getByAgent',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_io__pb2.GetAgentChannelsByAgentRequest.SerializeToString,
+        self.listByAgent = channel.unary_unary(
+                '/ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController/listByAgent',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_io__pb2.ListAgentChannelsByAgentRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_io__pb2.AgentChannelList.FromString,
                 _registered_method=True)
         self.list = channel.unary_unary(
@@ -57,8 +57,8 @@ class AgentChannelQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def getByAgent(self, request, context):
-        """Get all channels of a specific agent.
+    def listByAgent(self, request, context):
+        """List the channels of a specific agent, newest first.
         Returns only channels the caller has access to.
 
         This is how the agent's integrations surface and CLI resolve an
@@ -88,9 +88,9 @@ def add_AgentChannelQueryControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_api__pb2.AgentChannel.SerializeToString,
             ),
-            'getByAgent': grpc.unary_unary_rpc_method_handler(
-                    servicer.getByAgent,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_io__pb2.GetAgentChannelsByAgentRequest.FromString,
+            'listByAgent': grpc.unary_unary_rpc_method_handler(
+                    servicer.listByAgent,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_io__pb2.ListAgentChannelsByAgentRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_io__pb2.AgentChannelList.SerializeToString,
             ),
             'list': grpc.unary_unary_rpc_method_handler(
@@ -165,7 +165,7 @@ class AgentChannelQueryController(object):
             _registered_method=True)
 
     @staticmethod
-    def getByAgent(request,
+    def listByAgent(request,
             target,
             options=(),
             channel_credentials=None,
@@ -178,8 +178,8 @@ class AgentChannelQueryController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController/getByAgent',
-            ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_io__pb2.GetAgentChannelsByAgentRequest.SerializeToString,
+            '/ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController/listByAgent',
+            ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_io__pb2.ListAgentChannelsByAgentRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_io__pb2.AgentChannelList.FromString,
             options,
             channel_credentials,

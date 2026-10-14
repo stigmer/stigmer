@@ -250,7 +250,7 @@ describe("oauthapp domain (encryption enabled)", () => {
     expect(err.rawMessage).toBe(CIPHERTEXT_SHAPED_SECRET_MESSAGE);
   });
 
-  it("get, getByReference, and listByOrg all redact", async () => {
+  it("get, getByReference, and list all redact", async () => {
     const created = await ts.command.create(appInput());
 
     const got = await ts.query.get({ value: created.metadata!.id });
@@ -263,19 +263,19 @@ describe("oauthapp domain (encryption enabled)", () => {
     expect(byRef.metadata?.id).toBe(created.metadata?.id);
     expect(byRef.spec?.clientSecret).toBe(REDACTED_MARKER);
 
-    const listed = await ts.query.listByOrg({ org: ORG });
+    const listed = await ts.query.list({ org: ORG });
     expect(listed.entries.length).toBeGreaterThan(0);
     for (const entry of listed.entries) {
       expect(entry.spec?.clientSecret).toBe(REDACTED_MARKER);
     }
   });
 
-  it("listByOrg filters by org and sorts created_at descending", async () => {
+  it("list filters by org and sorts created_at descending", async () => {
     const otherOrg = "other-org";
     const first = await ts.command.create(appInput({ org: otherOrg }));
     const second = await ts.command.create(appInput({ org: otherOrg }));
 
-    const listed = await ts.query.listByOrg({ org: otherOrg });
+    const listed = await ts.query.list({ org: otherOrg });
     expect(listed.entries).toHaveLength(2);
     // Newest first (Go's created_at-descending comparator).
     expect(listed.entries[0]?.metadata?.id).toBe(second.metadata?.id);

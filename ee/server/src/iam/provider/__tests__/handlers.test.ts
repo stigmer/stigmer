@@ -39,8 +39,10 @@
  *     copy, and answers a missing slug NOT_FOUND only to the
  *     organization's admins, and `get`'s denial to anyone else, a viewer of
  *     the organization included;
- *   - listByOrg offers the organization's rows, newest first, to the list
- *     read scope and answers only what it allows;
+ *   - list offers the organization's rows, newest first, to the list
+ *     read scope and answers only what it allows, a page and a token at a
+ *     time to the end, 50 at size 0, and refuses a token issued for another
+ *     organization;
  *   - a provider whose delete did not finish refuses an update and an
  *     apply, FAILED_PRECONDITION, with copy that says to delete it again,
  *     after the caller's authorization and with nothing written;
@@ -240,7 +242,7 @@ function rig(
 ): Rig {
   const store = options.store ?? new InMemoryProviderStore();
   const names = inMemoryNames(async (key) =>
-    (await store.findByOrg(key.org)).find((held) => held.metadata?.slug === key.name)?.metadata?.id,
+    store.inOrg(key.org).find((held) => held.metadata?.slug === key.name)?.metadata?.id,
   );
   const underlying = scripted({ ...PUBLISHED, ...options.answers });
   const checks: AuthzCheck[] = [];
@@ -531,7 +533,7 @@ describe("create", () => {
     const failed = await failure(r.commands.create(provider()));
     expect(failed.code).toBe(Code.Internal);
     expect(failed.rawMessage).toBe("failed to create authorization tuples");
-    expect((await r.store.findByOrg("acme")).map((held) => held.metadata?.slug)).toContain("acme-platform");
+    expect(r.store.inOrg("acme").map((held) => held.metadata?.slug)).toContain("acme-platform");
     expect(r.invalidations).toBe(1);
   });
 
@@ -909,14 +911,14 @@ describe("reads", () => {
     ]);
   });
 
-  it("listByOrg offers the organization's rows newest first and answers only what the scope allows", async () => {
+  it("list offers the organization's rows newest first and answers only what the scope allows", async () => {
     const r = rig({ listable: (id) => id !== "idp_b" });
     await r.store.insert(storedProvider({ id: "idp_a", org: "acme", slug: "idp-a" }));
     await r.store.insert(storedProvider({ id: "idp_x", org: "other", slug: "x" }));
     await r.store.insert(storedProvider({ id: "idp_b", org: "acme", slug: "idp-b" }));
     await r.store.insert(storedProvider({ id: "idp_c", org: "acme", slug: "c" }));
 
-    const listed = await r.queries.listByOrg({ org: "acme" });
+    const listed = await r.queries.list({ org: "acme" });
     expect(listed.entries.map((row) => row.metadata?.id)).toEqual(["idp_c", "idp_a"]);
     expect(r.offered.map((entries) => entries.map((e) => e.id))).toEqual([["idp_c", "idp_b", "idp_a"]]);
     expect(r.checks).toEqual([
@@ -928,6 +930,53 @@ describe("reads", () => {
     ]);
   });
 
+  /** Seeds `count` of acme's providers a minute apart; their ids, newest first. */
+  async function seedProviders(r: ReturnType<typeof rig>, count: number): Promise<string[]> {
+    const ids: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const id = `idp_${String(i).padStart(3, "0")}`;
+      await r.store.insert(
+        storedProvider({ id, org: "acme", slug: `idp-${i}`, createdAt: new Date(Date.UTC(2026, 8, 25, 10, i)) }),
+      );
+      ids.push(id);
+    }
+    return ids.reverse();
+  }
+
+  it("list answers a page and a token that continues it, newest first, to the end", async () => {
+    const r = rig();
+    const newestFirst = await seedProviders(r, 5);
+    const read: string[] = [];
+    const tokens: string[] = [];
+    let pageToken = "";
+    do {
+      const page = await r.queries.list({ org: "acme", pageSize: 2, pageToken });
+      read.push(...page.entries.map((row) => row.metadata?.id ?? ""));
+      pageToken = page.nextPageToken;
+      tokens.push(pageToken);
+    } while (pageToken !== "");
+    expect(read).toEqual(newestFirst);
+    expect(tokens.map((token) => token !== "")).toEqual([true, true, false]);
+  });
+
+  it("list answers the default page of 50 and a token at size 0, never every provider", async () => {
+    const r = rig();
+    const newestFirst = await seedProviders(r, 55);
+    const first = await r.queries.list({ org: "acme", pageSize: 0, pageToken: "" });
+    expect(first.entries.map((row) => row.metadata?.id)).toEqual(newestFirst.slice(0, 50));
+    const rest = await r.queries.list({ org: "acme", pageSize: 0, pageToken: first.nextPageToken });
+    expect(rest.entries.map((row) => row.metadata?.id)).toEqual(newestFirst.slice(50));
+    expect(rest.nextPageToken).toBe("");
+  });
+
+  it("list refuses a token issued for another organization's list", async () => {
+    const r = rig();
+    await seedProviders(r, 3);
+    const { nextPageToken } = await r.queries.list({ org: "acme", pageSize: 1, pageToken: "" });
+    const error = await failure(r.queries.list({ org: "globex", pageSize: 1, pageToken: nextPageToken }));
+    expect(error.code).toBe(Code.InvalidArgument);
+    expect(error.rawMessage).toBe("page_token was issued for a different request");
+  });
 });
 
 describe("a provider whose delete did not finish", () => {

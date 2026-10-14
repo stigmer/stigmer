@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/version.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_version: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvdmVyc2lvbi5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxIqsCChFBZ2VudFZlcnNpb25FbnRyeRIUCgx2ZXJzaW9uX2hhc2gYASABKAkSLgoKYXBwbGllZF9hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASSQoKYXBwbGllZF9ieRgDIAEoCzI1LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0QWN0b3ISCwoDdGFnGAQgASgJEhIKCmlzX2N1cnJlbnQYBSABKAgSDwoHbWVzc2FnZRgGIAEoCRI9Cg1zcGVjX3NuYXBzaG90GAcgASgLMiYuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50U3BlY0oECAgQCVIOZ2l0X3Byb3ZlbmFuY2UiagoWTGlzdEFnZW50VmVyc2lvbnNJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIUCgRzbHVnGAIgASgJQga6SAPIAQESEgoKcGFnZV90b2tlbhgDIAEoCRIRCglwYWdlX3NpemUYBCABKAUiiwEKGUxpc3RBZ2VudFZlcnNpb25zUmVzcG9uc2USQAoIdmVyc2lvbnMYASADKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnRWZXJzaW9uRW50cnkSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJEhMKC3RvdGFsX2NvdW50GAMgASgFIl0KFEdldEFnZW50VmVyc2lvbklucHV0EhgKCGFnZW50X2lkGAEgASgJQga6SAPIAQESKwoMdmVyc2lvbl9oYXNoGAIgASgJQhW6SBJyEDIOXlthLWYwLTldezY0fSQihgEKFFRhZ0FnZW50VmVyc2lvbklucHV0EhgKCGFnZW50X2lkGAEgASgJQga6SAPIAQESKwoMdmVyc2lvbl9oYXNoGAIgASgJQhW6SBJyEDIOXlthLWYwLTldezY0fSQSJwoDdGFnGAMgASgJQhq6SBdyFRABMhFeW2EtekEtWjAtOS5fLV0rJGIGcHJvdG8z", [file_ai_stigmer_agentic_agent_v1_spec, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvdmVyc2lvbi5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxIqsCChFBZ2VudFZlcnNpb25FbnRyeRIUCgx2ZXJzaW9uX2hhc2gYASABKAkSLgoKYXBwbGllZF9hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASSQoKYXBwbGllZF9ieRgDIAEoCzI1LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0QWN0b3ISCwoDdGFnGAQgASgJEhIKCmlzX2N1cnJlbnQYBSABKAgSDwoHbWVzc2FnZRgGIAEoCRI9Cg1zcGVjX3NuYXBzaG90GAcgASgLMiYuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50U3BlY0oECAgQCVIOZ2l0X3Byb3ZlbmFuY2UifQoWTGlzdEFnZW50VmVyc2lvbnNJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIUCgRzbHVnGAIgASgJQga6SAPIAQESHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgSGgoJcGFnZV9zaXplGAQgASgFQge6SAQaAigAIogBChlMaXN0QWdlbnRWZXJzaW9uc1Jlc3BvbnNlEj8KB2VudHJpZXMYASADKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnRWZXJzaW9uRW50cnkSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJSgQIAxAEUgt0b3RhbF9jb3VudCJdChRHZXRBZ2VudFZlcnNpb25JbnB1dBIYCghhZ2VudF9pZBgBIAEoCUIGukgDyAEBEisKDHZlcnNpb25faGFzaBgCIAEoCUIVukgSchAyDl5bYS1mMC05XXs2NH0kIoYBChRUYWdBZ2VudFZlcnNpb25JbnB1dBIYCghhZ2VudF9pZBgBIAEoCUIGukgDyAEBEisKDHZlcnNpb25faGFzaBgCIAEoCUIVukgSchAyDl5bYS1mMC05XXs2NH0kEicKA3RhZxgDIAEoCUIaukgXchUQATIRXlthLXpBLVowLTkuXy1dKyRiBnByb3RvMw", [file_ai_stigmer_agentic_agent_v1_spec, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * AgentVersionEntry is one historical version of an agent.
@@ -113,16 +113,16 @@ export type ListAgentVersionsInput = Message<"ai.stigmer.agentic.agent.v1.ListAg
   slug: string;
 
   /**
-   * Opaque token for offset pagination.
-   * Empty string or omitted for the first page.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    *
    * @generated from field: string page_token = 3;
    */
   pageToken: string;
 
   /**
-   * Maximum number of versions to return per page.
-   * Server may return fewer. Default is 50, max is 100.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    *
    * @generated from field: int32 page_size = 4;
    */
@@ -145,23 +145,17 @@ export type ListAgentVersionsResponse = Message<"ai.stigmer.agentic.agent.v1.Lis
   /**
    * Ordered list of versions (newest first).
    *
-   * @generated from field: repeated ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1;
+   * @generated from field: repeated ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1;
    */
-  versions: AgentVersionEntry[];
+  entries: AgentVersionEntry[];
 
   /**
-   * Token for fetching the next page. Empty when no more pages exist.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    *
    * @generated from field: string next_page_token = 2;
    */
   nextPageToken: string;
-
-  /**
-   * Total number of versions across all pages.
-   *
-   * @generated from field: int32 total_count = 3;
-   */
-  totalCount: number;
 };
 
 /**

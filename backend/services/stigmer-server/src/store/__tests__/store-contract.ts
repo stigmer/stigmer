@@ -980,6 +980,93 @@ export function describeStoreContract(
       expect(record.spec?.description).toBe("newer");
     });
 
+    it("listAuditRecordsPage pages the history in its order, and a version archived between pages repeats nothing", async () => {
+      const org = makeOrganization();
+      for (const hash of ["hash-1", "hash-2", "hash-3", "hash-4", "hash-5"]) {
+        await fx.store.saveAudit(
+          KIND,
+          "acme",
+          OrganizationSchema,
+          org,
+          hash,
+          "",
+        );
+      }
+
+      const first = await fx.store.listAuditRecordsPage(
+        KIND,
+        "acme",
+        undefined,
+        2,
+      );
+      expect(first.map((record) => record.versionHash)).toEqual([
+        "hash-5",
+        "hash-4",
+      ]);
+
+      // A push between two pages lands before the first page.
+      await fx.store.saveAudit(
+        KIND,
+        "acme",
+        OrganizationSchema,
+        org,
+        "hash-6",
+        "",
+      );
+
+      const second = await fx.store.listAuditRecordsPage(
+        KIND,
+        "acme",
+        first[1]!.seq,
+        2,
+      );
+      expect(second.map((record) => record.versionHash)).toEqual([
+        "hash-3",
+        "hash-2",
+      ]);
+      const third = await fx.store.listAuditRecordsPage(
+        KIND,
+        "acme",
+        second[1]!.seq,
+        2,
+      );
+      expect(third.map((record) => record.versionHash)).toEqual(["hash-1"]);
+
+      // Every audit read names the same row by the same sequence.
+      const byHash = await fx.store.getAuditRecordByHash(
+        KIND,
+        "acme",
+        "hash-3",
+      );
+      expect(byHash.seq).toBe(second[0]!.seq);
+      const all = await fx.store.listAuditRecords(KIND, "acme");
+      expect(all.map((record) => record.seq)).toContain(byHash.seq);
+    });
+
+    it("listAuditRecordsPage after a sequence of another resource reads nothing", async () => {
+      const org = makeOrganization();
+      await fx.store.saveAudit(
+        KIND,
+        "acme",
+        OrganizationSchema,
+        org,
+        "hash-1",
+        "",
+      );
+      await fx.store.saveAudit(
+        KIND,
+        "other",
+        OrganizationSchema,
+        org,
+        "hash-1",
+        "",
+      );
+      const [foreign] = await fx.store.listAuditRecords(KIND, "other");
+
+      expect(
+        await fx.store.listAuditRecordsPage(KIND, "acme", foreign!.seq, 10),
+      ).toEqual([]);
+    });
     it("deleteAuditByResourceId removes the resource's records and reports the count", async () => {
       const org = makeOrganization();
       await fx.store.saveAudit(
@@ -1024,8 +1111,8 @@ export function describeStoreContract(
         completedAt: "2026-08-20T00:00:05Z",
       });
 
-      const { fires: runs, total } = await fx.store.listScheduleFires("sch_1", 0, 0);
-      expect(total).toBe(1);
+      const runs = await fx.store.listScheduleFires("sch_1", undefined, 10);
+      expect(runs).toHaveLength(1);
       expect(runs[0]!.outcome).toBe("completed");
     });
 
@@ -1037,7 +1124,7 @@ export function describeStoreContract(
       });
       await fx.store.upsertScheduleFire(baseRun); // the replay
 
-      const { fires: runs } = await fx.store.listScheduleFires("sch_1", 0, 0);
+      const runs = await fx.store.listScheduleFires("sch_1", undefined, 10);
       expect(runs[0]!.outcome, "the verdict survives the replay").toBe(
         "completed",
       );
@@ -1062,7 +1149,7 @@ export function describeStoreContract(
         "2026-08-20T00:01:00Z",
       );
 
-      const { fires: runs } = await fx.store.listScheduleFires("sch_1", 0, 0);
+      const runs = await fx.store.listScheduleFires("sch_1", undefined, 10);
       const cron = runs.find((run) => run.origin === "cron")!;
       const manual = runs.find((run) => run.origin === "manual")!;
       expect(cron.outcome).toBe("failed");
@@ -1082,7 +1169,7 @@ export function describeStoreContract(
       ).resolves.toBeUndefined();
     });
 
-    it("lists newest first with pagination totals; prune and delete report counts", async () => {
+    it("lists newest first by key and continues after a cursor; prune and delete report counts", async () => {
       for (const minute of ["00", "01", "02"]) {
         await fx.store.upsertScheduleFire({
           ...baseRun,
@@ -1090,13 +1177,37 @@ export function describeStoreContract(
           recordedAt: `2026-08-20T00:${minute}:01Z`,
         });
       }
+      // Two fires at one instant: the origin breaks the tie, as bytes.
+      await fx.store.upsertScheduleFire({
+        ...baseRun,
+        nominalFireTime: "2026-08-20T00:01:00Z",
+        origin: "manual",
+      });
 
-      const page = await fx.store.listScheduleFires("sch_1", 0, 2);
-      expect(page.total).toBe(3);
-      expect(page.fires.map((run) => run.nominalFireTime)).toEqual([
-        "2026-08-20T00:02:00Z",
-        "2026-08-20T00:01:00Z",
+      const first = await fx.store.listScheduleFires("sch_1", undefined, 2);
+      expect(first.map((run) => [run.nominalFireTime, run.origin])).toEqual([
+        ["2026-08-20T00:02:00Z", "cron"],
+        ["2026-08-20T00:01:00Z", "manual"],
       ]);
+      const last = first[first.length - 1]!;
+      const rest = await fx.store.listScheduleFires(
+        "sch_1",
+        { nominalFireTime: last.nominalFireTime, origin: last.origin },
+        10,
+      );
+      expect(rest.map((run) => [run.nominalFireTime, run.origin])).toEqual([
+        ["2026-08-20T00:01:00Z", "cron"],
+        ["2026-08-20T00:00:00Z", "cron"],
+      ]);
+
+      await fx.store.deleteScheduleFiresBySchedule("sch_1");
+      for (const minute of ["00", "01", "02"]) {
+        await fx.store.upsertScheduleFire({
+          ...baseRun,
+          nominalFireTime: `2026-08-20T00:${minute}:00Z`,
+          recordedAt: `2026-08-20T00:${minute}:01Z`,
+        });
+      }
 
       expect(await fx.store.pruneScheduleFires("2026-08-20T00:01:00Z")).toBe(1);
       expect(await fx.store.deleteScheduleFiresBySchedule("sch_1")).toBe(2);
@@ -2086,8 +2197,8 @@ export function describeStoreContract(
       expect(await fx.store.deleteSearchIndexByOrg("org_a")).toBe(1);
       expect(await fx.store.deleteSearchIndexByOrg("")).toBe(0);
       expect(await fx.store.deleteScheduleFiresByOrg("org_a")).toBe(1);
-      expect((await fx.store.listScheduleFires("sch_org_a", 0, 0)).total).toBe(0);
-      expect((await fx.store.listScheduleFires("sch_org_b", 0, 0)).total).toBe(1);
+      expect(await fx.store.listScheduleFires("sch_org_a", undefined, 10)).toHaveLength(0);
+      expect(await fx.store.listScheduleFires("sch_org_b", undefined, 10)).toHaveLength(1);
       const left = await fx.store.querySearchIndex({
         kinds: ["agent"],
         terms: ["kubernetes"],

@@ -19,7 +19,9 @@ import {
   ConfirmDialog,
   toast,
   type WorkbenchColumnDef,
+  createLibraryListFn,
 } from "@stigmer/react";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 
 const VIEW_MODE_STORAGE_KEY = "stigmer:workbench:skills:viewMode";
@@ -68,9 +70,10 @@ export default function SkillListPage() {
   // flash, pagination and sort preserved.
   const [refetchToken, refreshList] = useReducer((n: number) => n + 1, 0);
 
+  // The organization's skills, newest first, while the search box is
+  // empty; search matches once it holds text.
   const listFn = useMemo(
-    () => (params: Parameters<typeof stigmer.skill.list>[0]) =>
-      stigmer.skill.list(params),
+    () => createLibraryListFn(stigmer, ApiResourceKind.skill),
     [stigmer],
   );
 

@@ -54,7 +54,7 @@ import type { FetchImpl } from "./sources/types.js";
 import type { InstallPluginOutcome } from "./useInstallPlugin.js";
 import { type CatalogEntry, catalogEntries, useMarketplaceCatalog } from "./useMarketplaceCatalog.js";
 import { useMarketplaces } from "./useMarketplaces.js";
-import { usePluginList } from "./usePluginList.js";
+import { useInstalledPluginSlugs } from "./useInstalledPluginSlugs.js";
 
 /** Props for {@link MarketplaceCatalog}. */
 export interface MarketplaceCatalogProps {
@@ -71,9 +71,6 @@ export interface MarketplaceCatalogProps {
 /** Cards per page: three columns by eight rows at the widest layout, so a page is one screen and a half. */
 export const CATALOG_PAGE_SIZE = 24;
 
-/** The most installed plugins a card lookup reads; an org with more is a scale the search box already serves. */
-const INSTALLED_LOOKUP_PAGE_SIZE = 200;
-
 /**
  * Browse every known source and install a plugin from any of them, or upload one.
  *
@@ -88,8 +85,7 @@ const INSTALLED_LOOKUP_PAGE_SIZE = 200;
 export function MarketplaceCatalog({ org, onInstalled, fetchImpl, className }: MarketplaceCatalogProps) {
   const sources = useMarketplaces(fetchImpl ? { fetchImpl } : {});
   const { reads, refetch } = useMarketplaceCatalog(sources.marketplaces, fetchImpl ? { fetchImpl } : {});
-  const installed = usePluginList(org, { pageSize: INSTALLED_LOOKUP_PAGE_SIZE });
-  const installedSlugs = useMemo(() => new Set(installed.plugins.map((plugin) => plugin.slug)), [installed.plugins]);
+  const installedSlugs = useInstalledPluginSlugs(org);
 
   const [selectedSource, setSelectedSource] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -178,7 +174,17 @@ export function MarketplaceCatalog({ org, onInstalled, fetchImpl, className }: M
         </ul>
       )}
 
-      {totalPages > 1 && <Pagination pageNum={page} totalPages={totalPages} onPageChange={setPageNum} ariaLabel="Plugins pagination" />}
+      {totalPages > 1 && (
+        <Pagination
+          pageNumber={page}
+          pageCount={totalPages}
+          hasPrevious={page > 1}
+          hasNext={page < totalPages}
+          onPrevious={() => setPageNum(page - 1)}
+          onNext={() => setPageNum(page + 1)}
+          ariaLabel="Plugins pagination"
+        />
+      )}
 
       <PluginInstallDialog
         opened={installing?.opened ?? null}

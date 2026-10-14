@@ -111,12 +111,20 @@
       "protoFile": "ai/stigmer/agentic/agentchannel/v1/conversation_query.proto",
       "methods": [
         {
-          "name": "ListConversations",
+          "name": "List",
           "inputType": "ListChannelConversationsInput",
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput",
           "outputType": "ChannelConversationList",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.ChannelConversationList",
           "description": "List an organization's channel conversations, newest activity first.\n\n Returns conversations across all of the org's channels the caller can\n view, optionally filtered to one channel. Entries carry participation\n state and the customer's display name."
+        },
+        {
+          "name": "CountConversations",
+          "inputType": "CountChannelConversationsInput",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.CountChannelConversationsInput",
+          "outputType": "ChannelConversationCount",
+          "outputFullType": "ai.stigmer.agentic.agentchannel.v1.ChannelConversationCount",
+          "description": "Count an organization's channel conversations that match a filter.\n\n The number behind a badge such as the inbox's \"needs you\": the same\n predicate list applies, over the same channels, so the count and the\n list it opens never disagree."
         },
         {
           "name": "GetConversation",
@@ -127,12 +135,12 @@
           "description": "Get one conversation's identity and participation state.\n\n The single-row read behind a conversation detail view: who holds\n control, whether the conversation needs attention and why, the\n customer's display name, and the activity clocks. Answers NOT_FOUND\n until the customer's first message creates the conversation."
         },
         {
-          "name": "GetTimeline",
-          "inputType": "GetConversationTimelineInput",
-          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput",
+          "name": "ListTimeline",
+          "inputType": "ListConversationTimelineInput",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.ListConversationTimelineInput",
           "outputType": "ConversationTimeline",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.ConversationTimeline",
-          "description": "Get one conversation's timeline, newest first, cursor-paged.\n\n The timeline contains customer-visible items only: inbound customer\n messages (including non-text kinds the platform cannot render),\n delivered agent replies, and operator or platform sends. Run\n internals never appear."
+          "description": "List one conversation's timeline, newest first, one page at a time.\n\n The timeline contains customer-visible items only: inbound customer\n messages (including non-text kinds the platform cannot render),\n delivered agent replies, and operator or platform sends. Run\n internals never appear."
         },
         {
           "name": "GetMediaDownloadUrl",
@@ -204,12 +212,12 @@
           "description": "Get an agent channel by its organization-scoped reference (org/slug)."
         },
         {
-          "name": "GetByAgent",
-          "inputType": "GetAgentChannelsByAgentRequest",
-          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.GetAgentChannelsByAgentRequest",
+          "name": "ListByAgent",
+          "inputType": "ListAgentChannelsByAgentRequest",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsByAgentRequest",
           "outputType": "AgentChannelList",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannelList",
-          "description": "Get all channels of a specific agent.\n Returns only channels the caller has access to.\n\n This is how the agent's integrations surface and CLI resolve an\n agent's existing channels regardless of slug."
+          "description": "List the channels of a specific agent, newest first.\n Returns only channels the caller has access to.\n\n This is how the agent's integrations surface and CLI resolve an\n agent's existing channels regardless of slug."
         },
         {
           "name": "List",
@@ -701,17 +709,6 @@
           }
         },
         {
-          "name": "PageInfo",
-          "jsonName": "pageInfo",
-          "protoField": "page_info",
-          "type": {
-            "kind": "message",
-            "messageType": "PageInfo"
-          },
-          "description": "Pagination options. Conversations are returned newest activity first.",
-          "required": false
-        },
-        {
           "name": "Filter",
           "jsonName": "filter",
           "protoField": "filter",
@@ -724,6 +721,29 @@
           },
           "description": "Optional filter: narrow the list to a server-evaluated predicate.\n Unspecified lists every conversation on the authorized channels.",
           "required": false
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
+          }
         }
       ]
     },
@@ -734,19 +754,9 @@
       "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/conversation_io.proto",
       "fields": [
         {
-          "name": "TotalCount",
-          "jsonName": "totalCount",
-          "protoField": "total_count",
-          "type": {
-            "kind": "int32"
-          },
-          "description": "Total number of conversations matching the filter.",
-          "required": false
-        },
-        {
-          "name": "Items",
-          "jsonName": "items",
-          "protoField": "items",
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
           "type": {
             "kind": "array",
             "elementType": {
@@ -755,6 +765,83 @@
             }
           },
           "description": "Conversations in the current page.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Set when more entries may follow: pass it as page_token to continue.\n A page may be short, even empty, and still carry a token.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "CountChannelConversationsInput",
+      "description": "Input for counting an organization's channel conversations.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.CountChannelConversationsInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/conversation_io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization whose conversations to count.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 63
+          }
+        },
+        {
+          "name": "AgentChannelId",
+          "jsonName": "agentChannelId",
+          "protoField": "agent_channel_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional filter: only conversations on this agent channel.",
+          "required": false,
+          "validation": {
+            "maxLength": 128
+          }
+        },
+        {
+          "name": "Filter",
+          "jsonName": "filter",
+          "protoField": "filter",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter",
+            "enumValues": [
+              "filter_wants_human"
+            ]
+          },
+          "description": "Optional filter: count only the conversations matching this predicate.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ChannelConversationCount",
+      "description": "ChannelConversationCount is how many conversations match a count's\n filter, over the channels the caller can view.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.ChannelConversationCount",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/conversation_io.proto",
+      "fields": [
+        {
+          "name": "Count",
+          "jsonName": "count",
+          "protoField": "count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "The number of matching conversations.",
           "required": false
         }
       ]
@@ -796,9 +883,9 @@
       ]
     },
     {
-      "name": "GetConversationTimelineInput",
+      "name": "ListConversationTimelineInput",
       "description": "Input for reading one conversation's timeline.",
-      "protoType": "ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.ListConversationTimelineInput",
       "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/conversation_io.proto",
       "fields": [
         {
@@ -836,7 +923,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "Maximum number of items to return per page. Server may return fewer.",
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
           "required": false
         },
         {
@@ -846,8 +933,11 @@
           "type": {
             "kind": "string"
           },
-          "description": "Opaque cursor from a previous response. Empty for the newest page.",
-          "required": false
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
+          }
         }
       ]
     },
@@ -858,9 +948,9 @@
       "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/conversation_io.proto",
       "fields": [
         {
-          "name": "Items",
-          "jsonName": "items",
-          "protoField": "items",
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
           "type": {
             "kind": "array",
             "elementType": {
@@ -878,7 +968,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Cursor for the next (older) page. Empty when no more items exist.",
+          "description": "Set when more entries may follow: pass it as page_token to continue.\n A page may be short, even empty, and still carry a token.",
           "required": false
         }
       ]
@@ -1224,9 +1314,9 @@
       ]
     },
     {
-      "name": "GetAgentChannelsByAgentRequest",
+      "name": "ListAgentChannelsByAgentRequest",
       "description": "Input for retrieving all channels of a specific agent.",
-      "protoType": "ai.stigmer.agentic.agentchannel.v1.GetAgentChannelsByAgentRequest",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsByAgentRequest",
       "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/io.proto",
       "fields": [
         {
@@ -1243,17 +1333,6 @@
           }
         },
         {
-          "name": "PageInfo",
-          "jsonName": "pageInfo",
-          "protoField": "page_info",
-          "type": {
-            "kind": "message",
-            "messageType": "PageInfo"
-          },
-          "description": "Pagination options.",
-          "required": false
-        },
-        {
           "name": "Org",
           "jsonName": "org",
           "protoField": "org",
@@ -1262,6 +1341,29 @@
           },
           "description": "Organization slug to scope the results to.\n\n When set, only channels whose metadata.org matches are returned — the\n org-context view a console tab needs. When empty, results are bounded\n only by the caller's view permissions, which for a member of several\n organizations spans all of them.",
           "required": false
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
+          }
         }
       ]
     },
@@ -1272,19 +1374,9 @@
       "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/io.proto",
       "fields": [
         {
-          "name": "TotalCount",
-          "jsonName": "totalCount",
-          "protoField": "total_count",
-          "type": {
-            "kind": "int32"
-          },
-          "description": "Total number of agent channels matching the query.",
-          "required": false
-        },
-        {
-          "name": "Items",
-          "jsonName": "items",
-          "protoField": "items",
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
           "type": {
             "kind": "array",
             "elementType": {
@@ -1293,6 +1385,16 @@
             }
           },
           "description": "Agent channels in the current page.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Set when more entries may follow: pass it as page_token to continue.\n A page may be short, even empty, and still carry a token.",
           "required": false
         }
       ]
@@ -1333,15 +1435,27 @@
           "required": false
         },
         {
-          "name": "PageInfo",
-          "jsonName": "pageInfo",
-          "protoField": "page_info",
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
           "type": {
-            "kind": "message",
-            "messageType": "PageInfo"
+            "kind": "int32"
           },
-          "description": "Pagination options.",
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
           "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
+          }
         }
       ]
     }

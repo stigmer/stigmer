@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Iterator
 
 import grpc
 
@@ -98,11 +98,35 @@ class RunClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def list_all(self, input: io_pb2.ListRunsRequest) -> Iterator[api_pb2.Run]:
+        """Every entry of ``list``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListRunsRequest()
+        request.CopyFrom(input)
+        while True:
+            page = self.list(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
+
     def list_by_session(self, input: io_pb2.ListRunsBySessionRequest) -> io_pb2.RunList:
         try:
             return self._query.listBySession(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
+
+    def list_by_session_all(self, input: io_pb2.ListRunsBySessionRequest) -> Iterator[api_pb2.Run]:
+        """Every entry of ``list_by_session``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListRunsBySessionRequest()
+        request.CopyFrom(input)
+        while True:
+            page = self.list_by_session(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
 
     def get_artifact_download_url(self, input: io_pb2.GetArtifactDownloadUrlRequest) -> io_pb2.GetArtifactDownloadUrlResponse:
         try:

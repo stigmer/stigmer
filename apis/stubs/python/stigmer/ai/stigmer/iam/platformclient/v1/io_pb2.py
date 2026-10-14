@@ -27,7 +27,7 @@ from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import field_mask_pb2 as google_dot_protobuf_dot_field__mask__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/iam/platformclient/v1/io.proto\x12 ai.stigmer.iam.platformclient.v1\x1a*ai/stigmer/iam/platformclient/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"3\n\x10PlatformClientId\x12\x1f\n\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"]\n\x0fPlatformClients\x12J\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\x30.ai.stigmer.iam.platformclient.v1.PlatformClientR\x07\x65ntries\":\n\x1dListPlatformClientsByOrgInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"\x9e\x01\n\x1cPlatformClientCreateResponse\x12Y\n\x0fplatform_client\x18\x01 \x01(\x0b\x32\x30.ai.stigmer.iam.platformclient.v1.PlatformClientR\x0eplatformClient\x12#\n\rclient_secret\x18\x02 \x01(\tR\x0c\x63lientSecret\"\x80\x03\n\x19UpdatePlatformClientInput\x12T\n\x08resource\x18\x01 \x01(\x0b\x32\x30.ai.stigmer.iam.platformclient.v1.PlatformClientB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xc7\x01\xbaH\xc3\x01\x1a\xc0\x01\n\x17update_names_its_target\x12Oresource.metadata.id is required: an update names the platform client by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'B\xd4\x01\n$com.ai.stigmer.iam.platformclient.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/iam/platformclient/v1/io.proto\x12 ai.stigmer.iam.platformclient.v1\x1a*ai/stigmer/iam/platformclient/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"3\n\x10PlatformClientId\x12\x1f\n\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"\x85\x01\n\x0fPlatformClients\x12J\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\x30.ai.stigmer.iam.platformclient.v1.PlatformClientR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x84\x01\n\x18ListPlatformClientsInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\"\x9e\x01\n\x1cPlatformClientCreateResponse\x12Y\n\x0fplatform_client\x18\x01 \x01(\x0b\x32\x30.ai.stigmer.iam.platformclient.v1.PlatformClientR\x0eplatformClient\x12#\n\rclient_secret\x18\x02 \x01(\tR\x0c\x63lientSecret\"\x80\x03\n\x19UpdatePlatformClientInput\x12T\n\x08resource\x18\x01 \x01(\x0b\x32\x30.ai.stigmer.iam.platformclient.v1.PlatformClientB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xc7\x01\xbaH\xc3\x01\x1a\xc0\x01\n\x17update_names_its_target\x12Oresource.metadata.id is required: an update names the platform client by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'B\xd4\x01\n$com.ai.stigmer.iam.platformclient.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -37,8 +37,12 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n$com.ai.stigmer.iam.platformclient.v1B\007IoProtoP\001\242\002\004ASIP\252\002 Ai.Stigmer.Iam.Platformclient.V1\312\002 Ai\\Stigmer\\Iam\\Platformclient\\V1\342\002,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\352\002$Ai::Stigmer::Iam::Platformclient::V1'
   _globals['_PLATFORMCLIENTID'].fields_by_name['value']._loaded_options = None
   _globals['_PLATFORMCLIENTID'].fields_by_name['value']._serialized_options = b'\272H\006r\004\020\001\030@'
-  _globals['_LISTPLATFORMCLIENTSBYORGINPUT'].fields_by_name['org']._loaded_options = None
-  _globals['_LISTPLATFORMCLIENTSBYORGINPUT'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_LISTPLATFORMCLIENTSINPUT'].fields_by_name['org']._loaded_options = None
+  _globals['_LISTPLATFORMCLIENTSINPUT'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_LISTPLATFORMCLIENTSINPUT'].fields_by_name['page_size']._loaded_options = None
+  _globals['_LISTPLATFORMCLIENTSINPUT'].fields_by_name['page_size']._serialized_options = b'\272H\004\032\002(\000'
+  _globals['_LISTPLATFORMCLIENTSINPUT'].fields_by_name['page_token']._loaded_options = None
+  _globals['_LISTPLATFORMCLIENTSINPUT'].fields_by_name['page_token']._serialized_options = b'\272H\005r\003\030\200\010'
   _globals['_UPDATEPLATFORMCLIENTINPUT'].fields_by_name['resource']._loaded_options = None
   _globals['_UPDATEPLATFORMCLIENTINPUT'].fields_by_name['resource']._serialized_options = b'\272H\003\330\001\003'
   _globals['_UPDATEPLATFORMCLIENTINPUT'].fields_by_name['update_mask']._loaded_options = None
@@ -47,12 +51,12 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_UPDATEPLATFORMCLIENTINPUT']._serialized_options = b'\272H\303\001\032\300\001\n\027update_names_its_target\022Oresource.metadata.id is required: an update names the platform client by its id\032Thas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\''
   _globals['_PLATFORMCLIENTID']._serialized_start=186
   _globals['_PLATFORMCLIENTID']._serialized_end=237
-  _globals['_PLATFORMCLIENTS']._serialized_start=239
-  _globals['_PLATFORMCLIENTS']._serialized_end=332
-  _globals['_LISTPLATFORMCLIENTSBYORGINPUT']._serialized_start=334
-  _globals['_LISTPLATFORMCLIENTSBYORGINPUT']._serialized_end=392
-  _globals['_PLATFORMCLIENTCREATERESPONSE']._serialized_start=395
-  _globals['_PLATFORMCLIENTCREATERESPONSE']._serialized_end=553
-  _globals['_UPDATEPLATFORMCLIENTINPUT']._serialized_start=556
-  _globals['_UPDATEPLATFORMCLIENTINPUT']._serialized_end=940
+  _globals['_PLATFORMCLIENTS']._serialized_start=240
+  _globals['_PLATFORMCLIENTS']._serialized_end=373
+  _globals['_LISTPLATFORMCLIENTSINPUT']._serialized_start=376
+  _globals['_LISTPLATFORMCLIENTSINPUT']._serialized_end=508
+  _globals['_PLATFORMCLIENTCREATERESPONSE']._serialized_start=511
+  _globals['_PLATFORMCLIENTCREATERESPONSE']._serialized_end=669
+  _globals['_UPDATEPLATFORMCLIENTINPUT']._serialized_start=672
+  _globals['_UPDATEPLATFORMCLIENTINPUT']._serialized_end=1056
 # @@protoc_insertion_point(module_scope)

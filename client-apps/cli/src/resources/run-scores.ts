@@ -26,6 +26,7 @@ import {
 import { ListScoresByRunRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { renderEmpty, renderProtoListJson, renderProtoListYaml, renderTable } from "../output/index.js";
+import { readCursorPages } from "./cursor-pages.js";
 
 /** Output format for scores: a table, or the scores' full proto envelopes. */
 export type ScoresFormat = "table" | "yaml" | "json";
@@ -43,16 +44,18 @@ export async function showRunScores(
   format: ScoresFormat,
   streams: ScoresStreams = defaultStreams(),
 ): Promise<void> {
-  const list = await client.score.listByRun(create(ListScoresByRunRequestSchema, { runId }));
+  const scores = await readCursorPages(0, (pageSize, pageToken) =>
+    client.score.listByRun(create(ListScoresByRunRequestSchema, { runId, pageSize, pageToken })),
+  );
   if (format === "yaml") {
-    streams.write(renderProtoListYaml(ScoreSchema, list.items));
+    streams.write(renderProtoListYaml(ScoreSchema, scores));
     return;
   }
   if (format === "json") {
-    streams.write(renderProtoListJson(ScoreSchema, list.items));
+    streams.write(renderProtoListJson(ScoreSchema, scores));
     return;
   }
-  streams.write(renderScoresTable(list.items));
+  streams.write(renderScoresTable(scores));
 }
 
 /** The table view of a run's scores; an empty run says so. */

@@ -4,7 +4,7 @@
 // Drives OrganizationCommandController + OrganizationQueryController through the
 // raw proto stubs. Covers CRUD round-trips, list pagination, and the
 // capability-gated RPCs that differ between local OSS and cloud
-// (findMyOrganizations filtering). Child organizations are
+// (listMine filtering). Child organizations are
 // child-organizations.conformance.test.ts's. An
 // organization's permanent id, its renamable slug and what a later holder of
 // a released slug can reach are organization-identity.conformance.test.ts's.
@@ -18,11 +18,6 @@ import { createTarget, enforcingLaneOf, type TargetProfile } from "../targets";
 
 const API_VERSION = "tenancy.stigmer.ai/v1";
 const KIND = "Organization";
-
-// FindApiResourcesRequest.org is required by protovalidate, but the organization
-// Find ignores it for filtering (organizations are the top-level scope). The
-// contract still demands a non-empty value, so we pass a stable placeholder.
-const FIND_ORG = "conformance";
 
 let target: TargetProfile;
 // Read at collection time so an edition without a capability reports its cases
@@ -58,11 +53,6 @@ async function createOrg(name: string, using: ConformanceClients = clients) {
   });
   fixtures.defer(() => using.organizationCommand.delete({ value: org.metadata!.id }));
   return org;
-}
-
-async function countOrganizations(): Promise<number> {
-  const list = await clients.organizationQuery.find({ org: FIND_ORG, pageSize: 100 });
-  return list.entries.length;
 }
 
 describe("Organization conformance", () => {
@@ -126,68 +116,54 @@ describe("Organization conformance", () => {
     await expectGrpcCode(() => clients.organizationQuery.get({ value: id }), Code.NotFound, "get after delete");
   });
 
-  // find enumerates every organization regardless of caller — a single-tenant
-  // (OSS) capability. Cloud does not expose tenant-facing org enumeration; its
-  // contract is asserted by the Unimplemented case below.
-  it.skipIf(!capabilities.organizationEnumeration)("[rpc:OrganizationQueryController.find] find enumerates all organizations with correct pagination when supported", async () => {
-
-    const baseline = await countOrganizations();
-    const added = 3;
-    for (let i = 0; i < added; i++) {
-      await createOrg(uniqueName("findorg"));
+  // Membership filtering is asserted on the enforcing lane below.
+  it.skipIf(capabilities.enforcingAuthorizer)("[rpc:OrganizationQueryController.listMine] listMine pages every organization on a trusted-local primary", async () => {
+    const created = [];
+    for (let i = 0; i < 3; i++) {
+      created.push((await createOrg(uniqueName("myorg"))).metadata!.id);
     }
 
-    const total = baseline + added;
-    expect(await countOrganizations(), "find should return every organization").toBe(total);
+    // A trusted-local primary applies no membership filter, so every
+    // organization is the caller's; the walk follows tokens to the end
+    // because the shared store may hold more than one page of them.
+    const seen: string[] = [];
+    let pageToken = "";
+    do {
+      const page = await clients.organizationQuery.listMine({ pageSize: 100, pageToken });
+      seen.push(...page.entries.map((entry) => entry.metadata!.id));
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
 
-    const pageSize = 2;
-    const firstPage = await clients.organizationQuery.find({ org: FIND_ORG, pageSize });
-    expect(firstPage.entries.length).toBeLessThanOrEqual(pageSize);
-    expect(firstPage.totalPages).toBe(Math.ceil(total / pageSize));
-  });
-
-  it.skipIf(capabilities.organizationEnumeration)("find is unavailable without org enumeration (Unimplemented)", async () => {
-    await expectGrpcCode(
-      () => clients.organizationQuery.find({ org: FIND_ORG, pageSize: 100 }),
-      Code.Unimplemented,
-      "find without org enumeration",
-    );
-  });
-
-  // Membership filtering is asserted on the enforcing lane below.
-  it.skipIf(capabilities.enforcingAuthorizer)("[rpc:OrganizationQueryController.findMyOrganizations] findMyOrganizations returns all organizations on a trusted-local primary", async () => {
-    await createOrg(uniqueName("myorg"));
-
-    const all = await clients.organizationQuery.find({ org: FIND_ORG, pageSize: 100 });
-    const mine = await clients.organizationQuery.findMyOrganizations({});
-
-    expect(mine.entries.length, "local mode applies no IAM filtering").toBe(all.entries.length);
+    expect(new Set(seen).size, "no organization appears twice").toBe(seen.length);
+    for (const id of created) {
+      expect(seen, "local mode applies no IAM filtering").toContain(id);
+    }
   });
 
   // On the target's ENFORCING LANE (targets/target.ts): the cloud's primary,
   // and on the managed local targets an open-source sibling in the OIDC
   // posture, whose built-in organization directory answers
-  // findMyOrganizations and whose built-in Authorizer refuses the outsider's
+  // listMine and whose built-in Authorizer refuses the outsider's
   // `get` — one contract on the cloud and on both open-source store drivers.
   // Where a target lends no lane the arm skips VISIBLY.
-  it("[rpc:OrganizationQueryController.findMyOrganizations] [rpc:OrganizationQueryController.get] findMyOrganizations filters by membership and outsiders cannot view the org", async (ctx) => {
+  it("[rpc:OrganizationQueryController.listMine] [rpc:OrganizationQueryController.get] listMine filters by membership and outsiders cannot view the org", async (ctx) => {
     const enforcing = await enforcingLaneOf(target);
     if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
     const lane = enforcing.lane;
     const created = await createOrg(uniqueName("myorg"), lane.clients);
     const id = created.metadata!.id;
 
-    const mine = await lane.clients.organizationQuery.findMyOrganizations({});
+    const mine = await lane.clients.organizationQuery.listMine({});
     expect(
       mine.entries.some((entry) => entry.metadata?.id === id),
-      "the creator (owner) must see the org in findMyOrganizations",
+      "the creator (owner) must see the org in listMine",
     ).toBe(true);
 
     const outsider = await lane.provisionIdentity();
-    const theirs = await outsider.organizationQuery.findMyOrganizations({});
+    const theirs = await outsider.organizationQuery.listMine({});
     expect(
       theirs.entries.some((entry) => entry.metadata?.id === id),
-      "an identity with no grants must not see the org in findMyOrganizations",
+      "an identity with no grants must not see the org in listMine",
     ).toBe(false);
 
     await expectGrpcCode(

@@ -1,7 +1,8 @@
 /**
  * Pins the agent-eval hooks: the list asks `listByAgent` for the agent and
- * skips an empty id, and lists again while any eval it holds is pending or
- * running, no more once all have finished; one eval is read again while it
+ * skips an empty id, and lists again while an eval on its first page is
+ * pending or running, no more once all there have finished (an older page
+ * loaded with Load more, which a poll does not refresh, starts none); one eval is read again while it
  * runs and no more once it has finished, nor once a read answers NotFound;
  * start and cancel call the client and keep a refusal as their error,
  * which clearError or the next call resets.
@@ -40,10 +41,7 @@ function wrap(mock: unknown) {
 
 describe("useAgentEvals", () => {
   it("lists the agent's evals, and asks nothing for an empty id", async () => {
-    const listByAgent = vi.fn(async () => ({
-      totalCount: 1,
-      items: [agentEvalWith([])],
-    }));
+    const listByAgent = vi.fn(async () => ({ entries: [agentEvalWith([])], nextPageToken: "" }));
     const { result } = renderHook(() => useAgentEvals("agt_1"), {
       wrapper: wrap({ agenteval: { listByAgent } }),
     });
@@ -63,10 +61,10 @@ describe("useAgentEvals", () => {
     const running = agentEvalWith([], { id: "aev_2", phase: PluginEvalPhase.running });
     const listByAgent = vi
       .fn()
-      .mockResolvedValueOnce({ totalCount: 2, items: [running, agentEvalWith([])] })
+      .mockResolvedValueOnce({ entries: [running, agentEvalWith([])], nextPageToken: "" })
       .mockResolvedValue({
-        totalCount: 2,
-        items: [agentEvalWith([], { id: "aev_2" }), agentEvalWith([])],
+        entries: [agentEvalWith([], { id: "aev_2" }), agentEvalWith([])],
+        nextPageToken: "",
       });
     const { result } = renderHook(() => useAgentEvals("agt_1"), {
       wrapper: wrap({ agenteval: { listByAgent } }),
@@ -85,6 +83,27 @@ describe("useAgentEvals", () => {
       await vi.advanceTimersByTimeAsync(AGENT_EVAL_POLL_MS * 3);
     });
     expect(listByAgent.mock.calls.length, "no list once all finished").toBe(calls);
+  });
+
+  it("polls only for the first page, which is all a poll refreshes", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const older = agentEvalWith([], { id: "aev_old", phase: PluginEvalPhase.running });
+    const listByAgent = vi.fn(async (req: { pageToken: string }) =>
+      req.pageToken === ""
+        ? { entries: [agentEvalWith([], { id: "aev_new" })], nextPageToken: "page-2" }
+        : { entries: [older], nextPageToken: "" },
+    );
+    const { result } = renderHook(() => useAgentEvals("agt_1"), {
+      wrapper: wrap({ agenteval: { listByAgent } }),
+    });
+    await waitFor(() => expect(result.current.hasMore).toBe(true));
+    act(() => result.current.loadMore());
+    await waitFor(() => expect(result.current.evals).toHaveLength(2));
+    const calls = listByAgent.mock.calls.length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(AGENT_EVAL_POLL_MS * 3);
+    });
+    expect(listByAgent.mock.calls.length, "a poll would not refresh the older page").toBe(calls);
   });
 });
 

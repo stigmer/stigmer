@@ -15,3 +15,6 @@ export type {
   UseResourceCountOptions,
   UseResourceCountReturn,
 } from "./useResourceCount.js";
+
+export { createLibraryListFn } from "./librarySource.js";
+export type { LibraryClient, LibraryKind } from "./librarySource.js";

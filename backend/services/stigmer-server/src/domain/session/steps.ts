@@ -613,6 +613,5 @@ async function readSessionPage(
   return create(SessionListSchema, {
     entries: page.entries,
     nextPageToken: page.nextPageToken,
-    totalPages: page.nextPageToken === "" ? 1 : 0,
   });
 }

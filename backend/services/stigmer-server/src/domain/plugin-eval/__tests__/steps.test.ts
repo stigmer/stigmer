@@ -364,7 +364,7 @@ describe("an eval whose workflow ended without finishing", () => {
       ApiResourceKind.plugin,
     );
     await newListPluginEvalsByPluginStep(temp.store, ALLOW_ALL, silentLogger).execute(ctx);
-    expect((ctx.get(PLUGIN_EVAL_RESULT_KEY) as PluginEvalList).items[0]?.status?.phase).toBe(PluginEvalPhase.failed);
+    expect((ctx.get(PLUGIN_EVAL_RESULT_KEY) as PluginEvalList).entries[0]?.status?.phase).toBe(PluginEvalPhase.failed);
 
     // A row deleted between the list and its settle is answered as listed.
     const gone = aged("pev_gone", PluginEvalPhase.running, 31 * DAY_MS);
@@ -413,13 +413,13 @@ describe("ListPluginEvalsByPlugin", () => {
     const ctx = listCtx();
     await newListPluginEvalsByPluginStep(temp.store, onlyA, silentLogger).execute(ctx);
     const list = ctx.get(PLUGIN_EVAL_RESULT_KEY) as PluginEvalList;
-    expect(list.items.map((e) => e.metadata?.id)).toEqual(["pev_a"]);
-    expect(list.totalCount).toBe(1);
+    expect(list.entries.map((e) => e.metadata?.id)).toEqual(["pev_a"]);
+    expect(list.entries).toHaveLength(1);
     expect(asked.sort()).toEqual(["can_view plugin_eval pev_a", "can_view plugin_eval pev_b"]);
 
     const serverCtx = listCtx(testCallerIdentity({ origin: "in-process" }));
     await newListPluginEvalsByPluginStep(temp.store, onlyA, silentLogger).execute(serverCtx);
-    expect((serverCtx.get(PLUGIN_EVAL_RESULT_KEY) as PluginEvalList).items).toHaveLength(2);
+    expect((serverCtx.get(PLUGIN_EVAL_RESULT_KEY) as PluginEvalList).entries).toHaveLength(2);
 
     const down: Authorizer = {
       authorize: () => Promise.resolve({ kind: "unavailable", cause: new Error("engine down") }),
@@ -470,7 +470,7 @@ describe("ListPluginEvalsByPlugin's answer", () => {
       ApiResourceKind.plugin,
     );
     await newListPluginEvalsByPluginStep(temp.store, { authorize: () => Promise.resolve({ kind: "allow" }) }, silentLogger).execute(ctx);
-    const listed = (ctx.get(PLUGIN_EVAL_RESULT_KEY) as PluginEvalList).items[0];
+    const listed = (ctx.get(PLUGIN_EVAL_RESULT_KEY) as PluginEvalList).entries[0];
     const target = listed?.status?.cases[0]?.targets[0];
     expect(target?.withPlugin?.tries).toEqual([]);
     expect(target?.withoutPlugin?.tries).toEqual([]);

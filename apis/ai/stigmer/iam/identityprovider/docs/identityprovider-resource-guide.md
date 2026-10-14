@@ -63,7 +63,7 @@ status: {}  # System-managed, never set by users
 | Delete | `IdentityProviderCommandController.delete` | `can_delete` on the IdentityProvider. |
 | Get by ID | `IdentityProviderQueryController.get` | `can_view` on the IdentityProvider |
 | Get by reference | `IdentityProviderQueryController.getByReference` | `can_view` on the resolved IdentityProvider, exactly as Get by ID |
-| List by organization | `IdentityProviderQueryController.listByOrg` | `can_view` on the organization; the answer holds only the providers the caller may view |
+| List | `IdentityProviderQueryController.list` | `can_view` on the organization; a page holds only the providers the caller may view |
 
 The organization's admins view, edit and delete its identity providers. An admin can grant a person in the organization view of one provider; other members of the organization see none of them. A provider's creator manages it only while they remain an admin of the organization.
 

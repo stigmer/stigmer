@@ -18,6 +18,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 
+import { STORE_OPEN_OPTIONS } from "../../../boot/store-options.js";
 import type { Store } from "../../../store/interface.js";
 import { PostgresStore } from "../../../store/postgres/store.js";
 import {
@@ -44,6 +45,7 @@ const CONTRACT_CASE_NAMES = [
   "concurrent modifyById calls on one row lose no write",
   "deleteById frees the id, the client_id and the slug; deleting an unknown id resolves",
   "findByOrg answers every client of the organization and no other",
+  "pageByOrg pages the organization's clients newest first and repeats none",
   "a disconnected store is an infrastructure fault, never 'not found'",
   "readForWrite answers undefined for an unknown id",
   "a swap on the bytes readForWrite answered lands, and the row reads back as written",
@@ -81,7 +83,11 @@ const postgresFixture: DriverFixture = {
     if (postgresDatabase === undefined) {
       postgresDatabase = await createTestDatabase();
     }
-    const store = await PostgresStore.open(postgresDatabase.databaseUrl);
+    const store = await PostgresStore.open(
+      postgresDatabase.databaseUrl,
+      undefined,
+      STORE_OPEN_OPTIONS,
+    );
     await store.deleteResourcesByKind(ApiResourceKind.platform_client);
     return { store, close: () => store.close() };
   },

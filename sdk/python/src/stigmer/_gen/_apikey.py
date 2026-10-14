@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Iterator
 
 import grpc
 
@@ -12,7 +13,6 @@ from ai.stigmer.iam.apikey.v1 import query_pb2_grpc
 from ai.stigmer.iam.apikey.v1 import io_pb2
 from ai.stigmer.iam.apikey.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
-from google.protobuf import empty_pb2
 from google.protobuf import field_mask_pb2
 
 from ._errors import wrap_error
@@ -63,17 +63,41 @@ class ApiKeyClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def find_all(self) -> io_pb2.ApiKeys:
+    def list(self, input: io_pb2.ListApiKeysInput) -> io_pb2.ApiKeys:
         try:
-            return self._query.findAll(empty_pb2.Empty())
+            return self._query.list(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def find_by_account(self, id: str) -> io_pb2.ApiKeys:
+    def list_all(self, input: io_pb2.ListApiKeysInput) -> Iterator[api_pb2.ApiKey]:
+        """Every entry of ``list``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListApiKeysInput()
+        request.CopyFrom(input)
+        while True:
+            page = self.list(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
+
+    def list_by_account(self, input: io_pb2.ListApiKeysByAccountInput) -> io_pb2.ApiKeys:
         try:
-            return self._query.findByAccount(io_pb2.ApiKeyAccountId(value=id))
+            return self._query.listByAccount(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
+
+    def list_by_account_all(self, input: io_pb2.ListApiKeysByAccountInput) -> Iterator[api_pb2.ApiKey]:
+        """Every entry of ``list_by_account``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListApiKeysByAccountInput()
+        request.CopyFrom(input)
+        while True:
+            page = self.list_by_account(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
 
 
 @dataclass

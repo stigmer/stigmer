@@ -51,8 +51,7 @@ Organization organization = client.organizations().get("org_01j5q3k7m8r2s4tnz2hf
 | [`get`](#get) | Get an organization by ID. |
 | [`getByExternalId`](#getbyexternalid) | Find a child organization by the identifier its parent keeps for it (external_id). |
 | [`listChildOrgs`](#listchildorgs) | List an organization's child organizations, newest first. |
-| [`find`](#find) | List organizations with pagination and filtering. |
-| [`findMyOrganizations`](#findmyorganizations) | Find organizations the authenticated user is a member of. |
+| [`listMine`](#listmine) | List the organizations the authenticated caller is a member of. |
 | [`apply`](#apply) | Create or update an organization. |
 | [`create`](#create) | Create an organization. |
 | [`update`](#update) | Update an organization: the fields update_mask names change, every other field keeps its stored value. |
@@ -185,89 +184,52 @@ ChildOrgList result = client.organizations().listChildOrgs(ListChildOrgsInput.bu
 
 **Returns**: [`ChildOrgList`](#childorglist)
 
-### find
+**Every page**: `listChildOrgsAll` (Go `ListChildOrgsAll`, Python `list_child_orgs_all`, Java `listChildOrgsAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
 
-List organizations with pagination and filtering.
+### listMine
+
+List the organizations the authenticated caller is a member of. Returns only organizations the caller has access to.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const result = await stigmer.organization.find({
-  org: "...",
-  kind: "...",
-  page: {},
-  pageNumber: 0,
+const organizations = await stigmer.organization.listMine({
   pageSize: 0,
+  pageToken: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Organization.Find(ctx, &stigmer.FindApiResourcesRequest{
-  Org:        "...",
-  Kind:       "...",
-  Page:       &stigmer.PageInfoInput{},
-  PageNumber: 0,
-  PageSize:   0,
+organizations, err := client.Organization.ListMine(ctx, &stigmer.ListMyOrganizationsInput{
+  PageSize:  0,
+  PageToken: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.organizations.find(FindApiResourcesRequest(
-    org="...",
-    kind="...",
-    page=None,
-    page_number=0,
+organizations = client.organizations.list_mine(ListMyOrganizationsInput(
     page_size=0,
+    page_token="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-OrganizationList result = client.organizations().find(FindApiResourcesRequest.builder()
-    .org("...")
-    .kind("...")
-    .page(null)
-    .pageNumber(0)
+Organizations organizations = client.organizations().listMine(ListMyOrganizationsInput.builder()
     .pageSize(0)
+    .pageToken("...")
     .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`FindApiResourcesRequest`](#findapiresourcesrequest)
-
-**Returns**: [`OrganizationList`](#organizationlist)
-
-### findMyOrganizations
-
-Find organizations the authenticated user is a member of. Returns only organizations the caller has access to.
-
-<SDKTabs>
-<Tab value="TypeScript">
-```typescript
-const organizations = await stigmer.organization.findMyOrganizations();
-```
-</Tab>
-<Tab value="Go">
-```go
-organizations, err := client.Organization.FindMyOrganizations(ctx)
-```
-</Tab>
-<Tab value="Python">
-```python
-organizations = client.organizations.find_my_organizations()
-```
-</Tab>
-<Tab value="Java">
-```java
-Organizations organizations = client.organizations().findMyOrganizations();
-```
-</Tab>
-</SDKTabs>
+**Parameters**: [`ListMyOrganizationsInput`](#listmyorganizationsinput)
 
 **Returns**: [`Organizations`](#organizations)
+
+**Every page**: `listMineAll` (Go `ListMineAll`, Python `list_mine_all`, Java `listMineAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
 
 ### apply
 
@@ -701,28 +663,14 @@ Input for renaming any API resource: changing its slug.
   }}
 />
 
-### FindApiResourcesRequest
+### ListMyOrganizationsInput
 
-Input for find (list) operations with pagination.
-
-<TypeTable
-  type={{
-    org: { type: "string", description: "Organization to filter by, by id or slug.", required: true },
-    kind: { type: "string", description: "API resource kind (optional filter)." },
-    page: { type: "PageInfoInput", description: "Pagination info." },
-    pageNumber: { type: "number", description: "Page number (1-indexed) - deprecated, use page.num." },
-    pageSize: { type: "number", description: "Number of items per page (default: 20, max: 100) - deprecated, use page.size." },
-  }}
-/>
-
-### OrganizationList
-
-Response for a paginated organization list query.
+Input for listing the organizations the caller is a member of.
 
 <TypeTable
   type={{
-    totalPages: { type: "number", description: "Total number of pages." },
-    entries: { type: "OrganizationInput[]", description: "Organizations in the current page.", typeDescriptionLink: "#organizationinput" },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 
@@ -733,6 +681,7 @@ List of organizations.
 <TypeTable
   type={{
     entries: { type: "OrganizationInput[]", description: "Organization resources in this list.", typeDescriptionLink: "#organizationinput" },
+    nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token to continue." },
   }}
 />
 
@@ -754,8 +703,8 @@ Input for listing an organization's child organizations, newest first.
 <TypeTable
   type={{
     org: { type: "string", description: "The parent organization, by id or slug." },
-    pageSize: { type: "number", description: "The most children to return; 0 returns every child and no token." },
-    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 
@@ -766,7 +715,7 @@ One page of an organization's child organizations.
 <TypeTable
   type={{
     entries: { type: "OrganizationInput[]", description: "The children in this page, newest first.", typeDescriptionLink: "#organizationinput" },
-    nextPageToken: { type: "string", description: "Set when more children may follow: pass it as page_token to continue." },
+    nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token to continue." },
   }}
 />
 

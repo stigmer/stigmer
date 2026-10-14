@@ -59,6 +59,7 @@ function agentCommand(store: Store): Client<typeof AgentCommandController> {
         logger: silentLogger,
         authorizer: newPermissiveSingleTeamAuthorizer(),
         authorizationLifecycle: undefined,
+        listReadScope: undefined,
         modelRegistry: {} as ModelCatalogProvider,
       });
     },

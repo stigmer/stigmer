@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	TeamQueryController_Get_FullMethodName            = "/ai.stigmer.iam.team.v1.TeamQueryController/get"
 	TeamQueryController_GetByReference_FullMethodName = "/ai.stigmer.iam.team.v1.TeamQueryController/getByReference"
-	TeamQueryController_ListByOrg_FullMethodName      = "/ai.stigmer.iam.team.v1.TeamQueryController/listByOrg"
+	TeamQueryController_List_FullMethodName           = "/ai.stigmer.iam.team.v1.TeamQueryController/list"
 )
 
 // TeamQueryControllerClient is the client API for TeamQueryController service.
@@ -39,8 +39,8 @@ type TeamQueryControllerClient interface {
 	Get(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*Team, error)
 	// Get a team by its organization-scoped reference (org/slug).
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*Team, error)
-	// List the teams of an organization.
-	ListByOrg(ctx context.Context, in *ListTeamsByOrgInput, opts ...grpc.CallOption) (*Teams, error)
+	// List the teams of an organization, newest first.
+	List(ctx context.Context, in *ListTeamsInput, opts ...grpc.CallOption) (*Teams, error)
 }
 
 type teamQueryControllerClient struct {
@@ -71,10 +71,10 @@ func (c *teamQueryControllerClient) GetByReference(ctx context.Context, in *apir
 	return out, nil
 }
 
-func (c *teamQueryControllerClient) ListByOrg(ctx context.Context, in *ListTeamsByOrgInput, opts ...grpc.CallOption) (*Teams, error) {
+func (c *teamQueryControllerClient) List(ctx context.Context, in *ListTeamsInput, opts ...grpc.CallOption) (*Teams, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Teams)
-	err := c.cc.Invoke(ctx, TeamQueryController_ListByOrg_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, TeamQueryController_List_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -95,8 +95,8 @@ type TeamQueryControllerServer interface {
 	Get(context.Context, *apiresource.ApiResourceId) (*Team, error)
 	// Get a team by its organization-scoped reference (org/slug).
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*Team, error)
-	// List the teams of an organization.
-	ListByOrg(context.Context, *ListTeamsByOrgInput) (*Teams, error)
+	// List the teams of an organization, newest first.
+	List(context.Context, *ListTeamsInput) (*Teams, error)
 }
 
 // UnimplementedTeamQueryControllerServer should be embedded to have
@@ -112,8 +112,8 @@ func (UnimplementedTeamQueryControllerServer) Get(context.Context, *apiresource.
 func (UnimplementedTeamQueryControllerServer) GetByReference(context.Context, *apiresource.ApiResourceReference) (*Team, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByReference not implemented")
 }
-func (UnimplementedTeamQueryControllerServer) ListByOrg(context.Context, *ListTeamsByOrgInput) (*Teams, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListByOrg not implemented")
+func (UnimplementedTeamQueryControllerServer) List(context.Context, *ListTeamsInput) (*Teams, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
 func (UnimplementedTeamQueryControllerServer) testEmbeddedByValue() {}
 
@@ -171,20 +171,20 @@ func _TeamQueryController_GetByReference_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
-func _TeamQueryController_ListByOrg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListTeamsByOrgInput)
+func _TeamQueryController_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTeamsInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(TeamQueryControllerServer).ListByOrg(ctx, in)
+		return srv.(TeamQueryControllerServer).List(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: TeamQueryController_ListByOrg_FullMethodName,
+		FullMethod: TeamQueryController_List_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TeamQueryControllerServer).ListByOrg(ctx, req.(*ListTeamsByOrgInput))
+		return srv.(TeamQueryControllerServer).List(ctx, req.(*ListTeamsInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -205,8 +205,8 @@ var TeamQueryController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _TeamQueryController_GetByReference_Handler,
 		},
 		{
-			MethodName: "listByOrg",
-			Handler:    _TeamQueryController_ListByOrg_Handler,
+			MethodName: "list",
+			Handler:    _TeamQueryController_List_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

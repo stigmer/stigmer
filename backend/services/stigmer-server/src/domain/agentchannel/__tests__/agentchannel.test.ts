@@ -660,7 +660,7 @@ describe("apply semantics", () => {
     );
 
     const list = await query.list({ org });
-    expect(list.totalCount).toBe(1);
+    expect(list.entries).toHaveLength(1);
   });
 });
 
@@ -978,13 +978,13 @@ describe("delete and queries", () => {
     await channels.create(labeled);
 
     const all = await query.list({ org });
-    expect(all.totalCount).toBe(2);
+    expect(all.entries).toHaveLength(2);
 
     const filtered = await query.list({ org, labels: { team: "sales" } });
-    expect(filtered.totalCount).toBe(1);
+    expect(filtered.entries).toHaveLength(1);
 
     const foreign = await query.list({ org: "channel-bystander-org" });
-    expect(foreign.totalCount).toBe(0);
+    expect(foreign.entries).toHaveLength(0);
   });
 
   it("getByAgent finds every channel regardless of slug; org scope filters", async () => {
@@ -996,28 +996,28 @@ describe("delete and queries", () => {
       channelFor(agent, uniqueName("Secondary Slack"), false),
     );
 
-    const list = await query.getByAgent({ agentId: agent.metadata!.id });
-    expect(list.totalCount).toBe(2);
-    const slugs = list.items.map((c) => c.metadata?.slug);
+    const list = await query.listByAgent({ agentId: agent.metadata!.id });
+    expect(list.entries).toHaveLength(2);
+    const slugs = list.entries.map((c) => c.metadata?.slug);
     expect(slugs).toContain(first.metadata!.slug);
     expect(slugs).toContain(second.metadata!.slug);
 
-    const matching = await query.getByAgent({
+    const matching = await query.listByAgent({
       agentId: agent.metadata!.id,
       org: ORG,
     });
-    expect(matching.totalCount).toBe(2);
+    expect(matching.entries).toHaveLength(2);
 
-    const foreign = await query.getByAgent({
+    const foreign = await query.listByAgent({
       agentId: agent.metadata!.id,
       org: "channel-bystander-org",
     });
-    expect(foreign.totalCount).toBe(0);
+    expect(foreign.entries).toHaveLength(0);
   });
 
   it("nonexistent agent yields an empty list", async () => {
-    const list = await query.getByAgent({ agentId: "agt-does-not-exist" });
-    expect(list.totalCount).toBe(0);
+    const list = await query.listByAgent({ agentId: "agt-does-not-exist" });
+    expect(list.entries).toHaveLength(0);
   });
 });
 
@@ -1170,14 +1170,18 @@ describe("channel conversation posture (cloud-only runtime)", () => {
   };
 
   it("discovery reads answer truthful emptiness", async () => {
-    const list = await conversationQuery.listConversations({ org: "acme" });
-    expect(list.items).toHaveLength(0);
+    const list = await conversationQuery.list({ org: "acme" });
+    expect(list.entries).toHaveLength(0);
+    expect(list.nextPageToken).toBe("");
 
-    const timeline = await conversationQuery.getTimeline({
+    const counted = await conversationQuery.countConversations({ org: "acme" });
+    expect(counted.count).toBe(0);
+
+    const timeline = await conversationQuery.listTimeline({
       agentChannelId: "ach-123",
       conversationKey: "15551234567",
     });
-    expect(timeline.items).toHaveLength(0);
+    expect(timeline.entries).toHaveLength(0);
     expect(timeline.nextPageToken).toBe("");
   });
 
@@ -1240,12 +1244,16 @@ describe("channel conversation posture (cloud-only runtime)", () => {
   it("contract violations are INVALID_ARGUMENT before the refusal", async () => {
     const cases: Array<[string, () => Promise<unknown>]> = [
       [
-        "listConversations without org",
-        () => conversationQuery.listConversations({}),
+        "list without org",
+        () => conversationQuery.list({}),
       ],
       [
-        "getTimeline without conversation key",
-        () => conversationQuery.getTimeline({ agentChannelId: "ach-123" }),
+        "countConversations without org",
+        () => conversationQuery.countConversations({}),
+      ],
+      [
+        "listTimeline without conversation key",
+        () => conversationQuery.listTimeline({ agentChannelId: "ach-123" }),
       ],
       [
         "getConversation without conversation key",

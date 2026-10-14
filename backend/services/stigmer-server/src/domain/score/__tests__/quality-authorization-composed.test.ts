@@ -225,12 +225,12 @@ describe("an agent's quality where callers are persons (built-in posture, compos
       ScoreQueryController,
       asCarol(),
     ).listFlaggedByAgent({ org: ORG, agentId });
-    expect(carols.items.map((s) => s.spec?.runId)).toEqual([carolRun]);
+    expect(carols.entries.map((s) => s.spec?.runId)).toEqual([carolRun]);
     const daves = await createClient(
       ScoreQueryController,
       asDave(),
     ).listFlaggedByAgent({ org: ORG, agentId });
-    expect(daves.items.map((s) => s.spec?.runId)).toEqual([daveRun]);
+    expect(daves.entries.map((s) => s.spec?.runId)).toEqual([daveRun]);
   });
 
   it("refuses an agent the reader cannot view, and answers NOT_FOUND for none", async () => {

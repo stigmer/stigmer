@@ -3,7 +3,7 @@
 import { wrapError } from "./errors.js";
 import { stripUndefined } from "./proto-utils.js";
 import { type ResourceRef } from "./types.js";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { AgentEvalSchema, type AgentEval } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
 import { AgentEvalCommandController } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/command_pb";
@@ -54,6 +54,20 @@ export class AgentEvalClient {
     try {
       return await this.query.listByAgent(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `listByAgent`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listByAgentAll(input: MessageInitShape<typeof ListAgentEvalsByAgentRequestSchema>): AsyncGenerator<AgentEvalList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.listByAgent(create(ListAgentEvalsByAgentRequestSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 }
 

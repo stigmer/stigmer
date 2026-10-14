@@ -4,6 +4,7 @@ package gen
 
 import (
 	"context"
+	"iter"
 	"time"
 
 	runv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1"
@@ -11,6 +12,7 @@ import (
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -90,9 +92,67 @@ func (r *RunClient) List(ctx context.Context, input *runv1.ListRunsRequest) (*ru
 	return resp, wrapErr(err)
 }
 
+// ListAll returns every entry of List, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (r *RunClient) ListAll(ctx context.Context, input *runv1.ListRunsRequest) iter.Seq2[*runv1.Run, error] {
+	return func(yield func(*runv1.Run, error) bool) {
+		req := &runv1.ListRunsRequest{}
+		if input != nil {
+			req = proto.Clone(input).(*runv1.ListRunsRequest)
+		}
+		for {
+			page, err := r.List(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
+}
+
 func (r *RunClient) ListBySession(ctx context.Context, input *runv1.ListRunsBySessionRequest) (*runv1.RunList, error) {
 	resp, err := r.query.ListBySession(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListBySessionAll returns every entry of ListBySession, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (r *RunClient) ListBySessionAll(ctx context.Context, input *runv1.ListRunsBySessionRequest) iter.Seq2[*runv1.Run, error] {
+	return func(yield func(*runv1.Run, error) bool) {
+		req := &runv1.ListRunsBySessionRequest{}
+		if input != nil {
+			req = proto.Clone(input).(*runv1.ListRunsBySessionRequest)
+		}
+		for {
+			page, err := r.ListBySession(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 func (r *RunClient) GetArtifactDownloadUrl(ctx context.Context, input *runv1.GetArtifactDownloadUrlRequest) (*runv1.GetArtifactDownloadUrlResponse, error) {

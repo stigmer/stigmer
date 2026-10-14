@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AgentId } from "./io_pbjs";
+import { AgentId, AgentList, ListAgentsRequest } from "./io_pbjs";
 import { Agent } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
@@ -43,6 +43,20 @@ export const AgentQueryController = {
       name: "getByReference",
       I: ApiResourceReference,
       O: Agent,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List an organization's agents, newest first.
+     *
+     * Returns the agents of the input org that the caller may view, one page
+     * at a time. Search finds agents by their words; list browses them.
+     *
+     * @generated from rpc ai.stigmer.agentic.agent.v1.AgentQueryController.list
+     */
+    list: {
+      name: "list",
+      I: ListAgentsRequest,
+      O: AgentList,
       kind: MethodKind.Unary,
     },
     /**

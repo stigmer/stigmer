@@ -4,12 +4,14 @@ package gen
 
 import (
 	"context"
+	"iter"
 	"time"
 
 	licensev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/license/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	platformv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/platform/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -43,6 +45,35 @@ func (l *LicenseClient) Get(ctx context.Context, id string) (*licensev1.License,
 func (l *LicenseClient) List(ctx context.Context, input *licensev1.ListLicensesInput) (*licensev1.Licenses, error) {
 	resp, err := l.query.List(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListAll returns every entry of List, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (l *LicenseClient) ListAll(ctx context.Context, input *licensev1.ListLicensesInput) iter.Seq2[*licensev1.License, error] {
+	return func(yield func(*licensev1.License, error) bool) {
+		req := &licensev1.ListLicensesInput{}
+		if input != nil {
+			req = proto.Clone(input).(*licensev1.ListLicensesInput)
+		}
+		for {
+			page, err := l.List(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 // LicenseInput holds the fields for creating or applying a License.

@@ -65,6 +65,11 @@ import { cleanUpDeletedResource } from "../../pipeline/steps/authorization-tuple
 import { evaluateAuthorizer } from "../../pipeline/steps/authorize.js";
 import { assignServerId, generateId } from "../../pipeline/steps/defaults.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
+import {
+  decodeOrSkip,
+  listPageFingerprint,
+  readListPage,
+} from "../../pipeline/steps/list-page.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import { resolveVersionHash } from "../../pipeline/steps/version-history.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
@@ -88,7 +93,7 @@ import {
   pluginEvalTooLargeMessage,
 } from "./constants.js";
 import { caseGlobError, evalModelCatalogOf, sizeOfMatrix } from "./matrix.js";
-import { listPluginEvals } from "./queries.js";
+import { pluginEvalListIndex } from "./list-index.js";
 import type { EvalSuiteSource } from "./suite.js";
 import { loadEvalSuite, pluginVersionedBinding } from "./suite.js";
 import { deletePluginEvalTries } from "./tries.js";
@@ -645,13 +650,13 @@ export function newDeletePluginEvalTriesStep(
 }
 
 /**
- * ListPluginEvalsByPlugin: the plugin's evals, newest first, each kept
- * only when the caller may view it. The RPC asked can_view on the plugin;
- * an eval's own can_view is narrower (the plugin's viewers in its own
- * organization), so a child organization's viewer gets an empty list
- * rather than a refusal. Each eval is answered without its tries (every
- * arm's list emptied; its scores, aggregates, per-target results and
- * notes kept), so a list stays small however many tries its evals ran.
+ * ListPluginEvalsByPlugin: one page of the plugin's evals, newest first,
+ * each kept only when the caller may view it. The RPC asked can_view on
+ * the plugin; an eval's own can_view is narrower (the plugin's viewers in
+ * its own organization), so a child organization's viewer gets an empty
+ * list rather than a refusal. Each eval is answered without its tries
+ * (every arm's list emptied; its scores, aggregates, per-target results
+ * and notes kept), so a page stays small however many tries its evals ran.
  */
 export function newListPluginEvalsByPluginStep(
   store: Store,
@@ -663,39 +668,63 @@ export function newListPluginEvalsByPluginStep(
     async execute(
       ctx: RequestContext<typeof ListPluginEvalsByPluginRequestSchema>,
     ): Promise<void> {
-      let evals: PluginEval[];
-      try {
-        evals = await listPluginEvals(store, logger, ctx.input.pluginId);
-      } catch (error) {
-        throw internalError(error, "failed to list the plugin's evals");
-      }
-      const visible: PluginEval[] = [];
-      for (const pluginEval of evals) {
-        if (isServerComposedRequest(ctx.callerIdentity)) {
-          visible.push(pluginEval);
-          continue;
-        }
-        const decision = await evaluateAuthorizer(authorizer, ctx.callerIdentity, {
-          permission: IamPermission.can_view,
-          resourceKind: ApiResourceKind.plugin_eval,
-          resourceId: pluginEval.metadata?.id ?? "",
-        });
-        if (decision.kind === "unavailable") {
-          throw internalError(decision.cause, "failed to authorize the plugin's evals");
-        }
-        if (decision.kind === "allow") {
-          visible.push(pluginEval);
-        }
-      }
+      const pluginId = ctx.input.pluginId;
+      const page = await readListPage({
+        store,
+        declaration: pluginEvalListIndex,
+        query: { anyKey: [{ name: "plugin", value: pluginId }] },
+        request: ctx.input,
+        fingerprint: listPageFingerprint({
+          lane: "pluginEval.listByPlugin",
+          pluginId,
+        }),
+        decode: decodeOrSkip<PluginEval>(PluginEvalSchema, {
+          logger,
+          message: "skipped a plugin eval row that does not decode",
+          fields: { pluginId },
+        }),
+        keep: (pluginEval) => pluginEval.spec?.pluginId === pluginId,
+        scope: async (evals) => {
+          if (isServerComposedRequest(ctx.callerIdentity)) {
+            return evals;
+          }
+          const visible: PluginEval[] = [];
+          for (const pluginEval of evals) {
+            const decision = await evaluateAuthorizer(
+              authorizer,
+              ctx.callerIdentity,
+              {
+                permission: IamPermission.can_view,
+                resourceKind: ApiResourceKind.plugin_eval,
+                resourceId: pluginEval.metadata?.id ?? "",
+              },
+            );
+            if (decision.kind === "unavailable") {
+              throw internalError(
+                decision.cause,
+                "failed to authorize the plugin's evals",
+              );
+            }
+            if (decision.kind === "allow") {
+              visible.push(pluginEval);
+            }
+          }
+          return visible;
+        },
+        failure: "failed to list the plugin's evals",
+      });
       const answered: PluginEval[] = [];
-      for (const pluginEval of visible) {
+      for (const pluginEval of page.entries) {
         const settled = await settleEndedPluginEval(store, pluginEval);
         withoutTries(settled);
         answered.push(settled);
       }
       ctx.set(
         PLUGIN_EVAL_RESULT_KEY,
-        create(PluginEvalListSchema, { totalCount: answered.length, items: answered }),
+        create(PluginEvalListSchema, {
+          entries: answered,
+          nextPageToken: page.nextPageToken,
+        }),
       );
     },
   };

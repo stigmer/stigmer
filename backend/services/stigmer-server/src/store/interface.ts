@@ -89,6 +89,12 @@ export interface AuditRecord {
   readonly versionHash: string;
   /** The version's current tag from the tag column ("" when untagged). */
   readonly tag: string;
+  /**
+   * The row's sequence: its id, as decimal text. A resource's history is
+   * ordered newest first by archive instant, then by sequence, and a page
+   * of it continues after the record a sequence names.
+   */
+  readonly seq: string;
 }
 
 /**
@@ -124,6 +130,12 @@ export interface ScheduleFireRecord {
    * and carry their insert time here).
    */
   readonly completedAt: string;
+}
+
+/** A fire's place in the ledger's newest-first order: its key within its schedule. */
+export interface ScheduleFireCursor {
+  readonly nominalFireTime: string;
+  readonly origin: string;
 }
 
 /**
@@ -989,6 +1001,22 @@ export interface Store {
   ): Promise<AuditRecord[]>;
 
   /**
+   * One page of archived versions, in listAuditRecords' order: at most
+   * `limit` records after the record whose `seq` is `after` (from the
+   * newest when undefined). An archived row never moves in that order (a
+   * tag move rewrites only the tag column), so a version archived between
+   * two pages lands before the first page and repeats nothing. An `after`
+   * naming no record of this resource reads nothing. `after` is decimal
+   * text the caller has validated.
+   */
+  listAuditRecordsPage(
+    kind: ApiResourceKind,
+    resourceId: string,
+    after: string | undefined,
+    limit: number,
+  ): Promise<AuditRecord[]>;
+
+  /**
    * Single archived version by exact hash, authoritative tag included.
    * Duplicate rows for one (kind, resourceId, versionHash) are LEGAL data
    * (skill re-push archives prior content as a fresh row) — newest wins,
@@ -1044,12 +1072,16 @@ export interface Store {
     completedAt: string,
   ): Promise<void>;
 
-  /** Recorded fires, newest first, plus the total count for pagination. */
+  /**
+   * Recorded fires, newest first: by nominal fire time, then origin, both
+   * compared as bytes (the ledger's key, so the order is total). `after`
+   * reads the fires strictly past that one; `limit` caps the count.
+   */
   listScheduleFires(
     scheduleId: string,
-    offset: number,
+    after: ScheduleFireCursor | undefined,
     limit: number,
-  ): Promise<{ fires: ScheduleFireRecord[]; total: number }>;
+  ): Promise<ScheduleFireRecord[]>;
 
   /** Delete-cascade twin, called after the resource row delete succeeds. */
   deleteScheduleFiresBySchedule(scheduleId: string): Promise<number>;

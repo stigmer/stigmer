@@ -91,21 +91,22 @@ AgentChannel agentChannel = client.agentChannels().get("ach_01j5q3k7m8r2s4tnz2hf
 | Method | Description |
 |--------|-------------|
 | [`get`](#get) | Get a single agent channel by ID. |
-| [`getByAgent`](#getbyagent) | Get all channels of a specific agent. |
 | [`getByReference`](#getbyreference) | Get an agent channel by its organization-scoped reference (org/slug). |
 | [`getConversation`](#getconversation) | Get one conversation's identity and participation state. |
 | [`getMediaDownloadUrl`](#getmediadownloadurl) | Mint a short-lived download URL for one inbound timeline item's media file (an image or document the customer sent). |
-| [`getTimeline`](#gettimeline) | Get one conversation's timeline, newest first, cursor-paged. |
 | [`list`](#list) | List agent channels with optional label filtering. |
+| [`listByAgent`](#listbyagent) | List the channels of a specific agent, newest first. |
 | [`listConversations`](#listconversations) | List an organization's channel conversations, newest activity first. |
 | [`listMessagingChannels`](#listmessagingchannels) | List the agent channels the caller can send business-initiated messages on. |
 | [`listTemplates`](#listtemplates) | List the message templates available on an agent channel. |
+| [`listTimeline`](#listtimeline) | List one conversation's timeline, newest first, one page at a time. |
 | [`apply`](#apply) | Create or update an agent channel. |
 | [`create`](#create) | Create an agent channel. |
 | [`update`](#update) | Update an agent channel: the fields update_mask names change, every other field keeps its stored value. |
 | [`delete`](#delete) | Delete an agent channel. |
 | [`clearAttention`](#clearattention) | Clear a conversation's needs-attention flag without taking it over. |
 | [`completeInstall`](#completeinstall) | Complete the provider install flow for an agent channel. |
+| [`countConversations`](#countconversations) | Count an organization's channel conversations that match a filter. |
 | [`escalate`](#escalate) | Flag this conversation for human attention. |
 | [`handBack`](#handback) | Hand a conversation back to the agent, restoring automatic replies. |
 | [`initiateInstall`](#initiateinstall) | Start the provider install flow for an agent channel. |
@@ -147,55 +148,6 @@ AgentChannel agentChannel = client.agentChannels().get(id);
 | `id` | `string` | Agent Channel identifier. |
 
 **Returns**: [`AgentChannel`](#agentchannel)
-
-### getByAgent
-
-Get all channels of a specific agent. Returns only channels the caller has access to.
-
-This is how the agent's integrations surface and CLI resolve an agent's existing channels regardless of slug.
-
-<SDKTabs>
-<Tab value="TypeScript">
-```typescript
-const result = await stigmer.agentChannel.getByAgent({
-  agentId: "...",
-  pageInfo: {},
-  org: "...",
-});
-```
-</Tab>
-<Tab value="Go">
-```go
-result, err := client.AgentChannel.GetByAgent(ctx, &stigmer.GetAgentChannelsByAgentRequest{
-  AgentId:  "...",
-  PageInfo: &stigmer.PageInfoInput{},
-  Org:      "...",
-})
-```
-</Tab>
-<Tab value="Python">
-```python
-result = client.agent_channels.get_by_agent(GetAgentChannelsByAgentRequest(
-    agent_id="...",
-    page_info=None,
-    org="...",
-))
-```
-</Tab>
-<Tab value="Java">
-```java
-AgentChannelList result = client.agentChannels().getByAgent(GetAgentChannelsByAgentRequest.builder()
-    .agentId("...")
-    .pageInfo(null)
-    .org("...")
-    .build());
-```
-</Tab>
-</SDKTabs>
-
-**Parameters**: [`GetAgentChannelsByAgentRequest`](#getagentchannelsbyagentrequest)
-
-**Returns**: [`AgentChannelList`](#agentchannellist)
 
 ### getByReference
 
@@ -346,59 +298,6 @@ ConversationMediaDownloadUrl conversationMediaDownloadUrl = client.agentChannels
 
 **Returns**: [`ConversationMediaDownloadUrl`](#conversationmediadownloadurl)
 
-### getTimeline
-
-Get one conversation's timeline, newest first, cursor-paged.
-
-The timeline contains customer-visible items only: inbound customer messages (including non-text kinds the platform cannot render), delivered agent replies, and operator or platform sends. Run internals never appear.
-
-<SDKTabs>
-<Tab value="TypeScript">
-```typescript
-const conversationTimeline = await stigmer.agentChannel.getTimeline({
-  agentChannelId: "...",
-  conversationKey: "...",
-  pageSize: 0,
-  pageToken: "...",
-});
-```
-</Tab>
-<Tab value="Go">
-```go
-conversationTimeline, err := client.AgentChannel.GetTimeline(ctx, &stigmer.GetConversationTimelineInput{
-  AgentChannelId:  "...",
-  ConversationKey: "...",
-  PageSize:        0,
-  PageToken:       "...",
-})
-```
-</Tab>
-<Tab value="Python">
-```python
-conversation_timeline = client.agent_channels.get_timeline(GetConversationTimelineInput(
-    agent_channel_id="...",
-    conversation_key="...",
-    page_size=0,
-    page_token="...",
-))
-```
-</Tab>
-<Tab value="Java">
-```java
-ConversationTimeline conversationTimeline = client.agentChannels().getTimeline(GetConversationTimelineInput.builder()
-    .agentChannelId("...")
-    .conversationKey("...")
-    .pageSize(0)
-    .pageToken("...")
-    .build());
-```
-</Tab>
-</SDKTabs>
-
-**Parameters**: [`GetConversationTimelineInput`](#getconversationtimelineinput)
-
-**Returns**: [`ConversationTimeline`](#conversationtimeline)
-
 ### list
 
 List agent channels with optional label filtering.
@@ -409,16 +308,18 @@ List agent channels with optional label filtering.
 const result = await stigmer.agentChannel.list({
   org: "...",
   labels: {},
-  pageInfo: {},
+  pageSize: 0,
+  pageToken: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 result, err := client.AgentChannel.List(ctx, &stigmer.ListAgentChannelsRequest{
-  Org:      "...",
-  Labels:   map[string]string{},
-  PageInfo: &stigmer.PageInfoInput{},
+  Org:       "...",
+  Labels:    map[string]string{},
+  PageSize:  0,
+  PageToken: "...",
 })
 ```
 </Tab>
@@ -427,7 +328,8 @@ result, err := client.AgentChannel.List(ctx, &stigmer.ListAgentChannelsRequest{
 result = client.agent_channels.list(ListAgentChannelsRequest(
     org="...",
     labels={},
-    page_info=None,
+    page_size=0,
+    page_token="...",
 ))
 ```
 </Tab>
@@ -436,7 +338,8 @@ result = client.agent_channels.list(ListAgentChannelsRequest(
 AgentChannelList result = client.agentChannels().list(ListAgentChannelsRequest.builder()
     .org("...")
     .labels(Map.of())
-    .pageInfo(null)
+    .pageSize(0)
+    .pageToken("...")
     .build());
 ```
 </Tab>
@@ -445,6 +348,63 @@ AgentChannelList result = client.agentChannels().list(ListAgentChannelsRequest.b
 **Parameters**: [`ListAgentChannelsRequest`](#listagentchannelsrequest)
 
 **Returns**: [`AgentChannelList`](#agentchannellist)
+
+**Every page**: `listAll` (Go `ListAll`, Python `list_all`, Java `listAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
+
+### listByAgent
+
+List the channels of a specific agent, newest first. Returns only channels the caller has access to.
+
+This is how the agent's integrations surface and CLI resolve an agent's existing channels regardless of slug.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const result = await stigmer.agentChannel.listByAgent({
+  agentId: "...",
+  org: "...",
+  pageSize: 0,
+  pageToken: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.AgentChannel.ListByAgent(ctx, &stigmer.ListAgentChannelsByAgentRequest{
+  AgentId:   "...",
+  Org:       "...",
+  PageSize:  0,
+  PageToken: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+result = client.agent_channels.list_by_agent(ListAgentChannelsByAgentRequest(
+    agent_id="...",
+    org="...",
+    page_size=0,
+    page_token="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+AgentChannelList result = client.agentChannels().listByAgent(ListAgentChannelsByAgentRequest.builder()
+    .agentId("...")
+    .org("...")
+    .pageSize(0)
+    .pageToken("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListAgentChannelsByAgentRequest`](#listagentchannelsbyagentrequest)
+
+**Returns**: [`AgentChannelList`](#agentchannellist)
+
+**Every page**: `listByAgentAll` (Go `ListByAgentAll`, Python `list_by_agent_all`, Java `listByAgentAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
 
 ### listConversations
 
@@ -458,8 +418,9 @@ Returns conversations across all of the org's channels the caller can view, opti
 const result = await stigmer.agentChannel.listConversations({
   org: "...",
   agentChannelId: "...",
-  pageInfo: {},
   filter: "...",
+  pageSize: 0,
+  pageToken: "...",
 });
 ```
 </Tab>
@@ -468,8 +429,9 @@ const result = await stigmer.agentChannel.listConversations({
 result, err := client.AgentChannel.ListConversations(ctx, &stigmer.ListChannelConversationsInput{
   Org:            "...",
   AgentChannelId: "...",
-  PageInfo:       &stigmer.PageInfoInput{},
   Filter:         "...",
+  PageSize:       0,
+  PageToken:      "...",
 })
 ```
 </Tab>
@@ -478,8 +440,9 @@ result, err := client.AgentChannel.ListConversations(ctx, &stigmer.ListChannelCo
 result = client.agent_channels.list_conversations(ListChannelConversationsInput(
     org="...",
     agent_channel_id="...",
-    page_info=None,
     filter="...",
+    page_size=0,
+    page_token="...",
 ))
 ```
 </Tab>
@@ -488,8 +451,9 @@ result = client.agent_channels.list_conversations(ListChannelConversationsInput(
 ChannelConversationList result = client.agentChannels().listConversations(ListChannelConversationsInput.builder()
     .org("...")
     .agentChannelId("...")
-    .pageInfo(null)
     .filter("...")
+    .pageSize(0)
+    .pageToken("...")
     .build());
 ```
 </Tab>
@@ -498,6 +462,8 @@ ChannelConversationList result = client.agentChannels().listConversations(ListCh
 **Parameters**: [`ListChannelConversationsInput`](#listchannelconversationsinput)
 
 **Returns**: [`ChannelConversationList`](#channelconversationlist)
+
+**Every page**: `listConversationsAll` (Go `ListConversationsAll`, Python `list_conversations_all`, Java `listConversationsAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
 
 ### listMessagingChannels
 
@@ -580,6 +546,61 @@ ChannelTemplates channelTemplates = client.agentChannels().listTemplates(ListCha
 **Parameters**: [`ListChannelTemplatesInput`](#listchanneltemplatesinput)
 
 **Returns**: [`ChannelTemplates`](#channeltemplates)
+
+### listTimeline
+
+List one conversation's timeline, newest first, one page at a time.
+
+The timeline contains customer-visible items only: inbound customer messages (including non-text kinds the platform cannot render), delivered agent replies, and operator or platform sends. Run internals never appear.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const conversationTimeline = await stigmer.agentChannel.listTimeline({
+  agentChannelId: "...",
+  conversationKey: "...",
+  pageSize: 0,
+  pageToken: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+conversationTimeline, err := client.AgentChannel.ListTimeline(ctx, &stigmer.ListConversationTimelineInput{
+  AgentChannelId:  "...",
+  ConversationKey: "...",
+  PageSize:        0,
+  PageToken:       "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+conversation_timeline = client.agent_channels.list_timeline(ListConversationTimelineInput(
+    agent_channel_id="...",
+    conversation_key="...",
+    page_size=0,
+    page_token="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ConversationTimeline conversationTimeline = client.agentChannels().listTimeline(ListConversationTimelineInput.builder()
+    .agentChannelId("...")
+    .conversationKey("...")
+    .pageSize(0)
+    .pageToken("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListConversationTimelineInput`](#listconversationtimelineinput)
+
+**Returns**: [`ConversationTimeline`](#conversationtimeline)
+
+**Every page**: `listTimelineAll` (Go `ListTimelineAll`, Python `list_timeline_all`, Java `listTimelineAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
 
 ### apply
 
@@ -938,6 +959,55 @@ AgentChannel agentChannel = client.agentChannels().completeInstall(CompleteChann
 **Parameters**: [`CompleteChannelInstallInput`](#completechannelinstallinput)
 
 **Returns**: [`AgentChannel`](#agentchannel)
+
+### countConversations
+
+Count an organization's channel conversations that match a filter.
+
+The number behind a badge such as the inbox's "needs you": the same predicate list applies, over the same channels, so the count and the list it opens never disagree.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const channelConversationCount = await stigmer.agentChannel.countConversations({
+  org: "...",
+  agentChannelId: "...",
+  filter: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+channelConversationCount, err := client.AgentChannel.CountConversations(ctx, &stigmer.CountChannelConversationsInput{
+  Org:            "...",
+  AgentChannelId: "...",
+  Filter:         "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+channel_conversation_count = client.agent_channels.count_conversations(CountChannelConversationsInput(
+    org="...",
+    agent_channel_id="...",
+    filter="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ChannelConversationCount channelConversationCount = client.agentChannels().countConversations(CountChannelConversationsInput.builder()
+    .org("...")
+    .agentChannelId("...")
+    .filter("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`CountChannelConversationsInput`](#countchannelconversationsinput)
+
+**Returns**: [`ChannelConversationCount`](#channelconversationcount)
 
 ### escalate
 
@@ -1404,8 +1474,9 @@ Input for listing an organization's channel conversations.
   type={{
     org: { type: "string", description: "Organization whose conversations to list." },
     agentChannelId: { type: "string", description: "Optional filter: only conversations on this agent channel." },
-    pageInfo: { type: "PageInfoInput", description: "Pagination options." },
     filter: { type: "ChannelConversationListFilter", description: "Optional filter: narrow the list to a server-evaluated predicate.", typeDescriptionLink: "#channelconversationlistfilter" },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 
@@ -1415,8 +1486,30 @@ ChannelConversationList contains a page of channel conversations, newest activit
 
 <TypeTable
   type={{
-    totalCount: { type: "number", description: "Total number of conversations matching the filter." },
-    items: { type: "ChannelConversationInput[]", description: "Conversations in the current page." },
+    entries: { type: "ChannelConversationInput[]", description: "Conversations in the current page." },
+    nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token to continue." },
+  }}
+/>
+
+### CountChannelConversationsInput
+
+Input for counting an organization's channel conversations.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization whose conversations to count." },
+    agentChannelId: { type: "string", description: "Optional filter: only conversations on this agent channel." },
+    filter: { type: "ChannelConversationListFilter", description: "Optional filter: count only the conversations matching this predicate.", typeDescriptionLink: "#channelconversationlistfilter" },
+  }}
+/>
+
+### ChannelConversationCount
+
+ChannelConversationCount is how many conversations match a count's filter, over the channels the caller can view.
+
+<TypeTable
+  type={{
+    count: { type: "number", description: "The number of matching conversations." },
   }}
 />
 
@@ -1431,7 +1524,7 @@ Input for reading one conversation's identity and participation state.
   }}
 />
 
-### GetConversationTimelineInput
+### ListConversationTimelineInput
 
 Input for reading one conversation's timeline.
 
@@ -1439,8 +1532,8 @@ Input for reading one conversation's timeline.
   type={{
     agentChannelId: { type: "string", description: "AgentChannel the conversation belongs to." },
     conversationKey: { type: "string", description: "Conversation key within the channel (WhatsApp: the customer's wa_id)." },
-    pageSize: { type: "number", description: "Maximum number of items to return per page." },
-    pageToken: { type: "string", description: "Opaque cursor from a previous response." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 
@@ -1450,8 +1543,8 @@ ConversationTimeline contains one page of a conversation's timeline, newest firs
 
 <TypeTable
   type={{
-    items: { type: "ConversationTimelineItemInput[]", description: "Timeline items in the current page, newest first." },
-    nextPageToken: { type: "string", description: "Cursor for the next (older) page." },
+    entries: { type: "ConversationTimelineItemInput[]", description: "Timeline items in the current page, newest first." },
+    nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token to continue." },
   }}
 />
 
@@ -1527,15 +1620,16 @@ MessagingChannels contains the agent channels the caller can send business-initi
   }}
 />
 
-### GetAgentChannelsByAgentRequest
+### ListAgentChannelsByAgentRequest
 
 Input for retrieving all channels of a specific agent.
 
 <TypeTable
   type={{
     agentId: { type: "string", description: "Identifier of the agent whose channels to retrieve.", required: true },
-    pageInfo: { type: "PageInfoInput", description: "Pagination options." },
     org: { type: "string", description: "Organization slug to scope the results to." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 
@@ -1545,8 +1639,8 @@ Response containing a paginated list of agent channels.
 
 <TypeTable
   type={{
-    totalCount: { type: "number", description: "Total number of agent channels matching the query." },
-    items: { type: "AgentChannelInput[]", description: "Agent channels in the current page.", typeDescriptionLink: "#agentchannelinput" },
+    entries: { type: "AgentChannelInput[]", description: "Agent channels in the current page.", typeDescriptionLink: "#agentchannelinput" },
+    nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token to continue." },
   }}
 />
 
@@ -1558,7 +1652,8 @@ Input for listing agent channels within an organization.
   type={{
     org: { type: "string", description: "Organization slug to scope the listing." },
     labels: { type: "Record<string, string>", description: "Filter by metadata labels." },
-    pageInfo: { type: "PageInfoInput", description: "Pagination options." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 

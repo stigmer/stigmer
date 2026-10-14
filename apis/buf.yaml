@@ -29,3 +29,104 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # One pull request gives every list one shape: a request takes page_size
+  # and page_token, a response returns entries and next_page_token, and 0
+  # asks for a default page instead of every row. PageInfo, total_count and
+  # total_pages go, with their numbers and names reserved; listByOrg becomes
+  # list, getByAgent becomes listByAgent, findAll and findByAccount become
+  # list and listByAccount, findMyOrganizations becomes listMine, and the
+  # conversation lists become list and listTimeline; organization find and
+  # FindApiResourcesRequest go; the unused SkillList and PluginList move to
+  # io.proto as the new list responses. It is made before launch: the
+  # release notes name it under Upgrading. This block exists for that one
+  # pull request. While it stays, buf breaking does not report these rules
+  # on the listed files, so the pull request that removes it lands straight
+  # after the merge (#2272).
+  ignore_only:
+    FIELD_NO_DELETE:
+      - ai/stigmer/agentic/agent/v1/version.proto
+      - ai/stigmer/agentic/agentchannel/v1/conversation_io.proto
+      - ai/stigmer/agentic/agentchannel/v1/io.proto
+      - ai/stigmer/agentic/agenteval/v1/io.proto
+      - ai/stigmer/agentic/agentshare/v1/io.proto
+      - ai/stigmer/agentic/memory/v1/io.proto
+      - ai/stigmer/agentic/plugin/v1/io.proto
+      - ai/stigmer/agentic/plugineval/v1/io.proto
+      - ai/stigmer/agentic/run/v1/io.proto
+      - ai/stigmer/agentic/schedule/v1/io.proto
+      - ai/stigmer/agentic/score/v1/io.proto
+      - ai/stigmer/agentic/session/v1/io.proto
+      - ai/stigmer/agentic/skill/v1/io.proto
+      - ai/stigmer/agentic/vault/v1/io.proto
+      - ai/stigmer/iam/identityaccount/v1/io.proto
+      - ai/stigmer/search/v1/io.proto
+    FIELD_SAME_CARDINALITY:
+      - ai/stigmer/agentic/plugin/v1/io.proto
+      - ai/stigmer/agentic/skill/v1/io.proto
+    FIELD_SAME_JSON_NAME:
+      - ai/stigmer/agentic/agent/v1/version.proto
+      - ai/stigmer/agentic/agentchannel/v1/conversation_io.proto
+      - ai/stigmer/agentic/agentchannel/v1/io.proto
+      - ai/stigmer/agentic/agenteval/v1/io.proto
+      - ai/stigmer/agentic/agentshare/v1/io.proto
+      - ai/stigmer/agentic/memory/v1/io.proto
+      - ai/stigmer/agentic/plugin/v1/io.proto
+      - ai/stigmer/agentic/plugineval/v1/io.proto
+      - ai/stigmer/agentic/schedule/v1/io.proto
+      - ai/stigmer/agentic/score/v1/io.proto
+      - ai/stigmer/agentic/skill/v1/io.proto
+      - ai/stigmer/agentic/vault/v1/io.proto
+      - ai/stigmer/billing/providerkey/v1/io.proto
+      - ai/stigmer/billing/v1/io.proto
+    FIELD_SAME_NAME:
+      - ai/stigmer/agentic/agent/v1/version.proto
+      - ai/stigmer/agentic/agentchannel/v1/conversation_io.proto
+      - ai/stigmer/agentic/agentchannel/v1/io.proto
+      - ai/stigmer/agentic/agenteval/v1/io.proto
+      - ai/stigmer/agentic/agentshare/v1/io.proto
+      - ai/stigmer/agentic/memory/v1/io.proto
+      - ai/stigmer/agentic/plugin/v1/io.proto
+      - ai/stigmer/agentic/plugineval/v1/io.proto
+      - ai/stigmer/agentic/schedule/v1/io.proto
+      - ai/stigmer/agentic/score/v1/io.proto
+      - ai/stigmer/agentic/skill/v1/io.proto
+      - ai/stigmer/agentic/vault/v1/io.proto
+      - ai/stigmer/billing/providerkey/v1/io.proto
+      - ai/stigmer/billing/v1/io.proto
+    FIELD_SAME_TYPE:
+      - ai/stigmer/agentic/plugin/v1/io.proto
+      - ai/stigmer/agentic/skill/v1/io.proto
+    FILE_NO_DELETE:
+      - ai/stigmer/commons/rpc/pagination.proto
+    MESSAGE_NO_DELETE:
+      - ai/stigmer/agentic/agentchannel/v1/conversation_io.proto
+      - ai/stigmer/agentic/agentchannel/v1/io.proto
+      - ai/stigmer/agentic/agentshare/v1/io.proto
+      - ai/stigmer/agentic/channelapp/v1/io.proto
+      - ai/stigmer/agentic/plugin/v1/api.proto
+      - ai/stigmer/agentic/schedule/v1/io.proto
+      - ai/stigmer/agentic/skill/v1/api.proto
+      - ai/stigmer/commons/apiresource/io.proto
+      - ai/stigmer/iam/apikey/v1/io.proto
+      - ai/stigmer/iam/identityaccount/v1/io.proto
+      - ai/stigmer/iam/identityprovider/v1/io.proto
+      - ai/stigmer/iam/invitation/v1/io.proto
+      - ai/stigmer/iam/oauthapp/v1/io.proto
+      - ai/stigmer/iam/platformclient/v1/io.proto
+      - ai/stigmer/iam/team/v1/io.proto
+      - ai/stigmer/tenancy/organization/v1/io.proto
+    RPC_NO_DELETE:
+      - ai/stigmer/agentic/agentchannel/v1/conversation_query.proto
+      - ai/stigmer/agentic/agentchannel/v1/query.proto
+      - ai/stigmer/agentic/agentshare/v1/query.proto
+      - ai/stigmer/agentic/channelapp/v1/query.proto
+      - ai/stigmer/agentic/schedule/v1/query.proto
+      - ai/stigmer/iam/apikey/v1/query.proto
+      - ai/stigmer/iam/identityprovider/v1/query.proto
+      - ai/stigmer/iam/invitation/v1/query.proto
+      - ai/stigmer/iam/oauthapp/v1/query.proto
+      - ai/stigmer/iam/platformclient/v1/query.proto
+      - ai/stigmer/iam/team/v1/query.proto
+      - ai/stigmer/tenancy/organization/v1/query.proto
+    RPC_SAME_REQUEST_TYPE:
+      - ai/stigmer/iam/identityaccount/v1/query.proto

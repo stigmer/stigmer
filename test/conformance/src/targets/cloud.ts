@@ -103,7 +103,6 @@ export class CloudTarget implements TargetProfile {
     // OpenFGA behind the cloud-iam unit: the primary enforces the model, so
     // it IS this target's enforcing lane (enforcingLane below).
     enforcingAuthorizer: true,
-    organizationEnumeration: false,
     versionTagging: true,
     // Cloud carries the transfer lane over pre-signed R2 URLs — the full
     // mint → PUT → push-by-ref → download-URL pin block runs against this

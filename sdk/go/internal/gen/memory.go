@@ -4,10 +4,12 @@ package gen
 
 import (
 	"context"
+	"iter"
 
 	memoryv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/memory/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
@@ -64,6 +66,35 @@ func (m *MemoryClient) Get(ctx context.Context, id string) (*memoryv1.Memory, er
 func (m *MemoryClient) List(ctx context.Context, input *memoryv1.ListMemoriesRequest) (*memoryv1.MemoryList, error) {
 	resp, err := m.query.List(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListAll returns every entry of List, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (m *MemoryClient) ListAll(ctx context.Context, input *memoryv1.ListMemoriesRequest) iter.Seq2[*memoryv1.Memory, error] {
+	return func(yield func(*memoryv1.Memory, error) bool) {
+		req := &memoryv1.ListMemoriesRequest{}
+		if input != nil {
+			req = proto.Clone(input).(*memoryv1.ListMemoriesRequest)
+		}
+		for {
+			page, err := m.List(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 // MemoryInput holds the fields for creating or applying a Memory.

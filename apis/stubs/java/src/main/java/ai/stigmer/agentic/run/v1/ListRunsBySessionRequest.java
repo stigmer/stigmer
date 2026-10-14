@@ -7,10 +7,8 @@ package ai.stigmer.agentic.run.v1;
 
 /**
  * <pre>
- * ListRunsBySessionRequest lists all runs in a session.
- *
- * A session's runs are returned whole, newest first: a conversation
- * is read as one, and every consumer of this list needs all of it.
+ * ListRunsBySessionRequest lists the runs of a session, newest first, one
+ * page at a time.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.run.v1.ListRunsBySessionRequest}
@@ -108,16 +106,15 @@ private static final long serialVersionUID = 0L;
   private int pageSize_ = 0;
   /**
    * <pre>
-   * Not read: a session's runs are returned whole.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    * </pre>
    *
-   * <code>int32 page_size = 2 [json_name = "pageSize", deprecated = true];</code>
-   * @deprecated ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.page_size is deprecated.
-   *     See ai/stigmer/agentic/run/v1/io.proto;l=75
+   * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
    * @return The pageSize.
    */
   @java.lang.Override
-  @java.lang.Deprecated public int getPageSize() {
+  public int getPageSize() {
     return pageSize_;
   }
 
@@ -126,16 +123,15 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object pageToken_ = "";
   /**
    * <pre>
-   * Not read: a session's runs are returned whole.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
-   * <code>string page_token = 3 [json_name = "pageToken", deprecated = true];</code>
-   * @deprecated ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.page_token is deprecated.
-   *     See ai/stigmer/agentic/run/v1/io.proto;l=78
+   * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
    * @return The pageToken.
    */
   @java.lang.Override
-  @java.lang.Deprecated public java.lang.String getPageToken() {
+  public java.lang.String getPageToken() {
     java.lang.Object ref = pageToken_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
@@ -149,16 +145,15 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Not read: a session's runs are returned whole.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
-   * <code>string page_token = 3 [json_name = "pageToken", deprecated = true];</code>
-   * @deprecated ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.page_token is deprecated.
-   *     See ai/stigmer/agentic/run/v1/io.proto;l=78
+   * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
    * @return The bytes for pageToken.
    */
   @java.lang.Override
-  @java.lang.Deprecated public com.google.protobuf.ByteString
+  public com.google.protobuf.ByteString
       getPageTokenBytes() {
     java.lang.Object ref = pageToken_;
     if (ref instanceof java.lang.String) {
@@ -351,10 +346,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ListRunsBySessionRequest lists all runs in a session.
-   *
-   * A session's runs are returned whole, newest first: a conversation
-   * is read as one, and every consumer of this list needs all of it.
+   * ListRunsBySessionRequest lists the runs of a session, newest first, one
+   * page at a time.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.run.v1.ListRunsBySessionRequest}
@@ -615,30 +608,28 @@ private static final long serialVersionUID = 0L;
     private int pageSize_ ;
     /**
      * <pre>
-     * Not read: a session's runs are returned whole.
+     * The most entries to return: 0 asks for the default page of 50, and a
+     * size above 100 is read as 100.
      * </pre>
      *
-     * <code>int32 page_size = 2 [json_name = "pageSize", deprecated = true];</code>
-     * @deprecated ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.page_size is deprecated.
-     *     See ai/stigmer/agentic/run/v1/io.proto;l=75
+     * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
      * @return The pageSize.
      */
     @java.lang.Override
-    @java.lang.Deprecated public int getPageSize() {
+    public int getPageSize() {
       return pageSize_;
     }
     /**
      * <pre>
-     * Not read: a session's runs are returned whole.
+     * The most entries to return: 0 asks for the default page of 50, and a
+     * size above 100 is read as 100.
      * </pre>
      *
-     * <code>int32 page_size = 2 [json_name = "pageSize", deprecated = true];</code>
-     * @deprecated ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.page_size is deprecated.
-     *     See ai/stigmer/agentic/run/v1/io.proto;l=75
+     * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
      * @param value The pageSize to set.
      * @return This builder for chaining.
      */
-    @java.lang.Deprecated public Builder setPageSize(int value) {
+    public Builder setPageSize(int value) {
 
       pageSize_ = value;
       bitField0_ |= 0x00000002;
@@ -647,15 +638,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Not read: a session's runs are returned whole.
+     * The most entries to return: 0 asks for the default page of 50, and a
+     * size above 100 is read as 100.
      * </pre>
      *
-     * <code>int32 page_size = 2 [json_name = "pageSize", deprecated = true];</code>
-     * @deprecated ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.page_size is deprecated.
-     *     See ai/stigmer/agentic/run/v1/io.proto;l=75
+     * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
-    @java.lang.Deprecated public Builder clearPageSize() {
+    public Builder clearPageSize() {
       bitField0_ = (bitField0_ & ~0x00000002);
       pageSize_ = 0;
       onChanged();
@@ -665,15 +655,14 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object pageToken_ = "";
     /**
      * <pre>
-     * Not read: a session's runs are returned whole.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
-     * <code>string page_token = 3 [json_name = "pageToken", deprecated = true];</code>
-     * @deprecated ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.page_token is deprecated.
-     *     See ai/stigmer/agentic/run/v1/io.proto;l=78
+     * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
      * @return The pageToken.
      */
-    @java.lang.Deprecated public java.lang.String getPageToken() {
+    public java.lang.String getPageToken() {
       java.lang.Object ref = pageToken_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
@@ -687,15 +676,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Not read: a session's runs are returned whole.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
-     * <code>string page_token = 3 [json_name = "pageToken", deprecated = true];</code>
-     * @deprecated ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.page_token is deprecated.
-     *     See ai/stigmer/agentic/run/v1/io.proto;l=78
+     * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
      * @return The bytes for pageToken.
      */
-    @java.lang.Deprecated public com.google.protobuf.ByteString
+    public com.google.protobuf.ByteString
         getPageTokenBytes() {
       java.lang.Object ref = pageToken_;
       if (ref instanceof String) {
@@ -710,16 +698,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Not read: a session's runs are returned whole.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
-     * <code>string page_token = 3 [json_name = "pageToken", deprecated = true];</code>
-     * @deprecated ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.page_token is deprecated.
-     *     See ai/stigmer/agentic/run/v1/io.proto;l=78
+     * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
      * @param value The pageToken to set.
      * @return This builder for chaining.
      */
-    @java.lang.Deprecated public Builder setPageToken(
+    public Builder setPageToken(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       pageToken_ = value;
@@ -729,15 +716,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Not read: a session's runs are returned whole.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
-     * <code>string page_token = 3 [json_name = "pageToken", deprecated = true];</code>
-     * @deprecated ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.page_token is deprecated.
-     *     See ai/stigmer/agentic/run/v1/io.proto;l=78
+     * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
-    @java.lang.Deprecated public Builder clearPageToken() {
+    public Builder clearPageToken() {
       pageToken_ = getDefaultInstance().getPageToken();
       bitField0_ = (bitField0_ & ~0x00000004);
       onChanged();
@@ -745,16 +731,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Not read: a session's runs are returned whole.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
-     * <code>string page_token = 3 [json_name = "pageToken", deprecated = true];</code>
-     * @deprecated ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.page_token is deprecated.
-     *     See ai/stigmer/agentic/run/v1/io.proto;l=78
+     * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for pageToken to set.
      * @return This builder for chaining.
      */
-    @java.lang.Deprecated public Builder setPageTokenBytes(
+    public Builder setPageTokenBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);

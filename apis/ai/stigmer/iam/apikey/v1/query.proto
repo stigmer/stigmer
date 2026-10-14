@@ -6,7 +6,6 @@ import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
 import "ai/stigmer/iam/apikey/v1/api.proto";
 import "ai/stigmer/iam/apikey/v1/io.proto";
-import "google/protobuf/empty.proto";
 
 // ApiKeyQueryController handles read operations for API keys.
 service ApiKeyQueryController {
@@ -33,11 +32,11 @@ service ApiKeyQueryController {
   // List all API keys belonging to the authenticated user.
   //
   // Returns only the keys that speak for the identity account in the auth
-  // header; a service account's keys are listed with findByAccount.
+  // header; a service account's keys are listed with listByAccount.
   //
   // @internal
   // Scoped to the caller's own keys, so authorization is skipped.
-  rpc findAll(google.protobuf.Empty) returns (ApiKeys) {
+  rpc list(ListApiKeysInput) returns (ApiKeys) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
@@ -47,10 +46,10 @@ service ApiKeyQueryController {
   // lists their own.
   //
   // Authorization: Requires can_view on the identity account.
-  rpc findByAccount(ApiKeyAccountId) returns (ApiKeys) {
+  rpc listByAccount(ListApiKeysByAccountInput) returns (ApiKeys) {
     option (ai.stigmer.commons.rpc.config).resource_kind = identity_account;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
-    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).field_path = "account_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list this account's api keys";
   }
 }

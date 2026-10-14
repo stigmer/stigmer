@@ -77,6 +77,37 @@ public final class AgentQueryControllerGrpc {
     return getGetByReferenceMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.ListAgentsRequest,
+      ai.stigmer.agentic.agent.v1.AgentList> getListMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "list",
+      requestType = ai.stigmer.agentic.agent.v1.ListAgentsRequest.class,
+      responseType = ai.stigmer.agentic.agent.v1.AgentList.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.ListAgentsRequest,
+      ai.stigmer.agentic.agent.v1.AgentList> getListMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.ListAgentsRequest, ai.stigmer.agentic.agent.v1.AgentList> getListMethod;
+    if ((getListMethod = AgentQueryControllerGrpc.getListMethod) == null) {
+      synchronized (AgentQueryControllerGrpc.class) {
+        if ((getListMethod = AgentQueryControllerGrpc.getListMethod) == null) {
+          AgentQueryControllerGrpc.getListMethod = getListMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agent.v1.ListAgentsRequest, ai.stigmer.agentic.agent.v1.AgentList>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "list"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agent.v1.ListAgentsRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agent.v1.AgentList.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentQueryControllerMethodDescriptorSupplier("list"))
+              .build();
+        }
+      }
+    }
+    return getListMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.ListAgentVersionsInput,
       ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse> getListVersionsMethod;
 
@@ -232,6 +263,18 @@ public final class AgentQueryControllerGrpc {
 
     /**
      * <pre>
+     * List an organization's agents, newest first.
+     * Returns the agents of the input org that the caller may view, one page
+     * at a time. Search finds agents by their words; list browses them.
+     * </pre>
+     */
+    default void list(ai.stigmer.agentic.agent.v1.ListAgentsRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.AgentList> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * List version history for an agent.
      * Returns all historical versions, newest first. Each entry carries the
      * version hash, when and by whom it was applied, its tag, its message and
@@ -319,6 +362,19 @@ public final class AgentQueryControllerGrpc {
 
     /**
      * <pre>
+     * List an organization's agents, newest first.
+     * Returns the agents of the input org that the caller may view, one page
+     * at a time. Search finds agents by their words; list browses them.
+     * </pre>
+     */
+    public void list(ai.stigmer.agentic.agent.v1.ListAgentsRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.AgentList> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * List version history for an agent.
      * Returns all historical versions, newest first. Each entry carries the
      * version hash, when and by whom it was applied, its tag, its message and
@@ -392,6 +448,18 @@ public final class AgentQueryControllerGrpc {
 
     /**
      * <pre>
+     * List an organization's agents, newest first.
+     * Returns the agents of the input org that the caller may view, one page
+     * at a time. Search finds agents by their words; list browses them.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agent.v1.AgentList list(ai.stigmer.agentic.agent.v1.ListAgentsRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * List version history for an agent.
      * Returns all historical versions, newest first. Each entry carries the
      * version hash, when and by whom it was applied, its tag, its message and
@@ -459,6 +527,18 @@ public final class AgentQueryControllerGrpc {
     public ai.stigmer.agentic.agent.v1.Agent getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetByReferenceMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List an organization's agents, newest first.
+     * Returns the agents of the input org that the caller may view, one page
+     * at a time. Search finds agents by their words; list browses them.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agent.v1.AgentList list(ai.stigmer.agentic.agent.v1.ListAgentsRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListMethod(), getCallOptions(), request);
     }
 
     /**
@@ -536,6 +616,19 @@ public final class AgentQueryControllerGrpc {
 
     /**
      * <pre>
+     * List an organization's agents, newest first.
+     * Returns the agents of the input org that the caller may view, one page
+     * at a time. Search finds agents by their words; list browses them.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.AgentList> list(
+        ai.stigmer.agentic.agent.v1.ListAgentsRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * List version history for an agent.
      * Returns all historical versions, newest first. Each entry carries the
      * version hash, when and by whom it was applied, its tag, its message and
@@ -565,8 +658,9 @@ public final class AgentQueryControllerGrpc {
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_GET_BY_REFERENCE = 1;
-  private static final int METHODID_LIST_VERSIONS = 2;
-  private static final int METHODID_GET_VERSION = 3;
+  private static final int METHODID_LIST = 2;
+  private static final int METHODID_LIST_VERSIONS = 3;
+  private static final int METHODID_GET_VERSION = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -592,6 +686,10 @@ public final class AgentQueryControllerGrpc {
         case METHODID_GET_BY_REFERENCE:
           serviceImpl.getByReference((ai.stigmer.commons.apiresource.ApiResourceReference) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent>) responseObserver);
+          break;
+        case METHODID_LIST:
+          serviceImpl.list((ai.stigmer.agentic.agent.v1.ListAgentsRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.AgentList>) responseObserver);
           break;
         case METHODID_LIST_VERSIONS:
           serviceImpl.listVersions((ai.stigmer.agentic.agent.v1.ListAgentVersionsInput) request,
@@ -633,6 +731,13 @@ public final class AgentQueryControllerGrpc {
               ai.stigmer.commons.apiresource.ApiResourceReference,
               ai.stigmer.agentic.agent.v1.Agent>(
                 service, METHODID_GET_BY_REFERENCE)))
+        .addMethod(
+          getListMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agent.v1.ListAgentsRequest,
+              ai.stigmer.agentic.agent.v1.AgentList>(
+                service, METHODID_LIST)))
         .addMethod(
           getListVersionsMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -697,6 +802,7 @@ public final class AgentQueryControllerGrpc {
               .setSchemaDescriptor(new AgentQueryControllerFileDescriptorSupplier())
               .addMethod(getGetMethod())
               .addMethod(getGetByReferenceMethod())
+              .addMethod(getListMethod())
               .addMethod(getListVersionsMethod())
               .addMethod(getGetVersionMethod())
               .build();

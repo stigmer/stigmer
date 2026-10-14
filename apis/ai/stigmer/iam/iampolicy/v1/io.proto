@@ -312,13 +312,10 @@ message ListAccessHistoryInput {
     (buf.validate.field).string.min_len = 1
   ];
 
-  // The most entries to return; 0 returns 50. At most 100. A history only
-  // grows, so there is no size that returns every entry at once: follow
-  // next_page_token.
-  int32 page_size = 2 [(buf.validate.field).int32 = {
-    gte: 0
-    lte: 100
-  }];
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100. A history only grows, so there is no size
+  // that returns every entry at once: follow next_page_token.
+  int32 page_size = 2 [(buf.validate.field).int32.gte = 0];
 
   // The previous response's next_page_token, to continue that read.
   string page_token = 3 [(buf.validate.field).string.max_len = 1024];

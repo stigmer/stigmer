@@ -7,6 +7,7 @@ import ai.stigmer.agentic.skill.v1.GetArtifactRequest;
 import ai.stigmer.agentic.skill.v1.GetArtifactResponse;
 import ai.stigmer.agentic.skill.v1.ListSkillVersionsInput;
 import ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse;
+import ai.stigmer.agentic.skill.v1.ListSkillsRequest;
 import ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest;
 import ai.stigmer.agentic.skill.v1.PushSkillRequest;
 import ai.stigmer.agentic.skill.v1.Skill;
@@ -14,13 +15,11 @@ import ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl;
 import ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl;
 import ai.stigmer.agentic.skill.v1.SkillCommandControllerGrpc;
 import ai.stigmer.agentic.skill.v1.SkillId;
+import ai.stigmer.agentic.skill.v1.SkillList;
 import ai.stigmer.agentic.skill.v1.SkillQueryControllerGrpc;
+import ai.stigmer.agentic.skill.v1.SkillVersionEntry;
 import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
-import ai.stigmer.commons.rpc.PageInfo;
-import ai.stigmer.search.v1.SearchRequest;
-import ai.stigmer.search.v1.SearchResponse;
-import ai.stigmer.search.v1.SearchServiceGrpc;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -28,12 +27,10 @@ import io.grpc.StatusRuntimeException;
 public class SkillClient {
     private final SkillCommandControllerGrpc.SkillCommandControllerBlockingStub command;
     private final SkillQueryControllerGrpc.SkillQueryControllerBlockingStub query;
-    private final SearchServiceGrpc.SearchServiceBlockingStub search;
 
     protected SkillClient(Channel channel) {
         this.command = SkillCommandControllerGrpc.newBlockingStub(channel);
         this.query = SkillQueryControllerGrpc.newBlockingStub(channel);
-        this.search = SearchServiceGrpc.newBlockingStub(channel);
     }
 
     public Skill push(PushSkillRequest input) {
@@ -78,6 +75,25 @@ public class SkillClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    public SkillList list(ListSkillsRequest input) {
+        try {
+            return query.list(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code list}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<Skill> listAll(ListSkillsRequest input) {
+        return Pages.<SkillList, Skill>iterate(
+            input.getPageToken(),
+            token -> list(input.toBuilder().setPageToken(token).build()),
+            SkillList::getEntriesList,
+            SkillList::getNextPageToken);
+    }
+
     public GetArtifactResponse getArtifact(GetArtifactRequest input) {
         try {
             return query.getArtifact(input);
@@ -96,24 +112,16 @@ public class SkillClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public ListResult list(ListParams params) {
-        try {
-            SearchRequest.Builder req = SearchRequest.newBuilder()
-                .addKinds(ApiResourceKind.skill);
-            if (params.getOrg() != null) {
-                req.setOrg(params.getOrg());
-            }
-            if (params.getQuery() != null) {
-                req.setQuery(params.getQuery());
-            }
-            if (params.getPage() != null) {
-                req.setPage(PageInfo.newBuilder()
-                    .setNum(params.getPage().getNum())
-                    .setSize(params.getPage().getSize())
-                    .build());
-            }
-            SearchResponse resp = search.search(req.build());
-            return new ListResult(resp.getEntriesList(), resp.getTotalCount(), resp.getTotalPages());
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    /**
+     * Every entry of {@code listVersions}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<SkillVersionEntry> listVersionsAll(ListSkillVersionsInput input) {
+        return Pages.<ListSkillVersionsResponse, SkillVersionEntry>iterate(
+            input.getPageToken(),
+            token -> listVersions(input.toBuilder().setPageToken(token).build()),
+            ListSkillVersionsResponse::getEntriesList,
+            ListSkillVersionsResponse::getNextPageToken);
     }
 }

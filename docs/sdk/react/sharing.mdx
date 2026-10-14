@@ -24,6 +24,9 @@ omit `org` for the full permission-bounded list, which for a member of
 several organizations may also carry shares written before sharing
 across organizations was retired.
 
+An agent has a handful of shares and the share dialog shows them all, so
+the hook walks every page of the list.
+
 Pass an empty `agentId` to skip fetching (stable no-op) — useful
 while the agent is still loading.
 
@@ -358,7 +361,7 @@ Management surface for an agent's `AgentShare` channels,
 rendered in the agent detail view's Shares tab.
 
 Lists the agent's organization's channels of the agent: a share lives
-in its agent's organization, so that org scopes the `getByAgent` call
+in its agent's organization, so that org scopes the `listByAgent` call
 server-side. Per-row actions: copy link, edit, pause/resume, reset
 link, delete. Creation goes through the same [`ShareAgentDialog`](#shareagentdialog)
 and lands in the agent's organization; the create bar mirrors the

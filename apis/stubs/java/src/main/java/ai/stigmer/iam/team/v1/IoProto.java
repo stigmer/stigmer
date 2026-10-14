@@ -32,10 +32,10 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_iam_team_v1_Teams_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_iam_team_v1_ListTeamsByOrgInput_descriptor;
+    internal_static_ai_stigmer_iam_team_v1_ListTeamsInput_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_iam_team_v1_ListTeamsByOrgInput_fieldAccessorTable;
+      internal_static_ai_stigmer_iam_team_v1_ListTeamsInput_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_iam_team_v1_UpdateTeamInput_descriptor;
   static final 
@@ -53,22 +53,25 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\n\037ai/stigmer/iam/team/v1/io.proto\022\026ai.st" +
       "igmer.iam.team.v1\032 ai/stigmer/iam/team/v" +
       "1/api.proto\032\033buf/validate/validate.proto" +
-      "\032 google/protobuf/field_mask.proto\"?\n\005Te" +
+      "\032 google/protobuf/field_mask.proto\"g\n\005Te" +
       "ams\0226\n\007entries\030\001 \003(\0132\034.ai.stigmer.iam.te" +
-      "am.v1.TeamR\007entries\"0\n\023ListTeamsByOrgInp" +
-      "ut\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\"\327\002\n\017Update" +
-      "TeamInput\022@\n\010resource\030\001 \001(\0132\034.ai.stigmer" +
-      ".iam.team.v1.TeamB\006\272H\003\330\001\003R\010resource\022C\n\013u" +
-      "pdate_mask\030\002 \001(\0132\032.google.protobuf.Field" +
-      "MaskB\006\272H\003\310\001\001R\nupdateMask:\274\001\272H\270\001\032\265\001\n\027upda" +
-      "te_names_its_target\022Dresource.metadata.i" +
-      "d is required: an update names the team " +
-      "by its id\032Thas(this.resource) && has(thi" +
-      "s.resource.metadata) && this.resource.me" +
-      "tadata.id != \'\'B\206\001B\007IoProtoP\001\242\002\004ASIT\252\002\026A" +
-      "i.Stigmer.Iam.Team.V1\312\002\026Ai\\Stigmer\\Iam\\T" +
-      "eam\\V1\342\002\"Ai\\Stigmer\\Iam\\Team\\V1\\GPBMetad" +
-      "ata\352\002\032Ai::Stigmer::Iam::Team::V1b\006proto3"
+      "am.v1.TeamR\007entries\022&\n\017next_page_token\030\002" +
+      " \001(\tR\rnextPageToken\"z\n\016ListTeamsInput\022\031\n" +
+      "\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022$\n\tpage_size\030\002 " +
+      "\001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'\n\npage_token\030\003 \001" +
+      "(\tB\010\272H\005r\003\030\200\010R\tpageToken\"\327\002\n\017UpdateTeamIn" +
+      "put\022@\n\010resource\030\001 \001(\0132\034.ai.stigmer.iam.t" +
+      "eam.v1.TeamB\006\272H\003\330\001\003R\010resource\022C\n\013update_" +
+      "mask\030\002 \001(\0132\032.google.protobuf.FieldMaskB\006" +
+      "\272H\003\310\001\001R\nupdateMask:\274\001\272H\270\001\032\265\001\n\027update_nam" +
+      "es_its_target\022Dresource.metadata.id is r" +
+      "equired: an update names the team by its" +
+      " id\032Thas(this.resource) && has(this.reso" +
+      "urce.metadata) && this.resource.metadata" +
+      ".id != \'\'B\206\001B\007IoProtoP\001\242\002\004ASIT\252\002\026Ai.Stig" +
+      "mer.Iam.Team.V1\312\002\026Ai\\Stigmer\\Iam\\Team\\V1" +
+      "\342\002\"Ai\\Stigmer\\Iam\\Team\\V1\\GPBMetadata\352\002\032" +
+      "Ai::Stigmer::Iam::Team::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -82,13 +85,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_team_v1_Teams_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_team_v1_Teams_descriptor,
-        new java.lang.String[] { "Entries", });
-    internal_static_ai_stigmer_iam_team_v1_ListTeamsByOrgInput_descriptor =
+        new java.lang.String[] { "Entries", "NextPageToken", });
+    internal_static_ai_stigmer_iam_team_v1_ListTeamsInput_descriptor =
       getDescriptor().getMessageType(1);
-    internal_static_ai_stigmer_iam_team_v1_ListTeamsByOrgInput_fieldAccessorTable = new
+    internal_static_ai_stigmer_iam_team_v1_ListTeamsInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_iam_team_v1_ListTeamsByOrgInput_descriptor,
-        new java.lang.String[] { "Org", });
+        internal_static_ai_stigmer_iam_team_v1_ListTeamsInput_descriptor,
+        new java.lang.String[] { "Org", "PageSize", "PageToken", });
     internal_static_ai_stigmer_iam_team_v1_UpdateTeamInput_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_iam_team_v1_UpdateTeamInput_fieldAccessorTable = new

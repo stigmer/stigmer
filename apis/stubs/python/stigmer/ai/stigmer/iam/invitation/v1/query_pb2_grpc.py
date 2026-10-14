@@ -21,9 +21,9 @@ class InvitationQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_iam_dot_invitation_dot_v1_dot_io__pb2.InvitationId.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_invitation_dot_v1_dot_api__pb2.Invitation.FromString,
                 _registered_method=True)
-        self.listByOrg = channel.unary_unary(
-                '/ai.stigmer.iam.invitation.v1.InvitationQueryController/listByOrg',
-                request_serializer=ai_dot_stigmer_dot_iam_dot_invitation_dot_v1_dot_io__pb2.ListInvitationsByOrgInput.SerializeToString,
+        self.list = channel.unary_unary(
+                '/ai.stigmer.iam.invitation.v1.InvitationQueryController/list',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_invitation_dot_v1_dot_io__pb2.ListInvitationsInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_invitation_dot_v1_dot_io__pb2.Invitations.FromString,
                 _registered_method=True)
         self.getByToken = channel.unary_unary(
@@ -44,8 +44,8 @@ class InvitationQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def listByOrg(self, request, context):
-        """List all invitations belonging to an organization.
+    def list(self, request, context):
+        """List the invitations belonging to an organization.
 
         Returns invitations ordered by creation time (newest first).
         """
@@ -78,9 +78,9 @@ def add_InvitationQueryControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_iam_dot_invitation_dot_v1_dot_io__pb2.InvitationId.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_invitation_dot_v1_dot_api__pb2.Invitation.SerializeToString,
             ),
-            'listByOrg': grpc.unary_unary_rpc_method_handler(
-                    servicer.listByOrg,
-                    request_deserializer=ai_dot_stigmer_dot_iam_dot_invitation_dot_v1_dot_io__pb2.ListInvitationsByOrgInput.FromString,
+            'list': grpc.unary_unary_rpc_method_handler(
+                    servicer.list,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_invitation_dot_v1_dot_io__pb2.ListInvitationsInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_invitation_dot_v1_dot_io__pb2.Invitations.SerializeToString,
             ),
             'getByToken': grpc.unary_unary_rpc_method_handler(
@@ -128,7 +128,7 @@ class InvitationQueryController(object):
             _registered_method=True)
 
     @staticmethod
-    def listByOrg(request,
+    def list(request,
             target,
             options=(),
             channel_credentials=None,
@@ -141,8 +141,8 @@ class InvitationQueryController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.iam.invitation.v1.InvitationQueryController/listByOrg',
-            ai_dot_stigmer_dot_iam_dot_invitation_dot_v1_dot_io__pb2.ListInvitationsByOrgInput.SerializeToString,
+            '/ai.stigmer.iam.invitation.v1.InvitationQueryController/list',
+            ai_dot_stigmer_dot_iam_dot_invitation_dot_v1_dot_io__pb2.ListInvitationsInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_invitation_dot_v1_dot_io__pb2.Invitations.FromString,
             options,
             channel_credentials,

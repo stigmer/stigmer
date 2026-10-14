@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Iterator
 
 import grpc
 
@@ -14,12 +15,9 @@ from ai.stigmer.agentic.plugin.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
-from ai.stigmer.search.v1 import query_pb2_grpc as search_query_pb2_grpc
-from ai.stigmer.search.v1 import io_pb2 as search_io_pb2
-from ai.stigmer.commons.rpc import pagination_pb2
 
 from ._errors import wrap_error
-from ._types import ListParams, ListResult, ResourceRef
+from ._types import ResourceRef
 
 
 class PluginClient:
@@ -28,7 +26,6 @@ class PluginClient:
     def __init__(self, channel: grpc.Channel) -> None:
         self._command = command_pb2_grpc.PluginCommandControllerStub(channel)
         self._query = query_pb2_grpc.PluginQueryControllerStub(channel)
-        self._search = search_query_pb2_grpc.SearchServiceStub(channel)
 
     def push(self, input: io_pb2.PushPluginRequest) -> api_pb2.Plugin:
         try:
@@ -74,6 +71,24 @@ class PluginClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def list(self, input: io_pb2.ListPluginsRequest) -> io_pb2.PluginList:
+        try:
+            return self._query.list(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def list_all(self, input: io_pb2.ListPluginsRequest) -> Iterator[api_pb2.Plugin]:
+        """Every entry of ``list``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListPluginsRequest()
+        request.CopyFrom(input)
+        while True:
+            page = self.list(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
+
     def get_artifact(self, input: io_pb2.GetArtifactRequest) -> io_pb2.GetArtifactResponse:
         try:
             return self._query.getArtifact(input)
@@ -92,26 +107,17 @@ class PluginClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def list(self, params: ListParams) -> ListResult:
-        try:
-            req = search_io_pb2.SearchRequest(
-                kinds=[api_resource_kind_pb2.ApiResourceKind.plugin],
-                query=params.query,
-                org=params.org,
-            )
-            if params.page is not None:
-                req.page.CopyFrom(pagination_pb2.PageInfo(
-                    num=params.page.num,
-                    size=params.page.size,
-                ))
-            resp = self._search.search(req)
-            return ListResult(
-                entries=list(resp.entries),
-                total_count=resp.total_count,
-                total_pages=resp.total_pages,
-            )
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
+    def list_versions_all(self, input: io_pb2.ListPluginVersionsInput) -> Iterator[io_pb2.PluginVersionEntry]:
+        """Every entry of ``list_versions``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListPluginVersionsInput()
+        request.CopyFrom(input)
+        while True:
+            page = self.list_versions(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
 
 
 @dataclass

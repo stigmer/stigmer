@@ -5,7 +5,6 @@ package gen
 import (
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
-	searchv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/search/v1"
 )
 
 // DeleteResourceInput provides arguments for deleting a resource.
@@ -30,26 +29,6 @@ func (r ResourceRef) toProto() *apiresource.ApiResourceReference {
 		Version: r.Version,
 		Kind:    r.Kind,
 	}
-}
-
-// Page specifies offset-based pagination.
-type Page struct {
-	Num  int32
-	Size int32
-}
-
-// ListParams configures a SearchService-backed list query.
-type ListParams struct {
-	Org   string
-	Query string
-	Page  *Page
-}
-
-// ListResult holds the response from a SearchService-backed list.
-type ListResult struct {
-	Entries    []*searchv1.SearchResult
-	TotalCount int32
-	TotalPages int32
 }
 
 // ResourceRefFromProto creates a ResourceRef from a proto ApiResourceReference.

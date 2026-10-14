@@ -24,7 +24,7 @@
  *     included — the model promises it is never returned
  *     (fga/model/iam/platform_client.fga), and no reader needs it;
  *   - getByReference loads, then authorizes the loaded client exactly as
- *     `get` would (AuthorizeResolvedTarget), and listByOrg narrows through
+ *     `get` would (AuthorizeResolvedTarget), and list narrows through
  *     the list read scope, so a member who may not `get` a client does not
  *     see it listed either: the model gives organization members no access
  *     to a credential.
@@ -53,7 +53,7 @@ import {
   PlatformClientsSchema,
 } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
 import type {
-  ListPlatformClientsByOrgInput,
+  ListPlatformClientsInput,
   PlatformClientCreateResponse,
   PlatformClientId,
   PlatformClients,
@@ -87,7 +87,11 @@ import type { RefusedUpdatePath } from "../../pipeline/steps/update-mask.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import { RESOURCE_ID_KEY } from "../../pipeline/steps/delete.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
-import { compareCreatedAtDesc } from "../../pipeline/steps/helpers.js";
+import {
+  decodeOrSkip,
+  listPageFingerprint,
+  readPage,
+} from "../../pipeline/steps/list-page.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import {
@@ -143,7 +147,7 @@ export interface PlatformClientControllerDeps {
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
-  /** The composed list read scope — listByOrg narrows through it; undefined = every client of the org. */
+  /** The composed list read scope — list narrows through it; undefined = every client of the org. */
   readonly listReadScope: ListReadScope | undefined;
   /** The identity-account port: whether the caller is a service account, which makes and changes no platform client. */
   readonly accounts: ServiceAccountLookup;
@@ -183,7 +187,7 @@ export function registerPlatformClientServices(
   router.service(PlatformClientQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
     getByReference: (ref, ctx) => getByReference(deps, ref, ctx),
-    listByOrg: (input, ctx) => listByOrg(deps, input, ctx),
+    list: (input, ctx) => list(deps, input, ctx),
   });
 }
 
@@ -509,29 +513,32 @@ async function getByReference(
 }
 
 /**
- * ListByOrg — the organization's clients the caller may view, newest
- * first, each redacted. The annotation admits anyone who can view the
- * organization; the list read scope then keeps only the clients a `get`
- * would return.
+ * List — the organization's clients the caller may view, newest first,
+ * one page at a time, each redacted. The annotation admits anyone who can
+ * view the organization; the list read scope then keeps only the clients
+ * a `get` would return. The rows come from the port's page read, so a
+ * composition that keeps clients in its own table pages them by the same
+ * loop.
  */
-async function listByOrg(
+async function list(
   deps: PlatformClientControllerDeps,
-  input: ListPlatformClientsByOrgInput,
+  input: ListPlatformClientsInput,
   ctx: HandlerContext,
 ): Promise<PlatformClients> {
   const caller = callerIdentityOf(ctx);
   const reqCtx = new RequestContext(
-    PlatformClientQueryController.method.listByOrg.input,
+    PlatformClientQueryController.method.list.input,
     input,
     caller,
     kindOf(ctx),
   );
-  await newPipeline<
-    typeof PlatformClientQueryController.method.listByOrg.input
-  >("platformclient-list-by-org", deps.logger)
+  await newPipeline<typeof PlatformClientQueryController.method.list.input>(
+    "platformclient-list",
+    deps.logger,
+  )
     .addStep(
       newAuthorizeStep(
-        PlatformClientQueryController.method.listByOrg,
+        PlatformClientQueryController.method.list,
         deps.authorizer,
       ),
     )
@@ -539,26 +546,27 @@ async function listByOrg(
     .build()
     .execute(reqCtx);
 
-  let candidates: ReadonlyArray<PlatformClient>;
-  try {
-    candidates = await deps.clients.findByOrg(input.org);
-  } catch (error) {
-    throw internalError(error, "failed to list platform clients");
-  }
-  const visible = await restrictListByReadScope(
-    deps.listReadScope,
-    caller,
-    ApiResourceKind.platform_client,
-    candidates,
-    input.org,
-  );
-  const entries = [...visible]
-    .sort((a, b) =>
-      compareCreatedAtDesc(
-        a.status?.audit?.specAudit?.createdAt,
-        b.status?.audit?.specAudit?.createdAt,
+  const page = await readPage({
+    source: (after, limit) => deps.clients.pageByOrg(input.org, after, limit),
+    request: { pageSize: input.pageSize, pageToken: input.pageToken },
+    fingerprint: listPageFingerprint({ org: input.org }),
+    decode: decodePlatformClient,
+    keep: (client) => client.metadata?.org === input.org,
+    scope: (rows) =>
+      restrictListByReadScope(
+        deps.listReadScope,
+        caller,
+        ApiResourceKind.platform_client,
+        rows,
+        input.org,
       ),
-    )
-    .map(redactPlatformClient);
-  return create(PlatformClientsSchema, { entries });
+    failure: "failed to list platform clients",
+  });
+  return create(PlatformClientsSchema, {
+    entries: page.entries.map(redactPlatformClient),
+    nextPageToken: page.nextPageToken,
+  });
 }
+
+/** A stored client, or undefined (skipped) when its bytes do not decode. */
+const decodePlatformClient = decodeOrSkip(PlatformClientSchema);

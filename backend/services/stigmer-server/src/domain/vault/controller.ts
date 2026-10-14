@@ -108,7 +108,10 @@ import {
 } from "../../pipeline/steps/delete.js";
 import { newCheckDuplicateStep } from "../../pipeline/steps/duplicate.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
-import { compareCreatedAtDesc } from "../../pipeline/steps/helpers.js";
+import {
+  listPageFingerprint,
+  readListPage,
+} from "../../pipeline/steps/list-page.js";
 import { newLoadByReferenceStep } from "../../pipeline/steps/load-by-reference.js";
 import {
   EXISTING_RESOURCE_KEY,
@@ -796,33 +799,46 @@ async function list(
   ctx: HandlerContext,
 ): Promise<VaultList> {
   const caller = callerIdentityOf(ctx);
-  await validated(VaultQueryController.method.list.input, req, caller, ctx, deps);
-  const rows = await deps.store.queryResources(vaultListIndex, { org: req.org });
-  // Another person's My vault is never listed, whatever the scope says:
-  // the server acting as itself is the one caller that sees them all.
-  const requested = decodeVaultRows(rows).filter((vault) => {
-    const person = personOf(vault);
-    return (
-      person === undefined ||
-      person === caller.identityId ||
-      caller.callerClass === "internal"
-    );
-  });
-  const vaults = await restrictListByReadScope(
-    deps.listReadScope,
+  await validated(
+    VaultQueryController.method.list.input,
+    req,
     caller,
-    ApiResourceKind.vault,
-    requested,
-    "",
+    ctx,
+    deps,
   );
-  vaults.sort((a, b) =>
-    compareCreatedAtDesc(
-      a.status?.audit?.specAudit?.createdAt,
-      b.status?.audit?.specAudit?.createdAt,
-    ),
-  );
-  for (const vault of vaults) {
+  // One page of the org's vaults, newest first. Another person's My vault
+  // is never listed, whatever the scope says: the server acting as itself
+  // is the one caller that sees them all. The scope narrows last.
+  const page = await readListPage({
+    store: deps.store,
+    declaration: vaultListIndex,
+    query: { org: req.org },
+    request: req,
+    fingerprint: listPageFingerprint({ lane: "vault.list", org: req.org }),
+    decode: (data) => decodeVaultRows([{ data }])[0],
+    keep: (vault) => {
+      const person = personOf(vault);
+      return (
+        person === undefined ||
+        person === caller.identityId ||
+        caller.callerClass === "internal"
+      );
+    },
+    scope: (vaults) =>
+      restrictListByReadScope(
+        deps.listReadScope,
+        caller,
+        ApiResourceKind.vault,
+        vaults,
+        "",
+      ),
+    failure: "failed to list vaults",
+  });
+  for (const vault of page.entries) {
     redactVault(vault);
   }
-  return create(VaultListSchema, { totalCount: vaults.length, items: vaults });
+  return create(VaultListSchema, {
+    entries: page.entries,
+    nextPageToken: page.nextPageToken,
+  });
 }

@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
-import { useStigmer } from "../hooks.js";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   useResourceSearch,
   type UseResourceSearchOptions,
@@ -16,7 +15,8 @@ export type UseAgentSearchReturn = UseResourceSearchReturn;
 /**
  * Data hook that searches agents available to the user.
  *
- * Wraps `stigmer.agent.list()` with debounced search, loading/error
+ * Lists the organization's agents, newest first, while nothing is typed
+ * and searches them once something is, with a debounce, loading/error
  * tracking, and cancellation-safe fetching. Platform builders use this
  * when they want full control over rendering; the {@link AgentPicker}
  * styled component uses it internally. Results are the given
@@ -36,11 +36,5 @@ export function useAgentSearch(
   org: string,
   options?: UseAgentSearchOptions,
 ): UseAgentSearchReturn {
-  const stigmer = useStigmer();
-  const listFn = useCallback(
-    (params: Parameters<typeof stigmer.agent.list>[0]) =>
-      stigmer.agent.list(params),
-    [stigmer],
-  );
-  return useResourceSearch(listFn, org, options);
+  return useResourceSearch(ApiResourceKind.agent, org, options);
 }

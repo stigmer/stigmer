@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Iterator
 
 import grpc
 
@@ -54,6 +55,18 @@ class PluginEvalClient:
             return self._query.listByPlugin(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
+
+    def list_by_plugin_all(self, input: io_pb2.ListPluginEvalsByPluginRequest) -> Iterator[api_pb2.PluginEval]:
+        """Every entry of ``list_by_plugin``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListPluginEvalsByPluginRequest()
+        request.CopyFrom(input)
+        while True:
+            page = self.list_by_plugin(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
 
 
 @dataclass

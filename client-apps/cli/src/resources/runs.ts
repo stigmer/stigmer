@@ -94,7 +94,7 @@ export async function listAgentRuns(client: Stigmer, limit: number, org = ""): P
   const entries = await readCursorPages(limit, (pageSize, pageToken) =>
     client.run.list(create(ListRunsRequestSchema, { pageSize, pageToken, org })),
   );
-  return { schema: RunListSchema, message: create(RunListSchema, { entries, totalPages: 1 }) };
+  return { schema: RunListSchema, message: create(RunListSchema, { entries }) };
 }
 
 const RUN_TABLE: TableShape = {

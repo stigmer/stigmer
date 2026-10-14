@@ -12,7 +12,7 @@
 //     account for that subject from the tenant's /userinfo, the
 //     organization the edition creates at sign-up is CREATED BY the new
 //     account (its spec audit names the ida_) and visible to it
-//     (findMyOrganizations as the same token lists it — the owner tuple
+//     (listMine as the same token lists it — the owner tuple
 //     names the ida_, not the raw subject, a defect once fixed here), and
 //     the next whoAmI resolves the token to the account;
 //   - the tenant's MCP audience (the hosted MCP server forwards tokens
@@ -142,7 +142,7 @@ describe.skipIf(!directLoginEnabled)(
           "after provisioning the SAME token resolves to the account at position 1 — no second row",
         ).toBe(accountId);
 
-        const mine = await asUser.organizationQuery.findMyOrganizations({});
+        const mine = await asUser.organizationQuery.listMine({});
         const signupOrgVisible = mine.entries.some((org) => createdBy(org) === accountId);
         expect(
           signupOrgVisible,
@@ -153,7 +153,7 @@ describe.skipIf(!directLoginEnabled)(
         // account (self-owned). Best-effort — a failed cleanup must not mask
         // the assertion that failed.
         try {
-          const mine = await asUser.organizationQuery.findMyOrganizations({});
+          const mine = await asUser.organizationQuery.listMine({});
           for (const org of mine.entries) {
             if (
               accountId !== "" &&

@@ -67,6 +67,7 @@ describe("ChannelConversationsDialog", () => {
         makeChannelSession("ses_1", "What is a skill?", "U0AB12CD3"),
         makeChannelSession("ses_2", "Deploy help"),
       ],
+      nextPageToken: "",
     });
 
     renderDialog(listByChannel, { sessionHref: (id) => `/sessions/${id}` });
@@ -83,6 +84,7 @@ describe("ChannelConversationsDialog", () => {
   it("renders rows without links when the host provides no session route", async () => {
     const listByChannel = vi.fn().mockResolvedValue({
       entries: [makeChannelSession("ses_1", "What is a skill?", "U0AB12CD3")],
+      nextPageToken: "",
     });
 
     renderDialog(listByChannel);
@@ -98,6 +100,7 @@ describe("ChannelConversationsDialog", () => {
     // this dialog is the session-level forensics view.
     const listByChannel = vi.fn().mockResolvedValue({
       entries: [makeChannelSession("ses_1", "")],
+      nextPageToken: "",
     });
 
     renderDialog(listByChannel);
@@ -118,6 +121,7 @@ describe("ChannelConversationsDialog", () => {
           },
         },
       ],
+      nextPageToken: "",
     });
 
     renderDialog(listByChannel);
@@ -130,7 +134,7 @@ describe("ChannelConversationsDialog", () => {
   });
 
   it("shows the empty state when nobody has messaged the channel", async () => {
-    renderDialog(vi.fn().mockResolvedValue({ entries: [] }));
+    renderDialog(vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }));
 
     await waitFor(() =>
       expect(screen.getByText("No sessions yet")).toBeDefined(),

@@ -108,17 +108,53 @@ class SessionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def list_all(self, input: io_pb2.ListSessionsRequest) -> Iterator[api_pb2.Session]:
+        """Every entry of ``list``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListSessionsRequest()
+        request.CopyFrom(input)
+        while True:
+            page = self.list(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
+
     def list_by_agent(self, input: io_pb2.ListSessionsByAgentRequest) -> io_pb2.SessionList:
         try:
             return self._query.listByAgent(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def list_by_agent_all(self, input: io_pb2.ListSessionsByAgentRequest) -> Iterator[api_pb2.Session]:
+        """Every entry of ``list_by_agent``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListSessionsByAgentRequest()
+        request.CopyFrom(input)
+        while True:
+            page = self.list_by_agent(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
+
     def list_by_channel(self, input: io_pb2.ListSessionsByChannelRequest) -> io_pb2.SessionList:
         try:
             return self._query.listByChannel(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
+
+    def list_by_channel_all(self, input: io_pb2.ListSessionsByChannelRequest) -> Iterator[api_pb2.Session]:
+        """Every entry of ``list_by_channel``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListSessionsByChannelRequest()
+        request.CopyFrom(input)
+        while True:
+            page = self.list_by_channel(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
 
     def list_events(self, input: io_pb2.ListSessionEventsRequest) -> io_pb2.SessionEventList:
         try:

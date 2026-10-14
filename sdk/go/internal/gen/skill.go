@@ -4,27 +4,25 @@ package gen
 
 import (
 	"context"
+	"iter"
 
 	skillv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/skill/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
-	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
-	searchv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 )
 
 // SkillClient provides operations on skill resources.
 type SkillClient struct {
 	command skillv1.SkillCommandControllerClient
 	query   skillv1.SkillQueryControllerClient
-	search  searchv1.SearchServiceClient
 }
 
 func NewSkillClient(conn grpc.ClientConnInterface) *SkillClient {
 	return &SkillClient{
 		command: skillv1.NewSkillCommandControllerClient(conn),
 		query:   skillv1.NewSkillQueryControllerClient(conn),
-		search:  searchv1.NewSearchServiceClient(conn),
 	}
 }
 
@@ -64,6 +62,40 @@ func (s *SkillClient) GetByReference(ctx context.Context, ref ResourceRef) (*ski
 	return resp, wrapErr(err)
 }
 
+func (s *SkillClient) List(ctx context.Context, input *skillv1.ListSkillsRequest) (*skillv1.SkillList, error) {
+	resp, err := s.query.List(ctx, input)
+	return resp, wrapErr(err)
+}
+
+// ListAll returns every entry of List, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (s *SkillClient) ListAll(ctx context.Context, input *skillv1.ListSkillsRequest) iter.Seq2[*skillv1.Skill, error] {
+	return func(yield func(*skillv1.Skill, error) bool) {
+		req := &skillv1.ListSkillsRequest{}
+		if input != nil {
+			req = proto.Clone(input).(*skillv1.ListSkillsRequest)
+		}
+		for {
+			page, err := s.List(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
+}
+
 func (s *SkillClient) GetArtifact(ctx context.Context, input *skillv1.GetArtifactRequest) (*skillv1.GetArtifactResponse, error) {
 	resp, err := s.query.GetArtifact(ctx, input)
 	return resp, wrapErr(err)
@@ -79,24 +111,33 @@ func (s *SkillClient) ListVersions(ctx context.Context, input *skillv1.ListSkill
 	return resp, wrapErr(err)
 }
 
-func (s *SkillClient) List(ctx context.Context, params *ListParams) (*ListResult, error) {
-	req := &searchv1.SearchRequest{
-		Kinds: []apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_skill},
-		Query: params.Query,
-		Org:   params.Org,
+// ListVersionsAll returns every entry of ListVersions, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (s *SkillClient) ListVersionsAll(ctx context.Context, input *skillv1.ListSkillVersionsInput) iter.Seq2[*skillv1.SkillVersionEntry, error] {
+	return func(yield func(*skillv1.SkillVersionEntry, error) bool) {
+		req := &skillv1.ListSkillVersionsInput{}
+		if input != nil {
+			req = proto.Clone(input).(*skillv1.ListSkillVersionsInput)
+		}
+		for {
+			page, err := s.ListVersions(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
 	}
-	if params.Page != nil {
-		req.Page = &rpc.PageInfo{Num: params.Page.Num, Size: params.Page.Size}
-	}
-	resp, err := s.search.Search(ctx, req)
-	if err != nil {
-		return nil, wrapErr(err)
-	}
-	return &ListResult{
-		Entries:    resp.GetEntries(),
-		TotalCount: resp.GetTotalCount(),
-		TotalPages: resp.GetTotalPages(),
-	}, nil
 }
 
 // SkillInput holds the fields for creating or applying a Skill.

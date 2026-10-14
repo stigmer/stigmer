@@ -9,19 +9,18 @@ import ai.stigmer.agentic.plugin.v1.ListPluginToolsInput;
 import ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput;
 import ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput;
 import ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse;
+import ai.stigmer.agentic.plugin.v1.ListPluginsRequest;
 import ai.stigmer.agentic.plugin.v1.Plugin;
 import ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl;
 import ai.stigmer.agentic.plugin.v1.PluginArtifactUploadUrl;
 import ai.stigmer.agentic.plugin.v1.PluginCommandControllerGrpc;
 import ai.stigmer.agentic.plugin.v1.PluginId;
+import ai.stigmer.agentic.plugin.v1.PluginList;
 import ai.stigmer.agentic.plugin.v1.PluginQueryControllerGrpc;
+import ai.stigmer.agentic.plugin.v1.PluginVersionEntry;
 import ai.stigmer.agentic.plugin.v1.PushPluginRequest;
 import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
-import ai.stigmer.commons.rpc.PageInfo;
-import ai.stigmer.search.v1.SearchRequest;
-import ai.stigmer.search.v1.SearchResponse;
-import ai.stigmer.search.v1.SearchServiceGrpc;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -29,12 +28,10 @@ import io.grpc.StatusRuntimeException;
 public final class PluginClient {
     private final PluginCommandControllerGrpc.PluginCommandControllerBlockingStub command;
     private final PluginQueryControllerGrpc.PluginQueryControllerBlockingStub query;
-    private final SearchServiceGrpc.SearchServiceBlockingStub search;
 
     PluginClient(Channel channel) {
         this.command = PluginCommandControllerGrpc.newBlockingStub(channel);
         this.query = PluginQueryControllerGrpc.newBlockingStub(channel);
-        this.search = SearchServiceGrpc.newBlockingStub(channel);
     }
 
     public Plugin push(PushPluginRequest input) {
@@ -79,6 +76,25 @@ public final class PluginClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    public PluginList list(ListPluginsRequest input) {
+        try {
+            return query.list(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code list}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<Plugin> listAll(ListPluginsRequest input) {
+        return Pages.<PluginList, Plugin>iterate(
+            input.getPageToken(),
+            token -> list(input.toBuilder().setPageToken(token).build()),
+            PluginList::getEntriesList,
+            PluginList::getNextPageToken);
+    }
+
     public GetArtifactResponse getArtifact(GetArtifactRequest input) {
         try {
             return query.getArtifact(input);
@@ -97,24 +113,16 @@ public final class PluginClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public ListResult list(ListParams params) {
-        try {
-            SearchRequest.Builder req = SearchRequest.newBuilder()
-                .addKinds(ApiResourceKind.plugin);
-            if (params.getOrg() != null) {
-                req.setOrg(params.getOrg());
-            }
-            if (params.getQuery() != null) {
-                req.setQuery(params.getQuery());
-            }
-            if (params.getPage() != null) {
-                req.setPage(PageInfo.newBuilder()
-                    .setNum(params.getPage().getNum())
-                    .setSize(params.getPage().getSize())
-                    .build());
-            }
-            SearchResponse resp = search.search(req.build());
-            return new ListResult(resp.getEntriesList(), resp.getTotalCount(), resp.getTotalPages());
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    /**
+     * Every entry of {@code listVersions}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<PluginVersionEntry> listVersionsAll(ListPluginVersionsInput input) {
+        return Pages.<ListPluginVersionsResponse, PluginVersionEntry>iterate(
+            input.getPageToken(),
+            token -> listVersions(input.toBuilder().setPageToken(token).build()),
+            ListPluginVersionsResponse::getEntriesList,
+            ListPluginVersionsResponse::getNextPageToken);
     }
 }

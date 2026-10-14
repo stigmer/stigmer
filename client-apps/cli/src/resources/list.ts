@@ -1,19 +1,17 @@
 // `list` dispatch: render a collection of resources for a kind.
 //
-// Most registry kinds list through the unified SearchService. The rest take
-// dedicated find/list RPCs with bespoke table shapes, registered in
-// LIST_HANDLERS — either because the kind is not search-indexed (API keys,
-// agent channels, channel apps, schedules, vaults) or because the dedicated RPC is
-// the better list surface than the kind's search index (organizations are
-// caller-scoped; sessions carry columns search results don't have). Same map-dispatch shape as the get, delete, and apply
+// Every listable kind has its own list RPC with one page shape (page_size,
+// page_token, entries, next_page_token), registered in LIST_HANDLERS with
+// its table. Search is for finding by words (`stigmer search`); a list
+// browses. Same map-dispatch shape as the get, delete, and apply
 // registries, so the conformance test in registry/registry.test.ts can hold
 // all four to the verb matrix.
 //
-// Handlers FETCH, the dispatcher RENDERS: every handler returns entries plus
-// its schema/table pair, and listResources alone applies --limit and renders.
-// That split is deliberate (stigmer/stigmer#312): when handlers owned
-// rendering, honoring --limit was per-handler discipline, and the two
-// unpaginated branches (organization, api_key) shipped silently ignoring it.
+// Handlers FETCH, the dispatcher RENDERS: every handler walks its pages up
+// to --limit through readCursorPages (0 walks every page) and returns
+// entries plus its schema/table pair, and listResources alone applies
+// --limit and renders. That split is deliberate (stigmer/stigmer#312): when
+// handlers owned rendering, honoring --limit was per-handler discipline.
 //
 // Rows carry organizations by id. The human table names each by slug, one
 // lookup per distinct organization in the listing; json and yaml stay the
@@ -23,7 +21,7 @@ import { create, type DescMessage, type Message } from "@bufbuild/protobuf";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { ListAgentChannelsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
-import { ListChannelAppsByOrgInputSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
+import { ListChannelAppsInputSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ListSchedulesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -31,10 +29,16 @@ import { ListSessionsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/se
 import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { ListVaultsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
+import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { ListAgentsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { ListPluginsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
+import { ListSkillsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
-import { SearchResultSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import { ListApiKeysInputSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { ListMyOrganizationsInputSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 import { BUILT_IN_ASSISTANT_NAME, type Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../errors/index.js";
 import type { OutputFormat } from "../output/index.js";
@@ -52,19 +56,6 @@ import {
 import { organizationLabels } from "../client/organizations.js";
 import { requireOrganization } from "../client/single-org.js";
 
-// Kinds that list through the SearchService (list mode: empty query, org
-// scope). Must stay in step with the server's SearchableKinds allowlist
-// (backend/services/stigmer-server/pkg/query/search/valueobject/
-// search_criteria.go): a kind present here but absent there silently lists
-// as empty. The LIST_HANDLERS kinds are deliberately NOT here — see the
-// header: not search-indexed, or better served by their dedicated RPC.
-export const SEARCH_KINDS: ReadonlySet<ApiResourceKind> =
-  new Set<ApiResourceKind>([
-    ApiResourceKind.agent,
-    ApiResourceKind.skill,
-    ApiResourceKind.plugin,
-  ]);
-
 // One fetched page of a listing: what to render (entries + schema) and how
 // (table). Rendering and --limit truncation happen centrally in
 // listResources — a handler cannot opt out of either.
@@ -74,44 +65,44 @@ interface ListPage {
   readonly table: TableShape;
 }
 
-// Where the RPC paginates, the handler still forwards `limit` as the page
-// size so the server does the bounding; the dispatcher's slice is then a
-// no-op. Where it doesn't, the slice IS the bound.
+// The handler walks pages up to `limit` (0: every page), so the
+// dispatcher's slice is a no-op it keeps as the one place the flag binds.
 type ListFn = (
   client: Stigmer,
   org: string,
   limit: number,
 ) => Promise<ListPage>;
 
-// Dedicated-RPC list handlers for the non-search-indexed kinds. Every kind
-// declaring List in the verb matrix must appear here or in SEARCH_KINDS —
-// the conformance test enforces it, so the two cannot drift.
+// The list handlers. Every kind declaring List in the verb matrix must
+// appear here — the conformance test enforces it, so the two cannot drift.
 export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
   ApiResourceKind,
   ListFn
 >([
   [
     ApiResourceKind.organization,
-    async (client) => {
-      // findMyOrganizations is caller-scoped and unpaginated (Empty request;
-      // a caller's org set is small by nature). The paginated `find` RPC is
-      // platform-admin-only — the wrong surface for `list organization`.
-      const result = await client.organization.findMyOrganizations();
+    async (client, _org, limit) => {
+      // listMine is caller-scoped: the organizations the caller belongs to.
+      const entries = await readCursorPages(limit, (pageSize, pageToken) =>
+        client.organization.listMine(create(ListMyOrganizationsInputSchema, { pageSize, pageToken })),
+      );
       return {
         schema: OrganizationSchema,
-        entries: result.entries,
+        entries,
         table: ORG_TABLE,
       };
     },
   ],
   [
     ApiResourceKind.api_key,
-    async (client) => {
-      // findAll is caller-scoped and unpaginated (Empty request).
-      const result = await client.apiKey.findAll();
+    async (client, _org, limit) => {
+      // list is caller-scoped: the keys that speak for the caller.
+      const entries = await readCursorPages(limit, (pageSize, pageToken) =>
+        client.apiKey.list(create(ListApiKeysInputSchema, { pageSize, pageToken })),
+      );
       return {
         schema: ApiKeySchema,
-        entries: result.entries,
+        entries,
         table: APIKEY_TABLE,
       };
     },
@@ -119,31 +110,26 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
   [
     ApiResourceKind.agent_channel,
     async (client, org, limit) => {
-      const result = await client.agentChannel.list(
-        create(ListAgentChannelsRequestSchema, {
-          org,
-          pageInfo: create(PageInfoSchema, { num: 1, size: limit }),
-        }),
+      const entries = await readCursorPages(limit, (pageSize, pageToken) =>
+        client.agentChannel.list(create(ListAgentChannelsRequestSchema, { org, pageSize, pageToken })),
       );
       return {
         schema: AgentChannelSchema,
-        entries: result.items,
+        entries,
         table: AGENT_CHANNEL_TABLE,
       };
     },
   ],
   [
     ApiResourceKind.channel_app,
-    async (client, org) => {
-      // listByOrg has no pagination on its contract (the per-org set is small
-      // by design); the dispatcher's slice bounds the output.
+    async (client, org, limit) => {
       // `channelapp` (not `channelApp`) is a recorded SDK codegen naming quirk.
-      const result = await client.channelapp.listByOrg(
-        create(ListChannelAppsByOrgInputSchema, { org }),
+      const entries = await readCursorPages(limit, (pageSize, pageToken) =>
+        client.channelapp.list(create(ListChannelAppsInputSchema, { org, pageSize, pageToken })),
       );
       return {
         schema: ChannelAppSchema,
-        entries: result.entries,
+        entries,
         table: CHANNEL_APP_TABLE,
       };
     },
@@ -159,15 +145,12 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
         "stigmer list schedules --org <org>",
         "stigmer config context set --org <org>",
       ]);
-      const result = await client.schedule.list(
-        create(ListSchedulesRequestSchema, {
-          org,
-          pageInfo: create(PageInfoSchema, { num: 1, size: limit }),
-        }),
+      const entries = await readCursorPages(limit, (pageSize, pageToken) =>
+        client.schedule.list(create(ListSchedulesRequestSchema, { org, pageSize, pageToken })),
       );
       return {
         schema: ScheduleSchema,
-        entries: result.items,
+        entries,
         table: SCHEDULE_TABLE,
       };
     },
@@ -182,15 +165,12 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
         "stigmer list vaults --org <org>",
         "stigmer config context set --org <org>",
       ]);
-      const result = await client.vault.list(
-        create(ListVaultsRequestSchema, {
-          org,
-          pageInfo: create(PageInfoSchema, { num: 1, size: limit }),
-        }),
+      const entries = await readCursorPages(limit, (pageSize, pageToken) =>
+        client.vault.list(create(ListVaultsRequestSchema, { org, pageSize, pageToken })),
       );
       return {
         schema: VaultSchema,
-        entries: result.items,
+        entries,
         table: VAULT_TABLE,
       };
     },
@@ -198,11 +178,8 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
   [
     ApiResourceKind.session,
     async (client, _org, limit) => {
-      // Sessions ARE search-indexed, but list deliberately uses the dedicated
-      // RPC: the table's columns (agent, subject) don't exist on
-      // SearchResult rows, and the RPC is caller-scoped like organization and
-      // api_key above.
-      // Promoted from a bespoke pre-gate route in commands/list.ts by
+      // The session list is caller-scoped like organization and api_key
+      // above. Promoted from a bespoke pre-gate route in commands/list.ts by
       // stigmer/stigmer#469 (it had shipped working-but-unadvertised).
       const entries = await readCursorPages(limit, (pageSize, pageToken) =>
         client.session.list(create(ListSessionsRequestSchema, { pageSize, pageToken })),
@@ -212,6 +189,45 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
         entries,
         table: SESSION_TABLE,
       };
+    },
+  ],
+  [
+    ApiResourceKind.agent,
+    async (client, org, limit) => {
+      await requireOrganization(client, org, [
+        "stigmer list agents --org <org>",
+        "stigmer config context set --org <org>",
+      ]);
+      const entries = await readCursorPages(limit, (pageSize, pageToken) =>
+        client.agent.list(create(ListAgentsRequestSchema, { org, pageSize, pageToken })),
+      );
+      return { schema: AgentSchema, entries, table: libraryTable("agents") };
+    },
+  ],
+  [
+    ApiResourceKind.skill,
+    async (client, org, limit) => {
+      await requireOrganization(client, org, [
+        "stigmer list skills --org <org>",
+        "stigmer config context set --org <org>",
+      ]);
+      const entries = await readCursorPages(limit, (pageSize, pageToken) =>
+        client.skill.list(create(ListSkillsRequestSchema, { org, pageSize, pageToken })),
+      );
+      return { schema: SkillSchema, entries, table: libraryTable("skills") };
+    },
+  ],
+  [
+    ApiResourceKind.plugin,
+    async (client, org, limit) => {
+      await requireOrganization(client, org, [
+        "stigmer list plugins --org <org>",
+        "stigmer config context set --org <org>",
+      ]);
+      const entries = await readCursorPages(limit, (pageSize, pageToken) =>
+        client.plugin.list(create(ListPluginsRequestSchema, { org, pageSize, pageToken })),
+      );
+      return { schema: PluginSchema, entries, table: libraryTable("plugins") };
     },
   ],
 ]);
@@ -224,13 +240,11 @@ export async function listResources(
   format: OutputFormat,
 ): Promise<string> {
   const page = await fetchListPage(client, kind, org, limit);
-  // The single point where --limit binds the output. For paginated RPCs the
-  // handler already asked the server for at most `limit` entries and this is
-  // a no-op; for unpaginated RPCs it is the truncation itself. Slicing here
-  // rather than per-handler is what keeps the flag honest for every kind —
-  // organization and api_key shipped ignoring it when handlers owned this
-  // (stigmer/stigmer#312).
-  const entries = page.entries.slice(0, limit);
+  // The single point where --limit binds the output (0: every entry). The
+  // handler already walked at most `limit` entries, so this is a no-op;
+  // binding it here rather than per-handler is what keeps the flag honest
+  // for every kind (stigmer/stigmer#312).
+  const entries = limit === 0 ? page.entries : page.entries.slice(0, limit);
   return renderCollection(
     page.schema,
     entries,
@@ -246,26 +260,33 @@ async function fetchListPage(
   org: string,
   limit: number,
 ): Promise<ListPage> {
-  const dedicated = LIST_HANDLERS.get(kind);
-  if (dedicated !== undefined) {
-    return dedicated(client, org, limit);
-  }
-  if (!SEARCH_KINDS.has(kind)) {
+  const handler = LIST_HANDLERS.get(kind);
+  if (handler === undefined) {
     throw new UsageError("list is not implemented for this resource type");
   }
-  const result = await client.search.query({
-    kinds: [kind],
-    org,
-    page: { num: 1, size: limit },
-  });
+  return handler(client, org, limit);
+}
+
+// Agents, skills and plugins: what a person browses a library by. The
+// description is the spec's, as search shows it.
+function libraryTable(resourceName: string): TableShape {
   return {
-    schema: SearchResultSchema,
-    entries: result.entries,
-    table: SEARCH_TABLE,
+    resourceName,
+    headers: ["NAME", "DESCRIPTION", "VISIBILITY", "CREATED"],
+    orgs: (json) => [str(obj(json, "metadata"), "org")],
+    row: (json, orgLabel) => {
+      const metadata = obj(json, "metadata");
+      return [
+        `${orgLabel(str(metadata, "org"))}/${str(metadata, "slug")}`,
+        truncate(str(obj(json, "spec"), "description"), 50),
+        str(metadata, "visibility"),
+        date(str(obj(obj(obj(json, "status"), "audit"), "spec_audit"), "created_at")),
+      ];
+    },
   };
 }
 
-// Shared with `search` — both render SearchService results identically.
+// The `stigmer search` table: SearchService results.
 export const SEARCH_TABLE: TableShape = {
   resourceName: "resources",
   headers: ["NAME", "DESCRIPTION", "VISIBILITY", "CREATED"],

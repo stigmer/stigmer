@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/plan/v1/io.proto.
  */
 export const file_ai_stigmer_billing_plan_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiNhaS9zdGlnbWVyL2JpbGxpbmcvcGxhbi92MS9pby5wcm90bxIaYWkuc3RpZ21lci5iaWxsaW5nLnBsYW4udjEiIgoGUGxhbklkEhgKBXZhbHVlGAEgASgJQgm6SAZyBBABGEAiOgoFUGxhbnMSMQoHZW50cmllcxgBIAMoCzIgLmFpLnN0aWdtZXIuYmlsbGluZy5wbGFuLnYxLlBsYW4iKQoOTGlzdFBsYW5zSW5wdXQSFwoPaW5jbHVkZV9yZXRpcmVkGAEgASgIYgZwcm90bzM", [file_ai_stigmer_billing_plan_v1_api, file_buf_validate_validate]);
+  fileDesc("CiNhaS9zdGlnbWVyL2JpbGxpbmcvcGxhbi92MS9pby5wcm90bxIaYWkuc3RpZ21lci5iaWxsaW5nLnBsYW4udjEiIgoGUGxhbklkEhgKBXZhbHVlGAEgASgJQgm6SAZyBBABGEAiUwoFUGxhbnMSMQoHZW50cmllcxgBIAMoCzIgLmFpLnN0aWdtZXIuYmlsbGluZy5wbGFuLnYxLlBsYW4SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJImMKDkxpc3RQbGFuc0lucHV0EhcKD2luY2x1ZGVfcmV0aXJlZBgBIAEoCBIaCglwYWdlX3NpemUYAiABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAhiBnByb3RvMw", [file_ai_stigmer_billing_plan_v1_api, file_buf_validate_validate]);
 
 /**
  * PlanId identifies a plan by its unique identifier.
@@ -48,6 +48,14 @@ export type Plans = Message<"ai.stigmer.billing.plan.v1.Plans"> & {
    * @generated from field: repeated ai.stigmer.billing.plan.v1.Plan entries = 1;
    */
   entries: Plan[];
+
+  /**
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   *
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
 };
 
 /**
@@ -70,6 +78,22 @@ export type ListPlansInput = Message<"ai.stigmer.billing.plan.v1.ListPlansInput"
    * @generated from field: bool include_retired = 1;
    */
   includeRetired: boolean;
+
+  /**
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
+   *
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
 };
 
 /**

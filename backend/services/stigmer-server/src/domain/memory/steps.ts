@@ -58,6 +58,11 @@ import {
 } from "../../pipeline/steps/defaults.js";
 import { memoryCaptureCredentialOf } from "../../pipeline/steps/guard-memory-capture.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
+import {
+  decodeOrSkip,
+  listPageFingerprint,
+  readListPage,
+} from "../../pipeline/steps/list-page.js";
 import type { AccountsByCaller } from "../identityaccount/resolve.js";
 import {
   accountForCaller,
@@ -65,7 +70,8 @@ import {
 } from "../identityaccount/resolve.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
-import { listOrganizationMemories, listSubjectMemories } from "./queries.js";
+import { listSubjectMemories } from "./queries.js";
+import { memoryListIndex } from "./list-index.js";
 import {
   MAX_MEMORIES_PER_SUBJECT,
   MEMORY_ACCOUNT_DISABLED_MESSAGE,
@@ -598,12 +604,11 @@ export function newTransitionMemoryLifecycleStep(
 }
 
 /**
- * ListMemoriesByOrg — Go listMemoriesByOrgStep (list.go): reads the
- * org's memories through the memory list index (queries.ts), created_at
- * descending (newest first) — the index order, which the read scope
- * keeps. Ordering is chronological only; grouping pending proposals first
- * is the console's presentation concern, deliberately not an
- * RPC parameter at the kind's dozens-of-records scale.
+ * ListMemoriesByOrg — one page of the org's memories through the memory
+ * list index, created_at descending (newest first) — the index order,
+ * which the read scope keeps. Ordering is chronological only; grouping
+ * pending proposals first is the console's presentation concern,
+ * deliberately not an RPC parameter.
  */
 export function newListMemoriesByOrgStep(
   store: Store,
@@ -615,29 +620,31 @@ export function newListMemoriesByOrgStep(
       ctx: RequestContext<typeof ListMemoriesRequestSchema>,
     ): Promise<void> {
       const org = ctx.input.org;
-
-      let orgMemories: Memory[];
-      try {
-        orgMemories = await listOrganizationMemories(store, org);
-      } catch (error) {
-        throw internalError(error, "failed to list memories");
-      }
-
-      // The org equality runs FIRST, in both editions; the scope narrows
-      // the org's rows last (the scope is the last per-row predicate).
-      const memories = await restrictListByReadScope(
-        listReadScope,
-        ctx.callerIdentity,
-        ApiResourceKind.memory,
-        orgMemories,
-        "",
-      );
-
+      // The org is an indexed predicate, in both editions; the scope
+      // narrows the org's rows last (the scope is the last per-row
+      // predicate).
+      const page = await readListPage({
+        store,
+        declaration: memoryListIndex,
+        query: { org },
+        request: ctx.input,
+        fingerprint: listPageFingerprint({ lane: "memory.list", org }),
+        decode: decodeOrSkip<Memory>(MemorySchema),
+        scope: (memories) =>
+          restrictListByReadScope(
+            listReadScope,
+            ctx.callerIdentity,
+            ApiResourceKind.memory,
+            memories,
+            "",
+          ),
+        failure: "failed to list memories",
+      });
       ctx.set(
         LIST_RESULT_KEY,
         create(MemoryListSchema, {
-          totalCount: memories.length,
-          items: memories,
+          entries: page.entries,
+          nextPageToken: page.nextPageToken,
         }),
       );
     },

@@ -54,10 +54,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\022\035ai.stigmer.billing.license.v1\032\'ai/stig" +
       "mer/billing/license/v1/api.proto\032\033buf/va" +
       "lidate/validate.proto\",\n\tLicenseId\022\037\n\005va" +
-      "lue\030\001 \001(\tB\t\272H\006r\004\020\001\030@R\005value\"L\n\010Licenses\022" +
+      "lue\030\001 \001(\tB\t\272H\006r\004\020\001\030@R\005value\"t\n\010Licenses\022" +
       "@\n\007entries\030\001 \003(\0132&.ai.stigmer.billing.li" +
-      "cense.v1.LicenseR\007entries\"4\n\021ListLicense" +
-      "sInput\022\037\n\013customer_id\030\001 \001(\tR\ncustomerIdB" +
+      "cense.v1.LicenseR\007entries\022&\n\017next_page_t" +
+      "oken\030\002 \001(\tR\rnextPageToken\"\203\001\n\021ListLicens" +
+      "esInput\022\037\n\013customer_id\030\001 \001(\tR\ncustomerId" +
+      "\022$\n\tpage_size\030\002 \001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'" +
+      "\n\npage_token\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageTokenB" +
       "\242\001B\007IoProtoP\001\242\002\004ASBL\252\002\035Ai.Stigmer.Billin" +
       "g.License.V1\312\002\035Ai\\Stigmer\\Billing\\Licens" +
       "e\\V1\342\002)Ai\\Stigmer\\Billing\\License\\V1\\GPB" +
@@ -81,13 +84,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_billing_license_v1_Licenses_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_license_v1_Licenses_descriptor,
-        new java.lang.String[] { "Entries", });
+        new java.lang.String[] { "Entries", "NextPageToken", });
     internal_static_ai_stigmer_billing_license_v1_ListLicensesInput_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_billing_license_v1_ListLicensesInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_license_v1_ListLicensesInput_descriptor,
-        new java.lang.String[] { "CustomerId", });
+        new java.lang.String[] { "CustomerId", "PageSize", "PageToken", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.billing.license.v1.ApiProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

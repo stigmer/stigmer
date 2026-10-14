@@ -12,7 +12,7 @@ import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInput
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { PlatformClientSchema, type PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/command_pb";
-import { PlatformClientCreateResponseSchema, UpdatePlatformClientInputSchema, PlatformClientIdSchema, ListPlatformClientsByOrgInputSchema, PlatformClientsSchema, type PlatformClientCreateResponse, type ListPlatformClientsByOrgInput, type PlatformClients } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
+import { PlatformClientCreateResponseSchema, UpdatePlatformClientInputSchema, PlatformClientIdSchema, ListPlatformClientsInputSchema, PlatformClientsSchema, type PlatformClientCreateResponse, type ListPlatformClientsInput, type PlatformClients } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
 import { PlatformClientQueryController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/query_pb";
 import { PlatformClientSpecSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/spec_pb";
 import { PlatformClientTokenController, MintUserTokenRequestSchema, MintUserTokenResponseSchema, MintGuestTokenRequestSchema, MintGuestTokenResponseSchema, type MintUserTokenRequest, type MintUserTokenResponse, type MintGuestTokenRequest, type MintGuestTokenResponse } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
@@ -76,10 +76,24 @@ export class PlatformClientClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async listByOrg(input: ListPlatformClientsByOrgInput): Promise<PlatformClients> {
+  async list(input: ListPlatformClientsInput): Promise<PlatformClients> {
     try {
-      return await this.query.listByOrg(input);
+      return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `list`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listAll(input: MessageInitShape<typeof ListPlatformClientsInputSchema>): AsyncGenerator<PlatformClients["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.list(create(ListPlatformClientsInputSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 
   async mintUserToken(input: MintUserTokenRequest): Promise<MintUserTokenResponse> {

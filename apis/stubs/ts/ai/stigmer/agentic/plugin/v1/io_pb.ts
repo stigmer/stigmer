@@ -4,6 +4,8 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { Plugin } from "./api_pb.js";
+import { file_ai_stigmer_agentic_plugin_v1_api } from "./api_pb.js";
 import type { ApiResourceVisibility } from "../../../commons/apiresource/enum_pb.js";
 import { file_ai_stigmer_commons_apiresource_enum } from "../../../commons/apiresource/enum_pb.js";
 import type { ApiResourceAuditActor } from "../../../commons/apiresource/status_pb.js";
@@ -17,7 +19,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/plugin/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_plugin_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiVhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luL3YxL2lvLnByb3RvEhxhaS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxIiEKCFBsdWdpbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEi9wIKEVB1c2hQbHVnaW5SZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEhAKCGFydGlmYWN0GAIgASgMEhsKE2FydGlmYWN0X3VwbG9hZF9yZWYYAyABKAkSUwoKdmlzaWJpbGl0eRgEIAEoDjI1LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVZpc2liaWxpdHlCCLpIBYIBAhABEg8KB21lc3NhZ2UYBSABKAk6twG6SLMBGrABCiNwdXNoX3BsdWdpbl9yZXF1ZXN0LmFydGlmYWN0X3NvdXJjZRJJZXhhY3RseSBvbmUgb2YgYXJ0aWZhY3QgKGlubGluZSBieXRlcykgb3IgYXJ0aWZhY3RfdXBsb2FkX3JlZiBtdXN0IGJlIHNldBo+KHRoaXMuYXJ0aWZhY3Quc2l6ZSgpID4gMCkgIT0gKHRoaXMuYXJ0aWZhY3RfdXBsb2FkX3JlZiAhPSAnJykiWAokQ3JlYXRlUGx1Z2luQXJ0aWZhY3RVcGxvYWRVcmxSZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEhsKCnNpemVfYnl0ZXMYAiABKANCB7pIBCICIAAiWAoXUGx1Z2luQXJ0aWZhY3RVcGxvYWRVcmwSCwoDdXJsGAEgASgJEhsKE2FydGlmYWN0X3VwbG9hZF9yZWYYAiABKAkSEwoLdHRsX3NlY29uZHMYAyABKAUiOgoSR2V0QXJ0aWZhY3RSZXF1ZXN0EiQKFGFydGlmYWN0X3N0b3JhZ2Vfa2V5GAEgASgJQga6SAPIAQEiJwoTR2V0QXJ0aWZhY3RSZXNwb25zZRIQCghhcnRpZmFjdBgBIAEoDCJRChlQbHVnaW5BcnRpZmFjdERvd25sb2FkVXJsEgsKA3VybBgBIAEoCRITCgt0dGxfc2Vjb25kcxgCIAEoBRISCgpzaXplX2J5dGVzGAMgASgDIl8KFExpc3RQbHVnaW5Ub29sc0lucHV0EhkKCXBsdWdpbl9pZBgBIAEoCUIGukgDyAEBEhYKBnNlcnZlchgCIAEoCUIGukgDyAEBEhQKA29yZxgDIAEoCUIHukgEcgIQASJQChVMaXN0UGx1Z2luVG9vbHNPdXRwdXQSNwoFdG9vbHMYASADKAsyKC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpblRvb2wiRAoKUGx1Z2luVG9vbBIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEhMKC2Rlc3RydWN0aXZlGAMgASgIImsKF0xpc3RQbHVnaW5WZXJzaW9uc0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBEhQKBHNsdWcYAiABKAlCBrpIA8gBARISCgpwYWdlX3Rva2VuGAMgASgJEhEKCXBhZ2Vfc2l6ZRgEIAEoBSLtAQoSUGx1Z2luVmVyc2lvbkVudHJ5Eg4KBmRpZ2VzdBgBIAEoCRItCglwdXNoZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEkgKCXB1c2hlZF9ieRgDIAEoCzI1LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0QWN0b3ISCwoDdGFnGAQgASgJEhIKCmlzX2N1cnJlbnQYBSABKAgSDwoHbWVzc2FnZRgGIAEoCRIcChRhcnRpZmFjdF9zdG9yYWdlX2tleRgHIAEoCSKOAQoaTGlzdFBsdWdpblZlcnNpb25zUmVzcG9uc2USQgoIdmVyc2lvbnMYASADKAsyMC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpblZlcnNpb25FbnRyeRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkSEwoLdG90YWxfY291bnQYAyABKAViBnByb3RvMw", [file_ai_stigmer_commons_apiresource_enum, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CiVhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luL3YxL2lvLnByb3RvEhxhaS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxIiEKCFBsdWdpbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEi9wIKEVB1c2hQbHVnaW5SZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEhAKCGFydGlmYWN0GAIgASgMEhsKE2FydGlmYWN0X3VwbG9hZF9yZWYYAyABKAkSUwoKdmlzaWJpbGl0eRgEIAEoDjI1LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVZpc2liaWxpdHlCCLpIBYIBAhABEg8KB21lc3NhZ2UYBSABKAk6twG6SLMBGrABCiNwdXNoX3BsdWdpbl9yZXF1ZXN0LmFydGlmYWN0X3NvdXJjZRJJZXhhY3RseSBvbmUgb2YgYXJ0aWZhY3QgKGlubGluZSBieXRlcykgb3IgYXJ0aWZhY3RfdXBsb2FkX3JlZiBtdXN0IGJlIHNldBo+KHRoaXMuYXJ0aWZhY3Quc2l6ZSgpID4gMCkgIT0gKHRoaXMuYXJ0aWZhY3RfdXBsb2FkX3JlZiAhPSAnJykiWAokQ3JlYXRlUGx1Z2luQXJ0aWZhY3RVcGxvYWRVcmxSZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEhsKCnNpemVfYnl0ZXMYAiABKANCB7pIBCICIAAiWAoXUGx1Z2luQXJ0aWZhY3RVcGxvYWRVcmwSCwoDdXJsGAEgASgJEhsKE2FydGlmYWN0X3VwbG9hZF9yZWYYAiABKAkSEwoLdHRsX3NlY29uZHMYAyABKAUiOgoSR2V0QXJ0aWZhY3RSZXF1ZXN0EiQKFGFydGlmYWN0X3N0b3JhZ2Vfa2V5GAEgASgJQga6SAPIAQEiJwoTR2V0QXJ0aWZhY3RSZXNwb25zZRIQCghhcnRpZmFjdBgBIAEoDCJRChlQbHVnaW5BcnRpZmFjdERvd25sb2FkVXJsEgsKA3VybBgBIAEoCRITCgt0dGxfc2Vjb25kcxgCIAEoBRISCgpzaXplX2J5dGVzGAMgASgDIl8KFExpc3RQbHVnaW5Ub29sc0lucHV0EhkKCXBsdWdpbl9pZBgBIAEoCUIGukgDyAEBEhYKBnNlcnZlchgCIAEoCUIGukgDyAEBEhQKA29yZxgDIAEoCUIHukgEcgIQASJQChVMaXN0UGx1Z2luVG9vbHNPdXRwdXQSNwoFdG9vbHMYASADKAsyKC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpblRvb2wiRAoKUGx1Z2luVG9vbBIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEhMKC2Rlc3RydWN0aXZlGAMgASgIIn4KF0xpc3RQbHVnaW5WZXJzaW9uc0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBEhQKBHNsdWcYAiABKAlCBrpIA8gBARIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACBIaCglwYWdlX3NpemUYBCABKAVCB7pIBBoCKAAi7QEKElBsdWdpblZlcnNpb25FbnRyeRIOCgZkaWdlc3QYASABKAkSLQoJcHVzaGVkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBJICglwdXNoZWRfYnkYAyABKAsyNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdEFjdG9yEgsKA3RhZxgEIAEoCRISCgppc19jdXJyZW50GAUgASgIEg8KB21lc3NhZ2UYBiABKAkSHAoUYXJ0aWZhY3Rfc3RvcmFnZV9rZXkYByABKAkiiwEKGkxpc3RQbHVnaW5WZXJzaW9uc1Jlc3BvbnNlEkEKB2VudHJpZXMYASADKAsyMC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpblZlcnNpb25FbnRyeRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAlKBAgDEARSC3RvdGFsX2NvdW50ImQKEkxpc3RQbHVnaW5zUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhwKCnBhZ2VfdG9rZW4YAyABKAlCCLpIBXIDGIAIIlwKClBsdWdpbkxpc3QSNQoHZW50cmllcxgBIAMoCzIkLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_plugin_v1_api, file_ai_stigmer_commons_apiresource_enum, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * PluginId wraps a plugin identifier.
@@ -363,14 +365,16 @@ export type ListPluginVersionsInput = Message<"ai.stigmer.agentic.plugin.v1.List
   slug: string;
 
   /**
-   * Opaque token for cursor-based pagination. Empty for the first page.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    *
    * @generated from field: string page_token = 3;
    */
   pageToken: string;
 
   /**
-   * Maximum number of versions to return per page. Default is 50.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    *
    * @generated from field: int32 page_size = 4;
    */
@@ -457,23 +461,17 @@ export type ListPluginVersionsResponse = Message<"ai.stigmer.agentic.plugin.v1.L
   /**
    * Versions, newest first.
    *
-   * @generated from field: repeated ai.stigmer.agentic.plugin.v1.PluginVersionEntry versions = 1;
+   * @generated from field: repeated ai.stigmer.agentic.plugin.v1.PluginVersionEntry entries = 1;
    */
-  versions: PluginVersionEntry[];
+  entries: PluginVersionEntry[];
 
   /**
-   * Token for the next page. Empty when no more pages exist.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    *
    * @generated from field: string next_page_token = 2;
    */
   nextPageToken: string;
-
-  /**
-   * Total number of versions across all pages.
-   *
-   * @generated from field: int32 total_count = 3;
-   */
-  totalCount: number;
 };
 
 /**
@@ -482,4 +480,70 @@ export type ListPluginVersionsResponse = Message<"ai.stigmer.agentic.plugin.v1.L
  */
 export const ListPluginVersionsResponseSchema: GenMessage<ListPluginVersionsResponse> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_plugin_v1_io, 12);
+
+/**
+ * Input for listing an organization's plugins, newest first.
+ *
+ * @generated from message ai.stigmer.agentic.plugin.v1.ListPluginsRequest
+ */
+export type ListPluginsRequest = Message<"ai.stigmer.agentic.plugin.v1.ListPluginsRequest"> & {
+  /**
+   * Organization whose plugins to list, by id or slug.
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+
+  /**
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
+   *
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.plugin.v1.ListPluginsRequest.
+ * Use `create(ListPluginsRequestSchema)` to create a new message.
+ */
+export const ListPluginsRequestSchema: GenMessage<ListPluginsRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_plugin_v1_io, 13);
+
+/**
+ * One page of an organization's plugins.
+ *
+ * @generated from message ai.stigmer.agentic.plugin.v1.PluginList
+ */
+export type PluginList = Message<"ai.stigmer.agentic.plugin.v1.PluginList"> & {
+  /**
+   * The plugins in this page, newest first.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.plugin.v1.Plugin entries = 1;
+   */
+  entries: Plugin[];
+
+  /**
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   *
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.plugin.v1.PluginList.
+ * Use `create(PluginListSchema)` to create a new message.
+ */
+export const PluginListSchema: GenMessage<PluginList> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_plugin_v1_io, 14);
 

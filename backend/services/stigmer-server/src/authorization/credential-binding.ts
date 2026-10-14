@@ -654,7 +654,6 @@ export function bindOrganizationDirectory(
   lifecycle: OrganizationLifecycle = NOTHING_DELETING,
 ): OrganizationDirectory {
   const bound: OrganizationDirectory = {
-    refusesEnumeration: inner.refusesEnumeration,
     async listMyOrganizationIds(caller) {
       const own = boundOrgOf(caller);
       const listed = await inner.listMyOrganizationIds(caller);

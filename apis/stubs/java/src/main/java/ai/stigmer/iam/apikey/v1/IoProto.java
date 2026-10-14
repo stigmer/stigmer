@@ -42,10 +42,15 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_iam_apikey_v1_ApiKeyHash_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_iam_apikey_v1_ApiKeyAccountId_descriptor;
+    internal_static_ai_stigmer_iam_apikey_v1_ListApiKeysInput_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_iam_apikey_v1_ApiKeyAccountId_fieldAccessorTable;
+      internal_static_ai_stigmer_iam_apikey_v1_ListApiKeysInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_iam_apikey_v1_ListApiKeysByAccountInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_iam_apikey_v1_ListApiKeysByAccountInput_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_iam_apikey_v1_CreateServiceAccountKeyInput_descriptor;
   static final 
@@ -69,31 +74,37 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "stigmer.iam.apikey.v1\032\"ai/stigmer/iam/ap" +
       "ikey/v1/api.proto\032\033buf/validate/validate" +
       ".proto\032 google/protobuf/field_mask.proto" +
-      "\032\037google/protobuf/timestamp.proto\"E\n\007Api" +
+      "\032\037google/protobuf/timestamp.proto\"m\n\007Api" +
       "Keys\022:\n\007entries\030\001 \003(\0132 .ai.stigmer.iam.a" +
-      "pikey.v1.ApiKeyR\007entries\"(\n\010ApiKeyId\022\034\n\005" +
+      "pikey.v1.ApiKeyR\007entries\022&\n\017next_page_to" +
+      "ken\030\002 \001(\tR\rnextPageToken\"(\n\010ApiKeyId\022\034\n\005" +
       "value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"*\n\nApiKeyHash" +
-      "\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"/\n\017ApiKey" +
-      "AccountId\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"" +
-      "\325\001\n\034CreateServiceAccountKeyInput\0224\n\022serv" +
-      "ice_account_id\030\001 \001(\tB\006\272H\003\310\001\001R\020serviceAcc" +
-      "ountId\022\037\n\004name\030\002 \001(\tB\013\272H\010r\003\030\200\001\310\001\001R\004name\022" +
-      "9\n\nexpires_at\030\003 \001(\0132\032.google.protobuf.Ti" +
-      "mestampR\texpiresAt\022#\n\rnever_expires\030\004 \001(" +
-      "\010R\014neverExpires\"\340\002\n\021UpdateApiKeyInput\022D\n" +
-      "\010resource\030\001 \001(\0132 .ai.stigmer.iam.apikey." +
-      "v1.ApiKeyB\006\272H\003\330\001\003R\010resource\022C\n\013update_ma" +
-      "sk\030\002 \001(\0132\032.google.protobuf.FieldMaskB\006\272H" +
-      "\003\310\001\001R\nupdateMask:\277\001\272H\273\001\032\270\001\n\027update_names" +
-      "_its_target\022Gresource.metadata.id is req" +
-      "uired: an update names the API key by it" +
-      "s id\032Thas(this.resource) && has(this.res" +
-      "ource.metadata) && this.resource.metadat" +
-      "a.id != \'\'B\216\001B\007IoProtoP\001\242\002\004ASIA\252\002\030Ai.Sti" +
-      "gmer.Iam.Apikey.V1\312\002\030Ai\\Stigmer\\Iam\\Apik" +
-      "ey\\V1\342\002$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMeta" +
-      "data\352\002\034Ai::Stigmer::Iam::Apikey::V1b\006pro" +
-      "to3"
+      "\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"a\n\020ListAp" +
+      "iKeysInput\022$\n\tpage_size\030\001 \001(\005B\007\272H\004\032\002(\000R\010" +
+      "pageSize\022\'\n\npage_token\030\002 \001(\tB\010\272H\005r\003\030\200\010R\t" +
+      "pageToken\"\221\001\n\031ListApiKeysByAccountInput\022" +
+      "%\n\naccount_id\030\001 \001(\tB\006\272H\003\310\001\001R\taccountId\022$" +
+      "\n\tpage_size\030\002 \001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'\n\n" +
+      "page_token\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageToken\"\325\001" +
+      "\n\034CreateServiceAccountKeyInput\0224\n\022servic" +
+      "e_account_id\030\001 \001(\tB\006\272H\003\310\001\001R\020serviceAccou" +
+      "ntId\022\037\n\004name\030\002 \001(\tB\013\272H\010r\003\030\200\001\310\001\001R\004name\0229\n" +
+      "\nexpires_at\030\003 \001(\0132\032.google.protobuf.Time" +
+      "stampR\texpiresAt\022#\n\rnever_expires\030\004 \001(\010R" +
+      "\014neverExpires\"\340\002\n\021UpdateApiKeyInput\022D\n\010r" +
+      "esource\030\001 \001(\0132 .ai.stigmer.iam.apikey.v1" +
+      ".ApiKeyB\006\272H\003\330\001\003R\010resource\022C\n\013update_mask" +
+      "\030\002 \001(\0132\032.google.protobuf.FieldMaskB\006\272H\003\310" +
+      "\001\001R\nupdateMask:\277\001\272H\273\001\032\270\001\n\027update_names_i" +
+      "ts_target\022Gresource.metadata.id is requi" +
+      "red: an update names the API key by its " +
+      "id\032Thas(this.resource) && has(this.resou" +
+      "rce.metadata) && this.resource.metadata." +
+      "id != \'\'B\216\001B\007IoProtoP\001\242\002\004ASIA\252\002\030Ai.Stigm" +
+      "er.Iam.Apikey.V1\312\002\030Ai\\Stigmer\\Iam\\Apikey" +
+      "\\V1\342\002$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetada" +
+      "ta\352\002\034Ai::Stigmer::Iam::Apikey::V1b\006proto" +
+      "3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -108,7 +119,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_apikey_v1_ApiKeys_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_apikey_v1_ApiKeys_descriptor,
-        new java.lang.String[] { "Entries", });
+        new java.lang.String[] { "Entries", "NextPageToken", });
     internal_static_ai_stigmer_iam_apikey_v1_ApiKeyId_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_iam_apikey_v1_ApiKeyId_fieldAccessorTable = new
@@ -121,20 +132,26 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_apikey_v1_ApiKeyHash_descriptor,
         new java.lang.String[] { "Value", });
-    internal_static_ai_stigmer_iam_apikey_v1_ApiKeyAccountId_descriptor =
+    internal_static_ai_stigmer_iam_apikey_v1_ListApiKeysInput_descriptor =
       getDescriptor().getMessageType(3);
-    internal_static_ai_stigmer_iam_apikey_v1_ApiKeyAccountId_fieldAccessorTable = new
+    internal_static_ai_stigmer_iam_apikey_v1_ListApiKeysInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_iam_apikey_v1_ApiKeyAccountId_descriptor,
-        new java.lang.String[] { "Value", });
-    internal_static_ai_stigmer_iam_apikey_v1_CreateServiceAccountKeyInput_descriptor =
+        internal_static_ai_stigmer_iam_apikey_v1_ListApiKeysInput_descriptor,
+        new java.lang.String[] { "PageSize", "PageToken", });
+    internal_static_ai_stigmer_iam_apikey_v1_ListApiKeysByAccountInput_descriptor =
       getDescriptor().getMessageType(4);
+    internal_static_ai_stigmer_iam_apikey_v1_ListApiKeysByAccountInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_iam_apikey_v1_ListApiKeysByAccountInput_descriptor,
+        new java.lang.String[] { "AccountId", "PageSize", "PageToken", });
+    internal_static_ai_stigmer_iam_apikey_v1_CreateServiceAccountKeyInput_descriptor =
+      getDescriptor().getMessageType(5);
     internal_static_ai_stigmer_iam_apikey_v1_CreateServiceAccountKeyInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_apikey_v1_CreateServiceAccountKeyInput_descriptor,
         new java.lang.String[] { "ServiceAccountId", "Name", "ExpiresAt", "NeverExpires", });
     internal_static_ai_stigmer_iam_apikey_v1_UpdateApiKeyInput_descriptor =
-      getDescriptor().getMessageType(5);
+      getDescriptor().getMessageType(6);
     internal_static_ai_stigmer_iam_apikey_v1_UpdateApiKeyInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_apikey_v1_UpdateApiKeyInput_descriptor,

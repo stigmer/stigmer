@@ -42,7 +42,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "rvice_options.proto\032+ai/stigmer/commons/" +
       "rpc/method_options.proto\032*ai/stigmer/iam" +
       "/platformclient/v1/api.proto\032)ai/stigmer" +
-      "/iam/platformclient/v1/io.proto2\222\004\n\035Plat" +
+      "/iam/platformclient/v1/io.proto2\210\004\n\035Plat" +
       "formClientQueryController\022\235\001\n\003get\022-.ai.s" +
       "tigmer.commons.apiresource.ApiResourceId" +
       "\0320.ai.stigmer.iam.platformclient.v1.Plat" +
@@ -50,17 +50,17 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "d to view platform client\022~\n\016getByRefere" +
       "nce\0224.ai.stigmer.commons.apiresource.Api" +
       "ResourceReference\0320.ai.stigmer.iam.platf" +
-      "ormclient.v1.PlatformClient\"\004\320\270\030\001\022\312\001\n\tli" +
-      "stByOrg\022?.ai.stigmer.iam.platformclient." +
-      "v1.ListPlatformClientsByOrgInput\0321.ai.st" +
-      "igmer.iam.platformclient.v1.PlatformClie" +
-      "nts\"I\302\270\030E\010\001\020\036\"\003org*:unauthorized to list" +
-      " platform clients in this organization\032\004" +
-      "\240\377+\027B\261\001B\nQueryProtoP\001\242\002\004ASIP\252\002 Ai.Stigme" +
-      "r.Iam.Platformclient.V1\312\002 Ai\\Stigmer\\Iam" +
-      "\\Platformclient\\V1\342\002,Ai\\Stigmer\\Iam\\Plat" +
-      "formclient\\V1\\GPBMetadata\352\002$Ai::Stigmer:" +
-      ":Iam::Platformclient::V1b\006proto3"
+      "ormclient.v1.PlatformClient\"\004\320\270\030\001\022\300\001\n\004li" +
+      "st\022:.ai.stigmer.iam.platformclient.v1.Li" +
+      "stPlatformClientsInput\0321.ai.stigmer.iam." +
+      "platformclient.v1.PlatformClients\"I\302\270\030E\010" +
+      "\001\020\036\"\003org*:unauthorized to list platform " +
+      "clients in this organization\032\004\240\377+\027B\261\001B\nQ" +
+      "ueryProtoP\001\242\002\004ASIP\252\002 Ai.Stigmer.Iam.Plat" +
+      "formclient.V1\312\002 Ai\\Stigmer\\Iam\\Platformc" +
+      "lient\\V1\342\002,Ai\\Stigmer\\Iam\\Platformclient" +
+      "\\V1\\GPBMetadata\352\002$Ai::Stigmer::Iam::Plat" +
+      "formclient::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

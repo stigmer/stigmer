@@ -4,11 +4,13 @@ package gen
 
 import (
 	"context"
+	"iter"
 
 	pluginevalv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugineval/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 )
 
 // PluginEvalClient provides operations on plugineval resources.
@@ -51,6 +53,35 @@ func (p *PluginEvalClient) Get(ctx context.Context, id string) (*pluginevalv1.Pl
 func (p *PluginEvalClient) ListByPlugin(ctx context.Context, input *pluginevalv1.ListPluginEvalsByPluginRequest) (*pluginevalv1.PluginEvalList, error) {
 	resp, err := p.query.ListByPlugin(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListByPluginAll returns every entry of ListByPlugin, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (p *PluginEvalClient) ListByPluginAll(ctx context.Context, input *pluginevalv1.ListPluginEvalsByPluginRequest) iter.Seq2[*pluginevalv1.PluginEval, error] {
+	return func(yield func(*pluginevalv1.PluginEval, error) bool) {
+		req := &pluginevalv1.ListPluginEvalsByPluginRequest{}
+		if input != nil {
+			req = proto.Clone(input).(*pluginevalv1.ListPluginEvalsByPluginRequest)
+		}
+		for {
+			page, err := p.ListByPlugin(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 // PluginEvalInput holds the fields for creating or applying a PluginEval.

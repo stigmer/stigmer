@@ -77,6 +77,37 @@ public final class SkillQueryControllerGrpc {
     return getGetByReferenceMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.ListSkillsRequest,
+      ai.stigmer.agentic.skill.v1.SkillList> getListMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "list",
+      requestType = ai.stigmer.agentic.skill.v1.ListSkillsRequest.class,
+      responseType = ai.stigmer.agentic.skill.v1.SkillList.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.ListSkillsRequest,
+      ai.stigmer.agentic.skill.v1.SkillList> getListMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.ListSkillsRequest, ai.stigmer.agentic.skill.v1.SkillList> getListMethod;
+    if ((getListMethod = SkillQueryControllerGrpc.getListMethod) == null) {
+      synchronized (SkillQueryControllerGrpc.class) {
+        if ((getListMethod = SkillQueryControllerGrpc.getListMethod) == null) {
+          SkillQueryControllerGrpc.getListMethod = getListMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.skill.v1.ListSkillsRequest, ai.stigmer.agentic.skill.v1.SkillList>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "list"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.skill.v1.ListSkillsRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.skill.v1.SkillList.getDefaultInstance()))
+              .setSchemaDescriptor(new SkillQueryControllerMethodDescriptorSupplier("list"))
+              .build();
+        }
+      }
+    }
+    return getListMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.GetArtifactRequest,
       ai.stigmer.agentic.skill.v1.GetArtifactResponse> getGetArtifactMethod;
 
@@ -262,6 +293,18 @@ public final class SkillQueryControllerGrpc {
 
     /**
      * <pre>
+     * List an organization's skills, newest first.
+     * Returns the skills of the input org that the caller may view, one page
+     * at a time. Search finds skills by their words; list browses them.
+     * </pre>
+     */
+    default void list(ai.stigmer.agentic.skill.v1.ListSkillsRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.SkillList> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Download skill artifact from storage by its storage key.
      * Returns the ZIP file containing SKILL.md and implementation files.
      * </pre>
@@ -360,6 +403,19 @@ public final class SkillQueryControllerGrpc {
 
     /**
      * <pre>
+     * List an organization's skills, newest first.
+     * Returns the skills of the input org that the caller may view, one page
+     * at a time. Search finds skills by their words; list browses them.
+     * </pre>
+     */
+    public void list(ai.stigmer.agentic.skill.v1.ListSkillsRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.SkillList> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Download skill artifact from storage by its storage key.
      * Returns the ZIP file containing SKILL.md and implementation files.
      * </pre>
@@ -445,6 +501,18 @@ public final class SkillQueryControllerGrpc {
 
     /**
      * <pre>
+     * List an organization's skills, newest first.
+     * Returns the skills of the input org that the caller may view, one page
+     * at a time. Search finds skills by their words; list browses them.
+     * </pre>
+     */
+    public ai.stigmer.agentic.skill.v1.SkillList list(ai.stigmer.agentic.skill.v1.ListSkillsRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Download skill artifact from storage by its storage key.
      * Returns the ZIP file containing SKILL.md and implementation files.
      * </pre>
@@ -523,6 +591,18 @@ public final class SkillQueryControllerGrpc {
     public ai.stigmer.agentic.skill.v1.Skill getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetByReferenceMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List an organization's skills, newest first.
+     * Returns the skills of the input org that the caller may view, one page
+     * at a time. Search finds skills by their words; list browses them.
+     * </pre>
+     */
+    public ai.stigmer.agentic.skill.v1.SkillList list(ai.stigmer.agentic.skill.v1.ListSkillsRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListMethod(), getCallOptions(), request);
     }
 
     /**
@@ -611,6 +691,19 @@ public final class SkillQueryControllerGrpc {
 
     /**
      * <pre>
+     * List an organization's skills, newest first.
+     * Returns the skills of the input org that the caller may view, one page
+     * at a time. Search finds skills by their words; list browses them.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.skill.v1.SkillList> list(
+        ai.stigmer.agentic.skill.v1.ListSkillsRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Download skill artifact from storage by its storage key.
      * Returns the ZIP file containing SKILL.md and implementation files.
      * </pre>
@@ -653,9 +746,10 @@ public final class SkillQueryControllerGrpc {
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_GET_BY_REFERENCE = 1;
-  private static final int METHODID_GET_ARTIFACT = 2;
-  private static final int METHODID_GET_ARTIFACT_DOWNLOAD_URL = 3;
-  private static final int METHODID_LIST_VERSIONS = 4;
+  private static final int METHODID_LIST = 2;
+  private static final int METHODID_GET_ARTIFACT = 3;
+  private static final int METHODID_GET_ARTIFACT_DOWNLOAD_URL = 4;
+  private static final int METHODID_LIST_VERSIONS = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -681,6 +775,10 @@ public final class SkillQueryControllerGrpc {
         case METHODID_GET_BY_REFERENCE:
           serviceImpl.getByReference((ai.stigmer.commons.apiresource.ApiResourceReference) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.Skill>) responseObserver);
+          break;
+        case METHODID_LIST:
+          serviceImpl.list((ai.stigmer.agentic.skill.v1.ListSkillsRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.SkillList>) responseObserver);
           break;
         case METHODID_GET_ARTIFACT:
           serviceImpl.getArtifact((ai.stigmer.agentic.skill.v1.GetArtifactRequest) request,
@@ -726,6 +824,13 @@ public final class SkillQueryControllerGrpc {
               ai.stigmer.commons.apiresource.ApiResourceReference,
               ai.stigmer.agentic.skill.v1.Skill>(
                 service, METHODID_GET_BY_REFERENCE)))
+        .addMethod(
+          getListMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.skill.v1.ListSkillsRequest,
+              ai.stigmer.agentic.skill.v1.SkillList>(
+                service, METHODID_LIST)))
         .addMethod(
           getGetArtifactMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -797,6 +902,7 @@ public final class SkillQueryControllerGrpc {
               .setSchemaDescriptor(new SkillQueryControllerFileDescriptorSupplier())
               .addMethod(getGetMethod())
               .addMethod(getGetByReferenceMethod())
+              .addMethod(getListMethod())
               .addMethod(getGetArtifactMethod())
               .addMethod(getGetArtifactDownloadUrlMethod())
               .addMethod(getListVersionsMethod())

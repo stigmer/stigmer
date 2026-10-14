@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Iterator
 
 import grpc
 
@@ -54,6 +55,18 @@ class AgentEvalClient:
             return self._query.listByAgent(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
+
+    def list_by_agent_all(self, input: io_pb2.ListAgentEvalsByAgentRequest) -> Iterator[api_pb2.AgentEval]:
+        """Every entry of ``list_by_agent``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListAgentEvalsByAgentRequest()
+        request.CopyFrom(input)
+        while True:
+            page = self.list_by_agent(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
 
 
 @dataclass

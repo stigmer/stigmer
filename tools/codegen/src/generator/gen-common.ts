@@ -6,6 +6,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { goTrimSpace } from "../internalcomment/internalcomment.js";
 import type { FieldSchema, SpecSchema, TypeSchema } from "./schema.js";
@@ -20,7 +21,6 @@ export interface ServiceSchemaFile {
   package: string;
   goImportPath: string;
   services: ServiceDefinition[];
-  listVia?: string;
   methodTypes?: TypeSchema[];
   enumTypes?: EnumSchema[];
   resourceDescription?: string;
@@ -171,10 +171,106 @@ export function isUpdateInputType(typeName: string, resourceType: string): boole
   return typeName === `Update${resourceType}Input`;
 }
 
-// Search-list kinds expose a single list(ListParams); a typed List RPC on
-// the kind's own query controller would collide on the method name.
-export function searchListSupersedesMethod(schema: ServiceSchemaFile, m: MethodSchema): boolean {
-  return schema.listVia === "SearchService" && m.name.toLowerCase() === "list";
+/** A paged list RPC and the message type of the entries it pages. */
+export interface PagedList {
+  /** The entries' message type, short name (`Schedule`, `ScheduleFire`). */
+  readonly entryType: string;
+  /** The entries' fully-qualified proto type. */
+  readonly entryFullType: string;
+}
+
+/**
+ * Whether a method is a paged list in the one list shape every list takes:
+ * its request carries `page_size` and `page_token`, its response a
+ * repeated message `entries` and `next_page_token`. Every SDK emits a page
+ * iterator beside such a method. Read from the method's own types, so a
+ * list that does not take the shape (a capped window, an event cursor) is
+ * left as a plain call.
+ */
+export function pagedListOf(schema: ServiceSchemaFile, m: MethodSchema): PagedList | undefined {
+  if (m.serverStreaming === true || m.clientStreaming === true) return undefined;
+  const types = schema.methodTypes ?? [];
+  const input = types.find((t) => t.protoType === m.inputFullType);
+  const output = types.find((t) => t.protoType === m.outputFullType);
+  if (input === undefined || output === undefined) return undefined;
+  const has = (t: TypeSchema, field: string, kind: string): boolean =>
+    t.fields.some((f) => f.protoField === field && f.type.kind === kind);
+  if (!has(input, "page_size", "int32") || !has(input, "page_token", "string")) return undefined;
+  if (!has(output, "next_page_token", "string")) return undefined;
+  const entries = output.fields.find((f) => f.protoField === "entries");
+  const elem = entries?.type.kind === "array" ? entries.type.elementType : undefined;
+  if (elem?.kind !== "message" || elem.messageType === undefined || elem.messageType === "") return undefined;
+  const pkg = m.outputFullType.slice(0, m.outputFullType.lastIndexOf("."));
+  return { entryType: elem.messageType, entryFullType: pkg + "." + elem.messageType };
+}
+
+/**
+ * SDK method names for RPCs whose name another service of the same client
+ * already uses: one client serves every service of a resource package, so
+ * two services' `list` would collide on the client. The RPC keeps its name
+ * on the wire; only the SDK method is renamed. Keyed by `Service.Method`.
+ */
+const SDK_METHOD_RENAMES: ReadonlyMap<string, string> = new Map([
+  ["ChannelConversationQueryController.List", "ListConversations"],
+]);
+
+/** The method's name on its SDK client (PascalCase, as in the schema). */
+export function sdkMethodName(svc: ServiceDefinition, m: MethodSchema): string {
+  return SDK_METHOD_RENAMES.get(svc.name + "." + m.name) ?? m.name;
+}
+
+/**
+ * Refuses a schema whose client would hold two methods of one name (or a
+ * method named like another's page iterator), so a collision fails the
+ * generator with the services named instead of the SDK's compiler.
+ */
+export function assertUniqueSdkMethodNames(schema: ServiceSchemaFile): void {
+  const owner = new Map<string, string>();
+  const claim = (name: string, by: string): void => {
+    const prior = owner.get(name);
+    if (prior !== undefined) {
+      throw new Error(
+        `${schema.resource}: ${by} and ${prior} both become the SDK method ${name}; name one in SDK_METHOD_RENAMES (gen-common.ts)`,
+      );
+    }
+    owner.set(name, by);
+  };
+  for (const svc of schema.services) {
+    for (const m of svc.methods) {
+      const name = sdkMethodName(svc, m);
+      claim(name, `${svc.name}.${m.name}`);
+      if (pagedListOf(schema, m) !== undefined) claim(pageIteratorName(name), `${svc.name}.${m.name}'s page iterator`);
+    }
+  }
+}
+
+/** The page iterator's method name beside a paged list (`List` → `ListAll`). */
+export function pageIteratorName(methodName: string): string {
+  return methodName + "All";
+}
+
+// The repository's apis directory, found from this module's own place in
+// the tree so a generator run from any directory (a test, a make target)
+// reads the same protos.
+const repoApisDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../../apis");
+
+/**
+ * The `.proto` file that declares a top-level message, as a path under
+ * `apis/`, found by scanning its package's directory: the service schema
+ * carries the files of method types only, and an entry type need not be
+ * one.
+ */
+export function protoFileOfMessage(fullType: string): string {
+  const idx = fullType.lastIndexOf(".");
+  const pkgPath = fullType.slice(0, idx).replaceAll(".", "/");
+  const needle = new RegExp("^message " + fullType.slice(idx + 1) + " \\{", "m");
+  for (const e of readDirSorted(path.join(repoApisDir, pkgPath))) {
+    if (e.isDirectory() || !e.name.endsWith(".proto")) continue;
+    if (needle.test(fs.readFileSync(path.join(repoApisDir, pkgPath, e.name), "utf8"))) {
+      return path.posix.join("apis", pkgPath, e.name);
+    }
+  }
+  throw new Error(`no .proto under apis/${pkgPath} declares message ${fullType}`);
 }
 
 /** Port of protoTypeName: final segment of a fully-qualified proto type. */

@@ -60,7 +60,7 @@ function renderWith(server: Server, ui: React.ReactNode, answer = Promise.resolv
     getAccessToken: () => "test-token",
     customTransport: createRouterTransport((router: ConnectRouter) => {
       router.service(OrganizationQueryController, {
-        findMyOrganizations: () =>
+        listMine: () =>
           create(OrganizationsSchema, {
             entries: [
               create(OrganizationSchema, {
@@ -71,6 +71,7 @@ function renderWith(server: Server, ui: React.ReactNode, answer = Promise.resolv
                 }),
               }),
             ],
+            nextPageToken: "",
           }),
       });
       if (server !== "fails") {

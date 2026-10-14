@@ -29,7 +29,7 @@ from ai.stigmer.iam.oauthapp.v1 import api_pb2 as ai_dot_stigmer_dot_iam_dot_oau
 from ai.stigmer.iam.oauthapp.v1 import io_pb2 as ai_dot_stigmer_dot_iam_dot_oauthapp_dot_v1_dot_io__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/iam/oauthapp/v1/query.proto\x12\x1a\x61i.stigmer.iam.oauthapp.v1\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a$ai/stigmer/iam/oauthapp/v1/api.proto\x1a#ai/stigmer/iam/oauthapp/v1/io.proto2\xd0\x03\n\x17OAuthAppQueryController\x12\x8b\x01\n\x03get\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a$.ai.stigmer.iam.oauthapp.v1.OAuthApp\"/\xc2\xb8\x18+\x08\x01\x10\x16\"\x05value*\x1eunauthorized to view oauth app\x12r\n\x0egetByReference\x12\x34.ai.stigmer.commons.apiresource.ApiResourceReference\x1a$.ai.stigmer.iam.oauthapp.v1.OAuthApp\"\x04\xd0\xb8\x18\x01\x12\xac\x01\n\tlistByOrg\x12\x33.ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput\x1a%.ai.stigmer.iam.oauthapp.v1.OAuthApps\"C\xc2\xb8\x18?\x08\x01\x10\x1e\"\x03org*4unauthorized to list oauth apps in this organization\x1a\x04\xa0\xff+\x16\x42\xb9\x01\n\x1e\x63om.ai.stigmer.iam.oauthapp.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SIO\xaa\x02\x1a\x41i.Stigmer.Iam.Oauthapp.V1\xca\x02\x1a\x41i\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1e\x41i::Stigmer::Iam::Oauthapp::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/iam/oauthapp/v1/query.proto\x12\x1a\x61i.stigmer.iam.oauthapp.v1\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a$ai/stigmer/iam/oauthapp/v1/api.proto\x1a#ai/stigmer/iam/oauthapp/v1/io.proto2\xc6\x03\n\x17OAuthAppQueryController\x12\x8b\x01\n\x03get\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a$.ai.stigmer.iam.oauthapp.v1.OAuthApp\"/\xc2\xb8\x18+\x08\x01\x10\x16\"\x05value*\x1eunauthorized to view oauth app\x12r\n\x0egetByReference\x12\x34.ai.stigmer.commons.apiresource.ApiResourceReference\x1a$.ai.stigmer.iam.oauthapp.v1.OAuthApp\"\x04\xd0\xb8\x18\x01\x12\xa2\x01\n\x04list\x12..ai.stigmer.iam.oauthapp.v1.ListOAuthAppsInput\x1a%.ai.stigmer.iam.oauthapp.v1.OAuthApps\"C\xc2\xb8\x18?\x08\x01\x10\x1e\"\x03org*4unauthorized to list oauth apps in this organization\x1a\x04\xa0\xff+\x16\x42\xb9\x01\n\x1e\x63om.ai.stigmer.iam.oauthapp.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SIO\xaa\x02\x1a\x41i.Stigmer.Iam.Oauthapp.V1\xca\x02\x1a\x41i\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1e\x41i::Stigmer::Iam::Oauthapp::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -43,8 +43,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_OAUTHAPPQUERYCONTROLLER'].methods_by_name['get']._serialized_options = b'\302\270\030+\010\001\020\026\"\005value*\036unauthorized to view oauth app'
   _globals['_OAUTHAPPQUERYCONTROLLER'].methods_by_name['getByReference']._loaded_options = None
   _globals['_OAUTHAPPQUERYCONTROLLER'].methods_by_name['getByReference']._serialized_options = b'\320\270\030\001'
-  _globals['_OAUTHAPPQUERYCONTROLLER'].methods_by_name['listByOrg']._loaded_options = None
-  _globals['_OAUTHAPPQUERYCONTROLLER'].methods_by_name['listByOrg']._serialized_options = b'\302\270\030?\010\001\020\036\"\003org*4unauthorized to list oauth apps in this organization'
+  _globals['_OAUTHAPPQUERYCONTROLLER'].methods_by_name['list']._loaded_options = None
+  _globals['_OAUTHAPPQUERYCONTROLLER'].methods_by_name['list']._serialized_options = b'\302\270\030?\010\001\020\036\"\003org*4unauthorized to list oauth apps in this organization'
   _globals['_OAUTHAPPQUERYCONTROLLER']._serialized_start=290
-  _globals['_OAUTHAPPQUERYCONTROLLER']._serialized_end=754
+  _globals['_OAUTHAPPQUERYCONTROLLER']._serialized_end=744
 # @@protoc_insertion_point(module_scope)

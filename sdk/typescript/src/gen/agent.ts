@@ -2,12 +2,12 @@
 
 import { wrapError } from "./errors.js";
 import { stripUndefined, toResourceRefInputs } from "./proto-utils.js";
-import { type ListParams, type ListResult, type ResourceRef } from "./types.js";
+import { type ResourceRef } from "./types.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { AgentIdSchema, UpdateAgentInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import { AgentIdSchema, UpdateAgentInputSchema, ListAgentsRequestSchema, AgentListSchema, type ListAgentsRequest, type AgentList } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSpecSchema, HookSourceSchema, type HookSource } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { TagAgentVersionInputSchema, ListAgentVersionsInputSchema, ListAgentVersionsResponseSchema, GetAgentVersionInputSchema, AgentVersionEntrySchema, type TagAgentVersionInput, type ListAgentVersionsInput, type ListAgentVersionsResponse, type GetAgentVersionInput, type AgentVersionEntry } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
@@ -20,20 +20,15 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema, type UpdateVisibilityInput, type RenameInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema, ApiResourceMetadataVersionSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
-import { SearchRequestSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 
 /** Provides operations on agent resources. */
 export class AgentClient {
   private readonly command: Client<typeof AgentCommandController>;
   private readonly query: Client<typeof AgentQueryController>;
-  private readonly search: Client<typeof SearchService>;
 
   constructor(transport: Transport) {
     this.command = createClient(AgentCommandController, transport);
     this.query = createClient(AgentQueryController, transport);
-    this.search = createClient(SearchService, transport);
   }
 
   async apply(input: AgentInput): Promise<Agent> {
@@ -90,31 +85,49 @@ export class AgentClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  async list(input: ListAgentsRequest): Promise<AgentList> {
+    try {
+      return await this.query.list(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `list`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listAll(input: MessageInitShape<typeof ListAgentsRequestSchema>): AsyncGenerator<AgentList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.list(create(ListAgentsRequestSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
+  }
+
   async listVersions(input: ListAgentVersionsInput): Promise<ListAgentVersionsResponse> {
     try {
       return await this.query.listVersions(input);
     } catch (e) { throw wrapError(e); }
   }
 
+  /**
+   * Every entry of `listVersions`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listVersionsAll(input: MessageInitShape<typeof ListAgentVersionsInputSchema>): AsyncGenerator<ListAgentVersionsResponse["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.listVersions(create(ListAgentVersionsInputSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
+  }
+
   async getVersion(input: GetAgentVersionInput): Promise<AgentVersionEntry> {
     try {
       return await this.query.getVersion(input);
-    } catch (e) { throw wrapError(e); }
-  }
-
-  async list(params: ListParams): Promise<ListResult> {
-    try {
-      const resp = await this.search.search(create(SearchRequestSchema, {
-        kinds: [ApiResourceKind.agent],
-        query: params.query,
-        org: params.org,
-        page: params.page ? create(PageInfoSchema, params.page) : undefined,
-      }));
-      return {
-        entries: resp.entries,
-        totalCount: resp.totalCount,
-        totalPages: resp.totalPages,
-      };
     } catch (e) { throw wrapError(e); }
   }
 }

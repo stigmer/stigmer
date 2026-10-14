@@ -745,11 +745,8 @@
           "type": {
             "kind": "int32"
           },
-          "description": "The most entries to return; 0 returns 50. At most 100. A history only\n grows, so there is no size that returns every entry at once: follow\n next_page_token.",
-          "required": false,
-          "validation": {
-            "max": 100
-          }
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100. A history only grows, so there is no size\n that returns every entry at once: follow next_page_token.",
+          "required": false
         },
         {
           "name": "PageToken",

@@ -33,6 +33,7 @@ import {
 import type {
   ListScoresByRunRequestSchema,
   ListScoresBySessionRequestSchema,
+  ScoreList,
 } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
 import { ScoreListSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
 import { ScoreStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/status_pb";
@@ -62,6 +63,12 @@ import {
   generateId,
 } from "../../pipeline/steps/defaults.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
+import {
+  decodeOrSkip,
+  listPageFingerprint,
+  readListPage,
+} from "../../pipeline/steps/list-page.js";
+import type { ListPageRequest } from "../../pipeline/steps/list-page.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import {
@@ -92,6 +99,7 @@ import {
 import { PLUGIN_EVAL_LABEL } from "../plugin-eval/constants.js";
 import { isTerminalExecutionPhase } from "../run/phases.js";
 import { sessionIdOf } from "../run/target.js";
+import { scoreListIndex } from "./list-index.js";
 import { listRunScores, listSessionScores } from "./queries.js";
 
 /** Context key for a list lane's result. */
@@ -567,9 +575,9 @@ function sameLabels(
 }
 
 /**
- * ListScoresByRun: every score of the run, newest first. The Authorize
- * step already asked can_view on the run, and a score's visibility is its
- * run's, so no row is filtered by caller.
+ * ListScoresByRun: one page of the run's scores, newest first. The
+ * Authorize step already asked can_view on the run, and a score's
+ * visibility is its run's, so no row is filtered by caller.
  */
 export function newListScoresByRunStep(
   store: Store,
@@ -580,24 +588,26 @@ export function newListScoresByRunStep(
     async execute(
       ctx: RequestContext<typeof ListScoresByRunRequestSchema>,
     ): Promise<void> {
-      let scores: Score[];
-      try {
-        scores = await listRunScores(store, logger, ctx.input.runId);
-      } catch (error) {
-        throw internalError(error, "failed to list the run's scores");
-      }
+      const runId = ctx.input.runId;
       ctx.set(
         LIST_RESULT_KEY,
-        create(ScoreListSchema, { totalCount: scores.length, items: scores }),
+        await readParentScorePage(store, logger, ctx.input, {
+          key: "run",
+          value: runId,
+          keep: (score) => score.spec?.runId === runId,
+          lane: "score.listByRun",
+          failure: "failed to list the run's scores",
+        }),
       );
     },
   };
 }
 
 /**
- * ListScoresBySession: every score of every run in the session, newest
- * first. The Authorize step already asked can_view on the session, and a
- * run's visibility is its session's, so no row is filtered by caller.
+ * ListScoresBySession: one page of the scores of every run in the
+ * session, newest first. The Authorize step already asked can_view on the
+ * session, and a run's visibility is its session's, so no row is filtered
+ * by caller.
  */
 export function newListScoresBySessionStep(
   store: Store,
@@ -608,16 +618,58 @@ export function newListScoresBySessionStep(
     async execute(
       ctx: RequestContext<typeof ListScoresBySessionRequestSchema>,
     ): Promise<void> {
-      let scores: Score[];
-      try {
-        scores = await listSessionScores(store, logger, ctx.input.sessionId);
-      } catch (error) {
-        throw internalError(error, "failed to list the session's scores");
-      }
+      const sessionId = ctx.input.sessionId;
       ctx.set(
         LIST_RESULT_KEY,
-        create(ScoreListSchema, { totalCount: scores.length, items: scores }),
+        await readParentScorePage(store, logger, ctx.input, {
+          key: "session",
+          value: sessionId,
+          keep: (score) => score.spec?.sessionId === sessionId,
+          lane: "score.listBySession",
+          failure: "failed to list the session's scores",
+        }),
       );
     },
   };
+}
+
+/**
+ * One page of the scores under one parent (a run or a session) through
+ * the index's key, every row re-checked against the parent it was asked
+ * for; authorized once on the parent, so the scope keeps every row.
+ */
+async function readParentScorePage(
+  store: Store,
+  logger: Logger,
+  request: ListPageRequest,
+  parent: {
+    readonly key: "run" | "session";
+    readonly value: string;
+    readonly keep: (score: Score) => boolean;
+    readonly lane: string;
+    readonly failure: string;
+  },
+): Promise<ScoreList> {
+  const page = await readListPage({
+    store,
+    declaration: scoreListIndex,
+    query: { anyKey: [{ name: parent.key, value: parent.value }] },
+    request,
+    fingerprint: listPageFingerprint({
+      lane: parent.lane,
+      [parent.key]: parent.value,
+    }),
+    decode: decodeOrSkip(ScoreSchema, {
+      logger,
+      message: "Failed to unmarshal score, skipping",
+      fields: { [parent.key]: parent.value },
+    }),
+    keep: parent.keep,
+    scope: (scores) => Promise.resolve(scores),
+    failure: parent.failure,
+  });
+  return create(ScoreListSchema, {
+    entries: page.entries,
+    nextPageToken: page.nextPageToken,
+  });
 }

@@ -31,9 +31,9 @@ class TeamQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_api__pb2.Team.FromString,
                 _registered_method=True)
-        self.listByOrg = channel.unary_unary(
-                '/ai.stigmer.iam.team.v1.TeamQueryController/listByOrg',
-                request_serializer=ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_io__pb2.ListTeamsByOrgInput.SerializeToString,
+        self.list = channel.unary_unary(
+                '/ai.stigmer.iam.team.v1.TeamQueryController/list',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_io__pb2.ListTeamsInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_io__pb2.Teams.FromString,
                 _registered_method=True)
 
@@ -60,8 +60,8 @@ class TeamQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def listByOrg(self, request, context):
-        """List the teams of an organization.
+    def list(self, request, context):
+        """List the teams of an organization, newest first.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -80,9 +80,9 @@ def add_TeamQueryControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_api__pb2.Team.SerializeToString,
             ),
-            'listByOrg': grpc.unary_unary_rpc_method_handler(
-                    servicer.listByOrg,
-                    request_deserializer=ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_io__pb2.ListTeamsByOrgInput.FromString,
+            'list': grpc.unary_unary_rpc_method_handler(
+                    servicer.list,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_io__pb2.ListTeamsInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_io__pb2.Teams.SerializeToString,
             ),
     }
@@ -156,7 +156,7 @@ class TeamQueryController(object):
             _registered_method=True)
 
     @staticmethod
-    def listByOrg(request,
+    def list(request,
             target,
             options=(),
             channel_credentials=None,
@@ -169,8 +169,8 @@ class TeamQueryController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.iam.team.v1.TeamQueryController/listByOrg',
-            ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_io__pb2.ListTeamsByOrgInput.SerializeToString,
+            '/ai.stigmer.iam.team.v1.TeamQueryController/list',
+            ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_io__pb2.ListTeamsInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_io__pb2.Teams.FromString,
             options,
             channel_credentials,

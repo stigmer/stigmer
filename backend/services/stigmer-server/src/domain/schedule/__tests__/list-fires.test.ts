@@ -46,7 +46,7 @@ function listRequest(size: number) {
     ScheduleQueryController.method.listFires.input,
     create(ScheduleQueryController.method.listFires.input, {
       scheduleId: SCHEDULE_ID,
-      pageInfo: { num: 1, size },
+      pageSize: size,
     }),
     testCallerIdentity(),
   );
@@ -98,8 +98,8 @@ describe("the fire ledger's labels on the wire", () => {
       ["exploded", ScheduleFireOutcome.UNSPECIFIED],
     ];
     const list = await listed(labels.map(([outcome]) => ({ origin: "cron", outcome })));
-    expect(list.totalCount).toBe(labels.length);
-    expect(list.items.map((fire) => fire.outcome)).toEqual(labels.map(([, outcome]) => outcome).reverse());
+    expect(list.entries).toHaveLength(labels.length);
+    expect(list.entries.map((fire) => fire.outcome)).toEqual(labels.map(([, outcome]) => outcome).reverse());
   });
 
   it("maps both origin labels, and an unknown one to UNSPECIFIED", async () => {
@@ -108,7 +108,7 @@ describe("the fire ledger's labels on the wire", () => {
       { origin: "manual", outcome: "completed" },
       { origin: "webhook", outcome: "completed" },
     ]);
-    expect(list.items.map((fire) => fire.origin)).toEqual([
+    expect(list.entries.map((fire) => fire.origin)).toEqual([
       ScheduleFireOrigin.UNSPECIFIED,
       ScheduleFireOrigin.MANUAL,
       ScheduleFireOrigin.CRON,
@@ -136,7 +136,7 @@ describe("a fire still in flight on the ledger", () => {
           }),
         ),
     );
-    expect(list.items.map((fire) => [fire.runId, fire.outcome])).toEqual([
+    expect(list.entries.map((fire) => [fire.runId, fire.outcome])).toEqual([
       ["run_done", ScheduleFireOutcome.COMPLETED],
       ["run_gone", ScheduleFireOutcome.STARTED],
       ["", ScheduleFireOutcome.SKIPPED],

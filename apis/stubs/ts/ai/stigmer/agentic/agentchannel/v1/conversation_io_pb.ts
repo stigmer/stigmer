@@ -10,8 +10,6 @@ import type { ChannelOutboundPayload } from "./message_io_pb.js";
 import { file_ai_stigmer_agentic_agentchannel_v1_message_io } from "./message_io_pb.js";
 import type { ChannelOutboundOrigin, ChannelReceiptState } from "./outbound_pb.js";
 import { file_ai_stigmer_agentic_agentchannel_v1_outbound } from "./outbound_pb.js";
-import type { PageInfo } from "../../../commons/rpc/pagination_pb.js";
-import { file_ai_stigmer_commons_rpc_pagination } from "../../../commons/rpc/pagination_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
@@ -21,7 +19,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentchannel/v1/conversation_io.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_conversation_io: GenFile = /*@__PURE__*/
-  fileDesc("CjhhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2NvbnZlcnNhdGlvbl9pby5wcm90bxIiYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MSL+AwoTQ2hhbm5lbENvbnZlcnNhdGlvbhIYChBhZ2VudF9jaGFubmVsX2lkGAEgASgJEhgKEGNvbnZlcnNhdGlvbl9rZXkYAiABKAkSCwoDb3JnGAMgASgJEkgKB2NvbnRyb2wYBCABKA4yNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNvbnZlcnNhdGlvbkNvbnRyb2wSFQoNY29udHJvbGxlZF9ieRgFIAEoCRI2ChJjb250cm9sX2NoYW5nZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhcKD25lZWRzX2F0dGVudGlvbhgHIAEoCBIYChBhdHRlbnRpb25fcmVhc29uGAggASgJEjgKFGF0dGVudGlvbl9jaGFuZ2VkX2F0GAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIUCgxkaXNwbGF5X25hbWUYCiABKAkSPAoYbGFzdF9jdXN0b21lcl9tZXNzYWdlX2F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBI0ChBsYXN0X2FjdGl2aXR5X2F0GAwgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIWCg5hd2FpdGluZ19yZXBseRgNIAEoCCKGBgoYQ29udmVyc2F0aW9uVGltZWxpbmVJdGVtEg8KB2l0ZW1faWQYASABKAkSQgoEbGFuZRgCIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ29udmVyc2F0aW9uTGFuZRJKCgZhdXRob3IYAyABKA4yOi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNvbnZlcnNhdGlvbkl0ZW1BdXRob3ISEwoLYXV0aG9yZWRfYnkYBCABKAkSDAoEdGV4dBgFIAEoCRIdChVwcm92aWRlcl9tZXNzYWdlX3R5cGUYBiABKAkSJgoCYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wElIKD2RlbGl2ZXJ5X3N0YXR1cxgIIAEoDjI5LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbERlbGl2ZXJ5U3RhdHVzEk4KDXJlY2VpcHRfc3RhdGUYCSABKA4yNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxSZWNlaXB0U3RhdGUSSQoGb3JpZ2luGAogASgOMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5DaGFubmVsT3V0Ym91bmRPcmlnaW4SFgoOcmVjZWlwdF9kZXRhaWwYCyABKAkSGgoScmVjZWlwdF9lcnJvcl9jb2RlGAwgASgFEkcKBW1lZGlhGA0gASgLMjguYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5Db252ZXJzYXRpb25NZWRpYVJlZhIWCg5hdHRlbXB0X2RldGFpbBgOIAEoCRJbChRhdHRlbXB0X2ZhaWx1cmVfa2luZBgPIAEoDjI9LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbEF0dGVtcHRGYWlsdXJlS2luZCJSChRDb252ZXJzYXRpb25NZWRpYVJlZhIQCghmaWxlbmFtZRgBIAEoCRIUCgxjb250ZW50X3R5cGUYAiABKAkSEgoKc2l6ZV9ieXRlcxgDIAEoAyLjAQodTGlzdENoYW5uZWxDb252ZXJzYXRpb25zSW5wdXQSFgoDb3JnGAEgASgJQgm6SAZyBBABGD8SIgoQYWdlbnRfY2hhbm5lbF9pZBgCIAEoCUIIukgFcgMYgAESMwoJcGFnZV9pbmZvGAMgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxJRCgZmaWx0ZXIYBCABKA4yQS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxDb252ZXJzYXRpb25MaXN0RmlsdGVyInYKF0NoYW5uZWxDb252ZXJzYXRpb25MaXN0EhMKC3RvdGFsX2NvdW50GAEgASgFEkYKBWl0ZW1zGAIgAygLMjcuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5DaGFubmVsQ29udmVyc2F0aW9uImkKG0dldENoYW5uZWxDb252ZXJzYXRpb25JbnB1dBIkChBhZ2VudF9jaGFubmVsX2lkGAEgASgJQgq6SAdyBRABGIABEiQKEGNvbnZlcnNhdGlvbl9rZXkYAiABKAlCCrpIB3IFEAEYgAEikQEKHEdldENvbnZlcnNhdGlvblRpbWVsaW5lSW5wdXQSJAoQYWdlbnRfY2hhbm5lbF9pZBgBIAEoCUIKukgHcgUQARiAARIkChBjb252ZXJzYXRpb25fa2V5GAIgASgJQgq6SAdyBRABGIABEhEKCXBhZ2Vfc2l6ZRgDIAEoBRISCgpwYWdlX3Rva2VuGAQgASgJInwKFENvbnZlcnNhdGlvblRpbWVsaW5lEksKBWl0ZW1zGAEgAygLMjwuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5Db252ZXJzYXRpb25UaW1lbGluZUl0ZW0SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIo8BCiRHZXRDb252ZXJzYXRpb25NZWRpYURvd25sb2FkVXJsSW5wdXQSJAoQYWdlbnRfY2hhbm5lbF9pZBgBIAEoCUIKukgHcgUQARiAARIkChBjb252ZXJzYXRpb25fa2V5GAIgASgJQgq6SAdyBRABGIABEhsKB2l0ZW1faWQYAyABKAlCCrpIB3IFEAEYgAIiWwocQ29udmVyc2F0aW9uTWVkaWFEb3dubG9hZFVybBILCgN1cmwYASABKAkSLgoKZXhwaXJlc19hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiZgoYQ29udmVyc2F0aW9uQ29udHJvbElucHV0EiQKEGFnZW50X2NoYW5uZWxfaWQYASABKAlCCrpIB3IFEAEYgAESJAoQY29udmVyc2F0aW9uX2tleRgCIAEoCUIKukgHcgUQARiAASK7AQoYUmVwbHlUb0NvbnZlcnNhdGlvbklucHV0EiQKEGFnZW50X2NoYW5uZWxfaWQYASABKAlCCrpIB3IFEAEYgAESJAoQY29udmVyc2F0aW9uX2tleRgCIAEoCUIKukgHcgUQARiAARJTCgdwYXlsb2FkGAMgASgLMjouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5DaGFubmVsT3V0Ym91bmRQYXlsb2FkQga6SAPIAQEiNwoZRXNjYWxhdGVDb252ZXJzYXRpb25JbnB1dBIaCgZyZWFzb24YASABKAlCCrpIB3IFEAEYgAgqYQoTQ29udmVyc2F0aW9uQ29udHJvbBIkCiBjb252ZXJzYXRpb25fY29udHJvbF91bnNwZWNpZmllZBAAEhEKDWNvbnRyb2xfYWdlbnQQARIRCg1jb250cm9sX2h1bWFuEAIqWQoQQ29udmVyc2F0aW9uTGFuZRIhCh1jb252ZXJzYXRpb25fbGFuZV91bnNwZWNpZmllZBAAEg8KC2xhbmVfcHVibGljEAESEQoNbGFuZV9pbnRlcm5hbBACKpMBChZDb252ZXJzYXRpb25JdGVtQXV0aG9yEigKJGNvbnZlcnNhdGlvbl9pdGVtX2F1dGhvcl91bnNwZWNpZmllZBAAEhMKD2F1dGhvcl9jdXN0b21lchABEhAKDGF1dGhvcl9hZ2VudBACEhMKD2F1dGhvcl90ZWFtbWF0ZRADEhMKD2F1dGhvcl9wbGF0Zm9ybRAEKmkKHUNoYW5uZWxDb252ZXJzYXRpb25MaXN0RmlsdGVyEjAKLGNoYW5uZWxfY29udmVyc2F0aW9uX2xpc3RfZmlsdGVyX3Vuc3BlY2lmaWVkEAASFgoSZmlsdGVyX3dhbnRzX2h1bWFuEAFiBnByb3RvMw", [file_ai_stigmer_agentic_agentchannel_v1_delivery, file_ai_stigmer_agentic_agentchannel_v1_message_io, file_ai_stigmer_agentic_agentchannel_v1_outbound, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CjhhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2NvbnZlcnNhdGlvbl9pby5wcm90bxIiYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MSL+AwoTQ2hhbm5lbENvbnZlcnNhdGlvbhIYChBhZ2VudF9jaGFubmVsX2lkGAEgASgJEhgKEGNvbnZlcnNhdGlvbl9rZXkYAiABKAkSCwoDb3JnGAMgASgJEkgKB2NvbnRyb2wYBCABKA4yNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNvbnZlcnNhdGlvbkNvbnRyb2wSFQoNY29udHJvbGxlZF9ieRgFIAEoCRI2ChJjb250cm9sX2NoYW5nZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhcKD25lZWRzX2F0dGVudGlvbhgHIAEoCBIYChBhdHRlbnRpb25fcmVhc29uGAggASgJEjgKFGF0dGVudGlvbl9jaGFuZ2VkX2F0GAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIUCgxkaXNwbGF5X25hbWUYCiABKAkSPAoYbGFzdF9jdXN0b21lcl9tZXNzYWdlX2F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBI0ChBsYXN0X2FjdGl2aXR5X2F0GAwgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIWCg5hd2FpdGluZ19yZXBseRgNIAEoCCKGBgoYQ29udmVyc2F0aW9uVGltZWxpbmVJdGVtEg8KB2l0ZW1faWQYASABKAkSQgoEbGFuZRgCIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ29udmVyc2F0aW9uTGFuZRJKCgZhdXRob3IYAyABKA4yOi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNvbnZlcnNhdGlvbkl0ZW1BdXRob3ISEwoLYXV0aG9yZWRfYnkYBCABKAkSDAoEdGV4dBgFIAEoCRIdChVwcm92aWRlcl9tZXNzYWdlX3R5cGUYBiABKAkSJgoCYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wElIKD2RlbGl2ZXJ5X3N0YXR1cxgIIAEoDjI5LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbERlbGl2ZXJ5U3RhdHVzEk4KDXJlY2VpcHRfc3RhdGUYCSABKA4yNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxSZWNlaXB0U3RhdGUSSQoGb3JpZ2luGAogASgOMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5DaGFubmVsT3V0Ym91bmRPcmlnaW4SFgoOcmVjZWlwdF9kZXRhaWwYCyABKAkSGgoScmVjZWlwdF9lcnJvcl9jb2RlGAwgASgFEkcKBW1lZGlhGA0gASgLMjguYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5Db252ZXJzYXRpb25NZWRpYVJlZhIWCg5hdHRlbXB0X2RldGFpbBgOIAEoCRJbChRhdHRlbXB0X2ZhaWx1cmVfa2luZBgPIAEoDjI9LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbEF0dGVtcHRGYWlsdXJlS2luZCJSChRDb252ZXJzYXRpb25NZWRpYVJlZhIQCghmaWxlbmFtZRgBIAEoCRIUCgxjb250ZW50X3R5cGUYAiABKAkSEgoKc2l6ZV9ieXRlcxgDIAEoAyL5AQodTGlzdENoYW5uZWxDb252ZXJzYXRpb25zSW5wdXQSFgoDb3JnGAEgASgJQgm6SAZyBBABGD8SIgoQYWdlbnRfY2hhbm5lbF9pZBgCIAEoCUIIukgFcgMYgAESUQoGZmlsdGVyGAQgASgOMkEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5DaGFubmVsQ29udmVyc2F0aW9uTGlzdEZpbHRlchIaCglwYWdlX3NpemUYBSABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgGIAEoCUIIukgFcgMYgAhKBAgDEARSCXBhZ2VfaW5mbyKPAQoXQ2hhbm5lbENvbnZlcnNhdGlvbkxpc3QSSAoHZW50cmllcxgCIAMoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbENvbnZlcnNhdGlvbhIXCg9uZXh0X3BhZ2VfdG9rZW4YAyABKAlKBAgBEAJSC3RvdGFsX2NvdW50Iq8BCh5Db3VudENoYW5uZWxDb252ZXJzYXRpb25zSW5wdXQSFgoDb3JnGAEgASgJQgm6SAZyBBABGD8SIgoQYWdlbnRfY2hhbm5lbF9pZBgCIAEoCUIIukgFcgMYgAESUQoGZmlsdGVyGAMgASgOMkEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5DaGFubmVsQ29udmVyc2F0aW9uTGlzdEZpbHRlciIpChhDaGFubmVsQ29udmVyc2F0aW9uQ291bnQSDQoFY291bnQYASABKAUiaQobR2V0Q2hhbm5lbENvbnZlcnNhdGlvbklucHV0EiQKEGFnZW50X2NoYW5uZWxfaWQYASABKAlCCrpIB3IFEAEYgAESJAoQY29udmVyc2F0aW9uX2tleRgCIAEoCUIKukgHcgUQARiAASKlAQodTGlzdENvbnZlcnNhdGlvblRpbWVsaW5lSW5wdXQSJAoQYWdlbnRfY2hhbm5lbF9pZBgBIAEoCUIKukgHcgUQARiAARIkChBjb252ZXJzYXRpb25fa2V5GAIgASgJQgq6SAdyBRABGIABEhoKCXBhZ2Vfc2l6ZRgDIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAQgASgJQgi6SAVyAxiACCJ+ChRDb252ZXJzYXRpb25UaW1lbGluZRJNCgdlbnRyaWVzGAEgAygLMjwuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5Db252ZXJzYXRpb25UaW1lbGluZUl0ZW0SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIo8BCiRHZXRDb252ZXJzYXRpb25NZWRpYURvd25sb2FkVXJsSW5wdXQSJAoQYWdlbnRfY2hhbm5lbF9pZBgBIAEoCUIKukgHcgUQARiAARIkChBjb252ZXJzYXRpb25fa2V5GAIgASgJQgq6SAdyBRABGIABEhsKB2l0ZW1faWQYAyABKAlCCrpIB3IFEAEYgAIiWwocQ29udmVyc2F0aW9uTWVkaWFEb3dubG9hZFVybBILCgN1cmwYASABKAkSLgoKZXhwaXJlc19hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiZgoYQ29udmVyc2F0aW9uQ29udHJvbElucHV0EiQKEGFnZW50X2NoYW5uZWxfaWQYASABKAlCCrpIB3IFEAEYgAESJAoQY29udmVyc2F0aW9uX2tleRgCIAEoCUIKukgHcgUQARiAASK7AQoYUmVwbHlUb0NvbnZlcnNhdGlvbklucHV0EiQKEGFnZW50X2NoYW5uZWxfaWQYASABKAlCCrpIB3IFEAEYgAESJAoQY29udmVyc2F0aW9uX2tleRgCIAEoCUIKukgHcgUQARiAARJTCgdwYXlsb2FkGAMgASgLMjouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5DaGFubmVsT3V0Ym91bmRQYXlsb2FkQga6SAPIAQEiNwoZRXNjYWxhdGVDb252ZXJzYXRpb25JbnB1dBIaCgZyZWFzb24YASABKAlCCrpIB3IFEAEYgAgqYQoTQ29udmVyc2F0aW9uQ29udHJvbBIkCiBjb252ZXJzYXRpb25fY29udHJvbF91bnNwZWNpZmllZBAAEhEKDWNvbnRyb2xfYWdlbnQQARIRCg1jb250cm9sX2h1bWFuEAIqWQoQQ29udmVyc2F0aW9uTGFuZRIhCh1jb252ZXJzYXRpb25fbGFuZV91bnNwZWNpZmllZBAAEg8KC2xhbmVfcHVibGljEAESEQoNbGFuZV9pbnRlcm5hbBACKpMBChZDb252ZXJzYXRpb25JdGVtQXV0aG9yEigKJGNvbnZlcnNhdGlvbl9pdGVtX2F1dGhvcl91bnNwZWNpZmllZBAAEhMKD2F1dGhvcl9jdXN0b21lchABEhAKDGF1dGhvcl9hZ2VudBACEhMKD2F1dGhvcl90ZWFtbWF0ZRADEhMKD2F1dGhvcl9wbGF0Zm9ybRAEKmkKHUNoYW5uZWxDb252ZXJzYXRpb25MaXN0RmlsdGVyEjAKLGNoYW5uZWxfY29udmVyc2F0aW9uX2xpc3RfZmlsdGVyX3Vuc3BlY2lmaWVkEAASFgoSZmlsdGVyX3dhbnRzX2h1bWFuEAFiBnByb3RvMw", [file_ai_stigmer_agentic_agentchannel_v1_delivery, file_ai_stigmer_agentic_agentchannel_v1_message_io, file_ai_stigmer_agentic_agentchannel_v1_outbound, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * ChannelConversation is the durable identity and participation state of
@@ -329,19 +327,28 @@ export type ListChannelConversationsInput = Message<"ai.stigmer.agentic.agentcha
   agentChannelId: string;
 
   /**
-   * Pagination options. Conversations are returned newest activity first.
-   *
-   * @generated from field: ai.stigmer.commons.rpc.PageInfo page_info = 3;
-   */
-  pageInfo?: PageInfo;
-
-  /**
    * Optional filter: narrow the list to a server-evaluated predicate.
    * Unspecified lists every conversation on the authorized channels.
    *
    * @generated from field: ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter filter = 4;
    */
   filter: ChannelConversationListFilter;
+
+  /**
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
+   *
+   * @generated from field: int32 page_size = 5;
+   */
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 6;
+   */
+  pageToken: string;
 };
 
 /**
@@ -359,18 +366,19 @@ export const ListChannelConversationsInputSchema: GenMessage<ListChannelConversa
  */
 export type ChannelConversationList = Message<"ai.stigmer.agentic.agentchannel.v1.ChannelConversationList"> & {
   /**
-   * Total number of conversations matching the filter.
-   *
-   * @generated from field: int32 total_count = 1;
-   */
-  totalCount: number;
-
-  /**
    * Conversations in the current page.
    *
-   * @generated from field: repeated ai.stigmer.agentic.agentchannel.v1.ChannelConversation items = 2;
+   * @generated from field: repeated ai.stigmer.agentic.agentchannel.v1.ChannelConversation entries = 2;
    */
-  items: ChannelConversation[];
+  entries: ChannelConversation[];
+
+  /**
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   *
+   * @generated from field: string next_page_token = 3;
+   */
+  nextPageToken: string;
 };
 
 /**
@@ -379,6 +387,63 @@ export type ChannelConversationList = Message<"ai.stigmer.agentic.agentchannel.v
  */
 export const ChannelConversationListSchema: GenMessage<ChannelConversationList> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 4);
+
+/**
+ * Input for counting an organization's channel conversations.
+ *
+ * @generated from message ai.stigmer.agentic.agentchannel.v1.CountChannelConversationsInput
+ */
+export type CountChannelConversationsInput = Message<"ai.stigmer.agentic.agentchannel.v1.CountChannelConversationsInput"> & {
+  /**
+   * Organization whose conversations to count.
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+
+  /**
+   * Optional filter: only conversations on this agent channel.
+   *
+   * @generated from field: string agent_channel_id = 2;
+   */
+  agentChannelId: string;
+
+  /**
+   * Optional filter: count only the conversations matching this predicate.
+   *
+   * @generated from field: ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter filter = 3;
+   */
+  filter: ChannelConversationListFilter;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentchannel.v1.CountChannelConversationsInput.
+ * Use `create(CountChannelConversationsInputSchema)` to create a new message.
+ */
+export const CountChannelConversationsInputSchema: GenMessage<CountChannelConversationsInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 5);
+
+/**
+ * ChannelConversationCount is how many conversations match a count's
+ * filter, over the channels the caller can view.
+ *
+ * @generated from message ai.stigmer.agentic.agentchannel.v1.ChannelConversationCount
+ */
+export type ChannelConversationCount = Message<"ai.stigmer.agentic.agentchannel.v1.ChannelConversationCount"> & {
+  /**
+   * The number of matching conversations.
+   *
+   * @generated from field: int32 count = 1;
+   */
+  count: number;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentchannel.v1.ChannelConversationCount.
+ * Use `create(ChannelConversationCountSchema)` to create a new message.
+ */
+export const ChannelConversationCountSchema: GenMessage<ChannelConversationCount> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 6);
 
 /**
  * Input for reading one conversation's identity and participation state.
@@ -406,14 +471,14 @@ export type GetChannelConversationInput = Message<"ai.stigmer.agentic.agentchann
  * Use `create(GetChannelConversationInputSchema)` to create a new message.
  */
 export const GetChannelConversationInputSchema: GenMessage<GetChannelConversationInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 5);
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 7);
 
 /**
  * Input for reading one conversation's timeline.
  *
- * @generated from message ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput
+ * @generated from message ai.stigmer.agentic.agentchannel.v1.ListConversationTimelineInput
  */
-export type GetConversationTimelineInput = Message<"ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput"> & {
+export type ListConversationTimelineInput = Message<"ai.stigmer.agentic.agentchannel.v1.ListConversationTimelineInput"> & {
   /**
    * AgentChannel the conversation belongs to.
    *
@@ -429,14 +494,16 @@ export type GetConversationTimelineInput = Message<"ai.stigmer.agentic.agentchan
   conversationKey: string;
 
   /**
-   * Maximum number of items to return per page. Server may return fewer.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    *
    * @generated from field: int32 page_size = 3;
    */
   pageSize: number;
 
   /**
-   * Opaque cursor from a previous response. Empty for the newest page.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    *
    * @generated from field: string page_token = 4;
    */
@@ -444,11 +511,11 @@ export type GetConversationTimelineInput = Message<"ai.stigmer.agentic.agentchan
 };
 
 /**
- * Describes the message ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput.
- * Use `create(GetConversationTimelineInputSchema)` to create a new message.
+ * Describes the message ai.stigmer.agentic.agentchannel.v1.ListConversationTimelineInput.
+ * Use `create(ListConversationTimelineInputSchema)` to create a new message.
  */
-export const GetConversationTimelineInputSchema: GenMessage<GetConversationTimelineInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 6);
+export const ListConversationTimelineInputSchema: GenMessage<ListConversationTimelineInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 8);
 
 /**
  * ConversationTimeline contains one page of a conversation's timeline,
@@ -460,12 +527,13 @@ export type ConversationTimeline = Message<"ai.stigmer.agentic.agentchannel.v1.C
   /**
    * Timeline items in the current page, newest first.
    *
-   * @generated from field: repeated ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1;
+   * @generated from field: repeated ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1;
    */
-  items: ConversationTimelineItem[];
+  entries: ConversationTimelineItem[];
 
   /**
-   * Cursor for the next (older) page. Empty when no more items exist.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    *
    * @generated from field: string next_page_token = 2;
    */
@@ -477,7 +545,7 @@ export type ConversationTimeline = Message<"ai.stigmer.agentic.agentchannel.v1.C
  * Use `create(ConversationTimelineSchema)` to create a new message.
  */
 export const ConversationTimelineSchema: GenMessage<ConversationTimeline> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 7);
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 9);
 
 /**
  * Input for minting a short-lived download URL for one timeline item's
@@ -513,7 +581,7 @@ export type GetConversationMediaDownloadUrlInput = Message<"ai.stigmer.agentic.a
  * Use `create(GetConversationMediaDownloadUrlInputSchema)` to create a new message.
  */
 export const GetConversationMediaDownloadUrlInputSchema: GenMessage<GetConversationMediaDownloadUrlInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 8);
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 10);
 
 /**
  * ConversationMediaDownloadUrl carries a presigned, time-limited URL for
@@ -542,7 +610,7 @@ export type ConversationMediaDownloadUrl = Message<"ai.stigmer.agentic.agentchan
  * Use `create(ConversationMediaDownloadUrlSchema)` to create a new message.
  */
 export const ConversationMediaDownloadUrlSchema: GenMessage<ConversationMediaDownloadUrl> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 9);
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 11);
 
 /**
  * Input for the conversation control commands (takeOver, handBack,
@@ -571,7 +639,7 @@ export type ConversationControlInput = Message<"ai.stigmer.agentic.agentchannel.
  * Use `create(ConversationControlInputSchema)` to create a new message.
  */
 export const ConversationControlInputSchema: GenMessage<ConversationControlInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 10);
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 12);
 
 /**
  * Input for replying to a conversation as the business.
@@ -607,7 +675,7 @@ export type ReplyToConversationInput = Message<"ai.stigmer.agentic.agentchannel.
  * Use `create(ReplyToConversationInputSchema)` to create a new message.
  */
 export const ReplyToConversationInputSchema: GenMessage<ReplyToConversationInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 11);
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 13);
 
 /**
  * Input for flagging a conversation for human attention.
@@ -629,7 +697,7 @@ export type EscalateConversationInput = Message<"ai.stigmer.agentic.agentchannel
  * Use `create(EscalateConversationInputSchema)` to create a new message.
  */
 export const EscalateConversationInputSchema: GenMessage<EscalateConversationInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 12);
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_conversation_io, 14);
 
 /**
  * ConversationControl names who may speak to the customer on a

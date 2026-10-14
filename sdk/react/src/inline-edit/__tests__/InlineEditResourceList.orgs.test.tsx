@@ -22,7 +22,7 @@ const orgs = [{ metadata: { id: ACME_ID, slug: "acme", name: "Acme" } }] as Orga
 
 function Providers({ children }: { children: ReactNode }) {
   const client = {
-    organization: { findMyOrganizations: vi.fn().mockResolvedValue({ entries: orgs }) },
+    organization: { listMine: vi.fn().mockResolvedValue({ entries: orgs, nextPageToken: "" }) },
   };
   return (
     <StigmerContext.Provider value={client as never}>

@@ -359,10 +359,10 @@ describe("Memory conformance", () => {
 
     const list = await clients.memoryQuery.list({
       org,
-      pageInfo: { num: 1, size: MEMORY_CAP },
+      pageSize: MEMORY_CAP,
     });
-    expect(list.items.map((m) => m.metadata?.id)).toContain(mine.metadata?.id);
-    for (const item of list.items) {
+    expect(list.entries.map((m) => m.metadata?.id)).toContain(mine.metadata?.id);
+    for (const item of list.entries) {
       expect(item.metadata?.org).toBe(org);
     }
   });

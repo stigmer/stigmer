@@ -1,13 +1,12 @@
 "use client";
 
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 /**
  * Searching the organization's installed plugins by name, description or
  * keyword: the data layer under `PluginPicker`, the shared resource search
  * over the plugin kind's listing, as every picker's search is.
  */
 
-import { useCallback } from "react";
-import { useStigmer } from "../hooks.js";
 import {
   useResourceSearch,
   type UseResourceSearchOptions,
@@ -22,7 +21,8 @@ export type UsePluginSearchReturn = UseResourceSearchReturn;
 /**
  * Data hook that searches the plugins installed in the given organization.
  *
- * Wraps `stigmer.plugin.list()` with debounced search, loading/error
+ * Lists the organization's plugins, newest first, while nothing is typed
+ * and searches them once something is, with a debounce, loading/error
  * tracking, and cancellation-safe fetching. Platform builders use this
  * when they want full control over rendering; the {@link PluginPicker}
  * styled component uses it internally.
@@ -36,11 +36,5 @@ export function usePluginSearch(
   org: string,
   options?: UsePluginSearchOptions,
 ): UsePluginSearchReturn {
-  const stigmer = useStigmer();
-  const listFn = useCallback(
-    (params: Parameters<typeof stigmer.plugin.list>[0]) =>
-      stigmer.plugin.list(params),
-    [stigmer],
-  );
-  return useResourceSearch(listFn, org, options);
+  return useResourceSearch(ApiResourceKind.plugin, org, options);
 }

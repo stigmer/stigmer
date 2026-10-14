@@ -10,13 +10,25 @@ import "google/protobuf/field_mask.proto";
 message ChannelApps {
   // Channel app entries.
   repeated ChannelApp entries = 1;
+
+  // Set when more entries may follow: pass it as page_token to continue.
+  // A page may be short, even empty, and still carry a token.
+  string next_page_token = 2;
 }
 
-// ListChannelAppsByOrgInput specifies the organization whose channel
+// ListChannelAppsInput specifies the organization whose channel
 // apps should be returned.
-message ListChannelAppsByOrgInput {
+message ListChannelAppsInput {
   // Organization slug to list channel apps for.
   string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 2 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
 }
 
 // The changes an update makes to a channel app: the fields update_mask names,

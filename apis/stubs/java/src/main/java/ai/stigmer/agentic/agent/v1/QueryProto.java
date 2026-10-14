@@ -43,25 +43,28 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "er/commons/apiresource/io.proto\0328ai/stig" +
       "mer/commons/apiresource/rpc_service_opti" +
       "ons.proto\032+ai/stigmer/commons/rpc/method" +
-      "_options.proto2\270\004\n\024AgentQueryController\022" +
+      "_options.proto2\236\005\n\024AgentQueryController\022" +
       "{\n\003get\022$.ai.stigmer.agentic.agent.v1.Age" +
       "ntId\032\".ai.stigmer.agentic.agent.v1.Agent" +
       "\"*\302\270\030&\010\001\020(\"\005value*\031unauthorized to get a" +
       "gent\022p\n\016getByReference\0224.ai.stigmer.comm" +
       "ons.apiresource.ApiResourceReference\032\".a" +
-      "i.stigmer.agentic.agent.v1.Agent\"\004\320\270\030\001\022\201" +
-      "\001\n\014listVersions\0223.ai.stigmer.agentic.age" +
-      "nt.v1.ListAgentVersionsInput\0326.ai.stigme" +
-      "r.agentic.agent.v1.ListAgentVersionsResp" +
-      "onse\"\004\320\270\030\001\022\246\001\n\ngetVersion\0221.ai.stigmer.a" +
-      "gentic.agent.v1.GetAgentVersionInput\032..a" +
-      "i.stigmer.agentic.agent.v1.AgentVersionE" +
-      "ntry\"5\302\270\0301\010\001\020(\"\010agent_id*!unauthorized t" +
-      "o get agent version\032\004\240\377+(B\235\001B\nQueryProto" +
-      "P\001\242\002\004ASAA\252\002\033Ai.Stigmer.Agentic.Agent.V1\312" +
-      "\002\033Ai\\Stigmer\\Agentic\\Agent\\V1\342\002\'Ai\\Stigm" +
-      "er\\Agentic\\Agent\\V1\\GPBMetadata\352\002\037Ai::St" +
-      "igmer::Agentic::Agent::V1b\006proto3"
+      "i.stigmer.agentic.agent.v1.Agent\"\004\320\270\030\001\022d" +
+      "\n\004list\022..ai.stigmer.agentic.agent.v1.Lis" +
+      "tAgentsRequest\032&.ai.stigmer.agentic.agen" +
+      "t.v1.AgentList\"\004\320\270\030\001\022\201\001\n\014listVersions\0223." +
+      "ai.stigmer.agentic.agent.v1.ListAgentVer" +
+      "sionsInput\0326.ai.stigmer.agentic.agent.v1" +
+      ".ListAgentVersionsResponse\"\004\320\270\030\001\022\246\001\n\nget" +
+      "Version\0221.ai.stigmer.agentic.agent.v1.Ge" +
+      "tAgentVersionInput\032..ai.stigmer.agentic." +
+      "agent.v1.AgentVersionEntry\"5\302\270\0301\010\001\020(\"\010ag" +
+      "ent_id*!unauthorized to get agent versio" +
+      "n\032\004\240\377+(B\235\001B\nQueryProtoP\001\242\002\004ASAA\252\002\033Ai.Sti" +
+      "gmer.Agentic.Agent.V1\312\002\033Ai\\Stigmer\\Agent" +
+      "ic\\Agent\\V1\342\002\'Ai\\Stigmer\\Agentic\\Agent\\V" +
+      "1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic::Ag" +
+      "ent::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

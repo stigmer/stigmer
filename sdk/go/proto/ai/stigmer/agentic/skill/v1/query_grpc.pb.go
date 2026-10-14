@@ -22,6 +22,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	SkillQueryController_Get_FullMethodName                    = "/ai.stigmer.agentic.skill.v1.SkillQueryController/get"
 	SkillQueryController_GetByReference_FullMethodName         = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getByReference"
+	SkillQueryController_List_FullMethodName                   = "/ai.stigmer.agentic.skill.v1.SkillQueryController/list"
 	SkillQueryController_GetArtifact_FullMethodName            = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getArtifact"
 	SkillQueryController_GetArtifactDownloadUrl_FullMethodName = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getArtifactDownloadUrl"
 	SkillQueryController_ListVersions_FullMethodName           = "/ai.stigmer.agentic.skill.v1.SkillQueryController/listVersions"
@@ -42,6 +43,11 @@ type SkillQueryControllerClient interface {
 	// - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
 	// - SHA256 hash (64 hex chars) → Returns the exact immutable version
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*Skill, error)
+	// List an organization's skills, newest first.
+	//
+	// Returns the skills of the input org that the caller may view, one page
+	// at a time. Search finds skills by their words; list browses them.
+	List(ctx context.Context, in *ListSkillsRequest, opts ...grpc.CallOption) (*SkillList, error)
 	// Download skill artifact from storage by its storage key.
 	// Returns the ZIP file containing SKILL.md and implementation files.
 	GetArtifact(ctx context.Context, in *GetArtifactRequest, opts ...grpc.CallOption) (*GetArtifactResponse, error)
@@ -82,6 +88,16 @@ func (c *skillQueryControllerClient) GetByReference(ctx context.Context, in *api
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Skill)
 	err := c.cc.Invoke(ctx, SkillQueryController_GetByReference_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *skillQueryControllerClient) List(ctx context.Context, in *ListSkillsRequest, opts ...grpc.CallOption) (*SkillList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SkillList)
+	err := c.cc.Invoke(ctx, SkillQueryController_List_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -133,6 +149,11 @@ type SkillQueryControllerServer interface {
 	// - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
 	// - SHA256 hash (64 hex chars) → Returns the exact immutable version
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*Skill, error)
+	// List an organization's skills, newest first.
+	//
+	// Returns the skills of the input org that the caller may view, one page
+	// at a time. Search finds skills by their words; list browses them.
+	List(context.Context, *ListSkillsRequest) (*SkillList, error)
 	// Download skill artifact from storage by its storage key.
 	// Returns the ZIP file containing SKILL.md and implementation files.
 	GetArtifact(context.Context, *GetArtifactRequest) (*GetArtifactResponse, error)
@@ -163,6 +184,9 @@ func (UnimplementedSkillQueryControllerServer) Get(context.Context, *SkillId) (*
 }
 func (UnimplementedSkillQueryControllerServer) GetByReference(context.Context, *apiresource.ApiResourceReference) (*Skill, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByReference not implemented")
+}
+func (UnimplementedSkillQueryControllerServer) List(context.Context, *ListSkillsRequest) (*SkillList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
 func (UnimplementedSkillQueryControllerServer) GetArtifact(context.Context, *GetArtifactRequest) (*GetArtifactResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetArtifact not implemented")
@@ -225,6 +249,24 @@ func _SkillQueryController_GetByReference_Handler(srv interface{}, ctx context.C
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SkillQueryControllerServer).GetByReference(ctx, req.(*apiresource.ApiResourceReference))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SkillQueryController_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSkillsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SkillQueryControllerServer).List(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SkillQueryController_List_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SkillQueryControllerServer).List(ctx, req.(*ListSkillsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -297,6 +339,10 @@ var SkillQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getByReference",
 			Handler:    _SkillQueryController_GetByReference_Handler,
+		},
+		{
+			MethodName: "list",
+			Handler:    _SkillQueryController_List_Handler,
 		},
 		{
 			MethodName: "getArtifact",

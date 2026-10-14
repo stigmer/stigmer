@@ -15,7 +15,7 @@
  *   - replace rewrites the payload and the route claims and
  *     keeps the lookup columns; a claimed route rolls the whole replace
  *     back; a row that is gone is `missing`, and nothing is written;
- *   - findByOrg is newest first, findIdsByOrg every one; deleteById
+ *   - pageByOrg is newest first, findIdsByOrg every one; deleteById
  *     removes the row and its claims, and an unknown id resolves.
  *
  * Then the port's contract kit (../store-contract.ts) over this adapter, on
@@ -26,7 +26,7 @@
  * TEST_DATABASE_URL unset skips loudly by suite name (stigmer's
  * `make postgres-dev` prints the export).
  */
-import { clone } from "@bufbuild/protobuf";
+import { clone, fromBinary } from "@bufbuild/protobuf";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -45,6 +45,13 @@ import { storedProvider } from "./in-memory-provider-store.js";
 
 /** The audience the claim cases share, so an issuer alone decides whether routes collide. */
 const AUDIENCE = "https://api.test/stigmer";
+
+/** An organization's whole list, in its order. */
+async function listed(store: IdentityProviderStore, org: string): Promise<IdentityProvider[]> {
+  return (await store.pageByOrg(org, undefined, undefined)).map((row) =>
+    fromBinary(IdentityProviderSchema, row.data),
+  );
+}
 
 describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_identity_provider", () => {
   let database: ProvisionedEnterpriseDatabase;
@@ -142,7 +149,7 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_iden
     await expect(
       store.insert(storedProvider({ id: "idp_dup", org: "acme", slug: "dup-2", issuers: [] })),
     ).rejects.toMatchObject({ code: "23505" });
-    expect((await store.findByOrg("acme")).map((held) => held.metadata?.slug)).not.toContain("dup-2");
+    expect((await listed(store, "acme")).map((held) => held.metadata?.slug)).not.toContain("dup-2");
   });
 
   it("swaps the payload and the route claims, keeps the lookup columns, and refuses a slug change", async () => {
@@ -226,14 +233,14 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_iden
     );
     await store.insert(storedProvider({ id: "idp_o1", org: "elsewhere", slug: "o1", issuers: ["https://o1.test"] }));
 
-    expect((await store.findByOrg("listed")).map((row) => row.metadata?.id)).toEqual(["idp_l2", "idp_l1"]);
+    expect((await listed(store, "listed")).map((row) => row.metadata?.id)).toEqual(["idp_l2", "idp_l1"]);
     expect([...(await store.findIdsByOrg("listed"))].sort()).toEqual(["idp_l1", "idp_l2"]);
 
     await store.deleteById("idp_l1");
     await store.deleteById("idp_never");
     expect(await store.findById("idp_l1")).toBeUndefined();
     expect(await store.findProviderIdByRoute("https://l1.test", AUDIENCE)).toBeUndefined();
-    expect((await store.findByOrg("listed")).map((row) => row.metadata?.id)).toEqual(["idp_l2"]);
+    expect((await listed(store, "listed")).map((row) => row.metadata?.id)).toEqual(["idp_l2"]);
   });
 });
 

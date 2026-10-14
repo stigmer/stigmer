@@ -411,7 +411,6 @@ describe("Session conformance — queries", () => {
       const page = await clients.sessionQuery.list({ org, pageSize: 2, pageToken });
       pages += 1;
       expect(page.entries.length, "a page never exceeds page_size").toBeLessThanOrEqual(2);
-      expect(page.totalPages, "total_pages is 1 only on the final page").toBe(page.nextPageToken === "" ? 1 : 0);
       for (const session of page.entries) {
         const at = session.status?.audit?.specAudit?.createdAt;
         walked.push({ id: session.metadata!.id, createdAt: (at?.seconds ?? 0n) * 1_000_000_000n + BigInt(at?.nanos ?? 0) });

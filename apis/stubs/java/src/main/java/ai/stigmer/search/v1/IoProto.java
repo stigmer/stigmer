@@ -59,48 +59,48 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "mer.search.v1\032Fai/stigmer/commons/apires" +
       "ource/apiresourcekind/api_resource_kind." +
       "proto\032)ai/stigmer/commons/apiresource/en" +
-      "um.proto\032\'ai/stigmer/commons/rpc/paginat" +
-      "ion.proto\032\033buf/validate/validate.proto\032\037" +
-      "google/protobuf/timestamp.proto\"\275\002\n\rSear" +
-      "chRequest\022d\n\005kinds\030\001 \003(\0162?.ai.stigmer.co" +
-      "mmons.apiresource.apiresourcekind.ApiRes" +
-      "ourceKindB\r\272H\n\222\001\007\"\005\202\001\002\020\001R\005kinds\022\036\n\005query" +
-      "\030\002 \001(\tB\010\272H\005r\003\030\364\003R\005query\022B\n\003org\030\003 \001(\tB0\272H" +
-      "-r+\030?2\'^$|^[a-z][a-z0-9-]*$|^org_[0-9a-z" +
-      "]{26}$R\003org\0224\n\004page\030\005 \001(\0132 .ai.stigmer.c" +
-      "ommons.rpc.PageInfoR\004pageJ\004\010\004\020\005J\004\010\006\020\007R\016e" +
-      "xclude_publicR\020cross_org_public\"\257\002\n\016Sear" +
-      "chResponse\022<\n\007entries\030\001 \003(\0132\".ai.stigmer" +
-      ".search.v1.SearchResultR\007entries\022\\\n\016coun" +
-      "ts_by_kind\030\002 \003(\01326.ai.stigmer.search.v1." +
-      "SearchResponse.CountsByKindEntryR\014counts" +
-      "ByKind\022\037\n\013total_count\030\003 \001(\005R\ntotalCount\022" +
-      "\037\n\013total_pages\030\004 \001(\005R\ntotalPages\032?\n\021Coun" +
-      "tsByKindEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value" +
-      "\030\002 \001(\005R\005value:\0028\001\"\210\004\n\014SearchResult\022S\n\004ki" +
-      "nd\030\001 \001(\0162?.ai.stigmer.commons.apiresourc" +
-      "e.apiresourcekind.ApiResourceKindR\004kind\022" +
-      "\016\n\002id\030\002 \001(\tR\002id\022\022\n\004name\030\003 \001(\tR\004name\022\022\n\004s" +
-      "lug\030\004 \001(\tR\004slug\022%\n\016qualified_slug\030\005 \001(\tR" +
-      "\rqualifiedSlug\022\020\n\003org\030\006 \001(\tR\003org\022 \n\013desc" +
-      "ription\030\007 \001(\tR\013description\022U\n\nvisibility" +
-      "\030\010 \001(\01625.ai.stigmer.commons.apiresource." +
-      "ApiResourceVisibilityR\nvisibility\022\022\n\004tag" +
-      "s\030\t \003(\tR\004tags\0229\n\ncreated_at\030\n \001(\0132\032.goog" +
-      "le.protobuf.TimestampR\tcreatedAt\0229\n\nupda" +
-      "ted_at\030\013 \001(\0132\032.google.protobuf.Timestamp" +
-      "R\tupdatedAt\022\024\n\005score\030\014 \001(\002R\005score\022\031\n\010ico" +
-      "n_url\030\r \001(\tR\007iconUrlB|B\007IoProtoP\001\242\002\003ASS\252" +
-      "\002\024Ai.Stigmer.Search.V1\312\002\024Ai\\Stigmer\\Sear" +
-      "ch\\V1\342\002 Ai\\Stigmer\\Search\\V1\\GPBMetadata" +
-      "\352\002\027Ai::Stigmer::Search::V1b\006proto3"
+      "um.proto\032\033buf/validate/validate.proto\032\037g" +
+      "oogle/protobuf/timestamp.proto\"\342\002\n\rSearc" +
+      "hRequest\022d\n\005kinds\030\001 \003(\0162?.ai.stigmer.com" +
+      "mons.apiresource.apiresourcekind.ApiReso" +
+      "urceKindB\r\272H\n\222\001\007\"\005\202\001\002\020\001R\005kinds\022\036\n\005query\030" +
+      "\002 \001(\tB\010\272H\005r\003\030\364\003R\005query\022B\n\003org\030\003 \001(\tB0\272H-" +
+      "r+\030?2\'^$|^[a-z][a-z0-9-]*$|^org_[0-9a-z]" +
+      "{26}$R\003org\022$\n\tpage_size\030\007 \001(\005B\007\272H\004\032\002(\000R\010" +
+      "pageSize\022\'\n\npage_token\030\010 \001(\tB\010\272H\005r\003\030\200\010R\t" +
+      "pageTokenJ\004\010\004\020\005J\004\010\006\020\007J\004\010\005\020\006R\016exclude_pub" +
+      "licR\020cross_org_publicR\004page\"\273\002\n\016SearchRe" +
+      "sponse\022<\n\007entries\030\001 \003(\0132\".ai.stigmer.sea" +
+      "rch.v1.SearchResultR\007entries\022\\\n\016counts_b" +
+      "y_kind\030\002 \003(\01326.ai.stigmer.search.v1.Sear" +
+      "chResponse.CountsByKindEntryR\014countsByKi" +
+      "nd\022&\n\017next_page_token\030\005 \001(\tR\rnextPageTok" +
+      "en\032?\n\021CountsByKindEntry\022\020\n\003key\030\001 \001(\tR\003ke" +
+      "y\022\024\n\005value\030\002 \001(\005R\005value:\0028\001J\004\010\003\020\004J\004\010\004\020\005R" +
+      "\013total_countR\013total_pages\"\210\004\n\014SearchResu" +
+      "lt\022S\n\004kind\030\001 \001(\0162?.ai.stigmer.commons.ap" +
+      "iresource.apiresourcekind.ApiResourceKin" +
+      "dR\004kind\022\016\n\002id\030\002 \001(\tR\002id\022\022\n\004name\030\003 \001(\tR\004n" +
+      "ame\022\022\n\004slug\030\004 \001(\tR\004slug\022%\n\016qualified_slu" +
+      "g\030\005 \001(\tR\rqualifiedSlug\022\020\n\003org\030\006 \001(\tR\003org" +
+      "\022 \n\013description\030\007 \001(\tR\013description\022U\n\nvi" +
+      "sibility\030\010 \001(\01625.ai.stigmer.commons.apir" +
+      "esource.ApiResourceVisibilityR\nvisibilit" +
+      "y\022\022\n\004tags\030\t \003(\tR\004tags\0229\n\ncreated_at\030\n \001(" +
+      "\0132\032.google.protobuf.TimestampR\tcreatedAt" +
+      "\0229\n\nupdated_at\030\013 \001(\0132\032.google.protobuf.T" +
+      "imestampR\tupdatedAt\022\024\n\005score\030\014 \001(\002R\005scor" +
+      "e\022\031\n\010icon_url\030\r \001(\tR\007iconUrlB|B\007IoProtoP" +
+      "\001\242\002\003ASS\252\002\024Ai.Stigmer.Search.V1\312\002\024Ai\\Stig" +
+      "mer\\Search\\V1\342\002 Ai\\Stigmer\\Search\\V1\\GPB" +
+      "Metadata\352\002\027Ai::Stigmer::Search::V1b\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindProto.getDescriptor(),
           ai.stigmer.commons.apiresource.EnumProto.getDescriptor(),
-          ai.stigmer.commons.rpc.PaginationProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
           com.google.protobuf.TimestampProto.getDescriptor(),
         });
@@ -109,13 +109,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_search_v1_SearchRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_search_v1_SearchRequest_descriptor,
-        new java.lang.String[] { "Kinds", "Query", "Org", "Page", });
+        new java.lang.String[] { "Kinds", "Query", "Org", "PageSize", "PageToken", });
     internal_static_ai_stigmer_search_v1_SearchResponse_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_search_v1_SearchResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_search_v1_SearchResponse_descriptor,
-        new java.lang.String[] { "Entries", "CountsByKind", "TotalCount", "TotalPages", });
+        new java.lang.String[] { "Entries", "CountsByKind", "NextPageToken", });
     internal_static_ai_stigmer_search_v1_SearchResponse_CountsByKindEntry_descriptor =
       internal_static_ai_stigmer_search_v1_SearchResponse_descriptor.getNestedType(0);
     internal_static_ai_stigmer_search_v1_SearchResponse_CountsByKindEntry_fieldAccessorTable = new
@@ -131,7 +131,6 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindProto.getDescriptor();
     ai.stigmer.commons.apiresource.EnumProto.getDescriptor();
-    ai.stigmer.commons.rpc.PaginationProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.TimestampProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =

@@ -52,19 +52,21 @@ public interface ListPluginVersionsInputOrBuilder extends
 
   /**
    * <pre>
-   * Opaque token for cursor-based pagination. Empty for the first page.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
-   * <code>string page_token = 3 [json_name = "pageToken"];</code>
+   * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
    * @return The pageToken.
    */
   java.lang.String getPageToken();
   /**
    * <pre>
-   * Opaque token for cursor-based pagination. Empty for the first page.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
-   * <code>string page_token = 3 [json_name = "pageToken"];</code>
+   * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
    * @return The bytes for pageToken.
    */
   com.google.protobuf.ByteString
@@ -72,10 +74,11 @@ public interface ListPluginVersionsInputOrBuilder extends
 
   /**
    * <pre>
-   * Maximum number of versions to return per page. Default is 50.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    * </pre>
    *
-   * <code>int32 page_size = 4 [json_name = "pageSize"];</code>
+   * <code>int32 page_size = 4 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
    * @return The pageSize.
    */
   int getPageSize();

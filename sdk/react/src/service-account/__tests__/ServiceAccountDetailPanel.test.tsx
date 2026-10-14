@@ -6,7 +6,7 @@
  *     id and spec with the new name;
  *   - a role change grants the new organization role before it revokes the
  *     old one, never offers Owner, and a refused grant revokes nothing;
- *   - the keys listed are the account's own (`findByAccount`), a new key is
+ *   - the keys listed are the account's own (`listByAccount`), a new key is
  *     created for the account and shown once, and a revoke is the key's
  *     delete;
  *   - a delete asks first, says the keys stop working at once, and is the
@@ -89,10 +89,11 @@ function wrapper({ children }: { children: ReactNode }) {
       },
     },
     apiKey: {
-      findByAccount: async (id: string) => {
+      listByAccount: async ({ accountId: id }: { accountId: string }) => {
         calls.log.push(`list keys of ${id}`);
         return create(ApiKeysSchema, {
           entries: [{ metadata: { id: "key_old", name: "github-actions" }, spec: { fingerprint: "zz9" } }],
+          nextPageToken: "",
         });
       },
       createForServiceAccount: async (input: CreateServiceAccountKeyInput) => {

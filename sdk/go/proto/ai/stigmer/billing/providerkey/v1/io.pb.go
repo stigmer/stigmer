@@ -158,8 +158,14 @@ func (x *DeleteProviderKeyInput) GetProvider() string {
 
 // List the organization's provider keys.
 type ListProviderKeysInput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Org           string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Org   string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -201,11 +207,28 @@ func (x *ListProviderKeysInput) GetOrg() string {
 	return ""
 }
 
+func (x *ListProviderKeysInput) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListProviderKeysInput) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
 type ListProviderKeysOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// One row per provider the organization is served on its own or its
 	// parent organization's key, in provider order.
-	Keys          []*ProviderKey `protobuf:"bytes,1,rep,name=keys,proto3" json:"keys,omitempty"`
+	Entries []*ProviderKey `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -240,11 +263,18 @@ func (*ListProviderKeysOutput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_providerkey_v1_io_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *ListProviderKeysOutput) GetKeys() []*ProviderKey {
+func (x *ListProviderKeysOutput) GetEntries() []*ProviderKey {
 	if x != nil {
-		return x.Keys
+		return x.Entries
 	}
 	return nil
+}
+
+func (x *ListProviderKeysOutput) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
 }
 
 var File_ai_stigmer_billing_providerkey_v1_io_proto protoreflect.FileDescriptor
@@ -261,11 +291,15 @@ const file_ai_stigmer_billing_providerkey_v1_io_proto_rawDesc = "" +
 	"\x1cprovider_key.cursor_base_url\x12@a Cursor key takes no base URL; Cursor serves from its own hosts\x1a0this.provider != 'cursor' || this.base_url == ''\"q\n" +
 	"\x16DeleteProviderKeyInput\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12<\n" +
-	"\bprovider\x18\x02 \x01(\tB \xbaH\x1dr\x1bR\tanthropicR\x06openaiR\x06cursorR\bprovider\"2\n" +
+	"\bprovider\x18\x02 \x01(\tB \xbaH\x1dr\x1bR\tanthropicR\x06openaiR\x06cursorR\bprovider\"\x81\x01\n" +
 	"\x15ListProviderKeysInput\x12\x19\n" +
-	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\\\n" +
-	"\x16ListProviderKeysOutput\x12B\n" +
-	"\x04keys\x18\x01 \x03(\v2..ai.stigmer.billing.providerkey.v1.ProviderKeyR\x04keysB\xb5\x02\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x8a\x01\n" +
+	"\x16ListProviderKeysOutput\x12H\n" +
+	"\aentries\x18\x01 \x03(\v2..ai.stigmer.billing.providerkey.v1.ProviderKeyR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenB\xb5\x02\n" +
 	"%com.ai.stigmer.billing.providerkey.v1B\aIoProtoP\x01ZZgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/providerkey/v1;providerkeyv1\xa2\x02\x04ASBP\xaa\x02!Ai.Stigmer.Billing.Providerkey.V1\xca\x02!Ai\\Stigmer\\Billing\\Providerkey\\V1\xe2\x02-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Billing::Providerkey::V1b\x06proto3"
 
 var (
@@ -289,7 +323,7 @@ var file_ai_stigmer_billing_providerkey_v1_io_proto_goTypes = []any{
 	(*ProviderKey)(nil),            // 4: ai.stigmer.billing.providerkey.v1.ProviderKey
 }
 var file_ai_stigmer_billing_providerkey_v1_io_proto_depIdxs = []int32{
-	4, // 0: ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput.keys:type_name -> ai.stigmer.billing.providerkey.v1.ProviderKey
+	4, // 0: ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput.entries:type_name -> ai.stigmer.billing.providerkey.v1.ProviderKey
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name

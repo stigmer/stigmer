@@ -861,8 +861,14 @@ type ListModelPricingBaselinesInput struct {
 	// When true, includes SUPERSEDED and RETIRED revisions (the full audit
 	// history). Default: ACTIVE documents only.
 	IncludeHistory bool `protobuf:"varint,1,opt,name=include_history,json=includeHistory,proto3" json:"include_history,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListModelPricingBaselinesInput) Reset() {
@@ -902,12 +908,29 @@ func (x *ListModelPricingBaselinesInput) GetIncludeHistory() bool {
 	return false
 }
 
+func (x *ListModelPricingBaselinesInput) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListModelPricingBaselinesInput) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
 // ModelPricingBaselinesResponse is the baseline catalog, ordered by
 // harness, provider, then model id; historical revisions (when requested)
 // follow their key's ACTIVE document newest-first.
 type ModelPricingBaselinesResponse struct {
-	state         protoimpl.MessageState  `protogen:"open.v1"`
-	Baselines     []*ModelPricingBaseline `protobuf:"bytes,1,rep,name=baselines,proto3" json:"baselines,omitempty"`
+	state   protoimpl.MessageState  `protogen:"open.v1"`
+	Entries []*ModelPricingBaseline `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -942,11 +965,18 @@ func (*ModelPricingBaselinesResponse) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{12}
 }
 
-func (x *ModelPricingBaselinesResponse) GetBaselines() []*ModelPricingBaseline {
+func (x *ModelPricingBaselinesResponse) GetEntries() []*ModelPricingBaseline {
 	if x != nil {
-		return x.Baselines
+		return x.Entries
 	}
 	return nil
+}
+
+func (x *ModelPricingBaselinesResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
 }
 
 var File_ai_stigmer_billing_v1_io_proto protoreflect.FileDescriptor
@@ -1012,11 +1042,15 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"\bmodel_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\amodelId\x12\"\n" +
 	"\bprovider\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\bprovider\x12 \n" +
 	"\aharness\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\aharness\x12-\n" +
-	"\rrevision_note\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\frevisionNote\"I\n" +
+	"\rrevision_note\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\frevisionNote\"\x98\x01\n" +
 	"\x1eListModelPricingBaselinesInput\x12'\n" +
-	"\x0finclude_history\x18\x01 \x01(\bR\x0eincludeHistory\"j\n" +
-	"\x1dModelPricingBaselinesResponse\x12I\n" +
-	"\tbaselines\x18\x01 \x03(\v2+.ai.stigmer.billing.v1.ModelPricingBaselineR\tbaselinesB\xe7\x01\n" +
+	"\x0finclude_history\x18\x01 \x01(\bR\x0eincludeHistory\x12$\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x8e\x01\n" +
+	"\x1dModelPricingBaselinesResponse\x12E\n" +
+	"\aentries\x18\x01 \x03(\v2+.ai.stigmer.billing.v1.ModelPricingBaselineR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenB\xe7\x01\n" +
 	"\x19com.ai.stigmer.billing.v1B\aIoProtoP\x01ZJgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
 
 var (
@@ -1063,7 +1097,7 @@ var file_ai_stigmer_billing_v1_io_proto_depIdxs = []int32{
 	17, // 5: ai.stigmer.billing.v1.MeteredRun.requested_service_tier:type_name -> ai.stigmer.agentic.run.v1.ServiceTier
 	18, // 6: ai.stigmer.billing.v1.MeteredRun.requested_thinking_mode:type_name -> ai.stigmer.agentic.run.v1.ThinkingMode
 	19, // 7: ai.stigmer.billing.v1.UpsertModelPricingBaselineInput.baseline:type_name -> ai.stigmer.billing.v1.ModelPricingBaseline
-	19, // 8: ai.stigmer.billing.v1.ModelPricingBaselinesResponse.baselines:type_name -> ai.stigmer.billing.v1.ModelPricingBaseline
+	19, // 8: ai.stigmer.billing.v1.ModelPricingBaselinesResponse.entries:type_name -> ai.stigmer.billing.v1.ModelPricingBaseline
 	9,  // [9:9] is the sub-list for method output_type
 	9,  // [9:9] is the sub-list for method input_type
 	9,  // [9:9] is the sub-list for extension type_name

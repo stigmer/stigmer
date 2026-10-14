@@ -4,22 +4,18 @@
 
 import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
-import type { FindApiResourcesRequestSchema } from "../../../commons/apiresource/io_pb.js";
-import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
 import type { OrganizationSchema } from "./api_pb.js";
 import { file_ai_stigmer_tenancy_organization_v1_api } from "./api_pb.js";
-import type { ChildOrgListSchema, ListChildOrgsInputSchema, OrganizationExternalLookupSchema, OrganizationIdSchema, OrganizationListSchema, OrganizationsSchema } from "./io_pb.js";
+import type { ChildOrgListSchema, ListChildOrgsInputSchema, ListMyOrganizationsInputSchema, OrganizationExternalLookupSchema, OrganizationIdSchema, OrganizationsSchema } from "./io_pb.js";
 import { file_ai_stigmer_tenancy_organization_v1_io } from "./io_pb.js";
-import type { EmptySchema } from "@bufbuild/protobuf/wkt";
-import { file_google_protobuf_empty } from "@bufbuild/protobuf/wkt";
 
 /**
  * Describes the file ai/stigmer/tenancy/organization/v1/query.proto.
  */
 export const file_ai_stigmer_tenancy_organization_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("Ci5haS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL3F1ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxMtEGChtPcmdhbml6YXRpb25RdWVyeUNvbnRyb2xsZXISnwEKA2dldBIyLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uSWQaMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbiIywrgYLggyEB4iBXZhbHVlKiF1bmF1dGhvcml6ZWQgdG8gdmlldyBvcmdhbml6YXRpb24SewoEZmluZBI3LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5GaW5kQXBpUmVzb3VyY2VzUmVxdWVzdBo0LmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uTGlzdCIE0LgYARJmChNmaW5kTXlPcmdhbml6YXRpb25zEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5GjEuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5Pcmdhbml6YXRpb25zIgTQuBgBEtkBCg9nZXRCeUV4dGVybmFsSWQSPi5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbkV4dGVybmFsTG9va3VwGjAuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5Pcmdhbml6YXRpb24iVMK4GFAIMRAeIgpwYXJlbnRfb3JnKj51bmF1dGhvcml6ZWQgdG8gbWFuYWdlIHRoaXMgb3JnYW5pemF0aW9uJ3MgY2hpbGQgb3JnYW5pemF0aW9ucxLIAQoNbGlzdENoaWxkT3JncxI2LmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuTGlzdENoaWxkT3Jnc0lucHV0GjAuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5DaGlsZE9yZ0xpc3QiTcK4GEkIMRAeIgNvcmcqPnVuYXV0aG9yaXplZCB0byBtYW5hZ2UgdGhpcyBvcmdhbml6YXRpb24ncyBjaGlsZCBvcmdhbml6YXRpb25zGgSg/yseYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_tenancy_organization_v1_api, file_ai_stigmer_tenancy_organization_v1_io, file_google_protobuf_empty]);
+  fileDesc("Ci5haS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL3F1ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxMvAFChtPcmdhbml6YXRpb25RdWVyeUNvbnRyb2xsZXISnwEKA2dldBIyLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uSWQaMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbiIywrgYLggyEB4iBXZhbHVlKiF1bmF1dGhvcml6ZWQgdG8gdmlldyBvcmdhbml6YXRpb24SgQEKCGxpc3RNaW5lEjwuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5MaXN0TXlPcmdhbml6YXRpb25zSW5wdXQaMS5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbnMiBNC4GAES2QEKD2dldEJ5RXh0ZXJuYWxJZBI+LmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uRXh0ZXJuYWxMb29rdXAaMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbiJUwrgYUAgxEB4iCnBhcmVudF9vcmcqPnVuYXV0aG9yaXplZCB0byBtYW5hZ2UgdGhpcyBvcmdhbml6YXRpb24ncyBjaGlsZCBvcmdhbml6YXRpb25zEsgBCg1saXN0Q2hpbGRPcmdzEjYuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5MaXN0Q2hpbGRPcmdzSW5wdXQaMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLkNoaWxkT3JnTGlzdCJNwrgYSQgxEB4iA29yZyo+dW5hdXRob3JpemVkIHRvIG1hbmFnZSB0aGlzIG9yZ2FuaXphdGlvbidzIGNoaWxkIG9yZ2FuaXphdGlvbnMaBKD/Kx5iBnByb3RvMw", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_tenancy_organization_v1_api, file_ai_stigmer_tenancy_organization_v1_io]);
 
 /**
  * OrganizationQueryController handles read operations for organizations.
@@ -38,24 +34,14 @@ export const OrganizationQueryController: GenService<{
     output: typeof OrganizationSchema;
   },
   /**
-   * List organizations with pagination and filtering.
-   *
-   * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.find
-   */
-  find: {
-    methodKind: "unary";
-    input: typeof FindApiResourcesRequestSchema;
-    output: typeof OrganizationListSchema;
-  },
-  /**
-   * Find organizations the authenticated user is a member of.
+   * List the organizations the authenticated caller is a member of.
    * Returns only organizations the caller has access to.
    *
-   * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.findMyOrganizations
+   * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.listMine
    */
-  findMyOrganizations: {
+  listMine: {
     methodKind: "unary";
-    input: typeof EmptySchema;
+    input: typeof ListMyOrganizationsInputSchema;
     output: typeof OrganizationsSchema;
   },
   /**

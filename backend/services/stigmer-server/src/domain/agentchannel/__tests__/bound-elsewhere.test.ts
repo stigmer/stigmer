@@ -53,7 +53,8 @@ function harness() {
       listMessagingChannels: async () => ({}),
     },
     conversations: {
-      listConversations: async () => (reached.push("listConversations"), {}),
+      list: async () => (reached.push("list"), {}),
+      countConversations: async () => (reached.push("countConversations"), {}),
     },
   } as unknown as ChannelRuntime;
   const transport = createRouterTransport(
@@ -88,7 +89,8 @@ function harness() {
           { headers },
         ),
       () => messageQuery.listTemplates({ org, channel: "chan-1" }, { headers }),
-      () => conversationQuery.listConversations({ org }, { headers }),
+      () => conversationQuery.list({ org }, { headers }),
+      () => conversationQuery.countConversations({ org }, { headers }),
     ],
   };
 }
@@ -113,7 +115,8 @@ describe("channel lanes under a credential bound to one organization", () => {
     expect(h.reached).toEqual([
       "sendMessage",
       "listTemplates",
-      "listConversations",
+      "list",
+      "countConversations",
     ]);
   });
 });

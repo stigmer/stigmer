@@ -51,9 +51,15 @@ import type {
   UpdateVisibilityInput,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { AgentListSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import type {
+  AgentList,
+  ListAgentsRequest,
+} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError, notFoundError } from "../../pipeline/errors.js";
@@ -126,6 +132,8 @@ import { everyPathUpdate, updateContext } from "../../pipeline/steps/update-inpu
 import { renameResource, storeRenameRows } from "../../pipeline/steps/rename.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
+import { readOrgListPage } from "../../pipeline/steps/org-list-page.js";
+import { agentListIndex } from "./list-index.js";
 import {
   LIST_VERSIONS_RESPONSE_KEY,
   getVersionEntry,
@@ -176,6 +184,8 @@ export interface AgentControllerDeps {
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
+  /** The composed list read scope — list narrows through it; undefined = the OSS full scan. */
+  readonly listReadScope: ListReadScope | undefined;
   /**
    * The model registry — ValidateAgentRunConfig judges an agent's run
    * defaults against the engine they name.
@@ -202,6 +212,7 @@ export function registerAgentServices(
   router.service(AgentQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
     getByReference: (ref, ctx) => getByReference(deps, ref, ctx),
+    list: (req, ctx) => list(deps, req, ctx),
     listVersions: (input, ctx) => listVersions(deps, input, ctx),
     getVersion: (input, ctx) => getVersion(deps, input, callerIdentityOf(ctx)),
   });
@@ -818,4 +829,58 @@ async function tagVersion(
     .build()
     .execute(reqCtx);
   return reqCtx.get(TAG_VERSION_RESULT_KEY) as Agent;
+}
+
+const AGENT_LIST_KEY = "agentList";
+
+/**
+ * List — one page of an organization's agents, newest first, through the
+ * agent list index; the read scope keeps the agents the caller could get by
+ * id, as every organization list does. Search finds agents by their
+ * words; this browses them.
+ */
+async function list(
+  deps: AgentControllerDeps,
+  req: ListAgentsRequest,
+  ctx: HandlerContext,
+): Promise<AgentList> {
+  const reqCtx = new RequestContext(
+    AgentQueryController.method.list.input,
+    req,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<typeof AgentQueryController.method.list.input>(
+    "agent-list",
+    deps.logger,
+  )
+    .addStep(
+      newAuthorizeStep(AgentQueryController.method.list, deps.authorizer),
+    )
+    .addStep(newValidateProtoStep())
+    .addStep({
+      name: "ListByOrg",
+      async execute(step): Promise<void> {
+        const page = await readOrgListPage({
+          store: deps.store,
+          logger: deps.logger,
+          listReadScope: deps.listReadScope,
+          caller: step.callerIdentity,
+          kind: ApiResourceKind.agent,
+          schema: AgentSchema,
+          declaration: agentListIndex,
+          request: step.input,
+        });
+        step.set(
+          AGENT_LIST_KEY,
+          create(AgentListSchema, {
+            entries: page.entries,
+            nextPageToken: page.nextPageToken,
+          }),
+        );
+      },
+    })
+    .build()
+    .execute(reqCtx);
+  return reqCtx.get(AGENT_LIST_KEY) as AgentList;
 }

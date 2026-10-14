@@ -156,7 +156,7 @@ Answer a tool use that waits for approval with `client.Session.ConfirmToolUse`.
 
 - **Input types** (`AgentInput`, `RunInput`, etc.) are SDK types that flatten proto construction.
 - **Response types** are proto types directly (e.g., `*agentv1.Agent`). Access fields via generated getters.
-- **Search/List results** use `*stigmer.ListResult` (for SearchService-backed lists) or the native list response types.
+- **Lists** return the native list response types: a page of `Entries` and a `NextPageToken` that is set while more follow. `PageSize` 0 asks for the default page of 50, and above 100 reads 100. Every list has an iterator beside it (`List` → `ListAll`, an `iter.Seq2` that follows the tokens), and `client.Search.QueryAll` does the same for search.
 
 ## Examples
 

@@ -120,17 +120,17 @@ describe("ApiKey conformance", () => {
     expect(fetched.spec?.fingerprint).toBe(created.spec?.fingerprint);
   });
 
-  it("[rpc:ApiKeyQueryController.findAll] findAll lists the caller's key with the stored hash", async () => {
+  it("[rpc:ApiKeyQueryController.list] list lists the caller's key with the stored hash", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createKey(org);
     const plaintext = created.spec?.keyHash ?? "";
 
-    const all = await clients.apiKeyQuery.findAll({});
+    const all = await clients.apiKeyQuery.list({});
     const mine = all.entries.find(
       (entry) => entry.metadata?.id === created.metadata?.id,
     );
 
-    expect(mine, "findAll must include the freshly created key").toBeDefined();
+    expect(mine, "list must include the freshly created key").toBeDefined();
     expect(mine?.spec?.keyHash).toBe(storageHash(plaintext));
   });
 

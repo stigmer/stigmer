@@ -1,5 +1,5 @@
 /**
- * Which names a caller's own keys are read by (`findAll`, controller.ts):
+ * Which names a caller's own keys are read by (`list`, controller.ts):
  * the caller's account id, and its subject only for an account whose
  * subject is the platform's own (a direct or legacy account), the stamp a
  * key minted before the account existed carries. A federated account's
@@ -81,7 +81,7 @@ function ownKeysOf(account: IdentityAccount, tokenSub: string) {
       },
     },
   );
-  return createClient(ApiKeyQueryController, transport).findAll({});
+  return createClient(ApiKeyQueryController, transport).list({});
 }
 
 describe("the names a caller's own keys are read by", () => {

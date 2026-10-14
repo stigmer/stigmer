@@ -2,7 +2,7 @@
 
 import { wrapError } from "./errors.js";
 import { stripUndefined } from "./proto-utils.js";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -110,6 +110,20 @@ export class IamPolicyClient {
     try {
       return await this.query.listAccessHistory(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `listAccessHistory`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listAccessHistoryAll(input: MessageInitShape<typeof ListAccessHistoryInputSchema>): AsyncGenerator<AccessHistoryPage["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.listAccessHistory(create(ListAccessHistoryInputSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 }
 

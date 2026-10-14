@@ -27,7 +27,7 @@ from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import field_mask_pb2 as google_dot_protobuf_dot_field__mask__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/agentic/agent/v1/io.proto\x12\x1b\x61i.stigmer.agentic.agent.v1\x1a%ai/stigmer/agentic/agent/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"\'\n\x07\x41gentId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xdf\x02\n\x10UpdateAgentInput\x12\x46\n\x08resource\x18\x01 \x01(\x0b\x32\".ai.stigmer.agentic.agent.v1.AgentB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xbd\x01\xbaH\xb9\x01\x1a\xb6\x01\n\x17update_names_its_target\x12\x45resource.metadata.id is required: an update names the agent by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'B\xbb\x01\n\x1f\x63om.ai.stigmer.agentic.agent.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\x1b\x41i.Stigmer.Agentic.Agent.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Agent\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Agent::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/agentic/agent/v1/io.proto\x12\x1b\x61i.stigmer.agentic.agent.v1\x1a%ai/stigmer/agentic/agent/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"\'\n\x07\x41gentId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xdf\x02\n\x10UpdateAgentInput\x12\x46\n\x08resource\x18\x01 \x01(\x0b\x32\".ai.stigmer.agentic.agent.v1.AgentB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xbd\x01\xbaH\xb9\x01\x1a\xb6\x01\n\x17update_names_its_target\x12\x45resource.metadata.id is required: an update names the agent by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'\"}\n\x11ListAgentsRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\"q\n\tAgentList\x12<\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\".ai.stigmer.agentic.agent.v1.AgentR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenB\xbb\x01\n\x1f\x63om.ai.stigmer.agentic.agent.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\x1b\x41i.Stigmer.Agentic.Agent.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Agent\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Agent::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -43,8 +43,18 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_UPDATEAGENTINPUT'].fields_by_name['update_mask']._serialized_options = b'\272H\003\310\001\001'
   _globals['_UPDATEAGENTINPUT']._loaded_options = None
   _globals['_UPDATEAGENTINPUT']._serialized_options = b'\272H\271\001\032\266\001\n\027update_names_its_target\022Eresource.metadata.id is required: an update names the agent by its id\032Thas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\''
+  _globals['_LISTAGENTSREQUEST'].fields_by_name['org']._loaded_options = None
+  _globals['_LISTAGENTSREQUEST'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_LISTAGENTSREQUEST'].fields_by_name['page_size']._loaded_options = None
+  _globals['_LISTAGENTSREQUEST'].fields_by_name['page_size']._serialized_options = b'\272H\004\032\002(\000'
+  _globals['_LISTAGENTSREQUEST'].fields_by_name['page_token']._loaded_options = None
+  _globals['_LISTAGENTSREQUEST'].fields_by_name['page_token']._serialized_options = b'\272H\005r\003\030\200\010'
   _globals['_AGENTID']._serialized_start=171
   _globals['_AGENTID']._serialized_end=210
   _globals['_UPDATEAGENTINPUT']._serialized_start=213
   _globals['_UPDATEAGENTINPUT']._serialized_end=564
+  _globals['_LISTAGENTSREQUEST']._serialized_start=566
+  _globals['_LISTAGENTSREQUEST']._serialized_end=691
+  _globals['_AGENTLIST']._serialized_start=693
+  _globals['_AGENTLIST']._serialized_end=806
 # @@protoc_insertion_point(module_scope)

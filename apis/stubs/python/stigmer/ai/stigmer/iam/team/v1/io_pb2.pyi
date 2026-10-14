@@ -10,16 +10,22 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class Teams(_message.Message):
-    __slots__ = ("entries",)
+    __slots__ = ("entries", "next_page_token")
     ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.Team]
-    def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.Team, _Mapping]]] = ...) -> None: ...
+    next_page_token: str
+    def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.Team, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
 
-class ListTeamsByOrgInput(_message.Message):
-    __slots__ = ("org",)
+class ListTeamsInput(_message.Message):
+    __slots__ = ("org", "page_size", "page_token")
     ORG_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     org: str
-    def __init__(self, org: _Optional[str] = ...) -> None: ...
+    page_size: int
+    page_token: str
+    def __init__(self, org: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
 class UpdateTeamInput(_message.Message):
     __slots__ = ("resource", "update_mask")

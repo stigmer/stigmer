@@ -631,9 +631,11 @@ type ListPluginVersionsInput struct {
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// Plugin slug (unique within the organization).
 	Slug string `protobuf:"bytes,2,opt,name=slug,proto3" json:"slug,omitempty"`
-	// Opaque token for cursor-based pagination. Empty for the first page.
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
 	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	// Maximum number of versions to return per page. Default is 50.
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
 	PageSize      int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -802,11 +804,10 @@ func (x *PluginVersionEntry) GetArtifactStorageKey() string {
 type ListPluginVersionsResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Versions, newest first.
-	Versions []*PluginVersionEntry `protobuf:"bytes,1,rep,name=versions,proto3" json:"versions,omitempty"`
-	// Token for the next page. Empty when no more pages exist.
+	Entries []*PluginVersionEntry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
 	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
-	// Total number of versions across all pages.
-	TotalCount    int32 `protobuf:"varint,3,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -841,9 +842,9 @@ func (*ListPluginVersionsResponse) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_plugin_v1_io_proto_rawDescGZIP(), []int{12}
 }
 
-func (x *ListPluginVersionsResponse) GetVersions() []*PluginVersionEntry {
+func (x *ListPluginVersionsResponse) GetEntries() []*PluginVersionEntry {
 	if x != nil {
-		return x.Versions
+		return x.Entries
 	}
 	return nil
 }
@@ -855,18 +856,133 @@ func (x *ListPluginVersionsResponse) GetNextPageToken() string {
 	return ""
 }
 
-func (x *ListPluginVersionsResponse) GetTotalCount() int32 {
+// Input for listing an organization's plugins, newest first.
+type ListPluginsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Organization whose plugins to list, by id or slug.
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPluginsRequest) Reset() {
+	*x = ListPluginsRequest{}
+	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPluginsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPluginsRequest) ProtoMessage() {}
+
+func (x *ListPluginsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[13]
 	if x != nil {
-		return x.TotalCount
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPluginsRequest.ProtoReflect.Descriptor instead.
+func (*ListPluginsRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_plugin_v1_io_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ListPluginsRequest) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *ListPluginsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
 	}
 	return 0
+}
+
+func (x *ListPluginsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+// One page of an organization's plugins.
+type PluginList struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The plugins in this page, newest first.
+	Entries []*Plugin `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PluginList) Reset() {
+	*x = PluginList{}
+	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PluginList) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PluginList) ProtoMessage() {}
+
+func (x *PluginList) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PluginList.ProtoReflect.Descriptor instead.
+func (*PluginList) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_plugin_v1_io_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *PluginList) GetEntries() []*Plugin {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+func (x *PluginList) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
 }
 
 var File_ai_stigmer_agentic_plugin_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_plugin_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"%ai/stigmer/agentic/plugin/v1/io.proto\x12\x1cai.stigmer.agentic.plugin.v1\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"(\n" +
+	"%ai/stigmer/agentic/plugin/v1/io.proto\x12\x1cai.stigmer.agentic.plugin.v1\x1a&ai/stigmer/agentic/plugin/v1/api.proto\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"(\n" +
 	"\bPluginId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xae\x03\n" +
 	"\x11PushPluginRequest\x12\x18\n" +
@@ -907,13 +1023,13 @@ const file_ai_stigmer_agentic_plugin_v1_io_proto_rawDesc = "" +
 	"PluginTool\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12 \n" +
-	"\vdestructive\x18\x03 \x01(\bR\vdestructive\"\x8b\x01\n" +
+	"\vdestructive\x18\x03 \x01(\bR\vdestructive\"\x9e\x01\n" +
 	"\x17ListPluginVersionsInput\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1a\n" +
-	"\x04slug\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04slug\x12\x1d\n" +
+	"\x04slug\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04slug\x12'\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tR\tpageToken\x12\x1b\n" +
-	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\"\xb6\x02\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12$\n" +
+	"\tpage_size\x18\x04 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\"\xb6\x02\n" +
 	"\x12PluginVersionEntry\x12\x16\n" +
 	"\x06digest\x18\x01 \x01(\tR\x06digest\x127\n" +
 	"\tpushed_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\bpushedAt\x12R\n" +
@@ -922,12 +1038,19 @@ const file_ai_stigmer_agentic_plugin_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"is_current\x18\x05 \x01(\bR\tisCurrent\x12\x18\n" +
 	"\amessage\x18\x06 \x01(\tR\amessage\x120\n" +
-	"\x14artifact_storage_key\x18\a \x01(\tR\x12artifactStorageKey\"\xb3\x01\n" +
-	"\x1aListPluginVersionsResponse\x12L\n" +
-	"\bversions\x18\x01 \x03(\v20.ai.stigmer.agentic.plugin.v1.PluginVersionEntryR\bversions\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n" +
-	"\vtotal_count\x18\x03 \x01(\x05R\n" +
-	"totalCountB\x90\x02\n" +
+	"\x14artifact_storage_key\x18\a \x01(\tR\x12artifactStorageKey\"\xa3\x01\n" +
+	"\x1aListPluginVersionsResponse\x12J\n" +
+	"\aentries\x18\x01 \x03(\v20.ai.stigmer.agentic.plugin.v1.PluginVersionEntryR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenJ\x04\b\x03\x10\x04R\vtotal_count\"~\n" +
+	"\x12ListPluginsRequest\x12\x19\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"t\n" +
+	"\n" +
+	"PluginList\x12>\n" +
+	"\aentries\x18\x01 \x03(\v2$.ai.stigmer.agentic.plugin.v1.PluginR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenB\x90\x02\n" +
 	" com.ai.stigmer.agentic.plugin.v1B\aIoProtoP\x01ZNgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/plugin/v1;pluginv1\xa2\x02\x04ASAP\xaa\x02\x1cAi.Stigmer.Agentic.Plugin.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Plugin\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Plugin::V1b\x06proto3"
 
 var (
@@ -942,7 +1065,7 @@ func file_ai_stigmer_agentic_plugin_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_plugin_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_ai_stigmer_agentic_plugin_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_ai_stigmer_agentic_plugin_v1_io_proto_goTypes = []any{
 	(*PluginId)(nil),                             // 0: ai.stigmer.agentic.plugin.v1.PluginId
 	(*PushPluginRequest)(nil),                    // 1: ai.stigmer.agentic.plugin.v1.PushPluginRequest
@@ -957,21 +1080,25 @@ var file_ai_stigmer_agentic_plugin_v1_io_proto_goTypes = []any{
 	(*ListPluginVersionsInput)(nil),              // 10: ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput
 	(*PluginVersionEntry)(nil),                   // 11: ai.stigmer.agentic.plugin.v1.PluginVersionEntry
 	(*ListPluginVersionsResponse)(nil),           // 12: ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse
-	(apiresource.ApiResourceVisibility)(0),       // 13: ai.stigmer.commons.apiresource.ApiResourceVisibility
-	(*timestamppb.Timestamp)(nil),                // 14: google.protobuf.Timestamp
-	(*apiresource.ApiResourceAuditActor)(nil),    // 15: ai.stigmer.commons.apiresource.ApiResourceAuditActor
+	(*ListPluginsRequest)(nil),                   // 13: ai.stigmer.agentic.plugin.v1.ListPluginsRequest
+	(*PluginList)(nil),                           // 14: ai.stigmer.agentic.plugin.v1.PluginList
+	(apiresource.ApiResourceVisibility)(0),       // 15: ai.stigmer.commons.apiresource.ApiResourceVisibility
+	(*timestamppb.Timestamp)(nil),                // 16: google.protobuf.Timestamp
+	(*apiresource.ApiResourceAuditActor)(nil),    // 17: ai.stigmer.commons.apiresource.ApiResourceAuditActor
+	(*Plugin)(nil),                               // 18: ai.stigmer.agentic.plugin.v1.Plugin
 }
 var file_ai_stigmer_agentic_plugin_v1_io_proto_depIdxs = []int32{
-	13, // 0: ai.stigmer.agentic.plugin.v1.PushPluginRequest.visibility:type_name -> ai.stigmer.commons.apiresource.ApiResourceVisibility
+	15, // 0: ai.stigmer.agentic.plugin.v1.PushPluginRequest.visibility:type_name -> ai.stigmer.commons.apiresource.ApiResourceVisibility
 	9,  // 1: ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput.tools:type_name -> ai.stigmer.agentic.plugin.v1.PluginTool
-	14, // 2: ai.stigmer.agentic.plugin.v1.PluginVersionEntry.pushed_at:type_name -> google.protobuf.Timestamp
-	15, // 3: ai.stigmer.agentic.plugin.v1.PluginVersionEntry.pushed_by:type_name -> ai.stigmer.commons.apiresource.ApiResourceAuditActor
-	11, // 4: ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse.versions:type_name -> ai.stigmer.agentic.plugin.v1.PluginVersionEntry
-	5,  // [5:5] is the sub-list for method output_type
-	5,  // [5:5] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	16, // 2: ai.stigmer.agentic.plugin.v1.PluginVersionEntry.pushed_at:type_name -> google.protobuf.Timestamp
+	17, // 3: ai.stigmer.agentic.plugin.v1.PluginVersionEntry.pushed_by:type_name -> ai.stigmer.commons.apiresource.ApiResourceAuditActor
+	11, // 4: ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse.entries:type_name -> ai.stigmer.agentic.plugin.v1.PluginVersionEntry
+	18, // 5: ai.stigmer.agentic.plugin.v1.PluginList.entries:type_name -> ai.stigmer.agentic.plugin.v1.Plugin
+	6,  // [6:6] is the sub-list for method output_type
+	6,  // [6:6] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_plugin_v1_io_proto_init() }
@@ -979,13 +1106,14 @@ func file_ai_stigmer_agentic_plugin_v1_io_proto_init() {
 	if File_ai_stigmer_agentic_plugin_v1_io_proto != nil {
 		return
 	}
+	file_ai_stigmer_agentic_plugin_v1_api_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_plugin_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_plugin_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

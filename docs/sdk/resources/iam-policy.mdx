@@ -259,6 +259,8 @@ AccessHistoryPage accessHistoryPage = client.iamPolicies().listAccessHistory(Lis
 
 **Returns**: [`AccessHistoryPage`](#accesshistorypage)
 
+**Every page**: `listAccessHistoryAll` (Go `ListAccessHistoryAll`, Python `list_access_history_all`, Java `listAccessHistoryAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
+
 ### listAuthorizedPrincipalIds
 
 List all principal IDs of a specific kind that are authorized to access a resource
@@ -1030,7 +1032,7 @@ ListAccessHistoryInput names the organization whose access history to read, and 
 <TypeTable
   type={{
     org: { type: "string", description: "The organization, by slug or id.", required: true },
-    pageSize: { type: "number", description: "The most entries to return; 0 returns 50." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
     pageToken: { type: "string", description: "The previous response's next_page_token, to continue that read." },
     afterSequence: { type: "number", description: "Read oldest first, starting just after this entry's sequence; 0 reads from the first entry." },
   }}

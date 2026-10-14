@@ -158,11 +158,11 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object pageToken_ = "";
   /**
    * <pre>
-   * Opaque token for cursor-based pagination.
-   * Empty string or omitted for the first page.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
-   * <code>string page_token = 3 [json_name = "pageToken"];</code>
+   * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
    * @return The pageToken.
    */
   @java.lang.Override
@@ -180,11 +180,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Opaque token for cursor-based pagination.
-   * Empty string or omitted for the first page.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
-   * <code>string page_token = 3 [json_name = "pageToken"];</code>
+   * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
    * @return The bytes for pageToken.
    */
   @java.lang.Override
@@ -206,11 +206,11 @@ private static final long serialVersionUID = 0L;
   private int pageSize_ = 0;
   /**
    * <pre>
-   * Maximum number of versions to return per page.
-   * Server may return fewer. Default is 50.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    * </pre>
    *
-   * <code>int32 page_size = 4 [json_name = "pageSize"];</code>
+   * <code>int32 page_size = 4 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
    * @return The pageSize.
    */
   @java.lang.Override
@@ -778,11 +778,11 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object pageToken_ = "";
     /**
      * <pre>
-     * Opaque token for cursor-based pagination.
-     * Empty string or omitted for the first page.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
-     * <code>string page_token = 3 [json_name = "pageToken"];</code>
+     * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
      * @return The pageToken.
      */
     public java.lang.String getPageToken() {
@@ -799,11 +799,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Opaque token for cursor-based pagination.
-     * Empty string or omitted for the first page.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
-     * <code>string page_token = 3 [json_name = "pageToken"];</code>
+     * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
      * @return The bytes for pageToken.
      */
     public com.google.protobuf.ByteString
@@ -821,11 +821,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Opaque token for cursor-based pagination.
-     * Empty string or omitted for the first page.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
-     * <code>string page_token = 3 [json_name = "pageToken"];</code>
+     * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
      * @param value The pageToken to set.
      * @return This builder for chaining.
      */
@@ -839,11 +839,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Opaque token for cursor-based pagination.
-     * Empty string or omitted for the first page.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
-     * <code>string page_token = 3 [json_name = "pageToken"];</code>
+     * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
     public Builder clearPageToken() {
@@ -854,11 +854,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Opaque token for cursor-based pagination.
-     * Empty string or omitted for the first page.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
-     * <code>string page_token = 3 [json_name = "pageToken"];</code>
+     * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for pageToken to set.
      * @return This builder for chaining.
      */
@@ -875,11 +875,11 @@ private static final long serialVersionUID = 0L;
     private int pageSize_ ;
     /**
      * <pre>
-     * Maximum number of versions to return per page.
-     * Server may return fewer. Default is 50.
+     * The most entries to return: 0 asks for the default page of 50, and a
+     * size above 100 is read as 100.
      * </pre>
      *
-     * <code>int32 page_size = 4 [json_name = "pageSize"];</code>
+     * <code>int32 page_size = 4 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
      * @return The pageSize.
      */
     @java.lang.Override
@@ -888,11 +888,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Maximum number of versions to return per page.
-     * Server may return fewer. Default is 50.
+     * The most entries to return: 0 asks for the default page of 50, and a
+     * size above 100 is read as 100.
      * </pre>
      *
-     * <code>int32 page_size = 4 [json_name = "pageSize"];</code>
+     * <code>int32 page_size = 4 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
      * @param value The pageSize to set.
      * @return This builder for chaining.
      */
@@ -905,11 +905,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Maximum number of versions to return per page.
-     * Server may return fewer. Default is 50.
+     * The most entries to return: 0 asks for the default page of 50, and a
+     * size above 100 is read as 100.
      * </pre>
      *
-     * <code>int32 page_size = 4 [json_name = "pageSize"];</code>
+     * <code>int32 page_size = 4 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
     public Builder clearPageSize() {
