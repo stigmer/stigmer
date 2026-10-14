@@ -28,7 +28,9 @@ import {
   dialedUrlOf,
   DuplicateServerNameError,
   entryToResolved,
+  describeServerHome,
   resolveTurnServers,
+  sameServerHome,
 } from "../mcp-resolver.js";
 import { toolValuesKey, type ToolValueGroup } from "../run-values.js";
 import { McpTransportError } from "../mcp-transport-guard.js";
@@ -424,5 +426,29 @@ describe("resolveTurnServers: the servers the agent writes itself", () => {
   it("counts among the servers the agent declared", () => {
     const tools = new Map([[toolValuesKey("agent", "agt_helper", "zendesk"), { url: ZENDESK_URL, values: { ZENDESK_KEY: "zd-key" } }]]);
     expect(declaredServerCount(resolveFor(tools))).toBe(2);
+  });
+});
+
+describe("a server's home", () => {
+  const plugin = { kind: "plugin", pluginId: "plg_1", plugin: "linear", server: "api" } as const;
+  const agent = { kind: "agent", agentId: "agt_1", subagent: null, server: "zendesk" } as const;
+  const sub = { kind: "agent", agentId: "agt_2", subagent: "triage", server: "zendesk" } as const;
+  const platform = { kind: "platform" } as const;
+
+  it("is described in a sentence for each kind", () => {
+    expect(describeServerHome(plugin, "plugin_linear_api")).toBe("plugin 'linear' server 'api'");
+    expect(describeServerHome(agent, "zendesk")).toBe("the agent's own server 'zendesk'");
+    expect(describeServerHome(sub, "zendesk")).toBe("subagent 'triage''s own server 'zendesk'");
+    expect(describeServerHome(platform, "stigmer-memory")).toBe("the platform's server 'stigmer-memory'");
+  });
+
+  it("is one only with the same holder and server, or both the platform's", () => {
+    expect(sameServerHome(plugin, { ...plugin })).toBe(true);
+    expect(sameServerHome(plugin, { ...plugin, pluginId: "plg_2" })).toBe(false);
+    expect(sameServerHome(agent, { ...agent })).toBe(true);
+    expect(sameServerHome(agent, sub)).toBe(false);
+    expect(sameServerHome(agent, plugin)).toBe(false);
+    expect(sameServerHome(platform, { kind: "platform" })).toBe(true);
+    expect(sameServerHome(platform, plugin)).toBe(false);
   });
 });

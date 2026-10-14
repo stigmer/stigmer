@@ -188,7 +188,8 @@ describe("buildHookEvaluator", () => {
       "A hook of the plugin 'safety' reads the variable ZENDESK_KEY, which this run keeps for its MCP server 'zendesk' " +
         "and gives neither the agent's shell nor its hooks. Give the hook a variable of its own, then run again.",
     );
-    await expect(buildHookEvaluator({ ...base, mcp: { ...base.mcp, servers: [server] } }, sink, tools, 180_000)).rejects.toThrow(sentence);
+    const platform: ResolvedMcpServer = { slug: "stigmer-memory", connectionType: "http", url: "https://bridge.example/mcp", home: { kind: "platform" } };
+    await expect(buildHookEvaluator({ ...base, mcp: { ...base.mcp, servers: [platform, server] } }, sink, tools, 180_000)).rejects.toThrow(sentence);
     await expect(buildHookEvaluator(base, sink, tools, 180_000)).rejects.toThrow(sentence);
   });
 
