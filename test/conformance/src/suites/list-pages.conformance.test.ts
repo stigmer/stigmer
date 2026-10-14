@@ -27,8 +27,14 @@
 // page_size 1: only the labelled rows come back, newest first, and no page
 // holds more than one. A page may be short, even empty, and still carry a
 // token, since the filter is each row's keep under the examine budget.
-// Plugins take no labels at push, and a list of a run's scores or a plugin's
-// evals is a runner's: the server's own list tests hold their filters.
+// Plugins take no labels at push, and the lists whose rows only a runner
+// or the edition writes take their filtered walks in the server's own
+// tests: runs and a session's runs (domain/run run.test.ts), a run's and a
+// session's scores (score.test.ts), an agent's flagged grades
+// (quality.test.ts), an agent's and a plugin's evals (each steps.test.ts),
+// service accounts (service-accounts.test.ts), child organizations
+// (children.test.ts), and Enterprise's teams, federation issuers and
+// invitations (each handlers.test.ts).
 //
 // page_size 0 asks for the default page of 50: one arm per edition proves
 // it end to end; the page loop's unit test and the list-shape inventory pin

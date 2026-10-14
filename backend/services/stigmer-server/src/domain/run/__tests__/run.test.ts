@@ -155,6 +155,7 @@ beforeAll(async () => {
     "org-summary",
     "other-org",
     "org-never-used",
+    "labelled-org",
   ]);
   ORG_ID = idOf(ORG);
   command = createClient(RunCommandController, transport);
@@ -180,6 +181,7 @@ function seedInput(overrides?: {
   startedAt?: string;
   completedAt?: string;
   createdAtMs?: number;
+  labels?: Record<string, string>;
   streamingUsage?: MessageInitShape<typeof StreamingUsageSummarySchema>;
 }): MessageInitShape<typeof RunSchema> & {
   metadata: { id: string };
@@ -195,6 +197,7 @@ function seedInput(overrides?: {
       name: slug,
       slug,
       org: overrides?.org ?? ORG_ID,
+      labels: overrides?.labels ?? {},
     },
     spec: {
       target: {
@@ -439,6 +442,50 @@ describe("get / list / listBySession over the wire", () => {
       () => query.list({ org, pageSize: -1 }),
       Code.InvalidArgument,
     );
+  });
+
+  it("list and listBySession walk only the runs carrying every label named, a page at a time", async () => {
+    const org = "labelled-org";
+    const sessionId = "ses_labelled";
+    const base = Date.parse("2026-09-03T00:00:00Z");
+    const labels = { team: "support", tier: "gold" };
+    const runAt = (i: number, runLabels: Record<string, string>) =>
+      seed(
+        seedInput({
+          org: idOf(org),
+          sessionId,
+          createdAtMs: base + i * 1000,
+          labels: runLabels,
+        }),
+      );
+    await runAt(0, {});
+    const labelled = [await runAt(1, labels), await runAt(2, labels)];
+    await runAt(3, { team: "support" });
+    labelled.push(await runAt(4, { ...labels, extra: "x" }));
+    const newestFirst = [...labelled].reverse();
+
+    async function walk(
+      read: (pageToken: string) => Promise<{ entries: { metadata?: { id: string } }[]; nextPageToken: string }>,
+    ): Promise<string[]> {
+      const walked: string[] = [];
+      let pageToken = "";
+      do {
+        const page = await read(pageToken);
+        expect(page.entries.length).toBeLessThanOrEqual(1);
+        walked.push(...page.entries.map((e) => e.metadata!.id));
+        pageToken = page.nextPageToken;
+      } while (pageToken !== "");
+      return walked;
+    }
+
+    expect(
+      await walk((pageToken) => query.list({ org, labels, pageSize: 1, pageToken })),
+    ).toEqual(newestFirst);
+    expect(
+      await walk((pageToken) =>
+        query.listBySession({ sessionId, labels, pageSize: 1, pageToken }),
+      ),
+    ).toEqual(newestFirst);
   });
 
   it("listBySession pages the session's executions one page_size at a time", async () => {
