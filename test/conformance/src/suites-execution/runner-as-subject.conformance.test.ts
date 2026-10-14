@@ -996,7 +996,9 @@ describe.skipIf(!runnerActsAsRunCreator)(
         await user.agentExecutionCommand.delete({ value: embedded.metadata!.id });
       });
       const viaEmbedding = agentSourceOf(await runSourcesOf(user, embedded.metadata!.id), "RAS_PC_KEY");
-      expect(viaEmbedding?.origin, "the key comes from the embedding vault").toBe(RunValueOrigin.VAULT);
+      expect(viaEmbedding?.origin, "the key comes from the embedding vault, the run's surface").toBe(
+        RunValueOrigin.SURFACE_VAULT,
+      );
       expect(viaEmbedding?.vaultId).toBe(team.metadata!.id);
     });
 
