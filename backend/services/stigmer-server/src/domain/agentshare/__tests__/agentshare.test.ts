@@ -1136,10 +1136,10 @@ describe("rotateShareLink", () => {
 });
 
 // ---------------------------------------------------------------------------
-// getByAgent (Go TestAgentShareController_GetByAgent).
+// listByAgent (Go TestAgentShareController_GetByAgent).
 // ---------------------------------------------------------------------------
 
-describe("getByAgent", () => {
+describe("listByAgent", () => {
   it("finds the canonical share and a renamed share", async () => {
     const agent = await createTestAgent(
       uniqueName("Get By Agent Agent"),
@@ -1152,16 +1152,16 @@ describe("getByAgent", () => {
       uniqueName("Renamed Channel");
     const second = await shares.create(renamed);
 
-    const list = await query.getByAgent({ agentId: agent.metadata!.id });
-    expect(list.totalCount).toBe(2);
-    const slugs = list.items.map((s: AgentShare) => s.metadata?.slug);
+    const list = await query.listByAgent({ agentId: agent.metadata!.id });
+    expect(list.entries).toHaveLength(2);
+    const slugs = list.entries.map((s: AgentShare) => s.metadata?.slug);
     expect(slugs).toContain(canonical.metadata!.slug);
     expect(slugs).toContain(second.metadata!.slug);
   });
 
   it("nonexistent agent yields an empty list, not an error", async () => {
-    const list = await query.getByAgent({ agentId: "agt-does-not-exist" });
-    expect(list.totalCount).toBe(0);
+    const list = await query.listByAgent({ agentId: "agt-does-not-exist" });
+    expect(list.entries).toHaveLength(0);
   });
 
   it("org scopes the list to one org's shares", async () => {
@@ -1182,12 +1182,12 @@ describe("getByAgent", () => {
       { org: "gba-bystander-org", want: 0, wantOrg: "" },
     ];
     for (const tt of cases) {
-      const list = await query.getByAgent({
+      const list = await query.listByAgent({
         agentId: agent.metadata!.id,
         org: tt.org,
       });
-      expect(list.totalCount, `org ${tt.org}`).toBe(tt.want);
-      for (const item of list.items) {
+      expect(list.entries, `org ${tt.org}`).toHaveLength(tt.want);
+      for (const item of list.entries) {
         if (tt.wantOrg !== "") {
           expect(item.metadata?.org).toBe(tt.wantOrg);
         }
@@ -1221,7 +1221,7 @@ describe("apply semantics", () => {
     expect(updated.spec?.allowedOrigins).toHaveLength(1);
 
     const list = await query.list({ org: "apply-sem-org" });
-    expect(list.totalCount).toBe(1);
+    expect(list.entries).toHaveLength(1);
   });
 });
 

@@ -1,7 +1,7 @@
 /**
  * The list-read-scope extension point (it generalizes and ABSORBS the
  * earlier execution-only read scope, whose two summary consumers now ride
- * the enumeration verb below). OSS list-shaped reads — the list/getByAgent
+ * the enumeration verb below). OSS list-shaped reads — the list/listByAgent
  * chains, apikey list, search, recent activity, the two dashboard
  * summaries — are deliberate full scans on OSS (single-user: everything
  * is yours). On a multi-tenant edition the same scans serve OTHER

@@ -48,6 +48,7 @@ import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agenti
 import { ChannelConversationCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_command_pb";
 import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_query_pb";
 import {
+  ChannelConversationCountSchema,
   ChannelConversationListSchema,
   ChannelConversationSchema,
   ConversationMediaDownloadUrlSchema,
@@ -150,10 +151,16 @@ const fakeRuntime: ChannelRuntime = {
     },
   },
   conversations: {
-    listConversations: (input, caller) => {
-      calls.push({ arm: "listConversations", caller, inputMarker: input.org });
+    list: (input, caller) => {
+      calls.push({ arm: "list", caller, inputMarker: input.org });
       return Promise.resolve(
-        create(ChannelConversationListSchema, { totalCount: 42 }),
+        create(ChannelConversationListSchema, { nextPageToken: "sentinel-42" }),
+      );
+    },
+    countConversations: (input, caller) => {
+      calls.push({ arm: "countConversations", caller, inputMarker: input.org });
+      return Promise.resolve(
+        create(ChannelConversationCountSchema, { count: 42 }),
       );
     },
     getConversation: (input, caller) => {
@@ -164,9 +171,9 @@ const fakeRuntime: ChannelRuntime = {
       });
       return Promise.resolve(create(ChannelConversationSchema));
     },
-    getTimeline: (input, caller) => {
+    listTimeline: (input, caller) => {
       calls.push({
-        arm: "getTimeline",
+        arm: "listTimeline",
         caller,
         inputMarker: input.conversationKey,
       });
@@ -427,9 +434,13 @@ describe("messaging surface — whole-method delegation", () => {
 
 describe("conversation surface — whole-method delegation", () => {
   it("delegates every query, sentinel replies riding back", async () => {
-    const list = await conversationQuery.listConversations({ org: ORG });
-    expect(list.totalCount).toBe(42);
-    expect(lastCall("listConversations").inputMarker).toBe(ORG_ID);
+    const list = await conversationQuery.list({ org: ORG });
+    expect(list.nextPageToken).toBe("sentinel-42");
+    expect(lastCall("list").inputMarker).toBe(ORG_ID);
+
+    const counted = await conversationQuery.countConversations({ org: ORG });
+    expect(counted.count).toBe(42);
+    expect(lastCall("countConversations").inputMarker).toBe(ORG_ID);
 
     await conversationQuery.getConversation({
       agentChannelId: "ach_x",
@@ -437,11 +448,11 @@ describe("conversation surface — whole-method delegation", () => {
     });
     expect(lastCall("getConversation").inputMarker).toBe("conv-1");
 
-    await conversationQuery.getTimeline({
+    await conversationQuery.listTimeline({
       agentChannelId: "ach_x",
       conversationKey: "conv-2",
     });
-    expect(lastCall("getTimeline").inputMarker).toBe("conv-2");
+    expect(lastCall("listTimeline").inputMarker).toBe("conv-2");
 
     await conversationQuery.getMediaDownloadUrl({
       agentChannelId: "ach_x",

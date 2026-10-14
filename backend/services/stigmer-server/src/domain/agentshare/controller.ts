@@ -145,7 +145,7 @@ export interface AgentShareControllerDeps {
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
-  /** The composed list read scope — list/getByAgent narrow through it; undefined = the OSS full scan. */
+  /** The composed list read scope — list/listByAgent narrow through it; undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
 }
 

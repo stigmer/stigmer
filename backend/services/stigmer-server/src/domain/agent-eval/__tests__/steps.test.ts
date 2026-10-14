@@ -725,14 +725,14 @@ describe("ListAgentEvalsByAgent", () => {
     };
     const ctx = listCtx();
     await newListAgentEvalsByAgentStep(temp.store, onlyA, silentLogger).execute(ctx);
-    expect(listed(ctx).items.map((row) => row.metadata?.id)).toEqual(["aev_a"]);
-    expect(listed(ctx).totalCount).toBe(1);
+    expect(listed(ctx).entries.map((row) => row.metadata?.id)).toEqual(["aev_a"]);
+    expect(listed(ctx).entries).toHaveLength(1);
     expect(asked.sort()).toEqual(["can_view agent_eval aev_a", "can_view agent_eval aev_b"]);
 
     asked.length = 0;
     const serverCtx = listCtx(testCallerIdentity({ origin: "in-process" }));
     await newListAgentEvalsByAgentStep(temp.store, onlyA, silentLogger).execute(serverCtx);
-    expect(listed(serverCtx).items).toHaveLength(2);
+    expect(listed(serverCtx).entries).toHaveLength(2);
     expect(asked).toEqual([]);
   });
 
@@ -786,7 +786,7 @@ describe("ListAgentEvalsByAgent", () => {
     await newListAgentEvalsByAgentStep(temp.store, { authorize: () => Promise.resolve({ kind: "allow" }) }, silentLogger).execute(
       ctx,
     );
-    const evalCase = listed(ctx).items[0]?.status?.plugins[0]?.cases[0];
+    const evalCase = listed(ctx).entries[0]?.status?.plugins[0]?.cases[0];
     expect(evalCase?.targets[0]?.withPlugin?.tries).toEqual([]);
     expect(evalCase?.targets[0]?.withPlugin?.score).toBe(1);
     expect(evalCase?.targets[0]?.withPlugin?.gradedTries).toBe(2);

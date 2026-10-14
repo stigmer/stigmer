@@ -275,7 +275,7 @@ describe("agent eval reads and deletes", () => {
     const first = await evals.create(evalOf(agent, { runs: 1 }));
     const second = await evals.create(evalOf(agent, { runs: 1 }));
     const listed = await evalQuery.listByAgent({ agentId: agent.metadata!.id });
-    expect(listed.items.map((item) => item.metadata?.id)).toEqual([second.metadata?.id, first.metadata?.id]);
+    expect(listed.entries.map((item) => item.metadata?.id)).toEqual([second.metadata?.id, first.metadata?.id]);
     expect(await evalQuery.get({ value: first.metadata!.id })).toMatchObject({ metadata: { id: first.metadata!.id } });
   });
 

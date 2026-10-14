@@ -420,7 +420,7 @@ describe("trigger — the two-level contract", () => {
     expect(err.code).toBe(Code.Unavailable);
     // No fire happened: no ledger row, no last_fire_at.
     const runs = await query.listFires({ scheduleId: id });
-    expect(runs.totalCount).toBe(0);
+    expect(runs.entries).toHaveLength(0);
     const after = await query.get({ value: id });
     expect(after.status?.lastFireAt).toBeUndefined();
   });
@@ -452,10 +452,10 @@ describe("trigger — the two-level contract", () => {
 
     // The manual fire left its terminal ledger row.
     const runs = await query.listFires({ scheduleId: id });
-    expect(runs.totalCount).toBe(1);
-    expect(runs.items[0]?.origin).toBe(ScheduleFireOrigin.MANUAL);
-    expect(runs.items[0]?.outcome).toBe(ScheduleFireOutcome.TARGET_MISSING);
-    expect(runs.items[0]?.completedAt).toBeDefined();
+    expect(runs.entries).toHaveLength(1);
+    expect(runs.entries[0]?.origin).toBe(ScheduleFireOrigin.MANUAL);
+    expect(runs.entries[0]?.outcome).toBe(ScheduleFireOutcome.TARGET_MISSING);
+    expect(runs.entries[0]?.completedAt).toBeDefined();
   });
 
   it("a PAUSED schedule is triggerable (test-then-resume) and manual fires never feed the streak", async () => {
@@ -477,7 +477,7 @@ describe("trigger — the two-level contract", () => {
   });
 });
 
-describe("queries — list, getByAgent, listFires", () => {
+describe("queries — list, listByAgent, listFires", () => {
   it("list filters by org and labels (AND), newest first", async () => {
     await command.create(
       scheduleInput({ name: "Tagged A", slug: "tagged-a", labels: { team: "ops", tier: "1" } }),
@@ -486,36 +486,36 @@ describe("queries — list, getByAgent, listFires", () => {
       scheduleInput({ name: "Tagged B", slug: "tagged-b", labels: { team: "ops" } }),
     );
     const both = await query.list({ org: "acme", labels: { team: "ops" } });
-    expect(both.items.map((s) => s.metadata?.slug)).toContain("tagged-a");
-    expect(both.items.map((s) => s.metadata?.slug)).toContain("tagged-b");
+    expect(both.entries.map((s) => s.metadata?.slug)).toContain("tagged-a");
+    expect(both.entries.map((s) => s.metadata?.slug)).toContain("tagged-b");
     // Newest first: tagged-b was created after tagged-a.
-    expect(both.items.findIndex((s) => s.metadata?.slug === "tagged-b")).toBeLessThan(
-      both.items.findIndex((s) => s.metadata?.slug === "tagged-a"),
+    expect(both.entries.findIndex((s) => s.metadata?.slug === "tagged-b")).toBeLessThan(
+      both.entries.findIndex((s) => s.metadata?.slug === "tagged-a"),
     );
 
     const one = await query.list({ org: "acme", labels: { team: "ops", tier: "1" } });
-    expect(one.items.map((s) => s.metadata?.slug)).toEqual(["tagged-a"]);
+    expect(one.entries.map((s) => s.metadata?.slug)).toEqual(["tagged-a"]);
 
     const none = await query.list({ org: "other-org", labels: {} });
-    expect(none.totalCount).toBe(0);
+    expect(none.entries).toHaveLength(0);
   });
 
-  it("getByAgent answers an empty list for an unknown agent id", async () => {
-    const result = await query.getByAgent({ agentId: "agt_missing", org: "" });
-    expect(result.totalCount).toBe(0);
-    expect(result.items).toEqual([]);
+  it("listByAgent answers an empty list for an unknown agent id", async () => {
+    const result = await query.listByAgent({ agentId: "agt_missing", org: "" });
+    expect(result.entries).toHaveLength(0);
+    expect(result.entries).toEqual([]);
   });
 
-  it("getByAgent resolves the agent by id and filters by its org+slug identity", async () => {
+  it("listByAgent lists the schedules whose agent target holds the agent's id", async () => {
     const agents = createClient(AgentQueryController, transport);
     const helper = await agents.getByReference({
       kind: ApiResourceKind.agent,
       org: "acme",
       slug: "helper",
     });
-    const result = await query.getByAgent({ agentId: helper.metadata?.id ?? "", org: "acme" });
-    expect(result.totalCount).toBeGreaterThan(0);
-    for (const item of result.items) {
+    const result = await query.listByAgent({ agentId: helper.metadata?.id ?? "", org: "acme" });
+    expect(result.entries.length).toBeGreaterThan(0);
+    for (const item of result.entries) {
       expect(
         item.spec?.target.case === "agent" ? item.spec.target.value.agentRef?.slug : "",
       ).toBe("helper");
@@ -527,7 +527,7 @@ describe("queries — list, getByAgent, listFires", () => {
     expect(err.code).toBe(Code.NotFound);
   });
 
-  it("listFires pages newest-first with 1-indexed pages (fire-identity rows via the ledger)", async () => {
+  it("listFires pages newest-first by token (fire-identity rows via the ledger)", async () => {
     const created = await command.create(scheduleInput({ name: "Paged Runs", slug: "paged-runs" }));
     const id = created.metadata?.id ?? "";
     // Three fires with distinct nominal times, inserted through the store
@@ -547,25 +547,29 @@ describe("queries — list, getByAgent, listFires", () => {
       });
     }
 
-    const pageOne = await query.listFires({ scheduleId: id, pageInfo: { size: 2, num: 1 } });
-    expect(pageOne.totalCount).toBe(3);
-    expect(pageOne.items).toHaveLength(2);
+    const pageOne = await query.listFires({ scheduleId: id, pageSize: 2 });
+    expect(pageOne.entries).toHaveLength(2);
+    expect(pageOne.nextPageToken).not.toBe("");
     // Newest first: 11:00 then 10:00.
-    expect(pageOne.items[0]?.nominalFireTime?.seconds).toBe(
+    expect(pageOne.entries[0]?.nominalFireTime?.seconds).toBe(
       BigInt(Date.parse("2026-08-25T11:00:00Z") / 1000),
     );
 
-    const pageTwo = await query.listFires({ scheduleId: id, pageInfo: { size: 2, num: 2 } });
-    expect(pageTwo.items).toHaveLength(1);
-    expect(pageTwo.items[0]?.nominalFireTime?.seconds).toBe(
+    const pageTwo = await query.listFires({
+      scheduleId: id,
+      pageSize: 2,
+      pageToken: pageOne.nextPageToken,
+    });
+    expect(pageTwo.entries).toHaveLength(1);
+    expect(pageTwo.nextPageToken).toBe("");
+    expect(pageTwo.entries[0]?.nominalFireTime?.seconds).toBe(
       BigInt(Date.parse("2026-08-25T09:00:00Z") / 1000),
     );
 
-    // A zero/absent page reads as the first (1-indexed contract).
-    const defaulted = await query.listFires({ scheduleId: id, pageInfo: { size: 2, num: 0 } });
-    expect(defaulted.items[0]?.nominalFireTime?.seconds).toBe(
-      pageOne.items[0]?.nominalFireTime?.seconds,
-    );
+    // No size reads the default page, here every fire with no token.
+    const defaulted = await query.listFires({ scheduleId: id });
+    expect(defaulted.entries).toHaveLength(3);
+    expect(defaulted.nextPageToken).toBe("");
   });
 });
 
@@ -611,7 +615,7 @@ describe("listFires — an in-flight row reads its run's live phase", () => {
     }
 
     const runs = await query.listFires({ scheduleId: id });
-    const byRun = new Map(runs.items.map((run) => [run.runId, run]));
+    const byRun = new Map(runs.entries.map((run) => [run.runId, run]));
     expect(byRun.size).toBe(runIds.length);
     expect(byRun.get("aex_live_done")).toMatchObject({
       outcome: ScheduleFireOutcome.COMPLETED,
@@ -652,7 +656,7 @@ describe("delete — teardown posture and the ledger cascade", () => {
     expect(err.code).toBe(Code.NotFound);
     // The ledger cascade ran (listFires on the deleted schedule is NOT_FOUND,
     // so assert through the store).
-    const { total } = await server.store.listScheduleFires(id, 0, 10);
+    const total = (await server.store.listScheduleFires(id, undefined, 10)).length;
     expect(total).toBe(0);
   });
 });
