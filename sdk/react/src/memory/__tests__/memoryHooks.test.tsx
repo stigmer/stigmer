@@ -53,26 +53,23 @@ beforeEach(() => vi.clearAllMocks());
 // ---------------------------------------------------------------------------
 
 describe("useMemories", () => {
-  it("fetches all memories in one cap-sized page", async () => {
-    const list = vi
-      .fn()
-      .mockResolvedValue(create(MemoryListSchema, { entries: [PROPOSED, CONFIRMED], nextPageToken: "" }));
+  it("follows every token, past a short page the read scope left empty", async () => {
+    const list = vi.fn(async (req: { pageToken: string }) =>
+      req.pageToken === ""
+        ? create(MemoryListSchema, { entries: [], nextPageToken: "page-2" })
+        : create(MemoryListSchema, { entries: [PROPOSED, CONFIRMED], nextPageToken: "" }),
+    );
     const client = { memory: { list } };
 
     const { result } = renderHook(() => useMemories("test-org"), {
       wrapper: wrapper(client),
     });
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.memories).toHaveLength(2);
+    await waitFor(() => expect(result.current.memories).toHaveLength(2));
     expect(result.current.error).toBeNull();
-    // One page of exactly the server cap fetches everything by
-    // construction — the list needs no pagination UI.
-    expect(list).toHaveBeenCalledWith(
-      expect.objectContaining({
-        org: "test-org",
-        pageSize: 100,
-      }),
+    expect(list).toHaveBeenCalledTimes(2);
+    expect(list).toHaveBeenLastCalledWith(
+      expect.objectContaining({ org: "test-org", pageSize: 100, pageToken: "page-2" }),
     );
   });
 
