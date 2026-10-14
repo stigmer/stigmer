@@ -101,7 +101,7 @@ The CLI creates keys from flags, not from a YAML file, and has no update command
 | Delete key | `ApiKeyCommandController.delete` | `can_delete` on the ApiKey resource |
 | Get key by ID | `ApiKeyQueryController.get` | `can_view` on the ApiKey resource |
 | Get key by hash | `ApiKeyQueryController.getByKeyHash` | Internal lookup with no permission check; the caller must already hold the key's hash ([#1435](https://github.com/stigmer/stigmer/issues/1435)) |
-| List all keys | `ApiKeyQueryController.findAll` | Returns the keys the caller may view (`can_view`); on a trusted-local server, every key |
+| List keys | `ApiKeyQueryController.list` | A page of the keys the caller may view (`can_view`), with a token for the next; on a trusted-local server, every key |
 
 ## Related Documentation
 

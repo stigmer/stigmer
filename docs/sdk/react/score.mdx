@@ -120,8 +120,10 @@ await rateRun({ org, runId, passed: false, comment: "picked the wrong label" });
 Data hook that fetches every score of every run in a session through
 `score.listBySession()`: a person's thumbs, the platform's run-health
 checks and an AI judge's verdict. One read serves the whole conversation
-view, so the hook walks every page of the session's scores. While a judge's grade is in progress the hook asks again on a
-capped backoff (`PENDING_POLL_FIRST_MS`), for at most
+view, so the hook walks every page of the session's scores, with no cap,
+since a session's scores grow with its runs. While a judge's grade is in
+progress the hook asks again on a capped backoff
+(`PENDING_POLL_FIRST_MS`), for at most
 `PENDING_POLL_LIMIT_MS`, and stops as soon as no grade is pending.
 
 Pass `null` to stay idle (no request): the audiences that never show

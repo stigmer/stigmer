@@ -2,7 +2,7 @@
  * Fixtures for the API key setup tour.
  *
  * The only RPC the tour's real components call is
- * `ApiKeyQueryController.findAll`, via `ApiKeyListPanel` in the idle and
+ * `ApiKeyQueryController.list`, via `ApiKeyListPanel` in the idle and
  * creating beats — and the answer is a fresh account's: no keys. The
  * empty list is tour-constant, so the router owns it (the
  * fixture-determinism rule, demos/README.md);

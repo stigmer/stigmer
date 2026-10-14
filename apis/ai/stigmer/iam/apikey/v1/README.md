@@ -48,11 +48,12 @@ spec:
 ### List API Keys
 
 ```yaml
-# POST /ai.stigmer.iam.apikey.v1.ApiKeyQueryController/findAll
-{}  # Uses identity from auth header
+# POST /ai.stigmer.iam.apikey.v1.ApiKeyQueryController/list
+pageSize: 50     # 0 asks for the default page of 50; at most 100
+pageToken: ""    # the previous response's nextPageToken, to continue
 ```
 
-**Response:** The caller's own API keys (without raw keys, only fingerprints)
+**Response:** A page of the caller's own API keys (without raw keys, only fingerprints) in `entries`, and `nextPageToken` while more follow
 
 ### Create a Service Account's API Key
 
@@ -68,11 +69,11 @@ neverExpires: true
 ### List an Account's API Keys
 
 ```yaml
-# POST /ai.stigmer.iam.apikey.v1.ApiKeyQueryController/findByAccount
-value: ida_...
+# POST /ai.stigmer.iam.apikey.v1.ApiKeyQueryController/listByAccount
+accountId: ida_...
 ```
 
-**Response:** The keys that speak for the account, for whoever may view it: a person's own, or a service account's for its organization's admins.
+**Response:** A page of the keys that speak for the account, for whoever may view it: a person's own, or a service account's for its organization's admins.
 
 ### Get API Key
 
@@ -126,7 +127,7 @@ The server's API-key module is `backend/services/stigmer-server/src/domain/apike
 - `api.proto` - ApiKey message, ApiKeyStatus
 - `spec.proto` - ApiKeySpec with hash, fingerprint, expiration
 - `command.proto` - Create, update, delete RPCs
-- `query.proto` - Get, getByKeyHash, findAll RPCs
+- `query.proto` - Get, getByKeyHash, list and listByAccount RPCs
 - `io.proto` - Wrapper messages (ApiKeys, ApiKeyId, ApiKeyHash)
 
 ## Usage Examples
