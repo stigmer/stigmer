@@ -41,6 +41,9 @@ const cursorResponse = type("ThingEventList", [
   field("next_page_token", { kind: "string" }),
 ]);
 const windowRequest = type("ListRecentThingsRequest", [field("page_size", { kind: "int32" })]);
+const tokenlessResponse = type("ThingWindow", [
+  field("entries", { kind: "array", elementType: { kind: "message", messageType: "Thing" } }),
+]);
 
 function method(name: string, input: TypeSchema, output: TypeSchema, extra: Partial<MethodSchema> = {}): MethodSchema {
   return {
@@ -58,7 +61,7 @@ function schema(services: ServiceDefinition[], types: TypeSchema[]): ServiceSche
 }
 
 describe("pagedListOf", () => {
-  const types = [pageRequest, pageResponse, cursorResponse, windowRequest];
+  const types = [pageRequest, pageResponse, cursorResponse, windowRequest, tokenlessResponse];
   const s = schema([], types);
 
   it("recognises a list in the one shape and names its entry type", () => {
@@ -70,6 +73,10 @@ describe("pagedListOf", () => {
 
   it("leaves a cursor whose response carries no entries a plain call", () => {
     expect(pagedListOf(s, method("ListEvents", pageRequest, cursorResponse))).toBeUndefined();
+  });
+
+  it("leaves a response that answers no next page token a plain call", () => {
+    expect(pagedListOf(s, method("ListWindow", pageRequest, tokenlessResponse))).toBeUndefined();
   });
 
   it("leaves a capped window with no page token a plain call", () => {
