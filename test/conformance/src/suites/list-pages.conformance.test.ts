@@ -16,7 +16,10 @@
 //     an organization, and a page may be short, even empty, under a read
 //     scope, so the walk proves the seeded rows come back once each, newest
 //     first, no page holds more than one entry, and the last page carries
-//     no token.
+//     no token;
+//   - the caller's own organizations and API keys are every one that
+//     identity ever made, hundreds on a long-lived target, so those two
+//     walks stop once the seeded rows, the newest, have come back.
 //
 // page_size 0 asks for the default page of 50: one arm per edition proves
 // it end to end; the page loop's unit test and the list-shape inventory pin
@@ -112,6 +115,31 @@ async function walk<T>(
     pageToken = page.nextPageToken;
     expect(sizes.length, "the walk ends").toBeLessThanOrEqual(MAX_PAGES);
   } while (pageToken !== "");
+  return { ids, sizes };
+}
+
+/**
+ * Follows a caller-wide list's tokens until every `seeded` id has come back.
+ * A caller's organizations and keys are every one that identity ever made,
+ * which on a long-lived target is hundreds, so reading to the last page
+ * proves nothing more and can outrun the test. The seeded rows are the
+ * newest, so they come back first, on the walk's first pages.
+ */
+async function walkUntilSeen<T>(
+  read: (pageToken: string) => Promise<Page<T>>,
+  idOf: (entry: T) => string,
+  seeded: readonly string[],
+): Promise<Walk> {
+  const ids: string[] = [];
+  const sizes: number[] = [];
+  let pageToken = "";
+  do {
+    const page = await read(pageToken);
+    sizes.push(page.entries.length);
+    ids.push(...page.entries.map(idOf));
+    pageToken = page.nextPageToken;
+    expect(sizes.length, "the walk reaches the seeded rows").toBeLessThanOrEqual(MAX_PAGES);
+  } while (pageToken !== "" && !seeded.every((id) => ids.includes(id)));
   return { ids, sizes };
 }
 
@@ -484,9 +512,10 @@ describe("List conformance — an organization's lists walk every seeded row onc
       return key.metadata!.id;
     });
 
-    const walked = await walk(
+    const walked = await walkUntilSeen(
       (pageToken) => clients.apiKeyQuery.list({ pageSize: 1, pageToken }),
       (entry) => entry.metadata!.id,
+      seeded,
     );
     expectSeededWalk(walked, seeded);
   });
@@ -502,9 +531,10 @@ describe("List conformance — an organization's lists walk every seeded row onc
       return created.metadata!.id;
     });
 
-    const walked = await walk(
+    const walked = await walkUntilSeen(
       (pageToken) => clients.organizationQuery.listMine({ pageSize: 1, pageToken }),
       (entry) => entry.metadata!.id,
+      seeded,
     );
     expectSeededWalk(walked, seeded);
   });
