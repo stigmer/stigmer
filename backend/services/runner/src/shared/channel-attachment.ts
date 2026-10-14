@@ -42,6 +42,7 @@ import type {
   ChannelTemplate,
   MessagingChannel,
 } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+import { CHANNELS_MCP_SERVER } from "@stigmer/tool-vocabulary";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
 import { grpcTarget, SERVER_ADDRESS_ENV_KEY } from "./platform-server-address.js";
@@ -59,7 +60,7 @@ import {
  * below is the cross-repo string, pinned on both sides (the
  * TOOL_CALL_LIMIT precedent).
  */
-export const CHANNEL_ATTACHMENT_SLUG = "stigmer-channels";
+export const CHANNEL_ATTACHMENT_SLUG = CHANNELS_MCP_SERVER;
 
 /** The bridge route serving the channels-only roster (the mcp-server's). */
 export const CHANNELS_ROUTE = "/channels";

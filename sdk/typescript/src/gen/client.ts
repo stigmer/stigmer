@@ -95,7 +95,7 @@ export class GeneratedClient {
 
 // Re-export all resource client types and input types.
 export { AgentClient } from "./agent.js";
-export { type AgentInput, type EnvVarDeclarationInput, type HookSourceInput, type HookConfigInput, type HookGroupInput, type HookHandlerInput, type RunConfigInput } from "./agent.js";
+export { type AgentInput, type EnvVarDeclarationInput, type HookSourceInput, type HookConfigInput, type HookGroupInput, type HookHandlerInput, type RunConfigInput, type AgentMcpServerInput } from "./agent.js";
 export { AgentChannelClient } from "./agentchannel.js";
 export { type AgentChannelInput, type SlackChannelConfigInput, type WhatsAppChannelConfigInput } from "./agentchannel.js";
 export { AgentEvalClient } from "./agenteval.js";

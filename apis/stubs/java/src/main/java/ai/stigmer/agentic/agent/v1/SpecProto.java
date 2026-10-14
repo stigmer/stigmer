@@ -37,6 +37,16 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agent_v1_AgentSpec_EnvEntry_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agent_v1_AgentMcpServer_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agent_v1_AgentMcpServer_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agent_v1_AgentMcpServer_HeadersEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agent_v1_AgentMcpServer_HeadersEntry_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_agent_v1_HookSource_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -59,7 +69,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "roto\0322ai/stigmer/commons/apiresource/fie" +
       "ld_options.proto\032\'ai/stigmer/commons/api" +
       "resource/io.proto\032\033buf/validate/validate" +
-      ".proto\"\306\t\n\tAgentSpec\022 \n\013description\030\001 \001(" +
+      ".proto\"\236\n\n\tAgentSpec\022 \n\013description\030\001 \001(" +
       "\tR\013description\022\031\n\010icon_url\030\002 \001(\tR\007iconUr" +
       "l\022+\n\014instructions\030\003 \001(\tB\007\272H\004r\002\020\nR\014instru" +
       "ctions\022Y\n\nskill_refs\030\005 \003(\01324.ai.stigmer." +
@@ -84,19 +94,29 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "mmons.apiresource.ApiResourceReferenceB\004" +
       "\340\205,:R\007plugins\022`\n\tsubagents\030\021 \003(\01324.ai.st" +
       "igmer.commons.apiresource.ApiResourceRef" +
-      "erenceB\014\272H\005\222\001\002\020\024\340\205,(R\tsubagents\032f\n\010EnvEn" +
-      "try\022\020\n\003key\030\001 \001(\tR\003key\022D\n\005value\030\002 \001(\0132..a" +
-      "i.stigmer.agentic.vault.v1.EnvVarDeclara" +
-      "tionR\005value:\0028\001J\004\010\004\020\005J\004\010\006\020\007J\004\010\010\020\tJ\004\010\t\020\nJ" +
-      "\004\010\017\020\020R\021mcp_server_usagesR\nsub_agentsR\007sh" +
-      "aringR\020datastore_usagesR\006vaults\"o\n\nHookS" +
-      "ource\022B\n\006inline\030\002 \001(\0132(.ai.stigmer.agent" +
-      "ic.plugin.v1.HookConfigH\000R\006inlineB\017\n\006sou" +
-      "rce\022\005\272H\002\010\001J\004\010\001\020\002R\006pluginB\234\001B\tSpecProtoP\001" +
-      "\242\002\004ASAA\252\002\033Ai.Stigmer.Agentic.Agent.V1\312\002\033" +
-      "Ai\\Stigmer\\Agentic\\Agent\\V1\342\002\'Ai\\Stigmer" +
-      "\\Agentic\\Agent\\V1\\GPBMetadata\352\002\037Ai::Stig" +
-      "mer::Agentic::Agent::V1b\006proto3"
+      "erenceB\014\272H\005\222\001\002\020\024\340\205,(R\tsubagents\022V\n\013mcp_s" +
+      "ervers\030\022 \003(\0132+.ai.stigmer.agentic.agent." +
+      "v1.AgentMcpServerB\010\272H\005\222\001\002\020\024R\nmcpServers\032" +
+      "f\n\010EnvEntry\022\020\n\003key\030\001 \001(\tR\003key\022D\n\005value\030\002" +
+      " \001(\0132..ai.stigmer.agentic.vault.v1.EnvVa" +
+      "rDeclarationR\005value:\0028\001J\004\010\004\020\005J\004\010\006\020\007J\004\010\010\020" +
+      "\tJ\004\010\t\020\nJ\004\010\017\020\020R\021mcp_server_usagesR\nsub_ag" +
+      "entsR\007sharingR\020datastore_usagesR\006vaults\"" +
+      "\256\002\n\016AgentMcpServer\0226\n\004name\030\001 \001(\tB\"\272H\037r\035\030" +
+      "?2\031^[a-z][a-z0-9-]*[a-z0-9]$R\004name\022\034\n\003ur" +
+      "l\030\002 \001(\tB\n\272H\007r\005\020\001\030\200\020R\003url\022\211\001\n\007headers\030\003 \003" +
+      "(\01328.ai.stigmer.agentic.agent.v1.AgentMc" +
+      "pServer.HeadersEntryB5\272H2\232\001/\020@\"$r\"\030\200\0022\035^" +
+      "[!#$%&\'*+.^_`|~0-9A-Za-z-]+$*\005r\003\030\200 R\007hea" +
+      "ders\032:\n\014HeadersEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024" +
+      "\n\005value\030\002 \001(\tR\005value:\0028\001\"o\n\nHookSource\022B" +
+      "\n\006inline\030\002 \001(\0132(.ai.stigmer.agentic.plug" +
+      "in.v1.HookConfigH\000R\006inlineB\017\n\006source\022\005\272H" +
+      "\002\010\001J\004\010\001\020\002R\006pluginB\234\001B\tSpecProtoP\001\242\002\004ASAA" +
+      "\252\002\033Ai.Stigmer.Agentic.Agent.V1\312\002\033Ai\\Stig" +
+      "mer\\Agentic\\Agent\\V1\342\002\'Ai\\Stigmer\\Agenti" +
+      "c\\Agent\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Ag" +
+      "entic::Agent::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -114,15 +134,27 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agent_v1_AgentSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_AgentSpec_descriptor,
-        new java.lang.String[] { "Description", "IconUrl", "Instructions", "SkillRefs", "Env", "Tools", "DisallowedTools", "Hooks", "RunConfig", "Harness", "Plugins", "Subagents", });
+        new java.lang.String[] { "Description", "IconUrl", "Instructions", "SkillRefs", "Env", "Tools", "DisallowedTools", "Hooks", "RunConfig", "Harness", "Plugins", "Subagents", "McpServers", });
     internal_static_ai_stigmer_agentic_agent_v1_AgentSpec_EnvEntry_descriptor =
       internal_static_ai_stigmer_agentic_agent_v1_AgentSpec_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_agent_v1_AgentSpec_EnvEntry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_AgentSpec_EnvEntry_descriptor,
         new java.lang.String[] { "Key", "Value", });
-    internal_static_ai_stigmer_agentic_agent_v1_HookSource_descriptor =
+    internal_static_ai_stigmer_agentic_agent_v1_AgentMcpServer_descriptor =
       getDescriptor().getMessageType(1);
+    internal_static_ai_stigmer_agentic_agent_v1_AgentMcpServer_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agent_v1_AgentMcpServer_descriptor,
+        new java.lang.String[] { "Name", "Url", "Headers", });
+    internal_static_ai_stigmer_agentic_agent_v1_AgentMcpServer_HeadersEntry_descriptor =
+      internal_static_ai_stigmer_agentic_agent_v1_AgentMcpServer_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_agentic_agent_v1_AgentMcpServer_HeadersEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agent_v1_AgentMcpServer_HeadersEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
+    internal_static_ai_stigmer_agentic_agent_v1_HookSource_descriptor =
+      getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_agent_v1_HookSource_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_HookSource_descriptor,

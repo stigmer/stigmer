@@ -111,9 +111,11 @@ import {
   agentEvalActiveDeleteMessage,
   agentEvalOrgMismatchMessage,
   agentEvalOtherPluginToolMessage,
+  agentEvalUnknownServerToolMessage,
   agentEvalUnknownPluginMessage,
 } from "./constants.js";
 import { agentEvalListIndex } from "./list-index.js";
+import { writtenServerNames } from "./written-servers.js";
 import { agentTargetOf } from "./target.js";
 import { releaseNamesOfDeleted } from "../../pipeline/steps/names.js";
 import { matchesAllLabels, sortedLabels } from "../../pipeline/steps/helpers.js";
@@ -189,7 +191,8 @@ function stashed<T>(ctx: RequestContext<typeof AgentEvalSchema>, key: string, wh
  * does not hold); a version that attaches no plugin is refused; a
  * spec.plugins slug the version does not attach is INVALID_ARGUMENT; each
  * attached plugin is resolved at the version a turn would run (NOT_FOUND
- * for one gone); spec.allow_tools may name any of their servers;
+ * for one gone); spec.allow_tools may name any of their servers and the
+ * ones the version and its subagents write (writtenServerNames);
  * spec.allow_real_servers with spec.real_mcp_servers is refused, as a
  * plugin eval's is; the id is minted here.
  */
@@ -241,9 +244,14 @@ export function newResolveAgentEvalDefaultsStep(store: Store): PipelineStep<type
           name: plugin.metadata?.name ?? "",
           servers: (plugin.status?.mcpServers ?? []).map((server) => server.name),
         })),
+        await writtenServerNames(store, versionSpec, agentOrg),
       );
       if (!allowed.ok) {
-        throw invalidArgumentError(agentEvalOtherPluginToolMessage(allowed.entry, allowed.server));
+        throw invalidArgumentError(
+          allowed.names === "plugin"
+            ? agentEvalOtherPluginToolMessage(allowed.entry, allowed.server)
+            : agentEvalUnknownServerToolMessage(allowed.entry, allowed.server),
+        );
       }
       spec.allowTools = [...allowed.tools];
       spec.agentVersion = hash;

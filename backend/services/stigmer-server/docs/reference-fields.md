@@ -126,6 +126,7 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.run.v1.RunStatus.agent_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.RunUpdateStatusInput.run_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.RunUsageSummary.run_id` | stamped id |
+| `ai.stigmer.agentic.run.v1.RunValueDeclarer.agent_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.RunValueDeclarer.plugin_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.RunValueSource.vault_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.SessionUsageSummary.session_id` | stamped id |
@@ -187,6 +188,7 @@ Rows read `| \`Message.field\` | class |`.
 |---|---|
 | `ai.stigmer.agentic.vault.v1.CreateConnectLinkInput.vault_id` | stamped id |
 | `ai.stigmer.agentic.vault.v1.PluginValues.plugin_id` | stamped id |
+| `ai.stigmer.agentic.vault.v1.ToolValues.agent_id` | stamped id |
 | `ai.stigmer.agentic.vault.v1.ToolValues.plugin_id` | stamped id |
 
 ## `ai.stigmer.commons.apiresource`

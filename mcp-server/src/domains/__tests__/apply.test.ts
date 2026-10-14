@@ -1,8 +1,9 @@
 // In-process test for the apply tools. Drives apply_agent through the full
 // MCP boundary and asserts the codegen projection (src/gen/*) reconstitutes
 // the proto correctly: metadata hoist + slug generation, the agent tool
-// lists, enum-string conversion, and ApiResourceReference kind injection for
-// the skills and plugins an agent lists.
+// lists, enum-string conversion, ApiResourceReference kind injection for
+// the skills and plugins an agent lists, and the MCP servers written in the
+// agent itself (the advertised mcp_servers item shape and its proto).
 
 import { clone } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -163,5 +164,43 @@ describe("apply tools integration", () => {
     // The echo backend returns the requested level (and no id) — no diff,
     // no follow-up.
     expect(visibilityUpdates).toHaveLength(0);
+  });
+
+  it("apply_agent advertises mcp_servers as a list of name, url and headers", async () => {
+    const { tools } = await client.listTools();
+    const applyAgent = tools.find((t) => t.name === "apply_agent");
+    const properties = applyAgent?.inputSchema.properties as
+      | Record<string, { type?: string; items?: { type?: string; properties?: Record<string, { type?: string }> } }>
+      | undefined;
+    const mcpServers = properties?.mcp_servers;
+    expect(mcpServers?.type).toBe("array");
+    expect(mcpServers?.items?.type).toBe("object");
+    const item = mcpServers?.items?.properties;
+    expect(Object.keys(item ?? {}).sort()).toEqual(["headers", "name", "url"]);
+    expect(item?.name?.type).toBe("string");
+    expect(item?.url?.type).toBe("string");
+    expect(item?.headers?.type).toBe("object");
+  });
+
+  it("apply_agent carries mcp_servers to the proto", async () => {
+    const result = await callTool("apply_agent", {
+      name: "Support Bot",
+      org: "acme",
+      instructions: "Answer tickets.",
+      mcp_servers: [
+        {
+          name: "zendesk",
+          url: "https://acme-co.zendesk.com/mcp",
+          headers: { "X-Api-Key": "${ZENDESK_KEY}" },
+        },
+      ],
+    });
+    expect(result.isError).toBeFalsy();
+
+    const servers = appliedAgent?.spec?.mcpServers ?? [];
+    expect(servers).toHaveLength(1);
+    expect(servers[0].name).toBe("zendesk");
+    expect(servers[0].url).toBe("https://acme-co.zendesk.com/mcp");
+    expect(servers[0].headers).toEqual({ "X-Api-Key": "${ZENDESK_KEY}" });
   });
 });

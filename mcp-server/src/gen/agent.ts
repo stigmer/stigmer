@@ -6,7 +6,7 @@
 import { generateSlug, enumFromString } from "./apply-runtime.js";
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentSpecSchema, HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, HookSourceSchema, AgentMcpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { HookHandlerSchema, HookGroupSchema, HookConfigSchema, HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
@@ -36,8 +36,9 @@ export const AgentInputShape = {
   hooks: z.array(z.lazy(() => HookSourceInputSchema)).optional().describe("Hooks written in this agent itself, run around its tool calls and its subagents' calls, after the hooks of the plugins it lists. A hook can refuse a call, ask a person first, or let it run without the approval it would otherwise need. Both engines run hooks in Claude Code's format and in Cursor's. On the Cursor engine, web fetch and web search reach no hook, so an agent whose PreToolUse hooks would match them runs there without those tools; a PostToolUse hook on them does not run there."),
   run_config: z.lazy(() => RunConfigInputSchema).optional().describe("The author's run defaults: the model, speed tier, thinking and run bounds a turn on this agent uses unless the message or the surface it came through sets its own (RunConfig has the rule). Versioned with the agent, so a conversation pinned to a version keeps that version's defaults. A choice here (model_name, service_tier, thinking_mode) applies only on the engine named in harness; on a conversation running the other engine only the bounds apply. A bound here is a cap: a message or a surface can lower it, never raise it. A model must be named together with harness, and must be one that engine lists; service_tier FAST and thinking_mode ENABLED need a model that engine prices or marks capable. Checked when the agent is saved."),
   harness: z.string().optional().describe("The engine this agent's run defaults were chosen for, and the engine a new conversation on this agent starts on when the person or the surface starting it names neither an engine nor a model (a turn that names a model but no engine starts on native, the engine its name was checked against). Unspecified: the platform's default engine (native). Model names belong to an engine (each lists its own), so run_config's model, tier and thinking count only on this engine. A conversation keeps the engine it started on; a later version naming another engine changes only new conversations. Allowed values: HARNESS_NATIVE, HARNESS_CURSOR."),
-  plugins: z.array(z.lazy(() => PluginInputSchema)).optional().describe("Plugins this agent uses, each whole: its skills, agents, hooks and MCP servers."),
+  plugins: z.array(z.lazy(() => PluginInputSchema)).optional().describe("Plugins this agent uses, each whole: its skills, agents, hooks and MCP servers. A server written in the agent itself goes in mcp_servers."),
   subagents: z.array(z.lazy(() => SubagentInputSchema)).optional().describe("Saved agents this agent may hand work to, each running its own instructions, model, tools, plugins, skills, hooks and values. A subagent runs as the conversation's person and on its budget, under the conversation's hooks, and cannot hand work on to another agent: an agent that lists subagents of its own is refused here. Each reference is pinned when this agent is saved: a reference without a version takes the listed agent's latest version, and one naming a tag or a version keeps that version until a later save sends the list again. At most 20."),
+  mcp_servers: z.array(z.lazy(() => AgentMcpServerInputSchema)).optional().describe("MCP servers written in this agent itself, reached over HTTP, beside the servers of the plugins it lists. At most 20. Only an organization's admins may add a server or change one's address or headers; anyone who may edit the agent may keep or remove them. A server's tools are named mcp__<name>__<tool> in tools and disallowed_tools. A run logs in with the vault connection saved at the server's address, else a vault secret named <NAME>_ACCESS_TOKEN (the server's name upper-cased, each other character written as _), which is sent to this server, or calls it with no login when there is neither; a header that names Authorization itself takes that login from its ${NAME} instead, and the run then needs it. Each ${NAME} in a header value is filled from the run's values and sent to this server only, never to the agent's shell. Header values are stored in the agent, so a secret goes in a vault and the header names it."),
 } as const;
 
 export const AgentInputSchema = z.object(AgentInputShape);
@@ -112,6 +113,13 @@ const SubagentInputSchema = z.object({
 });
 type SubagentInput = z.infer<typeof SubagentInputSchema>;
 
+const AgentMcpServerInputSchema = z.object({
+  name: z.string().optional().describe("The server's name in this agent, which names its tools mcp__<name>__<tool>: 2 to 63 lowercase letters, digits and hyphens, starting with a letter and not ending with a hyphen."),
+  url: z.string().optional().describe("The server's address: an https URL, or http on this machine."),
+  headers: z.record(z.string()).optional().describe("Headers sent with every request to this server. A value may name a run value as ${NAME}, filled when the run starts."),
+});
+type AgentMcpServerInput = z.infer<typeof AgentMcpServerInputSchema>;
+
 
 /** Build the fully-formed Agent proto from the flat MCP apply input. */
 export function agentInputToProto(input: AgentInput): Agent {
@@ -131,6 +139,7 @@ export function agentInputToProto(input: AgentInput): Agent {
   spec.harness = enumFromString(Harness, input.harness) as Harness;
   if (input.plugins !== undefined) spec.plugins = input.plugins.map(pluginInputToProto);
   if (input.subagents !== undefined) spec.subagents = input.subagents.map(subagentInputToProto);
+  if (input.mcp_servers !== undefined) spec.mcpServers = input.mcp_servers.map(agentMcpServerInputToProto);
   return Object.assign(create(AgentSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Agent",
@@ -222,5 +231,13 @@ function subagentInputToProto(input: SubagentInput) {
     kind: ApiResourceKind.agent,
     version: input.version,
   });
+}
+
+function agentMcpServerInputToProto(input: AgentMcpServerInput) {
+  const result = create(AgentMcpServerSchema);
+  if (input.name !== undefined) result.name = input.name;
+  if (input.url !== undefined) result.url = input.url;
+  if (input.headers !== undefined) result.headers = input.headers;
+  return result;
 }
 
