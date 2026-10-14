@@ -99,7 +99,7 @@ describe("PlanSection", () => {
     if (hourly.spec?.entitlements === undefined || hourly.spec.terms === undefined) throw new Error("TEAM has no terms");
     hourly.spec.entitlements.limits = create(EntitlementLimitsSchema, { includedAgentHours: 25 });
     hourly.spec.terms.perAgentHourMicros = USD / 2n;
-    client.plan.list.mockResolvedValue({ entries: [hourly, BUSINESS] });
+    client.plan.list.mockResolvedValue({ entries: [hourly, BUSINESS], nextPageToken: "" });
     renderSection(client);
     expect(within(await planOption("Team")).getByText("25 agent hours a month, then $0.50 an hour")).toBeTruthy();
     expect(within(await planOption("Business")).queryByText(/agent hour/)).toBeNull();
