@@ -85,20 +85,51 @@ message ApiResourceMetadata {
   // surfaces do this automatically).
   ApiResourceVisibility visibility = 5 [(buf.validate.field).enum.defined_only = true];
 
-  // Key-value labels for organization and filtering.
-  map<string, string> labels = 6;
+  // Key-value labels for organizing and filtering resources, in the
+  // Kubernetes form, so a label is always a valid selector.
+  // A key is an optional DNS subdomain prefix of at most 253 characters and
+  // a slash, then a name of at most 63 characters that starts and ends with
+  // a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+  // value is empty or follows the name rule. At most 64 labels.
+  map<string, string> labels = 6 [
+    (buf.validate.field).map = {
+      max_pairs: 64
+      keys: {
+        string: {
+          max_len: 317
+          pattern: "^([a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?)*/)?[A-Za-z0-9]([-A-Za-z0-9_.]{0,61}[A-Za-z0-9])?$"
+        }
+      }
+      values: {
+        string: {pattern: "^([A-Za-z0-9]([-A-Za-z0-9_.]{0,61}[A-Za-z0-9])?)?$"}
+      }
+    },
+    (buf.validate.field).cel = {
+      id: "labels.key_prefix_max_len"
+      message: "a label key's prefix is at most 253 characters"
+      expression: "this.all(k, !k.contains('/') || k.matches('^[^/]{1,253}/'))"
+    }
+  ];
 
-  // Key-value annotations for additional metadata.
-  map<string, string> annotations = 7;
+  reserved 7;
+  reserved "annotations";
 
-  // Tags for categorization.
-  repeated string tags = 8;
+  // Search words for the resource, in GitHub's topic form: lowercase
+  // letters, digits and hyphens, starting with a letter or digit, at most 50
+  // characters each. At most 20, each once.
+  repeated string tags = 8 [(buf.validate.field).repeated = {
+    max_items: 20
+    unique: true
+    items: {
+      string: {pattern: "^[a-z0-9][a-z0-9-]{0,49}$"}
+    }
+  }];
 
   // Version information for the resource.
   ApiResourceMetadataVersion version = 9;
 
   // A fingerprint of what a person edits on the resource: its spec, name,
-  // labels, tags and annotations, as stored.
+  // labels and tags, as stored.
   //
   // Send it back on update or apply to refuse the write with ABORTED
   // (ETAG_MISMATCH) when the resource changed since it was read; leave it

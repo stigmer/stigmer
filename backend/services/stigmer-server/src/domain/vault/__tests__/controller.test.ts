@@ -597,6 +597,19 @@ describe("list", () => {
     expect(anas.nextPageToken).toBe("");
   });
 
+  it("keeps only the vaults carrying every label named", async () => {
+    const labels = { team: "vault-label-filter" };
+    const tagged = await commands(ADMIN).create({
+      ...sharedInput(),
+      metadata: { ...sharedInput().metadata, labels },
+    });
+    await commands(ADMIN).create(sharedInput());
+
+    const filtered = await queries(ADMIN).list({ org: ORG, labels });
+    expect(filtered.entries.map((vault) => vault.metadata?.id)).toEqual([tagged.metadata?.id]);
+    expect(filtered.nextPageToken).toBe("");
+  });
+
   it("nobody reads another person's My vault by id, an admin included", async () => {
     const anaMine = await queries(ANA).getMine({ org: ORG });
     const failure = await failureOf(queries(ADMIN).get({ value: anaMine.metadata!.id }));

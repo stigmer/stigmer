@@ -67,10 +67,13 @@ interface ListPage {
 
 // The handler walks pages up to `limit` (0: every page), so the
 // dispatcher's slice is a no-op it keeps as the one place the flag binds.
+// `labels` is the --label filter: the server answers only resources
+// carrying every pair, each matched exactly; empty filters nothing.
 type ListFn = (
   client: Stigmer,
   org: string,
   limit: number,
+  labels: Record<string, string>,
 ) => Promise<ListPage>;
 
 // The list handlers. Every kind declaring List in the verb matrix must
@@ -81,10 +84,10 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
 >([
   [
     ApiResourceKind.organization,
-    async (client, _org, limit) => {
+    async (client, _org, limit, labels) => {
       // listMine is caller-scoped: the organizations the caller belongs to.
       const entries = await readCursorPages(limit, (pageSize, pageToken) =>
-        client.organization.listMine(create(ListMyOrganizationsInputSchema, { pageSize, pageToken })),
+        client.organization.listMine(create(ListMyOrganizationsInputSchema, { pageSize, pageToken, labels })),
       );
       return {
         schema: OrganizationSchema,
@@ -95,10 +98,10 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
   ],
   [
     ApiResourceKind.api_key,
-    async (client, _org, limit) => {
+    async (client, _org, limit, labels) => {
       // list is caller-scoped: the keys that speak for the caller.
       const entries = await readCursorPages(limit, (pageSize, pageToken) =>
-        client.apiKey.list(create(ListApiKeysInputSchema, { pageSize, pageToken })),
+        client.apiKey.list(create(ListApiKeysInputSchema, { pageSize, pageToken, labels })),
       );
       return {
         schema: ApiKeySchema,
@@ -109,9 +112,9 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
   ],
   [
     ApiResourceKind.agent_channel,
-    async (client, org, limit) => {
+    async (client, org, limit, labels) => {
       const entries = await readCursorPages(limit, (pageSize, pageToken) =>
-        client.agentChannel.list(create(ListAgentChannelsRequestSchema, { org, pageSize, pageToken })),
+        client.agentChannel.list(create(ListAgentChannelsRequestSchema, { org, pageSize, pageToken, labels })),
       );
       return {
         schema: AgentChannelSchema,
@@ -122,10 +125,10 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
   ],
   [
     ApiResourceKind.channel_app,
-    async (client, org, limit) => {
+    async (client, org, limit, labels) => {
       // `channelapp` (not `channelApp`) is a recorded SDK codegen naming quirk.
       const entries = await readCursorPages(limit, (pageSize, pageToken) =>
-        client.channelapp.list(create(ListChannelAppsInputSchema, { org, pageSize, pageToken })),
+        client.channelapp.list(create(ListChannelAppsInputSchema, { org, pageSize, pageToken, labels })),
       );
       return {
         schema: ChannelAppSchema,
@@ -136,7 +139,7 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
   ],
   [
     ApiResourceKind.schedule,
-    async (client, org, limit) => {
+    async (client, org, limit, labels) => {
       // ListSchedulesRequest requires an org (min_len 1): a server that holds
       // one fills it, and on one that holds several an unset context is
       // refused with actionable copy instead of the server's raw validation
@@ -146,7 +149,7 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
         "stigmer config context set --org <org>",
       ]);
       const entries = await readCursorPages(limit, (pageSize, pageToken) =>
-        client.schedule.list(create(ListSchedulesRequestSchema, { org, pageSize, pageToken })),
+        client.schedule.list(create(ListSchedulesRequestSchema, { org, pageSize, pageToken, labels })),
       );
       return {
         schema: ScheduleSchema,
@@ -157,7 +160,7 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
   ],
   [
     ApiResourceKind.vault,
-    async (client, org, limit) => {
+    async (client, org, limit, labels) => {
       // Vaults are never search-indexed (a person's own vault names their
       // keys), so the dedicated list answers: the caller's own vault and the
       // shared vaults they may see. The request requires an org.
@@ -166,7 +169,7 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
         "stigmer config context set --org <org>",
       ]);
       const entries = await readCursorPages(limit, (pageSize, pageToken) =>
-        client.vault.list(create(ListVaultsRequestSchema, { org, pageSize, pageToken })),
+        client.vault.list(create(ListVaultsRequestSchema, { org, pageSize, pageToken, labels })),
       );
       return {
         schema: VaultSchema,
@@ -177,12 +180,12 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
   ],
   [
     ApiResourceKind.session,
-    async (client, _org, limit) => {
+    async (client, _org, limit, labels) => {
       // The session list is caller-scoped like organization and api_key
       // above. Promoted from a bespoke pre-gate route in commands/list.ts by
       // stigmer/stigmer#469 (it had shipped working-but-unadvertised).
       const entries = await readCursorPages(limit, (pageSize, pageToken) =>
-        client.session.list(create(ListSessionsRequestSchema, { pageSize, pageToken })),
+        client.session.list(create(ListSessionsRequestSchema, { pageSize, pageToken, labels })),
       );
       return {
         schema: SessionSchema,
@@ -193,39 +196,39 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
   ],
   [
     ApiResourceKind.agent,
-    async (client, org, limit) => {
+    async (client, org, limit, labels) => {
       await requireOrganization(client, org, [
         "stigmer list agents --org <org>",
         "stigmer config context set --org <org>",
       ]);
       const entries = await readCursorPages(limit, (pageSize, pageToken) =>
-        client.agent.list(create(ListAgentsRequestSchema, { org, pageSize, pageToken })),
+        client.agent.list(create(ListAgentsRequestSchema, { org, pageSize, pageToken, labels })),
       );
       return { schema: AgentSchema, entries, table: libraryTable("agents") };
     },
   ],
   [
     ApiResourceKind.skill,
-    async (client, org, limit) => {
+    async (client, org, limit, labels) => {
       await requireOrganization(client, org, [
         "stigmer list skills --org <org>",
         "stigmer config context set --org <org>",
       ]);
       const entries = await readCursorPages(limit, (pageSize, pageToken) =>
-        client.skill.list(create(ListSkillsRequestSchema, { org, pageSize, pageToken })),
+        client.skill.list(create(ListSkillsRequestSchema, { org, pageSize, pageToken, labels })),
       );
       return { schema: SkillSchema, entries, table: libraryTable("skills") };
     },
   ],
   [
     ApiResourceKind.plugin,
-    async (client, org, limit) => {
+    async (client, org, limit, labels) => {
       await requireOrganization(client, org, [
         "stigmer list plugins --org <org>",
         "stigmer config context set --org <org>",
       ]);
       const entries = await readCursorPages(limit, (pageSize, pageToken) =>
-        client.plugin.list(create(ListPluginsRequestSchema, { org, pageSize, pageToken })),
+        client.plugin.list(create(ListPluginsRequestSchema, { org, pageSize, pageToken, labels })),
       );
       return { schema: PluginSchema, entries, table: libraryTable("plugins") };
     },
@@ -238,8 +241,9 @@ export async function listResources(
   org: string,
   limit: number,
   format: OutputFormat,
+  labels: Record<string, string> = {},
 ): Promise<string> {
-  const page = await fetchListPage(client, kind, org, limit);
+  const page = await fetchListPage(client, kind, org, limit, labels);
   // The single point where --limit binds the output (0: every entry). The
   // handler already walked at most `limit` entries, so this is a no-op;
   // binding it here rather than per-handler is what keeps the flag honest
@@ -259,12 +263,13 @@ async function fetchListPage(
   kind: ApiResourceKind,
   org: string,
   limit: number,
+  labels: Record<string, string>,
 ): Promise<ListPage> {
   const handler = LIST_HANDLERS.get(kind);
   if (handler === undefined) {
     throw new UsageError("list is not implemented for this resource type");
   }
-  return handler(client, org, limit);
+  return handler(client, org, limit, labels);
 }
 
 // Agents, skills and plugins: what a person browses a library by. The

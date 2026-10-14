@@ -11,8 +11,8 @@ import { useCursorPages } from "../internal/useCursorPages.js";
 export interface UseSessionListOptions {
   /** Sessions per page, the first and each `loadMore`. Defaults to 50; the server caps it at 100. */
   pageSize?: number;
-  /** Optional tag filter. */
-  tags?: string[];
+  /** Only sessions carrying every label given, each matched exactly. */
+  labels?: Record<string, string>;
   /**
    * Organization id to list the sessions of (a slug is also accepted). When omitted, the list spans
    * every organization the caller can view. Console pages should pass the
@@ -90,15 +90,15 @@ export function useSessionList(
 
   const pageSize = options?.pageSize ?? DEFAULT_PAGE_SIZE;
   const org = options?.org ?? "";
-  const tagsRef = useRef(options?.tags);
+  const labelsRef = useRef(options?.labels);
 
   if (
-    options?.tags !== tagsRef.current &&
-    JSON.stringify(options?.tags) !== JSON.stringify(tagsRef.current)
+    options?.labels !== labelsRef.current &&
+    JSON.stringify(options?.labels) !== JSON.stringify(labelsRef.current)
   ) {
-    tagsRef.current = options?.tags;
+    labelsRef.current = options?.labels;
   }
-  const tags = tagsRef.current;
+  const labels = labelsRef.current;
 
   const list = useCursorPages(
     (pageToken) =>
@@ -107,10 +107,10 @@ export function useSessionList(
           org,
           pageSize,
           pageToken,
-          tags: tags ?? [],
+          labels: labels ?? {},
         }),
       ),
-    [stigmer, org, pageSize, tags],
+    [stigmer, org, pageSize, labels],
     sessionIdentity,
   );
 

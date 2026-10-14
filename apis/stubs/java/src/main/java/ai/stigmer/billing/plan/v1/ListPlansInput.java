@@ -45,6 +45,18 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.billing.plan.v1.IoProto.internal_static_ai_stigmer_billing_plan_v1_ListPlansInput_descriptor;
   }
 
+  @SuppressWarnings({"rawtypes"})
+  @java.lang.Override
+  protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
+      int number) {
+    switch (number) {
+      case 4:
+        return internalGetLabels();
+      default:
+        throw new RuntimeException(
+            "Invalid map field number: " + number);
+    }
+  }
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internalGetFieldAccessorTable() {
@@ -134,6 +146,109 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int LABELS_FIELD_NUMBER = 4;
+  private static final class LabelsDefaultEntryHolder {
+    static final com.google.protobuf.MapEntry<
+        java.lang.String, java.lang.String> defaultEntry =
+            com.google.protobuf.MapEntry
+            .<java.lang.String, java.lang.String>newDefaultInstance(
+                ai.stigmer.billing.plan.v1.IoProto.internal_static_ai_stigmer_billing_plan_v1_ListPlansInput_LabelsEntry_descriptor, 
+                com.google.protobuf.WireFormat.FieldType.STRING,
+                "",
+                com.google.protobuf.WireFormat.FieldType.STRING,
+                "");
+  }
+  @SuppressWarnings("serial")
+  private com.google.protobuf.MapField<
+      java.lang.String, java.lang.String> labels_;
+  private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+  internalGetLabels() {
+    if (labels_ == null) {
+      return com.google.protobuf.MapField.emptyMapField(
+          LabelsDefaultEntryHolder.defaultEntry);
+    }
+    return labels_;
+  }
+  public int getLabelsCount() {
+    return internalGetLabels().getMap().size();
+  }
+  /**
+   * <pre>
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 4 [json_name = "labels"];</code>
+   */
+  @java.lang.Override
+  public boolean containsLabels(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    return internalGetLabels().getMap().containsKey(key);
+  }
+  /**
+   * Use {@link #getLabelsMap()} instead.
+   */
+  @java.lang.Override
+  @java.lang.Deprecated
+  public java.util.Map<java.lang.String, java.lang.String> getLabels() {
+    return getLabelsMap();
+  }
+  /**
+   * <pre>
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 4 [json_name = "labels"];</code>
+   */
+  @java.lang.Override
+  public java.util.Map<java.lang.String, java.lang.String> getLabelsMap() {
+    return internalGetLabels().getMap();
+  }
+  /**
+   * <pre>
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 4 [json_name = "labels"];</code>
+   */
+  @java.lang.Override
+  public /* nullable */
+java.lang.String getLabelsOrDefault(
+      java.lang.String key,
+      /* nullable */
+java.lang.String defaultValue) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, java.lang.String> map =
+        internalGetLabels().getMap();
+    return map.containsKey(key) ? map.get(key) : defaultValue;
+  }
+  /**
+   * <pre>
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 4 [json_name = "labels"];</code>
+   */
+  @java.lang.Override
+  public java.lang.String getLabelsOrThrow(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, java.lang.String> map =
+        internalGetLabels().getMap();
+    if (!map.containsKey(key)) {
+      throw new java.lang.IllegalArgumentException();
+    }
+    return map.get(key);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -157,6 +272,12 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pageToken_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, pageToken_);
     }
+    com.google.protobuf.GeneratedMessage
+      .serializeStringMapTo(
+        output,
+        internalGetLabels(),
+        LabelsDefaultEntryHolder.defaultEntry,
+        4);
     getUnknownFields().writeTo(output);
   }
 
@@ -176,6 +297,16 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pageToken_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, pageToken_);
+    }
+    for (java.util.Map.Entry<java.lang.String, java.lang.String> entry
+         : internalGetLabels().getMap().entrySet()) {
+      com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
+      labels__ = LabelsDefaultEntryHolder.defaultEntry.newBuilderForType()
+          .setKey(entry.getKey())
+          .setValue(entry.getValue())
+          .buildPartial();
+      size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(4, labels__);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -198,6 +329,8 @@ private static final long serialVersionUID = 0L;
         != other.getPageSize()) return false;
     if (!getPageToken()
         .equals(other.getPageToken())) return false;
+    if (!internalGetLabels().equals(
+        other.internalGetLabels())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -216,6 +349,10 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getPageSize();
     hash = (37 * hash) + PAGE_TOKEN_FIELD_NUMBER;
     hash = (53 * hash) + getPageToken().hashCode();
+    if (!internalGetLabels().getMap().isEmpty()) {
+      hash = (37 * hash) + LABELS_FIELD_NUMBER;
+      hash = (53 * hash) + internalGetLabels().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -329,6 +466,28 @@ private static final long serialVersionUID = 0L;
       return ai.stigmer.billing.plan.v1.IoProto.internal_static_ai_stigmer_billing_plan_v1_ListPlansInput_descriptor;
     }
 
+    @SuppressWarnings({"rawtypes"})
+    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
+        int number) {
+      switch (number) {
+        case 4:
+          return internalGetLabels();
+        default:
+          throw new RuntimeException(
+              "Invalid map field number: " + number);
+      }
+    }
+    @SuppressWarnings({"rawtypes"})
+    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMutableMapFieldReflection(
+        int number) {
+      switch (number) {
+        case 4:
+          return internalGetMutableLabels();
+        default:
+          throw new RuntimeException(
+              "Invalid map field number: " + number);
+      }
+    }
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
@@ -354,6 +513,7 @@ private static final long serialVersionUID = 0L;
       includeRetired_ = false;
       pageSize_ = 0;
       pageToken_ = "";
+      internalGetMutableLabels().clear();
       return this;
     }
 
@@ -396,6 +556,10 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.pageToken_ = pageToken_;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.labels_ = internalGetLabels();
+        result.labels_.makeImmutable();
+      }
     }
 
     @java.lang.Override
@@ -421,6 +585,9 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000004;
         onChanged();
       }
+      internalGetMutableLabels().mergeFrom(
+          other.internalGetLabels());
+      bitField0_ |= 0x00000008;
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -462,6 +629,15 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 26
+            case 34: {
+              com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
+              labels__ = input.readMessage(
+                  LabelsDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
+              internalGetMutableLabels().getMutableMap().put(
+                  labels__.getKey(), labels__.getValue());
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 34
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -667,6 +843,175 @@ private static final long serialVersionUID = 0L;
       pageToken_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
+      return this;
+    }
+
+    private com.google.protobuf.MapField<
+        java.lang.String, java.lang.String> labels_;
+    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+        internalGetLabels() {
+      if (labels_ == null) {
+        return com.google.protobuf.MapField.emptyMapField(
+            LabelsDefaultEntryHolder.defaultEntry);
+      }
+      return labels_;
+    }
+    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+        internalGetMutableLabels() {
+      if (labels_ == null) {
+        labels_ = com.google.protobuf.MapField.newMapField(
+            LabelsDefaultEntryHolder.defaultEntry);
+      }
+      if (!labels_.isMutable()) {
+        labels_ = labels_.copy();
+      }
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return labels_;
+    }
+    public int getLabelsCount() {
+      return internalGetLabels().getMap().size();
+    }
+    /**
+     * <pre>
+     * Only resources carrying every label given, each matched exactly (AND).
+     * A selective filter may answer short pages, even empty ones, that still
+     * carry a token.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; labels = 4 [json_name = "labels"];</code>
+     */
+    @java.lang.Override
+    public boolean containsLabels(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      return internalGetLabels().getMap().containsKey(key);
+    }
+    /**
+     * Use {@link #getLabelsMap()} instead.
+     */
+    @java.lang.Override
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, java.lang.String> getLabels() {
+      return getLabelsMap();
+    }
+    /**
+     * <pre>
+     * Only resources carrying every label given, each matched exactly (AND).
+     * A selective filter may answer short pages, even empty ones, that still
+     * carry a token.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; labels = 4 [json_name = "labels"];</code>
+     */
+    @java.lang.Override
+    public java.util.Map<java.lang.String, java.lang.String> getLabelsMap() {
+      return internalGetLabels().getMap();
+    }
+    /**
+     * <pre>
+     * Only resources carrying every label given, each matched exactly (AND).
+     * A selective filter may answer short pages, even empty ones, that still
+     * carry a token.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; labels = 4 [json_name = "labels"];</code>
+     */
+    @java.lang.Override
+    public /* nullable */
+java.lang.String getLabelsOrDefault(
+        java.lang.String key,
+        /* nullable */
+java.lang.String defaultValue) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, java.lang.String> map =
+          internalGetLabels().getMap();
+      return map.containsKey(key) ? map.get(key) : defaultValue;
+    }
+    /**
+     * <pre>
+     * Only resources carrying every label given, each matched exactly (AND).
+     * A selective filter may answer short pages, even empty ones, that still
+     * carry a token.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; labels = 4 [json_name = "labels"];</code>
+     */
+    @java.lang.Override
+    public java.lang.String getLabelsOrThrow(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, java.lang.String> map =
+          internalGetLabels().getMap();
+      if (!map.containsKey(key)) {
+        throw new java.lang.IllegalArgumentException();
+      }
+      return map.get(key);
+    }
+    public Builder clearLabels() {
+      bitField0_ = (bitField0_ & ~0x00000008);
+      internalGetMutableLabels().getMutableMap()
+          .clear();
+      return this;
+    }
+    /**
+     * <pre>
+     * Only resources carrying every label given, each matched exactly (AND).
+     * A selective filter may answer short pages, even empty ones, that still
+     * carry a token.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; labels = 4 [json_name = "labels"];</code>
+     */
+    public Builder removeLabels(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      internalGetMutableLabels().getMutableMap()
+          .remove(key);
+      return this;
+    }
+    /**
+     * Use alternate mutation accessors instead.
+     */
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, java.lang.String>
+        getMutableLabels() {
+      bitField0_ |= 0x00000008;
+      return internalGetMutableLabels().getMutableMap();
+    }
+    /**
+     * <pre>
+     * Only resources carrying every label given, each matched exactly (AND).
+     * A selective filter may answer short pages, even empty ones, that still
+     * carry a token.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; labels = 4 [json_name = "labels"];</code>
+     */
+    public Builder putLabels(
+        java.lang.String key,
+        java.lang.String value) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      if (value == null) { throw new NullPointerException("map value"); }
+      internalGetMutableLabels().getMutableMap()
+          .put(key, value);
+      bitField0_ |= 0x00000008;
+      return this;
+    }
+    /**
+     * <pre>
+     * Only resources carrying every label given, each matched exactly (AND).
+     * A selective filter may answer short pages, even empty ones, that still
+     * carry a token.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; labels = 4 [json_name = "labels"];</code>
+     */
+    public Builder putAllLabels(
+        java.util.Map<java.lang.String, java.lang.String> values) {
+      internalGetMutableLabels().getMutableMap()
+          .putAll(values);
+      bitField0_ |= 0x00000008;
       return this;
     }
 

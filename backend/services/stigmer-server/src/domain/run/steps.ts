@@ -32,6 +32,7 @@ import {
 import type { ListPage } from "../../pipeline/steps/list-page.js";
 import type { Store } from "../../store/interface.js";
 import { agentExecutionListIndex } from "./list-index.js";
+import { matchesAllLabels, sortedLabels } from "../../pipeline/steps/helpers.js";
 
 /**
  * Inter-step key for the working page AND the final RunList —
@@ -57,8 +58,8 @@ export function newValidateListRequestStep(): PipelineStep<ListDesc> {
 
 /**
  * QueryExecutionPage — one page of the request's executions: its org
- * through the index when it names one, its phase when it names one, the
- * read scope last (with no scope composed, every matching
+ * through the index when it names one, its phase and labels when it names
+ * them (each row's keep), the read scope last (with no scope composed, every matching
  * execution — the OSS single-user posture).
  */
 export function newQueryExecutionPageStep(
@@ -79,13 +80,14 @@ export function newQueryExecutionPageStep(
           lane: "agentExecution.list",
           org: input.org,
           phase: input.phase,
-          tags: input.tags,
+          labels: sortedLabels(input.labels),
         }),
         decode: (data) => decodeExecution(data, logger),
         keep: (execution) =>
-          input.phase === RunPhase.RUN_PHASE_UNSPECIFIED ||
-          (execution.status?.phase ??
-            RunPhase.RUN_PHASE_UNSPECIFIED) === input.phase,
+          (input.phase === RunPhase.RUN_PHASE_UNSPECIFIED ||
+            (execution.status?.phase ??
+              RunPhase.RUN_PHASE_UNSPECIFIED) === input.phase) &&
+          matchesAllLabels(execution.metadata?.labels ?? {}, input.labels),
         scope: (executions) =>
           restrictListByReadScope(
             listReadScope,
@@ -137,8 +139,11 @@ export function newQueryExecutionsBySessionStep(
         fingerprint: listPageFingerprint({
           lane: "agentExecution.listBySession",
           sessionId,
+          labels: sortedLabels(ctx.input.labels),
         }),
         decode: (data) => decodeExecution(data, logger),
+        keep: (execution) =>
+          matchesAllLabels(execution.metadata?.labels ?? {}, ctx.input.labels),
         scope: (executions) =>
           restrictListByReadScope(
             listReadScope,

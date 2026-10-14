@@ -37,11 +37,6 @@ public final class MetadataProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_commons_apiresource_ApiResourceMetadata_LabelsEntry_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_commons_apiresource_ApiResourceMetadata_AnnotationsEntry_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_commons_apiresource_ApiResourceMetadata_AnnotationsEntry_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_commons_apiresource_ApiResourceMetadataVersion_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -58,33 +53,39 @@ public final class MetadataProto extends com.google.protobuf.GeneratedFile {
       "\n-ai/stigmer/commons/apiresource/metadat" +
       "a.proto\022\036ai.stigmer.commons.apiresource\032" +
       ")ai/stigmer/commons/apiresource/enum.pro" +
-      "to\032\033buf/validate/validate.proto\"\260\005\n\023ApiR" +
+      "to\032\033buf/validate/validate.proto\"\237\007\n\023ApiR" +
       "esourceMetadata\022\037\n\004name\030\001 \001(\tB\013\272H\010r\003\030\310\001\330" +
       "\001\001R\004name\022;\n\004slug\030\002 \001(\tB\'\272H$r\037\020\002\030?2\031^[a-z" +
       "][a-z0-9-]*[a-z0-9]$\330\001\001R\004slug\022\016\n\002id\030\003 \001(" +
       "\tR\002id\022\020\n\003org\030\004 \001(\tR\003org\022_\n\nvisibility\030\005 " +
       "\001(\01625.ai.stigmer.commons.apiresource.Api" +
       "ResourceVisibilityB\010\272H\005\202\001\002\020\001R\nvisibility" +
-      "\022W\n\006labels\030\006 \003(\0132?.ai.stigmer.commons.ap" +
-      "iresource.ApiResourceMetadata.LabelsEntr" +
-      "yR\006labels\022f\n\013annotations\030\007 \003(\0132D.ai.stig" +
-      "mer.commons.apiresource.ApiResourceMetad" +
-      "ata.AnnotationsEntryR\013annotations\022\022\n\004tag" +
-      "s\030\010 \003(\tR\004tags\022T\n\007version\030\t \001(\0132:.ai.stig" +
-      "mer.commons.apiresource.ApiResourceMetad" +
-      "ataVersionR\007version\022\022\n\004etag\030\n \001(\tR\004etag\032" +
-      "9\n\013LabelsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005valu" +
-      "e\030\002 \001(\tR\005value:\0028\001\032>\n\020AnnotationsEntry\022\020" +
-      "\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\002" +
-      "8\001\"\210\001\n\032ApiResourceMetadataVersion\022\016\n\002id\030" +
-      "\001 \001(\tR\002id\022\030\n\007message\030\002 \001(\tR\007message\022.\n\023p" +
-      "revious_version_id\030\003 \001(\tR\021previousVersio" +
-      "nId\022\020\n\003tag\030\004 \001(\tR\003tagB\253\001B\rMetadataProtoP" +
-      "\001\242\002\004ASCA\252\002\036Ai.Stigmer.Commons.Apiresourc" +
-      "e\312\002\036Ai\\Stigmer\\Commons\\Apiresource\342\002*Ai\\" +
-      "Stigmer\\Commons\\Apiresource\\GPBMetadata\352" +
-      "\002!Ai::Stigmer::Commons::Apiresourceb\006pro" +
-      "to3"
+      "\022\257\003\n\006labels\030\006 \003(\0132?.ai.stigmer.commons.a" +
+      "piresource.ApiResourceMetadata.LabelsEnt" +
+      "ryB\325\002\272H\321\002\232\001\301\001\020@\"\204\001r\201\001\030\275\0022|^([a-z0-9]([-a" +
+      "-z0-9]{0,61}[a-z0-9])?(\\.[a-z0-9]([-a-z0" +
+      "-9]{0,61}[a-z0-9])?)*/)?[A-Za-z0-9]([-A-" +
+      "Za-z0-9_.]{0,61}[A-Za-z0-9])?$*6r422^([A" +
+      "-Za-z0-9]([-A-Za-z0-9_.]{0,61}[A-Za-z0-9" +
+      "])?)?$\272\001\210\001\n\031labels.key_prefix_max_len\022.a" +
+      " label key\'s prefix is at most 253 chara" +
+      "cters\032;this.all(k, !k.contains(\'/\') || k" +
+      ".matches(\'^[^/]{1,253}/\'))R\006labels\022=\n\004ta" +
+      "gs\030\010 \003(\tB)\272H&\222\001#\020\024\030\001\"\035r\0332\031^[a-z0-9][a-z0" +
+      "-9-]{0,49}$R\004tags\022T\n\007version\030\t \001(\0132:.ai." +
+      "stigmer.commons.apiresource.ApiResourceM" +
+      "etadataVersionR\007version\022\022\n\004etag\030\n \001(\tR\004e" +
+      "tag\0329\n\013LabelsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005" +
+      "value\030\002 \001(\tR\005value:\0028\001J\004\010\007\020\010R\013annotation" +
+      "s\"\210\001\n\032ApiResourceMetadataVersion\022\016\n\002id\030\001" +
+      " \001(\tR\002id\022\030\n\007message\030\002 \001(\tR\007message\022.\n\023pr" +
+      "evious_version_id\030\003 \001(\tR\021previousVersion" +
+      "Id\022\020\n\003tag\030\004 \001(\tR\003tagB\253\001B\rMetadataProtoP\001" +
+      "\242\002\004ASCA\252\002\036Ai.Stigmer.Commons.Apiresource" +
+      "\312\002\036Ai\\Stigmer\\Commons\\Apiresource\342\002*Ai\\S" +
+      "tigmer\\Commons\\Apiresource\\GPBMetadata\352\002" +
+      "!Ai::Stigmer::Commons::Apiresourceb\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -97,18 +98,12 @@ public final class MetadataProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_commons_apiresource_ApiResourceMetadata_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_commons_apiresource_ApiResourceMetadata_descriptor,
-        new java.lang.String[] { "Name", "Slug", "Id", "Org", "Visibility", "Labels", "Annotations", "Tags", "Version", "Etag", });
+        new java.lang.String[] { "Name", "Slug", "Id", "Org", "Visibility", "Labels", "Tags", "Version", "Etag", });
     internal_static_ai_stigmer_commons_apiresource_ApiResourceMetadata_LabelsEntry_descriptor =
       internal_static_ai_stigmer_commons_apiresource_ApiResourceMetadata_descriptor.getNestedType(0);
     internal_static_ai_stigmer_commons_apiresource_ApiResourceMetadata_LabelsEntry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_commons_apiresource_ApiResourceMetadata_LabelsEntry_descriptor,
-        new java.lang.String[] { "Key", "Value", });
-    internal_static_ai_stigmer_commons_apiresource_ApiResourceMetadata_AnnotationsEntry_descriptor =
-      internal_static_ai_stigmer_commons_apiresource_ApiResourceMetadata_descriptor.getNestedType(1);
-    internal_static_ai_stigmer_commons_apiresource_ApiResourceMetadata_AnnotationsEntry_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_commons_apiresource_ApiResourceMetadata_AnnotationsEntry_descriptor,
         new java.lang.String[] { "Key", "Value", });
     internal_static_ai_stigmer_commons_apiresource_ApiResourceMetadataVersion_descriptor =
       getDescriptor().getMessageType(1);

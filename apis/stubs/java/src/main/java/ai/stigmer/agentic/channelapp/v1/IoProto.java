@@ -37,6 +37,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_channelapp_v1_ListChannelAppsInput_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_channelapp_v1_ListChannelAppsInput_LabelsEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_channelapp_v1_ListChannelAppsInput_LabelsEntry_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_channelapp_v1_UpdateChannelAppInput_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -57,25 +62,28 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "rotobuf/field_mask.proto\"}\n\013ChannelApps\022" +
       "F\n\007entries\030\001 \003(\0132,.ai.stigmer.agentic.ch" +
       "annelapp.v1.ChannelAppR\007entries\022&\n\017next_" +
-      "page_token\030\002 \001(\tR\rnextPageToken\"\200\001\n\024List" +
+      "page_token\030\002 \001(\tR\rnextPageToken\"\227\002\n\024List" +
       "ChannelAppsInput\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003" +
       "org\022$\n\tpage_size\030\002 \001(\005B\007\272H\004\032\002(\000R\010pageSiz" +
       "e\022\'\n\npage_token\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageTok" +
-      "en\"\364\002\n\025UpdateChannelAppInput\022P\n\010resource" +
-      "\030\001 \001(\0132,.ai.stigmer.agentic.channelapp.v" +
-      "1.ChannelAppB\006\272H\003\330\001\003R\010resource\022C\n\013update" +
-      "_mask\030\002 \001(\0132\032.google.protobuf.FieldMaskB" +
-      "\006\272H\003\310\001\001R\nupdateMask:\303\001\272H\277\001\032\274\001\n\027update_na" +
-      "mes_its_target\022Kresource.metadata.id is " +
-      "required: an update names the channel ap" +
-      "p by its id\032Thas(this.resource) && has(t" +
-      "his.resource.metadata) && this.resource." +
-      "metadata.id != \'\'B\256\001B\007IoProtoP\001\242\002\004ASAC\252\002" +
-      " Ai.Stigmer.Agentic.Channelapp.V1\312\002 Ai\\S" +
-      "tigmer\\Agentic\\Channelapp\\V1\342\002,Ai\\Stigme" +
-      "r\\Agentic\\Channelapp\\V1\\GPBMetadata\352\002$Ai" +
-      "::Stigmer::Agentic::Channelapp::V1b\006prot" +
-      "o3"
+      "en\022Z\n\006labels\030\004 \003(\0132B.ai.stigmer.agentic." +
+      "channelapp.v1.ListChannelAppsInput.Label" +
+      "sEntryR\006labels\0329\n\013LabelsEntry\022\020\n\003key\030\001 \001" +
+      "(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\"\364\002\n\025Up" +
+      "dateChannelAppInput\022P\n\010resource\030\001 \001(\0132,." +
+      "ai.stigmer.agentic.channelapp.v1.Channel" +
+      "AppB\006\272H\003\330\001\003R\010resource\022C\n\013update_mask\030\002 \001" +
+      "(\0132\032.google.protobuf.FieldMaskB\006\272H\003\310\001\001R\n" +
+      "updateMask:\303\001\272H\277\001\032\274\001\n\027update_names_its_t" +
+      "arget\022Kresource.metadata.id is required:" +
+      " an update names the channel app by its " +
+      "id\032Thas(this.resource) && has(this.resou" +
+      "rce.metadata) && this.resource.metadata." +
+      "id != \'\'B\256\001B\007IoProtoP\001\242\002\004ASAC\252\002 Ai.Stigm" +
+      "er.Agentic.Channelapp.V1\312\002 Ai\\Stigmer\\Ag" +
+      "entic\\Channelapp\\V1\342\002,Ai\\Stigmer\\Agentic" +
+      "\\Channelapp\\V1\\GPBMetadata\352\002$Ai::Stigmer" +
+      "::Agentic::Channelapp::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -95,7 +103,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_channelapp_v1_ListChannelAppsInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_channelapp_v1_ListChannelAppsInput_descriptor,
-        new java.lang.String[] { "Org", "PageSize", "PageToken", });
+        new java.lang.String[] { "Org", "PageSize", "PageToken", "Labels", });
+    internal_static_ai_stigmer_agentic_channelapp_v1_ListChannelAppsInput_LabelsEntry_descriptor =
+      internal_static_ai_stigmer_agentic_channelapp_v1_ListChannelAppsInput_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_agentic_channelapp_v1_ListChannelAppsInput_LabelsEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_channelapp_v1_ListChannelAppsInput_LabelsEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
     internal_static_ai_stigmer_agentic_channelapp_v1_UpdateChannelAppInput_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_channelapp_v1_UpdateChannelAppInput_fieldAccessorTable = new

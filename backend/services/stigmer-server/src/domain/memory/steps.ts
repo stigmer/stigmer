@@ -80,6 +80,7 @@ import {
   MEMORY_SUBJECT_IMMUTABLE_MESSAGE,
   memoryDisabledMessage,
 } from "./constants.js";
+import { matchesAllLabels, sortedLabels } from "../../pipeline/steps/helpers.js";
 
 /** Context key for the list result — Go listResultKey. */
 export const LIST_RESULT_KEY = "listResult";
@@ -628,8 +629,14 @@ export function newListMemoriesByOrgStep(
         declaration: memoryListIndex,
         query: { org },
         request: ctx.input,
-        fingerprint: listPageFingerprint({ lane: "memory.list", org }),
+        fingerprint: listPageFingerprint({
+          lane: "memory.list",
+          org,
+          labels: sortedLabels(ctx.input.labels),
+        }),
         decode: decodeOrSkip<Memory>(MemorySchema),
+        keep: (memory) =>
+          matchesAllLabels(memory.metadata?.labels ?? {}, ctx.input.labels),
         scope: (memories) =>
           restrictListByReadScope(
             listReadScope,

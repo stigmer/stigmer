@@ -157,6 +157,22 @@
           "validation": {
             "maxLength": 1024
           }
+        },
+        {
+          "name": "Labels",
+          "jsonName": "labels",
+          "protoField": "labels",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "string"
+            }
+          },
+          "description": "Only resources carrying every label given, each matched exactly (AND).\n A selective filter may answer short pages, even empty ones, that still\n carry a token.",
+          "required": false
         }
       ]
     },
@@ -233,6 +249,22 @@
           "validation": {
             "maxLength": 1024
           }
+        },
+        {
+          "name": "Labels",
+          "jsonName": "labels",
+          "protoField": "labels",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "string"
+            }
+          },
+          "description": "Only resources carrying every label given, each matched exactly (AND).\n A selective filter may answer short pages, even empty ones, that still\n carry a token.",
+          "required": false
         }
       ]
     },
@@ -431,6 +463,22 @@
           "validation": {
             "maxLength": 1024
           }
+        },
+        {
+          "name": "Labels",
+          "jsonName": "labels",
+          "protoField": "labels",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "string"
+            }
+          },
+          "description": "Only resources carrying every label given, each matched exactly (AND).\n A selective filter may answer short pages, even empty ones, that still\n carry a token.",
+          "required": false
         }
       ]
     }

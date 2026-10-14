@@ -996,6 +996,26 @@ describe("reads", () => {
     expect(rest.nextPageToken).toBe("");
   });
 
+  it("list walks only the issuers carrying every label named, a page at a time", async () => {
+    const r = rig();
+    const labels = { group: "on-call", tier: "gold" };
+    const plan: Record<string, string>[] = [{}, labels, { group: "on-call" }, { ...labels, extra: "x" }];
+    for (const [i, issuerLabels] of plan.entries()) {
+      const issuer = storedIssuer({ id: `fis_lbl_${i}`, org: "acme", slug: `labelled-${i}`, createdAt: new Date(Date.UTC(2026, 8, 25, 11, i)) });
+      issuer.metadata!.labels = issuerLabels;
+      await r.store.insert(issuer);
+    }
+    const read: string[] = [];
+    let pageToken = "";
+    do {
+      const page = await r.queries.list({ org: "acme", labels, pageSize: 1, pageToken });
+      expect(page.entries.length).toBeLessThanOrEqual(1);
+      read.push(...page.entries.map((row) => row.metadata?.id ?? ""));
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
+    expect(read).toEqual(["fis_lbl_3", "fis_lbl_1"]);
+  });
+
   it("list refuses a token issued for another organization's list", async () => {
     const r = rig();
     await seedProviders(r, 3);

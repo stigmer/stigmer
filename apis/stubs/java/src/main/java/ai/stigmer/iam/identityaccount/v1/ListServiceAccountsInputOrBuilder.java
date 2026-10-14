@@ -62,4 +62,68 @@ public interface ListServiceAccountsInputOrBuilder extends
    */
   com.google.protobuf.ByteString
       getPageTokenBytes();
+
+  /**
+   * <pre>
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 5 [json_name = "labels"];</code>
+   */
+  int getLabelsCount();
+  /**
+   * <pre>
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 5 [json_name = "labels"];</code>
+   */
+  boolean containsLabels(
+      java.lang.String key);
+  /**
+   * Use {@link #getLabelsMap()} instead.
+   */
+  @java.lang.Deprecated
+  java.util.Map<java.lang.String, java.lang.String>
+  getLabels();
+  /**
+   * <pre>
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 5 [json_name = "labels"];</code>
+   */
+  java.util.Map<java.lang.String, java.lang.String>
+  getLabelsMap();
+  /**
+   * <pre>
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 5 [json_name = "labels"];</code>
+   */
+  /* nullable */
+java.lang.String getLabelsOrDefault(
+      java.lang.String key,
+      /* nullable */
+java.lang.String defaultValue);
+  /**
+   * <pre>
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 5 [json_name = "labels"];</code>
+   */
+  java.lang.String getLabelsOrThrow(
+      java.lang.String key);
 }

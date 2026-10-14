@@ -645,6 +645,26 @@ describe("reads", () => {
     expect(rest.nextPageToken).toBe("");
   });
 
+  it("list walks only the teams carrying every label named, a page at a time", async () => {
+    const r = rig();
+    const labels = { group: "on-call", tier: "gold" };
+    const plan: Record<string, string>[] = [{}, labels, { group: "on-call" }, { ...labels, extra: "x" }];
+    for (const [i, teamLabels] of plan.entries()) {
+      const team = storedTeam({ id: `tm_lbl_${i}`, org: "acme", slug: `labelled-${i}`, createdAt: new Date(Date.UTC(2026, 8, 24, 11, i)) });
+      team.metadata!.labels = teamLabels;
+      await r.seed(team);
+    }
+    const read: string[] = [];
+    let pageToken = "";
+    do {
+      const page = await r.queries.list({ org: "acme", labels, pageSize: 1, pageToken });
+      expect(page.entries.length).toBeLessThanOrEqual(1);
+      read.push(...page.entries.map((row) => row.metadata?.id ?? ""));
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
+    expect(read).toEqual(["tm_lbl_3", "tm_lbl_1"]);
+  });
+
   it("list refuses a token issued for another organization's list", async () => {
     const r = rig();
     await seedTeams(r, 3);

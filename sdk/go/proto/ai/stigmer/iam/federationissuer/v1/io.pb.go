@@ -136,7 +136,11 @@ type ListFederationIssuersInput struct {
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
-	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Only resources carrying every label given, each matched exactly (AND).
+	// A selective filter may answer short pages, even empty ones, that still
+	// carry a token.
+	Labels        map[string]string `protobuf:"bytes,4,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -190,6 +194,13 @@ func (x *ListFederationIssuersInput) GetPageToken() string {
 		return x.PageToken
 	}
 	return ""
+}
+
+func (x *ListFederationIssuersInput) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
 }
 
 // The changes an update makes to a federation issuer: the fields update_mask names,
@@ -261,12 +272,16 @@ const file_ai_stigmer_iam_federationissuer_v1_io_proto_rawDesc = "" +
 	"\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"\x8b\x01\n" +
 	"\x11FederationIssuers\x12N\n" +
 	"\aentries\x18\x01 \x03(\v24.ai.stigmer.iam.federationissuer.v1.FederationIssuerR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x86\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa5\x02\n" +
 	"\x1aListFederationIssuersInput\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
 	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x88\x03\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12b\n" +
+	"\x06labels\x18\x04 \x03(\v2J.ai.stigmer.iam.federationissuer.v1.ListFederationIssuersInput.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x88\x03\n" +
 	"\x1bUpdateFederationIssuerInput\x12X\n" +
 	"\bresource\x18\x01 \x01(\v24.ai.stigmer.iam.federationissuer.v1.FederationIssuerB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
@@ -286,24 +301,26 @@ func file_ai_stigmer_iam_federationissuer_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_federationissuer_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_federationissuer_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_ai_stigmer_iam_federationissuer_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_ai_stigmer_iam_federationissuer_v1_io_proto_goTypes = []any{
 	(*FederationIssuerId)(nil),          // 0: ai.stigmer.iam.federationissuer.v1.FederationIssuerId
 	(*FederationIssuers)(nil),           // 1: ai.stigmer.iam.federationissuer.v1.FederationIssuers
 	(*ListFederationIssuersInput)(nil),  // 2: ai.stigmer.iam.federationissuer.v1.ListFederationIssuersInput
 	(*UpdateFederationIssuerInput)(nil), // 3: ai.stigmer.iam.federationissuer.v1.UpdateFederationIssuerInput
-	(*FederationIssuer)(nil),            // 4: ai.stigmer.iam.federationissuer.v1.FederationIssuer
-	(*fieldmaskpb.FieldMask)(nil),       // 5: google.protobuf.FieldMask
+	nil,                                 // 4: ai.stigmer.iam.federationissuer.v1.ListFederationIssuersInput.LabelsEntry
+	(*FederationIssuer)(nil),            // 5: ai.stigmer.iam.federationissuer.v1.FederationIssuer
+	(*fieldmaskpb.FieldMask)(nil),       // 6: google.protobuf.FieldMask
 }
 var file_ai_stigmer_iam_federationissuer_v1_io_proto_depIdxs = []int32{
-	4, // 0: ai.stigmer.iam.federationissuer.v1.FederationIssuers.entries:type_name -> ai.stigmer.iam.federationissuer.v1.FederationIssuer
-	4, // 1: ai.stigmer.iam.federationissuer.v1.UpdateFederationIssuerInput.resource:type_name -> ai.stigmer.iam.federationissuer.v1.FederationIssuer
-	5, // 2: ai.stigmer.iam.federationissuer.v1.UpdateFederationIssuerInput.update_mask:type_name -> google.protobuf.FieldMask
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	5, // 0: ai.stigmer.iam.federationissuer.v1.FederationIssuers.entries:type_name -> ai.stigmer.iam.federationissuer.v1.FederationIssuer
+	4, // 1: ai.stigmer.iam.federationissuer.v1.ListFederationIssuersInput.labels:type_name -> ai.stigmer.iam.federationissuer.v1.ListFederationIssuersInput.LabelsEntry
+	5, // 2: ai.stigmer.iam.federationissuer.v1.UpdateFederationIssuerInput.resource:type_name -> ai.stigmer.iam.federationissuer.v1.FederationIssuer
+	6, // 3: ai.stigmer.iam.federationissuer.v1.UpdateFederationIssuerInput.update_mask:type_name -> google.protobuf.FieldMask
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_federationissuer_v1_io_proto_init() }
@@ -318,7 +335,7 @@ func file_ai_stigmer_iam_federationissuer_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_federationissuer_v1_io_proto_rawDesc), len(file_ai_stigmer_iam_federationissuer_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

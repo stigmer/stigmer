@@ -23,11 +23,20 @@ class Plans(_message.Message):
     def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.Plan, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
 
 class ListPlansInput(_message.Message):
-    __slots__ = ("include_retired", "page_size", "page_token")
+    __slots__ = ("include_retired", "page_size", "page_token", "labels")
+    class LabelsEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
     INCLUDE_RETIRED_FIELD_NUMBER: _ClassVar[int]
     PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
     PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    LABELS_FIELD_NUMBER: _ClassVar[int]
     include_retired: bool
     page_size: int
     page_token: str
-    def __init__(self, include_retired: bool = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
+    labels: _containers.ScalarMap[str, str]
+    def __init__(self, include_retired: bool = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ...) -> None: ...

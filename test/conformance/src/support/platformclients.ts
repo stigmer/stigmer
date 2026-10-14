@@ -35,6 +35,8 @@ export interface PlatformClientOptions {
   // JIT provisioning: the arms mint fresh user_ids that must not pre-exist.
   readonly createAccountsOnSignIn?: boolean;
   readonly signInRole?: IamRole;
+  // Labels the client carries, for a list's label filter.
+  readonly labels?: Readonly<Record<string, string>>;
 }
 
 // Creates a PlatformClient in the org through `clients`, answering its id
@@ -46,7 +48,11 @@ export async function createPlatformClient(
   const created = await clients.platformClientCommand.create({
     apiVersion: "iam.stigmer.ai/v1",
     kind: "PlatformClient",
-    metadata: { name: options.name, org: options.org },
+    metadata: {
+      name: options.name,
+      org: options.org,
+      ...(options.labels !== undefined ? { labels: { ...options.labels } } : {}),
+    },
     spec: {
       createAccountsOnSignIn: options.createAccountsOnSignIn ?? true,
       ...(options.signInRole !== undefined

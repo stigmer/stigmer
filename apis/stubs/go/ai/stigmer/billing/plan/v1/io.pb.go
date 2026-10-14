@@ -135,7 +135,11 @@ type ListPlansInput struct {
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
-	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Only resources carrying every label given, each matched exactly (AND).
+	// A selective filter may answer short pages, even empty ones, that still
+	// carry a token.
+	Labels        map[string]string `protobuf:"bytes,4,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -191,6 +195,13 @@ func (x *ListPlansInput) GetPageToken() string {
 	return ""
 }
 
+func (x *ListPlansInput) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
+}
+
 var File_ai_stigmer_billing_plan_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_plan_v1_io_proto_rawDesc = "" +
@@ -200,12 +211,16 @@ const file_ai_stigmer_billing_plan_v1_io_proto_rawDesc = "" +
 	"\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"k\n" +
 	"\x05Plans\x12:\n" +
 	"\aentries\x18\x01 \x03(\v2 .ai.stigmer.billing.plan.v1.PlanR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x88\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x93\x02\n" +
 	"\x0eListPlansInput\x12'\n" +
 	"\x0finclude_retired\x18\x01 \x01(\bR\x0eincludeRetired\x12$\n" +
 	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageTokenB\x82\x02\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12N\n" +
+	"\x06labels\x18\x04 \x03(\v26.ai.stigmer.billing.plan.v1.ListPlansInput.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x82\x02\n" +
 	"\x1ecom.ai.stigmer.billing.plan.v1B\aIoProtoP\x01ZJgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/billing/plan/v1;planv1\xa2\x02\x04ASBP\xaa\x02\x1aAi.Stigmer.Billing.Plan.V1\xca\x02\x1aAi\\Stigmer\\Billing\\Plan\\V1\xe2\x02&Ai\\Stigmer\\Billing\\Plan\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Billing::Plan::V1b\x06proto3"
 
 var (
@@ -220,20 +235,22 @@ func file_ai_stigmer_billing_plan_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_billing_plan_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_billing_plan_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_billing_plan_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_billing_plan_v1_io_proto_goTypes = []any{
 	(*PlanId)(nil),         // 0: ai.stigmer.billing.plan.v1.PlanId
 	(*Plans)(nil),          // 1: ai.stigmer.billing.plan.v1.Plans
 	(*ListPlansInput)(nil), // 2: ai.stigmer.billing.plan.v1.ListPlansInput
-	(*Plan)(nil),           // 3: ai.stigmer.billing.plan.v1.Plan
+	nil,                    // 3: ai.stigmer.billing.plan.v1.ListPlansInput.LabelsEntry
+	(*Plan)(nil),           // 4: ai.stigmer.billing.plan.v1.Plan
 }
 var file_ai_stigmer_billing_plan_v1_io_proto_depIdxs = []int32{
-	3, // 0: ai.stigmer.billing.plan.v1.Plans.entries:type_name -> ai.stigmer.billing.plan.v1.Plan
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	4, // 0: ai.stigmer.billing.plan.v1.Plans.entries:type_name -> ai.stigmer.billing.plan.v1.Plan
+	3, // 1: ai.stigmer.billing.plan.v1.ListPlansInput.labels:type_name -> ai.stigmer.billing.plan.v1.ListPlansInput.LabelsEntry
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_billing_plan_v1_io_proto_init() }
@@ -248,7 +265,7 @@ func file_ai_stigmer_billing_plan_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_billing_plan_v1_io_proto_rawDesc), len(file_ai_stigmer_billing_plan_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

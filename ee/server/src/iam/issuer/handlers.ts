@@ -100,6 +100,8 @@ import {
   everyPathUpdate,
   internalError,
   listPageFingerprint,
+  matchesAllLabels,
+  sortedLabels,
   loadedTargetAsMethod,
   newAuthorizeResolvedTargetStep,
   newBuildNewStateStep,
@@ -358,12 +360,13 @@ export function providerQueries(deps: FederationIssuerLaneDeps): Queries {
         ctx,
         deps,
         async (reqCtx) => {
-          const { org, pageSize, pageToken } = reqCtx.input;
+          const { org, pageSize, pageToken, labels } = reqCtx.input;
           const page = await readPage<FederationIssuer>({
             source: (after, limit) => deps.store.pageByOrg(org, after, limit),
             request: { pageSize, pageToken },
-            fingerprint: listPageFingerprint({ org }),
+            fingerprint: listPageFingerprint({ org, labels: sortedLabels(labels) }),
             decode: (data) => fromBinary(FederationIssuerSchema, data),
+            keep: (row) => matchesAllLabels(row.metadata?.labels ?? {}, labels),
             scope: (rows) =>
               restrictListByReadScope(deps.listReadScope, reqCtx.callerIdentity, KIND, rows, org),
             failure: "failed to list federation issuers",

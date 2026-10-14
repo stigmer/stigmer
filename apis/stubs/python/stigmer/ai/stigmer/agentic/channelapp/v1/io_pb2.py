@@ -27,7 +27,7 @@ from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import field_mask_pb2 as google_dot_protobuf_dot_field__mask__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/channelapp/v1/io.proto\x12 ai.stigmer.agentic.channelapp.v1\x1a*ai/stigmer/agentic/channelapp/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"}\n\x0b\x43hannelApps\x12\x46\n\x07\x65ntries\x18\x01 \x03(\x0b\x32,.ai.stigmer.agentic.channelapp.v1.ChannelAppR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x80\x01\n\x14ListChannelAppsInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\"\xf4\x02\n\x15UpdateChannelAppInput\x12P\n\x08resource\x18\x01 \x01(\x0b\x32,.ai.stigmer.agentic.channelapp.v1.ChannelAppB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xc3\x01\xbaH\xbf\x01\x1a\xbc\x01\n\x17update_names_its_target\x12Kresource.metadata.id is required: an update names the channel app by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'B\xd4\x01\n$com.ai.stigmer.agentic.channelapp.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAC\xaa\x02 Ai.Stigmer.Agentic.Channelapp.V1\xca\x02 Ai\\Stigmer\\Agentic\\Channelapp\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Channelapp\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Channelapp::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/channelapp/v1/io.proto\x12 ai.stigmer.agentic.channelapp.v1\x1a*ai/stigmer/agentic/channelapp/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"}\n\x0b\x43hannelApps\x12\x46\n\x07\x65ntries\x18\x01 \x03(\x0b\x32,.ai.stigmer.agentic.channelapp.v1.ChannelAppR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x97\x02\n\x14ListChannelAppsInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\x12Z\n\x06labels\x18\x04 \x03(\x0b\x32\x42.ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput.LabelsEntryR\x06labels\x1a\x39\n\x0bLabelsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"\xf4\x02\n\x15UpdateChannelAppInput\x12P\n\x08resource\x18\x01 \x01(\x0b\x32,.ai.stigmer.agentic.channelapp.v1.ChannelAppB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xc3\x01\xbaH\xbf\x01\x1a\xbc\x01\n\x17update_names_its_target\x12Kresource.metadata.id is required: an update names the channel app by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'B\xd4\x01\n$com.ai.stigmer.agentic.channelapp.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAC\xaa\x02 Ai.Stigmer.Agentic.Channelapp.V1\xca\x02 Ai\\Stigmer\\Agentic\\Channelapp\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Channelapp\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Channelapp::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,6 +35,8 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'ai.stigmer.agentic.channela
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n$com.ai.stigmer.agentic.channelapp.v1B\007IoProtoP\001\242\002\004ASAC\252\002 Ai.Stigmer.Agentic.Channelapp.V1\312\002 Ai\\Stigmer\\Agentic\\Channelapp\\V1\342\002,Ai\\Stigmer\\Agentic\\Channelapp\\V1\\GPBMetadata\352\002$Ai::Stigmer::Agentic::Channelapp::V1'
+  _globals['_LISTCHANNELAPPSINPUT_LABELSENTRY']._loaded_options = None
+  _globals['_LISTCHANNELAPPSINPUT_LABELSENTRY']._serialized_options = b'8\001'
   _globals['_LISTCHANNELAPPSINPUT'].fields_by_name['org']._loaded_options = None
   _globals['_LISTCHANNELAPPSINPUT'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_LISTCHANNELAPPSINPUT'].fields_by_name['page_size']._loaded_options = None
@@ -50,7 +52,9 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_CHANNELAPPS']._serialized_start=186
   _globals['_CHANNELAPPS']._serialized_end=311
   _globals['_LISTCHANNELAPPSINPUT']._serialized_start=314
-  _globals['_LISTCHANNELAPPSINPUT']._serialized_end=442
-  _globals['_UPDATECHANNELAPPINPUT']._serialized_start=445
-  _globals['_UPDATECHANNELAPPINPUT']._serialized_end=817
+  _globals['_LISTCHANNELAPPSINPUT']._serialized_end=593
+  _globals['_LISTCHANNELAPPSINPUT_LABELSENTRY']._serialized_start=536
+  _globals['_LISTCHANNELAPPSINPUT_LABELSENTRY']._serialized_end=593
+  _globals['_UPDATECHANNELAPPINPUT']._serialized_start=596
+  _globals['_UPDATECHANNELAPPINPUT']._serialized_end=968
 # @@protoc_insertion_point(module_scope)
