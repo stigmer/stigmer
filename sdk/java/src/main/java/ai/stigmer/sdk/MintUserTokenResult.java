@@ -3,10 +3,12 @@ package ai.stigmer.sdk;
 import java.time.Instant;
 
 /**
- * Result of a successful {@link PlatformClientAuth#mintUserToken} call.
+ * Result of a successful {@link TokenClient#mintUserToken} call: the minted
+ * user token and its lifetime.
  *
  * <p>Pass {@link #accessToken()} to the React SDK's {@code StigmerProvider}
  * via the {@code getAccessToken} callback to authenticate browser-based API calls.
+ * {@link #toString()} leaves the token out, so a result can be logged.
  */
 public final class MintUserTokenResult {
 
@@ -22,7 +24,7 @@ public final class MintUserTokenResult {
         this.expiresAt = expiresAt;
     }
 
-    /** Stigmer-signed JWT for browser-based API authentication. */
+    /** The token the browser sends as its Bearer credential. */
     public String accessToken() { return accessToken; }
 
     /** Token type. Always "Bearer". */

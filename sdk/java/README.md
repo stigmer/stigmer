@@ -59,7 +59,7 @@ For a CI job or a script, use a [service account's](https://stigmer.ai/docs/guid
 
 Every resource type has a typed client exposed as a public final field on
 `StigmerClient` (declared by the generated `GeneratedClient` it extends), so
-`client.agent.get(id)` reads an agent. Search and billing are methods:
+`client.agent.get(id)` reads an agent. Search, billing and tokens are methods:
 
 | Accessor                 | Resource           |
 |--------------------------|--------------------|
@@ -76,6 +76,7 @@ Every resource type has a typed client exposed as a public final field on
 | `vault`                  | Vault              |
 | `search()`               | Cross-resource search |
 | `billing()`              | Billing account, Stripe, model catalog |
+| `tokens()`               | User token minting |
 
 A vault's entries are written through its entry calls, not through `create`
 or `update`: `client.vault.setSecrets`, `setConnection`, `removeSecrets` and
@@ -177,6 +178,30 @@ try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
             .successUrl("https://example.com/billing?setup=success")
             .cancelUrl("https://example.com/billing")
             .build());
+}
+```
+
+## User Tokens
+
+A product that signs its own users in mints each person a short-lived token
+for the browser, and passes it to the React SDK's `StigmerProvider` through
+`getAccessToken`. The backend calls the token client with its ordinary API
+key, which must belong to a service account that administers the
+organization the token is for (or its parent organization). An empty org or
+user id is refused with `INVALID_ARGUMENT` before any request:
+
+```java
+import ai.stigmer.sdk.MintUserTokenInput;
+import ai.stigmer.sdk.MintUserTokenResult;
+
+try (StigmerClient client = StigmerClient.builder(System.getenv("STIGMER_API_KEY")).build()) {
+    MintUserTokenResult token = client.tokens().mintUserToken(MintUserTokenInput.builder()
+        .org("acme")
+        .userId("user-123")
+        .userEmail("jane@acme.com")
+        .userName("Jane Doe")
+        .build());
+    // token.accessToken(), token.expiresAt()
 }
 ```
 
