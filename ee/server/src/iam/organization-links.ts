@@ -2,7 +2,7 @@
  * The organization-link reconcile: at every boot, every row of an
  * organization-scoped kind this edition keeps in its own table gets back
  * the one tuple its management hangs off,
- * `<kind>:<id>#organization@organization:<org>`, when that tuple's policy
+ * `<kind>:<id>#organization@organization:<org>`, when that tuple's grant
  * row is missing. Kind-agnostic: the identity unit wires it for identity
  * providers, invitations and teams, and a host may wire it for kinds of its
  * own that carry the link.
@@ -20,7 +20,7 @@
  * lifecycle contract every create chain follows answers INTERNAL with the
  * row in place).
  *
- * The check is the exact triple, read from the row's policies as
+ * The check is the exact triple, read from the row's grants as
  * resource (`findByResource`), never "any structural row": a lookup
  * satisfied by another structural row would skip the hole it exists for,
  * a row with no organization link at all.

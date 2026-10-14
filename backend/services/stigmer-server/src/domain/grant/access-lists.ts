@@ -7,11 +7,11 @@
  *
  * The hierarchy walk climbs the resource's scope tuples (child →
  * organization → platform, at most five steps, `platform` terminal) in the
- * policy rows themselves — a structural link is a row whose principal is
+ * grant rows themselves — a structural link is a row whose principal is
  * not a person and whose relation is not a role (store.ts `findScopeTuple`
  * states the exclusions). Inherited grants carry their owning level so the
  * console can say "inherited from organization". On open source no chain
- * seeds scope links (a policy is the authorization record, not a protected
+ * seeds scope links (a grant is the authorization record, not a protected
  * resource — the Grant chains splice no tuple step), so the walk is one
  * level unless the platform's own pipeline bootstrapped a link.
  *
@@ -125,7 +125,7 @@ export interface PrincipalDisplayResolver {
 }
 
 /**
- * Groups assignable-role policies by principal in first-seen order (the
+ * Groups assignable-role grants by principal in first-seen order (the
  * Java LinkedHashMap contract), enriched where the resolver (people) or
  * the composed principal display (every other kind) answers, and the Java
  * fallback shape (name = id) everywhere else.

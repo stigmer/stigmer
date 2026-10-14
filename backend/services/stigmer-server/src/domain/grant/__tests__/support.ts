@@ -2,7 +2,7 @@
  * Test fixtures for the Grant domain: an in-memory GrantStore with
  * the primary-key semantics the OSS adapter has (a second save under a held
  * id is DuplicateGrantError), a recording lifecycle that captures the two
- * policy hooks in the order they fire beside the store's writes, and spec
+ * grant hooks in the order they fire beside the store's writes, and spec
  * builders in
  * the contract's own vocabulary. Driver-backed fixtures live with the
  * drivers (the sqlite and postgres __tests__/support modules under
@@ -296,7 +296,7 @@ function oldestChangeFirst(a: GrantChange, b: GrantChange): number {
   return a.sequence < b.sequence ? -1 : a.sequence > b.sequence ? 1 : 0;
 }
 
-/** A lifecycle that records the two policy hooks and can be told to fail either. */
+/** A lifecycle that records the two grant hooks and can be told to fail either. */
 export function recordingLifecycle(
   recorded: RecordedEvent[],
   faults: {

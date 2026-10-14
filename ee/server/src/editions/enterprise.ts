@@ -76,7 +76,7 @@
  *     own refusal of an edition above open source with no sign-in names
  *     the variable an operator sets;
  *   - the permission history: no unit registers `drivers.grantStore`,
- *     so the library's own policy store serves, and the edition this host
+ *     so the library's own grant store serves, and the edition this host
  *     declares opens it to record every access row change in the row's
  *     transaction (the library's `grant_history`, beside its rows).
  *     The same edition serves the history back (the library's

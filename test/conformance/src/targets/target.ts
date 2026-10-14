@@ -266,10 +266,10 @@ export interface CapabilityFlags {
   perResourceGrants: boolean;
   // The TUPLE-half queries of GrantQueryController are served here:
   // checkAuthorization, listAuthorizedResourceIds, listAuthorizedPrincipalIds,
-  // and checkMyPermission carrying contextual policies — the questions only
+  // and checkMyPermission carrying contextual grants — the questions only
   // a relationship graph (OpenFGA) can answer, behind
   // `drivers.authorizationQueries`. checkMyPermission
-  // WITHOUT contextual policies rides no flag: it has one definition in
+  // WITHOUT contextual grants rides no flag: it has one definition in
   // every edition over the composed Authorizer.
   //
   // True for cloud (the cloud-iam unit wraps its FGA client). False for the

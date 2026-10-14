@@ -60,7 +60,7 @@ export function newInvitationRemoval(deps: InvitationRemovalDeps): InvitationRem
         } catch (error) {
           failed += 1;
           deps.logger.error(
-            "invitation removal failed with its organization; the invitation row and its policies remain, and the organization delete stops",
+            "invitation removal failed with its organization; the invitation row and its grants remain, and the organization delete stops",
             {
               invitation: id,
               org: orgId,

@@ -1,6 +1,6 @@
 /**
  * The permission history on the self-hosted Enterprise server, composed and
- * driven end to end over real Postgres: no unit registers a policy store,
+ * driven end to end over real Postgres: no unit registers a grant store,
  * so the library's own keeps the history, and the edition the license
  * unit declares is what opens it to. Every entry is read raw from the
  * library's `grant_history` table (no reader exists yet).

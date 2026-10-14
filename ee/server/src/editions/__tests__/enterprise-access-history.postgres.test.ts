@@ -1,7 +1,7 @@
 /**
  * The access history read back on the self-hosted Enterprise server,
  * composed and driven end to end over real Postgres: the library's own
- * policy store keeps the history (enterprise-permission-history.postgres
+ * grant store keeps the history (enterprise-permission-history.postgres
  * .test.ts proves what it writes), and the edition the license unit
  * declares is what opens the reader too, with no Enterprise source of its
  * own. Everything here goes through `listAccessHistory` on the wire.

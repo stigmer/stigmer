@@ -1654,7 +1654,7 @@ export async function composeServer(
   });
   // Access-history retention, only when a host declares a window
   // (`ServerExtension.accessHistoryRetentionDays`; the registry refuses one
-  // on open source): the composed policy store's history, the library's
+  // on open source): the composed grant store's history, the library's
   // adapter or a host's own driver, aged out every hour. No window, no
   // runner: every entry is kept.
   const historyRetention =
@@ -1758,7 +1758,7 @@ export async function composeServer(
     // default is open source's organization-only scope, installed at this
     // `??` site like the permissive Authorizer) and the tuple-half query
     // engine (`drivers.authorizationQueries`; absent, those RPCs refuse
-    // UNIMPLEMENTED). The chains take no lifecycle: a policy is the
+    // UNIMPLEMENTED). The chains take no lifecycle: a grant is the
     // authorization record, not a protected resource.
     registerGrantServices(router, {
       grantPath: grantPath,
@@ -2304,10 +2304,10 @@ export async function composeServer(
 
   // The hand-over (extensions/composed-services.ts): every unit receives
   // the composition's own instances — the one Authorizer the Authorize
-  // step calls, the list read scope, the policy check, the tuple lifecycle,
+  // step calls, the list read scope, the grant check, the tuple lifecycle,
   // the in-process transport, the identity accounts' store binding and
-  // create path, and the policy store binding — before composeServer returns, because a
-  // unit's lanes may be called by anyone from then on. The policy check is
+  // create path, and the grant store binding — before composeServer returns, because a
+  // unit's lanes may be called by anyone from then on. The grant check is
   // the registered engine's, or under the built-in posture the evaluator's.
   const composedServices: ComposedServices = {
     authorizer,

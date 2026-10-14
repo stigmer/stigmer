@@ -94,9 +94,9 @@ export type {
 } from "./extensions/registry.js";
 // What the composition hands a unit (ServerExtension.onComposed): its one
 // Authorizer and list read scope (bound by the credential binding), the
-// binding itself, the policy check, tuple lifecycle, in-process transport
+// binding itself, the grant check, tuple lifecycle, in-process transport
 // and the identity accounts' store binding and create path, whichever
-// posture built them, and the policy store's reads.
+// posture built them, and the grant store's reads.
 export type {
   ComposedGrants,
   ComposedIdentityAccounts,

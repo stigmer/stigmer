@@ -353,12 +353,12 @@ describe("the three system RPCs", () => {
   > = [
     [
       "bootstrapGrant",
-      "unauthorized to bootstrap policy - can_bootstrap_iam permission required",
+      "unauthorized to bootstrap a grant - can_bootstrap_iam permission required",
       (h) => h.command.bootstrapGrant(structural),
     ],
     [
       "cleanupResourceGrants",
-      "unauthorized to cleanup resource policies - can_bootstrap_iam permission required",
+      "unauthorized to clean up a resource's grants - can_bootstrap_iam permission required",
       (h) => h.command.cleanupResourceGrants(ref("agent", "agt_1")),
     ],
     [
@@ -468,7 +468,7 @@ describe("checkMyPermission", () => {
     expect(error.rawMessage).toBe(unknownResourceKindMessage("Organization"));
   });
 
-  it("contextual policies without a composed engine are UNIMPLEMENTED with the edition named", async () => {
+  it("contextual grants without a composed engine are UNIMPLEMENTED with the edition named", async () => {
     const h = await harness({ caller: alice });
     const error = await refusal(() =>
       h.query.checkMyPermission({
@@ -484,7 +484,7 @@ describe("checkMyPermission", () => {
     expect(h.authorizer.checks).toEqual([]);
   });
 
-  it("contextual policies ride the engine with the caller's ACCOUNT as the principal — even when the caller is stamped by email", async () => {
+  it("contextual grants ride the engine with the caller's ACCOUNT as the principal — even when the caller is stamped by email", async () => {
     const h = await harness({ caller: operator, engine: true });
     const contextual = [orgRole(OPERATOR_ID, "viewer", "acme")];
     const result = await h.query.checkMyPermission({
@@ -675,7 +675,7 @@ describe("checkAuthorization's principal-trust rule (the cloud's three refusals 
     expect(h.engine?.calls).toHaveLength(1);
   });
 
-  it("a garbage kind in the policy is INVALID_ARGUMENT before any engine call", async () => {
+  it("a garbage kind in the grant is INVALID_ARGUMENT before any engine call", async () => {
     const h = await harness({ caller: machine, engine: true });
     const error = await refusal(() =>
       h.query.checkAuthorization({
@@ -721,7 +721,7 @@ describe("the self-query lanes under a credential bound to one organization", ()
     expect(h.engine?.calls).toEqual([]);
   });
 
-  it("checkMyPermission with contextual policies answers false for a resource outside the binding, and never asks the engine", async () => {
+  it("checkMyPermission with contextual grants answers false for a resource outside the binding, and never asks the engine", async () => {
     const h = await harness({
       caller: boundAlice,
       engine: true,
@@ -892,7 +892,7 @@ describe("the row reads", () => {
       h.query.get({ value: grantIdFor(spec) }),
     );
     expect(denied.code).toBe(Code.PermissionDenied);
-    expect(denied.rawMessage).toBe("unauthorized to view access policies");
+    expect(denied.rawMessage).toBe("unauthorized to view grants");
   });
 
   it("listResourceAccessByPrincipal, getPrincipalResourceRoles and getPrincipalsCount refuse a garbage kind", async () => {
@@ -1275,7 +1275,7 @@ describe("a wire kind string is refused BEFORE position 1 on every annotated lan
 });
 
 describe("listAccessHistory on the controller", () => {
-  it("is served by the access-policy query service, and refused on open source after authorizing", async () => {
+  it("is served by the grant query service, and refused on open source after authorizing", async () => {
     const h = await harness({ caller: alice });
     const error = await h.query.listAccessHistory({ org: "acme" }).then(
       () => undefined,

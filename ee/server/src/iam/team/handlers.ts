@@ -35,7 +35,7 @@
  * which is everything a team's visibility and membership bound hang off);
  * a failed event fails the request with the row in place. The boot's
  * organization-link reconcile (iam/organization-links.ts) restores a link
- * whose policy row never landed, and a policy row whose tuple did not
+ * whose grant row never landed, and a grant row whose tuple did not
  * sync heals through the grant path's unsynced row and the boot backfill.
  * Delete does not follow the generic order, for the reason removal.ts
  * gives: a team's grants outlive its row unless they die first.

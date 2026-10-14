@@ -4,13 +4,13 @@
  *
  *   - The unit takes none of the composition's instances as a port: the
  *     Authorizer, the authorization queries, the list read scope, the
- *     lifecycle, the in-process transport and the policy store arrive on
+ *     lifecycle, the in-process transport and the grant store arrive on
  *     the library's hand-over (`onComposed`), so no host can hand the unit
  *     a second binding that answers by another rule than the Authorize
  *     step.
  *   - The unit's start makes its schema current, then runs the
  *     organization-link repair, then its owner-row reconcile: the repair
- *     reads policy rows a host's own start may converge first, and the
+ *     reads grant rows a host's own start may converge first, and the
  *     reconcile reads the links the repair restores.
  *
  * A reintroduced port or a swapped order compiles, boots and serves, and

@@ -83,7 +83,7 @@ computes.
   with the Java copy; a kind this edition does not serve denied (a platform
   capability no self-host holds); the target loaded once through the source;
   `not-found` for a missing row except on the kinds the cloud never probes
-  (`NOT_FOUND_EXEMPT_KINDS`, the cloud's own set: accounts, policies, platform
+  (`NOT_FOUND_EXEMPT_KINDS`, the cloud's own set: accounts, grants, platform
   clients, and the platform, federation issuers, invitations and teams an
   edition above open source serves — ids cannot be enumerated); the model's answer with an empty reason on a denial so
   the annotation's copy wins; every fault `unavailable`, never a denial and
@@ -106,10 +106,10 @@ computes.
   that does not decode skipped; the `internal` class keeps everything (the
   in-process skip); a fault throws and is never an empty answer; an undeclared
   kind is a consumer bug, loud.
-- `grant-check.ts` — the one query-engine verb a unit asks, "is this policy
+- `grant-check.ts` — the one query-engine verb a unit asks, "is this grant
   held", answered by the evaluator for a person by account id or for any other
   object; handed to units as the composition's `authorizationQueries` under
-  the built-in posture. Contextual policies and userset principals are refused.
+  the built-in posture. Contextual grants and userset principals are refused.
 - `posture.ts` — the three postures, named once for the composition root and the
   boot log, and `kindsWithoutRows`: the served kinds the built-in posture could
   not read, which refuses the boot of an edition above open source until each

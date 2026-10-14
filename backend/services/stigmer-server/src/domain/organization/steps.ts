@@ -18,7 +18,7 @@
  * (authorization/credential-binding.ts), except a child of that
  * organization, which its managers create (children.ts).
  *
- * The delete revokes the organization's policy rows BEFORE its row is
+ * The delete revokes the organization's grant rows BEFORE its row is
  * deleted, and fails the delete when it cannot, so nothing that grants on
  * the organization outlives it.
  *
@@ -279,7 +279,7 @@ export function newLoadExistingOrganizationStep(
 }
 
 /**
- * Revokes every policy row that names the organization, as principal or as
+ * Revokes every grant row that names the organization, as principal or as
  * resource, before the delete removes its row: the rows its members hold
  * on it, and the scope link every organization-scoped resource holds to
  * it. Runs after the `org-delete:pre-delete` slot and before
@@ -312,7 +312,7 @@ export function newRevokeOrganizationGrantsStep<Desc extends DescMessage>(
       if (id === "") {
         throw internalError(
           new Error("organization delete reached RevokeOrganizationGrants without its loaded row"),
-          "failed to remove the organization's access policies",
+          "failed to remove the organization's grants",
         );
       }
       try {
@@ -326,7 +326,7 @@ export function newRevokeOrganizationGrantsStep<Desc extends DescMessage>(
       } catch (error) {
         throw internalError(
           error,
-          "failed to remove the organization's access policies",
+          "failed to remove the organization's grants",
         );
       }
     },

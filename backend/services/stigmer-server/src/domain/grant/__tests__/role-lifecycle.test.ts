@@ -1,7 +1,7 @@
 /**
  * Pins the built-in role lifecycle in isolation (role-lifecycle.ts): the
  * ResourceAuthorizationLifecycle open source installs when no unit
- * registers one, over the real grant path, a fake policy store and a fake
+ * registers one, over the real grant path, a fake grant store and a fake
  * account port. It is the ROW writer of the built-in authorization posture
  * — the one arm that makes an organization's creator its owner without an
  * administrator — and nothing else:
@@ -344,7 +344,7 @@ describe("the rest of the contract", () => {
     expect(recorded).toEqual([]);
   });
 
-  it("defines neither policy hook — it sits on top of the grant path, never inside it", () => {
+  it("defines neither grant hook — it sits on top of the grant path, never inside it", () => {
     const { lifecycle } = lifecycleOver();
     expect(lifecycle.onGranted).toBeUndefined();
     expect(lifecycle.onRevoked).toBeUndefined();

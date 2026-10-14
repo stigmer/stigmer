@@ -32,7 +32,7 @@
  *              passed; then the composed lifecycle's organization arm, a
  *              sweep of the search entries and fire-ledger rows that name
  *              it (the kind purges' own removals of those log a fault and
- *              go on), the organization's policy rows (failing closed),
+ *              go on), the organization's grant rows (failing closed),
  *              its search entry, the row, then its names, then its
  *              deletion mark. The names
  *              follow the row on purpose: while the row stands the claim

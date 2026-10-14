@@ -145,7 +145,7 @@
  * (SYSTEM_OPERATOR_IDENTITY_ID, the one home of that word). The
  * rules classify stamps by shape and consult no account store.
  *
- * Reads. Policy rows through the GrantStore PORT (`policies`, the
+ * Reads. Grant rows through the GrantStore PORT (`grants`, the
  * same instance the grant path writes through) — never around it.
  * Organizations and blueprints through the generic Store, decoded with
  * each kind's own schema (CREATOR_SCAN_SCHEMAS: the envelope shares its

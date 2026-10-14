@@ -1,5 +1,5 @@
 /**
- * The grant path's reads outside the policy rows (`StoredResources`,
+ * The grant path's reads outside the grant rows (`StoredResources`,
  * domain/grant/grant-path.ts): two facts only a resource's own row
  * holds.
  *

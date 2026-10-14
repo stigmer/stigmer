@@ -20,7 +20,7 @@
  * store's WHERE clauses restated over the proto (store.ts names each), so
  * a driver's test over either edition reads the same contract.
  *
- * Writes. `save` refuses a policy whose id is not its triple's derived id
+ * Writes. `save` refuses a grant whose id is not its triple's derived id
  * (constants.ts grantIdFor): open source has no legacy random ids, and a
  * stray id would break the primary key's promise of one row per triple.
  * It then stores the row through the Store's create-only
@@ -134,7 +134,7 @@ export function newResourceGrantStore(
     async save(grant, record): Promise<void> {
       const id = grant.metadata?.id ?? "";
       if (grant.spec === undefined || id !== grantIdFor(grant.spec)) {
-        throw new Error("policy id must be derived from its triple");
+        throw new Error("grant id must be derived from its triple");
       }
       const inserted = await store.insertResource(
         KIND,

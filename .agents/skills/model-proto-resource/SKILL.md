@@ -23,7 +23,7 @@ imports are the truth for every shape named here.
 
 A resource lives in a bounded context, a directory under `apis/ai/stigmer/`:
 `agentic` (agents, runs, sessions, MCP servers, skills and their supporting
-kinds), `iam` (identity, keys, policies, invitations), `tenancy` (organizations,
+kinds), `iam` (identity, keys, grants, invitations), `tenancy` (organizations,
 projects), `platform`, `billing`, `search`, `activity`. Name its aggregate and
 its owner (which organization or parent it belongs to, who may grant roles on
 it) before a field is written; the authorization metadata in step 3 asks for

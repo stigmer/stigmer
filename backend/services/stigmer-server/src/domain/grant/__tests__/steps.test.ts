@@ -363,7 +363,7 @@ describe("ValidateGrantableRole", () => {
 
   describe("the editor role", () => {
     // The hosted edition's scope narrows nothing: every role the proto lists
-    // is grantable (the cloud's policy grant scope).
+    // is grantable (the cloud's grant scope).
     const everyProtoRole = newValidateGrantableRoleStep({
       grantableRoles: (kind) => grantableRolesFor(kind),
     });

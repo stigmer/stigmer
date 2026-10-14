@@ -1,5 +1,5 @@
 /**
- * The organization-link reconcile over fakes of the policy mirror, the
+ * The organization-link reconcile over fakes of the grant mirror, the
  * grant path and the organization lookup. Pins:
  *   - a row missing its link gets exactly `<kind>:<id>#organization@
  *     organization:<org>` through the structural lane, and a row that has

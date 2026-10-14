@@ -497,7 +497,7 @@ export async function runConsumerGrantStoreContract(): Promise<void> {
 const consumerOutboundEgress: OutboundEgressPolicy = strictEgressPolicy();
 
 /**
- * A consumer-shaped policy grant scope: which
+ * A consumer-shaped grant scope: which
  * kinds a user may grant on in this composition, with which roles. A scope
  * only NARROWS the proto's grantable roles, is total over the enum (an
  * unlisted kind answers none, never throws) and is synchronous — a fact
@@ -1386,7 +1386,7 @@ export async function consumerChildIdFor(
 export const consumerBoundDenial: string = BOUND_ELSEWHERE_DENY_REASON;
 
 /**
- * The policy store's reads, kept from `onComposed`: a unit's repair and
+ * The grant store's reads, kept from `onComposed`: a unit's repair and
  * grant gate read the composition's one binding, never a store of their
  * own.
  */

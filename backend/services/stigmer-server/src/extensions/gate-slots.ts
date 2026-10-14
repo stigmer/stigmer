@@ -77,7 +77,7 @@
  * children is never deleted); either way a throw fails the delete with
  * the organization intact, and the retry re-runs every step, so each owns
  * its idempotency. After the slot the chain revokes the organization's own
- * policy rows, also before the row and also failing closed.
+ * grant rows, also before the row and also failing closed.
  *
  * The tenth, `grant-list-access-history:pre-read`: the access
  * history's read (GrantQueryController.listAccessHistory) after

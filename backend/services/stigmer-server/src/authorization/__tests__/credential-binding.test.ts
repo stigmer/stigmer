@@ -559,7 +559,7 @@ describe("the rule, for a caller bound to one organization", () => {
     expect(f.reads).toHaveLength(3);
   });
 
-  it("reads the substitutable policy port and a unit's reader, never the store, for their kinds", async () => {
+  it("reads the substitutable grant port and a unit's reader, never the store, for their kinds", async () => {
     const team = row("team", "tm_b", BETA);
     const f = fixture([], {
       grants: [

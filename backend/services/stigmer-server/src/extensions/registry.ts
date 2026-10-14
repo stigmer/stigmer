@@ -153,7 +153,7 @@ export interface ServerExtension {
    * the organization limit's shape). Exactly one unit may declare it, a
    * positive integer; undeclared compositions keep every entry. When one
    * is declared the library's retention runner removes, every hour, the
-   * entries older than the window from the composed policy store
+   * entries older than the window from the composed grant store
    * (domain/grant/history-retention.ts), and every page of the history
    * says how long it is kept. Declared on an open-source composition it
    * refuses the boot: open source keeps no history. The library reads no
@@ -220,7 +220,7 @@ export interface ServerExtension {
   readonly orgPurge?: OrganizationPurgeContribution;
   /**
    * Receives the composition's own instances — the Authorizer, the list
-   * read scope, the policy check, the tuple lifecycle and the in-process
+   * read scope, the grant check, the tuple lifecycle and the in-process
    * transport — once, in unit order, at the end of `composeServer`
    * (extensions/composed-services.ts carries the contract).
    */
@@ -371,7 +371,7 @@ export interface ResolvedExtensionDrivers {
    */
   readonly grantStore: GrantStore | undefined;
   /**
-   * The policy grant scope — undefined = compose.ts installs
+   * The grant scope — undefined = compose.ts installs
    * open source's organization-only default.
    */
   readonly grantScope: GrantScope | undefined;

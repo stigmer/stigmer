@@ -12,7 +12,7 @@
  * The NEGATIVE proof, over a composed server in the cloud's own shape (a
  * declared require-authentication posture, the unit's verifier, the unit's
  * Authorizer, no lifecycle driver): an organization created by a signed-in
- * subject leaves NO policy row; the creator's first provisioning writes
+ * subject leaves NO grant row; the creator's first provisioning writes
  * none (no ownership heal); a second subject's first provisioning writes
  * none (no membership). Green before the domain lands and green after by
  * design: its value is at the slice that wires compose.ts, where an
@@ -77,7 +77,7 @@ import {
 const CREATOR = "fake|creator";
 const NEWCOMER = "fake|newcomer";
 
-/** The policy rows a composed server's store holds, decoded — the one observation every describe below is about. */
+/** The grant rows a composed server's store holds, decoded — the one observation every describe below is about. */
 async function grantsIn(server: ComposedServer): Promise<Grant[]> {
   const rows = await server.store.listResources(ApiResourceKind.grant);
   return rows.map((row) => fromBinary(GrantSchema, row));
@@ -140,7 +140,7 @@ describe("grant posture (composed server, a unit's own Authorizer: nothing built
     rmSync(dir, { recursive: true, force: true });
   });
 
-  /** The policy rows the composed server's store holds — the one observation the posture is about. */
+  /** The grant rows the composed server's store holds — the one observation the posture is about. */
   async function grantRows(): Promise<ReadonlyArray<string>> {
     const rows = await server.store.listResources(ApiResourceKind.grant);
     return rows.map(
@@ -148,7 +148,7 @@ describe("grant posture (composed server, a unit's own Authorizer: nothing built
     );
   }
 
-  it("an organization created by a signed-in subject leaves no policy row — the built-in role lifecycle is not installed", async () => {
+  it("an organization created by a signed-in subject leaves no grant row — the built-in role lifecycle is not installed", async () => {
     const asCreator = transportFor(
       port,
       fakeJwt(CREATOR, "creator@example.com"),

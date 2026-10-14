@@ -9,7 +9,7 @@
  *
  * Absent, the Grant query controller refuses `checkAuthorization`,
  * `listAuthorizedResourceIds`, `listAuthorizedPrincipalIds`, and a
- * `checkMyPermission` that carries contextual policies, UNIMPLEMENTED with
+ * `checkMyPermission` that carries contextual grants, UNIMPLEMENTED with
  * the edition reason (domain/grant/constants.ts
  * AUTHORIZATION_QUERIES_UNIMPLEMENTED_MESSAGE) — never INTERNAL, the
  * organization directory's absent-method precedent. Present, the
@@ -23,8 +23,8 @@
  * The engine speaks the CONTRACT's vocabulary, not a backend's
  * (2026-09-13): `ApiResourceRef` for a principal or resource (kind = the
  * enum member name, id, and for a principal an optional relation — the
- * userset form `organization:X#viewer`), `GrantSpec` for a policy and
- * for the what-if policies every query may carry, and the relation and
+ * userset form `organization:X#viewer`), `GrantSpec` for a grant and
+ * for the what-if grants every query may carry, and the relation and
  * kind strings as the wire sends them. The cloud's driver renders these to
  * OpenFGA's `type:id#relation` strings itself; that grammar belongs to the
  * store that runs it and never enters this library.
@@ -38,7 +38,7 @@
  *   - the two listings never expand usersets, and `listPrincipalIds`
  *     answers DIRECT principals only — a listing is an inventory of who
  *     was named, never a resolution of who could reach.
- *   - contextual policies are evaluated as if held, and nothing is written.
+ *   - contextual grants are evaluated as if held, and nothing is written.
  *
  * Error rule (the ListReadScope rule, verbatim in spirit: a seam that
  * cannot answer THROWS — never an empty set, never false): `false` and
@@ -52,7 +52,7 @@
  * Why this is not `ListReadScope`: the read scope narrows the server's OWN
  * list lanes for the calling identity with no what-if input; this engine
  * answers the wire's explicit queries about an ARBITRARY principal with
- * contextual policies. Both are seams with distinct consumers;
+ * contextual grants. Both are seams with distinct consumers;
  * a cloud driver may wrap one client for both, and that is its business.
  */
 import type {
@@ -63,7 +63,7 @@ import type {
 /** The query-engine contract (single-instance point, ExtensionDrivers.authorizationQueries). */
 export interface AuthorizationQueryEngine {
   /**
-   * Whether `policy` is effectively held — its principal has its relation
+   * Whether `grant` is effectively held — its principal has its relation
    * on its resource — given `contextualGrants` evaluated as if held.
    * The proto's CheckAuthorizationInput shape; `checkMyPermission` builds
    * the spec from the caller's account ref. The spec's refs are present

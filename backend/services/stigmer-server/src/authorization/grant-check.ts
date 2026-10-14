@@ -1,7 +1,7 @@
 /**
- * The built-in policy check — the one question of the authorization-query
+ * The built-in grant check — the one question of the authorization-query
  * engine (extensions/authorization-queries.ts, `check`) that the built-in
- * posture can answer from its own evaluator: "is this policy effectively
+ * posture can answer from its own evaluator: "is this grant effectively
  * held". A unit composed on the built-in posture asks it through the
  * services the composition hands it (extensions/registry.ts,
  * `ComposedServices`), exactly where a composition with its own engine
@@ -9,15 +9,15 @@
  * edition and the model answers it one way.
  *
  * What it answers, and why no more:
- *   - A policy whose principal is a person (`identity_account:<id>`): the
+ *   - A grant whose principal is a person (`identity_account:<id>`): the
  *     person the id names, with `personFor`'s alias rule (person.ts), and
  *     the rows they and their teams hold — the same walk a point check
  *     makes for a caller.
- *   - A policy whose principal is any other object (`organization:<o>`):
+ *   - A grant whose principal is any other object (`organization:<o>`):
  *     the structural question a grant to a team asks — does this resource
  *     belong to the team's organization — answered by the resource's own
  *     derived links (derived-tuples.ts).
- *   - Contextual policies are refused as a programming error. No caller
+ *   - Contextual grants are refused as a programming error. No caller
  *     asks with them, and the derived source has no notion of a tuple held
  *     only for the length of one check; answering without them would be a
  *     silent wrong answer, the failure a throw prevents.
@@ -65,19 +65,19 @@ export function newBuiltInGrantCheck(
     async check(grant, contextualGrants) {
       if (contextualGrants.length > 0) {
         throw new Error(
-          "the built-in policy check evaluates held policies only — contextual policies are not supported",
+          "the built-in grant check evaluates held grants only — contextual grants are not supported",
         );
       }
       const principalRef = grant.principal;
       const resource = grant.resource;
       if (principalRef === undefined || resource === undefined) {
         throw new Error(
-          "the built-in policy check needs a principal and a resource",
+          "the built-in grant check needs a principal and a resource",
         );
       }
       if (principalRef.relation !== "") {
         throw new Error(
-          `the built-in policy check takes a direct principal — '${principalRef.kind}:${principalRef.id}#${principalRef.relation}' is a userset`,
+          `the built-in grant check takes a direct principal — '${principalRef.kind}:${principalRef.id}#${principalRef.relation}' is a userset`,
         );
       }
       const principal: Principal =

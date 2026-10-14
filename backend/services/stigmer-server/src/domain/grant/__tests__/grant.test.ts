@@ -139,7 +139,7 @@ describe("grant domain (composed server, trusted-local posture)", () => {
   /**
    * A fresh organization: its slug, which a wire request may name it by
    * (the serving chain resolves it), and its minted id, which a stored
-   * policy and every in-process call name it by.
+   * grant and every in-process call name it by.
    */
   async function newOrganization(): Promise<{ slug: string; id: string }> {
     seq += 1;
@@ -400,7 +400,7 @@ describe("grant domain (composed server, trusted-local posture)", () => {
       const denied = await grpcError(() => command.bootstrapGrant(structural));
       expect(denied.code).toBe(Code.PermissionDenied);
       expect(denied.rawMessage).toBe(
-        "unauthorized to bootstrap policy - can_bootstrap_iam permission required",
+        "unauthorized to bootstrap a grant - can_bootstrap_iam permission required",
       );
       expect(
         (

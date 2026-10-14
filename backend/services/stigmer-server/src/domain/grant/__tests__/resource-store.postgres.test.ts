@@ -3,7 +3,7 @@
  * OSS adapter (../resource-store.ts) on both drivers through the drivers'
  * own fixtures (sqlite always; Postgres under TEST_DATABASE_URL), opened
  * with and without the permission history, and pins the behaviours that
- * are the adapter's rather than the port's: save refuses a policy whose id
+ * are the adapter's rather than the port's: save refuses a grant whose id
  * is not the triple's derived id, the invariant that makes "one row per
  * triple" the primary key's job in open source; a principal's rows are
  * read through the kind's list index, never by decoding the whole kind,
@@ -53,7 +53,7 @@ import { orgRole } from "./support.js";
 
 /** The kit's contract lines, pinned: a dropped or renamed case is a visible diff here. */
 const CONTRACT_CASE_NAMES = [
-  "save then findById round-trips the policy",
+  "save then findById round-trips the grant",
   "a second save under a held triple is DuplicateGrantError, and the first row stands",
   "findByPrincipalAndResource answers every relation on the pair and nothing on another",
   "findByPrincipal and findByResource answer each side of a row",
@@ -90,7 +90,7 @@ interface HistoryEntry {
   readonly grantId: string;
 }
 
-const HISTORY_SQL = `SELECT org, sequence, change, cause, actor_id, actor_class, policy_id
+const HISTORY_SQL = `SELECT org, sequence, change, cause, actor_id, actor_class, grant_id
   FROM grant_history ORDER BY org, sequence`;
 
 function historyEntryOf(row: Record<string, unknown>): HistoryEntry {
@@ -101,7 +101,7 @@ function historyEntryOf(row: Record<string, unknown>): HistoryEntry {
     cause: String(row.cause),
     actorId: String(row.actor_id),
     actorClass: String(row.actor_class),
-    grantId: String(row.policy_id),
+    grantId: String(row.grant_id),
   };
 }
 
@@ -216,7 +216,7 @@ describe.each([sqliteFixture, postgresFixture])(
         await opened.close();
       });
 
-      it("refuses to save a policy whose id is not its triple's derived id", async () => {
+      it("refuses to save a grant whose id is not its triple's derived id", async () => {
         const grants = newResourceGrantStore(opened.store, {
           keepsHistory: false,
         });
@@ -230,7 +230,7 @@ describe.each([sqliteFixture, postgresFixture])(
           spec,
         });
         await expect(grants.save(stray)).rejects.toThrow(
-          "policy id must be derived from its triple",
+          "grant id must be derived from its triple",
         );
         expect(
           await opened.store.listResources(ApiResourceKind.grant),

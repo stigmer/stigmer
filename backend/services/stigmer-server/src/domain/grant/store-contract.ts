@@ -137,7 +137,7 @@ function grantRow(grantSpec: GrantSpec, createdBy = ALICE): Grant {
 
 function idOf(grant: Grant): string {
   const id = grant.metadata?.id ?? "";
-  assert.notEqual(id, "", "a fixture policy must carry an id");
+  assert.notEqual(id, "", "a fixture grant must carry an id");
   return id;
 }
 
@@ -156,15 +156,15 @@ async function saveAll(
 
 const CASES: ReadonlyArray<PortContractDeclaration<GrantStore>> = [
   [
-    "save then findById round-trips the policy",
+    "save then findById round-trips the grant",
     async ({ store }) => {
       const grant = grantRow(orgRole(ALICE, "admin", "acme"));
       await store.save(grant);
       const found = await store.findById(idOf(grant));
-      assert.ok(found !== undefined, "a saved policy must be readable by id");
+      assert.ok(found !== undefined, "a saved grant must be readable by id");
       assert.ok(
         equals(GrantSchema, found, grant),
-        "findById must return the policy exactly as it was saved",
+        "findById must return the grant exactly as it was saved",
       );
       assert.equal(
         await store.findById("grt_00000000000000000000000000"),
@@ -423,7 +423,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<GrantStore>> = [
       assert.equal(
         await store.findById(idOf(grant)),
         undefined,
-        "a deleted policy must not be readable by id",
+        "a deleted grant must not be readable by id",
       );
       assert.deepEqual(
         await store.findByPrincipalAndResource(
@@ -433,11 +433,11 @@ const CASES: ReadonlyArray<PortContractDeclaration<GrantStore>> = [
           "acme",
         ),
         [],
-        "a deleted policy must not be readable by its pair",
+        "a deleted grant must not be readable by its pair",
       );
       await assert.doesNotReject(
         store.save(grant),
-        "the triple of a deleted policy must be savable again",
+        "the triple of a deleted grant must be savable again",
       );
     },
   ],
@@ -454,7 +454,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<GrantStore>> = [
       const found = await store.findById(idOf(grant));
       assert.ok(
         found !== undefined && equals(GrantSchema, found, grant),
-        "a policy saved with a record must read back exactly as saved",
+        "a grant saved with a record must read back exactly as saved",
       );
       await assert.rejects(
         store.save(grantRow(orgRole(ALICE, "admin", "acme"), BOB), record),
@@ -465,7 +465,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<GrantStore>> = [
       assert.equal(
         await store.findById(idOf(grant)),
         undefined,
-        "a policy deleted with a record must be gone",
+        "a grant deleted with a record must be gone",
       );
       await assert.doesNotReject(
         store.deleteById(idOf(grant), { ...record, cause: "revoke" }),

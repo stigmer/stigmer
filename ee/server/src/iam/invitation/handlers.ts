@@ -71,7 +71,7 @@
  * recorded, stops redeeming.
  *
  * Redeem records before it grants. Two redemptions by one person of one
- * role share one policy row (the grant path finds a grant by its triple),
+ * role share one grant row (the grant path finds a grant by its triple),
  * and both pass the membership check before either grant lands. With the
  * grant first, the one that lost the slot (a double-clicked single-use
  * link, or a second link that lost its own last slot) would revoke the row

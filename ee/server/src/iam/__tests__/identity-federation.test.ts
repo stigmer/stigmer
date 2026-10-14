@@ -22,7 +22,7 @@
  * it then) revokes everywhere it can and answers ABORTED naming that child,
  * so offboarding never reports done while a role could survive there; one
  * that deletes the account goes through, its removal reaching every
- * policy. A provider whose delete has begun still exists
+ * grant. A provider whose delete has begun still exists
  * for the controller's question, so deprovision still offboards under it,
  * while create refuses to make an account under it: before it writes, and
  * again after, when the delete began while it wrote; then it removes the
@@ -591,7 +591,7 @@ describe("the IdentityFederation capability — deprovisionFederatedAccount", ()
     expect(recorded.deleted).toEqual([]);
   });
 
-  it("goes through while a child is mid-delete when the account is deleted too: its removal reaches every policy", async () => {
+  it("goes through while a child is mid-delete when the account is deleted too: its removal reaches every grant", async () => {
     const { federation, recorded } = harness({
       byNaturalKey: federatedRow({ id: "ida_u1", externalSub: "okta|u1" }),
       childrenBeingDeleted: ["org_pending"],

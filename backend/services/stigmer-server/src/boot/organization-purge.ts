@@ -18,7 +18,7 @@
  * that serves a kind no reader can read). Every kind the composition
  * serves whose contract scopes it to an organization or to a parent that
  * is must be owned by exactly one of: a core kind purge (or the core's
- * policy cleanup, for `grant`, whose rows name no organization and go
+ * grant cleanup, for `grant`, whose rows name no organization and go
  * with each resource and with the organization itself), a unit stage's
  * declared `kinds`, a unit's declared retention. None is a kind whose rows
  * would outlive the organization unnoticed; two is two owners that would

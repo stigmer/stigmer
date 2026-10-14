@@ -8,7 +8,7 @@
 // deliberately never imports the server's constants — the literal IS the
 // contract a client may match on.
 //
-// A policy spec is a triple: `principal` holds `relation` on `resource`,
+// A grant spec is a triple: `principal` holds `relation` on `resource`,
 // each side an ApiResourceRef the wire names by kind string and id. The
 // builders below spell that vocabulary once so every arm reads as the
 // grant it makes.
@@ -112,7 +112,7 @@ export const REVOKE_DENIED_MESSAGE = "unauthorized to revoke access";
 export const REVOKE_ORG_ACCESS_DENIED_MESSAGE =
   "unauthorized to revoke organization access";
 export const VIEW_GRANTS_DENIED_MESSAGE =
-  "unauthorized to view access policies";
+  "unauthorized to view grants";
 export const VIEW_AUTHORIZED_PRINCIPAL_IDS_DENIED_MESSAGE =
   "unauthorized to view authorized principal ids";
 export const VIEW_RESOURCE_ACCESS_DENIED_MESSAGE =
@@ -134,9 +134,9 @@ export const LAST_OWNER_MESSAGE =
 // The three system RPCs' annotation copy (command.proto error_msg), the
 // sentence a wire user hears in every edition.
 export const BOOTSTRAP_GRANT_DENIED_MESSAGE =
-  "unauthorized to bootstrap policy - can_bootstrap_iam permission required";
+  "unauthorized to bootstrap a grant - can_bootstrap_iam permission required";
 export const CLEANUP_RESOURCE_GRANTS_DENIED_MESSAGE =
-  "unauthorized to cleanup resource policies - can_bootstrap_iam permission required";
+  "unauthorized to clean up a resource's grants - can_bootstrap_iam permission required";
 export const BOOTSTRAP_REVOKE_ORG_ACCESS_DENIED_MESSAGE =
   "unauthorized to revoke organization access - can_bootstrap_iam permission required";
 

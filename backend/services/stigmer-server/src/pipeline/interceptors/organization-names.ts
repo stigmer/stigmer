@@ -23,7 +23,7 @@
  *   2. the field a method's authorization annotation names when its kind
  *      is `organization` (an Organization's own id on get, update,
  *      updatePolicies, delete and rename);
- *   3. `ApiResourceRef.id` when the ref's kind is `organization` (a policy
+ *   3. `ApiResourceRef.id` when the ref's kind is `organization` (a grant
  *      grant on an organization).
  *
  * A value shaped like an id passes untouched. Anything else is looked up;

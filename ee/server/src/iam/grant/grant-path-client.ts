@@ -1,7 +1,7 @@
 /**
  * The composition's client of the OSS Grant grant path.
  * `@stigmer/server`'s grant path is the ONE code that writes or deletes a
- * policy row in every edition, and it is deliberately not exported: a
+ * grant row in every edition, and it is deliberately not exported: a
  * composition reaches it as in-process RPCs, so every write — the
  * structural rows the tuple lifecycle seeds, the JIT and invitation role
  * grants, the cleanups on delete — passes the same router, the same

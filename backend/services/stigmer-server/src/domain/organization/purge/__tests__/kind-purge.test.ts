@@ -9,7 +9,7 @@
  *   - a batch removes at most its limit and answers whether rows are left;
  *   - the steps see the loaded row and its id, as the delete chain's
  *     steps do after their load;
- *   - every removed row's policy rows are revoked through the grant path,
+ *   - every removed row's grant rows are revoked through the grant path,
  *     and a fault there fails the batch;
  *   - a kind that names its organization elsewhere (`belongsTo`, an API
  *     key's bound organization) and one read through a port (`rows`).
@@ -131,13 +131,13 @@ describe("newKindPurge", () => {
     expect(seen).toEqual([`agt_a1@${ORG.id}`]);
   });
 
-  it("fails the batch when a policy revocation faults", async () => {
+  it("fails the batch when a grant revocation faults", async () => {
     await saveAgent("agt_a1", ORG.id);
     const purge = newKindPurge(
       {
         ...deps,
         grantPath: {
-          cleanupResource: () => Promise.reject(new Error("policy store down")),
+          cleanupResource: () => Promise.reject(new Error("grant store down")),
         },
       },
       {
@@ -147,7 +147,7 @@ describe("newKindPurge", () => {
         steps: [newDeleteResourceStep(fx.store)],
       },
     );
-    await expect(purge.purge(ORG, CALLER)).rejects.toThrow("policy store down");
+    await expect(purge.purge(ORG, CALLER)).rejects.toThrow("grant store down");
   });
 
   it("reads an indexed kind through its list index", async () => {

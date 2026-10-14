@@ -13,7 +13,7 @@
  *     cannot be taken until the purge finishes, and then it can;
  *   - a slot step's refusal answers its own code and copy, and leaves the
  *     organization, its rows and its name, unmarked;
- *   - the organization's policy rows are revoked before the answer, as
+ *   - the organization's grant rows are revoked before the answer, as
  *     principal and as resource: a revocation fault answers Internal with
  *     fixed copy, leaves the organization and its owner row, unmarked, and
  *     a retry completes the delete;
@@ -22,7 +22,7 @@
  *   - a create of a deleted organization's slug once the purge finished
  *     makes a new organization, which no row of the old one names.
  *
- * The policy store is the library's in-memory double, composed as the
+ * The grant store is the library's in-memory double, composed as the
  * Grant store driver so a test can make one row's delete fault; the
  * grant path, the role lifecycle, the chain and the purge are the
  * library's own. The test unit's purge stage holds an organization the
@@ -92,13 +92,13 @@ async function grpcError(run: () => Promise<unknown>): Promise<ConnectError> {
 
 describe("organization delete (composed server, trusted-local posture)", () => {
   const grants = fakeGrantStore();
-  /** A policy id whose delete faults while set: the store answering an error mid-revocation. */
+  /** A grant id whose delete faults while set: the store answering an error mid-revocation. */
   let faultingDelete: string | undefined;
   const faultableGrants = {
     ...grants,
     async deleteById(id: string): Promise<void> {
       if (id === faultingDelete) {
-        throw new Error("policy store unavailable");
+        throw new Error("grant store unavailable");
       }
       await grants.deleteById(id);
     },
@@ -334,7 +334,7 @@ describe("organization delete (composed server, trusted-local posture)", () => {
 
     expect(failed.code).toBe(Code.Internal);
     expect(failed.rawMessage).toBe(
-      "failed to remove the organization's access policies",
+      "failed to remove the organization's grants",
     );
     expect(
       (await organizationQuery.get({ value: "delete-faults" })).metadata?.id,

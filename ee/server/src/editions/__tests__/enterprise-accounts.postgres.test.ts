@@ -4,7 +4,7 @@
  * kit (iam/account/port-contract.ts): a federated account made through the
  * library's own create path and found by its natural key, a held account
  * answered as `DuplicateAccountError`, a profile written email included,
- * and a delete that leaves no key, no policy row and no row behind.
+ * and a delete that leaves no key, no grant row and no row behind.
  *
  * The service is the one the server composes, filled from the same
  * hand-over: a unit composed after the entry's receives the composition's

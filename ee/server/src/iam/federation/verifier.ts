@@ -44,7 +44,7 @@
  * logs): the provider's save refused the same address with its cause.
  *
  * The identity minted is the ACCOUNT id, not the raw sub, so every
- * policy row and audit line names the platform's account, never an
+ * grant row and audit line names the platform's account, never an
  * federation issuer's subject.
  *
  * EVERY TOKEN IS BOUND TO ONE ORGANIZATION (`boundOrg`; the library's
@@ -106,7 +106,7 @@
  * mark that lands between the first read and the write is seen by one side
  * or the other. A sign-in that finds it marked, or gone, undoes its own
  * write and is refused: an account it created is removed through the
- * account service, its policies with it, and on an account that already
+ * account service, its grants with it, and on an account that already
  * existed only the grant it made is revoked, since the removal deletes
  * that account. Either way nothing the deleted provider's identity
  * provider signed in during the delete outlives it.
@@ -649,7 +649,7 @@ async function settleSignInGrant(
  * A sign-in that wrote reads its provider again, and undoes its own write
  * when the provider's delete has begun (the module header;
  * provider/removal.ts has the ordering argument). An account this request
- * created is removed through the account service, its policies with it,
+ * created is removed through the account service, its grants with it,
  * and the grant it just made among them. On an account that already
  * existed only the grant this request made is revoked: the first read
  * proved the provider live, so the account is the deleted provider's own,
@@ -763,7 +763,7 @@ function refuseUnlessLive(provider: FederationIssuer, liveness: IssuerLiveness):
 /**
  * Removes an account this request created, so the next sign-in runs a
  * clean creation, when the sign-in is refused before anything was granted
- * or after the grant failed. (Its self-owner policy row is deliberately
+ * or after the grant failed. (Its self-owner grant row is deliberately
  * left: it references a dead account and has no authorization effect.) A
  * sign-in refused because its provider's delete began undoes through the
  * account service instead, since a grant may already stand

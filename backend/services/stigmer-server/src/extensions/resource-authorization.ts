@@ -53,7 +53,7 @@
  *     leaves row and tuple, so a retry converges; the reverse order was
  *     the fail-open incident class ("revoke" silently becoming "keep").
  *     On the absent arm (no row for the spec) it fires with the spec and
- *     no policy, so a composition can still delete a bare tuple written
+ *     no grant, so a composition can still delete a bare tuple written
  *     before the row mirror existed.
  * Absent method = no mirror is written (the OSS posture: rows are the
  * record).
@@ -257,7 +257,7 @@ export interface OrganizationPoliciesChangedEvent {
  * Fired synchronously AFTER a Grant row is persisted by the domain's
  * grant path — and on the duplicate arm, when the triple was already held
  * and no row was written, so a composition heals a row whose tuple never
- * landed (the inline heal). `policy` is the row as stored: on the
+ * landed (the inline heal). `grant` is the row as stored: on the
  * duplicate arm the FIRST writer's row, whose id may be a legacy random
  * one on a composition that predates derived ids.
  */
@@ -269,7 +269,7 @@ export interface GrantedEvent {
 
 /**
  * Fired synchronously BEFORE a Grant row is deleted by the domain's
- * grant path. `spec` is always the triple being revoked; `policy` is the
+ * grant path. `spec` is always the triple being revoked; `grant` is the
  * row found for it, or `undefined` on the absent arm — the spec alone is
  * enough to name the tuple a composition still deletes then.
  */

@@ -351,7 +351,7 @@ describe("credential binding — a credential that names an organization works t
     expect(bound.isAuthorized, "the key limited to A may not").toBe(false);
   });
 
-  it("[rpc:GrantQueryController.checkMyPermission] a key limited to A gets false when it asks, with contextual policies, about a resource of B", async (ctx) => {
+  it("[rpc:GrantQueryController.checkMyPermission] a key limited to A gets false when it asks, with contextual grants, about a resource of B", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
     if (!target.capabilities.authorizationQueries) {
@@ -365,7 +365,7 @@ describe("credential binding — a credential that names an organization works t
       organizationRole(personId, "member", b.org),
     );
     const elsewhere = await founderVault(on, b.org);
-    // Any contextual policy routes the question to the query engine (the
+    // Any contextual grant routes the question to the query engine (the
     // lane the binding must also cover); this one changes no answer.
     const question = {
       resource: ref("vault", elsewhere),

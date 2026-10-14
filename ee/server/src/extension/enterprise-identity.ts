@@ -44,7 +44,7 @@
  * @stigmer/server's ComposedServices): the one Authorizer the Authorize
  * step of every chain calls, the list read scope, the authorization check,
  * the tuple lifecycle, the in-process transport its grant-path client
- * and organization reads ride, and the policy store binding its repairs
+ * and organization reads ride, and the grant store binding its repairs
  * and grant gate read. So both halves of one lane (the library's
  * Authorize step and this unit's resolved-target checks) answer by one
  * rule in every host, an OpenFGA authorizer and open source's own
@@ -284,7 +284,7 @@ export function newEnterpriseIdentityExtension(
       await composed().lifecycle?.onVisibilityChanged(event);
     },
   };
-  // The policy rows, read through the composition's one binding: by
+  // The grant rows, read through the composition's one binding: by
   // resource for the link repair, by kind and relation for the owner-row
   // reconcile, the scope link for the grant gate.
   const grantStore: ComposedGrants = {
@@ -413,7 +413,7 @@ export function newEnterpriseIdentityExtension(
   }
 
   // Every direct `owner` row on a provider or an invitation is revoked,
-  // read by kind and relation from the policy rows (iam/owner-rows.ts),
+  // read by kind and relation from the grant rows (iam/owner-rows.ts),
   // since both kinds are managed by their organization's current admins
   // alone; a provider's first, and one kind's failed read never skips the
   // next.

@@ -181,7 +181,7 @@ describe("grantIdFor — the derived grant id", () => {
   it("refuses a spec missing either reference — a triple is the whole key", () => {
     expect(() =>
       grantIdFor(create(GrantSpecSchema, { relation: "admin" })),
-    ).toThrow("policy spec must carry principal and resource");
+    ).toThrow("grant spec must carry principal and resource");
   });
 
   it("hashes exactly the proto's tuple notation, the principal's `#` present even when its relation is empty", () => {
@@ -380,7 +380,7 @@ describe("byte-pinned copy", () => {
       "Unknown principal kind: 'team'",
     );
     expect(malformedTripleMessage("resource.id")).toBe(
-      "policy resource.id must not contain ':', '#' or '@'",
+      "grant resource.id must not contain ':', '#' or '@'",
     );
   });
 

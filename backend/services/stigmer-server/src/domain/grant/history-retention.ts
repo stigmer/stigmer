@@ -7,7 +7,7 @@
  *
  * It runs as the organization purge runner does
  * (domain/organization/purge/runner.ts): composed with the server over the
- * composed policy store (the library's adapter, or a host's own driver),
+ * composed grant store (the library's adapter, or a host's own driver),
  * started with the server's loops, a first pass at once and then one per
  * interval on an `unref()`'d timer, stopped before the store closes.
  *
@@ -46,7 +46,7 @@ export const HISTORY_RETENTION_MAX_BATCHES = 100;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface AccessHistoryRetentionRunnerDeps {
-  /** The composed policy store: the history it keeps is the one aged out. */
+  /** The composed grant store: the history it keeps is the one aged out. */
   readonly grants: Pick<GrantStore, "pruneChanges">;
   /** The declared window, a positive whole number of days. */
   readonly retentionDays: number;

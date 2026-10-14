@@ -61,7 +61,7 @@
  * it is non-empty and not the unconfigured laptop's "system" placeholder;
  * the rules classify stamps by shape and consult no account store.
  *
- * The rules read policy rows through the GrantStore PORT (`policies`,
+ * The rules read grant rows through the GrantStore PORT (`grants`,
  * the same instance the grant path writes through), never around it.
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -138,7 +138,7 @@ describe("membership rules", () => {
   let grantPath: GrantPath;
   let rules: MembershipRules;
 
-  /** Rules over the shared store and a policy port of the test's choosing (the grant path is built over the same port). */
+  /** Rules over the shared store and a grant port of the test's choosing (the grant path is built over the same port). */
   function rulesOver(
     port: GrantStore,
     operatorEmail: string = OPERATOR_EMAIL,

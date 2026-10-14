@@ -8,10 +8,10 @@
  *     reaches the registered driver; a caller bound elsewhere is denied
  *     before it), the binding itself, its engine's check and its
  *     lifecycle, and the one in-process transport; under open source's own
- *     authorization, the built-in Authorizer, list scope and policy check;
+ *     authorization, the built-in Authorizer, list scope and grant check;
  *     in every posture, the identity accounts' store binding and the one
  *     create path, through which a unit provisions a federated account at
- *     its provider-and-subject address; and the policy store binding's
+ *     its provider-and-subject address; and the grant store binding's
  *     reads, the registered driver where a unit registered one and open
  *     source's adapter over the composition's store otherwise; and the
  *     store's one name table, where a unit's claim is the one every chain
@@ -250,7 +250,7 @@ describe("onComposed: a unit receives the composition's own instances", () => {
     expect(received?.grants).toBe(grants);
   });
 
-  it("under open source's own authorization hands the built-in Authorizer, list scope and policy check, and no lifecycle", async () => {
+  it("under open source's own authorization hands the built-in Authorizer, list scope and grant check, and no lifecycle", async () => {
     let received: ComposedServices | undefined;
     await compose([
       enterpriseUnit({
@@ -311,7 +311,7 @@ describe("onComposed: a unit receives the composition's own instances", () => {
   });
 });
 
-describe("onComposed: the policy store binding under open source's own authorization", () => {
+describe("onComposed: the grant store binding under open source's own authorization", () => {
   it("hands open source's adapter over the composition's own store, so a row the grant path writes is the row the unit reads", async () => {
     let received: ComposedServices | undefined;
     const server = await compose([
@@ -323,7 +323,7 @@ describe("onComposed: the policy store binding under open source's own authoriza
     ]);
     const grants = received?.grants;
     if (grants === undefined) {
-      throw new Error("the unit received no policy store");
+      throw new Error("the unit received no grant store");
     }
     const spec = create(GrantSpecSchema, {
       principal: { kind: "organization", id: "org_acme" },

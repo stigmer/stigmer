@@ -12,7 +12,7 @@
  * enumeration lanes) as its worst case.
  *
  * Two axes. The CANDIDATE count (1k and 10k rows of the listed kind) and
- * the POLICY TABLE every check and every list batch reads a person's rows
+ * the GRANT TABLE every check and every list batch reads a person's rows
  * from through the Grant port (indexed by principal on the OSS
  * adapter; resource-store.ts).
  * Every shape runs at an Enterprise-sized population: one organization of
@@ -30,7 +30,7 @@
  *     path);
  *   - five Enterprise shapes over private agents: a team member's grants
  *     (the team hop through the model's organization bound); the same for
- *     a person in five teams (one more policy read per team); a person's
+ *     a person in five teams (one more grant read per team); a person's
  *     direct grants; a former member who keeps the team's row and is
  *     admitted by none of it (the bound's correctness at volume); and the
  *     enumeration verb for the team member;
@@ -39,7 +39,7 @@
  *     a caller's worst page (five calls of 100, the examine budget of 500,
  *     each call its own source as `admit` makes it), for the team member,
  *     the direct grantee and an organization member, at the population of
- *     10,000 policy rows;
+ *     10,000 grant rows;
  *   - point checks: one `can_view` through a team grant and one through a
  *     direct grant, each over 100 checks with a fresh source per check
  *     (the Authorizer's own shape), the mean reported.
@@ -109,7 +109,7 @@ const POINT_CHECKS = 100;
 /** The page loop's largest page and its examine budget (pipeline/steps/list-page.ts). */
 const PAGE_SIZE = 100;
 const PAGE_EXAMINE_BUDGET = 500;
-/** The population the pages run at: a 10,000-row policy table. */
+/** The population the pages run at: a 10,000-row grant table. */
 const PAGE_POPULATION = 10_000;
 /**
  * A case seeds up to twenty thousand rows one write at a time before its
@@ -277,7 +277,7 @@ const SHAPES: ReadonlyArray<Shape> = [
     kept: (n) => keptThroughTeams(n, 1),
   },
   {
-    name: "restrict: private agents shared with any of the caller's five teams (one policy read more per team)",
+    name: "restrict: private agents shared with any of the caller's five teams (one grant read more per team)",
     kind: "agent",
     caller: MULTI_TEAM,
     verb: "restrict",
@@ -432,9 +432,9 @@ describe.each(
 
     /**
      * Writes the population's rows through the generic Store, where the
-     * OSS adapter reads every policy from: the port's `save` would read
+     * OSS adapter reads every grant from: the port's `save` would read
      * each id before writing it, doubling a seed of ten thousand rows.
-     * Returns the policy table's size.
+     * Returns the grant table's size.
      */
     async function seedPopulation(n: number): Promise<number> {
       const specs = populationGrants(n);
@@ -545,7 +545,7 @@ describe.each(
             // over a scope that answered wrongly measures nothing.
             expect(kept.size).toBe(shape.kept?.(n) ?? n);
             console.log(
-              `[measure] ${fixture.name} ${kindEnumName(declaration.kind)} ${shape.verb} n=${n} policies=${grantRows} elapsed=${elapsedMs}ms — ${shape.name}`,
+              `[measure] ${fixture.name} ${kindEnumName(declaration.kind)} ${shape.verb} n=${n} grants=${grantRows} elapsed=${elapsedMs}ms — ${shape.name}`,
             );
           },
           MEASURE_TIMEOUT_MS,
@@ -593,7 +593,7 @@ describe.each(
             const elapsedMs = Math.round(performance.now() - started);
             expect(kept).toBe(shape.kept(batches * PAGE_SIZE));
             console.log(
-              `[measure] ${fixture.name} agent page calls=${batches} candidates=${batches * PAGE_SIZE} policies=${grantRows} elapsed=${elapsedMs}ms — ${batches === 1 ? "a page that fills in one batch" : "the worst page"}: ${shape.name}`,
+              `[measure] ${fixture.name} agent page calls=${batches} candidates=${batches * PAGE_SIZE} grants=${grantRows} elapsed=${elapsedMs}ms — ${batches === 1 ? "a page that fills in one batch" : "the worst page"}: ${shape.name}`,
             );
           }
         },
@@ -634,7 +634,7 @@ describe.each(
             }
             const meanMs = (performance.now() - started) / POINT_CHECKS;
             console.log(
-              `[measure] ${fixture.name} agent point-check policies=${grantRows} mean=${meanMs.toFixed(2)}ms over ${POINT_CHECKS} — can_view through ${grant}`,
+              `[measure] ${fixture.name} agent point-check grants=${grantRows} mean=${meanMs.toFixed(2)}ms over ${POINT_CHECKS} — can_view through ${grant}`,
             );
           },
           MEASURE_TIMEOUT_MS,

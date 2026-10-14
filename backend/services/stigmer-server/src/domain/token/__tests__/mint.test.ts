@@ -133,7 +133,7 @@ function harness(
   const grantPath: Pick<GrantPath, "grant"> = {
     async grant(spec, caller, cause) {
       events.push("grant");
-      if (options.failGrant === true) throw new Error("policy store down");
+      if (options.failGrant === true) throw new Error("grant store down");
       granted.push({ spec, caller, cause });
       return { grant: create(GrantSchema), duplicate: false };
     },

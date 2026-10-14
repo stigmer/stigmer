@@ -95,7 +95,7 @@ export function newTeamRemoval(deps: TeamRemovalDeps): TeamRemoval {
         } catch (error) {
           failed += 1;
           deps.logger.error(
-            "team removal failed with its organization; the team row and its policies remain",
+            "team removal failed with its organization; the team row and its grants remain",
             {
               team: id,
               org: orgId,

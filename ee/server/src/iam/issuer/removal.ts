@@ -22,7 +22,7 @@
  * Then what answers for the provider, the row last, and a failure
  * stops before the row: Team's order (team/removal.ts), for the same
  * reason. First the provider's federated accounts, each through the
- * account service's delete (its policies in both directions, then its
+ * account service's delete (its grants in both directions, then its
  * row). They are keyed by the provider's id, so a provider re-created
  * under the same slug never inherits them; left in place they would still
  * be accounts nobody's provider vouches for, with their roles. A retry
@@ -96,7 +96,7 @@ export interface IssuerRemovalDeps {
   >;
   /** The server's one name table: a removed provider's slug is let go after its last sweep. */
   readonly names: NameTable;
-  /** The provider's federated accounts: listed by its id, each deleted with its policies. */
+  /** The provider's federated accounts: listed by its id, each deleted with its grants. */
   readonly accounts: Pick<IdentityAccountService, "deleteAccount"> & {
     readonly store: Pick<IdentityAccountStore, "findByIssuer">;
   };
@@ -186,7 +186,7 @@ export function newIssuerRemoval(deps: IssuerRemovalDeps): IssuerRemoval {
         } catch (error) {
           failed += 1;
           deps.logger.error(
-            "federation issuer removal failed with its organization; the provider row and its policies remain",
+            "federation issuer removal failed with its organization; the provider row and its grants remain",
             {
               provider: id,
               org: orgId,

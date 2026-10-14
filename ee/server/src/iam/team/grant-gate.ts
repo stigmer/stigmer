@@ -36,7 +36,7 @@
  *   - sharing a resource with a person who is not one of its
  *     organization's viewers (FAILED_PRECONDITION), with the step the
  *     sharer can take. The resource's organization is its scope link, the
- *     structural row its creation wrote (the policy store's
+ *     structural row its creation wrote (the grant store's
  *     `findScopeTuple`); a resource no organization holds has nothing to
  *     stay inside, and a grant on the organization itself is a role, never
  *     a share.

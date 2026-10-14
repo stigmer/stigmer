@@ -25,7 +25,7 @@
  *                  update RPC: its chain keeps the stored email by design,
  *                  so a person whose email changed at their provider would
  *                  keep the old one forever.
- *   deleteAccount  the grant path's cleanup of every policy row naming the
+ *   deleteAccount  the grant path's cleanup of every grant row naming the
  *                  account, acting for `actingFor`, so the permission
  *                  history names who caused it; then the library's delete
  *                  RPC over the in-process transport, which runs the

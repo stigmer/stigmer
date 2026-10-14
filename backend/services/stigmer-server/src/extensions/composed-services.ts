@@ -9,7 +9,7 @@
  *
  * Why the composition hands these over instead of the host passing them
  * in: under open source's own authorization the Authorizer, the list read
- * scope and the policy check are built inside `composeServer`, after every
+ * scope and the grant check are built inside `composeServer`, after every
  * unit exists, so no host could pass them; and where a host could (its own
  * Authorizer), handing the unit anything but the instance the Authorize
  * step calls would let the unit's gates ask a different question than the
@@ -30,7 +30,7 @@
  *     identity accounts are the store binding every lane reads and the
  *     domain's one create path, so an account a unit creates runs the same
  *     chain, gets the same derived id and fires the same tuple lifecycle
- *     as one a person's sign-in creates. The policy store is the same
+ *     as one a person's sign-in creates. The grant store is the same
  *     binding the grant path writes through, handed over for reads. The
  *     Authorizer and the list read scope are handed over bound by the
  *     credential binding (authorization/credential-binding.ts), so a unit
@@ -66,7 +66,7 @@ export interface ComposedIdentityAccounts {
 }
 
 /**
- * The policy store as a unit's own lanes read it: the composition's one
+ * The grant store as a unit's own lanes read it: the composition's one
  * binding (a unit's registered driver, or open source's adapter), reads
  * only. A unit's repair finds a resource's rows or every row granting a
  * relation on a kind; its grant gate finds a resource's structural link.
@@ -97,7 +97,7 @@ export interface ComposedServices {
    */
   readonly childOrganizations: ChildOrganizations;
   /**
-   * "Is this policy effectively held": the registered engine's `check`, or
+   * "Is this grant effectively held": the registered engine's `check`, or
    * under open source's own authorization the evaluator's
    * (authorization/grant-check.ts); undefined where neither exists (a
    * unit Authorizer with no engine, or open source signed-out). Unlike the
@@ -119,7 +119,7 @@ export interface ComposedServices {
   readonly inProcessTransport: Transport;
   /** The identity-account store binding and the domain's one create path. */
   readonly identityAccounts: ComposedIdentityAccounts;
-  /** The policy store binding's reads. */
+  /** The grant store binding's reads. */
   readonly grants: ComposedGrants;
   /**
    * The store's one name table (pipeline/steps/names.ts): a unit whose

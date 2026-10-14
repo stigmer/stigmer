@@ -3,7 +3,7 @@
  * (boot/compose.ts): a unit of an edition that keeps the history declares
  * a window, and the server ages its history out from its first pass at
  * start; a unit that declares none composes no runner, and nothing is
- * removed. Over the library's own policy store on SQLite, entries written
+ * removed. Over the library's own grant store on SQLite, entries written
  * through the Store with a change (as the adapter writes them) and
  * back-dated raw before `start()`, since a window cannot be waited out.
  * Enterprise's enterprise-access-history-retention.postgres.test.ts is the
@@ -39,7 +39,7 @@ const noRows: ResourceRowReader = { findById: () => Promise.resolve(undefined) }
 /** A test that boots a server waits for it. */
 const BOOTS = 60_000;
 
-/** A unit of an edition that keeps the history, on open source's own policy store. */
+/** A unit of an edition that keeps the history, on open source's own grant store. */
 function licensedUnit(accessHistoryRetentionDays: number | undefined): ServerExtension {
   return {
     name: "licensed-fixture",

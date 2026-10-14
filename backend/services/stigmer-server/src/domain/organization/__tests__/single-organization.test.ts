@@ -126,7 +126,7 @@ function clientsAt(port: number) {
 describe("the open-source edition's one organization (composed as main.ts composes it, trusted-local)", () => {
   const grants = fakeGrantStore();
   const policyUnit: ServerExtension = {
-    name: "fake-policies",
+    name: "fake-grants",
     drivers: { grantStore: grants },
   };
 

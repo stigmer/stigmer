@@ -11,7 +11,7 @@
  * an id carries its kind's prefix (`ida_` for an account, `tm_` for a
  * team), so the index narrows to one principal and the adapter's
  * predicate on (kind, id) keeps the answer exact whatever the index
- * returns. A policy is not organization-scoped the way a lane's rows are,
+ * returns. A grant is not organization-scoped the way a lane's rows are,
  * so the read names no organization; the key table's lookup index leads
  * with the key, not the organization (the v6 migration of each driver).
  *

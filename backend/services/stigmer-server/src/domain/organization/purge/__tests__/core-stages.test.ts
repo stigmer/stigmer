@@ -18,7 +18,7 @@
  *     a run the engine no longer holds fails the stage;
  *   - final: its sweeps (quiesce, the units' stages and content again) to
  *     their end first, and a sweep that waits leaves it to a later pass
- *     with nothing final done; then the policy rows, the lifecycle's organization event, the row,
+ *     with nothing final done; then the grant rows, the lifecycle's organization event, the row,
  *     its slug and its mark go, in that order relative to the mark; a
  *     row already gone still ends with the slug and the mark released; a
  *     row that cannot be read fails the stage.
@@ -312,7 +312,7 @@ describe("the final stage", () => {
     const order: string[] = [];
     const grantPath = {
       async cleanupResource(ref: { kind: string; id: string }) {
-        order.push(`policies:${ref.id}`);
+        order.push(`grants:${ref.id}`);
       },
     } as unknown as GrantPath;
     const events: ResourceDeletedEvent[] = [];
@@ -331,7 +331,7 @@ describe("the final stage", () => {
     return { stage, order, events };
   }
 
-  it("removes the policies, the row, the slug and the mark", async () => {
+  it("removes the grants, the row, the slug and the mark", async () => {
     await store.saveResource(
       ApiResourceKind.organization,
       ORG,
@@ -348,7 +348,7 @@ describe("the final stage", () => {
     await store.organizationDeletions.accept(ORG, now);
     const { stage, order, events } = rig();
     expect(await stage.run(context)).toEqual({ more: false });
-    expect(order).toEqual([`policies:${ORG}`]);
+    expect(order).toEqual([`grants:${ORG}`]);
     expect(events.map((event) => [event.kind, event.resourceId])).toEqual([
       [ApiResourceKind.organization, ORG],
     ]);
@@ -417,7 +417,7 @@ describe("the final stage", () => {
       logger: silentLogger,
       grantPath: {
         async cleanupResource() {
-          order.push("policies");
+          order.push("grants");
         },
       } as unknown as GrantPath,
       lifecycle: undefined,
@@ -432,7 +432,7 @@ describe("the final stage", () => {
       ],
     });
     await stage.run(context);
-    expect(order).toEqual(["sweep", "sweep", "sweep", "policies"]);
+    expect(order).toEqual(["sweep", "sweep", "sweep", "grants"]);
   });
 
   it("leaves itself to a later pass when a sweep waits, with nothing final done", async () => {
@@ -442,7 +442,7 @@ describe("the final stage", () => {
       logger: silentLogger,
       grantPath: {
         async cleanupResource() {
-          order.push("policies");
+          order.push("grants");
         },
       } as unknown as GrantPath,
       lifecycle: undefined,

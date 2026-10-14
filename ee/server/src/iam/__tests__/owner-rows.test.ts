@@ -1,5 +1,5 @@
 /**
- * The owner-row reconcile over fakes of the policy table and the grant
+ * The owner-row reconcile over fakes of the grant table and the grant
  * path. Pins:
  *   - one read per kind, by kind and relation (`owner`), and every row it
  *     answers goes through the grant path's `delete` with the row's own
@@ -43,7 +43,7 @@ function grant(
   });
 }
 
-/** A policy table, read by kind and relation, and a grant path whose `delete` removes from it. */
+/** A grant table, read by kind and relation, and a grant path whose `delete` removes from it. */
 function rig(
   table: Grant[],
   options: {

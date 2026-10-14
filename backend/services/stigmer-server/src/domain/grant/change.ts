@@ -1,11 +1,11 @@
 /**
- * What the grant path says about a change to a policy row: who made it,
+ * What the grant path says about a change to a grant row: who made it,
  * through which door, and in which organization. The grant path
  * (grant-path.ts) builds one for every row it writes or deletes that
  * grants access, and hands it to the store beside the row
  * (`GrantStore.save` and `deleteById`), so an edition that keeps a
  * permission history writes it in the same atomic unit as the row: the
- * Cloud's own policy store, and the library's adapter in every edition
+ * Cloud's own grant store, and the library's adapter in every edition
  * above open source (resource-store.ts, store/permission-history.ts). Open
  * source keeps none; the same facts ride the path's grant and revoke log
  * lines.

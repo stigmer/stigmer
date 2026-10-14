@@ -1,11 +1,11 @@
 /**
  * The ONE grant and revoke path of the Grant domain, moved from the
  * cloud's former iam/grant/service.ts into open source so every edition writes and
- * deletes a policy row the same way. Its callers: the Grant command
+ * deletes a grant row the same way. Its callers: the Grant command
  * controller (user grants and the three system RPCs), the built-in role
  * lifecycle (the organization creator's `owner` row; cleanup on delete)
  * and the membership rules (first-sign-in roles). Nothing else builds,
- * saves or deletes a policy row; a composition reaches this path as
+ * saves or deletes a grant row; a composition reaches this path as
  * in-process RPCs, never through an exported constructor.
  *
  * The two ordering invariants live here, nowhere else:
@@ -105,7 +105,7 @@
  * derived id, the spec as given, and the caller's audit stamp through the
  * platform's one stamper (setAuditFieldsForCreate) — the cloud's
  * `buildNewPolicy` stamped neither org nor creator; this path stamps the
- * creator and, like the cloud, no `metadata.org`, because a policy may
+ * creator and, like the cloud, no `metadata.org`, because a grant may
  * span organizations and none owns it.
  */
 import { create } from "@bufbuild/protobuf";
@@ -240,7 +240,7 @@ export interface GrantPath {
 
 /**
  * What the path reads from a stored resource's own row, the two facts it
- * needs from outside the policy rows: who created it (the removal sweep
+ * needs from outside the grant rows: who created it (the removal sweep
  * keeps authorship), and which organization it belongs to (a change record
  * whose scope links a delete already removed).
  */
@@ -275,7 +275,7 @@ export interface GrantPathDeps {
   readonly resources: StoredResources;
   /** The composition's departure handler (departure.ts); undefined does nothing more than the sweep. */
   readonly departures?: OrganizationDepartureHandler;
-  /** The composed driver, if any; a driver without the two policy hooks is the same as none. */
+  /** The composed driver, if any; a driver without the two grant hooks is the same as none. */
   readonly lifecycle: ResourceAuthorizationLifecycle | undefined;
   readonly logger: Logger;
 }
@@ -365,7 +365,7 @@ export function newGrantPath(
     const spec = grant.spec;
     if (spec === undefined) {
       throw new Error(
-        `policy ${grant.metadata?.id ?? "?"} has no spec — corrupt row`,
+        `grant ${grant.metadata?.id ?? "?"} has no spec — corrupt row`,
       );
     }
     const record = await recordFor(spec, change, organizationOf);

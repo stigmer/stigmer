@@ -545,7 +545,7 @@ async function deleteAccount(
         } catch (error) {
           throw internalError(
             error,
-            "failed to remove the account's access policies",
+            "failed to remove the account's grants",
           );
         }
       },

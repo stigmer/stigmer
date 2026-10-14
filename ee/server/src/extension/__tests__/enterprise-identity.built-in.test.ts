@@ -2,7 +2,7 @@
  * The Enterprise identity unit on open source's own authorization: the
  * unit composed onto `@stigmer/server` at edition `enterprise` with no
  * Authorizer of its own, so the library's built-in Authorizer, list read
- * scope and policy check answer every one of its questions from the one
+ * scope and grant check answer every one of its questions from the one
  * authorization model, over the rows the unit keeps in its own stores
  * (read through the row readers it registers). The host is the least an
  * Enterprise host can be: a unit that declares the edition and the

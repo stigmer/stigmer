@@ -24,7 +24,7 @@
  * notation the cloud's store tests and the Grant proto both use; parse
  * and format are here so the kit and the tests never spell them a second
  * way. The wildcard notation `type:*` is refused by the parser: the model
- * has no line that admits one, so a fixture or a policy that spells it is
+ * has no line that admits one, so a fixture or a grant that spells it is
  * a mistake to surface, never a subject to carry.
  */
 import type { Message } from "@bufbuild/protobuf";

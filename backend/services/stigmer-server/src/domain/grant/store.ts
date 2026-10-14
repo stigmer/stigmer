@@ -61,7 +61,7 @@
  * written against the one-argument methods still satisfies this interface.
  *
  * Reading the history. Every edition above open source keeps a history and
- * serves it (the access-policy controller's `listAccessHistory`), so a
+ * serves it (the grant controller's `listAccessHistory`), so a
  * store composed there must keep one and read it back through
  * `listChanges`: each organization's changes numbered from 1 in commit
  * order with no gaps, and times that never go back, so "everything after
@@ -147,7 +147,7 @@ export interface GrantStore {
     relation: string,
   ): Promise<ReadonlyArray<Grant>>;
   /**
-   * The resource's scope tuple (the hierarchy walk's one step): a policy
+   * The resource's scope tuple (the hierarchy walk's one step): a grant
    * on the resource whose principal is structural (not identity_account
    * or team) and whose relation is structural (not owner or creator).
    */

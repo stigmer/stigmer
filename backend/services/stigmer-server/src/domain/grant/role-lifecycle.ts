@@ -39,7 +39,7 @@
  * domain's one statement of "the caller's account" — the two reads
  * whoAmI makes — so this object and whoAmI cannot disagree. The
  * row is then granted AS the account (`identityId` re-stamped, the
- * `provisionMyAccount` idiom), so every policy row's `created_by.id` is
+ * `provisionMyAccount` idiom), so every grant row's `created_by.id` is
  * an account id — never an email, never an idp subject. A caller that
  * resolves to no account (an idp-shaped subject before provisioning)
  * writes nothing: the membership rules heal a real person's ownership at
@@ -50,7 +50,7 @@
  * caller carries the operator's fields and would otherwise resolve.
  *
  * Acyclic by construction: this object sits ON TOP of the grant path and
- * defines neither policy hook. The grant path's own lifecycle is the
+ * defines neither grant hook. The grant path's own lifecycle is the
  * composed driver (undefined in open source), never this object; the test
  * pins both facts.
  *

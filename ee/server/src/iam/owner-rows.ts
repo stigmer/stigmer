@@ -1,6 +1,6 @@
 /**
  * The owner-row reconcile: at every boot, every kind that records no owner
- * loses any direct `owner` policy row it still holds. Four kinds, in the
+ * loses any direct `owner` grant row it still holds. Four kinds, in the
  * model `@stigmer/server` ships, are managed by their organization's
  * current admins alone (`owner: admin from organization`, kind_meta
  * `owner_type` NONE): federation issuers and invitations since
@@ -18,7 +18,7 @@
  * then it still grants, and after it every access listing would still
  * show it. So the row goes.
  *
- * One read per kind: every `owner` row on the kind, from the policy table
+ * One read per kind: every `owner` row on the kind, from the grant table
  * (`OwnerRowReads`, the adapter's `findByResourceKindAndRelation`).
  * The question is which owner rows exist, not which resources exist, so
  * the reconcile never enumerates a kind's rows, and a row left on a
@@ -45,7 +45,7 @@ import type { GrantPathClient } from "./grant/grant-path-client.js";
 /** The relation no row of a no-owner kind may hold directly. */
 const OWNER = "owner";
 
-/** The one read the reconcile makes: every policy row granting `relation` on a kind. */
+/** The one read the reconcile makes: every grant row granting `relation` on a kind. */
 export interface OwnerRowReads {
   findByResourceKindAndRelation(
     resourceKind: string,

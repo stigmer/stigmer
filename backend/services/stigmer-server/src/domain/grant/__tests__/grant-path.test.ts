@@ -11,7 +11,7 @@
  *   - REVOKE: onRevoked fires, THEN the row is deleted. A hook throw
  *     leaves row and tuple (retry converges; the reverse order was the
  *     fail-open incident class). The absent arm fires the hook with the
- *     spec and no policy, so a composition can still delete a bare tuple
+ *     spec and no grant, so a composition can still delete a bare tuple
  *     written before the row mirror existed.
  *   - cleanupResource is bidirectional (as principal first, then as
  *     target with the owner rows last), deduplicated, revoking each row
@@ -382,7 +382,7 @@ describe("the one writer is the one gate: nothing is read, written or notified f
 });
 
 describe("revoke: onRevoked before the row delete", () => {
-  it("fires the hook with the row, then deletes it, and answers the revoked policy", async () => {
+  it("fires the hook with the row, then deletes it, and answers the revoked grant", async () => {
     const recorded: RecordedEvent[] = [];
     const { policies: grants, path } = pathOver(recorded, recordingLifecycle(recorded));
     const spec = orgRole(ALICE, "admin", "acme");
@@ -416,7 +416,7 @@ describe("revoke: onRevoked before the row delete", () => {
     expect(recorded).toEqual([]);
   });
 
-  it("the absent arm fires the hook with the spec and no policy, deletes nothing, answers undefined", async () => {
+  it("the absent arm fires the hook with the spec and no grant, deletes nothing, answers undefined", async () => {
     const recorded: RecordedEvent[] = [];
     const { path } = pathOver(recorded, recordingLifecycle(recorded));
 

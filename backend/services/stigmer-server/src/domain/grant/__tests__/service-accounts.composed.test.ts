@@ -36,8 +36,8 @@ import type { SignInServer } from "../../identityaccount/__tests__/service-accou
 import { SERVICE_ACCOUNT_OWNER_MESSAGE } from "../steps.js";
 import { orgRole } from "./support.js";
 
-const FOUNDER = "fake|policy-founder";
-const PERSON = "fake|policy-person";
+const FOUNDER = "fake|grant-founder";
+const PERSON = "fake|grant-person";
 const MEMBERSHIP_REFUSAL = serviceAccountRefusedMessage(
   "grant or revoke roles on the organization",
 );
@@ -61,12 +61,12 @@ async function rolesOf(principal: string): Promise<string[]> {
 beforeAll(async () => {
   at = await bootSignInServer("grant-service-accounts");
   await provision(at, FOUNDER);
-  org = await foundOrganization(at.as(FOUNDER), "policy-acme");
+  org = await foundOrganization(at.as(FOUNDER), "grant-acme");
   personId = await provision(at, PERSON);
   const robot = await createServiceAccount(
     at.as(FOUNDER),
     org,
-    "policy-robot",
+    "grant-robot",
     IamRole.admin,
   );
   robotId = robot.metadata?.id ?? "";
@@ -93,7 +93,7 @@ describe("what a service account may hold on its organization", () => {
     const helper = await createServiceAccount(
       at.as(FOUNDER),
       org,
-      "policy-helper",
+      "grant-helper",
       IamRole.viewer,
     );
     const id = helper.metadata?.id ?? "";

@@ -270,7 +270,7 @@ describe("Grant conformance — the creator owns the organization", () => {
 });
 
 describe("Grant conformance — grants on the organization, the Members page's RPCs", () => {
-  it("[rpc:GrantCommandController.create] [rpc:GrantQueryController.getPrincipalsCount] create is idempotent: the same triple twice answers one policy, one row, one counted principal", async () => {
+  it("[rpc:GrantCommandController.create] [rpc:GrantQueryController.getPrincipalsCount] create is idempotent: the same triple twice answers one grant, one row, one counted principal", async () => {
     const org = await createOwnedOrganization();
     const member = syntheticAccountId();
     const spec = organizationRole(member, "member", org);
@@ -381,7 +381,7 @@ describe("Grant conformance — grants on the organization, the Members page's R
           value: "grt_00000000000000000000000000",
         }),
       Code.NotFound,
-      "get for an unknown policy id",
+      "get for an unknown grant id",
     );
     expect(error.rawMessage).toBe(
       grantNotFoundMessage("grt_00000000000000000000000000"),
@@ -957,7 +957,7 @@ describe.skipIf(capabilities.authorizationQueries)(
           }),
       ],
       [
-        "[rpc:GrantQueryController.checkMyPermission] checkMyPermission with contextual policies",
+        "[rpc:GrantQueryController.checkMyPermission] checkMyPermission with contextual grants",
         (me: string, org: string) =>
           clients.grantQuery.checkMyPermission({
             resource: ref("organization", org),
@@ -1015,7 +1015,7 @@ describe.skipIf(!capabilities.authorizationQueries)(
       expect(principals.principalIds).toContain(me);
     });
 
-    it("checkMyPermission carrying contextual policies is answered by the engine, not refused", async () => {
+    it("checkMyPermission carrying contextual grants is answered by the engine, not refused", async () => {
       const me =
         (await clients.identityAccountQuery.whoAmI({})).metadata?.id ?? "";
       const org = await createOwnedOrganization();

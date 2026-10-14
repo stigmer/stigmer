@@ -718,7 +718,7 @@ describe("a sign-in whose provider's delete has begun", () => {
     expect(refused.rawMessage).toBe("IdP 'acme/acme-sso' is being deleted and signs no one in");
     expect(
       fakes.accountDeletes,
-      "the account it created goes through the account service, policies and all, acting for the provider",
+      "the account it created goes through the account service, grants and all, acting for the provider",
     ).toEqual([{ id: "ida_new", actingFor: "fis_1" }]);
     expect(fakes.deleted, "never the row-only rollback, which would leave the grant").toEqual([]);
     expect(fakes.signInGrants.rows.size).toBe(0);

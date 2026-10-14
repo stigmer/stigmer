@@ -17,7 +17,7 @@
  *   - identity-account store + identity federation (the first domain
  *     whose persistence is a PORT, and the four federated RPC arms only
  *     one edition serves)
- *   - Grant store + policy grant scope + authorization queries (the
+ *   - Grant store + grant scope + authorization queries (the
  *     Grant domain's row half served in every edition; the store
  *     port, which kinds an edition grants on, and the tuple-half query
  *     engine only an authorization backend can answer)
@@ -129,7 +129,7 @@ export interface ExtensionDrivers {
    * composed, the three shared tuple steps
    * (CreateAuthorizationTuples / CleanupGrants /
    * UpdateVisibilityTuples) deliver resolved events to it, and the
-   * Grant grant path delivers the two policy hooks. Corrected
+   * The grant path delivers the two grant hooks. Corrected
    * 2026-09-13: when absent, the steps no-op, but
    * open source is no longer record-less — the composition root installs
    * the built-in role lifecycle (domain/grant/role-lifecycle.ts),
@@ -245,7 +245,7 @@ export interface ExtensionDrivers {
    */
   readonly grantStore?: GrantStore;
   /**
-   * The policy grant scope (single-instance point):
+   * The grant scope (single-instance point):
    * which kinds a user may grant a role on in this edition, with which
    * roles. Narrows the proto's `grantable_roles`, total over the enum,
    * synchronous (grant-scope.ts carries the reasons). When
@@ -259,7 +259,7 @@ export interface ExtensionDrivers {
   /**
    * The authorization-query engine (single-instance point): the tuple-half
    * questions — checkAuthorization, the two
-   * listAuthorized*Ids, a checkMyPermission with contextual policies —
+   * listAuthorized*Ids, a checkMyPermission with contextual grants —
    * only an authorization backend can answer over its own graph. When
    * composed, the Grant query controller dispatches to it after its
    * own trust checks; when absent, those RPC arms refuse UNIMPLEMENTED

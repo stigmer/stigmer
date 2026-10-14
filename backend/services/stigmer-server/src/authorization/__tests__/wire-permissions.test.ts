@@ -41,7 +41,7 @@
  * Outside the pin, as in the annotation-completeness precedent: `is_public`
  * and `is_skip_authorization` methods (their annotation is never
  * resolved), and a `config` that names no kind (`GrantQueryController.get`,
- * which authorizes the loaded policy's resource).
+ * which authorizes the loaded grant's resource).
  *
  * What does not hold today is pinned, never dropped: `KNOWN_GAPS` lists
  * each disagreement, and the test requires the computed list to equal it,

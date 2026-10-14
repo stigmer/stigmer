@@ -3,7 +3,7 @@
  * caller hands the domain a spec; the built-in role lifecycle, the
  * membership rules, `revokeOrgAccess` and contextual `checkMyPermission`
  * build their own.
- * The derived policy id hashes the spec's exact text (constants.ts
+ * The derived grant id hashes the spec's exact text (constants.ts
  * `grantIdFor`), so two spellings of one triple would be two rows — this
  * module is where "identity_account:<id> holds <role> on
  * organization:<org>" has one spelling in production code, the way the

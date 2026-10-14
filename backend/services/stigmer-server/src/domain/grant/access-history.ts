@@ -1,6 +1,6 @@
 /**
  * `listAccessHistory`: an organization's access history, read back from
- * the history its policy store keeps (store.ts `listChanges`). The reader
+ * the history its grant store keeps (store.ts `listChanges`). The reader
  * is the writer's other half: the edition that opens the writer
  * (boot/compose.ts, every edition above open source) serves the read, so
  * one declaration decides both. Open source keeps no history and refuses

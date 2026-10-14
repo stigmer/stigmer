@@ -8,7 +8,7 @@ This document is the inventory of which fields the resolver reads, one row per m
 
 - **Every field named `org` or ending `_org`, and every repeated `orgs`**, at any depth of the input: `metadata.org`, a top-level `org`, and the `org` of every reference in a spec. One spelling for an organization field is the contract's own rule (`docs/vocabulary.md`), so the name is the signal. A field that broke the rule (an `org` that names no organization) would appear here, and its review is this document's diff.
 - **The field a method's authorization annotation names when its kind is `organization`**: an Organization's own id on `get`, `update`, `updatePolicies`, `delete` and `rename`. Marked `(annotation)`.
-- **`ApiResourceRef.id` when the ref's kind is `organization`**: a policy grant on an organization, or one an organization holds. Marked `(kind organization)`.
+- **`ApiResourceRef.id` when the ref's kind is `organization`**: a grant on an organization, or one an organization holds. Marked `(kind organization)`.
 
 What the resolver does with a value:
 
@@ -197,13 +197,13 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | GrantCommandController.create | `principal.id (kind organization)`, `resource.id (kind organization)` |
 | GrantCommandController.delete | `principal.id (kind organization)`, `resource.id (kind organization)` |
 | GrantCommandController.revokeOrgAccess | `org` |
-| GrantQueryController.checkAuthorization | `policy.principal.id (kind organization)`, `policy.resource.id (kind organization)`, `contextual_policies.principal.id (kind organization)`, `contextual_policies.resource.id (kind organization)` |
-| GrantQueryController.checkMyPermission | `resource.id (kind organization)`, `contextual_policies.principal.id (kind organization)`, `contextual_policies.resource.id (kind organization)` |
+| GrantQueryController.checkAuthorization | `grant.principal.id (kind organization)`, `grant.resource.id (kind organization)`, `contextual_grants.principal.id (kind organization)`, `contextual_grants.resource.id (kind organization)` |
+| GrantQueryController.checkMyPermission | `resource.id (kind organization)`, `contextual_grants.principal.id (kind organization)`, `contextual_grants.resource.id (kind organization)` |
 | GrantQueryController.getPrincipalResourceRoles | `principal.id (kind organization)`, `resource.id (kind organization)` |
 | GrantQueryController.getPrincipalsCount | `org` |
 | GrantQueryController.listAccessHistory | `org` |
-| GrantQueryController.listAuthorizedPrincipalIds | `resource.id (kind organization)`, `contextual_policies.principal.id (kind organization)`, `contextual_policies.resource.id (kind organization)` |
-| GrantQueryController.listAuthorizedResourceIds | `principal.id (kind organization)`, `contextual_policies.principal.id (kind organization)`, `contextual_policies.resource.id (kind organization)` |
+| GrantQueryController.listAuthorizedPrincipalIds | `resource.id (kind organization)`, `contextual_grants.principal.id (kind organization)`, `contextual_grants.resource.id (kind organization)` |
+| GrantQueryController.listAuthorizedResourceIds | `principal.id (kind organization)`, `contextual_grants.principal.id (kind organization)`, `contextual_grants.resource.id (kind organization)` |
 | GrantQueryController.listResourceAccessByPrincipal | `resource.id (kind organization)` |
 
 ## `ai.stigmer.iam.identityaccount.v1`

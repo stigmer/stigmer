@@ -1,9 +1,9 @@
 /**
  * Grant domain constants: the derived
- * policy id and the one spelling of a triple it hashes, the kinds the
+ * grant id and the one spelling of a triple it hashes, the kinds the
  * legacy-creator rule scans, and the byte-pinned wire copy.
  *
- * The derived id. A policy's id is a pure function of its triple:
+ * The derived id. A grant's id is a pure function of its triple:
  * `grt_` + `derivedId` (pipeline/steps/defaults.ts, the encoder shared
  * with the identity account) over the triple's canonical text. The text
  * IS the tuple notation the contract's own comment documents
@@ -13,7 +13,7 @@
  * one home of "one row per triple" in open source: two concurrent grants
  * converge by primary key with no secondary index and no scan. The golden
  * vectors in __tests__/constants.test.ts are wire-adjacent contract: a
- * change here re-addresses every policy open source ever wrote.
+ * change here re-addresses every grant open source ever wrote.
  *
  * The text's one weakness: `ApiResourceRef` fields carry no
  * character pattern, so an id or relation holding one of the three
@@ -72,7 +72,7 @@ interface CompleteTriple {
 
 function completeTriple(spec: GrantSpec): CompleteTriple {
   if (spec.principal === undefined || spec.resource === undefined) {
-    throw new Error("policy spec must carry principal and resource");
+    throw new Error("grant spec must carry principal and resource");
   }
   return {
     principal: spec.principal,
@@ -116,7 +116,7 @@ export function malformedTripleField(spec: GrantSpec): string | undefined {
 }
 
 /**
- * The derived policy id of a triple. Pure; refuses a spec missing either
+ * The derived grant id of a triple. Pure; refuses a spec missing either
  * reference (a triple is the whole key) and a spec whose text would be
  * ambiguous — both are the assert behind the grant path's gate,
  * which is where a caller hears INVALID_ARGUMENT.
@@ -322,7 +322,7 @@ export function teamRoleNotGrantableMessage(
 
 /** A triple field holding a canonical-text delimiter (INVALID_ARGUMENT). */
 export function malformedTripleMessage(field: string): string {
-  return `policy ${field} must not contain ':', '#' or '@'`;
+  return `grant ${field} must not contain ':', '#' or '@'`;
 }
 
 /**

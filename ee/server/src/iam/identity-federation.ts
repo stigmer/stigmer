@@ -51,7 +51,7 @@
  *     the retry is idempotent and completes once the window has passed. A
  *     child missed by all three reads would need its whole delete, mark
  *     to refusal, to fall between two consecutive reads. One that deletes the account goes through: the account's
- *     removal deletes its policies by account, naming no organization;
+ *     removal deletes its grants by account, naming no organization;
  *   - a missing federated account is NOT_FOUND with the pinned copy.
  *
  * The caller each arm receives is unused today; the capability's

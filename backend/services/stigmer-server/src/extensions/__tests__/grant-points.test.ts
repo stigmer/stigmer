@@ -166,7 +166,7 @@ describe("the widened ResourceAuthorizationLifecycle contract", () => {
     onVisibilityChanged: unimplemented,
   };
 
-  it("a lifecycle carrying the two policy hooks resolves with both intact — the cloud's tuple driver", () => {
+  it("a lifecycle carrying the two grant hooks resolves with both intact — the cloud's tuple driver", () => {
     const tupleDriver: ResourceAuthorizationLifecycle = {
       ...resourceHooks,
       onGranted: unimplemented,

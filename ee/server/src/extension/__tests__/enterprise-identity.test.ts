@@ -26,7 +26,7 @@
  * failed read of one never skips the next, and the provider's log lines
  * keep their words.
  * The owner-row reconcile beside it runs the same way, one read of the
- * policy rows per kind, and logs every owner row it revokes with the
+ * grant rows per kind, and logs every owner row it revokes with the
  * account the row named.
  *
  * The unit's authorization inventory,
@@ -439,7 +439,7 @@ function repairRig(rows: {
   /** The invitations' read fails. */
   failInvitationsRead?: boolean;
   failGrantFor?: ReadonlySet<string>;
-  /** The policy rows each row holds as resource, by id. */
+  /** The grant rows each row holds as resource, by id. */
   grantsOn?: ReadonlyMap<string, ReadonlyArray<Grant>>;
   /** Kinds whose read by kind and relation fails. */
   failKindReadFor?: ReadonlySet<string>;

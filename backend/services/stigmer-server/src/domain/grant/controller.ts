@@ -8,7 +8,7 @@
  * edition and registers it: its row store (`drivers.grantStore`), its
  * grant scope (`drivers.grantScope`), its OpenFGA query engine
  * (`drivers.authorizationQueries`) and the tuple mirror in the lifecycle
- * driver's two policy hooks — and reaches the write lanes here as
+ * driver's two grant hooks — and reaches the write lanes here as
  * in-process RPCs, never through an exported constructor.
  *
  * Shape. The six command RPCs are pipeline chains, each
@@ -19,9 +19,9 @@
  * fault mapping covers a store fault from inside the path. The eight
  * query RPCs are direct handlers over `authorizeDirect` (the cloud's
  * shape; the identity-account lookups' precedent). No chain here splices
- * a tuple step: a policy is the authorization record, not a protected
- * resource — the cloud builds policies outside any chain, no RPC
- * authorizes against a policy (the model declares the `grant` type
+ * a tuple step: a grant is the authorization record, not a protected
+ * resource — the cloud builds grants outside any chain, no RPC
+ * authorizes against a grant (the model declares the `grant` type
  * only because it declares every open-source kind), and seeding scope
  * links for a row would recurse (the ts-server guideline records this
  * exception).
@@ -79,7 +79,7 @@
  * `checkMyPermission` has one definition, in this order:
  * UNAUTHENTICATED for an empty identity; the relation must be an
  * IamPermission name; the resource kind must be known; contextual
- * policies ride the query engine or refuse UNIMPLEMENTED; then (1) a kind
+ * grants ride the query engine or refuse UNIMPLEMENTED; then (1) a kind
  * this edition does not serve is `false` — nobody holds a permission on a
  * kind that does not exist here, which is what keeps the operator-only
  * settings navigation hidden on open source; (2) `can_grant_access` on a
@@ -510,8 +510,8 @@ function grantResultOf<Desc extends DescMessage>(
   const result = reqCtx.get(GRANT_RESULT_KEY);
   if (result === undefined) {
     throw internalError(
-      new Error(`${method.localName} pipeline completed without a policy`),
-      "policy not found in context",
+      new Error(`${method.localName} pipeline completed without a grant`),
+      "grant not found in context",
     );
   }
   return result as Grant;
@@ -636,7 +636,7 @@ async function checkAuthorization(
 }
 
 /**
- * Whether the caller's credential may reach the policy's resource at all:
+ * Whether the caller's credential may reach the grant's resource at all:
  * always for an unbound caller; for a bound one, the binding's verdict
  * (authorization/credential-binding.ts), so the engine is never asked about
  * another organization's resource on a bound person's behalf. Every lane
@@ -913,12 +913,12 @@ function requireRef(ref: ApiResourceRef | undefined): ApiResourceRef {
   return ref;
 }
 
-/** Boundary-validated required policy input — absence here is a contract bug. */
+/** Boundary-validated required grant input — absence here is a contract bug. */
 function requireInputGrant(grant: GrantSpec | undefined): GrantSpec {
   if (grant === undefined) {
     throw internalError(
-      new Error("required policy missing after boundary validation"),
-      "required policy missing after boundary validation",
+      new Error("required grant missing after boundary validation"),
+      "required grant missing after boundary validation",
     );
   }
   return grant;
@@ -929,7 +929,7 @@ function specOfRow(grant: Grant): GrantSpec {
   if (grant.spec === undefined) {
     throw internalError(
       new Error(
-        `policy ${grant.metadata?.id ?? "?"} has no spec — corrupt row`,
+        `grant ${grant.metadata?.id ?? "?"} has no spec — corrupt row`,
       ),
       "failed to load grant",
     );

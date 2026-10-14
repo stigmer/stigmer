@@ -5,8 +5,8 @@
  *   - every organization a request names by slug reaches the handler as
  *     its id: `metadata.org`, a reference's `org` nested in a spec, a
  *     top-level `org`, the Organization service's own annotated id, and a
- *     policy ref whose kind is organization;
- *   - an id, an empty value, a name nothing holds and a policy ref of
+ *     grant ref whose kind is organization;
+ *   - an id, an empty value, a name nothing holds and a grant ref of
  *     another kind pass untouched, and a request that needs nothing is
  *     handed on as it came;
  *   - each distinct name is looked up once, and the caller's message is
@@ -163,7 +163,7 @@ describe("the organization-name resolver", () => {
     expect(input.metadata?.org, "the caller's message is untouched").toBe("acme");
   });
 
-  it("resolves a top-level org, the Organization service's annotated id, and a policy ref of kind organization", async () => {
+  it("resolves a top-level org, the Organization service's annotated id, and a grant ref of kind organization", async () => {
     const resolver = resolverOf({ acme: ACME });
     const { search, organizations, policies: grants, seen } = harness(resolver);
 

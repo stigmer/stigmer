@@ -604,7 +604,7 @@ async function apply(
  *   3. the `org-delete:pre-delete` slot, where an edition refuses, or
  *      removes what must not outlive the delete's answer (credentials,
  *      trust configuration);
- *   4. RevokeOrganizationGrants, every policy row naming the
+ *   4. RevokeOrganizationGrants, every grant row naming the
  *      organization, through the grant path, so nobody holds a role in it
  *      from the answer on;
  *   5. AcceptPurge: the mark is the purge's, and the purge is kicked.

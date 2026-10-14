@@ -113,7 +113,7 @@ async function grpcError(run: () => Promise<unknown>): Promise<ConnectError> {
   throw new Error("expected the call to fail");
 }
 
-/** The kinds the core purges that the seed stores directly (the rest are made by their RPCs or are policies). */
+/** The kinds the core purges that the seed stores directly (the rest are made by their RPCs or are grants). */
 const STORED_KINDS = [...CORE_PURGED_KINDS].filter(
   (kind) =>
     kind !== ApiResourceKind.grant &&

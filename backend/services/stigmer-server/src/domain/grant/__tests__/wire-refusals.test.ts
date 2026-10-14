@@ -6,7 +6,7 @@
  * RPCs' controller — so the table is proven once here; grant-path.test.ts
  * keeps its own arms and passes through the moved functions unchanged.
  *
- * Exactness is contract: the derived policy id hashes the spec's
+ * Exactness is contract: the derived grant id hashes the spec's
  * text, so a lenient match would let two spellings of one kind mint two
  * rows for one grant.
  */

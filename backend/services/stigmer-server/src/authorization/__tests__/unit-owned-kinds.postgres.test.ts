@@ -12,7 +12,7 @@
  *     provider, invitation or team, and the rowless platform, are
  *     denials with the annotation's copy, never not-found, the cloud's
  *     answer for the same kinds (NOT_FOUND_EXEMPT_KINDS).
- *   - The built-in policy check (grant-check.ts) answers the unit's
+ *   - The built-in grant check (grant-check.ts) answers the unit's
  *     three structural questions: whether a resource is an
  *     organization's, whether a person views an organization, and
  *     whether an account id could still grant access on it; contextual
@@ -316,7 +316,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         );
       });
 
-      describe("the built-in policy check", () => {
+      describe("the built-in grant check", () => {
         function queries() {
           return newBuiltInGrantCheck({
             store: opened.store,
@@ -360,7 +360,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         it("refuses contextual grants and a userset principal as programming errors", async () => {
           const held = orgRole(DAVE, "viewer", "acme");
           await expect(queries().check(held, [held])).rejects.toThrowError(
-            /contextual policies are not supported/,
+            /contextual grants are not supported/,
           );
           await expect(
             queries().check(
