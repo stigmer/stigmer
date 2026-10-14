@@ -34,6 +34,7 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | AgentCommandController.create | `metadata.org`, `spec.skill_refs.org`, `spec.plugins.org`, `spec.subagents.org` |
 | AgentCommandController.update | `resource.metadata.org`, `resource.spec.skill_refs.org`, `resource.spec.plugins.org`, `resource.spec.subagents.org` |
 | AgentQueryController.getByReference | `org` |
+| AgentQueryController.list | `org` |
 | AgentQueryController.listVersions | `org` |
 
 ## `ai.stigmer.agentic.agentchannel.v1`
@@ -43,10 +44,11 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | AgentChannelCommandController.apply | `metadata.org`, `spec.agent_ref.org`, `spec.vaults.org`, `spec.app_ref.org` |
 | AgentChannelCommandController.create | `metadata.org`, `spec.agent_ref.org`, `spec.vaults.org`, `spec.app_ref.org` |
 | AgentChannelCommandController.update | `resource.metadata.org`, `resource.spec.agent_ref.org`, `resource.spec.vaults.org`, `resource.spec.app_ref.org` |
-| AgentChannelQueryController.getByAgent | `org` |
+| AgentChannelQueryController.listByAgent | `org` |
 | AgentChannelQueryController.getByReference | `org` |
 | AgentChannelQueryController.list | `org` |
-| ChannelConversationQueryController.listConversations | `org` |
+| ChannelConversationQueryController.countConversations | `org` |
+| ChannelConversationQueryController.list | `org` |
 | ChannelMessageCommandController.sendMessage | `org` |
 | ChannelMessageQueryController.listTemplates | `org` |
 
@@ -75,7 +77,7 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | AgentShareCommandController.apply | `metadata.org`, `spec.agent_ref.org`, `spec.vaults.org` |
 | AgentShareCommandController.create | `metadata.org`, `spec.agent_ref.org`, `spec.vaults.org` |
 | AgentShareCommandController.update | `resource.metadata.org`, `resource.spec.agent_ref.org`, `resource.spec.vaults.org` |
-| AgentShareQueryController.getByAgent | `org` |
+| AgentShareQueryController.listByAgent | `org` |
 | AgentShareQueryController.getByReference | `org` |
 | AgentShareQueryController.list | `org` |
 
@@ -112,6 +114,7 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | PluginCommandController.listTools | `org` |
 | PluginCommandController.push | `org` |
 | PluginQueryController.getByReference | `org` |
+| PluginQueryController.list | `org` |
 | PluginQueryController.listVersions | `org` |
 
 ## `ai.stigmer.agentic.plugineval.v1`
@@ -127,7 +130,7 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | ScheduleCommandController.apply | `metadata.org`, `spec.agent.agent_ref.org`, `spec.agent.vaults.org` |
 | ScheduleCommandController.create | `metadata.org`, `spec.agent.agent_ref.org`, `spec.agent.vaults.org` |
 | ScheduleCommandController.update | `resource.metadata.org`, `resource.spec.agent.agent_ref.org`, `resource.spec.agent.vaults.org` |
-| ScheduleQueryController.getByAgent | `org` |
+| ScheduleQueryController.listByAgent | `org` |
 | ScheduleQueryController.getByReference | `org` |
 | ScheduleQueryController.list | `org` |
 
@@ -157,6 +160,7 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | SkillCommandController.push | `org` |
 | SkillCommandController.pushFromRunArtifact | `org` |
 | SkillQueryController.getByReference | `org` |
+| SkillQueryController.list | `org` |
 | SkillQueryController.listVersions | `org` |
 
 ## `ai.stigmer.agentic.vault.v1`
