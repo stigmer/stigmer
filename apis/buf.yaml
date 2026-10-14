@@ -29,18 +29,6 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
-  # One pull request, made before launch, takes the run's own transcript off
-  # the contract: RunStatus's messages, sub-agent runs, todos, approvals,
-  # structured output and file-review ledgers, the types only they used, and
-  # the run's submitApproval, submitFileDecision, cancel and subscribe
-  # methods. Every client and the platform read a conversation from the
-  # session's event log, and the session's interrupt, confirmToolUse,
-  # grantPermission and reviewFileChanges replace the methods. The release
-  # notes name it under Upgrading. This block exists for that one pull
-  # request. While it stays, buf breaking does not report these rules on the
-  # listed files, so the pull request that removes it lands straight after
-  # the merge.
-  #
   # One pull request gives every list one shape: a request takes page_size
   # and page_token, a response returns entries and next_page_token, and 0
   # asks for a default page instead of every row. PageInfo, total_count and
@@ -53,10 +41,8 @@ breaking:
   # release notes name it under Upgrading. This block exists for that one
   # pull request. While it stays, buf breaking does not report these rules
   # on the listed files, so the pull request that removes it lands straight
-  # after the merge.
+  # after the merge (#2272).
   ignore_only:
-    ENUM_NO_DELETE:
-      - ai/stigmer/agentic/run/v1/enum.proto
     FIELD_NO_DELETE:
       - ai/stigmer/agentic/agent/v1/version.proto
       - ai/stigmer/agentic/agentchannel/v1/conversation_io.proto
@@ -66,8 +52,6 @@ breaking:
       - ai/stigmer/agentic/memory/v1/io.proto
       - ai/stigmer/agentic/plugin/v1/io.proto
       - ai/stigmer/agentic/plugineval/v1/io.proto
-      - ai/stigmer/agentic/run/v1/api.proto
-      - ai/stigmer/agentic/run/v1/filereview.proto
       - ai/stigmer/agentic/run/v1/io.proto
       - ai/stigmer/agentic/schedule/v1/io.proto
       - ai/stigmer/agentic/score/v1/io.proto
@@ -113,10 +97,6 @@ breaking:
       - ai/stigmer/agentic/plugin/v1/io.proto
       - ai/stigmer/agentic/skill/v1/io.proto
     FILE_NO_DELETE:
-      - ai/stigmer/agentic/run/v1/approval.proto
-      - ai/stigmer/agentic/run/v1/context.proto
-      - ai/stigmer/agentic/run/v1/subagent.proto
-      - ai/stigmer/agentic/run/v1/todo.proto
       - ai/stigmer/commons/rpc/pagination.proto
     MESSAGE_NO_DELETE:
       - ai/stigmer/agentic/agentchannel/v1/conversation_io.proto
@@ -124,10 +104,6 @@ breaking:
       - ai/stigmer/agentic/agentshare/v1/io.proto
       - ai/stigmer/agentic/channelapp/v1/io.proto
       - ai/stigmer/agentic/plugin/v1/api.proto
-      - ai/stigmer/agentic/run/v1/api.proto
-      - ai/stigmer/agentic/run/v1/filereview.proto
-      - ai/stigmer/agentic/run/v1/io.proto
-      - ai/stigmer/agentic/run/v1/message.proto
       - ai/stigmer/agentic/schedule/v1/io.proto
       - ai/stigmer/agentic/skill/v1/api.proto
       - ai/stigmer/commons/apiresource/io.proto
@@ -144,8 +120,6 @@ breaking:
       - ai/stigmer/agentic/agentchannel/v1/query.proto
       - ai/stigmer/agentic/agentshare/v1/query.proto
       - ai/stigmer/agentic/channelapp/v1/query.proto
-      - ai/stigmer/agentic/run/v1/command.proto
-      - ai/stigmer/agentic/run/v1/query.proto
       - ai/stigmer/agentic/schedule/v1/query.proto
       - ai/stigmer/iam/apikey/v1/query.proto
       - ai/stigmer/iam/identityprovider/v1/query.proto
