@@ -245,11 +245,14 @@ export const SCHEMA_VERSION_29 = 29;
 /** v30: the identity provider is a federation issuer: its names and the grants that name it. */
 export const SCHEMA_VERSION_30 = 30;
 
-/** v31: the stored labels, tags and annotations the new rules refuse, reported (nothing rewritten). */
+/** v31: the permission history indexed by time, for retention (DDL only). */
 export const SCHEMA_VERSION_31 = 31;
 
+/** v32: the stored labels, tags and annotations the new rules refuse, reported (nothing rewritten). */
+export const SCHEMA_VERSION_32 = 32;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_31;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_32;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -320,7 +323,8 @@ export async function runMigrations(
       [SCHEMA_VERSION_28, migrateToV28],
       [SCHEMA_VERSION_29, (migrating) => migrateToV29(migrating, logger)],
       [SCHEMA_VERSION_30, migrateToV30],
-      [SCHEMA_VERSION_31, (migrating) => migrateToV31(migrating, logger)],
+      [SCHEMA_VERSION_31, migrateToV31],
+      [SCHEMA_VERSION_32, (migrating) => migrateToV32(migrating, logger)],
     ];
 
     for (const [version, migrate] of chain) {
@@ -2039,13 +2043,28 @@ async function migrateToV30(client: PoolClient): Promise<void> {
 }
 
 /**
- * v31: labels and tags gain their rules and annotations leave resource
+ * v31: the permission history indexed by time, for retention
+ * (../permission-history.ts, "Removal"). The removal deletes the entries
+ * before a cutoff ordered by `(occurred_at, org, sequence)`, a batch at a
+ * time; the index is that order exactly, so each batch is a walk that
+ * stops at its limit instead of a scan of every organization's entries.
+ * The SQLite driver's v35 in this engine's terms.
+ */
+async function migrateToV31(client: PoolClient): Promise<void> {
+  await client.query(`
+    CREATE INDEX iam_policy_history_by_time
+      ON iam_policy_history (occurred_at, org, sequence)
+  `);
+}
+
+/**
+ * v32: labels and tags gain their rules and annotations leave resource
  * metadata (../label-tag-report.ts says what a row is found to hold). Each
  * kind's rows are read in keyset pages on `(kind, id)`, and the ones whose
  * stored labels, tags or annotations the rules refuse are named in one
  * warning per kind. Nothing is written: the step only reports.
  */
-async function migrateToV31(client: PoolClient, logger: StoreLogger): Promise<void> {
+async function migrateToV32(client: PoolClient, logger: StoreLogger): Promise<void> {
   for (const kind of LABEL_TAG_REPORT_KIND_NAMES) {
     const tally = new LabelTagTally(kind);
     for (let after = ""; ; ) {

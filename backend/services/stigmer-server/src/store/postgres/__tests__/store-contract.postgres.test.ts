@@ -108,6 +108,12 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             result.rows as Array<Record<string, string | number | Uint8Array>>
           ).map(permissionHistoryRowOf);
         },
+        async stampPermissionHistory(org, sequence, occurredAt) {
+          await hooks.query(
+            `UPDATE iam_policy_history SET occurred_at = $3 WHERE org = $1 AND sequence = $2`,
+            [org, sequence, occurredAt],
+          );
+        },
         async writeAsOlderBinary(kind, id, data) {
           // The statement this driver ran before the list index existed.
           await hooks.query(

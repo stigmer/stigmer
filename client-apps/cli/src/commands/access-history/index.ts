@@ -11,7 +11,10 @@
 //
 // `export` is for a security team's tools: each line is one entry's proto
 // JSON, and `--after` with the last `sequence` a tool holds asks for exactly
-// what came since, which no entry can slip past.
+// what came since, which no entry can slip past. When the server's retention
+// removed entries after that one, a note says which on stderr, so stdout
+// stays JSON Lines. The table `list` prints is followed by how long the
+// server keeps the history.
 //
 // Thin handlers: resolve credentials and org, delegate to
 // resources/access-history, render. Heavy modules are lazy-imported so
@@ -57,17 +60,18 @@ export function registerAccessHistory(program: Command): void {
         import("../../output/index.js"),
         import("@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb"),
       ]);
-      const entries = await resources.listAccessHistory(session.client, session.org, limit);
+      const { entries, retentionDays } = await resources.listAccessHistory(session.client, session.org, limit);
       if (format === "json") {
         process.stdout.write(output.renderProtoListJson(AccessHistoryEntrySchema, entries));
       } else if (format === "yaml") {
         process.stdout.write(output.renderProtoListYaml(AccessHistoryEntrySchema, entries));
-      } else if (entries.length === 0) {
-        process.stdout.write(output.renderEmpty("access changes"));
       } else {
         process.stdout.write(
-          output.renderTable(resources.ACCESS_HISTORY_TABLE_HEADERS, resources.accessHistoryRows(entries)),
+          entries.length === 0
+            ? output.renderEmpty("access changes")
+            : output.renderTable(resources.ACCESS_HISTORY_TABLE_HEADERS, resources.accessHistoryRows(entries)),
         );
+        process.stdout.write(resources.retentionLine(retentionDays));
       }
     });
   addReadFlags(listCmd);
@@ -80,9 +84,17 @@ export function registerAccessHistory(program: Command): void {
       const resources = await import("../../resources/access-history.js");
       const after = resources.parseAfterSequence(options.after);
       const session = await openSession(command);
-      await resources.exportAccessHistoryLines(session.client, session.org, after, (line) => {
-        process.stdout.write(line);
-      });
+      await resources.exportAccessHistoryLines(
+        session.client,
+        session.org,
+        after,
+        (line) => {
+          process.stdout.write(line);
+        },
+        (note) => {
+          process.stderr.write(note);
+        },
+      );
     });
 }
 

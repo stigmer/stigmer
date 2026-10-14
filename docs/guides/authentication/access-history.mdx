@@ -126,8 +126,9 @@ The Console's **Download JSON Lines** writes the same lines.
 ### Keep a copy up to date
 
 Each Organization numbers its changes 1, 2, 3 and so on, in the order they
-happened, with no gaps. A tool that keeps its own copy stores the last
-`sequence` it wrote and, next time, asks only for what came after it:
+happened, with no gaps above the oldest entry the server keeps. A tool that
+keeps its own copy stores the last `sequence` it wrote and, next time, asks only
+for what came after it:
 
 ```bash
 stigmer access-history export --after 42 >> acme-access-history.jsonl
@@ -135,6 +136,23 @@ stigmer access-history export --after 42 >> acme-access-history.jsonl
 
 No change can be skipped this way: a change that was still being made when the
 tool last asked gets a number after the one it stored.
+
+A server that keeps the history for a limited time removes the oldest entries
+first (see [How long it is kept](#how-long-it-is-kept)), so a tool that has not
+asked for a long time may find that the entries after the one it stored are
+gone. Every page of the history says the oldest number the Organization still
+holds (`oldestSequence`; when every entry has been removed, the number its next
+one will get) and how many days the server keeps the history (`retentionDays`, 0
+when it keeps it for good). When the tool asked after 42 and the oldest kept
+entry is 101, entries 43 to 100 were removed, not missed. The export says so on
+stderr, in a line of its own, and writes only entries to stdout:
+
+```text
+entries 43 to 100 are no longer kept: this server removes entries older than 365 days
+```
+
+Any other gap in the numbers means the reader is a parent Organization's admin,
+who is not shown the entries about a child's resources.
 
 A tool that runs on a schedule needs a key of its own. Create a
 [service account](/docs/guides/authentication/service-accounts) with the
@@ -150,8 +168,21 @@ admin's role.
   did with it.
 - **A deleted Organization's history, to anyone.** Deleting an Organization
   keeps its history, but nobody holds a role in an Organization that is gone, so
-  nobody can read it through Stigmer. On a self-hosted server, the operator
-  keeps it in the database
+  nobody can read it through Stigmer. It stays in the server's database until
+  the server's window removes it, or the operator erases it by hand
   ([After an Organization is deleted](/docs/guides/self-hosting/operations#after-an-organization-is-deleted)).
 
-How long the history is kept is not configurable yet: today it is kept for good.
+## How long it is kept
+
+The server's operator decides. Unless they set a window, every entry is kept for
+good. On a self-hosted server with a Stigmer Enterprise license, the operator
+sets `STIGMER_ACCESS_HISTORY_RETENTION_DAYS` to a number of days, such as `365`:
+once an hour the server removes every entry older than that, in every
+Organization, deleted ones included. Stigmer Cloud keeps the history for good
+today.
+
+Removing old entries never renumbers the rest. When Acme's entries 1 to 100 age
+out, its next change is still number 101, and its kept entries are always one
+unbroken run ending at its newest. The Console shows the window above the list,
+such as "Entries older than 365 days are removed", or "Kept for good", and
+`stigmer access-history list` prints the same line under its table.

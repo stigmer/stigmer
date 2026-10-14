@@ -176,6 +176,8 @@ export interface PrimaryEnforcingLaneDeps {
     bearerToken: string,
     options?: PresentingOptions,
   ): ConformanceClients;
+  // The primary's Managed Agents lane.
+  managedAgentsBaseUrl(): string;
 }
 
 export function newPrimaryEnforcingLane(
@@ -200,6 +202,7 @@ export function newPrimaryEnforcingLane(
     accountIdOf: whoAmIId,
     clientsPresenting: (bearerToken, options) =>
       deps.clientsPresenting(bearerToken, options),
+    managedAgentsBaseUrl: () => deps.managedAgentsBaseUrl(),
   };
   const tenant = deps.directLoginTenant;
   if (tenant !== undefined) {
@@ -345,6 +348,7 @@ export async function newSiblingEnforcingLane(
     accountIdOf: whoAmIId,
     clientsPresenting: (bearerToken, options) =>
       sibling.clientsPresenting(bearerToken, options),
+    managedAgentsBaseUrl: () => sibling.managedAgentsBaseUrl(),
     async unprovisionedCaller() {
       return sibling.clientsPresenting(
         await issuer.mint({

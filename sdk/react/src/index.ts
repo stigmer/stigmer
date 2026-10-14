@@ -1185,6 +1185,7 @@ export {
   PermissionGate,
 } from "./iam-policy/index.js";
 export type {
+  AccessHistoryRetention,
   UseAccessHistoryOptions,
   UseAccessHistoryReturn,
   UseGrantableRolesReturn,

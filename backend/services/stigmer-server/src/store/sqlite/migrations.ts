@@ -238,11 +238,14 @@ export const SCHEMA_VERSION_33 = 33;
 /** v34: every stored resource stamped with its etag. */
 export const SCHEMA_VERSION_34 = 34;
 
-/** v35: the stored labels, tags and annotations the new rules refuse, reported (nothing rewritten). */
+/** v35: the permission history indexed by time, for retention (DDL only). */
 export const SCHEMA_VERSION_35 = 35;
 
+/** v36: the stored labels, tags and annotations the new rules refuse, reported (nothing rewritten). */
+export const SCHEMA_VERSION_36 = 36;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_35;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_36;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -302,7 +305,8 @@ export function runMigrations(
     [SCHEMA_VERSION_32, migrateToV32],
     [SCHEMA_VERSION_33, migrateToV33],
     [SCHEMA_VERSION_34, (migrating) => migrateToV34(migrating, logger)],
-    [SCHEMA_VERSION_35, (migrating) => migrateToV35(migrating, logger)],
+    [SCHEMA_VERSION_35, migrateToV35],
+    [SCHEMA_VERSION_36, (migrating) => migrateToV36(migrating, logger)],
   ];
 
   for (const [version, migrate] of chain) {
@@ -1909,14 +1913,25 @@ function migrateToV34(db: DatabaseSync, logger: StoreLogger): void {
 }
 
 /**
- * v35: labels and tags gain their rules and annotations leave resource
+ * v35: the permission history indexed by time, for retention — the
+ * Postgres driver's v31 in this engine's terms (its header has the reason).
+ */
+function migrateToV35(db: DatabaseSync): void {
+  db.exec(`
+    CREATE INDEX iam_policy_history_by_time
+      ON iam_policy_history (occurred_at, org, sequence);
+  `);
+}
+
+/**
+ * v36: labels and tags gain their rules and annotations leave resource
  * metadata — the Postgres driver's v31 in this engine's terms
  * (../label-tag-report.ts says what a row is found to hold). Each kind's
  * rows are read in keyset pages, and the ones whose stored labels, tags or
  * annotations the rules refuse are named in one warning per kind. Nothing
  * is written: the step only reports.
  */
-function migrateToV35(db: DatabaseSync, logger: StoreLogger): void {
+function migrateToV36(db: DatabaseSync, logger: StoreLogger): void {
   const page = db.prepare(
     `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
   );

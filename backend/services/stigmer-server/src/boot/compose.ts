@@ -22,6 +22,7 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 
+import { createRouterTransport } from "@connectrpc/connect";
 import type { ConnectRouter, Transport } from "@connectrpc/connect";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -103,6 +104,7 @@ import { newResourceIdentityAccountStore } from "../domain/identityaccount/resou
 import type { AccountsByCaller } from "../domain/identityaccount/resolve.js";
 import { registerIamPolicyServices } from "../domain/iampolicy/controller.js";
 import { newIamPolicyGrantPath } from "../domain/iampolicy/grant-path.js";
+import { AccessHistoryRetentionRunner } from "../domain/iampolicy/history-retention.js";
 import { nodeGuardedFetch } from "@stigmer/outbound/dial";
 import { isReleaseVersion } from "@stigmer/plugin-package/client";
 import { temporalConnectionEnv } from "@stigmer/temporal-codecs";
@@ -126,6 +128,8 @@ import { newVaultResolver } from "../domain/vault/resolve.js";
 import { newSignInFreshener } from "../domain/vault/sign-in/refresh.js";
 import { clientDocument, clientDocumentUrlFor } from "../domain/vault/sign-in/client-document.js";
 import { createOAuthClientDocumentLane } from "../transport/oauth-client/lane.js";
+import { MAX_MESSAGE_BYTES } from "../transport/constants.js";
+import { createManagedAgentsLane } from "../transport/managed-agents/lane.js";
 import type { SignInFreshener } from "../domain/vault/resolve.js";
 import { newVaultService } from "../domain/vault/service.js";
 import { deleteAllMyVaultsOf } from "../domain/vault/delete.js";
@@ -1660,6 +1664,19 @@ export async function composeServer(
       }),
     }),
   });
+  // Access-history retention, only when a host declares a window
+  // (`ServerExtension.accessHistoryRetentionDays`; the registry refuses one
+  // on open source): the composed policy store's history, the library's
+  // adapter or a host's own driver, aged out every hour. No window, no
+  // runner: every entry is kept.
+  const historyRetention =
+    extensions.accessHistoryRetentionDays === undefined
+      ? undefined
+      : new AccessHistoryRetentionRunner({
+          policies: iamPolicies,
+          retentionDays: extensions.accessHistoryRetentionDays,
+          logger,
+        });
   let inProcess: InProcessClients | undefined;
   function requireInProcess(): InProcessClients {
     if (inProcess === undefined) {
@@ -1767,6 +1784,7 @@ export async function composeServer(
       principalDisplay: extensions.drivers.principalDisplay,
       gateSteps: extensions.gateSteps,
       edition: extensions.edition,
+      retentionDays: extensions.accessHistoryRetentionDays,
       logger,
     });
     registerVaultServices(router, {
@@ -2222,50 +2240,72 @@ export async function composeServer(
     verifiers: identityVerifiers.map((v) => v.name).join(", "),
   });
 
+  // The serving chain, built once: the network adapter and the Managed
+  // Agents lane's in-memory transport below run this same array. Its
+  // position-1 identity source is the verifier
+  // chassis over the composed verifiers (zero verifiers and no
+  // declared posture = trusted-local, byte-identical wire behavior)
+  // under the resolved require-authentication posture (issuer OR unit
+  // declaration, above), followed by the composed caller guards
+  // (zero guards = today's behavior). The in-process
+  // transport above carries its own
+  // position-1 source — the internal caller class only it can mint
+  // and NO guards: the in-process exemption is structural
+  // (caller-guards.ts). The serving-only pair: position 0 is the error
+  // boundary — the raw-error conversion net plus the
+  // composed visitor sanitizer — and the request-metrics emitter sits
+  // just inside the identity source (Java's position). Both
+  // are SERVING chain only, so in-process hops keep full diagnostics
+  // and are never counted as requests, by construction.
+  const servingInterceptors = buildInterceptorChain(
+    logger,
+    createVerifierChainInterceptor(
+      identityVerifiers,
+      callerGuards,
+      logger,
+      requireAuthentication,
+    ),
+    {
+      errorBoundary: createErrorBoundaryInterceptor(
+        logger,
+        extensions.drivers.visitorErrorPolicy,
+      ),
+      requestMetrics: createRequestMetricsInterceptor(),
+      organizationNames: createOrganizationNameInterceptor(
+        newOrganizationNameResolver(store),
+      ),
+      ...(singleOrganization === undefined
+        ? {}
+        : {
+            singleOrganization:
+              createSingleOrganizationInterceptor(singleOrganization),
+          }),
+    },
+    { deletingOrganizations, resourceReferences },
+  );
+  // The Managed Agents lane (transport/managed-agents/lane.ts) calls the
+  // native methods through the serving chain held in memory: the same
+  // routes and the same interceptor array as the network adapter, so a
+  // lane call meets every guard, check and gate a network call meets, by
+  // construction and with no network hop. Unlike the in-process
+  // transport, it carries an outside caller's credentials and never the
+  // internal caller class, so it is handed to the lane alone.
+  const managedAgentsLane = createManagedAgentsLane({
+    transport: createRouterTransport(routes, {
+      router: {
+        interceptors: servingInterceptors,
+        readMaxBytes: MAX_MESSAGE_BYTES,
+        writeMaxBytes: MAX_MESSAGE_BYTES,
+      },
+    }),
+    authenticationRequired: requireAuthentication,
+    logger,
+  });
+
   const server = createUnifiedPortServer({
     logger,
     routes,
-    // The serving chain's position-1 identity source is the verifier
-    // chassis over the composed verifiers (zero verifiers and no
-    // declared posture = trusted-local, byte-identical wire behavior)
-    // under the resolved require-authentication posture (issuer OR unit
-    // declaration, above), followed by the composed caller guards
-    // (zero guards = today's behavior). The in-process
-    // transport above carries its own
-    // position-1 source — the internal caller class only it can mint
-    // and NO guards: the in-process exemption is structural
-    // (caller-guards.ts). The serving-only pair: position 0 is the error
-    // boundary — the raw-error conversion net plus the
-    // composed visitor sanitizer — and the request-metrics emitter sits
-    // just inside the identity source (Java's position). Both
-    // are SERVING chain only, so in-process hops keep full diagnostics
-    // and are never counted as requests, by construction.
-    interceptors: buildInterceptorChain(
-      logger,
-      createVerifierChainInterceptor(
-        identityVerifiers,
-        callerGuards,
-        logger,
-        requireAuthentication,
-      ),
-      {
-        errorBoundary: createErrorBoundaryInterceptor(
-          logger,
-          extensions.drivers.visitorErrorPolicy,
-        ),
-        requestMetrics: createRequestMetricsInterceptor(),
-        organizationNames: createOrganizationNameInterceptor(
-          newOrganizationNameResolver(store),
-        ),
-        ...(singleOrganization === undefined
-          ? {}
-          : {
-              singleOrganization:
-                createSingleOrganizationInterceptor(singleOrganization),
-            }),
-      },
-      { deletingOrganizations, resourceReferences },
-    ),
+    interceptors: servingInterceptors,
     modelRegistryLane: registryLanes.modelRegistryLane,
     ...(clientDocumentUrl === ""
       ? {}
@@ -2275,6 +2315,7 @@ export async function composeServer(
           ),
         }),
     skillTransferLane,
+    managedAgentsLane,
     consoleLane,
   });
 
@@ -2385,6 +2426,8 @@ export async function composeServer(
       // The organization purge: a first pass over the deletion table now
       // (a purge a stopped server left unfinished resumes), then its loop.
       organizationPurge.start();
+      // Access-history retention: a first pass now, then hourly.
+      historyRetention?.start();
       // The sandbox driver's background work, when it has any: it reads the
       // store and the sandbox platform, never Temporal.
       if (sandboxLane.enabled) {
@@ -2487,6 +2530,9 @@ export async function composeServer(
       // The purge stops before the manager and the store: a stage in
       // flight may still terminate a run or write through the store.
       await organizationPurge.stop();
+      // Retention stops before the store too: a batch in flight deletes
+      // through it.
+      await historyRetention?.stop();
       // Workers stop before the transport drains: an in-flight activity
       // may still write through the store, which closes LAST.
       await temporalManager.close();

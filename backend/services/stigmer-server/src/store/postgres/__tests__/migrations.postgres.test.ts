@@ -69,7 +69,7 @@
  * is re-keyed to the id its new triple derives, so a revoke finds it; the
  * permission history's entries for those grants take the kind's new name
  * and the re-keyed id, and every other entry keeps its bytes.
- * v31 reports the stored labels, tags and annotations the new rules
+ * v32 reports the stored labels, tags and annotations the new rules
  * refuse, one warning per kind with its counts and the first ten ids,
  * across keyset pages, and writes nothing.
  * A step's starting database is built by running the chain up to the step
@@ -129,6 +129,7 @@ import {
   SCHEMA_VERSION_29,
   SCHEMA_VERSION_30,
   SCHEMA_VERSION_31,
+  SCHEMA_VERSION_32,
   runMigrations,
 } from "../migrations.js";
 import { LABEL_TAG_REPORT_PAGE_SIZE } from "../../label-tag-report.js";
@@ -3521,9 +3522,36 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           await client.end();
         }
       });
+
+      it("v31 indexes the permission history in retention's order and keeps every entry", async () => {
+        const client = await clientAt(SCHEMA_VERSION_30);
+        try {
+          await client.query(
+            `INSERT INTO iam_policy_history
+               (org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id,
+                principal_kind, principal_id, relation, resource_kind, resource_id, data)
+             VALUES ('acme', 1, '2026-01-01T00:00:00.000Z', 'granted', 'grant', 'ida_ana', 'user',
+                     'iamp_1', 'identity_account', 'ida_ana', 'member', 'organization', 'acme', '\\x00')`,
+          );
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_31);
+
+          expect(await version(client)).toBe(SCHEMA_VERSION_31);
+          const index = await client.query(
+            `SELECT indexdef FROM pg_indexes WHERE indexname = 'iam_policy_history_by_time'`,
+          );
+          expect((index.rows[0] as { indexdef: string } | undefined)?.indexdef).toMatch(
+            /ON public\.iam_policy_history USING btree \(occurred_at, org, sequence\)$/,
+          );
+          const kept = await client.query(`SELECT org, sequence FROM iam_policy_history`);
+          expect(kept.rows).toEqual([{ org: "acme", sequence: "1" }]);
+        } finally {
+          await client.end();
+        }
+      });
     });
 
-    describe("v31: the stored labels, tags and annotations the new rules refuse are reported", () => {
+    describe("v32: the stored labels, tags and annotations the new rules refuse are reported", () => {
       const ORG = "org_01jz0000000000000000000000";
       const reviewer = (id: string, metadata: { labels?: Record<string, string>; tags?: string[] } = {}) =>
         create(AgentSchema, {
@@ -3547,7 +3575,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       }
 
       it("names each kind's offenders once, with counts across pages, and leaves every row byte for byte", async () => {
-        await migrateTo(db.databaseUrl, SCHEMA_VERSION_30);
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_31);
         const client = new pg.Client({ connectionString: db.databaseUrl });
         await client.connect();
         try {
@@ -3570,7 +3598,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           const pool = new pg.Pool({ connectionString: db.databaseUrl, max: 1 });
           const migrating = await pool.connect();
           try {
-            await runMigrations(migrating, SCHEMA_VERSION_31, {
+            await runMigrations(migrating, SCHEMA_VERSION_32, {
               debug() {},
               info() {},
               warn(message, fields) {
@@ -3583,7 +3611,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           }
 
           const reached = await client.query<{ version: number }>(`SELECT MAX(version) AS version FROM schema_version`);
-          expect(Number(reached.rows[0]!.version)).toBe(SCHEMA_VERSION_31);
+          expect(Number(reached.rows[0]!.version)).toBe(SCHEMA_VERSION_32);
           expect(warned).toHaveLength(1);
           expect(warned[0]!.fields).toEqual({
             kind: "agent",
