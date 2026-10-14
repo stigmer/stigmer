@@ -1,15 +1,15 @@
 "use client";
 
 /**
- * Organization Usage panel: the organization's tokens, runs and calls over
- * a date range, a daily token chart, the harness split, the agents with the
+ * Organization Usage panel: the organization's tokens, runs, calls and
+ * working time over a date range, a daily token chart, the harness split, the agents with the
  * most tokens, per-model rows and who served the tokens.
  *
  * Everything comes from one `getOrgUsageReport` read; the panel never sums
  * or prices anything itself, because the server already counts each run
  * once (from the deployment's meter, or from the run's own runner report).
  * Usage is tokens and calls, never money. The suite in
- * `__tests__/OrgUsagePanel.test.tsx` pins the summary counts, the daily
+ * `__tests__/OrgUsagePanel.test.tsx` pins the summary counts and working time, the daily
  * chart's token tooltip, the model rows, the served-by line, the empty
  * state and the error.
  */
@@ -35,7 +35,7 @@ import { HarnessSplitCard } from "./HarnessSplitCard.js";
 import { ExportButton } from "./ExportButton.js";
 import { useExportCSV } from "./useExportCSV.js";
 import { ServedByLine } from "./ServedByLine.js";
-import { formatCompactCount, formatTokens } from "./format.js";
+import { formatCompactCount, formatTokens, formatWorkingTime } from "./format.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 // ---------------------------------------------------------------------------
@@ -53,7 +53,7 @@ export interface OrgUsagePanelProps {
 /**
  * Self-contained dashboard panel showing organization-wide LLM usage.
  *
- * Displays summary cards (tokens, runs, LLM calls, agents, sessions), who
+ * Displays summary cards (tokens, runs, LLM calls, working time, agents, sessions), who
  * served the tokens, a daily token bar chart, the harness split, the
  * agents with the most tokens, and a per-model breakdown with call counts
  * and token splits. Data is fetched via `getOrgUsageReport` with a
@@ -205,11 +205,12 @@ function DateRangeSelector({
 function SummaryCards({ report }: { report: GetOrgUsageReportOutput }) {
   const totalTokens = report.totalUsage?.totalTokens ?? BigInt(0);
   const llmCalls = report.totalUsage?.llmCallCount ?? 0;
+  const workingSeconds = report.totalUsage?.workingSeconds ?? BigInt(0);
 
   return (
     <div role="group" aria-label="Usage summary" className="stg:space-y-2">
       {/* Primary row */}
-      <div className="stg:grid stg:grid-cols-3 stg:gap-3">
+      <div className="stg:grid stg:grid-cols-2 stg:gap-3 stg:sm:grid-cols-4">
         <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3.5 stg:py-3">
           <div className="stg:text-lg stg:font-semibold stg:tabular-nums stg:text-foreground">
             {formatCompactCount(totalTokens)}
@@ -227,6 +228,12 @@ function SummaryCards({ report }: { report: GetOrgUsageReportOutput }) {
             {formatCompactCount(llmCalls)}
           </div>
           <div className="stg:text-xs stg:text-muted-foreground">LLM Calls</div>
+        </div>
+        <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3.5 stg:py-3">
+          <div className="stg:text-lg stg:font-semibold stg:tabular-nums stg:text-foreground">
+            {formatWorkingTime(workingSeconds)}
+          </div>
+          <div className="stg:text-xs stg:text-muted-foreground">Working time</div>
         </div>
       </div>
 

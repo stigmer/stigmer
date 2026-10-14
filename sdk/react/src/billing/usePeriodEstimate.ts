@@ -33,7 +33,8 @@ export interface UsePeriodEstimateReturn {
  *
  * The estimate is the invoice the period would close with if nothing else
  * changed: the plan's monthly fee for the whole period, plus the child
- * organizations beyond those included. The server rates it by the same
+ * organizations and the agent hours beyond those included, the hours
+ * counted so far. The server rates it by the same
  * rule the monthly close invoices by, so it agrees with the invoice to the
  * cent.
  *

@@ -63,6 +63,20 @@ public interface UsageReportAggregateOrBuilder extends
 
   /**
    * <pre>
+   * Seconds an agent was working (thinking, calling tools, writing files),
+   * counted from the session's status events; waiting for a person is never
+   * working. A stretch of work is credited to the run whose start began it.
+   * This is the clock, never priced; a Stigmer Cloud plan's agent hours are
+   * its subscription's getAgentHours.
+   * </pre>
+   *
+   * <code>int64 working_seconds = 7 [json_name = "workingSeconds"];</code>
+   * @return The workingSeconds.
+   */
+  long getWorkingSeconds();
+
+  /**
+   * <pre>
    * Number of metered LLM API calls in this aggregate. A run counted from
    * its runner's own report adds its tokens and no calls.
    * </pre>

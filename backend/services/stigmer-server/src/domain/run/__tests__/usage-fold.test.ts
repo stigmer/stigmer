@@ -3,7 +3,7 @@
  * counted (the meter's rows, else its runner's report mapped per harness,
  * else nothing) and how counted runs fold into the aggregate, the model
  * breakdown and the per-run, per-session, per-agent, per-day and
- * per-harness rows.
+ * per-harness rows, and each row's working time.
  *
  * The runner-report fixtures are shaped like the two harnesses' real
  * reports. Native: LangChain's usage metadata counts the cache inside
@@ -154,7 +154,7 @@ describe("a run counted from its runner's report", () => {
   });
 
   it("is estimated, with served_by summing to the total under UNSPECIFIED", () => {
-    const counted = countRun(makeRun("r1", { usage: NATIVE_USAGE }), undefined, Harness.NATIVE);
+    const counted = countRun(makeRun("r1", { usage: NATIVE_USAGE }), undefined, Harness.NATIVE, 0);
     expect(counted.estimated).toBe(true);
     const aggregate = aggregateOf([counted]);
     expect(aggregate.totalTokens).toBe(19_642n);
@@ -169,11 +169,11 @@ describe("a run counted from its runner's report", () => {
 
   it("a run with no report, or a report with no tokens, adds nothing and is not estimated", () => {
     for (const run of [makeRun("r1"), makeRun("r2", { usage: { turnCount: 0 } })]) {
-      const counted = countRun(run, undefined, Harness.NATIVE);
+      const counted = countRun(run, undefined, Harness.NATIVE, 0);
       expect(counted.rows).toEqual([]);
       expect(counted.estimated).toBe(false);
     }
-    const aggregate = aggregateOf([countRun(makeRun("r3"), undefined, Harness.NATIVE)]);
+    const aggregate = aggregateOf([countRun(makeRun("r3"), undefined, Harness.NATIVE, 0)]);
     expect(aggregate.totalTokens).toBe(0n);
     expect(aggregate.servedBy).toEqual([]);
   });
@@ -185,6 +185,7 @@ describe("a run counted from the meter", () => {
       makeRun("r1", { usage: CURSOR_USAGE }),
       { rows: [meterRow({ harness: "", totalTokens: 100n, callCount: 1 })] },
       Harness.CURSOR,
+      0,
     );
     expect(counted.estimated).toBe(false);
     expect(counted.rows).toHaveLength(1);
@@ -209,6 +210,7 @@ describe("a run counted from the meter", () => {
         ],
       },
       Harness.NATIVE,
+      0,
     );
     const models = modelBreakdownOf([counted]);
     expect(models.map((m) => [m.model, m.provider, m.totalTokens, m.callCount])).toEqual([
@@ -231,19 +233,36 @@ describe("folding several runs", () => {
     makeRun("m1", { sessionId: "ses_a", agentId: "agt_small", createdAtMs: Date.UTC(2026, 9, 12, 23, 59), startedAt: "2026-10-13T00:01:00Z" }),
     { rows: [meterRow({ totalTokens: 500n, callCount: 4 })] },
     Harness.NATIVE,
+    1_500,
   );
   const estimated = countRun(
     makeRun("e1", { sessionId: "ses_a", agentId: "agt_big", usage: CURSOR_USAGE, createdAtMs: Date.UTC(2026, 9, 13, 9), startedAt: "2026-10-13T09:00:01Z" }),
     undefined,
     Harness.CURSOR,
+    2_700,
   );
   const empty = countRun(
     makeRun("z1", { sessionId: "ses_b", agentId: "agt_small", createdAtMs: Date.UTC(2026, 9, 13, 10) }),
     undefined,
     Harness.NATIVE,
+    0,
   );
-  const noStamp = countRun(makeRun("n1", { sessionId: "ses_b", agentId: "", usage: NATIVE_USAGE }), undefined, Harness.NATIVE);
+  const noStamp = countRun(makeRun("n1", { sessionId: "ses_b", agentId: "", usage: NATIVE_USAGE }), undefined, Harness.NATIVE, 800);
   const all = [metered, estimated, empty, noStamp];
+
+  it("working_seconds sums each row's runs' milliseconds and floors once per row, whichever source counts the tokens", () => {
+    expect(aggregateOf(all).workingSeconds, "5,000 ms over four runs, not 1 + 2 + 0 + 0").toBe(5n);
+    expect(all.map((counted) => runSummaryOf(counted, 0).workingSeconds)).toEqual([1n, 2n, 0n, 0n]);
+    expect(sessionSummariesOf(all).map((s) => [s.sessionId, s.workingSeconds])).toEqual([
+      ["ses_a", 4n],
+      ["ses_b", 0n],
+    ]);
+    expect(topAgentsOf(all, 0).map((a) => [a.agentId, a.workingSeconds])).toEqual([
+      ["agt_big", 2n],
+      ["", 0n],
+      ["agt_small", 1n],
+    ]);
+  });
 
   it("served_by rows sum exactly to the aggregate, the unknown server under UNSPECIFIED", () => {
     const aggregate = aggregateOf(all);

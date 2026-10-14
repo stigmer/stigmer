@@ -1,9 +1,11 @@
-View token usage reports at different levels of detail.
+View token and working-time usage reports at different levels of detail.
 
-`stigmer usage` shows how many tokens your agents used and who served them.
-Reports are available at three levels: per-session, per-agent, and
-per-organization. Usage is counted in tokens; Stigmer never prices it. Your
-model provider bills the calls made on your own keys.
+`stigmer usage` shows how many tokens your agents used, who served them, and
+how long your agents worked. Reports are available at three levels:
+per-session, per-agent, and per-organization. Usage is counted in tokens;
+Stigmer never prices it. Your model provider bills the calls made on your own
+keys. On Stigmer Cloud, `stigmer usage hours` shows the organization's agent
+hours against its plan.
 
 {/* AUTO_USAGE */}
 
@@ -18,6 +20,9 @@ stigmer usage agent agt-01abc123 --from 2026-03-01 --to 2026-03-31
 
 # View organization-wide usage
 stigmer usage org --from 2026-03-01 --to 2026-03-31
+
+# View the organization's agent hours (Stigmer Cloud)
+stigmer usage hours
 ```
 
 {/* AUTO_FLAGS */}
@@ -29,6 +34,7 @@ stigmer usage org --from 2026-03-01 --to 2026-03-31
 | `usage session` | Single session | Not applicable (shows all runs) |
 | `usage agent` | All sessions for an agent | Optional `--from` / `--to` |
 | `usage org` | Entire organization | Required `--from` / `--to` |
+| `usage hours` | The organization's plan (Stigmer Cloud) | The plan's current month |
 
 A date is a UTC calendar day (`2026-03-01`) or an RFC 3339 instant
 (`2026-03-01T09:00:00Z`). Both bounds are inclusive: `--to 2026-03-31`
@@ -37,7 +43,12 @@ created in.
 
 ### What the report includes
 
-- **Summary**: Total tokens (input, output and cached), and the average per run
+- **Summary**: Total tokens (input, output and cached), the average per run,
+  and the working time
+- **Working time**: How long agents worked (thinking, calling tools, writing
+  files), from the session's status events. Waiting for a person is never
+  working. It shows as hours and minutes, in every edition, per run, session
+  and agent
 - **Served by**: Whose provider credential served the tokens: your own keys,
   or Stigmer's free model where one is offered, split by share when both
   appear
@@ -50,6 +61,19 @@ created in.
 Numbers marked **estimated** (or `~` beside a run) were counted from the
 run's own report rather than metered call by call. This is how every run is
 counted on a self-hosted deployment.
+
+### Agent hours
+
+`stigmer usage hours` shows where a Stigmer Cloud organization stands against
+the agent hours its plan includes: the hours used this month (Free counts the
+calendar month in UTC) or this billing period, the reset date, and what
+happens past the allowance, either a pause until the reset or the plan's
+price for each extra hour. Agent hours are the working time a plan counts in
+Stigmer's sandboxes, for the organization and its child organizations;
+automatic grading is never counted. So a report's working time can be more
+than the plan's agent hours. A child organization's hours are its parent's to
+read. A self-hosted server counts no agent hours, and the command says so. See
+[Billing](/docs/concepts/billing).
 
 {/* AUTO_SUBCOMMANDS */}
 
@@ -68,6 +92,19 @@ Shows every run in the session with per-model token breakdown.
 ```bash
 stigmer usage agent agt-01abc123 --from 2026-03-01 --to 2026-03-31
 ```
+
+### Agent hours
+
+```bash
+stigmer usage hours
+```
+
+```text
+Agent hours: 3.2 h of 10 h used this month (resets 2026-11-01 UTC). New work pauses at the allowance.
+```
+
+When the hours are used up, a new message is refused with the plan and the
+reset date, and the error points to `stigmer usage hours`.
 
 ### Organization report as JSON
 

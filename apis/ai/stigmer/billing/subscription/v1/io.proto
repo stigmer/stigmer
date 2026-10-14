@@ -94,6 +94,55 @@ message PeriodEstimate {
   int64 working_seconds = 9;
 }
 
+// GetAgentHoursInput names the organization whose agent hours are read.
+message GetAgentHoursInput {
+  // The organization's id.
+  string org = 1 [(buf.validate.field).required = true];
+}
+
+// AgentHours is where an organization stands against its plan's agent
+// hours: what it has used in the current window and what the plan
+// includes. The fields mirror the plan's own terms, so a client applies
+// the plan's rule (an allowance with no hourly price pauses new work at
+// the allowance) rather than a second statement of it.
+message AgentHours {
+  // The working agent seconds used in the window so far: the
+  // organization's and its child organizations', never an automatic
+  // grade's. The same count as the period estimate's working_seconds.
+  int64 working_seconds = 1;
+
+  // The agent hours the plan includes in each window, its entitlements'
+  // included_agent_hours. Absent is no limit.
+  optional int32 included_hours = 2;
+
+  // What the plan bills for each agent hour past included_hours, in
+  // micro-USD, its terms' per_agent_hour_micros. Absent with an allowance
+  // means new work pauses at the allowance until the window resets.
+  optional int64 per_agent_hour_micros = 3;
+
+  // When the window began.
+  google.protobuf.Timestamp window_start = 4;
+
+  // When the window ends: the moment the count resets.
+  google.protobuf.Timestamp window_end = 5;
+
+  // Which month the window is.
+  AgentHoursWindow window = 6;
+}
+
+// AgentHoursWindow names the month an organization's agent hours are
+// counted over.
+enum AgentHoursWindow {
+  agent_hours_window_unspecified = 0;
+
+  // The calendar month in UTC, resetting on the 1st: Free, which has no
+  // subscription period.
+  calendar_month = 1;
+
+  // The subscription's current billing period.
+  billing_period = 2;
+}
+
 // PeriodEstimateLine is one line of an estimated invoice.
 message PeriodEstimateLine {
   // What the line charges.

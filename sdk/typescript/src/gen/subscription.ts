@@ -6,7 +6,7 @@ import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { SubscriptionSchema, type Subscription } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/api_pb";
 import { SubscriptionCommandController } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/command_pb";
-import { ChangePlanInputSchema, CancelSubscriptionInputSchema, GetSubscriptionForOrgInputSchema, GetEntitlementsInputSchema, GetEntitlementsOutputSchema, GetPeriodEstimateInputSchema, PeriodEstimateSchema, type ChangePlanInput, type CancelSubscriptionInput, type GetSubscriptionForOrgInput, type GetEntitlementsInput, type GetEntitlementsOutput, type GetPeriodEstimateInput, type PeriodEstimate } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
+import { ChangePlanInputSchema, CancelSubscriptionInputSchema, GetSubscriptionForOrgInputSchema, GetEntitlementsInputSchema, GetEntitlementsOutputSchema, GetPeriodEstimateInputSchema, PeriodEstimateSchema, GetAgentHoursInputSchema, AgentHoursSchema, type ChangePlanInput, type CancelSubscriptionInput, type GetSubscriptionForOrgInput, type GetEntitlementsInput, type GetEntitlementsOutput, type GetPeriodEstimateInput, type PeriodEstimate, type GetAgentHoursInput, type AgentHours } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
 import { SubscriptionQueryController } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/query_pb";
 import { SubscriptionSpecSchema } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -49,6 +49,12 @@ export class SubscriptionClient {
   async getPeriodEstimate(input: GetPeriodEstimateInput): Promise<PeriodEstimate> {
     try {
       return await this.query.getPeriodEstimate(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async getAgentHours(input: GetAgentHoursInput): Promise<AgentHours> {
+    try {
+      return await this.query.getAgentHours(input);
     } catch (e) { throw wrapError(e); }
   }
 }

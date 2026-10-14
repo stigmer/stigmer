@@ -13,6 +13,8 @@ export type { UseSubscriptionReturn } from "./useSubscription.js";
 export { useEntitlements } from "./useEntitlements.js";
 export type { UseEntitlementsOptions, UseEntitlementsReturn } from "./useEntitlements.js";
 export { usePeriodEstimate } from "./usePeriodEstimate.js";
+export { useAgentHours } from "./useAgentHours.js";
+export type { UseAgentHoursOptions, UseAgentHoursReturn } from "./useAgentHours.js";
 export type { UsePeriodEstimateOptions, UsePeriodEstimateReturn } from "./usePeriodEstimate.js";
 export { useProviderKeys, useProviderKeyActions } from "./useProviderKeys.js";
 export type {
@@ -57,6 +59,10 @@ export {
   DEFAULT_PROVIDER_KEYS_HREF,
 } from "./ProviderKeyNotice.js";
 export type { ProviderKeyNoticeProps, ProviderKeyRequired } from "./ProviderKeyNotice.js";
+export { AgentHoursNotice, agentHoursUsedUp, AGENT_HOURS_USED_UP } from "./AgentHoursNotice.js";
+export type { AgentHoursNoticeProps, AgentHoursUsedUp } from "./AgentHoursNotice.js";
+export { AgentHoursStanding } from "./AgentHoursStanding.js";
+export type { AgentHoursStandingProps } from "./AgentHoursStanding.js";
 
 // Formatting utilities
 export { formatUsd } from "./format.js";

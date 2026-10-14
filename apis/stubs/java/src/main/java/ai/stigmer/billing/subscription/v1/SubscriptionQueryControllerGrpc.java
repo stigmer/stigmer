@@ -112,6 +112,37 @@ public final class SubscriptionQueryControllerGrpc {
     return getGetPeriodEstimateMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.subscription.v1.GetAgentHoursInput,
+      ai.stigmer.billing.subscription.v1.AgentHours> getGetAgentHoursMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getAgentHours",
+      requestType = ai.stigmer.billing.subscription.v1.GetAgentHoursInput.class,
+      responseType = ai.stigmer.billing.subscription.v1.AgentHours.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.billing.subscription.v1.GetAgentHoursInput,
+      ai.stigmer.billing.subscription.v1.AgentHours> getGetAgentHoursMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.billing.subscription.v1.GetAgentHoursInput, ai.stigmer.billing.subscription.v1.AgentHours> getGetAgentHoursMethod;
+    if ((getGetAgentHoursMethod = SubscriptionQueryControllerGrpc.getGetAgentHoursMethod) == null) {
+      synchronized (SubscriptionQueryControllerGrpc.class) {
+        if ((getGetAgentHoursMethod = SubscriptionQueryControllerGrpc.getGetAgentHoursMethod) == null) {
+          SubscriptionQueryControllerGrpc.getGetAgentHoursMethod = getGetAgentHoursMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.billing.subscription.v1.GetAgentHoursInput, ai.stigmer.billing.subscription.v1.AgentHours>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getAgentHours"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.billing.subscription.v1.GetAgentHoursInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.billing.subscription.v1.AgentHours.getDefaultInstance()))
+              .setSchemaDescriptor(new SubscriptionQueryControllerMethodDescriptorSupplier("getAgentHours"))
+              .build();
+        }
+      }
+    }
+    return getGetAgentHoursMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -229,6 +260,23 @@ public final class SubscriptionQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.billing.subscription.v1.PeriodEstimate> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetPeriodEstimateMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Read where the organization stands against its plan's agent hours.
+     * Answers for every plan, Free included: the working seconds the
+     * organization and its child organizations have used in the month its
+     * plan counts, the hours the plan includes and its price past them. The
+     * count is the one the estimate's working_seconds and the pause at the
+     * allowance read, so the three agree at the same instant.
+     * NOT_FOUND for a child organization: a child organization is on its
+     * parent's plan, whose pool is the parent's to read.
+     * </pre>
+     */
+    default void getAgentHours(ai.stigmer.billing.subscription.v1.GetAgentHoursInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.subscription.v1.AgentHours> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetAgentHoursMethod(), responseObserver);
+    }
   }
 
   /**
@@ -322,6 +370,24 @@ public final class SubscriptionQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetPeriodEstimateMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Read where the organization stands against its plan's agent hours.
+     * Answers for every plan, Free included: the working seconds the
+     * organization and its child organizations have used in the month its
+     * plan counts, the hours the plan includes and its price past them. The
+     * count is the one the estimate's working_seconds and the pause at the
+     * allowance read, so the three agree at the same instant.
+     * NOT_FOUND for a child organization: a child organization is on its
+     * parent's plan, whose pool is the parent's to read.
+     * </pre>
+     */
+    public void getAgentHours(ai.stigmer.billing.subscription.v1.GetAgentHoursInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.subscription.v1.AgentHours> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetAgentHoursMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -394,6 +460,23 @@ public final class SubscriptionQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetPeriodEstimateMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Read where the organization stands against its plan's agent hours.
+     * Answers for every plan, Free included: the working seconds the
+     * organization and its child organizations have used in the month its
+     * plan counts, the hours the plan includes and its price past them. The
+     * count is the one the estimate's working_seconds and the pause at the
+     * allowance read, so the three agree at the same instant.
+     * NOT_FOUND for a child organization: a child organization is on its
+     * parent's plan, whose pool is the parent's to read.
+     * </pre>
+     */
+    public ai.stigmer.billing.subscription.v1.AgentHours getAgentHours(ai.stigmer.billing.subscription.v1.GetAgentHoursInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetAgentHoursMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -465,6 +548,23 @@ public final class SubscriptionQueryControllerGrpc {
     public ai.stigmer.billing.subscription.v1.PeriodEstimate getPeriodEstimate(ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetPeriodEstimateMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Read where the organization stands against its plan's agent hours.
+     * Answers for every plan, Free included: the working seconds the
+     * organization and its child organizations have used in the month its
+     * plan counts, the hours the plan includes and its price past them. The
+     * count is the one the estimate's working_seconds and the pause at the
+     * allowance read, so the three agree at the same instant.
+     * NOT_FOUND for a child organization: a child organization is on its
+     * parent's plan, whose pool is the parent's to read.
+     * </pre>
+     */
+    public ai.stigmer.billing.subscription.v1.AgentHours getAgentHours(ai.stigmer.billing.subscription.v1.GetAgentHoursInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetAgentHoursMethod(), getCallOptions(), request);
     }
   }
 
@@ -541,11 +641,30 @@ public final class SubscriptionQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetPeriodEstimateMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Read where the organization stands against its plan's agent hours.
+     * Answers for every plan, Free included: the working seconds the
+     * organization and its child organizations have used in the month its
+     * plan counts, the hours the plan includes and its price past them. The
+     * count is the one the estimate's working_seconds and the pause at the
+     * allowance read, so the three agree at the same instant.
+     * NOT_FOUND for a child organization: a child organization is on its
+     * parent's plan, whose pool is the parent's to read.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.subscription.v1.AgentHours> getAgentHours(
+        ai.stigmer.billing.subscription.v1.GetAgentHoursInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetAgentHoursMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET_FOR_ORG = 0;
   private static final int METHODID_GET_ENTITLEMENTS = 1;
   private static final int METHODID_GET_PERIOD_ESTIMATE = 2;
+  private static final int METHODID_GET_AGENT_HOURS = 3;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -575,6 +694,10 @@ public final class SubscriptionQueryControllerGrpc {
         case METHODID_GET_PERIOD_ESTIMATE:
           serviceImpl.getPeriodEstimate((ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.billing.subscription.v1.PeriodEstimate>) responseObserver);
+          break;
+        case METHODID_GET_AGENT_HOURS:
+          serviceImpl.getAgentHours((ai.stigmer.billing.subscription.v1.GetAgentHoursInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.billing.subscription.v1.AgentHours>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -615,6 +738,13 @@ public final class SubscriptionQueryControllerGrpc {
               ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput,
               ai.stigmer.billing.subscription.v1.PeriodEstimate>(
                 service, METHODID_GET_PERIOD_ESTIMATE)))
+        .addMethod(
+          getGetAgentHoursMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.billing.subscription.v1.GetAgentHoursInput,
+              ai.stigmer.billing.subscription.v1.AgentHours>(
+                service, METHODID_GET_AGENT_HOURS)))
         .build();
   }
 
@@ -666,6 +796,7 @@ public final class SubscriptionQueryControllerGrpc {
               .addMethod(getGetForOrgMethod())
               .addMethod(getGetEntitlementsMethod())
               .addMethod(getGetPeriodEstimateMethod())
+              .addMethod(getGetAgentHoursMethod())
               .build();
         }
       }

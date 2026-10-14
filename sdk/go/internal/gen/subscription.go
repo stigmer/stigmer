@@ -48,6 +48,11 @@ func (s *SubscriptionClient) GetPeriodEstimate(ctx context.Context, input *subsc
 	return resp, wrapErr(err)
 }
 
+func (s *SubscriptionClient) GetAgentHours(ctx context.Context, input *subscriptionv1.GetAgentHoursInput) (*subscriptionv1.AgentHours, error) {
+	resp, err := s.query.GetAgentHours(ctx, input)
+	return resp, wrapErr(err)
+}
+
 // SubscriptionInput holds the fields for creating or applying a Subscription.
 type SubscriptionInput struct {
 	// Id is the resource's metadata.id: an apply that carries it changes

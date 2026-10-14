@@ -43,6 +43,7 @@ function fullReport(): GetOrgUsageReportOutput {
     totalUsage: {
       totalTokens: 18_400n,
       llmCallCount: 12,
+      workingSeconds: 1_123_500n,
       servedBy: [
         { providerKeySource: ProviderKeySource.ORGANIZATION, totalTokens: 16_000n, llmCallCount: 12 },
         { providerKeySource: ProviderKeySource.UNSPECIFIED, totalTokens: 2_400n, llmCallCount: 0 },
@@ -69,7 +70,7 @@ function fullReport(): GetOrgUsageReportOutput {
 }
 
 describe("OrgUsagePanel", () => {
-  it("counts tokens, runs, calls, agents and sessions in the summary", () => {
+  it("counts tokens, runs, calls, working time, agents and sessions in the summary", () => {
     state.report = fullReport();
     render(<OrgUsagePanel org="acme" />);
 
@@ -78,6 +79,7 @@ describe("OrgUsagePanel", () => {
     expect(value("Tokens")).toBe("18.4k");
     expect(value("Runs")).toBe("2.3k");
     expect(value("LLM Calls")).toBe("12");
+    expect(value("Working time"), "a month of work stays in hours, never days").toBe("312h 5m");
     expect(value("Agents")).toBe("4");
     expect(value("Sessions")).toBe("1.2M");
     expect(screen.queryByText("No usage data yet")).toBeNull();

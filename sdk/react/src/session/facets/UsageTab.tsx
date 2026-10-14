@@ -1,12 +1,14 @@
 "use client";
 
 /**
- * Session Usage facet: the session totals ({@link UsageWidget}) and, per
- * run, its tokens and primary model with the tier the runner requested.
+ * Session Usage facet: the session totals ({@link UsageWidget}), the
+ * session's working time and, per run, its tokens, working time and primary
+ * model with the tier the runner requested.
  *
  * Usage is tokens, never money. The suite in
  * `session/__tests__/UsageTab.test.tsx` pins the empty state, the per-run
- * rows (tokens, model, tier, "Estimated") and their absence before the
+ * rows (tokens, working time, model, tier, "Estimated"), the session's
+ * working time, and their absence before the
  * report lists any run.
  */
 
@@ -14,7 +16,7 @@ import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { useSessionUsage, type RunUsageEntry } from "../useSessionUsage.js";
 import { UsageWidget } from "../../run/UsageWidget.js";
-import { formatTokens } from "../../usage/format.js";
+import { formatTokens, formatWorkingTime } from "../../usage/format.js";
 import { FacetSection } from "./primitives.js";
 
 export interface UsageTabProps {
@@ -52,6 +54,14 @@ export function UsageTab({ runs }: UsageTabProps) {
   return (
     <div className="stg:flex stg:flex-col stg:gap-5">
       <UsageWidget runs={runs} />
+      <FacetSection heading="Working time">
+        <p className="stg:px-2 stg:text-xs stg:tabular-nums stg:text-foreground">
+          {formatWorkingTime(usage.workingSeconds)}
+        </p>
+        <p className="stg:px-2 stg:pt-1 stg:text-[0.65rem] stg:text-muted-foreground">
+          Time an agent was working on this session; waiting for a person is not counted.
+        </p>
+      </FacetSection>
       {usage.runBreakdown.length > 0 && (
         <ExecutionModelList
           entries={usage.runBreakdown}
@@ -64,7 +74,7 @@ export function UsageTab({ runs }: UsageTabProps) {
 
 /**
  * Per-execution model provenance rows, in the report's chronological
- * order: `#N model [tier requested] [Estimated]  18.4k tokens`.
+ * order: `#N model [tier requested] [Estimated]  18.4k tokens · 4m 12s`.
  */
 function ExecutionModelList({
   entries,
@@ -74,8 +84,8 @@ function ExecutionModelList({
   readonly runs: readonly Run[];
 }) {
   return (
-    <FacetSection heading="Tokens per run">
-      <div role="list" aria-label="Per-run tokens, model and tier" className="stg:flex stg:flex-col">
+    <FacetSection heading="Per run">
+      <div role="list" aria-label="Per-run tokens, working time, model and tier" className="stg:flex stg:flex-col">
         {entries.map((entry, index) => {
           const requestedTier = requestedTierLabel(runs, entry.runId);
           return (
@@ -93,7 +103,7 @@ function ExecutionModelList({
                 {entry.isEstimated && <RowBadge>Estimated</RowBadge>}
               </span>
               <span className="stg:shrink-0 stg:tabular-nums stg:text-[0.65rem] stg:text-muted-foreground">
-                {formatTokens(entry.totalTokens)}
+                {formatTokens(entry.totalTokens)} · {formatWorkingTime(entry.workingSeconds)}
               </span>
             </div>
           );

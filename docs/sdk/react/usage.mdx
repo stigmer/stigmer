@@ -96,7 +96,7 @@ return <div>{tokens.toLocaleString()} tokens</div>;
 
 Renders a ranked list of agents by tokens with proportional bars.
 
-Each row shows the agent name, run count, tokens with their share of
+Each row shows the agent name, run count, working time, tokens with their share of
 the organization's tokens, and a bar scaled to the top agent.
 
 **Props** — `AgentBreakdownListProps`
@@ -151,7 +151,7 @@ harness, for an at-a-glance read of native vs Cursor usage.
 
 Self-contained dashboard panel showing organization-wide LLM usage.
 
-Displays summary cards (tokens, runs, LLM calls, agents, sessions), who
+Displays summary cards (tokens, runs, LLM calls, working time, agents, sessions), who
 served the tokens, a daily token bar chart, the harness split, the
 agents with the most tokens, and a per-model breakdown with call counts
 and token splits. Data is fetched via `getOrgUsageReport` with a

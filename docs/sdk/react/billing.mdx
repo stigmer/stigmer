@@ -7,6 +7,45 @@ description: Hooks and components for subscription plans, payment methods, and i
 
 ## Hooks
 
+### useAgentHours
+
+Data hook that reads where an organization stands against its plan's
+agent hours: the working seconds used in the current window (Free's
+calendar month, or the subscription's billing period), the hours the
+plan includes and its price for each hour past them.
+
+It answers for every plan, Free included, and counts the organization's
+and its child organizations' work in Stigmer's sandboxes, never an
+automatic grade's. The server answers NOT_FOUND for a child
+organization, which is on its parent's plan, so disable it there.
+
+Cloud-only; the caller needs `can_view_billing` on the organization.
+
+**Signature**
+
+```tsx
+function useAgentHours(org: string | null, options?: UseAgentHoursOptions): UseAgentHoursReturn
+```
+
+<TypeTable
+  type={{
+    org: { type: "string | null", description: "", required: true },
+    options: { type: "UseAgentHoursOptions", description: "" },
+  }}
+/>
+
+**Returns** — `UseAgentHoursReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    hours: { type: "AgentHours | null", description: "Where the organization stands against its plan's agent hours, or `null` before the first successful fetch." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
+  }}
+/>
+
+
 ### useBillingAccount
 
 Data hook that fetches the billing account for an organization.
@@ -227,7 +266,8 @@ period will be invoiced.
 
 The estimate is the invoice the period would close with if nothing else
 changed: the plan's monthly fee for the whole period, plus the child
-organizations beyond those included. The server rates it by the same
+organizations and the agent hours beyond those included, the hours
+counted so far. The server rates it by the same
 rule the monthly close invoices by, so it agrees with the invoice to the
 cent.
 
@@ -414,6 +454,44 @@ const { subscription } = useSubscription(org);
 
 ## Components
 
+### AgentHoursNotice
+
+Says a new turn was not started because the organization's plan has
+used its agent hours for the month, and where to change the plan, in
+place of a bare refusal. A child organization's notice offers no plans:
+its hours are its parent's.
+
+**Props** — `AgentHoursNoticeProps`
+
+<TypeTable
+  type={{
+    billingHref: { type: "string", description: "Where the plans are, in the host's routing. Defaults to DEFAULT_BILLING_HREF." },
+    className: { type: "string", description: "Additional CSS class names." },
+    error: { type: "Error", description: "The refusal: its message is the server's own copy, which names the plan, the hours it includes and the day they reset, worded for the person refused.", required: true },
+  }}
+/>
+
+```tsx
+if (agentHoursUsedUp(error) !== null) return <AgentHoursNotice error={error} />;
+```
+
+
+### AgentHoursStanding
+
+The plan card's agent hours block: "3.2 h of 10 h used this month" over
+a meter, when the window resets, and what the plan does past its
+allowance.
+
+**Props** — `AgentHoursStandingProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names." },
+    hours: { type: "AgentHours", description: "The organization's standing, from useAgentHours.", required: true },
+  }}
+/>
+
+
 ### BillingSection
 
 Top-level billing settings section.
@@ -502,13 +580,16 @@ add, update, or remove payment methods.
 ### PlanCard
 
 The organization's plan: its name, its standing (active, payment
-failed, or ending on a date), the period it is in, and the period's
-estimated invoice line by line, the way the invoice will read it.
+failed, or ending on a date), the agent hours it has used of those the
+plan includes, the period it is in, and the period's estimated invoice
+line by line, the way the invoice will read it.
 
 **Props** — `PlanCardProps`
 
 <TypeTable
   type={{
+    agentHours: { type: "AgentHours | null", description: "Where the organization stands against its plan's agent hours, shown above the estimate." },
+    agentHoursError: { type: "Error | null", description: "Why the agent hours could not be read, shown in their place." },
     billedToParent: { type: "string", description: "Set for a child organization, which is on its parent's plan and has no plan, period or invoice of its own: the parent's name, or \"\" when it cannot be shown. Unset for an organization with no parent." },
     className: { type: "string", description: "Additional CSS class names." },
     estimate: { type: "PeriodEstimate | null", description: "The current period's estimated invoice, when a plan is live." },
@@ -545,7 +626,7 @@ host to confirm; the plan in force reads "Current plan".
 ### PlanSection
 
 An organization's plan on Stigmer Cloud: the current plan with its
-standing and the period's estimated invoice, the plan comparison, and
+standing, its agent hours and the period's estimated invoice, the plan comparison, and
 the confirm step for a subscribe, switch, resume or cancel.
 
 Everyone who can view the organization's billing reads it; only those
@@ -653,6 +734,39 @@ if (feature !== null) return <UpgradeNotice feature={feature} error={error} />;
 
 
 ## Types
+
+### AGENT_HOURS_USED_UP
+
+The reason Stigmer Cloud refuses a new turn when the organization's plan
+has used the agent hours it includes and new work pauses until they
+reset. The refusal is FAILED_PRECONDITION with this reason and the
+metadata `org`, `plan`, `included_hours` and `resets_at`; a guest or a
+channel user is refused without it.
+
+
+### agentHoursUsedUp
+
+What a refusal names, when `error` is Stigmer Cloud's
+`AGENT_HOURS_USED_UP`; `null` for any other error.
+
+```tsx
+function agentHoursUsedUp(error: unknown): AgentHoursUsedUp | null
+```
+
+
+### AgentHoursUsedUp
+
+What an `AGENT_HOURS_USED_UP` refusal names.
+
+<TypeTable
+  type={{
+    includedHours: { type: "string", description: "The hours the plan includes each month, as the refusal states them.", required: true },
+    org: { type: "string", description: "The organization the turn was refused in.", required: true },
+    plan: { type: "string", description: "The plan whose hours are used; empty for a child organization, which is on its parent's plan and cannot change it.", required: true },
+    resetsAt: { type: "string", description: "When the hours reset, an RFC 3339 instant; empty when the refusal names none.", required: true },
+  }}
+/>
+
 
 ### BillingRedirect
 
@@ -779,6 +893,17 @@ What a `PROVIDER_KEY_REQUIRED` refusal names.
     model: { type: "string", description: "The model the run would have used; empty when it names none, as a Cursor run on Auto does.", required: true },
     org: { type: "string", description: "The organization the run was refused in.", required: true },
     provider: { type: "string", description: "The provider it has no key for: `anthropic`, `openai` or `cursor`.", required: true },
+  }}
+/>
+
+
+### UseAgentHoursOptions
+
+Options for [`useAgentHours`](#useagenthours).
+
+<TypeTable
+  type={{
+    enabled: { type: "boolean", description: "Skip fetching while `false`: read only where subscriptions are served and the organization is not a child. Default `true`." },
   }}
 />
 

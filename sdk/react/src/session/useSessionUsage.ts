@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Session-level token usage, read from the server's session usage report.
+ * Session-level token usage and working time, read from the server's session usage report.
  *
  * The report is the one source: the server counts each run from the
  * deployment's meter, or, for a run the meter has not seen, from the run's
@@ -68,6 +68,8 @@ export interface RunUsageEntry {
   readonly totalTokens: number;
   /** `true` when this run is counted from its runner's own report. */
   readonly isEstimated: boolean;
+  /** Seconds an agent worked in the stretches this run started. */
+  readonly workingSeconds: number;
 }
 
 /** Tokens and calls served by one kind of provider credential. */
@@ -94,6 +96,8 @@ export interface UseSessionUsageReturn {
   readonly cacheCreationTokens: number;
   /** Total number of metered LLM calls in this session. */
   readonly llmCallCount: number;
+  /** Seconds an agent worked on this session; waiting for a person is never counted. */
+  readonly workingSeconds: number;
   /** Per-model token breakdown, most tokens first. */
   readonly modelBreakdown: readonly ModelUsageEntry[];
   /** Per-run tokens and primary model, chronological. */
@@ -104,7 +108,7 @@ export interface UseSessionUsageReturn {
   readonly primaryModel: string;
   /** Provider of the primary model. */
   readonly primaryProvider: string;
-  /** `true` when the session has any tokens or calls. */
+  /** `true` when the session has any tokens, calls or working time. */
   readonly hasUsage: boolean;
   /**
    * `true` when any run is counted from its runner's own report rather
@@ -120,6 +124,7 @@ const EMPTY: UseSessionUsageReturn = {
   cacheReadTokens: 0,
   cacheCreationTokens: 0,
   llmCallCount: 0,
+  workingSeconds: 0,
   modelBreakdown: [],
   runBreakdown: [],
   servedBy: [],
@@ -151,6 +156,7 @@ function mapSessionUsageReport(
 
   const llmCallCount = agg.llmCallCount;
   const totalTokens = Number(agg.totalTokens);
+  const workingSeconds = Number(agg.workingSeconds);
 
   return {
     totalTokens,
@@ -159,12 +165,14 @@ function mapSessionUsageReport(
     cacheReadTokens: Number(agg.cacheReadInputTokens),
     cacheCreationTokens: Number(agg.cacheCreationInputTokens),
     llmCallCount,
+    workingSeconds,
     modelBreakdown: report.modelBreakdown.map(mapModelUsage),
     runBreakdown: report.runs.map((r) => ({
       runId: r.runId,
       resolvedModel: r.primaryModel,
       totalTokens: Number(r.totalTokens),
       isEstimated: r.isEstimated,
+      workingSeconds: Number(r.workingSeconds),
     })),
     servedBy: agg.servedBy.map((s) => ({
       providerKeySource: s.providerKeySource,
@@ -173,7 +181,7 @@ function mapSessionUsageReport(
     })),
     primaryModel: agg.primaryModel,
     primaryProvider: agg.primaryProvider,
-    hasUsage: llmCallCount > 0 || totalTokens > 0,
+    hasUsage: llmCallCount > 0 || totalTokens > 0 || workingSeconds > 0,
     isEstimated: report.isEstimated,
   };
 }

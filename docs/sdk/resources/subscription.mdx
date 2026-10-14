@@ -33,11 +33,55 @@ status:
 
 | Method | Description |
 |--------|-------------|
+| [`getAgentHours`](#getagenthours) | Read where the organization stands against its plan's agent hours. |
 | [`getEntitlements`](#getentitlements) | Resolve what the organization is permitted right now. |
 | [`getForOrg`](#getfororg) | Get the organization's subscription. |
 | [`getPeriodEstimate`](#getperiodestimate) | Estimate what the organization's current period will be invoiced. |
 | [`cancel`](#cancel) | Cancel the organization's subscription. |
 | [`changePlan`](#changeplan) | Move the organization onto a plan. |
+
+### getAgentHours
+
+Read where the organization stands against its plan's agent hours.
+
+Answers for every plan, Free included: the working seconds the organization and its child organizations have used in the month its plan counts, the hours the plan includes and its price past them. The count is the one the estimate's working_seconds and the pause at the allowance read, so the three agree at the same instant.
+
+NOT_FOUND for a child organization: a child organization is on its parent's plan, whose pool is the parent's to read.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const agentHours = await stigmer.subscription.getAgentHours({
+  org: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+agentHours, err := client.Subscription.GetAgentHours(ctx, &stigmer.GetAgentHoursInput{
+  Org: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+agent_hours = client.subscriptions.get_agent_hours(GetAgentHoursInput(
+    org="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+AgentHours agentHours = client.subscriptions().getAgentHours(GetAgentHoursInput.builder()
+    .org("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GetAgentHoursInput`](#getagenthoursinput)
+
+**Returns**: [`AgentHours`](#agenthours)
 
 ### getEntitlements
 
@@ -348,6 +392,31 @@ PeriodEstimate is what an organization's current subscription period would be in
   }}
 />
 
+### GetAgentHoursInput
+
+GetAgentHoursInput names the organization whose agent hours are read.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "The organization's id.", required: true },
+  }}
+/>
+
+### AgentHours
+
+AgentHours is where an organization stands against its plan's agent hours: what it has used in the current window and what the plan includes.
+
+<TypeTable
+  type={{
+    workingSeconds: { type: "number", description: "The working agent seconds used in the window so far: the organization's and its child organizations', never an automatic grade's." },
+    includedHours: { type: "number", description: "The agent hours the plan includes in each window, its entitlements' included_agent_hours." },
+    perAgentHourMicros: { type: "number", description: "What the plan bills for each agent hour past included_hours, in micro-USD, its terms' per_agent_hour_micros." },
+    windowStart: { type: "string", description: "When the window began." },
+    windowEnd: { type: "string", description: "When the window ends: the moment the count resets." },
+    window: { type: "AgentHoursWindow", description: "Which month the window is.", typeDescriptionLink: "#agenthourswindow" },
+  }}
+/>
+
 ### Subscription
 
 Subscription is an organization's binding to a Plan.
@@ -375,6 +444,15 @@ SubscriptionStatus is the system-managed state of a subscription: its audit trai
     canceledAt: { type: "string", description: "When the subscription was canceled." },
   }}
 />
+
+### AgentHoursWindow
+
+AgentHoursWindow names the month an organization's agent hours are counted over.
+
+| Value | Description |
+|-------|-------------|
+| `calendar_month` | The calendar month in UTC, resetting on the 1st: Free, which has no subscription period. |
+| `billing_period` | The subscription's current billing period. |
 
 ### SubscriptionState
 
