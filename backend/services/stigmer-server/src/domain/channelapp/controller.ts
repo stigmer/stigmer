@@ -17,7 +17,7 @@
  * Every chain opens with Authorize; create and delete run the shared
  * tuple-lifecycle steps against the composed lifecycle; getByReference
  * loads, then authorizes the loaded app exactly as `get` would
- * (AuthorizeResolvedTarget). listByOrg narrows the organization's apps
+ * (AuthorizeResolvedTarget). list narrows the organization's apps
  * through the composed list read scope to the ones a `get` would return:
  * the model shows a channel app to the organization's admins and explicit
  * grants, never to plain members or viewers, and never to a creator who is
@@ -38,7 +38,7 @@ import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/ch
 import { ChannelAppsSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
 import type {
   ChannelApps,
-  ListChannelAppsByOrgInput,
+  ListChannelAppsInput,
 } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
 import type {
   ApiResourceDeleteInput,
@@ -76,7 +76,6 @@ import {
   newDeleteResourceStep,
   newLoadExistingForDeleteStep,
 } from "../../pipeline/steps/delete.js";
-import { compareCreatedAtDesc } from "../../pipeline/steps/helpers.js";
 import {
   EXISTING_RESOURCE_KEY,
   newLoadExistingStep,
@@ -102,6 +101,10 @@ import { everyPathUpdate, updateContext } from "../../pipeline/steps/update-inpu
 import { renameResource, storeRenameRows } from "../../pipeline/steps/rename.js";
 import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cleanup.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
+import {
+  listPageFingerprint,
+  readListPage,
+} from "../../pipeline/steps/list-page.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
 import type { Store } from "../../store/interface.js";
@@ -113,6 +116,7 @@ import {
   redactChannelApp,
   secretValuesOfChannelApp,
 } from "./steps.js";
+import { channelAppListIndex } from "./list-index.js";
 
 export interface ChannelAppControllerDeps {
   readonly store: Store;
@@ -122,7 +126,7 @@ export interface ChannelAppControllerDeps {
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   readonly secretService: SecretService;
-  /** The composed list read scope — listByOrg narrows through it; undefined = the OSS full scan (stigmer/stigmer#1384). */
+  /** The composed list read scope — list narrows through it; undefined = the OSS full scan (stigmer/stigmer#1384). */
   readonly listReadScope: ListReadScope | undefined;
 }
 
@@ -141,7 +145,7 @@ export function registerChannelAppServices(
   router.service(ChannelAppQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
     getByReference: (ref, ctx) => getByReference(deps, ref, ctx),
-    listByOrg: (req, ctx) => listByOrg(deps, req, ctx),
+    list: (req, ctx) => list(deps, req, ctx),
   });
 }
 
@@ -447,33 +451,33 @@ async function getByReference(
 const LIST_RESULT_KEY = "listResult";
 
 /**
- * ListByOrg — the ChannelApps of an organization the caller may view,
- * newest-first, every entry redacted. No pagination — the set is small by nature (typically
- * one app per provider per org), the OAuthApp listByOrg posture.
+ * List — the ChannelApps of an organization the caller may view, newest
+ * first, one page at a time, every entry redacted (the OAuthApp list's
+ * posture).
  */
-async function listByOrg(
+async function list(
   deps: ChannelAppControllerDeps,
-  req: ListChannelAppsByOrgInput,
+  req: ListChannelAppsInput,
   ctx: HandlerContext,
 ): Promise<ChannelApps> {
   const reqCtx = new RequestContext(
-    ChannelAppQueryController.method.listByOrg.input,
+    ChannelAppQueryController.method.list.input,
     req,
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof ChannelAppQueryController.method.listByOrg.input>(
-    "channelapp-list-by-org",
+  await newPipeline<typeof ChannelAppQueryController.method.list.input>(
+    "channelapp-list",
     deps.logger,
   )
     .addStep(
       newAuthorizeStep(
-        ChannelAppQueryController.method.listByOrg,
+        ChannelAppQueryController.method.list,
         deps.authorizer,
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newListByOrgStep(deps.store, deps.listReadScope, deps.logger))
+    .addStep(newListStep(deps.store, deps.listReadScope, deps.logger))
     .build()
     .execute(reqCtx);
 
@@ -488,72 +492,65 @@ async function listByOrg(
 }
 
 /**
- * ListByOrg — Go list_by_org.go's domain step: full scan, malformed rows
- * skipped with a warning, org equality filter, narrowed to the caller's
- * apps, per-item redaction, sorted by spec-audit created_at descending
- * (seconds then nanos; timestamped entries before untimestamped ones).
- * The org predicate stays the step's own because with no scope composed
- * the helper returns its input unchanged and never reads the org (the
- * trusted-local full scan); with one, the scope is the last per-row
- * predicate, so a composed driver is asked about the org's apps, never
- * every tenant's, and only the kept apps are redacted (the OAuthApp
- * list's order).
+ * The domain-local list step: one page of the organization's apps through
+ * the list index (list-index.ts), malformed rows skipped with a warning,
+ * narrowed to the caller's apps, then redacted, so only the kept apps are
+ * (the OAuthApp list's order). The step keeps its name from before the
+ * RPC was renamed: step names are frozen vocabulary.
  */
-function newListByOrgStep(
+function newListStep(
   store: Store,
   listReadScope: ListReadScope | undefined,
   logger: Logger,
-): PipelineStep<typeof ChannelAppQueryController.method.listByOrg.input> {
+): PipelineStep<typeof ChannelAppQueryController.method.list.input> {
   return {
     name: "ListByOrg",
     async execute(
       ctx: RequestContext<
-        typeof ChannelAppQueryController.method.listByOrg.input
+        typeof ChannelAppQueryController.method.list.input
       >,
     ): Promise<void> {
       const org = ctx.input.org;
-
-      let rows: Uint8Array[];
-      try {
-        rows = await store.listResources(ApiResourceKind.channel_app);
-      } catch (error) {
-        throw internalError(error, "failed to list ChannelApps");
-      }
-
-      const requested: ChannelApp[] = [];
-      for (const bytes of rows) {
-        let app: ChannelApp;
-        try {
-          app = fromBinary(ChannelAppSchema, bytes);
-        } catch {
-          logger.warn("Failed to unmarshal ChannelApp, skipping");
-          continue;
-        }
-        if ((app.metadata?.org ?? "") !== org) {
-          continue;
-        }
-        requested.push(app);
-      }
-
-      const apps = await restrictListByReadScope(
-        listReadScope,
-        ctx.callerIdentity,
-        ApiResourceKind.channel_app,
-        requested,
-        "",
-      );
-      for (const app of apps) {
+      const page = await readListPage({
+        store,
+        declaration: channelAppListIndex,
+        query: { org },
+        request: {
+          pageSize: ctx.input.pageSize,
+          pageToken: ctx.input.pageToken,
+        },
+        fingerprint: listPageFingerprint({ org }),
+        decode: (data) => {
+          try {
+            return fromBinary(ChannelAppSchema, data);
+          } catch (error) {
+            logger.warn("Failed to unmarshal ChannelApp, skipping", {
+              error: error instanceof Error ? error.message : String(error),
+            });
+            return undefined;
+          }
+        },
+        keep: (app) => (app.metadata?.org ?? "") === org,
+        scope: (rows) =>
+          restrictListByReadScope(
+            listReadScope,
+            ctx.callerIdentity,
+            ApiResourceKind.channel_app,
+            rows,
+            "",
+          ),
+        failure: "failed to list ChannelApps",
+      });
+      for (const app of page.entries) {
         redactChannelApp(app);
       }
-
-      apps.sort((a, b) =>
-        compareCreatedAtDesc(
-          a.status?.audit?.specAudit?.createdAt,
-          b.status?.audit?.specAudit?.createdAt,
-        ),
+      ctx.set(
+        LIST_RESULT_KEY,
+        create(ChannelAppsSchema, {
+          entries: page.entries,
+          nextPageToken: page.nextPageToken,
+        }),
       );
-
-      ctx.set(LIST_RESULT_KEY, create(ChannelAppsSchema, { entries: apps }));
     },
   };
 }

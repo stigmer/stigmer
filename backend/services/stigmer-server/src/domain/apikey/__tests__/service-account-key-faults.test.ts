@@ -3,7 +3,7 @@
  * the composed suites cannot reach without breaking a real store.
  *
  * Pins:
- *   - createForServiceAccount, findByAccount and findAll answer INTERNAL with the
+ *   - createForServiceAccount, listByAccount and list answer INTERNAL with the
  *     lane's own copy when the account read faults, never NOT_FOUND (an
  *     outage must never read as "no account"), and the domain's NOT_FOUND
  *     for an account that does not exist;
@@ -117,27 +117,27 @@ describe("a service account's key lanes when the account read faults", () => {
     expect(error.rawMessage).toContain("failed to load identity account");
   });
 
-  it("findAll is INTERNAL with the lane's copy when the caller's account cannot be read, never an empty list", async () => {
+  it("list is INTERNAL with the lane's copy when the caller's account cannot be read, never an empty list", async () => {
     const { query } = clientsWithFailingAccounts();
-    const error = await refusal(query.findAll({}));
+    const error = await refusal(query.list({}));
     expect(error.code).toBe(Code.Internal);
     expect(error.rawMessage).toContain("failed to load identity account");
   });
 
-  it("findByAccount is INTERNAL with the lane's copy, never NOT_FOUND", async () => {
+  it("listByAccount is INTERNAL with the lane's copy, never NOT_FOUND", async () => {
     const { query } = clientsWithFailingAccounts();
-    const error = await refusal(query.findByAccount({ value: "ida_sa" }));
+    const error = await refusal(query.listByAccount({ accountId: "ida_sa" }));
     expect(error.code).toBe(Code.Internal);
     expect(error.rawMessage).toContain("failed to load identity account");
   });
 });
 
 describe("a service account's key lanes for an account that does not exist", () => {
-  it("createForServiceAccount and findByAccount answer the domain's NOT_FOUND", async () => {
+  it("createForServiceAccount and listByAccount answer the domain's NOT_FOUND", async () => {
     const { command, query } = clientsWithAccounts(() => Promise.resolve(undefined));
     for (const work of [
       command.createForServiceAccount({ serviceAccountId: "ida_gone", name: "ci", neverExpires: true }),
-      query.findByAccount({ value: "ida_gone" }),
+      query.listByAccount({ accountId: "ida_gone" }),
     ]) {
       const error = await refusal(work);
       expect(error.code).toBe(Code.NotFound);

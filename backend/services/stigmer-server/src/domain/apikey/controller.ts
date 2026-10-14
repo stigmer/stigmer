@@ -9,10 +9,10 @@
  *   - PreserveKeyMaterial on update (the Java handler documented
  *     hash/fingerprint immutability but did not enforce it; see steps.ts
  *     for why it matters).
- *   - findAll returns the caller's own keys, read by owner through the
+ *   - list returns the caller's own keys, read by owner through the
  *     key list index (list-index.ts), not every key a read scope admits:
  *     an organization's admins may view its service accounts' keys, and
- *     those are listed with findByAccount, never mixed into the admin's own.
+ *     those are listed with listByAccount, never mixed into the admin's own.
  *   - A key's name is unique among its owner's keys, not among every key
  *     of its organization (steps.ts CheckDuplicate).
  *
@@ -34,8 +34,7 @@
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
-import { create } from "@bufbuild/protobuf";
-import type { Empty } from "@bufbuild/protobuf/wkt";
+import { create, fromBinary } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
@@ -44,11 +43,12 @@ import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
 import { ApiKeysSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
 import type {
-  ApiKeyAccountId,
   ApiKeyHash,
   ApiKeyId,
   ApiKeys,
   CreateServiceAccountKeyInput,
+  ListApiKeysByAccountInput,
+  ListApiKeysInput,
 } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { UpdateApiKeyInput } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
@@ -101,12 +101,18 @@ import {
 } from "../../pipeline/steps/refuse-service-account.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
+import {
+  listPageFingerprint,
+  readListPage,
+} from "../../pipeline/steps/list-page.js";
+import type { ListPageRequest } from "../../pipeline/steps/list-page.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import type { Store } from "../../store/interface.js";
 import { serviceAccountCallerOf } from "../identityaccount/actor.js";
 import { accountNotFoundMessage } from "../identityaccount/constants.js";
 import type { IdentityAccountStore } from "../identityaccount/store.js";
-import { keysOwnedBy, ownerNamesOf } from "./queries.js";
+import { apiKeyListIndex } from "./list-index.js";
+import { ownerNamesOf, ownerOfKey } from "./queries.js";
 import {
   newBindApiKeyOrganizationStep,
   newCheckDuplicateKeyNameStep,
@@ -123,7 +129,7 @@ export interface ApiKeyControllerDeps {
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
-  /** The composed list read scope — findAll narrows through it as well as by owner. */
+  /** The composed list read scope — list narrows through it as well as by owner. */
   readonly listReadScope: ListReadScope | undefined;
   /** The identity-account port: the service account a key is minted for, the account whose keys are listed. */
   readonly accounts: Pick<IdentityAccountStore, "findById">;
@@ -149,8 +155,8 @@ export function registerApiKeyServices(
   router.service(ApiKeyQueryController, {
     get: (apiKeyId, ctx) => get(deps, apiKeyId, ctx),
     getByKeyHash: (apiKeyHash, ctx) => getByKeyHash(deps, apiKeyHash, ctx),
-    findAll: (empty, ctx) => findAll(deps, empty, ctx),
-    findByAccount: (input, ctx) => findByAccount(deps, input, ctx),
+    list: (input, ctx) => list(deps, input, ctx),
+    listByAccount: (input, ctx) => listByAccount(deps, input, ctx),
   });
 }
 
@@ -441,35 +447,36 @@ async function getByKeyHash(
 }
 
 /**
- * FindAll — the caller's own keys: those whose creator stamp is the
+ * List — the caller's own keys: those whose creator stamp is the
  * caller's account id, or, for a direct account, the issuer subject a key
  * minted before the account existed carries (queries.ts `ownerNamesOf`),
  * newest first. An unprovisioned caller's identity is its subject already. A composed
  * ListReadScope still narrows the answer, so a list is never wider than
  * the keys the caller may view. Stored hashes ride the response exactly
  * as the cloud's do — the plaintext exists nowhere. Newest first, as
- * PlatformClient's listByOrg answers, so a list does not reorder as keys
+ * PlatformClient's list answers, so a list does not reorder as keys
  * are used (stigmer/stigmer#1255).
  */
-async function findAll(
+async function list(
   deps: ApiKeyControllerDeps,
-  empty: Empty,
+  input: ListApiKeysInput,
   ctx: HandlerContext,
 ): Promise<ApiKeys> {
   const identity = callerIdentityOf(ctx);
   const reqCtx = new RequestContext(
-    ApiKeyQueryController.method.findAll.input,
-    empty,
+    ApiKeyQueryController.method.list.input,
+    input,
     identity,
     kindOf(ctx),
   );
-  await newPipeline<typeof ApiKeyQueryController.method.findAll.input>(
-    "apikey-find-all",
+  await newPipeline<typeof ApiKeyQueryController.method.list.input>(
+    "apikey-list",
     deps.logger,
   )
     .addStep(
-      newAuthorizeStep(ApiKeyQueryController.method.findAll, deps.authorizer),
+      newAuthorizeStep(ApiKeyQueryController.method.list, deps.authorizer),
     )
+    .addStep(newValidateProtoStep())
     .build()
     .execute(reqCtx);
   let account: IdentityAccount | undefined;
@@ -478,49 +485,89 @@ async function findAll(
   } catch (error) {
     throw internalError(error, "failed to load identity account");
   }
-  return listOwnedKeys(deps, identity, ownerNamesOf(identity.identityId, account));
+  return readOwnedKeysPage(
+    deps,
+    identity,
+    ownerNamesOf(identity.identityId, account),
+    input,
+    listPageFingerprint({}),
+  );
 }
 
 /**
- * FindByAccount — the keys that speak for an account, for whoever may view
+ * ListByAccount — the keys that speak for an account, for whoever may view
  * it: the person, or a service account's organization admins. Authorized
  * on the account by its annotation, then read by owner, the account's id
  * and its subject alike.
  */
-async function findByAccount(
+async function listByAccount(
   deps: ApiKeyControllerDeps,
-  input: ApiKeyAccountId,
+  input: ListApiKeysByAccountInput,
   ctx: HandlerContext,
 ): Promise<ApiKeys> {
   const identity = callerIdentityOf(ctx);
   await authorizeDirect(
-    ApiKeyQueryController.method.findByAccount,
+    ApiKeyQueryController.method.listByAccount,
     deps.authorizer,
     identity,
     input,
   );
-  const account = await loadAccount(deps, input.value);
-  return listOwnedKeys(deps, identity, ownerNamesOf(input.value, account));
+  const account = await loadAccount(deps, input.accountId);
+  return readOwnedKeysPage(
+    deps,
+    identity,
+    ownerNamesOf(input.accountId, account),
+    input,
+    listPageFingerprint({ accountId: input.accountId }),
+  );
 }
 
-/** The owners' keys, narrowed by the composed read scope, newest first. */
-async function listOwnedKeys(
+/**
+ * One page of the owners' keys, newest first, through the owner index:
+ * a row is kept only when its decoded stamp is one of the owners (an
+ * unproven row the store re-derived never smuggles in another owner's
+ * key), then narrowed by the composed read scope.
+ */
+async function readOwnedKeysPage(
   deps: ApiKeyControllerDeps,
   identity: CallerIdentity,
   owners: ReadonlyArray<string>,
+  request: ListPageRequest,
+  fingerprint: string,
 ): Promise<ApiKeys> {
-  let owned: ApiKey[];
-  try {
-    owned = await keysOwnedBy(deps.store, owners);
-  } catch (error) {
-    throw internalError(error, "failed to list api keys");
+  const names = [...new Set(owners.filter((owner) => owner !== ""))];
+  if (names.length === 0) {
+    return create(ApiKeysSchema, { entries: [], nextPageToken: "" });
   }
-  const visible = await restrictListByReadScope(
-    deps.listReadScope,
-    identity,
-    ApiResourceKind.api_key,
-    owned,
-    "",
-  );
-  return create(ApiKeysSchema, { entries: [...visible] });
+  const page = await readListPage({
+    store: deps.store,
+    declaration: apiKeyListIndex,
+    query: { anyKey: names.map((value) => ({ name: "owner" as const, value })) },
+    request: { pageSize: request.pageSize, pageToken: request.pageToken },
+    fingerprint,
+    decode: decodeApiKey,
+    keep: (key) => names.includes(ownerOfKey(key)),
+    scope: (rows) =>
+      restrictListByReadScope(
+        deps.listReadScope,
+        identity,
+        ApiResourceKind.api_key,
+        rows,
+        "",
+      ),
+    failure: "failed to list api keys",
+  });
+  return create(ApiKeysSchema, {
+    entries: page.entries,
+    nextPageToken: page.nextPageToken,
+  });
+}
+
+/** A stored key, or undefined (skipped) when its bytes do not decode. */
+function decodeApiKey(data: Uint8Array): ApiKey | undefined {
+  try {
+    return fromBinary(ApiKeySchema, data);
+  } catch {
+    return undefined;
+  }
 }

@@ -3,8 +3,8 @@
  * creator stamp, `status.audit.spec_audit.created_by.id`, the account the
  * key speaks for (verifier.ts) and the one its owner tuple names
  * (authorization/derived-tuples.ts). Three lanes read one owner's keys:
- * the caller's own list (`findAll`), an account's keys for its managers
- * (`findByAccount`), and an account's delete, which removes every key that
+ * the caller's own list (`list`), an account's keys for its managers
+ * (`listByAccount`), and an account's delete, which removes every key that
  * speaks for it (account-keys.ts). Each would
  * otherwise decode every key on the server.
  *

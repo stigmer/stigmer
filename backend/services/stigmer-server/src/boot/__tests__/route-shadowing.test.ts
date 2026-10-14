@@ -61,7 +61,7 @@ describe("registerExtensionServicesUnshadowed", () => {
       },
     ]);
     expect(router.handlers.map((handler) => handler.requestPath)).toContain(
-      "/ai.stigmer.iam.platformclient.v1.PlatformClientQueryController/listByOrg",
+      "/ai.stigmer.iam.platformclient.v1.PlatformClientQueryController/list",
     );
   });
 });

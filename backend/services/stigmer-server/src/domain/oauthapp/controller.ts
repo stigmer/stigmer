@@ -21,7 +21,7 @@
  * Every chain opens with Authorize; create and delete run the shared
  * tuple-lifecycle steps against the composed lifecycle; getByReference
  * loads, then authorizes the loaded app exactly as `get` would
- * (AuthorizeResolvedTarget); listByOrg narrows through the list read
+ * (AuthorizeResolvedTarget); list narrows through the list read
  * scope, so a caller who may not `get` an app does not see it listed
  * either: the model shows an app to the organization's admins, who manage
  * it whoever created it, and never to members or viewers
@@ -43,7 +43,7 @@ import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb
 import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/command_pb";
 import { OAuthAppsSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/io_pb";
 import type {
-  ListOAuthAppsByOrgInput,
+  ListOAuthAppsInput,
   OAuthApps,
 } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/io_pb";
 import { OAuthAppQueryController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/query_pb";
@@ -76,7 +76,6 @@ import {
   newLoadExistingForDeleteStep,
 } from "../../pipeline/steps/delete.js";
 import { newCheckDuplicateStep } from "../../pipeline/steps/duplicate.js";
-import { compareCreatedAtDesc } from "../../pipeline/steps/helpers.js";
 import {
   EXISTING_RESOURCE_KEY,
   newLoadExistingStep,
@@ -102,6 +101,10 @@ import { everyPathUpdate, updateContext } from "../../pipeline/steps/update-inpu
 import { renameResource, storeRenameRows } from "../../pipeline/steps/rename.js";
 import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cleanup.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
+import {
+  listPageFingerprint,
+  readListPage,
+} from "../../pipeline/steps/list-page.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
 import type { Store } from "../../store/interface.js";
@@ -117,6 +120,7 @@ import {
   newEncryptClientSecretForUpdateStep,
   redactOAuthApp,
 } from "./steps.js";
+import { oauthAppListIndex } from "./list-index.js";
 
 export interface OAuthAppControllerDeps {
   readonly store: Store;
@@ -126,7 +130,7 @@ export interface OAuthAppControllerDeps {
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
-  /** The composed list read scope — listByOrg narrows through it; undefined = the OSS full scan (stigmer/stigmer#1257). */
+  /** The composed list read scope — list narrows through it; undefined = the OSS full scan (stigmer/stigmer#1257). */
   readonly listReadScope: ListReadScope | undefined;
 }
 
@@ -145,7 +149,7 @@ export function registerOAuthAppServices(
   router.service(OAuthAppQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
     getByReference: (ref, ctx) => getByReference(deps, ref, ctx),
-    listByOrg: (req, ctx) => listByOrg(deps, req, ctx),
+    list: (req, ctx) => list(deps, req, ctx),
   });
 }
 
@@ -457,35 +461,34 @@ async function getByReference(
 const LIST_RESULT_KEY = "listResult";
 
 /**
- * ListByOrg — the organization's OAuthApps the caller may view, each
- * redacted, sorted created_at descending (Go listByOrgStep). No
- * pagination: typically 1–5 per org. The annotation admits anyone who can
+ * List — the organization's OAuthApps the caller may view, newest first,
+ * one page at a time, each redacted. The annotation admits anyone who can
  * view the organization; the list read scope then keeps only the apps a
  * `get` would return (stigmer/stigmer#1257).
  */
-async function listByOrg(
+async function list(
   deps: OAuthAppControllerDeps,
-  req: ListOAuthAppsByOrgInput,
+  req: ListOAuthAppsInput,
   ctx: HandlerContext,
 ): Promise<OAuthApps> {
   const reqCtx = new RequestContext(
-    OAuthAppQueryController.method.listByOrg.input,
+    OAuthAppQueryController.method.list.input,
     req,
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof OAuthAppQueryController.method.listByOrg.input>(
-    "oauthapp-list-by-org",
+  await newPipeline<typeof OAuthAppQueryController.method.list.input>(
+    "oauthapp-list",
     deps.logger,
   )
     .addStep(
       newAuthorizeStep(
-        OAuthAppQueryController.method.listByOrg,
+        OAuthAppQueryController.method.list,
         deps.authorizer,
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newListByOrgStep(deps.store, deps.listReadScope, deps.logger))
+    .addStep(newListStep(deps.store, deps.listReadScope, deps.logger))
     .build()
     .execute(reqCtx);
 
@@ -500,75 +503,66 @@ async function listByOrg(
 }
 
 /**
- * The domain-local list step: load all, keep the request's org, narrow to
- * the caller's apps, redact, sort. The org predicate stays the step's own
- * because with no scope composed the helper returns its input unchanged
- * and never reads the org (the trusted-local full scan); with one, the
- * scope is the last per-row predicate, so a composed driver is asked about
- * the org's apps, never every tenant's (the vault list's order).
+ * The domain-local list step: one page of the organization's apps through
+ * the list index (list-index.ts), malformed rows skipped with a warning,
+ * narrowed to the caller's apps, then redacted. The scope is the last
+ * per-row predicate, so a composed driver is asked about the org's apps,
+ * never every tenant's (the vault list's order). The step keeps its
+ * name from before the RPC was renamed: step names are frozen vocabulary.
  */
-function newListByOrgStep(
+function newListStep(
   store: Store,
   listReadScope: ListReadScope | undefined,
   logger: Logger,
-): PipelineStep<typeof OAuthAppQueryController.method.listByOrg.input> {
+): PipelineStep<typeof OAuthAppQueryController.method.list.input> {
   return {
     name: "ListByOrg",
     async execute(
       ctx: RequestContext<
-        typeof OAuthAppQueryController.method.listByOrg.input
+        typeof OAuthAppQueryController.method.list.input
       >,
     ): Promise<void> {
       const org = ctx.input.org;
-
-      let resources: Uint8Array[];
-      try {
-        resources = await store.listResources(ApiResourceKind.oauth_app);
-      } catch (error) {
-        throw internalError(error, "failed to list OAuthApps");
-      }
-
-      const requested: OAuthApp[] = [];
-      for (const data of resources) {
-        let app: OAuthApp;
-        try {
-          app = fromBinary(OAuthAppSchema, data);
-        } catch (error) {
-          logger.warn("failed to unmarshal OAuthApp, skipping", {
-            error: error instanceof Error ? error.message : String(error),
-          });
-          continue;
-        }
-        if ((app.metadata?.org ?? "") !== org) {
-          continue;
-        }
-        requested.push(app);
-      }
-
-      const apps = await restrictListByReadScope(
-        listReadScope,
-        ctx.callerIdentity,
-        ApiResourceKind.oauth_app,
-        requested,
-        "",
-      );
-      for (const app of apps) {
+      const page = await readListPage({
+        store,
+        declaration: oauthAppListIndex,
+        query: { org },
+        request: {
+          pageSize: ctx.input.pageSize,
+          pageToken: ctx.input.pageToken,
+        },
+        fingerprint: listPageFingerprint({ org }),
+        decode: (data) => {
+          try {
+            return fromBinary(OAuthAppSchema, data);
+          } catch (error) {
+            logger.warn("failed to unmarshal OAuthApp, skipping", {
+              error: error instanceof Error ? error.message : String(error),
+            });
+            return undefined;
+          }
+        },
+        keep: (app) => (app.metadata?.org ?? "") === org,
+        scope: (rows) =>
+          restrictListByReadScope(
+            listReadScope,
+            ctx.callerIdentity,
+            ApiResourceKind.oauth_app,
+            rows,
+            "",
+          ),
+        failure: "failed to list OAuthApps",
+      });
+      for (const app of page.entries) {
         redactOAuthApp(app);
       }
-
-      apps.sort((a, b) =>
-        compareCreatedAtDesc(
-          a.status?.audit?.specAudit?.createdAt,
-          b.status?.audit?.specAudit?.createdAt,
-        ),
+      ctx.set(
+        LIST_RESULT_KEY,
+        create(OAuthAppsSchema, {
+          entries: page.entries,
+          nextPageToken: page.nextPageToken,
+        }),
       );
-
-      logger.info("listed OAuthApps by organization", {
-        org,
-        matchCount: apps.length,
-      });
-
-      ctx.set(LIST_RESULT_KEY, create(OAuthAppsSchema, { entries: apps }));
     },
   };
 }

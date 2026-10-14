@@ -54,7 +54,7 @@ type DeleteInputDesc = typeof ChannelAppCommandController.method.delete.input;
 /**
  * Replaces every non-empty secret field with the marker on the given app —
  * used in ALL API responses (get, getByReference, create, update, delete,
- * listByOrg), Go RedactChannelApp.
+ * list), Go RedactChannelApp.
  *
  * Every provider arm must be handled here. The provider-arm tripwire test
  * (__tests__/channelapp.test.ts) fails if an arm is added to the spec

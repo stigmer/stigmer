@@ -5,11 +5,11 @@
  * scope. Representative lanes from each consumer family:
  *
  *   - session.list (restrict verb, no org intersection),
- *   - apikey.findAll (restrict verb through the direct-read tail, over
+ *   - apikey.list (restrict verb through the direct-read tail, over
  *     the caller's own keys: the seeded rows carry the caller's stamp),
- *   - channelapp.listByOrg (restrict verb behind the domain's own org
+ *   - channelapp.list (restrict verb behind the domain's own org
  *     predicate: the scope is offered the request org's rows only, the
- *     listByOrg family's shape; stigmer/stigmer#1384),
+ *     list family's shape; stigmer/stigmer#1384),
  *   - activity.listRecentActivity (the sessions it summarizes),
  *   - search (enumeration verb feeding the engine allowlist, and the
  *     proof that no request shape bypasses it),
@@ -194,7 +194,7 @@ describe("list read scope (composed server, fake scope)", () => {
         }),
       );
     }
-    // findAll answers the caller's own keys, so both rows carry the
+    // list answers the caller's own keys, so both rows carry the
     // caller's creator stamp, read from a key the caller creates; the
     // scope then hides that probe key as it hides key_foreign.
     const probe = await createClient(ApiKeyCommandController, transport).create({
@@ -275,19 +275,19 @@ describe("list read scope (composed server, fake scope)", () => {
     expect(list.entries.map((s) => s.metadata?.id)).toEqual(["ses_mine"]);
   });
 
-  it("apikey.findAll narrows to the scope's kept ids (lane 9)", async () => {
+  it("apikey.list narrows to the scope's kept ids (lane 9)", async () => {
     allowed = new Set(["key_mine"]);
     const query = createClient(ApiKeyQueryController, transport);
-    const keys = await query.findAll({});
+    const keys = await query.list({});
     expect(keys.entries.map((k) => k.metadata?.id)).toEqual(["key_mine"]);
   });
 
-  it("channelapp.listByOrg narrows the request org's apps to the scope's kept ids; no other org's app is offered (stigmer/stigmer#1384)", async () => {
+  it("channelapp.list narrows the request org's apps to the scope's kept ids; no other org's app is offered (stigmer/stigmer#1384)", async () => {
     // Allowing the other org's app too proves the org predicate is the
     // domain's own, applied before the scope ever sees a row.
     allowed = new Set(["chap_mine", "chap_other_org"]);
     const query = createClient(ChannelAppQueryController, transport);
-    const list = await query.listByOrg({ org: "acme" });
+    const list = await query.list({ org: "acme" });
     expect(list.entries.map((a) => a.metadata?.id)).toEqual(["chap_mine"]);
     expect(seenKinds).toEqual([ApiResourceKind.channel_app]);
     expect(offeredIds.map((ids) => [...ids].sort())).toEqual([

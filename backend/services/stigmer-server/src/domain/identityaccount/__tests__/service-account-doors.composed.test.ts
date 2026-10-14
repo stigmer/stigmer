@@ -146,7 +146,7 @@ describe("a credential limited to one organization, at another organization's se
         name: "from-globex",
         neverExpires: true,
       }),
-      () => createClient(ApiKeyQueryController, asLimited).findByAccount({ value: ciId }),
+      () => createClient(ApiKeyQueryController, asLimited).listByAccount({ accountId: ciId }),
       () => createClient(IdentityAccountCommandController, asLimited).delete({ value: ciId }),
     ];
     for (const attempt of attempts) {

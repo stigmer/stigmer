@@ -652,7 +652,7 @@ describe("extension composition (require-authentication posture)", () => {
         transportWith(apiKeyPlaintext),
       );
       const failure = await query
-        .findAll({})
+        .list({})
         .then(() => null)
         .catch((error: unknown) => ConnectError.from(error));
       expect(failure?.code).toBe(Code.Unauthenticated);

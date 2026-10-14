@@ -244,7 +244,7 @@ afterAll(async () => {
 describe("the require-authentication posture on the wire", () => {
   it("a tokenless RPC is UNAUTHENTICATED with the Java byte-pinned copy", async () => {
     const query = createClient(ApiKeyQueryController, transportWith());
-    const error = await query.findAll({}).catch((e: unknown) => e);
+    const error = await query.list({}).catch((e: unknown) => e);
     expect(ConnectError.from(error).code).toBe(Code.Unauthenticated);
     expect(ConnectError.from(error).rawMessage).toBe(
       AUTHENTICATION_TOKEN_MISSING_MESSAGE,
@@ -269,7 +269,7 @@ describe("the require-authentication posture on the wire", () => {
       ApiKeyQueryController,
       transportWith("not-a-credential"),
     );
-    const error = await query.findAll({}).catch((e: unknown) => e);
+    const error = await query.list({}).catch((e: unknown) => e);
     expect(ConnectError.from(error).code).toBe(Code.Unauthenticated);
     expect(ConnectError.from(error).rawMessage).toBe(
       "the presented token was not accepted by any configured identity verifier",
@@ -369,7 +369,7 @@ describe("the full credential loop (OIDC login → API key → revocation)", () 
       ApiKeyQueryController,
       transportWith(apiKeyPlaintext),
     );
-    const error = await query.findAll({}).catch((e: unknown) => e);
+    const error = await query.list({}).catch((e: unknown) => e);
     expect(ConnectError.from(error).code).toBe(Code.Unauthenticated);
     expect(ConnectError.from(error).rawMessage).toBe("invalid token");
   });

@@ -29,7 +29,8 @@
  */
 import assert from "node:assert/strict";
 
-import { clone, create, equals } from "@bufbuild/protobuf";
+import { clone, create, equals, fromBinary } from "@bufbuild/protobuf";
+import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
@@ -58,6 +59,8 @@ function platformClient(fields: {
   slug: string;
   clientId: string;
   allowedOrigins?: string[];
+  /** The creation instant a list orders by, when the case needs one. */
+  createdAt?: Date;
 }): PlatformClient {
   return create(PlatformClientSchema, {
     apiVersion: "iam.stigmer.ai/v1",
@@ -75,6 +78,15 @@ function platformClient(fields: {
       createAccountsOnSignIn: true,
       allowedOrigins: fields.allowedOrigins ?? [],
     },
+    ...(fields.createdAt === undefined
+      ? {}
+      : {
+          status: {
+            audit: {
+              specAudit: { createdAt: timestampFromDate(fields.createdAt) },
+            },
+          },
+        }),
   });
 }
 
@@ -329,6 +341,48 @@ const CASES: ReadonlyArray<PortContractDeclaration<PlatformClientStore>> = [
         "pcl_contract_acme_mobile",
       ]);
       assert.deepEqual(await store.findByOrg("initech"), []);
+    },
+  ],
+  [
+    "pageByOrg pages the organization's clients newest first and repeats none",
+    async ({ store }) => {
+      for (const [slug, day] of [
+        ["dashboard", 1],
+        ["mobile", 2],
+        ["cli", 3],
+      ] as const) {
+        await store.save(
+          platformClient({
+            id: `pcl_contract_acme_${slug}`,
+            org: "acme",
+            slug,
+            clientId: `stgm_cid_contract_acme_${slug}`,
+            createdAt: new Date(Date.UTC(2026, 0, day)),
+          }),
+        );
+      }
+      await store.save(
+        platformClient({
+          id: "pcl_contract_globex_dashboard",
+          org: "globex",
+          slug: "dashboard",
+          clientId: "stgm_cid_contract_globex_dashboard",
+          createdAt: new Date(Date.UTC(2026, 0, 4)),
+        }),
+      );
+      const idsOf = (rows: ReadonlyArray<{ readonly data: Uint8Array }>) =>
+        rows.map(
+          (row) => fromBinary(PlatformClientSchema, row.data).metadata?.id,
+        );
+
+      const first = await store.pageByOrg("acme", undefined, 2);
+      assert.deepEqual(idsOf(first), [
+        "pcl_contract_acme_cli",
+        "pcl_contract_acme_mobile",
+      ]);
+      const second = await store.pageByOrg("acme", first[1]!.cursor, 2);
+      assert.deepEqual(idsOf(second), ["pcl_contract_acme_dashboard"]);
+      assert.deepEqual(await store.pageByOrg("initech", undefined, 2), []);
     },
   ],
   [

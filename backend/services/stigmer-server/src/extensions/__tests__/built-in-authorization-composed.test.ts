@@ -579,15 +579,15 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
       expect(Object.keys(own.spec?.secrets ?? {})).toEqual(["PLAIN_KEY"]);
     });
 
-    it("ApiKey.findAll — skip-authorization, list-scoped — hands each person their own keys and nobody else's", async () => {
+    it("ApiKey.list — skip-authorization, list-scoped — hands each person their own keys and nobody else's", async () => {
       expect(
         (
-          await createClient(ApiKeyQueryController, asFounder()).findAll({})
+          await createClient(ApiKeyQueryController, asFounder()).list({})
         ).entries.map((k) => k.metadata?.id),
       ).toEqual([founderKey]);
       expect(
         (
-          await createClient(ApiKeyQueryController, asMember()).findAll({})
+          await createClient(ApiKeyQueryController, asMember()).list({})
         ).entries.map((k) => k.metadata?.id),
       ).toEqual([memberKey]);
     });
@@ -899,7 +899,7 @@ describe("built-in list scope (two boots, one seed — the scope is the only var
       kinds: [ApiResourceKind.agent],
       org: ORG,
     });
-    const keys = await createClient(ApiKeyQueryController, founder).findAll({});
+    const keys = await createClient(ApiKeyQueryController, founder).list({});
     const vaults = await createClient(VaultQueryController, founder).list({
       org: ORG,
     });
