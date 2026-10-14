@@ -31,10 +31,6 @@
  *   - `delete`: revoke one triple; absent is the default instance.
  *   - `cleanupResourcePolicies`, `bootstrapRevokeOrgAccess`: the two
  *     system revoke lanes.
- *   - `bootstrapMoveOrgAccess`: the system lane that moves one account's
- *     access inside an organization to another account of the same person,
- *     or previews the move; the access move's redeem (iam/provider/
- *     access-move.ts) acts for the account that receives it.
  *
  * Who a call names. Without `actingFor` no caller header rides the call:
  * the OSS in-process interceptor mints `callerClass: "internal"`, the
@@ -70,7 +66,6 @@ import {
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
-import type { MoveOrgAccessResult } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
 import type {
   ApiResourceRef,
@@ -101,20 +96,6 @@ export interface IamPolicyGrantPathClient {
     organizationId: string,
     actingFor?: ActingFor,
   ): Promise<void>;
-  /** Moves (or previews moving) one account's access inside the organization to another account. */
-  bootstrapMoveOrgAccess(
-    move: MoveOrgAccessRequest,
-    actingFor?: ActingFor,
-  ): Promise<MoveOrgAccessResult>;
-}
-
-/** What a move names: the two accounts, the organization, and whether to write. */
-export interface MoveOrgAccessRequest {
-  readonly fromIdentityAccountId: string;
-  /** Empty only for a preview. */
-  readonly toIdentityAccountId: string;
-  readonly org: string;
-  readonly previewOnly: boolean;
 }
 
 const NOT_WIRED =
@@ -163,8 +144,6 @@ export function newIamPolicyGrantPathClient(
     cleanupResourcePolicies: async (ref, actingFor) => {
       await call((c) => c.cleanupResourcePolicies(ref, optionsFor(actingFor)));
     },
-    bootstrapMoveOrgAccess: (move, actingFor) =>
-      call((c) => c.bootstrapMoveOrgAccess({ ...move }, optionsFor(actingFor))),
     bootstrapRevokeOrgAccess: async (
       identityAccountId,
       organizationId,

@@ -19,9 +19,7 @@
  * deterministic refusal. In practice an evaluator here grades the runs its
  * creator can see: their own, the ones shared with them, and every run of
  * an organization's admin. A stamp that resolves to no account (the
- * laptop's "system", a deleted account) is a refusal too, and so is a
- * creator the evaluator's organization no longer admits by how they signed
- * in (creator-sign-in.ts), with the organization's own reason; a missing
+ * laptop's "system", a deleted account) is a refusal too; a missing
  * evaluator, a store fault or an authorizer that cannot answer is an
  * infrastructure throw.
  */
@@ -37,11 +35,6 @@ import type { GradingCallerMint } from "../extensions/grading-caller.js";
 import { GradingCallerRefusedError } from "../extensions/grading-caller.js";
 import { auditOf } from "../pipeline/steps/defaults.js";
 import type { Store } from "../store/interface.js";
-import {
-  creatorSignInRefusal,
-  refusedCreatorMessage,
-} from "./creator-sign-in.js";
-import type { CreatorSignInCheck } from "./creator-sign-in.js";
 
 export interface BuiltInGradingCallerDeps {
   readonly store: Store;
@@ -49,8 +42,6 @@ export interface BuiltInGradingCallerDeps {
   readonly accounts: AccountsByCaller;
   /** The composed authorizer: may the creator see the graded run. */
   readonly authorizer: Authorizer;
-  /** The composed binding's sign-in refusal; absent, no organization requires anything (a test's mint). */
-  readonly signIn?: CreatorSignInCheck;
 }
 
 /** The refusal's log copy. */
@@ -67,7 +58,7 @@ export function newBuiltInGradingCaller(
   deps: BuiltInGradingCallerDeps,
 ): GradingCallerMint {
   return {
-    async mintGradingCaller(org, evaluatorId, judgedRunId) {
+    async mintGradingCaller(_org, evaluatorId, judgedRunId) {
       const evaluator = await deps.store.getResource(
         ApiResourceKind.evaluator,
         evaluatorId,
@@ -82,12 +73,6 @@ export function newBuiltInGradingCaller(
         );
       }
       const caller = accountAsCaller(account);
-      const refusal = await creatorSignInRefusal(deps.signIn, caller, org);
-      if (refusal !== undefined) {
-        throw new GradingCallerRefusedError(
-          refusedCreatorMessage("evaluator", evaluatorId, refusal),
-        );
-      }
       const decision = await deps.authorizer.authorize(caller, {
         permission: IamPermission.can_view,
         resourceKind: ApiResourceKind.run,

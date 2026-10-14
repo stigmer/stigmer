@@ -4,16 +4,10 @@
 // still map to the right exit code.
 //
 // A refusal that carries a reason the CLI knows gets its own copy. Today
-// that is two, each with the server's sentence and the fix in hints:
-//   - API_KEY_CREATED_BEFORE_SIGN_IN (stigmer/stigmer#1169), an
-//     Unauthenticated whose fix is not "sign in again" but "sign in, then
-//     create a new key", naming the two commands. Every other
-//     Unauthenticated keeps the generic sign-in copy;
-//   - SSO_REQUIRED, a PermissionDenied from an organization that accepts
-//     only its own SSO sign-in. The CLI signs in only through the server's
-//     own issuer, so the fix is a key made in the console while signed in
-//     through the organization's SSO provider, set as STIGMER_API_KEY; "sign
-//     in again" would sign in the account the organization refuses.
+// that is one: API_KEY_CREATED_BEFORE_SIGN_IN (stigmer/stigmer#1169), an
+// Unauthenticated whose fix is not "sign in again" but "sign in, then
+// create a new key". Its sentence is the server's, and it names the two
+// commands. Every other Unauthenticated keeps the generic sign-in copy.
 
 import { Code, ConnectError } from "@connectrpc/connect";
 import { getErrorReason, StigmerError } from "@stigmer/sdk";
@@ -40,11 +34,6 @@ const MAX_CHAIN_DEPTH = 20;
 // The server's reason for refusing a key created before sign-in was turned
 // on (the apikey verifier; apis/ai/stigmer/iam/apikey/v1/README.md).
 const REASON_API_KEY_CREATED_BEFORE_SIGN_IN = "API_KEY_CREATED_BEFORE_SIGN_IN";
-
-// The reason an organization that requires sign-in through its SSO provider
-// refuses everyone else with (IdentityProviderSpec.sso_required in the
-// contract).
-const REASON_SSO_REQUIRED = "SSO_REQUIRED";
 
 export function classify(err: unknown): CliError | null {
   if (err === null || err === undefined) {
@@ -80,19 +69,6 @@ export function classify(err: unknown): CliError | null {
           "Sign in, then create a new key:",
           "  stigmer auth login",
           "  stigmer apikey create --name <name>",
-        ],
-      };
-    }
-    if (coded.code === Code.PermissionDenied && getErrorReason(err)?.reason === REASON_SSO_REQUIRED) {
-      return {
-        exitCode: ExitCode.Auth,
-        code: coded.code,
-        cause: toError(err),
-        message: coded.message,
-        hints: [
-          "Sign in to the Stigmer console through your organization's SSO,",
-          "create an API key under Settings > API keys, then:",
-          "  export STIGMER_API_KEY=<the key>",
         ],
       };
     }

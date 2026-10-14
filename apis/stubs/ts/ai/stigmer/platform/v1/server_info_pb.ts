@@ -476,9 +476,9 @@ export enum ServerEdition {
 
   /**
    * Stigmer Enterprise, the self-hosted paid edition: the open-source
-   * core plus the Enterprise units (many organizations, SSO, fine-grained
-   * authorization, audit). Serves open_source- and enterprise-tier
-   * resources.
+   * core plus the Enterprise units (many organizations, federation with
+   * other platforms, fine-grained authorization, audit). Serves
+   * open_source- and enterprise-tier resources.
    *
    * @generated from enum value: enterprise = 3;
    */

@@ -38,7 +38,7 @@
  *    demos/README.md's hoisting rule ("hoist only when a second tour
  *    genuinely depicts the same thing") only works with this counterpart
  *    enforced: before ManagementShell was hoisted (2026-07), a second tour
- *    could have imported it straight out of sso-login-playback/ with CI
+ *    could have imported it straight out of its first tour's folder with CI
  *    fully green, silently coupling the two tours' lifecycles.
  *
  * 5. AUTHORED INSTANTS. Tours derive instants from the tour world's one
@@ -350,7 +350,7 @@ export function findAuthoredInstants(sourceText, fileName = "module.ts") {
  *
  * @param sourceText file contents
  * @param tourRelativePath path relative to `demos/tours/`, POSIX separators
- *        (e.g. `"sso-login-playback/index.tsx"`)
+ *        (e.g. `"api-key-setup/index.tsx"`)
  * @returns violation objects `{ line, reason }` (line is 1-based)
  */
 /**

@@ -1,6 +1,6 @@
 {
   "name": "IdentityProviderSpec",
-  "description": "IdentityProviderSpec defines the configuration for an external identity provider.\n\n An IdentityProvider represents an external platform's trust relationship with Stigmer.\n It is owned by an organization (e.g., \"planton\") and configures how Stigmer validates\n tokens from that platform. Each request presents the provider's own JWT: Stigmer routes\n it by its issuer and audience, validates the token signature against the configured\n JWKS, and resolves the user's federated identity account by the JWT's sub claim and\n this provider's reference.\n\n Every token this provider vouches for is bound to one organization: the\n child organization external_id_claim names when it is set, otherwise the\n provider's own. A bound token works in that organization only.\n\n Two settings control what happens when someone signs in:\n\n   1. create_accounts_on_sign_in: whether Stigmer creates a federated\n      identity account from the token's claims the first time it sees a\n      user. When false (the default), the platform creates accounts through\n      CreateFederatedAccount before its users can sign in.\n\n   2. sign_in_role: the role an account receives the first time it signs in\n      to an organization through this provider. Unspecified means none: the\n      platform grants roles itself through IAM policies.\n\n An SSO provider (is_sso_provider) sets both, which also enables the OIDC\n browser login flow via oidc_client_id.\n\n The spec contains only public validation configuration — no secrets are stored.\n For OIDC-based integrators (e.g., Auth0), the jwks_uri and userinfo_endpoint\n point to the OIDC provider's standard endpoints.\n\n Example YAML (platform delegation):\n   apiVersion: iam.stigmer.ai/v1\n   kind: IdentityProvider\n   metadata:\n     name: Planton\n     slug: planton\n     org: planton\n   spec:\n     display_name: \"Planton\"\n     jwks_uri: \"https://planton-prod.us.auth0.com/.well-known/jwks.json\"\n     allowed_issuers: [\"https://planton-prod.us.auth0.com/\"]\n     expected_audience: \"https://api.planton.ai/\"\n     userinfo_endpoint: \"https://planton-prod.us.auth0.com/userinfo\"\n\n Example YAML (JIT provisioning, single-org):\n   apiVersion: iam.stigmer.ai/v1\n   kind: IdentityProvider\n   metadata:\n     name: Acme Platform\n     slug: acme-platform\n     org: acme\n   spec:\n     display_name: \"Acme Platform\"\n     jwks_uri: \"https://auth.acme.com/.well-known/jwks.json\"\n     allowed_issuers: [\"https://auth.acme.com/\"]\n     expected_audience: \"https://api.acme.com/stigmer\"\n     userinfo_endpoint: \"https://auth.acme.com/userinfo\"\n     create_accounts_on_sign_in: true\n     sign_in_role: viewer\n\n Example YAML (JIT provisioning, multi-tenant):\n   apiVersion: iam.stigmer.ai/v1\n   kind: IdentityProvider\n   metadata:\n     name: SaaS Platform\n     slug: saas-platform\n     org: saas-co\n   spec:\n     display_name: \"SaaS Platform\"\n     jwks_uri: \"https://auth.saas.co/.well-known/jwks.json\"\n     allowed_issuers: [\"https://auth.saas.co/\"]\n     expected_audience: \"https://api.saas.co/stigmer\"\n     userinfo_endpoint: \"https://auth.saas.co/userinfo\"\n     create_accounts_on_sign_in: true\n     sign_in_role: member\n     external_id_claim: \"org_id\"\n\n Example YAML (self-managed SSO):\n   apiVersion: iam.stigmer.ai/v1\n   kind: IdentityProvider\n   metadata:\n     name: Acme Corp Okta\n     slug: acme-okta\n     org: acme\n   spec:\n     display_name: \"Acme Corp Okta\"\n     jwks_uri: \"https://acme.okta.com/oauth2/default/v1/keys\"\n     allowed_issuers: [\"https://acme.okta.com/oauth2/default\"]\n     expected_audience: \"api://acme-stigmer\"\n     is_sso_provider: true\n     oidc_client_id: \"0oa1bcdef2ghijk3lmno\"\n     create_accounts_on_sign_in: true\n     sign_in_role: viewer",
+  "description": "",
   "protoType": "ai.stigmer.iam.identityprovider.v1.IdentityProviderSpec",
   "protoFile": "apis/ai/stigmer/iam/identityprovider/v1/spec.proto",
   "fields": [
@@ -74,29 +74,6 @@
       }
     },
     {
-      "name": "IsSsoProvider",
-      "jsonName": "isSsoProvider",
-      "protoField": "is_sso_provider",
-      "type": {
-        "kind": "bool"
-      },
-      "description": "Whether this identity provider serves as the SSO login provider for its\n owning organization.\n\n When true, the Stigmer web app offers a \"Sign in with [display_name]\"\n option on the organization's login page and initiates the OIDC\n Authorization Code flow with PKCE using the configured oidc_client_id.\n\n An SSO provider sets create_accounts_on_sign_in and a sign_in_role, so\n a person's first sign-in creates their federated identity account from\n the JWT's OIDC claims and grants them sign_in_role on the organization.\n\n Constraints:\n - At most one IdentityProvider per organization can be the SSO provider.\n - An SSO provider cannot set external_id_claim (different trust\n   models: SSO signs people in to the provider's own organization).",
-      "required": false
-    },
-    {
-      "name": "OidcClientId",
-      "jsonName": "oidcClientId",
-      "protoField": "oidc_client_id",
-      "type": {
-        "kind": "string"
-      },
-      "description": "OIDC client identifier for browser-based SSO login.\n\n This is the client_id registered with the external IdP (e.g., Okta,\n Azure AD) for Stigmer's web application. The web app uses this to\n build the OIDC Authorization Code request with PKCE.\n\n No client_secret is stored — the web app is a public client using PKCE\n (Proof Key for Code Exchange), which is the recommended approach for\n SPAs per OAuth 2.0 for Browser-Based Apps (RFC draft).\n\n Required when is_sso_provider is true; must be empty otherwise.",
-      "required": false,
-      "validation": {
-        "maxLength": 256
-      }
-    },
-    {
       "name": "ExternalIdClaim",
       "jsonName": "externalIdClaim",
       "protoField": "external_id_claim",
@@ -137,16 +114,6 @@
         ]
       },
       "description": "The role an account receives the first time it signs in to an\n organization through this provider: the organization its token is bound\n to (external_id_claim's, or the provider's own).\n\n Granted once per account and organization. A role an admin later removes\n is not granted again, and changing this setting does not reach accounts\n that already signed in there. Unspecified (iam_role_unspecified) grants\n nothing. The owner role is refused with\n `identity_provider.sign_in_role_not_owner`: ownership is assigned\n explicitly.",
-      "required": false
-    },
-    {
-      "name": "SsoRequired",
-      "jsonName": "ssoRequired",
-      "protoField": "sso_required",
-      "type": {
-        "kind": "bool"
-      },
-      "description": "Whether people act in this organization only through this provider.\n\n When true, the organization's own people count in it only through the\n account this provider signed them in as. Its own people are the\n accounts holding a role in it, directly or through a team, and every\n credential bound to it. Such an account made by another sign-in (an\n email login, the server's own sign-in), or an API key it made, is\n refused there, on every read and write, with PERMISSION_DENIED carrying\n a google.rpc.ErrorInfo detail (domain \"stigmer.ai\"):\n\n   - SSO_REQUIRED: the organization requires sign-in through its SSO\n     provider. Metadata: org (the organization's id), provider (this\n     provider's slug). A console sends the person to the organization's\n     SSO sign-in.\n\n A person granted one of its resources without a role in it, and a\n child organization's member reading what this organization shares with\n its children, are not its own people and are not held to it.\n\n The organization's owners are exempt, so a broken provider never locks\n everyone out. Service accounts, a run's own credential and the\n organization's platform clients are unaffected; a schedule, evaluator\n or eval that acts as a refused account stops, saying why. A person may\n move their access to the account this provider made for them\n (IdentityProviderCommandController.createAccessMove).\n\n Only the organization's owners may turn it on or off, and, while it is\n on, change whom the provider trusts (allowed_issuers, jwks_uri,\n expected_audience) or delete the provider (can_assign_roles on the\n organization).\n Deleting the provider ends the requirement. Valid only on the SSO\n provider (is_sso_provider). A change takes effect at once on the\n server that wrote it and within a minute on its other replicas.",
       "required": false
     }
   ]

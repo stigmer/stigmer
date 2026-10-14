@@ -16,7 +16,7 @@ where the request comes from and who makes it.
 | **Who uses it**       | Your backend, CLI, CI/CD (as a service account)                                  | Your end users (via their existing IdP)                      | Your end users (via your backend)                                   |
 | **Where it runs**     | Server-side only                                                                 | Browser (user's JWT sent directly)                           | Browser (token fetched from your backend)                           |
 | **Setup effort**      | Create a key in the Console                                                      | Register an Identity Provider, configure JWKS + issuer       | Create a PlatformClient in the Console, add one backend endpoint    |
-| **User provisioning** | Not applicable (server credential)                                               | JIT automatic, manual, or SSO                                | Automatic on first token mint, or manual                            |
+| **User provisioning** | Not applicable (server credential)                                               | JIT automatic or manual                                      | Automatic on first token mint, or manual                            |
 | **Organizations**     | Every Organization of its owner, or one; a service account's key, its own        | One per token                                                | The PlatformClient's Organization                                   |
 | **Best for**          | Server-to-server, scripts, internal tools                                        | Apps where users already have an OIDC provider (Auth0, Okta) | Embedding Stigmer in your product without OIDC setup                |
 

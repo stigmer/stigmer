@@ -43,7 +43,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "mmons/rpc/method_options.proto\032,ai/stigm" +
       "er/iam/identityprovider/v1/api.proto\032+ai" +
       "/stigmer/iam/identityprovider/v1/io.prot" +
-      "o2\265\t\n!IdentityProviderCommandController\022" +
+      "o2\241\007\n!IdentityProviderCommandController\022" +
       "s\n\005apply\0224.ai.stigmer.iam.identityprovid" +
       "er.v1.IdentityProvider\0324.ai.stigmer.iam." +
       "identityprovider.v1.IdentityProvider\022\313\001\n" +
@@ -66,19 +66,12 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "eteInput\0324.ai.stigmer.iam.identityprovid" +
       "er.v1.IdentityProvider\"?\302\270\030;\010\003\020\025\"\013resour" +
       "ce_id*(unauthorized to delete identity p" +
-      "rovider\022\205\001\n\020createAccessMove\0225.ai.stigme" +
-      "r.iam.identityprovider.v1.AccessMoveRequ" +
-      "est\0324.ai.stigmer.iam.identityprovider.v1" +
-      ".AccessMoveTicket\"\004\320\270\030\001\022\211\001\n\020redeemAccess" +
-      "Move\0229.ai.stigmer.iam.identityprovider.v" +
-      "1.RedeemAccessMoveInput\0324.ai.stigmer.iam" +
-      ".identityprovider.v1.AccessMoveResult\"\004\320" +
-      "\270\030\001\032\004\240\377+\025B\273\001B\014CommandProtoP\001\242\002\004ASII\252\002\"Ai" +
-      ".Stigmer.Iam.Identityprovider.V1\312\002\"Ai\\St" +
-      "igmer\\Iam\\Identityprovider\\V1\342\002.Ai\\Stigm" +
-      "er\\Iam\\Identityprovider\\V1\\GPBMetadata\352\002" +
-      "&Ai::Stigmer::Iam::Identityprovider::V1b" +
-      "\006proto3"
+      "rovider\032\004\240\377+\025B\273\001B\014CommandProtoP\001\242\002\004ASII\252" +
+      "\002\"Ai.Stigmer.Iam.Identityprovider.V1\312\002\"A" +
+      "i\\Stigmer\\Iam\\Identityprovider\\V1\342\002.Ai\\S" +
+      "tigmer\\Iam\\Identityprovider\\V1\\GPBMetada" +
+      "ta\352\002&Ai::Stigmer::Iam::Identityprovider:" +
+      ":V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -99,7 +92,6 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
     registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.config);
-    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

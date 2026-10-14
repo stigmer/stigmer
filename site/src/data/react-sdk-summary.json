@@ -158,8 +158,8 @@
       "slug": "identity-provider",
       "title": "Identity Provider",
       "description": "Hooks and components for federated identity provider setup and management.",
-      "hooks": 10,
-      "components": 9
+      "hooks": 5,
+      "components": 5
     },
     {
       "slug": "invitation",

@@ -18,9 +18,8 @@ import { IdentityProviderWizard } from "../IdentityProviderWizard";
  * the create call carries it, so the save-time check that the endpoint is
  * the issuer's own passes for a preset left as filled.
  *
- * Also pins the sign-in settings the create call carries: a plain provider
- * sends neither account creation nor a role unless chosen, and an SSO
- * provider sends both, starting from viewer.
+ * Also pins the sign-in settings the create call carries: neither account
+ * creation nor a role unless chosen, and both once the admin chooses them.
  */
 
 const CREATED: IdentityProvider = create(IdentityProviderSchema, {
@@ -66,21 +65,21 @@ describe("IdentityProviderWizard sign-in settings", () => {
 
     await waitFor(() => expect(createIdp).toHaveBeenCalledTimes(1));
     const input = createIdp.mock.calls[0]![0];
-    expect(input.isSsoProvider).toBeUndefined();
     expect(input.createAccountsOnSignIn).toBeUndefined();
     expect(input.signInRole).toBeUndefined();
     expect(input.externalIdClaim).toBeUndefined();
   });
 
-  it("an SSO provider sends account creation and the viewer role", async () => {
+  it("sends account creation and the role the admin chooses", async () => {
     const createIdp = vi.fn(async (_input: IdentityProviderInput) => CREATED);
     renderWizard(createIdp);
     await reachReview();
 
-    // The SSO switch is the review step's first.
-    fireEvent.click(screen.getAllByRole("switch")[0]!);
-    fireEvent.change(screen.getByLabelText("OIDC client ID"), {
-      target: { value: "client-1" },
+    fireEvent.click(
+      screen.getByRole("switch", { name: "Create accounts on sign-in" }),
+    );
+    fireEvent.change(screen.getByLabelText("Sign-in role"), {
+      target: { value: String(IamRole.viewer) },
     });
     fireEvent.click(
       screen.getByRole("button", { name: "Create identity provider" }),
@@ -88,7 +87,6 @@ describe("IdentityProviderWizard sign-in settings", () => {
 
     await waitFor(() => expect(createIdp).toHaveBeenCalledTimes(1));
     const input = createIdp.mock.calls[0]![0];
-    expect(input.isSsoProvider).toBe(true);
     expect(input.createAccountsOnSignIn).toBe(true);
     expect(input.signInRole).toBe(IamRole.viewer);
   });

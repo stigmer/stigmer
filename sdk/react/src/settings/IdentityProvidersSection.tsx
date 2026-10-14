@@ -11,23 +11,14 @@ import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { useOrg } from "../organization/OrgProvider.js";
 
-/** Props for {@link IdentityProvidersSection}. */
-export interface IdentityProvidersSectionProps {
-  /**
-   * Base URL used to construct the SSO login link shown in the detail panel.
-   * Defaults to `window.location.origin` when omitted (correct for web apps).
-   * Desktop apps should pass the cloud console origin instead.
-   */
-  readonly ssoLoginBaseUrl?: string;
-}
-
 type FlowState =
   | { phase: "idle" }
   | { phase: "creating" }
   | { phase: "editing"; identityProvider: IdentityProvider };
 
 /**
- * Settings section for configuring OIDC identity providers.
+ * Settings section for configuring OIDC identity providers: the other
+ * platforms whose tokens the organization trusts.
  *
  * "New identity provider" is offered once the server confirms the caller
  * holds `can_create_idp` on the organization. The list shows only the
@@ -35,13 +26,11 @@ type FlowState =
  * is told that the organization's admins manage them rather than that none
  * is configured.
  */
-export function IdentityProvidersSection({
-  ssoLoginBaseUrl,
-}: IdentityProvidersSectionProps = {}) {
+export function IdentityProvidersSection() {
   const headingId = useId();
   const { activeOrg } = useOrg();
   const idpAvailable = useResourceAvailable(ApiResourceKind.identity_provider);
-  // Requests and the shared SSO login URL name the org by its id.
+  // Requests name the org by its id.
   const orgId = activeOrg?.metadata?.id ?? "";
   const createCheck = useCheckPermission(
     idpAvailable && orgId ? { kind: "organization", id: orgId } : null,
@@ -67,10 +56,6 @@ export function IdentityProvidersSection({
     setFlow({ phase: "idle" });
   }, []);
 
-  const baseUrl =
-    ssoLoginBaseUrl ??
-    (typeof window !== "undefined" ? window.location.origin : "");
-
   return (
     <section aria-labelledby={headingId}>
       <div className="stg:mb-3 stg:flex stg:items-center stg:justify-between">
@@ -93,8 +78,8 @@ export function IdentityProvidersSection({
       </div>
       <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
         Identity providers define external OIDC trust relationships for
-        federated authentication. Configure providers for platform-managed
-        organizations or self-managed SSO.
+        federated authentication: the organization accepts tokens another
+        platform issues, such as the platform that manages it.
       </p>
 
       {!idpAvailable ? (
@@ -118,14 +103,6 @@ export function IdentityProvidersSection({
         <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
           <IdentityProviderDetailPanel
             identityProvider={flow.identityProvider}
-            ssoLoginUrl={
-              flow.identityProvider.spec?.isSsoProvider
-                ? // The shared link names the organization by its permanent
-                  // id: a slug can be renamed and later taken by someone
-                  // else, who would then receive every old copy of the link.
-                  `${baseUrl}/login?org=${encodeURIComponent(orgId)}`
-                : undefined
-            }
             onUpdated={handleUpdated}
             onBack={() => setFlow({ phase: "idle" })}
           />

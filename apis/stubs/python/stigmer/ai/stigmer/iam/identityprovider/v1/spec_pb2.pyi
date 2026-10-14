@@ -9,27 +9,21 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class IdentityProviderSpec(_message.Message):
-    __slots__ = ("display_name", "jwks_uri", "allowed_issuers", "expected_audience", "userinfo_endpoint", "is_sso_provider", "oidc_client_id", "external_id_claim", "create_accounts_on_sign_in", "sign_in_role", "sso_required")
+    __slots__ = ("display_name", "jwks_uri", "allowed_issuers", "expected_audience", "userinfo_endpoint", "external_id_claim", "create_accounts_on_sign_in", "sign_in_role")
     DISPLAY_NAME_FIELD_NUMBER: _ClassVar[int]
     JWKS_URI_FIELD_NUMBER: _ClassVar[int]
     ALLOWED_ISSUERS_FIELD_NUMBER: _ClassVar[int]
     EXPECTED_AUDIENCE_FIELD_NUMBER: _ClassVar[int]
     USERINFO_ENDPOINT_FIELD_NUMBER: _ClassVar[int]
-    IS_SSO_PROVIDER_FIELD_NUMBER: _ClassVar[int]
-    OIDC_CLIENT_ID_FIELD_NUMBER: _ClassVar[int]
     EXTERNAL_ID_CLAIM_FIELD_NUMBER: _ClassVar[int]
     CREATE_ACCOUNTS_ON_SIGN_IN_FIELD_NUMBER: _ClassVar[int]
     SIGN_IN_ROLE_FIELD_NUMBER: _ClassVar[int]
-    SSO_REQUIRED_FIELD_NUMBER: _ClassVar[int]
     display_name: str
     jwks_uri: str
     allowed_issuers: _containers.RepeatedScalarFieldContainer[str]
     expected_audience: str
     userinfo_endpoint: str
-    is_sso_provider: bool
-    oidc_client_id: str
     external_id_claim: str
     create_accounts_on_sign_in: bool
     sign_in_role: _enum_pb2.IamRole
-    sso_required: bool
-    def __init__(self, display_name: _Optional[str] = ..., jwks_uri: _Optional[str] = ..., allowed_issuers: _Optional[_Iterable[str]] = ..., expected_audience: _Optional[str] = ..., userinfo_endpoint: _Optional[str] = ..., is_sso_provider: bool = ..., oidc_client_id: _Optional[str] = ..., external_id_claim: _Optional[str] = ..., create_accounts_on_sign_in: bool = ..., sign_in_role: _Optional[_Union[_enum_pb2.IamRole, str]] = ..., sso_required: bool = ...) -> None: ...
+    def __init__(self, display_name: _Optional[str] = ..., jwks_uri: _Optional[str] = ..., allowed_issuers: _Optional[_Iterable[str]] = ..., expected_audience: _Optional[str] = ..., userinfo_endpoint: _Optional[str] = ..., external_id_claim: _Optional[str] = ..., create_accounts_on_sign_in: bool = ..., sign_in_role: _Optional[_Union[_enum_pb2.IamRole, str]] = ...) -> None: ...

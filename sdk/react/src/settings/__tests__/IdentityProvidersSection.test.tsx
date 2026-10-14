@@ -14,15 +14,12 @@
  *     who may create one, and names the organization's admins to a caller
  *     the server has refused;
  *   - a provider row offers edit only with `can_edit` and delete only with
- *     `can_delete` on that provider;
- *   - an SSO provider's sign-in link names the organization by its
- *     permanent id, never its slug: a slug can be released and taken by
- *     another organization, which would then receive every old copy.
+ *     `can_delete` on that provider.
  *
  * The data hooks and the permission check are stubbed; the panels are real.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
   IdentityProviderSchema,
@@ -118,15 +115,10 @@ const OKTA = create(IdentityProviderSchema, {
   spec: { displayName: "Acme Okta" },
 });
 
-const OKTA_SSO = create(IdentityProviderSchema, {
-  metadata: { id: "idp_sso", name: "Acme SSO", slug: "acme-sso", org: "org_acme" },
-  spec: { displayName: "Acme SSO", isSsoProvider: true, oidcClientId: "client-1" },
-});
-
-function renderSection(mode: DeploymentMode, ssoLoginBaseUrl?: string) {
+function renderSection(mode: DeploymentMode) {
   return render(
     <DeploymentModeContext.Provider value={mode}>
-      <IdentityProvidersSection ssoLoginBaseUrl={ssoLoginBaseUrl} />
+      <IdentityProvidersSection />
     </DeploymentModeContext.Provider>,
   );
 }
@@ -189,17 +181,4 @@ describe("IdentityProvidersSection", () => {
     expect(screen.getByRole("button", { name: "Delete Acme Okta" })).toBeTruthy();
   });
 
-  it("builds an SSO provider's sign-in link from the organization's id, not its slug", () => {
-    stubs.providers = [OKTA_SSO];
-    stubs.allowed = new Set(["can_edit"]);
-    renderSection("cloud", "https://console.example.com");
-
-    fireEvent.click(screen.getByRole("button", { name: "Edit Acme SSO" }));
-
-    expect(screen.getByText("SSO login URL")).toBeTruthy();
-    expect(
-      screen.getByText("https://console.example.com/login?org=org_acme"),
-    ).toBeTruthy();
-    expect(screen.queryByText(/login\?org=acme\b/)).toBeNull();
-  });
 });

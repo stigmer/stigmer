@@ -1,8 +1,7 @@
 /**
  * The IdentityProvider RPCs as extension services: the command side's
- * create, update, apply, rename and delete and the access move's two
- * (createAccessMove, redeemAccessMove), the query side's get,
- * getByReference, listByOrg, getSsoProvider and previewSsoRequirement. IdentityProvider is an enterprise-tier
+ * create, update, apply and delete, the query side's get, getByReference
+ * and listByOrg. IdentityProvider is an enterprise-tier
  * kind open source registers no service for, so these are its only
  * handlers; every one runs the composition's unary chain (Authorize from
  * the proto annotation, then ValidateProto, then the lane's steps and its
@@ -21,17 +20,10 @@
  *                   and the lifecycle driver's creation event
  *   update          LoadExisting → BuildUpdateState, then the matrix, the
  *                   row and the invalidation
- *                   (create and update then ask the switch's rules,
- *                   sso-required-steps.ts: a request that changes
- *                   `sso_required`, or whom a provider that requires it
- *                   trusts, also needs the organization's owners,
- *                   and one that turns it on the host's plan gate when it
- *                   fills one; and end their steps with GrowthGate when
- *                   the host fills the port, iam/growth-gate.ts, which an
- *                   update that only turns `sso_required` off passes, so
- *                   a refused write reaches neither the matrix's live
- *                   reads nor the row; apply reaches them through the arm
- *                   it runs)
+ *                   (create and update end their steps with GrowthGate
+ *                   when the host fills the port, iam/growth-gate.ts, so a
+ *                   refused write reaches neither the matrix's live reads
+ *                   nor the row; apply reaches it through the arm it runs)
  *   apply           AuthorizeResolvedTarget (`can_create_idp` on the
  *                   request's organization, create's own question and
  *                   copy) → ResolveSlug → LoadForApply decides; then
@@ -56,18 +48,6 @@
  *                   configuration is what a caller must be allowed to see
  *   listByOrg       the organization's rows, narrowed by the list read
  *                   scope to what the caller could `get`
- *   getSsoProvider  public (the login page asks before anyone signs in);
- *                   the projection carries only what sign-in needs, and a
- *                   provider whose organization is gone or younger than it
- *                   answers as no provider (sso-info.ts, organization-links.ts
- *                   `orphanReason`): the slug may now be someone else's
- *   previewSsoRequirement
- *                   the organization's owners only (its annotation): who
- *                   would stop counting if the requirement were on
- *                   (requirement-preview.ts)
- *   createAccessMove, redeemAccessMove
- *                   skip lanes whose ticket is the authorization, as an
- *                   invitation's token is (iam/access-move/handlers.ts)
  *   rename          the library's rename chain over this table
  *                   (`renameResource`): RefuseServiceAccountCaller,
  *                   LoadForRename, RefuseBeingDeleted, ValidateNewSlug,
@@ -75,9 +55,7 @@
  *                   the verifier's invalidation; sign-in routes by issuer
  *                   and audience and federated accounts hold the
  *                   provider's id, so nobody's sign-in moves
- *   delete          LoadTarget, then the owners when the provider
- *                   requires sign-in through it (deleting it ends the
- *                   requirement), then the removal (removal.ts)
+ *   delete          LoadTarget, then the removal (removal.ts)
  *
  * Create follows the lifecycle contract every create chain follows: the
  * row is written first, then the creation event (the organization link;
@@ -95,7 +73,6 @@ import type { ServiceImpl } from "@connectrpc/connect";
 import type { OutboundFetch } from "@stigmer/outbound/egress";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
@@ -134,7 +111,6 @@ import {
   renameResource,
   resolveResourceCreatedEvent,
   restrictListByReadScope,
-  EXISTING_RESOURCE_KEY,
   TARGET_RESOURCE_KEY,
   newRefuseServiceAccountCallerStep,
 } from "@stigmer/server";
@@ -158,23 +134,8 @@ import {
   withResolvedProviderId,
 } from "./steps.js";
 import { newGrowthGateStep, type GrowthGate } from "../growth-gate.js";
-import { createAccessMove, redeemAccessMove } from "../access-move/handlers.js";
-import type { AccessMoveDeps } from "../access-move/handlers.js";
-import { previewSsoRequirement } from "./requirement-preview.js";
-import type { RequirementPreviewDeps } from "./requirement-preview.js";
-import { requireLiveSsoProvider, ssoProviderInfoOf } from "./sso-info.js";
-import type { SsoProviderReads } from "./sso-info.js";
-import {
-  createSetsSsoRequired,
-  newOwnersDecideSsoRequiredStep,
-  newProviderUpdateGrowthGateStep,
-  newSsoPlanGateStep,
-  updateNeedsOwners,
-  updateTurnsSsoRequiredOn,
-} from "./sso-required-steps.js";
-import type { SsoPlanGate } from "./sso-required-steps.js";
 import type { IdentityProviderStore } from "./store.js";
-import { normalizeIssuers, routeTakenError, ssoTakenError, validateProvider } from "./validation.js";
+import { normalizeIssuers, routeTakenError, validateProvider } from "./validation.js";
 
 export interface IdentityProviderLaneDeps {
   readonly authorizer: Authorizer;
@@ -193,10 +154,7 @@ export interface IdentityProviderLaneDeps {
   readonly listReadScope: ListReadScope;
   /** The federated verifier's issuer-cache invalidation, after every row write. */
   readonly invalidate: () => void;
-  /**
-   * The organization SSO discovery checks its provider still belongs to,
-   * and the slug the delete's refusal names the provider's organization by.
-   */
+  /** The slug the delete's refusal names the provider's organization by. */
   readonly organizations: OrganizationLookup;
   /**
    * The identity-account port: whether the caller is an organization's
@@ -207,16 +165,6 @@ export interface IdentityProviderLaneDeps {
   readonly accounts: ServiceAccountLookup;
   /** The host's growth gate (iam/growth-gate.ts); absent, every create and update is allowed. */
   readonly growthGate?: GrowthGate;
-  /**
-   * Whether an organization's plan lets it require sign-in through its SSO
-   * provider (sso-required-steps.ts); absent (self-hosted Enterprise, where
-   * it is an edition feature), every organization may.
-   */
-  readonly ssoPlanGate?: SsoPlanGate;
-  /** The access move's stores and reads (iam/access-move/handlers.ts). */
-  readonly accessMove: Omit<AccessMoveDeps, keyof SsoProviderReads | "logger">;
-  /** The owners' requirement preview's reads (requirement-preview.ts). */
-  readonly requirementPreview: Omit<RequirementPreviewDeps, keyof SsoProviderReads | "accounts" | "invitations">;
 }
 
 type Commands = ServiceImpl<typeof IdentityProviderCommandController>;
@@ -227,35 +175,11 @@ const KIND = ApiResourceKind.identity_provider;
 /** Apply's first refusal is create's own copy (the header's apply line says why). */
 const APPLY_DENIED = deniedCopyOf(IdentityProviderCommandController.method.create);
 
-export { NO_SSO_PROVIDER_MESSAGE } from "./sso-info.js";
-
 /** The growth gate's step, last in create and update, when the host fills the port. */
 function growthGateOf(
   deps: IdentityProviderLaneDeps,
 ): ReadonlyArray<PipelineStep<typeof IdentityProviderSchema>> {
   return deps.growthGate === undefined ? [] : [newGrowthGateStep(deps.growthGate)];
-}
-
-/** The update's growth step: an update that only turns the sign-in requirement off is never growth. */
-function updateGrowthGateOf(
-  deps: IdentityProviderLaneDeps,
-): ReadonlyArray<PipelineStep<typeof IdentityProviderSchema>> {
-  return deps.growthGate === undefined
-    ? []
-    : [
-        newProviderUpdateGrowthGateStep<typeof IdentityProviderSchema>(deps.growthGate, (ctx) => ({
-          stored: providerAt(ctx, EXISTING_RESOURCE_KEY),
-          next: ctx.newState,
-        })),
-      ];
-}
-
-/** The plan gate's step, when the host fills the port, asked only when the request turns the requirement on. */
-function ssoPlanGateOf(
-  deps: IdentityProviderLaneDeps,
-  turnsOn: (ctx: RequestContext<typeof IdentityProviderSchema>) => IdentityProvider | undefined,
-): ReadonlyArray<PipelineStep<typeof IdentityProviderSchema>> {
-  return deps.ssoPlanGate === undefined ? [] : [newSsoPlanGateStep(deps.ssoPlanGate, turnsOn)];
 }
 
 export function providerCommands(deps: IdentityProviderLaneDeps): Commands {
@@ -283,10 +207,6 @@ export function providerCommands(deps: IdentityProviderLaneDeps): Commands {
             newResolveSlugStep(),
             newCheckDuplicateProviderStep(deps.names, deps.store),
             newBuildNewStateStep(),
-            newOwnersDecideSsoRequiredStep<typeof IdentityProviderSchema>(deps.authorizer, (ctx) =>
-              createSetsSsoRequired(ctx.newState),
-            ),
-            ...ssoPlanGateOf(deps, (ctx) => createSetsSsoRequired(ctx.newState)),
             ...growthGateOf(deps),
             newClaimNameStep<typeof IdentityProviderSchema>(
               deps.names,
@@ -315,13 +235,7 @@ export function providerCommands(deps: IdentityProviderLaneDeps): Commands {
               refuseServiceAccount(),
               newLoadExistingProviderStep(deps.store),
               newBuildUpdateStateStep(),
-              newOwnersDecideSsoRequiredStep<typeof IdentityProviderSchema>(deps.authorizer, (ctx) =>
-                updateNeedsOwners(providerAt(ctx, EXISTING_RESOURCE_KEY), ctx.newState),
-              ),
-              ...ssoPlanGateOf(deps, (ctx) =>
-                updateTurnsSsoRequiredOn(providerAt(ctx, EXISTING_RESOURCE_KEY), ctx.newState),
-              ),
-              ...updateGrowthGateOf(deps),
+              ...growthGateOf(deps),
             ],
           },
         ),
@@ -393,42 +307,11 @@ export function providerCommands(deps: IdentityProviderLaneDeps): Commands {
         },
         {
           kind: KIND,
-          steps: [
-            refuseServiceAccount(),
-            newLoadProviderStep(deps.store, (del) => del.resourceId),
-            // Deleting a provider that requires sign-in through it ends the
-            // requirement, which is the owners' to decide.
-            newOwnersDecideSsoRequiredStep<typeof ApiResourceDeleteInputSchema>(deps.authorizer, (ctx) =>
-              createSetsSsoRequired(providerAt(ctx, TARGET_RESOURCE_KEY)),
-            ),
-          ],
+          steps: [refuseServiceAccount(), newLoadProviderStep(deps.store, (del) => del.resourceId)],
         },
-      ),
-    createAccessMove: (input, ctx) =>
-      runUnaryChain(
-        { chain: "identity-provider-create-access-move", step: "CreateAccessMove" },
-        method.createAccessMove,
-        input,
-        ctx,
-        deps,
-        (reqCtx) => createAccessMove(reqCtx, accessMoveDepsOf(deps)),
-      ),
-    redeemAccessMove: (input, ctx) =>
-      runUnaryChain(
-        { chain: "identity-provider-redeem-access-move", step: "RedeemAccessMove" },
-        method.redeemAccessMove,
-        input,
-        ctx,
-        deps,
-        (reqCtx) => redeemAccessMove(reqCtx, accessMoveDepsOf(deps)),
       ),
   };
   return commands;
-}
-
-/** The access move's dependencies, from the lane's. */
-function accessMoveDepsOf(deps: IdentityProviderLaneDeps): AccessMoveDeps {
-  return { ...deps.accessMove, store: deps.store, organizations: deps.organizations, logger: deps.logger };
 }
 
 export function providerQueries(deps: IdentityProviderLaneDeps): Queries {
@@ -482,31 +365,6 @@ export function providerQueries(deps: IdentityProviderLaneDeps): Queries {
           return create(IdentityProvidersSchema, { entries: visible });
         },
       ),
-    getSsoProvider: (input, ctx) =>
-      runUnaryChain(
-        { chain: "identity-provider-get-sso-provider", step: "GetSsoProvider" },
-        method.getSsoProvider,
-        input,
-        ctx,
-        deps,
-        async (reqCtx) => ssoProviderInfoOf(await requireLiveSsoProvider(deps, reqCtx.input.org)),
-      ),
-    previewSsoRequirement: (input, ctx) =>
-      runUnaryChain(
-        { chain: "identity-provider-preview-sso-requirement", step: "PreviewSsoRequirement" },
-        method.previewSsoRequirement,
-        input,
-        ctx,
-        deps,
-        (reqCtx) =>
-          previewSsoRequirement(reqCtx, {
-            ...deps.requirementPreview,
-            store: deps.store,
-            organizations: deps.organizations,
-            accounts: deps.accessMove.accounts,
-            invitations: deps.accessMove.invitations,
-          }),
-      ),
   };
 }
 
@@ -546,8 +404,6 @@ async function insertProvider(
       );
       throw duplicateProviderError(winner ?? provider);
     }
-    case "sso-taken":
-      throw ssoTakenError(provider.metadata?.org ?? "");
     case "route-taken":
       throw routeTakenError(outcome.route);
     default: {
@@ -588,8 +444,6 @@ async function updateProvider(
   switch (outcome.kind) {
     case "replaced":
       break;
-    case "sso-taken":
-      throw ssoTakenError(provider.metadata?.org ?? "");
     case "route-taken":
       throw routeTakenError(outcome.route);
     case "changed":

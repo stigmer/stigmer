@@ -66,7 +66,6 @@ import type {
   AuthzCheck,
   AuthzDecision,
 } from "../../../extensions/authorizer.js";
-import type { ComposedCredentialBinding } from "../../../authorization/credential-binding.js";
 import type { CredentialBinding } from "../../../extensions/credential-binding.js";
 import { boundOrgOf } from "../../../extensions/identity.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
@@ -105,8 +104,6 @@ import {
   orgRole,
   triple,
 } from "./support.js";
-import type { AccountAutomation } from "../../../authorization/account-automations.js";
-import { OWNER_ACCESS_NOT_MOVED_MESSAGE } from "../grant-path.js";
 
 const silent = createLogger({ level: "error", pretty: false, write: () => {} });
 
@@ -214,8 +211,7 @@ interface Harness {
 function stubCredentialBinding(
   outsideIds: ReadonlySet<string>,
   fault?: Error,
-): CredentialBinding &
-  Pick<ComposedCredentialBinding, "signInRefusalOn" | "narrowSignInIds"> {
+): CredentialBinding {
   return {
     verdict(caller, target) {
       if (fault !== undefined) {
@@ -231,9 +227,6 @@ function stubCredentialBinding(
       return bound === undefined || bound === org;
     },
     keepsEntry: () => Promise.resolve(true),
-    signInRefusal: () => Promise.resolve(undefined),
-    signInRefusalOn: () => Promise.resolve(undefined),
-    narrowSignInIds: (_caller, _kind, ids) => Promise.resolve(ids),
     narrowIds(caller, _kind, ids) {
       if (fault !== undefined) {
         return Promise.reject(fault);
@@ -256,8 +249,6 @@ async function harness(options: {
   edition?: ServerEdition;
   scope?: PolicyGrantScope;
   createGate?: PipelineStep<DescMessage>;
-  vaultEntries?: ReadonlyArray<string>;
-  automations?: ReadonlyArray<AccountAutomation>;
 }): Promise<Harness> {
   const policies = fakeIamPolicyStore();
   const accounts = fakeIdentityAccountStore();
@@ -315,10 +306,6 @@ async function harness(options: {
               ],
         ),
         edition: options.edition ?? ServerEdition.oss,
-        myVaultEntries: () => Promise.resolve(options.vaultEntries ?? []),
-        automations: {
-          actingAs: () => Promise.resolve(options.automations ?? []),
-        },
         logger: silent,
       });
     },
@@ -358,7 +345,7 @@ const structural: IamPolicySpec = triple(
   { kind: "agent", id: "agt_1" },
 );
 
-describe("the four system RPCs", () => {
+describe("the three system RPCs", () => {
   const cases: ReadonlyArray<
     [name: string, copy: string, call: (h: Harness) => Promise<unknown>]
   > = [
@@ -379,16 +366,6 @@ describe("the four system RPCs", () => {
         h.command.bootstrapRevokeOrgAccess({
           identityAccountId: ALICE_ID,
           org: "acme",
-        }),
-    ],
-    [
-      "bootstrapMoveOrgAccess",
-      "unauthorized to move organization access - can_bootstrap_iam permission required",
-      (h) =>
-        h.command.bootstrapMoveOrgAccess({
-          fromIdentityAccountId: ALICE_ID,
-          org: "acme",
-          previewOnly: true,
         }),
     ],
   ];
@@ -1212,72 +1189,6 @@ describe("owner is assigned by owners, on the three caller lanes", () => {
     await h.command.bootstrapRevokeOrgAccess({ identityAccountId: "ida_root", org: "acme" });
     expect(h.policies.rows.size).toBe(0);
     expect(h.authorizer.checks.map((check) => check.permission)).not.toContain(IamPermission.can_assign_roles);
-  });
-});
-
-describe("bootstrapMoveOrgAccess", () => {
-  const SSO_ID = "ida_sso_alice";
-
-  it("moves the account's rows in the organization and says what stops with it", async () => {
-    const h = await harness({
-      caller: machine,
-      vaultEntries: ["GITHUB_TOKEN", "https://mcp.example.com"],
-      automations: [
-        {
-          kind: ApiResourceKind.schedule,
-          id: "sch_1",
-          slug: "nightly",
-          name: "Nightly",
-          accountId: ALICE_ID,
-        },
-      ],
-    });
-    await h.command.bootstrapPolicy(orgRole(ALICE_ID, "admin", "acme"));
-    const result = await h.command.bootstrapMoveOrgAccess({
-      fromIdentityAccountId: ALICE_ID,
-      toIdentityAccountId: SSO_ID,
-      org: "acme",
-    });
-    expect(result.movedPolicies).toBe(1);
-    expect(result.myVaultEntries).toEqual(["GITHUB_TOKEN", "https://mcp.example.com"]);
-    expect(result.automations).toEqual([
-      expect.objectContaining({ kind: "schedule", id: "sch_1", slug: "nightly", name: "Nightly" }),
-    ]);
-    expect(
-      [...h.policies.rows.values()].map((row) => row.spec?.principal?.id),
-    ).toEqual([SSO_ID]);
-  });
-
-  it("a preview writes nothing, and a move needs its target", async () => {
-    const h = await harness({ caller: machine });
-    await h.command.bootstrapPolicy(orgRole(ALICE_ID, "admin", "acme"));
-    const preview = await h.command.bootstrapMoveOrgAccess({
-      fromIdentityAccountId: ALICE_ID,
-      org: "acme",
-      previewOnly: true,
-    });
-    expect(preview.movedPolicies).toBe(1);
-    expect(
-      [...h.policies.rows.values()].map((row) => row.spec?.principal?.id),
-    ).toEqual([ALICE_ID]);
-    const untargeted = await refusal(() =>
-      h.command.bootstrapMoveOrgAccess({ fromIdentityAccountId: ALICE_ID, org: "acme" }),
-    );
-    expect(untargeted.code).toBe(Code.InvalidArgument);
-  });
-
-  it("refuses an owner of the organization", async () => {
-    const h = await harness({ caller: machine });
-    await h.command.bootstrapPolicy(orgRole(ALICE_ID, "owner", "acme"));
-    const error = await refusal(() =>
-      h.command.bootstrapMoveOrgAccess({
-        fromIdentityAccountId: ALICE_ID,
-        toIdentityAccountId: SSO_ID,
-        org: "acme",
-      }),
-    );
-    expect(error.code).toBe(Code.FailedPrecondition);
-    expect(error.rawMessage).toBe(OWNER_ACCESS_NOT_MOVED_MESSAGE);
   });
 });
 

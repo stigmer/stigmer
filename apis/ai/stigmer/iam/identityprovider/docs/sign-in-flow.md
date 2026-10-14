@@ -11,8 +11,7 @@ Step 1 (manual mode only): Platform creates a federated account
   └─► Platform backend calls createFederatedAccount with the user's
       external sub, email, name, and IdentityProvider reference.
       Stigmer returns the identity_account_id for role grants.
-      With create_accounts_on_sign_in (every SSO provider sets it),
-      skip this step: Stigmer creates the account on the first sign-in
+      With create_accounts_on_sign_in, skip this step: Stigmer creates the account on the first sign-in
       (Step 6).
 
 Step 2: Platform authenticates user

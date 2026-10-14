@@ -90,7 +90,7 @@ function ContactSalesPage() {
                 <p className="text-muted-foreground leading-relaxed">
                   Tell us about your use case and we will get back to you within
                   one business day. Enterprise plans include dedicated
-                  infrastructure, SSO&nbsp;/ SAML, SLAs, and custom contracts.
+                  infrastructure, SLAs, and custom contracts.
                 </p>
               </div>
             </FadeInUp>

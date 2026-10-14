@@ -618,7 +618,7 @@ pages:
     fate: keep
     diataxis: landing
     teaches:
-      The three provisioning modes (JIT, manual, SSO) and which numbered
+      The two provisioning modes (JIT and manual) and which numbered
       sub-guide applies to each.
     medium: diagram
     why:
@@ -647,19 +647,6 @@ pages:
       Gather JWKS URI, issuer, and audience from your OIDC vendor and create the
       Identity Provider, optionally with JIT.
     medium: none
-
-  guides/authentication/federation/sso-login:
-    fate: keep
-    diataxis: how-to
-    teaches:
-      Enable console SSO for an Organization and understand
-      automatic viewer-role provisioning on first login.
-    medium: diagram
-    why:
-      The login round-trip is an auth sequence — structure. The shipped playback
-      stays as a supplement for readers who want it paced.
-    embeds:
-      sso-login-playback: keep
 
   guides/authentication/federation/grant-access:
     fate: keep
@@ -744,7 +731,7 @@ pages:
     teaches:
       Which way to run Stigmer fits the reader's team — what self-hosting
       includes (the full contract, Postgres, OIDC + API keys, isolation
-      drivers), what Stigmer Cloud adds (tenancy, SSO, fine-grained
+      drivers), what Stigmer Cloud adds (tenancy, fine-grained
       permissions, channels, metered billing, managed ops), and the honest
       limitation of self-hosting today (two production packagings, no
       operator).

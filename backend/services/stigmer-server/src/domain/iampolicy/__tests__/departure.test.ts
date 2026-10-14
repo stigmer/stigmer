@@ -24,7 +24,7 @@ import { SecretService } from "../../../encryption/encryption.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import { newVaultService } from "../../vault/service.js";
 import type { VaultService } from "../../vault/service.js";
-import { newMyVaultDeparture, newMyVaultEntries } from "../departure.js";
+import { newMyVaultDeparture } from "../departure.js";
 import { newIamPolicyGrantPath } from "../grant-path.js";
 import { NO_STORED_RESOURCES, fakeIamPolicyStore, orgRole } from "./support.js";
 import type { RecordedEvent } from "./support.js";
@@ -196,17 +196,5 @@ describe("a person leaving an organization takes their My vault with them", () =
     expect(await vaults.findById(aliceVault)).toBeUndefined();
     expect(await vaults.findMine(ORG, ALICE)).toBeUndefined();
     expect(destroyed.mock.calls.map(([value]) => value).sort()).toEqual([...sealed].sort());
-  });
-});
-
-describe("what a departure would delete, read first", () => {
-  it("names the secrets and connection addresses of the person's My vault there, and nothing elsewhere", async () => {
-    await myVaultWithSecret(ORG, ALICE);
-    const entries = newMyVaultEntries(vaults);
-    expect([...(await entries(ORG, ALICE))].sort()).toEqual(
-      ["OPENAI_API_KEY", "https://mcp.linear.app/mcp"].sort(),
-    );
-    expect(await entries(OTHER_ORG, ALICE)).toEqual([]);
-    expect(await entries(ORG, BOB)).toEqual([]);
   });
 });

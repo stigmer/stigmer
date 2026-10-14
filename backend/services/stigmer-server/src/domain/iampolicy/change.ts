@@ -59,9 +59,6 @@ import { kindEnumName } from "../../pipeline/apiresource-meta.js";
  *     account it mints.
  *   - `service_account_created`: a service account's organization role,
  *     granted by the admin who created it.
- *   - `access_moved`: bootstrapMoveOrgAccess, one account's access inside
- *     an organization moved to another account of the same person (the
- *     grant to the new account and the revoke from the old one alike).
  */
 export type PolicyChangeCause =
   | "grant"
@@ -75,8 +72,7 @@ export type PolicyChangeCause =
   | "role_reconciliation"
   | "operator_ownership"
   | "platform_client_grant"
-  | "service_account_created"
-  | "access_moved";
+  | "service_account_created";
 
 /** Who made a change: the caller's id and class, nothing that identifies a person beyond the id. */
 export interface PolicyActor {

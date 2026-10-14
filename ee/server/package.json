@@ -1,7 +1,7 @@
 {
   "name": "@stigmer/enterprise",
   "version": "0.0.0-dev",
-  "description": "Stigmer Enterprise: single sign-on through an organization's own identity provider, many organizations, teams and invitations, on the open-source Stigmer server, turned on by a license key.",
+  "description": "Stigmer Enterprise: many organizations, federation with the platforms whose tokens it trusts, teams and invitations, on the open-source Stigmer server, turned on by a license key.",
   "license": "SEE LICENSE IN LICENSE",
   "type": "module",
   "exports": {

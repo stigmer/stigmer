@@ -74,27 +74,6 @@
  * life of the caller object (the interceptor stamps one identity object
  * per request), so the Authorizer's signature carries nothing new.
  *
- * The organization sign-in rule (extensions/organization-sign-in-rule.ts)
- * rides the same target resolution, for every PERSON, bound or not: an
- * organization may require that the people acting in it signed in a
- * particular way (through its SSO provider). It is asked last, only after
- * the inner driver allowed, so it can only turn an allow into a deny and a
- * refusal never tells an outsider that a target exists; its denial carries
- * the refusal the caller reads (`AuthzDecision.refusal`, SSO_REQUIRED).
- * Only callers of class `user` are asked, whatever the transport, so a
- * request the server composes for a person and an automation acting as its
- * creator get that person's answer. A target's organization is the one the
- * binding resolves for its own rule (the organization itself, a row's
- * `metadata.org`, an organization's service account); a person's own
- * account, their API keys and the platform's kinds belong to no
- * organization and are never refused. The list read scope drops the
- * candidates inside an organization that refuses the caller, the
- * organization rows themselves excepted (a person sees that the
- * organization exists, and the refusal says how to get in). With no rule
- * composed, or while no organization requires anything, nothing is read
- * and every answer is the inner driver's. The refusal is remembered per
- * organization for the life of the caller object, as the row reads are.
- *
  * Rows are read where the built-in authorizer reads them: a unit's
  * registered reader for the kinds a unit keeps itself, the IamPolicy and
  * PlatformClient ports a composition may substitute (their rows are not
@@ -106,10 +85,7 @@
  * the sharing organization, permission), a
  * parent's management of its children and its limits, the read memo, a
  * read fault answering unavailable, and the three decorators' unbound
- * byte-identity; the sign-in rule's arms (__tests__/
- * credential-binding.sign-in-rule.test.ts): refused only after an allow,
- * people only, bound and unbound alike, the organization rows kept in a
- * list, the refusal memo, and no reads while nothing is required.
+ * byte-identity.
  */
 import type { Message } from "@bufbuild/protobuf";
 import { isMessage } from "@bufbuild/protobuf";
@@ -130,7 +106,6 @@ import type {
   Authorizer,
   AuthzCheck,
   AuthzDecision,
-  AuthzRefusal,
 } from "../extensions/authorizer.js";
 import type {
   BindingTarget,
@@ -144,7 +119,6 @@ import type {
   ListReadScope,
 } from "../extensions/list-read-scope.js";
 import type { OrganizationDirectory } from "../extensions/organization-directory.js";
-import type { OrganizationSignInRule } from "../extensions/organization-sign-in-rule.js";
 import { ALL_ORGANIZATIONS } from "../extensions/organization-directory.js";
 import type { RowAuthorizationFacts } from "../extensions/resource-authorization.js";
 import { NOTHING_DELETING } from "../domain/organization/lifecycle.js";
@@ -159,9 +133,6 @@ import { builtInModel } from "./model/index.js";
 
 /** How many target rows `narrowIds` reads at once. */
 const NARROW_BATCH = 16;
-
-/** The rule's answer when it could refuse nobody. */
-const NO_ORGANIZATIONS: ReadonlySet<string> = new Set();
 
 /** The denial every bound caller meets outside its organization (deny reason; the Authorize step logs it). */
 export const BOUND_ELSEWHERE_DENY_REASON =
@@ -227,8 +198,6 @@ export interface CredentialBindingDeps {
   readonly model?: Model;
   /** The deleting rule's predicate; nothing is deleting when absent (a test's binding). */
   readonly lifecycle?: OrganizationLifecycle;
-  /** What an organization requires of how its people signed in (`drivers.organizationSignInRule`); none when absent. */
-  readonly signInRule?: OrganizationSignInRule;
 }
 
 /**
@@ -243,36 +212,6 @@ export interface ComposedCredentialBinding extends CredentialBinding {
    * answers it). Throws on a read fault.
    */
   deleting(caller: CallerIdentity, target: BindingTarget): Promise<boolean>;
-  /**
-   * The refusal the sign-in rule gives `caller` on the target's
-   * organization, or undefined when it gives none (no rule, not a person,
-   * a target in no organization, an organization that requires nothing,
-   * or a sign-in that counts there). Throws on a read fault.
-   */
-  signInRefusalOn(
-    caller: CallerIdentity,
-    target: BindingTarget,
-  ): Promise<AuthzRefusal | undefined>;
-  /**
-   * Whether the sign-in rule could refuse `caller` anywhere right now: a
-   * rule is composed, the caller is a person, and some organization
-   * requires something. False means every `signInRefusalOn` answers
-   * undefined without a read.
-   */
-  signInRuleApplies(caller: CallerIdentity): Promise<boolean>;
-  /**
-   * The subset of `ids` of `kind` the sign-in rule leaves `caller`: each
-   * id's row is read (memoised, a bounded batch at a time) for its
-   * organization, and an id inside an organization that refuses them is
-   * dropped. The organization kind's ids are kept, as a listed page keeps
-   * them. Nothing is read while the rule could refuse nobody.
-   */
-  narrowSignInIds(
-    caller: CallerIdentity,
-    kind: ApiResourceKind,
-    ids: ReadonlySet<string>,
-    permission: string,
-  ): Promise<ReadonlySet<string>>;
 }
 
 /** What the rule reads from a target's row. */
@@ -292,11 +231,6 @@ export function newCredentialBinding(
   const memo = new WeakMap<
     CallerIdentity,
     Map<string, Promise<TargetFacts | undefined | typeof UNREADABLE>>
-  >();
-  const signInRule = deps.signInRule;
-  const refusals = new WeakMap<
-    CallerIdentity,
-    Map<string, Promise<AuthzRefusal | undefined>>
   >();
 
   function loadRow(
@@ -535,133 +469,9 @@ export function newCredentialBinding(
     return deletingIds.has(found.facts.org);
   }
 
-  /** The organizations the rule could refuse `caller` in; empty when it could refuse nobody. */
-  async function requiringFor(
-    caller: CallerIdentity,
-  ): Promise<ReadonlySet<string>> {
-    if (signInRule === undefined || caller.callerClass !== "user") {
-      return NO_ORGANIZATIONS;
-    }
-    return signInRule.requiringOrgs();
-  }
-
-  /** The rule's refusal in one organization of `requiring`, remembered per caller. */
-  function refusalIn(
-    caller: CallerIdentity,
-    org: string,
-    rule: OrganizationSignInRule,
-  ): Promise<AuthzRefusal | undefined> {
-    let held = refusals.get(caller);
-    if (held === undefined) {
-      held = new Map();
-      refusals.set(caller, held);
-    }
-    const known = held.get(org);
-    if (known !== undefined) {
-      return known;
-    }
-    const asking = rule.refusal(caller, org);
-    held.set(org, asking);
-    // A failed read is not remembered: the next check asks again.
-    asking.catch(() => held.delete(org));
-    return asking;
-  }
-
-  async function signInRefusal(
-    caller: CallerIdentity,
-    org: string,
-  ): Promise<AuthzRefusal | undefined> {
-    if (signInRule === undefined || org === "") {
-      return undefined;
-    }
-    const requiring = await requiringFor(caller);
-    return requiring.has(org) ? refusalIn(caller, org, signInRule) : undefined;
-  }
-
-  /**
-   * The organization the sign-in rule answers for on a target: the
-   * organization itself, an organization's service account's organization,
-   * a row's own organization; "" for what belongs to none (a person's
-   * account, an API key, the platform's kinds) and for a missing row.
-   */
-  async function organizationOfTarget(
-    caller: CallerIdentity,
-    target: BindingTarget,
-  ): Promise<string> {
-    if (target.kind === ApiResourceKind.organization) {
-      return target.id;
-    }
-    if (target.kind === ApiResourceKind.identity_account) {
-      if (deps.identityAccounts === undefined) {
-        return "";
-      }
-      const found = await targetFacts(caller, target.kind, target.id);
-      const row =
-        found === undefined || found === UNREADABLE
-          ? undefined
-          : (found.row as IdentityAccount);
-      return row?.spec?.provisioningMode ===
-        IdentityAccountProvisioningMode.service_account
-        ? (row.metadata?.org ?? "")
-        : "";
-    }
-    if (
-      target.kind === ApiResourceKind.api_key ||
-      !declaresKind(target.kind) ||
-      !belongsToAnOrganization(target.kind)
-    ) {
-      return "";
-    }
-    const found = await targetFacts(caller, target.kind, target.id);
-    return found === undefined || found === UNREADABLE ? "" : found.facts.org;
-  }
-
-  async function signInRefusalOn(
-    caller: CallerIdentity,
-    target: BindingTarget,
-  ): Promise<AuthzRefusal | undefined> {
-    const requiring = await requiringFor(caller);
-    if (requiring.size === 0 || signInRule === undefined) {
-      return undefined;
-    }
-    const org = await organizationOfTarget(caller, target);
-    return requiring.has(org) ? refusalIn(caller, org, signInRule) : undefined;
-  }
-
   return {
     verdict,
     deleting,
-    signInRefusalOn,
-
-    async signInRuleApplies(caller) {
-      return (await requiringFor(caller)).size > 0;
-    },
-
-    async narrowSignInIds(caller, kind, ids, permission) {
-      if (
-        ids.size === 0 ||
-        kind === ApiResourceKind.organization ||
-        (await requiringFor(caller)).size === 0
-      ) {
-        return ids;
-      }
-      const ordered = [...ids];
-      const kept = new Set<string>();
-      for (let start = 0; start < ordered.length; start += NARROW_BATCH) {
-        const batch = ordered.slice(start, start + NARROW_BATCH);
-        const answers = await Promise.all(
-          batch.map((id) => signInRefusalOn(caller, { kind, id, permission })),
-        );
-        batch.forEach((id, index) => {
-          if (answers[index] === undefined) {
-            kept.add(id);
-          }
-        });
-      }
-      return kept;
-    },
-
-    signInRefusal,
 
     admitsOrganization(caller, org) {
       const bound = boundOrgOf(caller);
@@ -734,38 +544,22 @@ export function bindAuthorizer(
           cause: error instanceof Error ? error : new Error(String(error)),
         };
       }
-      if (boundOrgOf(caller) !== undefined) {
-        let verdict: BindingVerdict;
-        try {
-          verdict = await binding.verdict(caller, target);
-        } catch (error) {
-          return {
-            kind: "unavailable",
-            cause: error instanceof Error ? error : new Error(String(error)),
-          };
-        }
-        if (verdict === "outside") {
-          return { kind: "deny", reason: BOUND_ELSEWHERE_DENY_REASON };
-        }
+      if (boundOrgOf(caller) === undefined) {
+        return inner.authorize(caller, check);
       }
-      const decision = await inner.authorize(caller, check);
-      if (decision.kind !== "allow") {
-        return decision;
-      }
-      // Last, and only on an allow: the rule can only refuse, and a
-      // refusal must never tell an outsider the target exists.
-      let refusal: AuthzRefusal | undefined;
+      let verdict: BindingVerdict;
       try {
-        refusal = await binding.signInRefusalOn(caller, target);
+        verdict = await binding.verdict(caller, target);
       } catch (error) {
         return {
           kind: "unavailable",
           cause: error instanceof Error ? error : new Error(String(error)),
         };
       }
-      return refusal === undefined
-        ? decision
-        : { kind: "deny", reason: refusal.message, refusal };
+      if (verdict === "outside") {
+        return { kind: "deny", reason: BOUND_ELSEWHERE_DENY_REASON };
+      }
+      return inner.authorize(caller, check);
     },
   };
 }
@@ -786,8 +580,7 @@ export function bindListReadScope(
     async authorizedResourceIds(caller, kind) {
       const ids = await inner.authorizedResourceIds(caller, kind);
       const live = await withoutDeleting(caller, kind, ids);
-      const narrowed = await binding.narrowIds(caller, kind, live, CAN_VIEW);
-      return binding.narrowSignInIds(caller, kind, narrowed, CAN_VIEW);
+      return binding.narrowIds(caller, kind, live, CAN_VIEW);
     },
     async restrictListEntries(
       caller,
@@ -804,50 +597,19 @@ export function bindListReadScope(
                   kind === ApiResourceKind.organization ? entry.id : entry.org,
                 ),
             );
-      let candidates: ReadonlyArray<ListEntryMeta> = live;
-      if (boundOrgOf(caller) !== undefined) {
-        const kept = await Promise.all(
-          live.map((entry) => binding.keepsEntry(caller, kind, entry)),
-        );
-        candidates = live.filter((_, index) => kept[index] === true);
+      if (boundOrgOf(caller) === undefined) {
+        return inner.restrictListEntries(caller, kind, live);
       }
-      const visible = await inner.restrictListEntries(caller, kind, candidates);
-      return withoutSignInRefusedEntries(caller, kind, candidates, visible);
+      const kept = await Promise.all(
+        live.map((entry) => binding.keepsEntry(caller, kind, entry)),
+      );
+      return inner.restrictListEntries(
+        caller,
+        kind,
+        live.filter((_, index) => kept[index] === true),
+      );
     },
   };
-
-  /**
-   * The entries a person may keep in a list after the sign-in rule: an
-   * entry inside an organization that refuses them is dropped, by the
-   * organization it carries. An organization's own row is kept, so the
-   * person still sees that it exists; reaching into it answers the refusal.
-   */
-  async function withoutSignInRefusedEntries(
-    caller: CallerIdentity,
-    kind: ApiResourceKind,
-    entries: ReadonlyArray<ListEntryMeta>,
-    visible: ReadonlySet<string>,
-  ): Promise<ReadonlySet<string>> {
-    if (
-      visible.size === 0 ||
-      kind === ApiResourceKind.organization ||
-      !belongsToAnOrganization(kind) ||
-      !(await binding.signInRuleApplies(caller))
-    ) {
-      return visible;
-    }
-    const shown = entries.filter((entry) => visible.has(entry.id));
-    const refused = await Promise.all(
-      shown.map(
-        async (entry) =>
-          (await binding.signInRefusal(caller, entry.org)) !== undefined,
-      ),
-    );
-    return new Set(
-      shown.filter((_, index) => refused[index] !== true).map((entry) => entry.id),
-    );
-  }
-
 
   async function withoutDeleting(
     caller: CallerIdentity,

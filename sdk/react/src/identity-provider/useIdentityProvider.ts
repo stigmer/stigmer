@@ -25,7 +25,7 @@ export interface UseIdentityProviderReturn {
  * the previous in-flight request is discarded and a fresh fetch begins.
  *
  * Returns the full proto {@link IdentityProvider} resource so consumers
- * have access to metadata, spec (JWKS URI, issuers, SSO config), and
+ * have access to metadata, spec (JWKS URI, issuers, sign-in settings), and
  * status without additional calls.
  *
  * @example

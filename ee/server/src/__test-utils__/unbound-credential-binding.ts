@@ -4,7 +4,6 @@
  * caller as the library's binding does (nothing to say, every organization
  * admitted, every id and entry kept), and refuses to decide for a bound
  * caller, whose answer needs the rows only the library's own binding reads.
- * No organization requires anything of how its people signed in here.
  * A suite that proves binding composes a real server instead.
  *
  * Edition-neutral by what it imports (the library's barrel only).
@@ -25,8 +24,6 @@ export const UNBOUND_CREDENTIAL_BINDING: CredentialBinding = {
       ? Promise.resolve("unbound")
       : Promise.reject(new Error(BOUND_CALLER_REFUSAL)),
   admitsOrganization: (caller) => boundOrgOf(caller) === undefined || refuseBound(),
-  // No suite built over this double composes a sign-in rule.
-  signInRefusal: () => Promise.resolve(undefined),
   keepsEntry: (caller) =>
     boundOrgOf(caller) === undefined
       ? Promise.resolve(true)

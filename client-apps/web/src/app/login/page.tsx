@@ -1,12 +1,9 @@
 "use client";
 
-import { Suspense } from "react";
-import { LoginPageView, LoginSkeleton } from "@/auth/login/LoginPageView";
+// The /login route: the console's sign-in page and signed-out landing.
+
+import { LoginPageView } from "@/auth/login/LoginPageView";
 
 export default function LoginPage() {
-  return (
-    <Suspense fallback={<LoginSkeleton />}>
-      <LoginPageView />
-    </Suspense>
-  );
+  return <LoginPageView />;
 }

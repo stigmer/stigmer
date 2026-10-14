@@ -23,104 +23,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// IdentityProviderSpec defines the configuration for an external identity provider.
-//
-// An IdentityProvider represents an external platform's trust relationship with Stigmer.
-// It is owned by an organization (e.g., "planton") and configures how Stigmer validates
-// tokens from that platform. Each request presents the provider's own JWT: Stigmer routes
-// it by its issuer and audience, validates the token signature against the configured
-// JWKS, and resolves the user's federated identity account by the JWT's sub claim and
-// this provider's reference.
-//
-// Every token this provider vouches for is bound to one organization: the
-// child organization external_id_claim names when it is set, otherwise the
-// provider's own. A bound token works in that organization only.
-//
-// Two settings control what happens when someone signs in:
-//
-//  1. create_accounts_on_sign_in: whether Stigmer creates a federated
-//     identity account from the token's claims the first time it sees a
-//     user. When false (the default), the platform creates accounts through
-//     CreateFederatedAccount before its users can sign in.
-//
-//  2. sign_in_role: the role an account receives the first time it signs in
-//     to an organization through this provider. Unspecified means none: the
-//     platform grants roles itself through IAM policies.
-//
-// An SSO provider (is_sso_provider) sets both, which also enables the OIDC
-// browser login flow via oidc_client_id.
-//
-// The spec contains only public validation configuration — no secrets are stored.
-// For OIDC-based integrators (e.g., Auth0), the jwks_uri and userinfo_endpoint
-// point to the OIDC provider's standard endpoints.
-//
-// Example YAML (platform delegation):
-//
-//	apiVersion: iam.stigmer.ai/v1
-//	kind: IdentityProvider
-//	metadata:
-//	  name: Planton
-//	  slug: planton
-//	  org: planton
-//	spec:
-//	  display_name: "Planton"
-//	  jwks_uri: "https://planton-prod.us.auth0.com/.well-known/jwks.json"
-//	  allowed_issuers: ["https://planton-prod.us.auth0.com/"]
-//	  expected_audience: "https://api.planton.ai/"
-//	  userinfo_endpoint: "https://planton-prod.us.auth0.com/userinfo"
-//
-// Example YAML (JIT provisioning, single-org):
-//
-//	apiVersion: iam.stigmer.ai/v1
-//	kind: IdentityProvider
-//	metadata:
-//	  name: Acme Platform
-//	  slug: acme-platform
-//	  org: acme
-//	spec:
-//	  display_name: "Acme Platform"
-//	  jwks_uri: "https://auth.acme.com/.well-known/jwks.json"
-//	  allowed_issuers: ["https://auth.acme.com/"]
-//	  expected_audience: "https://api.acme.com/stigmer"
-//	  userinfo_endpoint: "https://auth.acme.com/userinfo"
-//	  create_accounts_on_sign_in: true
-//	  sign_in_role: viewer
-//
-// Example YAML (JIT provisioning, multi-tenant):
-//
-//	apiVersion: iam.stigmer.ai/v1
-//	kind: IdentityProvider
-//	metadata:
-//	  name: SaaS Platform
-//	  slug: saas-platform
-//	  org: saas-co
-//	spec:
-//	  display_name: "SaaS Platform"
-//	  jwks_uri: "https://auth.saas.co/.well-known/jwks.json"
-//	  allowed_issuers: ["https://auth.saas.co/"]
-//	  expected_audience: "https://api.saas.co/stigmer"
-//	  userinfo_endpoint: "https://auth.saas.co/userinfo"
-//	  create_accounts_on_sign_in: true
-//	  sign_in_role: member
-//	  external_id_claim: "org_id"
-//
-// Example YAML (self-managed SSO):
-//
-//	apiVersion: iam.stigmer.ai/v1
-//	kind: IdentityProvider
-//	metadata:
-//	  name: Acme Corp Okta
-//	  slug: acme-okta
-//	  org: acme
-//	spec:
-//	  display_name: "Acme Corp Okta"
-//	  jwks_uri: "https://acme.okta.com/oauth2/default/v1/keys"
-//	  allowed_issuers: ["https://acme.okta.com/oauth2/default"]
-//	  expected_audience: "api://acme-stigmer"
-//	  is_sso_provider: true
-//	  oidc_client_id: "0oa1bcdef2ghijk3lmno"
-//	  create_accounts_on_sign_in: true
-//	  sign_in_role: viewer
 type IdentityProviderSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Human-readable display name for this identity provider.
@@ -181,34 +83,6 @@ type IdentityProviderSpec struct {
 	// When set, it must be the userinfo_endpoint that the discovery document of
 	// every allowed issuer names.
 	UserinfoEndpoint string `protobuf:"bytes,6,opt,name=userinfo_endpoint,json=userinfoEndpoint,proto3" json:"userinfo_endpoint,omitempty"`
-	// Whether this identity provider serves as the SSO login provider for its
-	// owning organization.
-	//
-	// When true, the Stigmer web app offers a "Sign in with [display_name]"
-	// option on the organization's login page and initiates the OIDC
-	// Authorization Code flow with PKCE using the configured oidc_client_id.
-	//
-	// An SSO provider sets create_accounts_on_sign_in and a sign_in_role, so
-	// a person's first sign-in creates their federated identity account from
-	// the JWT's OIDC claims and grants them sign_in_role on the organization.
-	//
-	// Constraints:
-	//   - At most one IdentityProvider per organization can be the SSO provider.
-	//   - An SSO provider cannot set external_id_claim (different trust
-	//     models: SSO signs people in to the provider's own organization).
-	IsSsoProvider bool `protobuf:"varint,7,opt,name=is_sso_provider,json=isSsoProvider,proto3" json:"is_sso_provider,omitempty"`
-	// OIDC client identifier for browser-based SSO login.
-	//
-	// This is the client_id registered with the external IdP (e.g., Okta,
-	// Azure AD) for Stigmer's web application. The web app uses this to
-	// build the OIDC Authorization Code request with PKCE.
-	//
-	// No client_secret is stored — the web app is a public client using PKCE
-	// (Proof Key for Code Exchange), which is the recommended approach for
-	// SPAs per OAuth 2.0 for Browser-Based Apps (RFC draft).
-	//
-	// Required when is_sso_provider is true; must be empty otherwise.
-	OidcClientId string `protobuf:"bytes,8,opt,name=oidc_client_id,json=oidcClientId,proto3" json:"oidc_client_id,omitempty"`
 	// Name of the JWT claim that names the child organization a token works
 	// in, by the identifier the provider's organization keeps for it.
 	//
@@ -258,41 +132,7 @@ type IdentityProviderSpec struct {
 	// nothing. The owner role is refused with
 	// `identity_provider.sign_in_role_not_owner`: ownership is assigned
 	// explicitly.
-	SignInRole v1.IamRole `protobuf:"varint,14,opt,name=sign_in_role,json=signInRole,proto3,enum=ai.stigmer.iam.v1.IamRole" json:"sign_in_role,omitempty"`
-	// Whether people act in this organization only through this provider.
-	//
-	// When true, the organization's own people count in it only through the
-	// account this provider signed them in as. Its own people are the
-	// accounts holding a role in it, directly or through a team, and every
-	// credential bound to it. Such an account made by another sign-in (an
-	// email login, the server's own sign-in), or an API key it made, is
-	// refused there, on every read and write, with PERMISSION_DENIED carrying
-	// a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
-	//
-	//   - SSO_REQUIRED: the organization requires sign-in through its SSO
-	//     provider. Metadata: org (the organization's id), provider (this
-	//     provider's slug). A console sends the person to the organization's
-	//     SSO sign-in.
-	//
-	// A person granted one of its resources without a role in it, and a
-	// child organization's member reading what this organization shares with
-	// its children, are not its own people and are not held to it.
-	//
-	// The organization's owners are exempt, so a broken provider never locks
-	// everyone out. Service accounts, a run's own credential and the
-	// organization's platform clients are unaffected; a schedule, evaluator
-	// or eval that acts as a refused account stops, saying why. A person may
-	// move their access to the account this provider made for them
-	// (IdentityProviderCommandController.createAccessMove).
-	//
-	// Only the organization's owners may turn it on or off, and, while it is
-	// on, change whom the provider trusts (allowed_issuers, jwks_uri,
-	// expected_audience) or delete the provider (can_assign_roles on the
-	// organization).
-	// Deleting the provider ends the requirement. Valid only on the SSO
-	// provider (is_sso_provider). A change takes effect at once on the
-	// server that wrote it and within a minute on its other replicas.
-	SsoRequired   bool `protobuf:"varint,15,opt,name=sso_required,json=ssoRequired,proto3" json:"sso_required,omitempty"`
+	SignInRole    v1.IamRole `protobuf:"varint,14,opt,name=sign_in_role,json=signInRole,proto3,enum=ai.stigmer.iam.v1.IamRole" json:"sign_in_role,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -362,20 +202,6 @@ func (x *IdentityProviderSpec) GetUserinfoEndpoint() string {
 	return ""
 }
 
-func (x *IdentityProviderSpec) GetIsSsoProvider() bool {
-	if x != nil {
-		return x.IsSsoProvider
-	}
-	return false
-}
-
-func (x *IdentityProviderSpec) GetOidcClientId() string {
-	if x != nil {
-		return x.OidcClientId
-	}
-	return ""
-}
-
 func (x *IdentityProviderSpec) GetExternalIdClaim() string {
 	if x != nil {
 		return x.ExternalIdClaim
@@ -397,19 +223,11 @@ func (x *IdentityProviderSpec) GetSignInRole() v1.IamRole {
 	return v1.IamRole(0)
 }
 
-func (x *IdentityProviderSpec) GetSsoRequired() bool {
-	if x != nil {
-		return x.SsoRequired
-	}
-	return false
-}
-
 var File_ai_stigmer_iam_identityprovider_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_identityprovider_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/iam/identityprovider/v1/spec.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xf6\n" +
-	"\n" +
+	"-ai/stigmer/iam/identityprovider/v1/spec.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xb4\a\n" +
 	"\x14IdentityProviderSpec\x12+\n" +
 	"\fdisplay_name\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xc8\x01R\vdisplayName\x12#\n" +
 	"\bjwks_uri\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\ajwksUri\x12:\n" +
@@ -417,20 +235,15 @@ const file_ai_stigmer_iam_identityprovider_v1_spec_proto_rawDesc = "" +
 	"\"\ar\x05\x10\x01\x18\x80\x10R\x0eallowedIssuers\x127\n" +
 	"\x11expected_audience\x18\x04 \x01(\tB\n" +
 	"\xbaH\ar\x05\x10\x01\x18\xc8\x01R\x10expectedAudience\x125\n" +
-	"\x11userinfo_endpoint\x18\x06 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x10userinfoEndpoint\x12&\n" +
-	"\x0fis_sso_provider\x18\a \x01(\bR\risSsoProvider\x12.\n" +
-	"\x0eoidc_client_id\x18\b \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\foidcClientId\x124\n" +
+	"\x11userinfo_endpoint\x18\x06 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x10userinfoEndpoint\x124\n" +
 	"\x11external_id_claim\x18\f \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\x0fexternalIdClaim\x12:\n" +
 	"\x1acreate_accounts_on_sign_in\x18\r \x01(\bR\x16createAccountsOnSignIn\x12<\n" +
 	"\fsign_in_role\x18\x0e \x01(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\n" +
-	"signInRole\x12!\n" +
-	"\fsso_required\x18\x0f \x01(\bR\vssoRequired:\xcc\x05\xbaH\xc8\x05\x1a\x94\x01\n" +
-	"(identity_provider.sign_in_role_not_owner\x12Psign_in_role cannot be owner; organization ownership must be assigned explicitly\x1a\x16this.sign_in_role != 1\x1a\xd2\x01\n" +
-	"2identity_provider.sso_creates_accounts_with_a_role\x12Fan SSO provider must set create_accounts_on_sign_in and a sign_in_role\x1aT!this.is_sso_provider || (this.create_accounts_on_sign_in && this.sign_in_role != 0)\x1a\xb0\x01\n" +
-	"1identity_provider.sso_required_needs_sso_provider\x12Osso_required is valid only on the organization's SSO provider (is_sso_provider)\x1a*!this.sso_required || this.is_sso_provider\x1a\xa6\x01\n" +
+	"signInRole:\xc4\x02\xbaH\xc0\x02\x1a\x94\x01\n" +
+	"(identity_provider.sign_in_role_not_owner\x12Psign_in_role cannot be owner; organization ownership must be assigned explicitly\x1a\x16this.sign_in_role != 1\x1a\xa6\x01\n" +
 	"0identity_provider.jwks_uri_required_with_issuers\x129jwks_uri is required when allowed_issuers names an issuer\x1a7this.allowed_issuers.size() == 0 || this.jwks_uri != ''J\x04\b\x05\x10\x06J\x04\b\t\x10\n" +
 	"J\x04\b\n" +
-	"\x10\vJ\x04\b\v\x10\fR\x11rate_limit_budgetR\x17auto_provision_accountsR\x11auto_grant_on_orgR\x0fauto_grant_roleB\xc0\x02\n" +
+	"\x10\vJ\x04\b\v\x10\fJ\x04\b\a\x10\bJ\x04\b\b\x10\tJ\x04\b\x0f\x10\x10R\x11rate_limit_budgetR\x17auto_provision_accountsR\x11auto_grant_on_orgR\x0fauto_grant_roleR\x0fis_sso_providerR\x0eoidc_client_idR\fsso_requiredB\xc0\x02\n" +
 	"&com.ai.stigmer.iam.identityprovider.v1B\tSpecProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/identityprovider/v1;identityproviderv1\xa2\x02\x04ASII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3"
 
 var (
