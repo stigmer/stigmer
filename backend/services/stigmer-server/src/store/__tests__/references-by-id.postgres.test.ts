@@ -149,7 +149,7 @@ describe("a federated identity account at the rewrite", () => {
   it("stops the step, naming the row: its address is derived from the provider, and the step does not move it", () => {
     const federated = create(IdentityAccountSchema, {
       metadata: { id: "ida_01fed", org: ACME },
-      spec: { identityProviderRef: { org: ACME, slug: "okta" } },
+      spec: { federationIssuerRef: { org: ACME, slug: "okta" } },
     });
     expect(() =>
       new ReferenceRewrite(NAMES).rewrite(accounts, "ida_01fed", toBinary(IdentityAccountSchema, federated)),
@@ -159,7 +159,7 @@ describe("a federated identity account at the rewrite", () => {
   it("passes an account no provider vouches for, an empty provider reference included", () => {
     const local = create(IdentityAccountSchema, { metadata: { id: "ida_02me", org: ACME }, spec: { isMachineAccount: false } });
     expect(new ReferenceRewrite(NAMES).rewrite(accounts, "ida_02me", toBinary(IdentityAccountSchema, local))).toBeUndefined();
-    const unset = create(IdentityAccountSchema, { metadata: { id: "ida_03me", org: ACME }, spec: { identityProviderRef: {} } });
+    const unset = create(IdentityAccountSchema, { metadata: { id: "ida_03me", org: ACME }, spec: { federationIssuerRef: {} } });
     expect(() => new ReferenceRewrite(NAMES).rewrite(accounts, "ida_03me", toBinary(IdentityAccountSchema, unset))).not.toThrow();
   });
 });

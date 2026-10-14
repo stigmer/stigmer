@@ -3,7 +3,7 @@
 import { type FormEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { EXPECTED_AUDIENCE_HINT, EXPECTED_AUDIENCE_PLACEHOLDER } from "./copy.js";
 import {
@@ -13,17 +13,17 @@ import {
   type SignInSettings,
 } from "./SignInSettings.js";
 import { ProviderPicker } from "./ProviderPicker.js";
-import { useCreateIdentityProvider } from "./useCreateIdentityProvider.js";
+import { useCreateFederationIssuer } from "./useCreateIdentityProvider.js";
 import { useOidcDiscovery } from "./useOidcDiscovery.js";
 import type { ProviderPreset, ProviderConfig } from "./presets.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
-/** Props for {@link IdentityProviderWizard}. */
-export interface IdentityProviderWizardProps {
+/** Props for {@link FederationIssuerWizard}. */
+export interface FederationIssuerWizardProps {
   /** Organization id — the IdP will be created in this org (a slug is also accepted). */
   readonly org: string;
   /** Fired with the newly created identity provider on success. */
-  readonly onCreated?: (idp: IdentityProvider) => void;
+  readonly onCreated?: (idp: FederationIssuer) => void;
   /** Fired when the user cancels the wizard. */
   readonly onCancel?: () => void;
   /** Additional CSS class names for the root container. */
@@ -60,14 +60,14 @@ type WizardStep = "pick" | "configure" | "review" | "success";
  * />
  * ```
  */
-export function IdentityProviderWizard({
+export function FederationIssuerWizard({
   org,
   onCreated,
   onCancel,
   className,
-}: IdentityProviderWizardProps) {
+}: FederationIssuerWizardProps) {
   const { create, isCreating, error: createError, clearError } =
-    useCreateIdentityProvider();
+    useCreateFederationIssuer();
   const { discover, isDiscovering, error: discoveryError } =
     useOidcDiscovery();
 
@@ -89,7 +89,7 @@ export function IdentityProviderWizard({
   const [signIn, setSignIn] = useState<SignInSettings>(EMPTY_SIGN_IN_SETTINGS);
 
   // Success step
-  const [createdIdp, setCreatedIdp] = useState<IdentityProvider | null>(null);
+  const [createdIdp, setCreatedIdp] = useState<FederationIssuer | null>(null);
 
   // -- Step transitions ------------------------------------------------
 
@@ -231,7 +231,7 @@ export function IdentityProviderWizard({
 
       {step === "success" && createdIdp && (
         <SuccessStep
-          identityProvider={createdIdp}
+          federationIssuer={createdIdp}
           signIn={signIn}
           onDone={() => onCreated?.(createdIdp)}
         />
@@ -535,17 +535,17 @@ function ReviewStep({
 // ---------------------------------------------------------------------------
 
 function SuccessStep({
-  identityProvider,
+  federationIssuer,
   signIn,
   onDone,
 }: {
-  identityProvider: IdentityProvider;
+  federationIssuer: FederationIssuer;
   signIn: SignInSettings;
   onDone: () => void;
 }) {
   const displayName =
-    identityProvider.spec?.displayName ||
-    identityProvider.metadata?.name ||
+    federationIssuer.spec?.displayName ||
+    federationIssuer.metadata?.name ||
     "Identity provider";
 
   const createsAccounts = signIn.createAccounts;

@@ -41,9 +41,9 @@ import {
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
-import { IdentityProviderSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/spec_pb";
+import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
+import { FederationIssuerSpecSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/spec_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 import {
@@ -227,7 +227,7 @@ function jitProvider() {
     issuers: [`${ISSUER}/`],
     expectedAudience: AUDIENCE,
   });
-  const spec = provider.spec ?? create(IdentityProviderSpecSchema);
+  const spec = provider.spec ?? create(FederationIssuerSpecSchema);
   spec.jwksUri = JWKS;
   spec.userinfoEndpoint = USERINFO;
   spec.createAccountsOnSignIn = true;
@@ -257,14 +257,14 @@ describe("the enterprise-identity unit dials every tenant-written URL through it
       },
       { router: { interceptors: [asAdmin] } },
     );
-    const client = createClient(IdentityProviderCommandController, transport);
+    const client = createClient(FederationIssuerCommandController, transport);
 
     const saved = await client.create(
-      create(IdentityProviderSchema, {
+      create(FederationIssuerSchema, {
         apiVersion: "iam.stigmer.ai/v1",
         kind: "IdentityProvider",
         metadata: create(ApiResourceMetadataSchema, { name: "Acme Platform", org: "acme" }),
-        spec: create(IdentityProviderSpecSchema, {
+        spec: create(FederationIssuerSpecSchema, {
           displayName: "Acme Platform",
           jwksUri: JWKS,
           allowedIssuers: [`${ISSUER}/`],

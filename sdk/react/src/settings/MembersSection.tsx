@@ -4,7 +4,7 @@ import { useId } from "react";
 import { OrgMembersPanel } from "../iam-policy/OrgMembersPanel.js";
 import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
 import { useOrg } from "../organization/OrgProvider.js";
-import { useIdentityProviderList } from "../identity-provider/useIdentityProviderList.js";
+import { useFederationIssuerList } from "../identity-provider/useIdentityProviderList.js";
 
 /** Props for {@link MembersSection}. */
 export interface MembersSectionProps {
@@ -33,16 +33,16 @@ export function MembersSection({ serviceAccountsHref }: MembersSectionProps = {}
   const invitationsAvailable = useResourceAvailable(
     ApiResourceKind.invitation,
   );
-  const idpAvailable = useResourceAvailable(ApiResourceKind.identity_provider);
+  const idpAvailable = useResourceAvailable(ApiResourceKind.federation_issuer);
   const org = activeOrg?.metadata?.id ?? "";
 
-  const { identityProviders } = useIdentityProviderList(
+  const { federationIssuers } = useFederationIssuerList(
     idpAvailable && org ? org : null,
   );
 
   // A provider with a sign-in role adds people here on their first
   // sign-in.
-  const hasSignInRoleProviders = identityProviders.some((idp) =>
+  const hasSignInRoleProviders = federationIssuers.some((idp) =>
     Boolean(idp.spec?.signInRole),
   );
 

@@ -36,8 +36,8 @@ import {
   type IamPolicySpec,
 } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
-import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
-import type { IdentityProvider, IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
+import type { FederationIssuer, FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { LicenseClaimsSchema, type LicenseClaims } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
@@ -228,7 +228,7 @@ export function providerRequest(
     readonly issuers?: ReadonlyArray<string>;
     readonly jwksUri?: string;
   } = {},
-): MessageInitShape<typeof IdentityProviderSchema> {
+): MessageInitShape<typeof FederationIssuerSchema> {
   const issuerUrl = issuer.tlsIssuerUrl(options.issuerName ?? slug);
   return {
     apiVersion: "iam.stigmer.ai/v1",
@@ -251,8 +251,8 @@ export async function createProvider(
   issuer: LoopbackIssuer,
   org: string,
   slug: string,
-): Promise<IdentityProvider> {
-  return createClient(IdentityProviderCommandController, admin.transport).create(
+): Promise<FederationIssuer> {
+  return createClient(FederationIssuerCommandController, admin.transport).create(
     providerRequest(issuer, org, slug),
   );
 }

@@ -2,21 +2,21 @@
 
 import { useCallback, useState } from "react";
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import type { IdentityProvider, IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import type { FederationIssuer, FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
-/** Return value of {@link useUpdateIdentityProvider}. */
-export interface UseUpdateIdentityProviderReturn {
+/** Return value of {@link useUpdateFederationIssuer}. */
+export interface UseUpdateFederationIssuerReturn {
   /**
    * Update an identity provider: the fields `paths` names take their values from
    * `resource`, and every other field keeps its stored value. Resolves
    * with the updated resource.
    */
   readonly update: (
-    resource: IdentityProvider | MessageInitShape<typeof IdentityProviderSchema>,
+    resource: FederationIssuer | MessageInitShape<typeof FederationIssuerSchema>,
     paths: string[],
-  ) => Promise<IdentityProvider>;
+  ) => Promise<FederationIssuer>;
   /** `true` while the update RPC is in flight. */
   readonly isUpdating: boolean;
   /** Error from the last failed update, or `null` when healthy. */
@@ -49,7 +49,7 @@ export interface UseUpdateIdentityProviderReturn {
  * );
  * ```
  */
-export function useUpdateIdentityProvider(): UseUpdateIdentityProviderReturn {
+export function useUpdateFederationIssuer(): UseUpdateFederationIssuerReturn {
   const stigmer = useStigmer();
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -58,14 +58,14 @@ export function useUpdateIdentityProvider(): UseUpdateIdentityProviderReturn {
 
   const update = useCallback(
     async (
-      resource: IdentityProvider | MessageInitShape<typeof IdentityProviderSchema>,
+      resource: FederationIssuer | MessageInitShape<typeof FederationIssuerSchema>,
       paths: string[],
-    ): Promise<IdentityProvider> => {
+    ): Promise<FederationIssuer> => {
       setIsUpdating(true);
       setError(null);
 
       try {
-        return await stigmer.identityProvider.update(resource, paths);
+        return await stigmer.federationIssuer.update(resource, paths);
       } catch (err) {
         setError(toError(err));
         throw err;

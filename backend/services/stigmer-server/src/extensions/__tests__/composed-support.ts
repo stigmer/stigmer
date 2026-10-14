@@ -49,7 +49,7 @@ export const widerEditionPurge: OrganizationPurgeContribution = {
     {
       name: "fake-wider-edition-kinds",
       kinds: [
-        ApiResourceKind.identity_provider,
+        ApiResourceKind.federation_issuer,
         ApiResourceKind.team,
         ApiResourceKind.invitation,
       ],

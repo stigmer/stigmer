@@ -175,7 +175,7 @@ describe("extension composition (composed server)", () => {
       // keeps none of their rows, and says so to the credential binding.
       resourceRowReaders: new Map(
         [
-          ApiResourceKind.identity_provider,
+          ApiResourceKind.federation_issuer,
           ApiResourceKind.invitation,
           ApiResourceKind.team,
         ].map((kind) => [kind, { findById: () => Promise.resolve(undefined) }]),
@@ -297,7 +297,7 @@ describe("extension composition (enterprise edition on the wire)", () => {
     drivers: {
       platformTokenKeys: EDITION_RING,
       resourceRowReaders: new Map([
-        [ApiResourceKind.identity_provider, noRows],
+        [ApiResourceKind.federation_issuer, noRows],
         [ApiResourceKind.invitation, noRows],
         [ApiResourceKind.team, noRows],
       ]),

@@ -69,9 +69,9 @@ import {
   IamPolicySpecSchema,
   type IamPolicySpec,
 } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
-import { IdentityProviderQueryController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/query_pb";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
+import { FederationIssuerQueryController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/query_pb";
 import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
 import { InvitationCommandController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/command_pb";
 import { InvitationQueryController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/query_pb";
@@ -106,13 +106,13 @@ import type { InvitationStore } from "../../iam/invitation/store.js";
 import { InMemoryTeamStore, storedTeam } from "../../iam/team/__tests__/in-memory-team-store.js";
 import type { TeamStore } from "../../iam/team/store.js";
 import { storedProvider } from "../../iam/provider/__tests__/in-memory-provider-store.js";
-import type { IdentityProviderStore } from "../../iam/provider/store.js";
+import type { FederationIssuerStore } from "../../iam/provider/store.js";
 import { newEnterpriseIdentityExtension } from "../enterprise-identity.js";
 import type { ResourceNameStore } from "@stigmer/server";
 
 const ENTERPRISE_SERVICES: ReadonlyArray<DescService> = [
-  IdentityProviderCommandController,
-  IdentityProviderQueryController,
+  FederationIssuerCommandController,
+  FederationIssuerQueryController,
   InvitationCommandController,
   InvitationQueryController,
   TeamCommandController,
@@ -327,7 +327,7 @@ describe("the enterprise-identity unit", () => {
 
   it("tells the composition's own authorization where its three kinds' rows are, and nothing else", () => {
     expect([...(unit().drivers?.resourceRowReaders?.keys() ?? [])].sort()).toEqual(
-      [ApiResourceKind.identity_provider, ApiResourceKind.invitation, ApiResourceKind.team].sort(),
+      [ApiResourceKind.federation_issuer, ApiResourceKind.invitation, ApiResourceKind.team].sort(),
     );
   });
 
@@ -430,7 +430,7 @@ function portWith<T extends object>(name: string, members: Partial<T>): T {
 const ACME_CREATED = new Date("2026-09-01T00:00:00Z");
 
 function repairRig(rows: {
-  providers: () => Promise<ReadonlyArray<IdentityProvider>>;
+  providers: () => Promise<ReadonlyArray<FederationIssuer>>;
   invitations: ReadonlyArray<Invitation>;
   /** Teams, read through the in-memory store's `findAll`; none when absent. */
   teams?: ReadonlyArray<Team>;
@@ -487,7 +487,7 @@ function repairRig(rows: {
     void teamStore.insert(team);
   }
   const unit = newEnterpriseIdentityExtension({
-    providers: portWith<IdentityProviderStore>("providers", {
+    providers: portWith<FederationIssuerStore>("providers", {
       findAll: rows.providers,
     }),
     teams: portWith<TeamStore>("teams", {

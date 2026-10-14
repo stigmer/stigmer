@@ -254,7 +254,7 @@ describe.skipIf(capabilities.federatedIdentityAccounts)(
         () =>
           clients.identityAccountCommand.createFederatedAccount({
             org: "acme",
-            identityProviderRef: ref,
+            federationIssuerRef: ref,
             externalSub: "okta|1",
             email: "person@example.com",
           }),
@@ -265,7 +265,7 @@ describe.skipIf(capabilities.federatedIdentityAccounts)(
         () =>
           clients.identityAccountCommand.updateFederatedAccount({
             org: "acme",
-            identityProviderRef: ref,
+            federationIssuerRef: ref,
             externalSub: "okta|1",
             email: "person@example.com",
           }),
@@ -276,7 +276,7 @@ describe.skipIf(capabilities.federatedIdentityAccounts)(
         () =>
           clients.identityAccountCommand.deprovisionFederatedAccount({
             org: "acme",
-            identityProviderRef: ref,
+            federationIssuerRef: ref,
             externalSub: "okta|1",
           }),
       ],
@@ -286,7 +286,7 @@ describe.skipIf(capabilities.federatedIdentityAccounts)(
         () =>
           clients.identityAccountQuery.getByExternalSub({
             org: "acme",
-            identityProviderRef: ref,
+            federationIssuerRef: ref,
             externalSub: "okta|1",
           }),
       ],

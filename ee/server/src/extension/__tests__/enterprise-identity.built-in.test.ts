@@ -80,8 +80,8 @@ import {
 } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
-import { IdentityProviderQueryController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/query_pb";
+import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
+import { FederationIssuerQueryController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/query_pb";
 import { InvitationCommandController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/command_pb";
 import { InvitationState } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/enum_pb";
 import { InvitationQueryController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/query_pb";
@@ -265,7 +265,7 @@ describe("the Enterprise identity unit on open source's own authorization (compo
     admin: string,
   ): Promise<string> {
     const issuer = `https://${name.toLowerCase().replaceAll(" ", "-")}.${org}.test`;
-    const provider = await createClient(IdentityProviderCommandController, as(admin)).create({
+    const provider = await createClient(FederationIssuerCommandController, as(admin)).create({
       apiVersion: "iam.stigmer.ai/v1",
       kind: "IdentityProvider",
       metadata: { name, org },
@@ -279,7 +279,7 @@ describe("the Enterprise identity unit on open source's own authorization (compo
   }
 
   function editProvider(as_: string, id: string, displayName: string) {
-    return createClient(IdentityProviderCommandController, as(as_)).update({ resource: {
+    return createClient(FederationIssuerCommandController, as(as_)).update({ resource: {
       apiVersion: "iam.stigmer.ai/v1",
       kind: "IdentityProvider",
       metadata: { id, name: "Acme Platform", org: ACME },
@@ -292,7 +292,7 @@ describe("the Enterprise identity unit on open source's own authorization (compo
   }
 
   async function listedProviders(account: string): Promise<string[]> {
-    const answer = await createClient(IdentityProviderQueryController, as(account)).list({ org: ACME });
+    const answer = await createClient(FederationIssuerQueryController, as(account)).list({ org: ACME });
     return answer.entries.map((entry) => entry.metadata?.id ?? "");
   }
 
@@ -443,20 +443,20 @@ describe("the Enterprise identity unit on open source's own authorization (compo
 
     it("its organization's admins read it by id, by name and in the list; members, viewers and outsiders do not", async () => {
       for (const admin of [CAROL, ANA, FOUNDER]) {
-        const queries = createClient(IdentityProviderQueryController, as(admin));
+        const queries = createClient(FederationIssuerQueryController, as(admin));
         expect((await queries.get({ value: providerId })).metadata?.id).toBe(providerId);
         expect((await queries.getByReference({ org: ACME, slug: "acme-platform" })).metadata?.id).toBe(providerId);
         expect(await listedProviders(admin)).toEqual([providerId]);
       }
       for (const person of [DAVE, VERA]) {
-        const queries = createClient(IdentityProviderQueryController, as(person));
+        const queries = createClient(FederationIssuerQueryController, as(person));
         expect((await refusalOf(queries.get({ value: providerId }))).code).toBe(Code.PermissionDenied);
         expect(
           (await refusalOf(queries.getByReference({ org: ACME, slug: "acme-platform" }))).code,
         ).toBe(Code.PermissionDenied);
         expect(await listedProviders(person)).toEqual([]);
       }
-      const outsider = createClient(IdentityProviderQueryController, as(OUTSIDER));
+      const outsider = createClient(FederationIssuerQueryController, as(OUTSIDER));
       expect((await refusalOf(outsider.get({ value: providerId }))).code).toBe(Code.PermissionDenied);
       expect(
         (await refusalOf(outsider.getByReference({ org: ACME, slug: "acme-platform" }))).code,
@@ -490,7 +490,7 @@ describe("the Enterprise identity unit on open source's own authorization (compo
 
     it("every provider read refuses an unauthenticated caller", async () => {
       await createProvider("Acme Partner", ACME, CAROL);
-      const tokenless = createClient(IdentityProviderQueryController, transport());
+      const tokenless = createClient(FederationIssuerQueryController, transport());
 
       expect((await refusalOf(tokenless.getByReference({ org: ACME, slug: "acme-partner" }))).code).toBe(
         Code.Unauthenticated,
@@ -692,7 +692,7 @@ describe("the Enterprise identity unit on open source's own authorization (compo
     }
 
     const readProvider = async (id: string) =>
-      (await createClient(IdentityProviderQueryController, as(FOUNDER)).get({ value: id })).metadata?.id;
+      (await createClient(FederationIssuerQueryController, as(FOUNDER)).get({ value: id })).metadata?.id;
 
     const ROWS: readonly MintRow[] = [
       {
@@ -737,9 +737,9 @@ describe("the Enterprise identity unit on open source's own authorization (compo
       {
         title: "[rpc:IdentityProviderCommandController.create] IdentityProvider",
         key: "IdentityProviderCommandController.create",
-        kind: ApiResourceKind.identity_provider,
+        kind: ApiResourceKind.federation_issuer,
         async send(org, chosenId) {
-          const provider = await createClient(IdentityProviderCommandController, as(FOUNDER)).create(
+          const provider = await createClient(FederationIssuerCommandController, as(FOUNDER)).create(
             providerRequest(org, chosenId),
           );
           return provider.metadata?.id ?? "";
@@ -749,9 +749,9 @@ describe("the Enterprise identity unit on open source's own authorization (compo
       {
         title: "[rpc:IdentityProviderCommandController.apply] IdentityProvider (apply as a create)",
         key: "IdentityProviderCommandController.apply",
-        kind: ApiResourceKind.identity_provider,
+        kind: ApiResourceKind.federation_issuer,
         async send(org, chosenId) {
-          const provider = await createClient(IdentityProviderCommandController, as(FOUNDER)).apply(
+          const provider = await createClient(FederationIssuerCommandController, as(FOUNDER)).apply(
             providerRequest(org, chosenId),
           );
           return provider.metadata?.id ?? "";

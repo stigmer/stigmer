@@ -3,7 +3,7 @@
 import { type FormEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { EXPECTED_AUDIENCE_HINT, EXPECTED_AUDIENCE_PLACEHOLDER } from "./copy.js";
 import {
   EMPTY_SIGN_IN_SETTINGS,
@@ -11,15 +11,15 @@ import {
   toSignInInput,
   type SignInSettings,
 } from "./SignInSettings.js";
-import { useCreateIdentityProvider } from "./useCreateIdentityProvider.js";
+import { useCreateFederationIssuer } from "./useCreateIdentityProvider.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
-/** Props for {@link CreateIdentityProviderForm}. */
-export interface CreateIdentityProviderFormProps {
+/** Props for {@link CreateFederationIssuerForm}. */
+export interface CreateFederationIssuerFormProps {
   /** Organization id — the IdP will be created in this org (a slug is also accepted). */
   readonly org: string;
   /** Fired with the newly created identity provider on success. */
-  readonly onCreated?: (idp: IdentityProvider) => void;
+  readonly onCreated?: (idp: FederationIssuer) => void;
   /** Fired when the user cancels creation. */
   readonly onCancel?: () => void;
   /** Additional CSS class names for the root container. */
@@ -53,15 +53,15 @@ export interface CreateIdentityProviderFormProps {
  * />
  * ```
  */
-export function CreateIdentityProviderForm({
+export function CreateFederationIssuerForm({
   org,
   onCreated,
   onCancel,
   className,
-}: CreateIdentityProviderFormProps) {
+}: CreateFederationIssuerFormProps) {
   const baseId = useId();
   const { create, isCreating, error, clearError } =
-    useCreateIdentityProvider();
+    useCreateFederationIssuer();
 
   const [name, setName] = useState("");
   const [jwksUri, setJwksUri] = useState("");

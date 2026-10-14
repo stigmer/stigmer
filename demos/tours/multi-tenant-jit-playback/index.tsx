@@ -9,7 +9,7 @@ import {
 import { APIExchangeView } from "../_shared/api-exchange/APIExchangeView";
 import type { MultiTenantJitStep } from "./steps";
 import {
-  REGISTER_IDP_JIT_CODE,
+  REGISTER_ISSUER_JIT_CODE,
   CREATE_TENANT_ORG_CODE,
   ORG_CREATED_OUTPUT,
   TENANT_RESOLVE_CHECKS,
@@ -175,7 +175,7 @@ export function renderStep(data: MultiTenantJitStep): ReactNode {
       return (
         <CodeEditorView
           filename="register-idp.ts"
-          lines={REGISTER_IDP_JIT_CODE}
+          lines={REGISTER_ISSUER_JIT_CODE}
           highlightLines={[8, 9, 10, 11]}
           fileTree={FILE_TREE}
           contentKey="register-idp"

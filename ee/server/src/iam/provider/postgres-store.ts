@@ -34,8 +34,8 @@ import type { Pool, PoolClient } from "pg";
 import { fromBinary, toBinary } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 
 import type { GuardedRead } from "@stigmer/server";
 import { stampEtag } from "@stigmer/server";
@@ -44,7 +44,7 @@ import { pageOrgRows } from "../../postgres/keyset.js";
 import { inTransaction } from "../../postgres/transaction.js";
 import { routesOf, type ProviderRoute } from "./routes.js";
 import type {
-  IdentityProviderStore,
+  FederationIssuerStore,
   ProviderInsertOutcome,
   ProviderSwapOutcome,
 } from "./store.js";
@@ -67,11 +67,11 @@ interface ProviderRow {
 /** A claim a unique constraint refused, named by the constraint. */
 type Claim = "slug" | "route";
 
-export function newIdentityProviderStore(pool: Pool): IdentityProviderStore {
+export function newFederationIssuerStore(pool: Pool): FederationIssuerStore {
   async function query(
     where: string,
     params: ReadonlyArray<unknown>,
-  ): Promise<ReadonlyArray<IdentityProvider>> {
+  ): Promise<ReadonlyArray<FederationIssuer>> {
     const result = await pool.query<ProviderRow>(
       `SELECT data FROM ${TABLE} ${where}`,
       [...params],
@@ -82,7 +82,7 @@ export function newIdentityProviderStore(pool: Pool): IdentityProviderStore {
   async function queryOne(
     where: string,
     params: ReadonlyArray<unknown>,
-  ): Promise<IdentityProvider | undefined> {
+  ): Promise<FederationIssuer | undefined> {
     const rows = await query(`${where} LIMIT 1`, params);
     return rows[0];
   }
@@ -116,7 +116,7 @@ export function newIdentityProviderStore(pool: Pool): IdentityProviderStore {
       });
     },
 
-    async readForWrite(id): Promise<GuardedRead<IdentityProvider> | undefined> {
+    async readForWrite(id): Promise<GuardedRead<FederationIssuer> | undefined> {
       const result = await pool.query<ProviderRow>(
         `SELECT data FROM ${TABLE} WHERE id = $1`,
         [id],
@@ -152,8 +152,8 @@ export function newIdentityProviderStore(pool: Pool): IdentityProviderStore {
       });
     },
 
-    modifyById(id, modify): Promise<IdentityProvider | undefined> {
-      return inTransaction<IdentityProvider | undefined>(pool, async (client) => {
+    modifyById(id, modify): Promise<FederationIssuer | undefined> {
+      return inTransaction<FederationIssuer | undefined>(pool, async (client) => {
         const locked = await client.query<ProviderRow>(
           `SELECT data FROM ${TABLE} WHERE id = $1 FOR UPDATE`,
           [id],
@@ -296,7 +296,7 @@ function claimOf(error: unknown): Claim | undefined {
  * (`modifyById`), and a swap writes the payload only, so a payload naming
  * another slug would disagree with the column every name read trusts.
  */
-function refuseSlugChange(held: IdentityProvider, next: IdentityProvider): void {
+function refuseSlugChange(held: FederationIssuer, next: FederationIssuer): void {
   if ((held.metadata?.slug ?? "") !== (next.metadata?.slug ?? "")) {
     throw new Error("a swap keeps a provider's slug; a rename changes it");
   }
@@ -320,14 +320,14 @@ function refuseClaimChange(before: ProviderColumns, after: ProviderColumns): voi
 }
 
 /** The single column-to-proto correspondence. */
-function rowToProvider(row: ProviderRow): IdentityProvider {
-  return fromBinary(IdentityProviderSchema, new Uint8Array(row.data));
+function rowToProvider(row: ProviderRow): FederationIssuer {
+  return fromBinary(FederationIssuerSchema, new Uint8Array(row.data));
 }
 
 /** A provider's stored bytes, stamped with its etag first, as every store write is (`@stigmer/server`'s store/etag.ts). */
-function payloadOf(provider: IdentityProvider): Buffer {
-  stampEtag(IdentityProviderSchema, provider);
-  return Buffer.from(toBinary(IdentityProviderSchema, provider));
+function payloadOf(provider: FederationIssuer): Buffer {
+  stampEtag(FederationIssuerSchema, provider);
+  return Buffer.from(toBinary(FederationIssuerSchema, provider));
 }
 
 interface ProviderColumns {
@@ -344,7 +344,7 @@ interface ProviderColumns {
  * the slug; the request named the organization). A missing one is a
  * programming error, not bad input, and throws as such.
  */
-function columnsOf(provider: IdentityProvider): ProviderColumns {
+function columnsOf(provider: FederationIssuer): ProviderColumns {
   const id = provider.metadata?.id ?? "";
   const org = provider.metadata?.org ?? "";
   const slug = provider.metadata?.slug ?? "";

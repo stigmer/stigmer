@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useId, useRef, useState } from "react";
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { IdentityProviderListPanel } from "../identity-provider/IdentityProviderListPanel.js";
-import { IdentityProviderWizard } from "../identity-provider/IdentityProviderWizard.js";
-import { IdentityProviderDetailPanel } from "../identity-provider/IdentityProviderDetailPanel.js";
-import { IDENTITY_PROVIDERS_MANAGED_BY_ADMINS } from "../identity-provider/copy.js";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { FederationIssuerListPanel } from "../identity-provider/IdentityProviderListPanel.js";
+import { FederationIssuerWizard } from "../identity-provider/IdentityProviderWizard.js";
+import { FederationIssuerDetailPanel } from "../identity-provider/IdentityProviderDetailPanel.js";
+import { FEDERATION_ISSUERS_MANAGED_BY_ADMINS } from "../identity-provider/copy.js";
 import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
 import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
@@ -14,7 +14,7 @@ import { useOrg } from "../organization/OrgProvider.js";
 type FlowState =
   | { phase: "idle" }
   | { phase: "creating" }
-  | { phase: "editing"; identityProvider: IdentityProvider };
+  | { phase: "editing"; federationIssuer: FederationIssuer };
 
 /**
  * Settings section for configuring OIDC identity providers: the other
@@ -26,10 +26,10 @@ type FlowState =
  * is told that the organization's admins manage them rather than that none
  * is configured.
  */
-export function IdentityProvidersSection() {
+export function FederationIssuersSection() {
   const headingId = useId();
   const { activeOrg } = useOrg();
-  const idpAvailable = useResourceAvailable(ApiResourceKind.identity_provider);
+  const idpAvailable = useResourceAvailable(ApiResourceKind.federation_issuer);
   // Requests name the org by its id.
   const orgId = activeOrg?.metadata?.id ?? "";
   const createCheck = useCheckPermission(
@@ -93,7 +93,7 @@ export function IdentityProvidersSection() {
         </p>
       ) : flow.phase === "creating" ? (
         <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
-          <IdentityProviderWizard
+          <FederationIssuerWizard
             org={orgId}
             onCreated={handleCreated}
             onCancel={() => setFlow({ phase: "idle" })}
@@ -101,21 +101,21 @@ export function IdentityProvidersSection() {
         </div>
       ) : flow.phase === "editing" ? (
         <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
-          <IdentityProviderDetailPanel
-            identityProvider={flow.identityProvider}
+          <FederationIssuerDetailPanel
+            federationIssuer={flow.federationIssuer}
             onUpdated={handleUpdated}
             onBack={() => setFlow({ phase: "idle" })}
           />
         </div>
       ) : (
-        <IdentityProviderListPanel
+        <FederationIssuerListPanel
           org={orgId}
           onEdit={(idp) =>
-            setFlow({ phase: "editing", identityProvider: idp })
+            setFlow({ phase: "editing", federationIssuer: idp })
           }
           onRefetchRef={handleRefetchRef}
           emptyState={
-            deniedCreate ? IDENTITY_PROVIDERS_MANAGED_BY_ADMINS : undefined
+            deniedCreate ? FEDERATION_ISSUERS_MANAGED_BY_ADMINS : undefined
           }
         />
       )}

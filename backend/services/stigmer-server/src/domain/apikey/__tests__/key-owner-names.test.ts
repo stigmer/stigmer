@@ -91,7 +91,7 @@ describe("the names a caller's own keys are read by", () => {
       spec: {
         idpId: "auth0|victim",
         provisioningMode: IdentityAccountProvisioningMode.federated,
-        identityProviderRef: { org: "org_acme", slug: "okta" },
+        federationIssuerRef: { org: "org_acme", slug: "okta" },
       },
     });
     const keys = await ownKeysOf(federated, "auth0|victim");

@@ -103,7 +103,7 @@ import { formatObjectRef } from "./tuples.js";
 export const NOT_FOUND_EXEMPT_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.platform,
   ApiResourceKind.identity_account,
-  ApiResourceKind.identity_provider,
+  ApiResourceKind.federation_issuer,
   ApiResourceKind.iam_policy,
   ApiResourceKind.platform_client,
   ApiResourceKind.invitation,

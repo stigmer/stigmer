@@ -74,7 +74,7 @@ function fullIdentityAccount(): IdentityAccount {
       provisioningMode: IdentityAccountProvisioningMode.federated,
       // The field declares its kind, so the builder writes it, as it does
       // every annotated reference.
-      identityProviderRef: { org: "acme", slug: "acme-okta", kind: ApiResourceKind.identity_provider },
+      federationIssuerRef: { org: "acme", slug: "acme-okta", kind: ApiResourceKind.federation_issuer },
       preferences: {
         standingContext: "Keep answers terse.",
         defaultHarness: "cursor",

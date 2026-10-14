@@ -281,9 +281,9 @@ describe("membership rules", () => {
     row.spec!.isMachineAccount = overrides.isMachineAccount ?? false;
     if (overrides.federated === true) {
       row.spec!.provisioningMode = IdentityAccountProvisioningMode.federated;
-      row.spec!.identityProviderRef = create(ApiResourceReferenceSchema, {
+      row.spec!.federationIssuerRef = create(ApiResourceReferenceSchema, {
         org: "acme",
-        kind: ApiResourceKind.identity_provider,
+        kind: ApiResourceKind.federation_issuer,
         slug: "acme-okta",
       });
     }

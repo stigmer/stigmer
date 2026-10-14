@@ -119,6 +119,6 @@ function renameOf(
     case "team":
       return stigmer.team.rename(input);
     case "identity_provider":
-      return stigmer.identityProvider.rename(input);
+      return stigmer.federationIssuer.rename(input);
   }
 }

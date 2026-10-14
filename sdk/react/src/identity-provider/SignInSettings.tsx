@@ -16,8 +16,8 @@
 
 import { useId } from "react";
 import { cn } from "@stigmer/theme";
-import type { IdentityProviderInput } from "@stigmer/sdk";
-import type { IdentityProviderSpec } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/spec_pb";
+import type { FederationIssuerInput } from "@stigmer/sdk";
+import type { FederationIssuerSpec } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/spec_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 
@@ -37,7 +37,7 @@ export const EMPTY_SIGN_IN_SETTINGS: SignInSettings = {
 
 /** The edit state for a stored provider's spec. */
 export function signInSettingsFromSpec(
-  spec: IdentityProviderSpec | undefined,
+  spec: FederationIssuerSpec | undefined,
 ): SignInSettings {
   return {
     createAccounts: spec?.createAccountsOnSignIn ?? false,
@@ -54,7 +54,7 @@ export function signInSettingsFromSpec(
 export function toSignInInput(
   settings: SignInSettings,
 ): Pick<
-  IdentityProviderInput,
+  FederationIssuerInput,
   "createAccountsOnSignIn" | "signInRole" | "externalIdClaim"
 > {
   const claim = settings.externalIdClaim.trim();

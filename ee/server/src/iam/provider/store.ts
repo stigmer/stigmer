@@ -39,7 +39,7 @@
  * inside an unsigned page token, so it can be any text: one the store would
  * never render continues nothing, an empty page, rather than a fault.
  */
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 
 import type { ProviderRoute } from "./routes.js";
 import type { GuardedWritePort, ListIndexCursor, ListIndexRow } from "@stigmer/server";
@@ -59,10 +59,10 @@ export type ProviderSwapOutcome =
   | { readonly kind: "route-taken"; readonly route: ProviderRoute }
   | { readonly kind: "changed" };
 
-export interface IdentityProviderStore
-  extends GuardedWritePort<IdentityProvider, ProviderSwapOutcome> {
+export interface FederationIssuerStore
+  extends GuardedWritePort<FederationIssuer, ProviderSwapOutcome> {
   /** Adds a provider and claims its routes, all or nothing. */
-  insert(provider: IdentityProvider): Promise<ProviderInsertOutcome>;
+  insert(provider: FederationIssuer): Promise<ProviderInsertOutcome>;
   /**
    * The guarded rewrite of a held provider's payload and route claims,
    * all or nothing, under the row's lock, and only while its payload is
@@ -74,7 +74,7 @@ export interface IdentityProviderStore
   swap(
     id: string,
     expectedBytes: Uint8Array,
-    provider: IdentityProvider,
+    provider: FederationIssuer,
   ): Promise<ProviderSwapOutcome>;
   /**
    * Atomic read-modify-write by id under the row's lock, for a change of
@@ -86,11 +86,11 @@ export interface IdentityProviderStore
    */
   modifyById(
     id: string,
-    modify: (provider: IdentityProvider) => void,
-  ): Promise<IdentityProvider | undefined>;
+    modify: (provider: FederationIssuer) => void,
+  ): Promise<FederationIssuer | undefined>;
   /** The row and its route claims; an unknown id is a no-op. */
   deleteById(id: string): Promise<void>;
-  findById(id: string): Promise<IdentityProvider | undefined>;
+  findById(id: string): Promise<FederationIssuer | undefined>;
   /**
    * The organization's rows after `after` (from the newest when undefined),
    * newest first and ids in byte order, at most `limit` (every one when
@@ -106,9 +106,9 @@ export interface IdentityProviderStore
   /** Answered from the route side table (the check IS the constraint). */
   findProviderIdByRoute(issuer: string, audience: string): Promise<string | undefined>;
   /** Every provider, those being deleted included (the boot reconcile). */
-  findAll(): Promise<ReadonlyArray<IdentityProvider>>;
+  findAll(): Promise<ReadonlyArray<FederationIssuer>>;
   /** Every provider not being deleted (the federated verifier's routing). */
-  findLive(): Promise<ReadonlyArray<IdentityProvider>>;
+  findLive(): Promise<ReadonlyArray<FederationIssuer>>;
   /**
    * Marks the provider as being deleted, keeping its row and its routes;
    * marking a marked provider changes nothing, and an unknown id is a no-op.

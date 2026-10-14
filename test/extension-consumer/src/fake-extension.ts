@@ -1596,7 +1596,7 @@ export const fakeExtension: ServerExtension = {
     // row in every posture, so a wider edition registers a reader for each.
     resourceRowReaders: new Map(
       [
-        ApiResourceKind.identity_provider,
+        ApiResourceKind.federation_issuer,
         ApiResourceKind.invitation,
         ApiResourceKind.team,
       ].map((kind) => [kind, { findById: () => Promise.resolve(undefined) }]),

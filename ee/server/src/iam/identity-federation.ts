@@ -71,13 +71,13 @@ import type { IdentityAccountService } from "./account/port.js";
 import { resolveCreateRace } from "./account/port.js";
 import type { IamPolicyGrantPathClient } from "./policy/grant-path-client.js";
 import { PROVIDER_BEING_DELETED_MESSAGE } from "./provider/steps.js";
-import type { IdentityProviderStore } from "./provider/store.js";
+import type { FederationIssuerStore } from "./provider/store.js";
 
 export interface CloudIdentityFederationDeps {
   readonly accounts: IdentityAccountService;
   readonly policies: IamPolicyGrantPathClient;
   /** The IdentityProvider rows — the controller's IdP-exists precondition, create's delete check and deprovision's provider read them. */
-  readonly providers: Pick<IdentityProviderStore, "findById" | "isLive">;
+  readonly providers: Pick<FederationIssuerStore, "findById" | "isLive">;
   /**
    * The provider organization's children, which deprovision's revoke
    * reaches, and those mid-delete, which it cannot reach yet.
@@ -170,7 +170,7 @@ export function newIdentityFederation(
             lastName: input.lastName,
             pictureUrl: input.pictureUrl,
             provisioningMode: IdentityAccountProvisioningMode.federated,
-            identityProviderRef: ref,
+            federationIssuerRef: ref,
           }),
         }, provider?.metadata?.id);
       } catch (error) {

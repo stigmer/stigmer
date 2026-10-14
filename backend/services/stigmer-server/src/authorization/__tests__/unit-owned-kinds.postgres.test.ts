@@ -187,7 +187,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         ]);
         readers = new Map([
           [ApiResourceKind.team, teams.reader],
-          [ApiResourceKind.identity_provider, providers.reader],
+          [ApiResourceKind.federation_issuer, providers.reader],
           [ApiResourceKind.invitation, memoryReader([]).reader],
         ]);
         await grant(policies, orgRole(ROOT, "owner", "acme"));
@@ -269,7 +269,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         it("answers an identity provider from the model over its reader's row: its organization's admin views it, a member does not", async () => {
           const check = {
             permission: IamPermission.can_view,
-            resourceKind: ApiResourceKind.identity_provider,
+            resourceKind: ApiResourceKind.federation_issuer,
             resourceId: "idp_acme",
           };
           expect(await authorizer().authorize(caller(ADMIN), check)).toEqual({
@@ -298,7 +298,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         });
 
         it.each([
-          [ApiResourceKind.identity_provider, "idp_missing"],
+          [ApiResourceKind.federation_issuer, "idp_missing"],
           [ApiResourceKind.invitation, "inv_missing"],
           [ApiResourceKind.team, "tm_missing"],
           [ApiResourceKind.platform, "stigmer"],
@@ -383,7 +383,7 @@ describe("kindsWithoutRows", () => {
     findById: () => Promise.resolve(undefined),
   };
   const all = new Map([
-    [ApiResourceKind.identity_provider, reader],
+    [ApiResourceKind.federation_issuer, reader],
     [ApiResourceKind.invitation, reader],
     [ApiResourceKind.team, reader],
   ]);
@@ -405,7 +405,7 @@ describe("kindsWithoutRows", () => {
         model: builtInModel,
         readers: new Map([[ApiResourceKind.invitation, reader]]),
       }),
-    ).toEqual([ApiResourceKind.identity_provider, ApiResourceKind.team]);
+    ).toEqual([ApiResourceKind.federation_issuer, ApiResourceKind.team]);
   });
 
   it("is empty once each kind the edition serves has a reader", () => {

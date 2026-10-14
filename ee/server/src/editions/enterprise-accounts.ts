@@ -105,7 +105,7 @@ export function newEnterpriseAccounts(): EnterpriseAccounts {
     store,
 
     async createAccount(request: NewAccountRequest, actingFor?: string): Promise<IdentityAccount> {
-      const provider = request.spec.identityProviderRef;
+      const provider = request.spec.federationIssuerRef;
       if (request.spec.provisioningMode !== IdentityAccountProvisioningMode.federated || provider === undefined) {
         throw new Error("this server makes only federated accounts: a provider vouches for every person it signs in");
       }

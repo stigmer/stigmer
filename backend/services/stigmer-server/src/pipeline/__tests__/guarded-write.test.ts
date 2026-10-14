@@ -244,7 +244,7 @@ describe("changeThroughGuardedPort", () => {
     const port = new FakeGuardedPort(seededRow(), false);
     const stored = await changeThroughGuardedPort(
       port,
-      ApiResourceKind.identity_provider,
+      ApiResourceKind.federation_issuer,
       "row_1",
       (row) => {
         row.value = "after";
@@ -262,7 +262,7 @@ describe("changeThroughGuardedPort", () => {
     const error = await failureOf(
       changeThroughGuardedPort(
         port,
-        ApiResourceKind.identity_provider,
+        ApiResourceKind.federation_issuer,
         "row_1",
         (row) => {
           changedGenerations.push(row.generation);
@@ -287,7 +287,7 @@ describe("changeThroughGuardedPort", () => {
     let changes = 0;
     const stored = await changeThroughGuardedPort(
       port,
-      ApiResourceKind.identity_provider,
+      ApiResourceKind.federation_issuer,
       "row_1",
       () => {
         changes += 1;

@@ -244,7 +244,7 @@ export function newResourceIdentityAccountStore(
  * readings below agree on every stored row.
  */
 function refuseMixedShape(account: IdentityAccount): void {
-  const hasProviderRef = account.spec?.identityProviderRef !== undefined;
+  const hasProviderRef = account.spec?.federationIssuerRef !== undefined;
   const isFederatedMode =
     account.spec?.provisioningMode ===
     IdentityAccountProvisioningMode.federated;
@@ -262,7 +262,7 @@ function refuseMixedShape(account: IdentityAccount): void {
  * then refuses as it refuses any other stray id.
  */
 function federatedAddressOf(account: IdentityAccount): string | undefined {
-  const ref = account.spec?.identityProviderRef;
+  const ref = account.spec?.federationIssuerRef;
   try {
     return federatedAccountIdFor(ref?.id ?? "", account.spec?.idpId ?? "");
   } catch {
@@ -274,7 +274,7 @@ function federatedAddressOf(account: IdentityAccount): string | undefined {
 function isVouchedForBy(account: IdentityAccount, providerId: string): boolean {
   return (
     isFederated(account) &&
-    account.spec?.identityProviderRef?.id === providerId
+    account.spec?.federationIssuerRef?.id === providerId
   );
 }
 
@@ -286,7 +286,7 @@ function compareIds(a: string, b: string): number {
 /** A row an identity provider vouches for: its subject is the provider's, reached only by the natural key. */
 function isFederated(account: IdentityAccount): boolean {
   return (
-    account.spec?.identityProviderRef !== undefined ||
+    account.spec?.federationIssuerRef !== undefined ||
     account.spec?.provisioningMode === IdentityAccountProvisioningMode.federated
   );
 }
@@ -304,7 +304,7 @@ function isFederated(account: IdentityAccount): boolean {
 function isDirect(account: IdentityAccount): boolean {
   const mode = account.spec?.provisioningMode;
   return (
-    account.spec?.identityProviderRef === undefined &&
+    account.spec?.federationIssuerRef === undefined &&
     mode !== IdentityAccountProvisioningMode.federated &&
     mode !== IdentityAccountProvisioningMode.platform_client &&
     mode !== IdentityAccountProvisioningMode.service_account

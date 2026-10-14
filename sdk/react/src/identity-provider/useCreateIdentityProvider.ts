@@ -1,15 +1,15 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { IdentityProviderInput } from "@stigmer/sdk";
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import type { FederationIssuerInput } from "@stigmer/sdk";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
-/** Return value of {@link useCreateIdentityProvider}. */
-export interface UseCreateIdentityProviderReturn {
+/** Return value of {@link useCreateFederationIssuer}. */
+export interface UseCreateFederationIssuerReturn {
   /** Submit an {@link IdentityProviderInput} to create a new identity provider. Resolves with the server-created resource. */
-  readonly create: (input: IdentityProviderInput) => Promise<IdentityProvider>;
+  readonly create: (input: FederationIssuerInput) => Promise<FederationIssuer>;
   /** `true` while the create request is in flight. */
   readonly isCreating: boolean;
   /** Error from the last failed create, or `null` when healthy. */
@@ -40,7 +40,7 @@ export interface UseCreateIdentityProviderReturn {
  * });
  * ```
  */
-export function useCreateIdentityProvider(): UseCreateIdentityProviderReturn {
+export function useCreateFederationIssuer(): UseCreateFederationIssuerReturn {
   const stigmer = useStigmer();
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -48,12 +48,12 @@ export function useCreateIdentityProvider(): UseCreateIdentityProviderReturn {
   const clearError = useCallback(() => setError(null), []);
 
   const create = useCallback(
-    async (input: IdentityProviderInput): Promise<IdentityProvider> => {
+    async (input: FederationIssuerInput): Promise<FederationIssuer> => {
       setIsCreating(true);
       setError(null);
 
       try {
-        return await stigmer.identityProvider.create(input);
+        return await stigmer.federationIssuer.create(input);
       } catch (err) {
         setError(toError(err));
         throw err;

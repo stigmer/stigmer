@@ -22,9 +22,9 @@ import {
   ApiResourceAuditSchema,
   ApiResourceAuditStatusSchema,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { IdentityProviderSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/spec_pb";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { FederationIssuerSpecSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/spec_pb";
 
 import type { GuardedRead, ListIndexCursor, ListIndexRow } from "@stigmer/server";
 
@@ -32,7 +32,7 @@ import { pageNewestFirst } from "../../../__test-utils__/in-memory-keyset.js";
 
 import { routesOf, type ProviderRoute } from "../routes.js";
 import type {
-  IdentityProviderStore,
+  FederationIssuerStore,
   ProviderInsertOutcome,
   ProviderSwapOutcome,
 } from "../store.js";
@@ -47,7 +47,7 @@ function sameBytes(left: Uint8Array, right: Uint8Array): boolean {
   return left.length === right.length && left.every((byte, index) => byte === right[index]);
 }
 
-function unshapedRefusal(provider: IdentityProvider): Error | undefined {
+function unshapedRefusal(provider: FederationIssuer): Error | undefined {
   const shaped =
     (provider.metadata?.id ?? "") !== "" &&
     (provider.metadata?.org ?? "") !== "" &&
@@ -58,14 +58,14 @@ function unshapedRefusal(provider: IdentityProvider): Error | undefined {
     : new Error("a provider reaches the store fully shaped: id, organization, slug and audit are all set by its chain");
 }
 
-export class InMemoryProviderStore implements IdentityProviderStore {
-  private readonly rows = new Map<string, IdentityProvider>();
+export class InMemoryProviderStore implements FederationIssuerStore {
+  private readonly rows = new Map<string, FederationIssuer>();
   /** Ids in insertion order, the newest last. */
   private readonly order: string[] = [];
   /** The providers marked as being deleted (the Postgres `deleting_since`). */
   private readonly deleting = new Set<string>();
 
-  insert(provider: IdentityProvider): Promise<ProviderInsertOutcome> {
+  insert(provider: FederationIssuer): Promise<ProviderInsertOutcome> {
     const refused = unshapedRefusal(provider);
     if (refused !== undefined) {
       return Promise.reject(refused);
@@ -83,28 +83,28 @@ export class InMemoryProviderStore implements IdentityProviderStore {
       return Promise.resolve({ kind: "route-taken", route: taken });
     }
     // Every write stamps the etag, as the drivers do.
-    stampEtag(IdentityProviderSchema, provider);
-    this.rows.set(id, clone(IdentityProviderSchema, provider));
+    stampEtag(FederationIssuerSchema, provider);
+    this.rows.set(id, clone(FederationIssuerSchema, provider));
     this.order.push(id);
     return Promise.resolve({ kind: "inserted" });
   }
 
-  readForWrite(id: string): Promise<GuardedRead<IdentityProvider> | undefined> {
+  readForWrite(id: string): Promise<GuardedRead<FederationIssuer> | undefined> {
     const held = this.rows.get(id);
     return Promise.resolve(
       held === undefined
         ? undefined
-        : { row: clone(IdentityProviderSchema, held), bytes: toBinary(IdentityProviderSchema, held) },
+        : { row: clone(FederationIssuerSchema, held), bytes: toBinary(FederationIssuerSchema, held) },
     );
   }
 
-  swap(id: string, expectedBytes: Uint8Array, provider: IdentityProvider): Promise<ProviderSwapOutcome> {
+  swap(id: string, expectedBytes: Uint8Array, provider: FederationIssuer): Promise<ProviderSwapOutcome> {
     const refused = unshapedRefusal(provider);
     if (refused !== undefined) {
       return Promise.reject(refused);
     }
     const held = this.rows.get(id);
-    if (held === undefined || !sameBytes(toBinary(IdentityProviderSchema, held), expectedBytes)) {
+    if (held === undefined || !sameBytes(toBinary(FederationIssuerSchema, held), expectedBytes)) {
       return Promise.resolve({ kind: "changed" });
     }
     if ((held.metadata?.slug ?? "") !== (provider.metadata?.slug ?? "")) {
@@ -115,19 +115,19 @@ export class InMemoryProviderStore implements IdentityProviderStore {
       return Promise.resolve({ kind: "route-taken", route: taken });
     }
     // Every write stamps the etag, as the drivers do.
-    stampEtag(IdentityProviderSchema, provider);
-    this.rows.set(id, clone(IdentityProviderSchema, provider));
+    stampEtag(FederationIssuerSchema, provider);
+    this.rows.set(id, clone(FederationIssuerSchema, provider));
     return Promise.resolve({ kind: "replaced" });
   }
 
-  modifyById(id: string, modify: (provider: IdentityProvider) => void): Promise<IdentityProvider | undefined> {
+  modifyById(id: string, modify: (provider: FederationIssuer) => void): Promise<FederationIssuer | undefined> {
     const held = this.rows.get(id);
     if (held === undefined) {
       return Promise.resolve(undefined);
     }
-    const provider = clone(IdentityProviderSchema, held);
+    const provider = clone(FederationIssuerSchema, held);
     modify(provider);
-    const claims = (row: IdentityProvider) =>
+    const claims = (row: FederationIssuer) =>
       JSON.stringify([
         row.metadata?.org ?? "",
         routesOf(row).map((route) => `${route.issuer} ${route.audience}`).sort(),
@@ -140,8 +140,8 @@ export class InMemoryProviderStore implements IdentityProviderStore {
       );
     }
     // Every write stamps the etag, as the drivers do.
-    stampEtag(IdentityProviderSchema, provider);
-    this.rows.set(id, clone(IdentityProviderSchema, provider));
+    stampEtag(FederationIssuerSchema, provider);
+    this.rows.set(id, clone(FederationIssuerSchema, provider));
     return Promise.resolve(provider);
   }
 
@@ -155,7 +155,7 @@ export class InMemoryProviderStore implements IdentityProviderStore {
     return Promise.resolve();
   }
 
-  findById(id: string): Promise<IdentityProvider | undefined> {
+  findById(id: string): Promise<FederationIssuer | undefined> {
     return Promise.resolve(this.copy(this.rows.get(id)));
   }
 
@@ -168,19 +168,19 @@ export class InMemoryProviderStore implements IdentityProviderStore {
       .filter((row) => row.metadata?.org === org)
       .map((row) => ({
         id: row.metadata?.id ?? "",
-        data: toBinary(IdentityProviderSchema, row),
+        data: toBinary(FederationIssuerSchema, row),
         createdAt: row.status?.audit?.specAudit?.createdAt,
       }));
     return Promise.resolve(pageNewestFirst(entries, after, limit));
   }
 
   /** The organization's providers, newest first: the suites' read of what a list would hold. */
-  inOrg(org: string): ReadonlyArray<IdentityProvider> {
+  inOrg(org: string): ReadonlyArray<FederationIssuer> {
     return [...this.order]
       .reverse()
       .map((id) => this.rows.get(id))
-      .filter((row): row is IdentityProvider => row?.metadata?.org === org)
-      .map((row) => clone(IdentityProviderSchema, row));
+      .filter((row): row is FederationIssuer => row?.metadata?.org === org)
+      .map((row) => clone(FederationIssuerSchema, row));
   }
 
   findIdsByOrg(org: string): Promise<ReadonlyArray<string>> {
@@ -195,15 +195,15 @@ export class InMemoryProviderStore implements IdentityProviderStore {
     );
   }
 
-  findAll(): Promise<ReadonlyArray<IdentityProvider>> {
-    return Promise.resolve([...this.rows.values()].map((row) => clone(IdentityProviderSchema, row)));
+  findAll(): Promise<ReadonlyArray<FederationIssuer>> {
+    return Promise.resolve([...this.rows.values()].map((row) => clone(FederationIssuerSchema, row)));
   }
 
-  findLive(): Promise<ReadonlyArray<IdentityProvider>> {
+  findLive(): Promise<ReadonlyArray<FederationIssuer>> {
     return Promise.resolve(
       [...this.rows.entries()]
         .filter(([id]) => !this.deleting.has(id))
-        .map(([, row]) => clone(IdentityProviderSchema, row)),
+        .map(([, row]) => clone(FederationIssuerSchema, row)),
     );
   }
 
@@ -223,7 +223,7 @@ export class InMemoryProviderStore implements IdentityProviderStore {
     return this.rows.size;
   }
 
-  private routeClaimedByAnother(provider: IdentityProvider, id: string): ProviderRoute | undefined {
+  private routeClaimedByAnother(provider: FederationIssuer, id: string): ProviderRoute | undefined {
     for (const route of routesOf(provider)) {
       for (const [heldId, held] of this.rows) {
         if (
@@ -237,8 +237,8 @@ export class InMemoryProviderStore implements IdentityProviderStore {
     return undefined;
   }
 
-  private copy(provider: IdentityProvider | undefined): IdentityProvider | undefined {
-    return provider === undefined ? undefined : clone(IdentityProviderSchema, provider);
+  private copy(provider: FederationIssuer | undefined): FederationIssuer | undefined {
+    return provider === undefined ? undefined : clone(FederationIssuerSchema, provider);
   }
 }
 
@@ -250,9 +250,9 @@ export function storedProvider(fields: {
   issuers?: ReadonlyArray<string>;
   expectedAudience?: string;
   createdAt?: Date;
-}): IdentityProvider {
+}): FederationIssuer {
   const stamp = timestampFromDate(fields.createdAt ?? new Date("2026-09-25T10:00:00Z"));
-  return create(IdentityProviderSchema, {
+  return create(FederationIssuerSchema, {
     apiVersion: "iam.stigmer.ai/v1",
     kind: "IdentityProvider",
     metadata: create(ApiResourceMetadataSchema, {
@@ -261,7 +261,7 @@ export function storedProvider(fields: {
       slug: fields.slug,
       name: fields.slug,
     }),
-    spec: create(IdentityProviderSpecSchema, {
+    spec: create(FederationIssuerSpecSchema, {
       displayName: fields.slug,
       allowedIssuers: [...(fields.issuers ?? [`https://${fields.slug}.idp.test`])],
       expectedAudience: fields.expectedAudience ?? `https://${fields.slug}.idp.test/stigmer`,

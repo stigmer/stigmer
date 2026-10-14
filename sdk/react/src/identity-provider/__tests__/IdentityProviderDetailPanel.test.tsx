@@ -2,14 +2,14 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { clone, create } from "@bufbuild/protobuf";
 import {
-  IdentityProviderSchema,
-  type IdentityProvider,
-} from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+  FederationIssuerSchema,
+  type FederationIssuer,
+} from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import type { CheckMyPermissionInput } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { StigmerContext } from "../../context";
-import { IdentityProviderDetailPanel } from "../IdentityProviderDetailPanel";
+import { FederationIssuerDetailPanel } from "../IdentityProviderDetailPanel";
 
 /**
  * Pins three things about the detail panel:
@@ -25,7 +25,7 @@ import { IdentityProviderDetailPanel } from "../IdentityProviderDetailPanel";
  *     creation and role the admin turns on.
  */
 
-const IDP: IdentityProvider = create(IdentityProviderSchema, {
+const IDP: FederationIssuer = create(FederationIssuerSchema, {
   metadata: {
     id: "idp-1",
     name: "Acme Okta",
@@ -55,7 +55,7 @@ function renderPanel(
   } as never;
   return render(
     <StigmerContext.Provider value={client}>
-      <IdentityProviderDetailPanel identityProvider={IDP} />
+      <FederationIssuerDetailPanel federationIssuer={IDP} />
     </StigmerContext.Provider>,
   );
 }
@@ -64,7 +64,7 @@ afterEach(cleanup);
 
 describe("IdentityProviderDetailPanel save payload", () => {
   it("names the fields the form edits on a display-name edit, on the provider's id", async () => {
-    const update = vi.fn(async (_resource: IdentityProvider, _paths: string[]) => IDP);
+    const update = vi.fn(async (_resource: FederationIssuer, _paths: string[]) => IDP);
     renderPanel(update);
 
     fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
@@ -73,7 +73,7 @@ describe("IdentityProviderDetailPanel save payload", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    const sent = sentUpdate<IdentityProvider>(update);
+    const sent = sentUpdate<FederationIssuer>(update);
     const spec = sent.resource.spec;
 
     // The edited field.
@@ -127,7 +127,7 @@ describe("IdentityProviderDetailPanel edit gate", () => {
 });
 
 describe("IdentityProviderDetailPanel sign-in settings", () => {
-  const PLAIN: IdentityProvider = create(IdentityProviderSchema, {
+  const PLAIN: FederationIssuer = create(FederationIssuerSchema, {
     metadata: { id: "idp-2", name: "Acme Auth", slug: "acme-auth", org: "acme" },
     spec: {
       displayName: "Acme Auth",
@@ -144,13 +144,13 @@ describe("IdentityProviderDetailPanel sign-in settings", () => {
     } as never;
     return render(
       <StigmerContext.Provider value={client}>
-        <IdentityProviderDetailPanel identityProvider={PLAIN} />
+        <FederationIssuerDetailPanel federationIssuer={PLAIN} />
       </StigmerContext.Provider>,
     );
   }
 
   it("saves the account creation and role the admin turns on", async () => {
-    const update = vi.fn(async (_resource: IdentityProvider, _paths: string[]) => PLAIN);
+    const update = vi.fn(async (_resource: FederationIssuer, _paths: string[]) => PLAIN);
     renderPlain(update);
 
     expect(screen.getByText("None")).toBeTruthy();
@@ -172,7 +172,7 @@ describe("IdentityProviderDetailPanel sign-in settings", () => {
     fireEvent.click(save);
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    const spec = sentUpdate<IdentityProvider>(update).resource.spec;
+    const spec = sentUpdate<FederationIssuer>(update).resource.spec;
     expect(spec?.createAccountsOnSignIn).toBe(true);
     expect(spec?.signInRole).toBe(IamRole.viewer);
     expect(spec?.externalIdClaim).toBe("");
@@ -181,7 +181,7 @@ describe("IdentityProviderDetailPanel sign-in settings", () => {
 
 describe("IdentityProviderDetailPanel rename", () => {
   it("renames through the kind's rename for whoever may delete it, and hands the renamed resource to onUpdated", async () => {
-    const renamed = clone(IdentityProviderSchema, IDP);
+    const renamed = clone(FederationIssuerSchema, IDP);
     if (renamed.metadata !== undefined) {
       renamed.metadata.slug = "renamed-slug";
     }
@@ -193,7 +193,7 @@ describe("IdentityProviderDetailPanel rename", () => {
     } as never;
     render(
       <StigmerContext.Provider value={client}>
-        <IdentityProviderDetailPanel identityProvider={IDP} onUpdated={onUpdated} />
+        <FederationIssuerDetailPanel federationIssuer={IDP} onUpdated={onUpdated} />
       </StigmerContext.Provider>,
     );
 

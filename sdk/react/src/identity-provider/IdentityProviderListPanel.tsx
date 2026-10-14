@@ -4,20 +4,20 @@ import { type ReactNode, useCallback, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
-import { useIdentityProviderList } from "./useIdentityProviderList.js";
-import { useDeleteIdentityProvider } from "./useDeleteIdentityProvider.js";
+import { useFederationIssuerList } from "./useIdentityProviderList.js";
+import { useDeleteFederationIssuer } from "./useDeleteIdentityProvider.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 
-/** Props for {@link IdentityProviderListPanel}. */
-export interface IdentityProviderListPanelProps {
+/** Props for {@link FederationIssuerListPanel}. */
+export interface FederationIssuerListPanelProps {
   /** Id of the organization whose identity providers should be listed (a slug is also accepted). */
   readonly org: string;
   /** Fired when the user wants to edit an identity provider. */
-  readonly onEdit?: (idp: IdentityProvider) => void;
+  readonly onEdit?: (idp: FederationIssuer) => void;
   /** Expose the refetch function so parents can trigger a list refresh. */
   readonly onRefetchRef?: (refetch: () => void) => void;
   /**
@@ -59,15 +59,15 @@ export interface IdentityProviderListPanelProps {
  * />
  * ```
  */
-export function IdentityProviderListPanel({
+export function FederationIssuerListPanel({
   org,
   onEdit,
   onRefetchRef,
   emptyState = "No identity providers configured.",
   className,
-}: IdentityProviderListPanelProps) {
-  const { identityProviders, isLoading, error, refetch } =
-    useIdentityProviderList(org);
+}: FederationIssuerListPanelProps) {
+  const { federationIssuers, isLoading, error, refetch } =
+    useFederationIssuerList(org);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   if (onRefetchRef) {
@@ -98,7 +98,7 @@ export function IdentityProviderListPanel({
     );
   }
 
-  if (identityProviders.length === 0) {
+  if (federationIssuers.length === 0) {
     return (
       <p
         className={cn(
@@ -117,12 +117,12 @@ export function IdentityProviderListPanel({
       role="list"
       aria-label="Identity providers"
     >
-      {identityProviders.map((idp) => {
+      {federationIssuers.map((idp) => {
         const id = idp.metadata?.id ?? "";
         return (
-          <IdpRow
+          <IssuerRow
             key={id}
-            identityProvider={idp}
+            federationIssuer={idp}
             isConfirming={confirmingId === id}
             onEdit={onEdit ? () => onEdit(idp) : undefined}
             onConfirmDelete={() => setConfirmingId(id)}
@@ -142,33 +142,33 @@ export function IdentityProviderListPanel({
 // IdpRow (internal)
 // ---------------------------------------------------------------------------
 
-function IdpRow({
-  identityProvider,
+function IssuerRow({
+  federationIssuer,
   isConfirming,
   onEdit,
   onConfirmDelete,
   onCancelDelete,
   onDeleted,
 }: {
-  identityProvider: IdentityProvider;
+  federationIssuer: FederationIssuer;
   isConfirming: boolean;
   onEdit?: () => void;
   onConfirmDelete: () => void;
   onCancelDelete: () => void;
   onDeleted: () => void;
 }) {
-  const { deleteProvider, isDeleting, error } = useDeleteIdentityProvider();
+  const { deleteProvider, isDeleting, error } = useDeleteFederationIssuer();
 
-  const id = identityProvider.metadata?.id ?? "";
-  const spec = identityProvider.spec;
+  const id = federationIssuer.metadata?.id ?? "";
+  const spec = federationIssuer.spec;
   const name =
     spec?.displayName ||
-    identityProvider.metadata?.name ||
+    federationIssuer.metadata?.name ||
     "Unnamed provider";
-  const slug = identityProvider.metadata?.slug;
+  const slug = federationIssuer.metadata?.slug;
   const isJit = spec?.createAccountsOnSignIn;
   const createdAt =
-    identityProvider.status?.audit?.specAudit?.createdAt;
+    federationIssuer.status?.audit?.specAudit?.createdAt;
 
   const handleDelete = useCallback(async () => {
     try {

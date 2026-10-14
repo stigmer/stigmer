@@ -48,8 +48,8 @@ import assert from "node:assert/strict";
 
 import { clone, create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import {
   etagOf,
   guardedPortDeclarations,
@@ -59,10 +59,10 @@ import {
   type PortContractFixture,
 } from "@stigmer/server";
 
-import type { IdentityProviderStore, ProviderSwapOutcome } from "./store.js";
+import type { FederationIssuerStore, ProviderSwapOutcome } from "./store.js";
 
 /** The runner's fixture over this port. */
-export type IdentityProviderStoreContractFixture = PortContractFixture<IdentityProviderStore>;
+export type FederationIssuerStoreContractFixture = PortContractFixture<FederationIssuerStore>;
 
 const AUDIENCE = "https://api.contract.test/stigmer";
 const CREATED = timestampFromDate(new Date("2026-09-01T00:00:00Z"));
@@ -76,12 +76,12 @@ function provider(fields: {
   displayName?: string;
   /** Minutes after the shared creation instant, to order a list. */
   minute?: number;
-}): IdentityProvider {
+}): FederationIssuer {
   const created =
     fields.minute === undefined
       ? CREATED
       : timestampFromDate(new Date(Date.UTC(2026, 8, 1, 0, fields.minute)));
-  return create(IdentityProviderSchema, {
+  return create(FederationIssuerSchema, {
     apiVersion: "iam.stigmer.ai/v1",
     kind: "IdentityProvider",
     metadata: { id: fields.id, org: fields.org, slug: fields.slug, name: fields.slug },
@@ -100,15 +100,15 @@ function provider(fields: {
  * on no bytes.
  */
 async function swapOnCurrent(
-  store: IdentityProviderStore,
-  next: IdentityProvider,
+  store: FederationIssuerStore,
+  next: FederationIssuer,
 ): Promise<ProviderSwapOutcome> {
   const id = next.metadata?.id ?? "";
   const read = await store.readForWrite(id);
   return store.swap(id, read?.bytes ?? new Uint8Array(), next);
 }
 
-const CASES: ReadonlyArray<PortContractDeclaration<IdentityProviderStore>> = [
+const CASES: ReadonlyArray<PortContractDeclaration<FederationIssuerStore>> = [
   [
     "every write stores the etag its content gives: an insert, a modify and a swap",
     async ({ store }) => {
@@ -116,7 +116,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityProviderStore>> = [
       const inserted = await store.findById("idp_etag");
       assert.ok(inserted !== undefined, "the insert is read back");
       assert.notEqual(inserted.metadata?.etag ?? "", "", "an insert stamps the etag");
-      assert.equal(inserted.metadata?.etag, etagOf(IdentityProviderSchema, inserted));
+      assert.equal(inserted.metadata?.etag, etagOf(FederationIssuerSchema, inserted));
       await store.modifyById("idp_etag", (held) => {
         if (held.metadata !== undefined) {
           held.metadata.name = "Second";
@@ -124,16 +124,16 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityProviderStore>> = [
       });
       const modified = await store.findById("idp_etag");
       assert.ok(modified !== undefined);
-      assert.equal(modified.metadata?.etag, etagOf(IdentityProviderSchema, modified), "a modify restamps it");
+      assert.equal(modified.metadata?.etag, etagOf(FederationIssuerSchema, modified), "a modify restamps it");
       assert.notEqual(modified.metadata?.etag, inserted.metadata?.etag);
-      const next = clone(IdentityProviderSchema, modified);
+      const next = clone(FederationIssuerSchema, modified);
       if (next.spec !== undefined) {
         next.spec.displayName = "Third";
       }
       assert.deepEqual(await swapOnCurrent(store, next), { kind: "replaced" });
       const swapped = await store.findById("idp_etag");
       assert.ok(swapped !== undefined);
-      assert.equal(swapped.metadata?.etag, etagOf(IdentityProviderSchema, swapped), "a swap restamps it");
+      assert.equal(swapped.metadata?.etag, etagOf(FederationIssuerSchema, swapped), "a swap restamps it");
       assert.notEqual(swapped.metadata?.etag, modified.metadata?.etag);
     },
   ],
@@ -141,7 +141,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityProviderStore>> = [
     "modifyById changes the payload and the slug together and keeps the routes; a claim change is refused, and an unknown id writes nothing",
     async ({ store }) => {
       await store.insert(provider({ id: "idp_r2", org: "acme", slug: "before-move", issuers: ["https://moved.contract.test"] }));
-      const moveTo = (slug: string) => (held: IdentityProvider) => {
+      const moveTo = (slug: string) => (held: FederationIssuer) => {
         if (held.metadata !== undefined) {
           held.metadata.slug = slug;
         }
@@ -407,7 +407,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityProviderStore>> = [
       await assert.rejects(store.isLive("idp_any"), "an outage never reads as 'not live'");
     },
   ],
-  ...guardedPortDeclarations<IdentityProviderStore, IdentityProvider, ProviderSwapOutcome>({
+  ...guardedPortDeclarations<FederationIssuerStore, FederationIssuer, ProviderSwapOutcome>({
     landed: (outcome) => outcome.kind === "replaced",
     async seed(store) {
       const seeded = provider({ id: "idp_cg", org: "acme", slug: "guarded", issuers: ["https://guarded.contract.test"] });
@@ -434,8 +434,8 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityProviderStore>> = [
 ];
 
 /** The port's cases over `makeFixture`, one fresh fixture per case. */
-export function identityProviderStoreContract(
-  makeFixture: () => Promise<IdentityProviderStoreContractFixture>,
+export function federationIssuerStoreContract(
+  makeFixture: () => Promise<FederationIssuerStoreContractFixture>,
 ): ReadonlyArray<PortContractCase> {
   return portContractCases(CASES, makeFixture);
 }

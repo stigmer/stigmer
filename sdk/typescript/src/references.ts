@@ -43,7 +43,7 @@ const KIND_WORDS: Partial<Record<ApiResourceKind, string>> = {
   [ApiResourceKind.plugin]: "plugin",
   [ApiResourceKind.vault]: "vault",
   [ApiResourceKind.channel_app]: "channel app",
-  [ApiResourceKind.identity_provider]: "identity provider",
+  [ApiResourceKind.federation_issuer]: "identity provider",
 };
 
 /** What a deleted target is called: "deleted skill", "deleted agent", and so on. */

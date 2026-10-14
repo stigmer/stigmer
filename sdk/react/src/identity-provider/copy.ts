@@ -16,7 +16,7 @@
  */
 
 /** Shown in place of the empty state to a caller who may not create identity providers. */
-export const IDENTITY_PROVIDERS_MANAGED_BY_ADMINS =
+export const FEDERATION_ISSUERS_MANAGED_BY_ADMINS =
   "Identity providers are managed by your organization's admins.";
 
 /** The expected-audience field's placeholder: what kind of value, never a value to copy. */

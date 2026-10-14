@@ -30,7 +30,7 @@ export type MultiTenantJitStep =
 // Fixture data — code snippets
 // ---------------------------------------------------------------------------
 
-export const REGISTER_IDP_JIT_CODE = [
+export const REGISTER_ISSUER_JIT_CODE = [
   "// register-idp.ts — IdP with JIT + externalIdClaim",
   "const idp = await stigmer.identityProvider.create({",
   '  name: "Acme Cloud Auth",',

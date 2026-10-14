@@ -67,10 +67,10 @@ import type { IdentityAccountStore, Logger, NameTable } from "@stigmer/server";
 
 import type { IdentityAccountService } from "../account/port.js";
 import type { IamPolicyGrantPathClient } from "../policy/grant-path-client.js";
-import type { IdentityProviderStore } from "./store.js";
+import type { FederationIssuerStore } from "./store.js";
 
 /** The provider's kind as an `ApiResourceRef.kind` spells it. */
-export const IDENTITY_PROVIDER_KIND_NAME = ApiResourceKind[ApiResourceKind.identity_provider];
+export const FEDERATION_ISSUER_KIND_NAME = ApiResourceKind[ApiResourceKind.federation_issuer];
 
 export interface ProviderRemoval {
   /**
@@ -91,7 +91,7 @@ export interface ProviderRemoval {
 
 export interface ProviderRemovalDeps {
   readonly providers: Pick<
-    IdentityProviderStore,
+    FederationIssuerStore,
     "findById" | "findIdsByOrg" | "markDeleting" | "deleteById"
   >;
   /** The server's one name table: a removed provider's slug is let go after its last sweep. */
@@ -149,7 +149,7 @@ export function newProviderRemoval(deps: ProviderRemovalDeps): ProviderRemoval {
       }
     }
     await deps.policies.cleanupResourcePolicies(
-      create(ApiResourceRefSchema, { kind: IDENTITY_PROVIDER_KIND_NAME, id }),
+      create(ApiResourceRefSchema, { kind: FEDERATION_ISSUER_KIND_NAME, id }),
       actingFor,
     );
     await deps.providers.deleteById(id);
@@ -166,7 +166,7 @@ export function newProviderRemoval(deps: ProviderRemovalDeps): ProviderRemoval {
    */
   async function releaseProviderNames(id: string, org: string): Promise<void> {
     try {
-      await deps.names.resourceNames.release(IDENTITY_PROVIDER_KIND_NAME, org, id);
+      await deps.names.resourceNames.release(FEDERATION_ISSUER_KIND_NAME, org, id);
     } catch (error) {
       deps.logger.error("identity provider removed but its name could not be released; a later claim frees it", {
         provider: id,

@@ -130,7 +130,7 @@ import { create } from "@bufbuild/protobuf";
 import { EgressError } from "@stigmer/outbound/egress";
 
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
@@ -154,7 +154,7 @@ import type { IdentityAccountService } from "../account/port.js";
 import { orphanReason } from "../organization-links.js";
 import type { OrganizationFacts, OrganizationLookup } from "../organization-links.js";
 import { normalizeIssuerUrl } from "../provider/issuer-url.js";
-import type { IdentityProviderStore } from "../provider/store.js";
+import type { FederationIssuerStore } from "../provider/store.js";
 import {
   audienceMatches,
   decodeJwt,
@@ -172,7 +172,7 @@ export interface FederatedVerifierDeps {
    * Read only: the issuer cache rebuilds from every live provider, and a
    * sign-in that wrote asks whether its provider is still live.
    */
-  readonly providers: Pick<IdentityProviderStore, "findLive" | "isLive">;
+  readonly providers: Pick<FederationIssuerStore, "findLive" | "isLive">;
   readonly accounts: IdentityAccountService;
   readonly policies: IamPolicyGrantPathClient;
   /** The provider organization's children, by the external id a token's claim carries. */
@@ -210,7 +210,7 @@ export function newStoreBackedFederatedVerifier(
   const { jwks } = deps;
 
   const reservedIssuers = new Set(deps.reservedIssuers.map(normalizeIssuerUrl));
-  let providersByIssuer = new Map<string, ReadonlyArray<IdentityProvider>>();
+  let providersByIssuer = new Map<string, ReadonlyArray<FederationIssuer>>();
   let issuersFetchedAtMs = -Infinity;
 
   /**
@@ -220,7 +220,7 @@ export function newStoreBackedFederatedVerifier(
    * normalization still resolves, and the token's `iss`, so Auth0's
    * trailing slash matches the stored value.
    */
-  async function providersFor(issuer: string): Promise<ReadonlyArray<IdentityProvider>> {
+  async function providersFor(issuer: string): Promise<ReadonlyArray<FederationIssuer>> {
     if (nowMs() - issuersFetchedAtMs >= ISSUER_CACHE_TTL_MS) {
       providersByIssuer = indexRoutes(
         await withoutOrphans(await deps.providers.findLive(), deps.organizations, deps.logger),
@@ -239,7 +239,7 @@ export function newStoreBackedFederatedVerifier(
    * own doctrine.
    */
   async function signingKeyFor(
-    provider: IdentityProvider,
+    provider: FederationIssuer,
     iss: string,
     kid: string,
   ): Promise<KeyObject | undefined> {
@@ -385,12 +385,12 @@ export function newStoreBackedFederatedVerifier(
  * refused, as a failed `findAll` is.
  */
 async function withoutOrphans(
-  providers: ReadonlyArray<IdentityProvider>,
+  providers: ReadonlyArray<FederationIssuer>,
   organizations: OrganizationLookup,
   logger: Logger,
-): Promise<IdentityProvider[]> {
+): Promise<FederationIssuer[]> {
   const facts = new Map<string, Promise<OrganizationFacts | undefined>>();
-  const live: IdentityProvider[] = [];
+  const live: FederationIssuer[] = [];
   for (const provider of providers) {
     const org = provider.metadata?.org ?? "";
     let known = facts.get(org);
@@ -424,11 +424,11 @@ async function withoutOrphans(
  * skipped whole and logged, since it may route nothing.
  */
 function indexRoutes(
-  providers: readonly IdentityProvider[],
+  providers: readonly FederationIssuer[],
   reservedIssuers: ReadonlySet<string>,
   logger: Logger,
-): Map<string, ReadonlyArray<IdentityProvider>> {
-  const byIssuer = new Map<string, IdentityProvider[]>();
+): Map<string, ReadonlyArray<FederationIssuer>> {
+  const byIssuer = new Map<string, FederationIssuer[]>();
   for (const provider of providers) {
     const id = provider.metadata?.id ?? "";
     const audience = provider.spec?.expectedAudience ?? "";
@@ -476,7 +476,7 @@ interface SignedInAccount {
 
 async function provisionOrRefuse(
   deps: FederatedVerifierDeps,
-  provider: IdentityProvider,
+  provider: FederationIssuer,
   decoded: DecodedJwt,
   token: string,
   externalSub: string,
@@ -505,9 +505,9 @@ async function provisionOrRefuse(
         pictureUrl: profile.pictureUrl,
         provisioningMode: IdentityAccountProvisioningMode.federated,
         // The stored form: the provider by its id, as every reference.
-        identityProviderRef: create(ApiResourceReferenceSchema, {
+        federationIssuerRef: create(ApiResourceReferenceSchema, {
           org,
-          kind: ApiResourceKind.identity_provider,
+          kind: ApiResourceKind.federation_issuer,
           id: provider.metadata?.id ?? "",
         }),
       }),
@@ -538,7 +538,7 @@ async function provisionOrRefuse(
  */
 async function resolveBoundOrg(
   deps: FederatedVerifierDeps,
-  provider: IdentityProvider,
+  provider: FederationIssuer,
   decoded: DecodedJwt,
 ): Promise<string> {
   const org = provider.metadata?.org ?? "";
@@ -584,7 +584,7 @@ const NOTHING_CLAIMED: SettledSignInGrant = { claimed: false };
  */
 async function settleSignInGrant(
   deps: FederatedVerifierDeps,
-  provider: IdentityProvider,
+  provider: FederationIssuer,
   accountId: string,
   boundOrg: string,
   context: { readonly createdNow: boolean; readonly externalSub: string },
@@ -660,7 +660,7 @@ async function settleSignInGrant(
  */
 async function undoUnlessProviderLive(
   deps: FederatedVerifierDeps,
-  provider: IdentityProvider,
+  provider: FederationIssuer,
   signedIn: SignedInAccount,
   boundOrg: string,
   settled: SettledSignInGrant,
@@ -706,7 +706,7 @@ type ProviderLiveness = "live" | "not-live" | "unreadable";
  * plain Error, the chassis's infrastructure answer (INTERNAL), since
  * nothing needs undoing yet.
  */
-async function liveOrThrow(deps: FederatedVerifierDeps, provider: IdentityProvider): Promise<boolean> {
+async function liveOrThrow(deps: FederatedVerifierDeps, provider: FederationIssuer): Promise<boolean> {
   const idp = `${provider.metadata?.org ?? ""}/${provider.metadata?.slug ?? ""}`;
   try {
     return await deps.providers.isLive(provider.metadata?.id ?? "");
@@ -727,7 +727,7 @@ async function liveOrThrow(deps: FederatedVerifierDeps, provider: IdentityProvid
  */
 async function livenessOf(
   deps: FederatedVerifierDeps,
-  provider: IdentityProvider,
+  provider: FederationIssuer,
   when: string,
 ): Promise<ProviderLiveness> {
   try {
@@ -752,7 +752,7 @@ const NOT_LIVE_REFUSAL: Readonly<Record<Exclude<ProviderLiveness, "live">, (idp:
 };
 
 /** Refuses a sign-in through a provider that is not live, or whose liveness could not be read. */
-function refuseUnlessLive(provider: IdentityProvider, liveness: ProviderLiveness): void {
+function refuseUnlessLive(provider: FederationIssuer, liveness: ProviderLiveness): void {
   if (liveness === "live") {
     return;
   }
@@ -820,7 +820,7 @@ interface ProfileClaims {
 /** OIDC two-step profile resolution: JWT claims first, then userinfo. */
 async function resolveProfileClaims(
   deps: FederatedVerifierDeps,
-  provider: IdentityProvider,
+  provider: FederationIssuer,
   decoded: DecodedJwt,
   token: string,
 ): Promise<ProfileClaims> {

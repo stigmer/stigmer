@@ -112,7 +112,7 @@ describe("assertOrganizationPurgeCoverage", () => {
             {
               unit: "identity",
               stage: stage("identity", [
-                ApiResourceKind.identity_provider,
+                ApiResourceKind.federation_issuer,
                 ApiResourceKind.invitation,
                 ApiResourceKind.team,
               ]),

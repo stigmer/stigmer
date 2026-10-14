@@ -63,9 +63,9 @@ import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
-import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
@@ -77,7 +77,7 @@ import type {
   NewAccountRequest,
 } from "../../account/port.js";
 import type { OrganizationFacts, OrganizationLookup } from "../../organization-links.js";
-import type { IdentityProviderStore } from "../../provider/store.js";
+import type { FederationIssuerStore } from "../../provider/store.js";
 import { SILENT_LOGGER } from "../../../__test-utils__/refusing-doubles.js";
 import { newJwksKeyCache } from "../../../verifiers/jwks.js";
 import {
@@ -105,8 +105,8 @@ function provider(overrides?: {
   audience?: string;
   metadata?: { id: string; org: string; slug: string };
   userinfoEndpoint?: string;
-}): IdentityProvider {
-  return create(IdentityProviderSchema, {
+}): FederationIssuer {
+  return create(FederationIssuerSchema, {
     metadata: overrides?.metadata ?? { id: "idp_1", org: "acme", slug: "acme-sso" },
     status: { audit: { specAudit: { createdAt: timestampFromDate(PROVIDER_CREATED) } } },
     spec: {
@@ -160,7 +160,7 @@ const CLAIMS = {
 };
 
 interface Fakes {
-  providers: IdentityProvider[];
+  providers: FederationIssuer[];
   accountsByNaturalKey: Map<string, IdentityAccount>;
   created: NewAccountRequest[];
   deleted: string[];
@@ -201,7 +201,7 @@ interface Fakes {
   revoked: Array<{ readonly spec: IamPolicySpec; readonly actingFor: string | undefined }>;
 }
 
-function newFakes(providers: IdentityProvider[]): Fakes {
+function newFakes(providers: FederationIssuer[]): Fakes {
   return {
     providers,
     accountsByNaturalKey: new Map(),
@@ -241,7 +241,7 @@ function verifierOf(
     fetchUserProfile?: (endpoint: string) => Promise<UserProfile>;
   },
 ) {
-  const providerStore: Pick<IdentityProviderStore, "findLive" | "isLive"> = {
+  const providerStore: Pick<FederationIssuerStore, "findLive" | "isLive"> = {
     findLive: () => {
       fakes.providerReads += 1;
       return Promise.resolve(fakes.providers.filter((held) => !fakes.deletingIds.has(held.metadata?.id ?? "")));
@@ -511,7 +511,7 @@ describe("store-backed federated verifier", () => {
     expect(identity?.identityId).toBe("ida_new");
     expect(identity?.boundOrg).toBe("acme");
     expect(fakes.created[0].spec.email).toBe("sso@customer.test");
-    expect(fakes.created[0].spec.identityProviderRef?.id).toBe("idp_1");
+    expect(fakes.created[0].spec.federationIssuerRef?.id).toBe("idp_1");
     expect(fakes.grants.map((grant) => [grant.relation, grant.resource?.id])).toEqual([["viewer", "acme"]]);
     expect([...fakes.signInGrants.rows.keys()]).toEqual(["ida_new:acme"]);
   });
@@ -1020,7 +1020,7 @@ describe("store-backed federated verifier: the profile and the token's shape", (
 
   it("throws a PLAIN error on a JWKS outage (infrastructure fault)", async () => {
     const fakes = newFakes([provider()]);
-    const providerStore: Pick<IdentityProviderStore, "findLive" | "isLive"> = {
+    const providerStore: Pick<FederationIssuerStore, "findLive" | "isLive"> = {
       findLive: () => Promise.resolve(fakes.providers),
       isLive: () => Promise.resolve(true),
     };

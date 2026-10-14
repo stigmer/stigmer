@@ -13,15 +13,15 @@ import {
 } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  IdentityProviderSchema,
-  type IdentityProvider,
-} from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+  FederationIssuerSchema,
+  type FederationIssuer,
+} from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import type { IdentityProviderInput } from "@stigmer/sdk";
+import type { FederationIssuerInput } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
-import { CreateIdentityProviderForm } from "../CreateIdentityProviderForm";
+import { CreateFederationIssuerForm } from "../CreateIdentityProviderForm";
 
-const CREATED: IdentityProvider = create(IdentityProviderSchema, {
+const CREATED: FederationIssuer = create(FederationIssuerSchema, {
   metadata: { id: "idp-1", name: "Acme", slug: "acme", org: "acme" },
 });
 
@@ -29,7 +29,7 @@ function renderForm(createIdp: ReturnType<typeof vi.fn>) {
   const client = { identityProvider: { create: createIdp } } as never;
   render(
     <StigmerContext.Provider value={client}>
-      <CreateIdentityProviderForm org="acme" />
+      <CreateFederationIssuerForm org="acme" />
     </StigmerContext.Provider>,
   );
   fireEvent.change(screen.getByLabelText("Name"), {
@@ -56,8 +56,8 @@ afterEach(cleanup);
 
 describe("CreateIdentityProviderForm sign-in settings", () => {
   it("sends a delegation provider's account creation, role and customer id claim", async () => {
-    const createIdp = vi.fn(async (_input: IdentityProviderInput) => CREATED);
-    renderForm(createIdp);
+    const createIssuer = vi.fn(async (_input: FederationIssuerInput) => CREATED);
+    renderForm(createIssuer);
 
     fireEvent.click(
       screen.getByRole("switch", { name: "Create accounts on sign-in" }),
@@ -70,21 +70,21 @@ describe("CreateIdentityProviderForm sign-in settings", () => {
     });
     fireEvent.click(submitButton());
 
-    await waitFor(() => expect(createIdp).toHaveBeenCalledTimes(1));
-    const input = createIdp.mock.calls[0]![0];
+    await waitFor(() => expect(createIssuer).toHaveBeenCalledTimes(1));
+    const input = createIssuer.mock.calls[0]![0];
     expect(input.createAccountsOnSignIn).toBe(true);
     expect(input.signInRole).toBe(IamRole.member);
     expect(input.externalIdClaim).toBe("org_id");
   });
 
   it("sends no account creation, role or customer id claim the admin left unset", async () => {
-    const createIdp = vi.fn(async (_input: IdentityProviderInput) => CREATED);
-    renderForm(createIdp);
+    const createIssuer = vi.fn(async (_input: FederationIssuerInput) => CREATED);
+    renderForm(createIssuer);
 
     fireEvent.click(submitButton());
 
-    await waitFor(() => expect(createIdp).toHaveBeenCalledTimes(1));
-    const input = createIdp.mock.calls[0]![0];
+    await waitFor(() => expect(createIssuer).toHaveBeenCalledTimes(1));
+    const input = createIssuer.mock.calls[0]![0];
     expect(input.createAccountsOnSignIn).toBeUndefined();
     expect(input.signInRole).toBeUndefined();
     expect(input.externalIdClaim).toBeUndefined();

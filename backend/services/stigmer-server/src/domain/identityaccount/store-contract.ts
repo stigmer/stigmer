@@ -121,9 +121,9 @@ function federatedAccount(overrides: {
       idpId: overrides.idpId,
       email: overrides.email ?? "",
       provisioningMode: IdentityAccountProvisioningMode.federated,
-      identityProviderRef: {
+      federationIssuerRef: {
         org: provider.org,
-        kind: ApiResourceKind.identity_provider,
+        kind: ApiResourceKind.federation_issuer,
         id: provider.id,
       },
     },
@@ -217,9 +217,9 @@ function mixedShapeAccounts(idpId: string): ReadonlyArray<{
         metadata: { id, name: idpId },
         spec: {
           idpId,
-          identityProviderRef: {
+          federationIssuerRef: {
             org: ACME_ORG,
-            kind: ApiResourceKind.identity_provider,
+            kind: ApiResourceKind.federation_issuer,
             id: ACME_OKTA.id,
           },
         },
@@ -739,7 +739,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
         "a refused swap must leave the stored row's mode as it was",
       );
       assert.equal(
-        after?.spec?.identityProviderRef,
+        after?.spec?.federationIssuerRef,
         undefined,
         "a refused swap must leave the stored row with no provider ref",
       );

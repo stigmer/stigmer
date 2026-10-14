@@ -30,36 +30,36 @@ import { clone, fromBinary } from "@bufbuild/protobuf";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 
 import {
   provisionEnterpriseDatabase,
   TEST_DATABASE_URL,
   type ProvisionedEnterpriseDatabase,
 } from "../../../__test-utils__/enterprise-postgres.js";
-import { identityProviderStoreContract, type IdentityProviderStoreContractFixture } from "../store-contract.js";
-import { newIdentityProviderStore } from "../postgres-store.js";
-import type { IdentityProviderStore, ProviderSwapOutcome } from "../store.js";
+import { federationIssuerStoreContract, type FederationIssuerStoreContractFixture } from "../store-contract.js";
+import { newFederationIssuerStore } from "../postgres-store.js";
+import type { FederationIssuerStore, ProviderSwapOutcome } from "../store.js";
 import { storedProvider } from "./in-memory-provider-store.js";
 
 /** The audience the claim cases share, so an issuer alone decides whether routes collide. */
 const AUDIENCE = "https://api.test/stigmer";
 
 /** An organization's whole list, in its order. */
-async function listed(store: IdentityProviderStore, org: string): Promise<IdentityProvider[]> {
+async function listed(store: FederationIssuerStore, org: string): Promise<FederationIssuer[]> {
   return (await store.pageByOrg(org, undefined, undefined)).map((row) =>
-    fromBinary(IdentityProviderSchema, row.data),
+    fromBinary(FederationIssuerSchema, row.data),
   );
 }
 
 describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_identity_provider", () => {
   let database: ProvisionedEnterpriseDatabase;
-  let store: IdentityProviderStore;
+  let store: FederationIssuerStore;
 
   beforeAll(async () => {
     database = await provisionEnterpriseDatabase();
-    store = newIdentityProviderStore(database.pool);
+    store = newFederationIssuerStore(database.pool);
   });
 
   afterAll(async () => {
@@ -67,7 +67,7 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_iden
   });
 
   /** The update's write: a swap on the provider's bytes as stored now; a row that is gone swaps on none. */
-  async function swapOnCurrent(next: IdentityProvider): Promise<ProviderSwapOutcome> {
+  async function swapOnCurrent(next: FederationIssuer): Promise<ProviderSwapOutcome> {
     const id = next.metadata?.id ?? "";
     const read = await store.readForWrite(id);
     return store.swap(id, read?.bytes ?? new Uint8Array(), next);
@@ -161,10 +161,10 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_iden
       expectedAudience: AUDIENCE,
     });
     await store.insert(provider);
-    const renamed = clone(IdentityProviderSchema, provider);
+    const renamed = clone(FederationIssuerSchema, provider);
     renamed.metadata!.slug = "moved";
     await expect(swapOnCurrent(renamed), "a slug moves only by rename").rejects.toThrow(/keeps a provider's slug/);
-    const changed = clone(IdentityProviderSchema, provider);
+    const changed = clone(FederationIssuerSchema, provider);
     changed.metadata!.name = "After";
     changed.spec!.allowedIssuers = ["https://after.test"];
 
@@ -191,7 +191,7 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_iden
       expectedAudience: AUDIENCE,
     });
     await store.insert(second);
-    const grabbing = clone(IdentityProviderSchema, second);
+    const grabbing = clone(FederationIssuerSchema, second);
     grabbing.metadata!.name = "Grabbing";
     grabbing.spec!.allowedIssuers = ["https://c1.test"];
 
@@ -254,7 +254,7 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store holds the port's
     await database.drop();
   });
 
-  async function makeFixture(): Promise<IdentityProviderStoreContractFixture> {
+  async function makeFixture(): Promise<FederationIssuerStoreContractFixture> {
     await database.pool.query("TRUNCATE ee.iam_identity_provider_route, ee.iam_identity_provider");
     const pool = new Pool({ connectionString: database.databaseUrl, max: 4 });
     let ended = false;
@@ -264,10 +264,10 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store holds the port's
         await pool.end();
       }
     };
-    return { store: newIdentityProviderStore(pool), disconnect: end, cleanup: end };
+    return { store: newFederationIssuerStore(pool), disconnect: end, cleanup: end };
   }
 
-  for (const contractCase of identityProviderStoreContract(makeFixture)) {
+  for (const contractCase of federationIssuerStoreContract(makeFixture)) {
     it(contractCase.name, contractCase.run);
   }
 });

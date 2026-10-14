@@ -84,7 +84,7 @@ function federatedRequest(
       firstName: "Dana",
       lastName: "Reyes",
       provisioningMode: IdentityAccountProvisioningMode.federated,
-      identityProviderRef: { org: provider.org, kind: ApiResourceKind.identity_provider, id: provider.id },
+      federationIssuerRef: { org: provider.org, kind: ApiResourceKind.federation_issuer, id: provider.id },
     }),
   };
 }
@@ -216,7 +216,7 @@ const SERVICE_CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountServic
       assert.ok(ids.includes(kaiId) && ids.includes(leeId), "every account made under the provider is listed");
       assert.ok(!ids.includes(moId), "an account another provider vouches for is never listed");
       for (const row of listed) {
-        assert.equal(row.spec?.identityProviderRef?.id, provider.id, "every listed account names the provider");
+        assert.equal(row.spec?.federationIssuerRef?.id, provider.id, "every listed account names the provider");
       }
       assert.deepEqual(ids, [...ids].sort(), "the provider's accounts come in id order");
 

@@ -98,14 +98,14 @@ import { describe, expect, it } from "vitest";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OwnerAttributionType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
-import { IdentityProviderQueryController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/query_pb";
-import { IdentityProviderSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/spec_pb";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
+import { FederationIssuerQueryController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/query_pb";
+import { FederationIssuerSpecSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/spec_pb";
 import { IamPermission, IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
-import { newIdentityProviderRegistrations, type IdentityProviderLaneDeps } from "../handlers.js";
+import { newFederationIssuerRegistrations, type FederationIssuerLaneDeps } from "../handlers.js";
 import type { ProviderInsertOutcome, ProviderSwapOutcome } from "../store.js";
 import { newLoadProviderByReferenceStep, PROVIDER_BEING_DELETED_MESSAGE } from "../steps.js";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
@@ -128,8 +128,8 @@ const ROUTE_TAKEN =
   "issuer, such as an API identifier or a client ID, and use it here.";
 
 /** create's own question on the request's organization, which apply and a missing reference ask too. */
-const CREATE_IDP_ON_ACME: AuthzCheck = {
-  permission: IamPermission.can_create_idp,
+const CREATE_ISSUER_ON_ACME: AuthzCheck = {
+  permission: IamPermission.can_create_federation_issuer,
   resourceKind: ApiResourceKind.organization,
   resourceId: "acme",
 };
@@ -209,8 +209,8 @@ function identityInterceptor(): Interceptor {
 }
 
 interface Rig {
-  readonly commands: ReturnType<typeof createClient<typeof IdentityProviderCommandController>>;
-  readonly queries: ReturnType<typeof createClient<typeof IdentityProviderQueryController>>;
+  readonly commands: ReturnType<typeof createClient<typeof FederationIssuerCommandController>>;
+  readonly queries: ReturnType<typeof createClient<typeof FederationIssuerQueryController>>;
   readonly store: InMemoryProviderStore;
   readonly checks: AuthzCheck[];
   readonly created: ResourceCreatedEvent[];
@@ -265,7 +265,7 @@ function rig(
     },
   };
   const invalidated = { count: 0 };
-  const deps: IdentityProviderLaneDeps = {
+  const deps: FederationIssuerLaneDeps = {
     // The caller's row, which the refusal of a service account reads.
     accounts: {
       findById: (id) =>
@@ -316,15 +316,15 @@ function rig(
   };
   const transport = createRouterTransport(
     (router) => {
-      for (const register of newIdentityProviderRegistrations(deps)) {
+      for (const register of newFederationIssuerRegistrations(deps)) {
         register(router);
       }
     },
     { router: { interceptors: [identityInterceptor()] } },
   );
   return {
-    commands: createClient(IdentityProviderCommandController, transport),
-    queries: createClient(IdentityProviderQueryController, transport),
+    commands: createClient(FederationIssuerCommandController, transport),
+    queries: createClient(FederationIssuerQueryController, transport),
     store,
     checks,
     created,
@@ -341,8 +341,8 @@ function rig(
 function provider(
   spec: { jwksUri?: string; userinfoEndpoint?: string; issuers?: string[]; audience?: string } = {},
   metadata: { name?: string; org?: string; id?: string; slug?: string } = {},
-): IdentityProvider {
-  return create(IdentityProviderSchema, {
+): FederationIssuer {
+  return create(FederationIssuerSchema, {
     apiVersion: "iam.stigmer.ai/v1",
     kind: "IdentityProvider",
     metadata: create(ApiResourceMetadataSchema, {
@@ -351,7 +351,7 @@ function provider(
       id: metadata.id ?? "",
       slug: metadata.slug ?? "",
     }),
-    spec: create(IdentityProviderSpecSchema, {
+    spec: create(FederationIssuerSpecSchema, {
       displayName: "Acme Platform",
       jwksUri: spec.jwksUri ?? JWKS,
       allowedIssuers: spec.issuers ?? ["https://idp.acme.test/"],
@@ -406,14 +406,14 @@ describe("create", () => {
 
     expect(r.checks).toEqual([
       {
-        permission: IamPermission.can_create_idp,
+        permission: IamPermission.can_create_federation_issuer,
         resourceKind: ApiResourceKind.organization,
         resourceId: "acme",
       },
     ]);
     expect(r.created).toHaveLength(1);
     const event = r.created[0]!;
-    expect(event.kind).toBe(ApiResourceKind.identity_provider);
+    expect(event.kind).toBe(ApiResourceKind.federation_issuer);
     expect(event.resourceId).toBe(created.metadata?.id);
     expect(event.orgId).toBe("acme");
     expect(event.ownerAttribution).toBe(OwnerAttributionType.NONE);
@@ -452,7 +452,7 @@ describe("create", () => {
 
   it("answers the same copy when the insert loses the slug race the pre-check could not see", async () => {
     class RacingStore extends InMemoryProviderStore {
-      override async insert(row: IdentityProvider): Promise<ProviderInsertOutcome> {
+      override async insert(row: FederationIssuer): Promise<ProviderInsertOutcome> {
         await super.insert(storedProvider({ id: "idp_winner", org: "acme", slug: "acme-platform", issuers: [] }));
         return super.insert(row);
       }
@@ -470,7 +470,7 @@ describe("create", () => {
 
   it("answers the route copy when a racing create claimed the route first", async () => {
     class RacingStore extends InMemoryProviderStore {
-      override async insert(row: IdentityProvider): Promise<ProviderInsertOutcome> {
+      override async insert(row: FederationIssuer): Promise<ProviderInsertOutcome> {
         await super.insert(
           storedProvider({
             id: "idp_winner",
@@ -575,7 +575,7 @@ describe("update", () => {
     );
     expect(r.checks.at(-1)).toEqual({
       permission: IamPermission.can_edit,
-      resourceKind: ApiResourceKind.identity_provider,
+      resourceKind: ApiResourceKind.federation_issuer,
       resourceId: id,
     });
     expect(await r.store.findById(id)).toEqual(updated);
@@ -608,7 +608,7 @@ describe("update", () => {
 
   it("is NOT_FOUND when the provider is deleted between the load and the write", async () => {
     class VanishingStore extends InMemoryProviderStore {
-      override async swap(id: string, expectedBytes: Uint8Array, row: IdentityProvider): Promise<ProviderSwapOutcome> {
+      override async swap(id: string, expectedBytes: Uint8Array, row: FederationIssuer): Promise<ProviderSwapOutcome> {
         await this.deleteById(id);
         return super.swap(id, expectedBytes, row);
       }
@@ -636,7 +636,7 @@ describe("rename", () => {
     expect(renamed.metadata?.id).toBe(id);
     expect(renamed.metadata?.slug).toBe("acme-sso");
     expect(renamed.status?.audit?.specAudit?.event).toBe("renamed");
-    expect(r.checks.at(-1)).toEqual({ permission: IamPermission.can_delete, resourceKind: ApiResourceKind.identity_provider, resourceId: id });
+    expect(r.checks.at(-1)).toEqual({ permission: IamPermission.can_delete, resourceKind: ApiResourceKind.federation_issuer, resourceId: id });
     expect(r.invalidations).toBe(before + 1);
     expect(await r.store.findProviderIdByRoute("https://idp.acme.test", AUDIENCE), "the route is unchanged").toBe(id);
 
@@ -661,7 +661,7 @@ describe("rename", () => {
     let renameMidWrite: (() => Promise<unknown>) | undefined;
     let swaps = 0;
     class RacingStore extends InMemoryProviderStore {
-      override async swap(id: string, expectedBytes: Uint8Array, row: IdentityProvider): Promise<ProviderSwapOutcome> {
+      override async swap(id: string, expectedBytes: Uint8Array, row: FederationIssuer): Promise<ProviderSwapOutcome> {
         swaps += 1;
         const rename = renameMidWrite;
         renameMidWrite = undefined;
@@ -710,7 +710,7 @@ describe("apply", () => {
     const applied = await r.commands.apply(provider({}, { id: "idp_from_an_exported_file" }));
 
     expect(applied.metadata?.id).toMatch(/^idp_[0-9a-z]{26}$/);
-    expect(r.checks).toEqual([CREATE_IDP_ON_ACME, CREATE_IDP_ON_ACME]);
+    expect(r.checks).toEqual([CREATE_ISSUER_ON_ACME, CREATE_ISSUER_ON_ACME]);
     expect(r.created).toHaveLength(1);
   });
 
@@ -723,10 +723,10 @@ describe("apply", () => {
 
     expect(applied.metadata?.id).toBe("idp_held");
     expect(r.checks).toEqual([
-      CREATE_IDP_ON_ACME,
+      CREATE_ISSUER_ON_ACME,
       {
         permission: IamPermission.can_edit,
-        resourceKind: ApiResourceKind.identity_provider,
+        resourceKind: ApiResourceKind.federation_issuer,
         resourceId: "idp_held",
       },
     ]);
@@ -747,7 +747,7 @@ describe("apply by a caller who is not the organization's admin", () => {
       expect(refused.code).toBe(Code.PermissionDenied);
       expect(refused.rawMessage).toBe("unauthorized to create identity provider in this organization");
     }
-    expect(r.checks).toEqual([CREATE_IDP_ON_ACME, CREATE_IDP_ON_ACME]);
+    expect(r.checks).toEqual([CREATE_ISSUER_ON_ACME, CREATE_ISSUER_ON_ACME]);
     expect(r.store.size).toBe(1);
   });
 });
@@ -762,7 +762,7 @@ describe("delete", () => {
     expect(r.removed).toEqual(["idp_a"]);
     expect(r.checks.at(-1)).toEqual({
       permission: IamPermission.can_delete,
-      resourceKind: ApiResourceKind.identity_provider,
+      resourceKind: ApiResourceKind.federation_issuer,
       resourceId: "idp_a",
     });
   });
@@ -803,7 +803,7 @@ describe("reads", () => {
     expect(r.checks).toEqual([
       {
         permission: IamPermission.can_view,
-        resourceKind: ApiResourceKind.identity_provider,
+        resourceKind: ApiResourceKind.federation_issuer,
         resourceId: "idp_a",
       },
     ]);
@@ -829,7 +829,7 @@ describe("reads", () => {
     const gone = await failure(r.queries.getByReference({ org: "acme", id: "idp_gone" }));
     expect(gone.rawMessage).toBe("IdentityProvider 'acme/idp_gone' not found");
     // Each miss is answered only after the organization's bar, as a slug's is.
-    expect(r.checks).toEqual([CREATE_IDP_ON_ACME, CREATE_IDP_ON_ACME]);
+    expect(r.checks).toEqual([CREATE_ISSUER_ON_ACME, CREATE_ISSUER_ON_ACME]);
 
     // An empty reference is the contract's own refusal over the wire, and the
     // step's guard for an in-process caller that skips the contract.
@@ -857,28 +857,28 @@ describe("reads", () => {
     const unknown = await failure(r.queries.getByReference({ org: "acme", slug: "ops" }));
     expect(unknown.code).toBe(Code.NotFound);
     expect(unknown.rawMessage).toBe("IdentityProvider 'acme/ops' not found");
-    expect(r.checks).toEqual([CREATE_IDP_ON_ACME]);
+    expect(r.checks).toEqual([CREATE_ISSUER_ON_ACME]);
   });
 
   it.each([
     ["an outsider", () => "deny" as const],
     [
       "a viewer of the organization who is not its admin",
-      (check: AuthzCheck) => (check.permission === IamPermission.can_create_idp ? ("deny" as const) : ("allow" as const)),
+      (check: AuthzCheck) => (check.permission === IamPermission.can_create_federation_issuer ? ("deny" as const) : ("allow" as const)),
     ],
   ])("getByReference answers %s get's denial for a missing slug, as for a provider they may not see", async (_who, decide) => {
     const r = rig({ decide });
     const refused = await failure(r.queries.getByReference({ org: "acme", slug: "ops" }));
     expect(refused.code).toBe(Code.PermissionDenied);
     expect(refused.rawMessage).toBe("unauthorized to view identity provider");
-    expect(r.checks).toEqual([CREATE_IDP_ON_ACME]);
+    expect(r.checks).toEqual([CREATE_ISSUER_ON_ACME]);
   });
 
   it.each([
     ["an outsider", () => "deny" as const],
     [
       "a viewer of the organization who is not its admin",
-      (check: AuthzCheck) => (check.permission === IamPermission.can_create_idp ? ("deny" as const) : ("allow" as const)),
+      (check: AuthzCheck) => (check.permission === IamPermission.can_create_federation_issuer ? ("deny" as const) : ("allow" as const)),
     ],
   ])("getByReference answers %s get's denial for a missing id, another organization's provider included", async (_who, decide) => {
     const r = rig({ decide });
@@ -889,7 +889,7 @@ describe("reads", () => {
       expect(refused.code).toBe(Code.PermissionDenied);
       expect(refused.rawMessage).toBe("unauthorized to view identity provider");
     }
-    expect(r.checks).toEqual([CREATE_IDP_ON_ACME, CREATE_IDP_ON_ACME]);
+    expect(r.checks).toEqual([CREATE_ISSUER_ON_ACME, CREATE_ISSUER_ON_ACME]);
   });
 
   it("getByReference answers an outsider the same denial for a provider's id whether the organization holds it, another organization does, or none", async () => {
@@ -903,9 +903,9 @@ describe("reads", () => {
       expect(refused.rawMessage).toBe("unauthorized to view identity provider");
     }
     expect(r.checks).toEqual([
-      { permission: IamPermission.can_view, resourceKind: ApiResourceKind.identity_provider, resourceId: "idp_a" },
-      CREATE_IDP_ON_ACME,
-      CREATE_IDP_ON_ACME,
+      { permission: IamPermission.can_view, resourceKind: ApiResourceKind.federation_issuer, resourceId: "idp_a" },
+      CREATE_ISSUER_ON_ACME,
+      CREATE_ISSUER_ON_ACME,
     ]);
   });
 
@@ -1191,13 +1191,13 @@ const OWNER_SIGN_IN_ROLE_REFUSED =
 
 /** The sign-in fields a request may carry, set on a provider the builder made. */
 function withSignIn(
-  message: IdentityProvider,
+  message: FederationIssuer,
   signIn: {
     createAccountsOnSignIn?: boolean;
     signInRole?: IamRole;
     externalIdClaim?: string;
   },
-): IdentityProvider {
+): FederationIssuer {
   const spec = message.spec;
   if (spec === undefined) {
     throw new Error("the builder always sets a spec");

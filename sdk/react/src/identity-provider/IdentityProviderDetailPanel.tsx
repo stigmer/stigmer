@@ -2,9 +2,9 @@
 
 import { type FormEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { buildIdentityProviderProto } from "@stigmer/sdk";
+import { buildFederationIssuerProto } from "@stigmer/sdk";
 import { maskedEdit, saveErrorMessage } from "../internal/maskedEdit.js";
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
 import { EXPECTED_AUDIENCE_HINT, EXPECTED_AUDIENCE_PLACEHOLDER } from "./copy.js";
 import {
@@ -14,17 +14,17 @@ import {
   toSignInInput,
   type SignInSettings,
 } from "./SignInSettings.js";
-import { useUpdateIdentityProvider } from "./useUpdateIdentityProvider.js";
+import { useUpdateFederationIssuer } from "./useUpdateIdentityProvider.js";
 import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 
-/** Props for {@link IdentityProviderDetailPanel}. */
-export interface IdentityProviderDetailPanelProps {
+/** Props for {@link FederationIssuerDetailPanel}. */
+export interface FederationIssuerDetailPanelProps {
   /** The identity provider resource to display and edit. */
-  readonly identityProvider: IdentityProvider;
+  readonly federationIssuer: FederationIssuer;
   /** Fired with the updated resource after a successful save. */
-  readonly onUpdated?: (idp: IdentityProvider) => void;
+  readonly onUpdated?: (idp: FederationIssuer) => void;
   /** Fired when the user clicks the back button. */
   readonly onBack?: () => void;
   /** Additional CSS class names for the root container. */
@@ -41,7 +41,7 @@ export interface IdentityProviderDetailPanelProps {
  *
  * In **edit mode**, fields become editable inputs, the sign-in settings
  * (account creation, sign-in role, customer id claim) among them. "Save" submits the update via
- * {@link useUpdateIdentityProvider}; "Cancel" discards changes and
+ * {@link useUpdateFederationIssuer}; "Cancel" discards changes and
  * returns to view mode.
  *
  * All visual properties flow through `--stgm-*` design tokens.
@@ -55,18 +55,18 @@ export interface IdentityProviderDetailPanelProps {
  * />
  * ```
  */
-export function IdentityProviderDetailPanel({
-  identityProvider,
+export function FederationIssuerDetailPanel({
+  federationIssuer,
   onUpdated,
   onBack,
   className,
-}: IdentityProviderDetailPanelProps) {
+}: FederationIssuerDetailPanelProps) {
   const baseId = useId();
-  const spec = identityProvider.spec;
-  const meta = identityProvider.metadata;
+  const spec = federationIssuer.spec;
+  const meta = federationIssuer.metadata;
 
   const { update, isUpdating, error, clearError } =
-    useUpdateIdentityProvider();
+    useUpdateFederationIssuer();
   const [mode, setMode] = useState<"view" | "edit">("view");
 
   // Edit form state — initialized from current resource
@@ -107,7 +107,7 @@ export function IdentityProviderDetailPanel({
         // form does not list keeps its stored value. Fields the form clears
         // (an emptied userinfo endpoint or sign-in setting) are named with
         // undefined, which clears them.
-        const { resource, paths } = maskedEdit(identityProvider, buildIdentityProviderProto, {
+        const { resource, paths } = maskedEdit(federationIssuer, buildFederationIssuerProto, {
           displayName: displayName.trim(),
           jwksUri: jwksUri.trim(),
           allowedIssuers: issuers
@@ -126,7 +126,7 @@ export function IdentityProviderDetailPanel({
       }
     },
     [
-      identityProvider, displayName, jwksUri, issuers, audience,
+      federationIssuer, displayName, jwksUri, issuers, audience,
       userinfoEndpoint, signIn, update, clearError,
       onUpdated,
     ],
@@ -139,8 +139,8 @@ export function IdentityProviderDetailPanel({
     audience.trim() !== "" &&
     !isUpdating;
 
-  const createdAt = identityProvider.status?.audit?.specAudit?.createdAt;
-  const updatedAt = identityProvider.status?.audit?.specAudit?.updatedAt;
+  const createdAt = federationIssuer.status?.audit?.specAudit?.createdAt;
+  const updatedAt = federationIssuer.status?.audit?.specAudit?.updatedAt;
 
   return (
     <div className={cn("stg:space-y-4", className)}>
@@ -197,7 +197,7 @@ export function IdentityProviderDetailPanel({
           kind="identity_provider"
           resourceId={meta?.id || null}
           currentSlug={meta?.slug ?? ""}
-          onRenamed={(renamed) => onUpdated?.(renamed as IdentityProvider)}
+          onRenamed={(renamed) => onUpdated?.(renamed as FederationIssuer)}
           className="stg:max-w-md"
         />
       )}
@@ -312,7 +312,7 @@ function ViewMode({
   createdAt,
   updatedAt,
 }: {
-  spec: IdentityProvider["spec"];
+  spec: FederationIssuer["spec"];
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }) {
@@ -449,7 +449,7 @@ function FieldInput({
 // Provisioning mode badge
 // ---------------------------------------------------------------------------
 
-function ProvisioningModeBadge({ spec }: { spec: IdentityProvider["spec"] }) {
+function ProvisioningModeBadge({ spec }: { spec: FederationIssuer["spec"] }) {
   if (spec?.createAccountsOnSignIn) {
     return (
       <span className="stg:inline-flex stg:items-center stg:rounded-full stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-primary">

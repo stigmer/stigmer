@@ -7,7 +7,7 @@
  * (store.ts), and the contract states the pair (`expected_audience` is
  * required, and no two providers share an issuer and audience).
  */
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 
 /** One route: an issuer the provider names, with the provider's audience. */
 export interface ProviderRoute {
@@ -22,7 +22,7 @@ export interface ProviderRoute {
  * a token (the contract requires the audience on every write; only a row
  * stored before that rule can lack one).
  */
-export function routesOf(provider: IdentityProvider): ReadonlyArray<ProviderRoute> {
+export function routesOf(provider: FederationIssuer): ReadonlyArray<ProviderRoute> {
   const audience = provider.spec?.expectedAudience ?? "";
   if (audience === "") {
     return [];

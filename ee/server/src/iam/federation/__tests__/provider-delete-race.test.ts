@@ -127,7 +127,7 @@ function world(holds: Holds = {}) {
       await holds.beforeCreate;
       minted += 1;
       const id = `ida_signed_in_${minted}`;
-      const ref = request.spec.identityProviderRef;
+      const ref = request.spec.federationIssuerRef;
       const account = create(IdentityAccountSchema, { metadata: { id } });
       accounts.set(id, { key: `${ref?.id ?? ""}:${request.spec.idpId}`, account });
       return account;

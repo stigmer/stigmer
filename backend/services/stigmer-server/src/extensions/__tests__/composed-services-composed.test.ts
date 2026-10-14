@@ -103,7 +103,7 @@ function enterpriseUnit(extra: Partial<ServerExtension> = {}): ServerExtension {
     drivers: {
       platformTokenKeys: RING,
       resourceRowReaders: new Map([
-        [ApiResourceKind.identity_provider, noRows],
+        [ApiResourceKind.federation_issuer, noRows],
         [ApiResourceKind.invitation, noRows],
         [ApiResourceKind.team, noRows],
       ]),
@@ -196,7 +196,7 @@ describe("onComposed: a unit receives the composition's own instances", () => {
           resourceAuthorizationLifecycle: lifecycle,
           iamPolicyStore: policies,
           resourceRowReaders: new Map([
-            [ApiResourceKind.identity_provider, noRows],
+            [ApiResourceKind.federation_issuer, noRows],
             [ApiResourceKind.invitation, noRows],
             [ApiResourceKind.team, noRows],
           ]),

@@ -100,7 +100,7 @@ const PROVIDER = { kind: "identity_provider", id: "idp_a" };
 const CLIENT = { kind: "platform_client", id: "pcl_a" };
 
 const ALL_NO_OWNER_KINDS: ReadonlyArray<OwnerRowKind> = [
-  { kind: ApiResourceKind.identity_provider, key: "identity-provider", idField: "provider" },
+  { kind: ApiResourceKind.federation_issuer, key: "identity-provider", idField: "provider" },
   { kind: ApiResourceKind.invitation, key: "invitation", idField: "invitation" },
   { kind: ApiResourceKind.platform_client, key: "platform-client", idField: "client" },
   { kind: ApiResourceKind.oauth_app, key: "oauth-app", idField: "app" },
@@ -118,7 +118,7 @@ describe("revokeOwnerRows", () => {
     ];
     const r = rig(table);
 
-    const report = await revokeOwnerRows(ApiResourceKind.identity_provider, r.deps);
+    const report = await revokeOwnerRows(ApiResourceKind.federation_issuer, r.deps);
 
     expect(r.read).toEqual([{ kind: "identity_provider", relation: "owner" }]);
     expect(r.deleted.map((spec) => spec.principal?.id)).toEqual(["ida_carol", "ida_granted"]);

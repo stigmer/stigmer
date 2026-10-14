@@ -1,13 +1,13 @@
 "use client";
 
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 
-/** Return value of {@link useIdentityProvider}. */
-export interface UseIdentityProviderReturn {
+/** Return value of {@link useFederationIssuer}. */
+export interface UseFederationIssuerReturn {
   /** The fetched IdentityProvider, or `null` while loading or on error. */
-  readonly identityProvider: IdentityProvider | null;
+  readonly federationIssuer: FederationIssuer | null;
   /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
   /** `true` while a background refetch is in flight and stale data is shown. */
@@ -41,16 +41,16 @@ export interface UseIdentityProviderReturn {
  * }
  * ```
  */
-export function useIdentityProvider(
+export function useFederationIssuer(
   id: string | null,
-): UseIdentityProviderReturn {
+): UseFederationIssuerReturn {
   const stigmer = useStigmer();
 
-  const { data: identityProvider, isLoading, isRefetching, error, refetch } = useFetch(
-    id ? () => stigmer.identityProvider.get(id) : null,
+  const { data: federationIssuer, isLoading, isRefetching, error, refetch } = useFetch(
+    id ? () => stigmer.federationIssuer.get(id) : null,
     [id, stigmer],
-    null as IdentityProvider | null,
+    null as FederationIssuer | null,
   );
 
-  return { identityProvider, isLoading, isRefetching, error, refetch };
+  return { federationIssuer, isLoading, isRefetching, error, refetch };
 }

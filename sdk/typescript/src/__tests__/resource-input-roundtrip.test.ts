@@ -40,8 +40,8 @@ import {
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { IdentityProviderSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/spec_pb";
+import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { FederationIssuerSpecSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/spec_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import {
@@ -72,7 +72,7 @@ import { buildAgentShareProto, toAgentShareInput } from "../gen/agentshare";
 import { buildApiKeyProto, toApiKeyInput } from "../gen/apikey";
 import { buildChannelAppProto, toChannelAppInput } from "../gen/channelapp";
 import { buildIdentityAccountProto, toIdentityAccountInput } from "../gen/identityaccount";
-import { buildIdentityProviderProto, toIdentityProviderInput } from "../gen/identityprovider";
+import { buildFederationIssuerProto, toFederationIssuerInput } from "../gen/federationissuer";
 import { buildOAuthAppProto, toOAuthAppInput } from "../gen/oauthapp";
 import { buildOrganizationProto, toOrganizationInput } from "../gen/organization";
 import { buildPlatformClientProto, toPlatformClientInput } from "../gen/platformclient";
@@ -564,10 +564,10 @@ describe("toIdentityAccountInput (tripwire)", () => {
         pictureUrl: "https://acme.example/ada.png",
         isMachineAccount: true,
         provisioningMode: IdentityAccountProvisioningMode.federated,
-        identityProviderRef: {
+        federationIssuerRef: {
           org: "acme",
           slug: "acme-okta",
-          kind: ApiResourceKind.identity_provider,
+          kind: ApiResourceKind.federation_issuer,
         },
         preferences: {
           standingContext: "Keep answers terse.",
@@ -592,9 +592,9 @@ describe("toIdentityAccountInput (tripwire)", () => {
   });
 });
 
-describe("toIdentityProviderInput", () => {
+describe("toFederationIssuerInput", () => {
   const fixture = () =>
-    create(IdentityProviderSchema, {
+    create(FederationIssuerSchema, {
       metadata: META,
       spec: {
         displayName: "Acme Okta",
@@ -609,15 +609,15 @@ describe("toIdentityProviderInput", () => {
     });
 
   it("fixture covers every IdentityProviderSpec field (schema tripwire)", () => {
-    assertFixtureCoversSpec(IdentityProviderSpecSchema, fixture().spec!);
+    assertFixtureCoversSpec(FederationIssuerSpecSchema, fixture().spec!);
   });
 
   it("round-trips the full spec and metadata through the builder", () => {
     const original = fixture();
     assertSpecRoundTrip(
-      IdentityProviderSpecSchema,
+      FederationIssuerSpecSchema,
       original,
-      buildIdentityProviderProto(toIdentityProviderInput(original)),
+      buildFederationIssuerProto(toFederationIssuerInput(original)),
     );
   });
 });

@@ -376,7 +376,7 @@ describe("identity-account points (composed server, trusted-local: driver + fede
         (org: string, providerRef: { org: string; slug: string }) =>
           command.createFederatedAccount({
             org,
-            identityProviderRef: providerRef,
+            federationIssuerRef: providerRef,
             externalSub: "okta|1",
             email: "person@example.com",
           }),
@@ -386,7 +386,7 @@ describe("identity-account points (composed server, trusted-local: driver + fede
         (org: string, providerRef: { org: string; slug: string }) =>
           command.updateFederatedAccount({
             org,
-            identityProviderRef: providerRef,
+            federationIssuerRef: providerRef,
             externalSub: "okta|1",
             email: "person@example.com",
           }),
@@ -396,7 +396,7 @@ describe("identity-account points (composed server, trusted-local: driver + fede
         (org: string, providerRef: { org: string; slug: string }) =>
           command.deprovisionFederatedAccount({
             org,
-            identityProviderRef: providerRef,
+            federationIssuerRef: providerRef,
             externalSub: "okta|1",
           }),
       ],
@@ -405,7 +405,7 @@ describe("identity-account points (composed server, trusted-local: driver + fede
         (org: string, providerRef: { org: string; slug: string }) =>
           query.getByExternalSub({
             org,
-            identityProviderRef: providerRef,
+            federationIssuerRef: providerRef,
             externalSub: "okta|1",
           }),
       ],
@@ -435,7 +435,7 @@ describe("identity-account points (composed server, trusted-local: driver + fede
       armCalls.length = 0;
       await command.createFederatedAccount({
         org: "acme",
-        identityProviderRef: { slug: "okta" },
+        federationIssuerRef: { slug: "okta" },
         externalSub: "okta|2",
         email: "person@example.com",
       });
@@ -463,7 +463,7 @@ describe("identity-account points (composed server, trusted-local: driver + fede
       const error = await connectErrorOf(
         command.createFederatedAccount({
           org: "acme",
-          identityProviderRef: { org: "rival", slug: "okta" },
+          federationIssuerRef: { org: "rival", slug: "okta" },
           externalSub: "okta|4",
           email: "person@example.com",
         }),
@@ -482,7 +482,7 @@ describe("identity-account points (composed server, trusted-local: driver + fede
         const error = await connectErrorOf(
           query.getByExternalSub({
             org: "acme",
-            identityProviderRef: { org: "acme", slug: "unknown-idp" },
+            federationIssuerRef: { org: "acme", slug: "unknown-idp" },
             externalSub: "okta|5",
           }),
         );
@@ -502,7 +502,7 @@ describe("identity-account points (composed server, trusted-local: driver + fede
       const error = await connectErrorOf(
         command.createFederatedAccount({
           org: LOCKED_ORG,
-          identityProviderRef: { org: LOCKED_ORG, slug: "okta" },
+          federationIssuerRef: { org: LOCKED_ORG, slug: "okta" },
           externalSub: "okta|6",
           email: "person@example.com",
         }),
@@ -625,7 +625,7 @@ describe("identity-account points (composed server, declared posture: the verifi
           spec: {
             idpId: subject,
             provisioningMode: IdentityAccountProvisioningMode.federated,
-            identityProviderRef: { org: "acme", id: "idp_01hzacmeokta0000000000000" },
+            federationIssuerRef: { org: "acme", id: "idp_01hzacmeokta0000000000000" },
           },
         }),
       );

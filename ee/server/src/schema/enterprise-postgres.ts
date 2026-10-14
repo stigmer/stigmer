@@ -17,8 +17,8 @@ import { newSignInGrantLedger } from "../iam/federation/postgres-sign-in-grants.
 import type { SignInGrantLedger } from "../iam/federation/sign-in-grants.js";
 import { newInvitationStore } from "../iam/invitation/postgres-store.js";
 import type { InvitationStore } from "../iam/invitation/store.js";
-import { newIdentityProviderStore } from "../iam/provider/postgres-store.js";
-import type { IdentityProviderStore } from "../iam/provider/store.js";
+import { newFederationIssuerStore } from "../iam/provider/postgres-store.js";
+import type { FederationIssuerStore } from "../iam/provider/store.js";
 import { newTeamStore } from "../iam/team/postgres-store.js";
 import type { TeamStore } from "../iam/team/store.js";
 import { runEnterpriseMigrations } from "./enterprise-migrations.js";
@@ -29,7 +29,7 @@ export interface EnterpriseSchema {
 }
 
 export interface EnterprisePostgres {
-  readonly providers: IdentityProviderStore;
+  readonly providers: FederationIssuerStore;
   readonly teams: TeamStore;
   readonly invitations: InvitationStore;
   readonly signInGrants: SignInGrantLedger;
@@ -38,7 +38,7 @@ export interface EnterprisePostgres {
 
 export function newEnterprisePostgres(pool: Pool): EnterprisePostgres {
   return {
-    providers: newIdentityProviderStore(pool),
+    providers: newFederationIssuerStore(pool),
     teams: newTeamStore(pool),
     invitations: newInvitationStore(pool),
     signInGrants: newSignInGrantLedger(pool),

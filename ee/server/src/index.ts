@@ -56,8 +56,8 @@ export type {
   IdentityAccountServiceContractFixture,
   IdentityAccountServiceUnderTest,
 } from "./iam/account/port-contract.js";
-export { identityProviderStoreContract } from "./iam/provider/store-contract.js";
-export type { IdentityProviderStoreContractFixture } from "./iam/provider/store-contract.js";
+export { federationIssuerStoreContract } from "./iam/provider/store-contract.js";
+export type { FederationIssuerStoreContractFixture } from "./iam/provider/store-contract.js";
 export { teamStoreContract } from "./iam/team/store-contract.js";
 export type { TeamStoreContractFixture } from "./iam/team/store-contract.js";
 export { invitationStoreContract } from "./iam/invitation/store-contract.js";

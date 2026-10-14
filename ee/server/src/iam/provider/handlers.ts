@@ -75,14 +75,14 @@ import type { ServiceImpl } from "@connectrpc/connect";
 import type { OutboundFetch } from "@stigmer/outbound/egress";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
 import {
-  IdentityProvidersSchema,
-  UpdateIdentityProviderInputSchema,
-} from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
-import { IdentityProviderQueryController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/query_pb";
+  FederationIssuersSchema,
+  UpdateFederationIssuerInputSchema,
+} from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/io_pb";
+import { FederationIssuerQueryController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/query_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type {
   Authorizer,
@@ -138,13 +138,13 @@ import {
   withResolvedProviderId,
 } from "./steps.js";
 import { newGrowthGateStep, type GrowthGate } from "../growth-gate.js";
-import type { IdentityProviderStore } from "./store.js";
+import type { FederationIssuerStore } from "./store.js";
 import { normalizeIssuers, routeTakenError, validateProvider } from "./validation.js";
 
-export interface IdentityProviderLaneDeps {
+export interface FederationIssuerLaneDeps {
   readonly authorizer: Authorizer;
   readonly logger: Logger;
-  readonly store: IdentityProviderStore;
+  readonly store: FederationIssuerStore;
   /** The server's one name table, where a provider's slug is claimed (steps.ts). */
   readonly names: NameTable;
   /** The egress-guarded fetch the matrix's live reads dial through (the composition's one). */
@@ -171,23 +171,23 @@ export interface IdentityProviderLaneDeps {
   readonly growthGate?: GrowthGate;
 }
 
-type Commands = ServiceImpl<typeof IdentityProviderCommandController>;
-type Queries = ServiceImpl<typeof IdentityProviderQueryController>;
+type Commands = ServiceImpl<typeof FederationIssuerCommandController>;
+type Queries = ServiceImpl<typeof FederationIssuerQueryController>;
 
-const KIND = ApiResourceKind.identity_provider;
+const KIND = ApiResourceKind.federation_issuer;
 
 /** Apply's first refusal is create's own copy (the header's apply line says why). */
-const APPLY_DENIED = deniedCopyOf(IdentityProviderCommandController.method.create);
+const APPLY_DENIED = deniedCopyOf(FederationIssuerCommandController.method.create);
 
 /** The growth gate's step, last in create and update, when the host fills the port. */
 function growthGateOf(
-  deps: IdentityProviderLaneDeps,
-): ReadonlyArray<PipelineStep<typeof IdentityProviderSchema>> {
+  deps: FederationIssuerLaneDeps,
+): ReadonlyArray<PipelineStep<typeof FederationIssuerSchema>> {
   return deps.growthGate === undefined ? [] : [newGrowthGateStep(deps.growthGate)];
 }
 
-export function providerCommands(deps: IdentityProviderLaneDeps): Commands {
-  const method = IdentityProviderCommandController.method;
+export function providerCommands(deps: FederationIssuerLaneDeps): Commands {
+  const method = FederationIssuerCommandController.method;
   // A service account decides no sign-in path into the organization
   // (@stigmer/server's refuse-service-account step), on every write.
   const refuseServiceAccount = <Desc extends DescMessage>() =>
@@ -212,7 +212,7 @@ export function providerCommands(deps: IdentityProviderLaneDeps): Commands {
             newCheckDuplicateProviderStep(deps.names, deps.store),
             newBuildNewStateStep(),
             ...growthGateOf(deps),
-            newClaimNameStep<typeof IdentityProviderSchema>(
+            newClaimNameStep<typeof FederationIssuerSchema>(
               deps.names,
               KIND,
               providerNameHolder(deps.store),
@@ -228,7 +228,7 @@ export function providerCommands(deps: IdentityProviderLaneDeps): Commands {
         runUpdateChain(
           { chain: "identity-provider-update", step: "UpdateIdentityProvider" },
           method.update,
-          IdentityProviderSchema,
+          FederationIssuerSchema,
           input,
           ctx,
           deps,
@@ -258,7 +258,7 @@ export function providerCommands(deps: IdentityProviderLaneDeps): Commands {
             refuseServiceAccount(),
             newAuthorizeResolvedTargetStep(deps.authorizer, (reqCtx) => [
               {
-                permission: IamPermission.can_create_idp,
+                permission: IamPermission.can_create_federation_issuer,
                 resourceKind: ApiResourceKind.organization,
                 resourceId: reqCtx.input.metadata?.org ?? "",
                 deniedMessage: APPLY_DENIED,
@@ -272,7 +272,7 @@ export function providerCommands(deps: IdentityProviderLaneDeps): Commands {
       return existing === undefined
         ? commands.create(input, ctx)
         : commands.update(
-            everyPathUpdate(UpdateIdentityProviderInputSchema, withResolvedProviderId(input, existing)),
+            everyPathUpdate(UpdateFederationIssuerInputSchema, withResolvedProviderId(input, existing)),
             ctx,
           );
     },
@@ -281,7 +281,7 @@ export function providerCommands(deps: IdentityProviderLaneDeps): Commands {
         {
           method: method.rename,
           names: deps.names,
-          rows: portRenameRows(IdentityProviderSchema, deps.store),
+          rows: portRenameRows(FederationIssuerSchema, deps.store),
           authorizer: deps.authorizer,
           logger: deps.logger,
           beforeLoad: [refuseServiceAccount()],
@@ -318,8 +318,8 @@ export function providerCommands(deps: IdentityProviderLaneDeps): Commands {
   return commands;
 }
 
-export function providerQueries(deps: IdentityProviderLaneDeps): Queries {
-  const method = IdentityProviderQueryController.method;
+export function providerQueries(deps: FederationIssuerLaneDeps): Queries {
+  const method = FederationIssuerQueryController.method;
   return {
     get: (input, ctx) =>
       runUnaryChain(
@@ -359,16 +359,16 @@ export function providerQueries(deps: IdentityProviderLaneDeps): Queries {
         deps,
         async (reqCtx) => {
           const { org, pageSize, pageToken } = reqCtx.input;
-          const page = await readPage<IdentityProvider>({
+          const page = await readPage<FederationIssuer>({
             source: (after, limit) => deps.store.pageByOrg(org, after, limit),
             request: { pageSize, pageToken },
             fingerprint: listPageFingerprint({ org }),
-            decode: (data) => fromBinary(IdentityProviderSchema, data),
+            decode: (data) => fromBinary(FederationIssuerSchema, data),
             scope: (rows) =>
               restrictListByReadScope(deps.listReadScope, reqCtx.callerIdentity, KIND, rows, org),
             failure: "failed to list identity providers",
           });
-          return create(IdentityProvidersSchema, {
+          return create(FederationIssuersSchema, {
             entries: page.entries,
             nextPageToken: page.nextPageToken,
           });
@@ -385,18 +385,18 @@ export function providerQueries(deps: IdentityProviderLaneDeps): Queries {
  * or the matrix would have.
  */
 async function createProvider(
-  reqCtx: RequestContext<typeof IdentityProviderCommandController.method.create.input>,
-  deps: IdentityProviderLaneDeps,
-): Promise<IdentityProvider> {
+  reqCtx: RequestContext<typeof FederationIssuerCommandController.method.create.input>,
+  deps: FederationIssuerLaneDeps,
+): Promise<FederationIssuer> {
   return insertProvider(reqCtx, deps).catch(
     releaseNameOnFailure(deps.names, deps.logger, reqCtx),
   );
 }
 
 async function insertProvider(
-  reqCtx: RequestContext<typeof IdentityProviderCommandController.method.create.input>,
-  deps: IdentityProviderLaneDeps,
-): Promise<IdentityProvider> {
+  reqCtx: RequestContext<typeof FederationIssuerCommandController.method.create.input>,
+  deps: FederationIssuerLaneDeps,
+): Promise<FederationIssuer> {
   const provider = reqCtx.newState;
   normalizeIssuers(provider);
   await validateProvider(deps, provider, /* isUpdate */ false);
@@ -438,9 +438,9 @@ async function insertProvider(
  * and status): the matrix, the row, the invalidation.
  */
 async function updateProvider(
-  reqCtx: RequestContext<typeof IdentityProviderSchema>,
-  deps: IdentityProviderLaneDeps,
-): Promise<IdentityProvider> {
+  reqCtx: RequestContext<typeof FederationIssuerSchema>,
+  deps: FederationIssuerLaneDeps,
+): Promise<FederationIssuer> {
   const provider = reqCtx.newState;
   normalizeIssuers(provider);
   await validateProvider(deps, provider, /* isUpdate */ true);
@@ -466,11 +466,11 @@ async function updateProvider(
   return provider;
 }
 
-export function newIdentityProviderRegistrations(
-  deps: IdentityProviderLaneDeps,
+export function newFederationIssuerRegistrations(
+  deps: FederationIssuerLaneDeps,
 ): ReadonlyArray<ExtensionServiceRegistration> {
   return [
-    (router) => router.service(IdentityProviderCommandController, providerCommands(deps)),
-    (router) => router.service(IdentityProviderQueryController, providerQueries(deps)),
+    (router) => router.service(FederationIssuerCommandController, providerCommands(deps)),
+    (router) => router.service(FederationIssuerQueryController, providerQueries(deps)),
   ];
 }

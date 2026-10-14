@@ -108,7 +108,7 @@ export function newOrganizationIdentityPurgeStage(
   return {
     name: IDENTITY_PURGE_STAGE,
     kinds: [
-      ApiResourceKind.identity_provider,
+      ApiResourceKind.federation_issuer,
       ApiResourceKind.team,
       ApiResourceKind.invitation,
     ],

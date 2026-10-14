@@ -119,9 +119,9 @@ function makeFederatedAccount(idpId: string): IdentityAccount {
     spec: {
       idpId,
       provisioningMode: IdentityAccountProvisioningMode.federated,
-      identityProviderRef: {
+      federationIssuerRef: {
         org: PROVIDER_ORG,
-        kind: ApiResourceKind.identity_provider,
+        kind: ApiResourceKind.federation_issuer,
         id: PROVIDER_ID,
       },
     },
@@ -298,7 +298,7 @@ describe.each([sqliteFixture, postgresFixture])(
         expect(await accounts.findByProvider("")).toEqual([]);
 
         const unaddressable = makeFederatedAccount("okta|erin");
-        unaddressable.spec!.identityProviderRef!.id = "";
+        unaddressable.spec!.federationIssuerRef!.id = "";
         await expect(accounts.save(unaddressable)).rejects.toThrow(
           "federated account id must be derived from its identity provider and idp_id",
         );

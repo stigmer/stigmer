@@ -1,15 +1,15 @@
 "use client";
 
 import { create } from "@bufbuild/protobuf";
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { ListIdentityProvidersByOrgInputSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { ListIdentityProvidersByOrgInputSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 
-/** Return value of {@link useIdentityProviderList}. */
-export interface UseIdentityProviderListReturn {
+/** Return value of {@link useFederationIssuerList}. */
+export interface UseFederationIssuerListReturn {
   /** All identity providers for the organization. Empty while loading or on error. */
-  readonly identityProviders: readonly IdentityProvider[];
+  readonly federationIssuers: readonly FederationIssuer[];
   /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
   /** `true` while a background refetch is in flight and stale data is shown. */
@@ -54,21 +54,21 @@ export interface UseIdentityProviderListReturn {
  * const { identityProviders } = useIdentityProviderList(org ?? null);
  * ```
  */
-export function useIdentityProviderList(
+export function useFederationIssuerList(
   org: string | null,
-): UseIdentityProviderListReturn {
+): UseFederationIssuerListReturn {
   const stigmer = useStigmer();
 
-  const { data: identityProviders, isLoading, isRefetching, error, refetch } = useFetch(
+  const { data: federationIssuers, isLoading, isRefetching, error, refetch } = useFetch(
     org
       ? () =>
-          stigmer.identityProvider
+          stigmer.federationIssuer
             .listByOrg(create(ListIdentityProvidersByOrgInputSchema, { org }))
             .then((r) => [...r.entries])
       : null,
     [org, stigmer],
-    [] as IdentityProvider[],
+    [] as FederationIssuer[],
   );
 
-  return { identityProviders, isLoading, isRefetching, error, refetch };
+  return { federationIssuers, isLoading, isRefetching, error, refetch };
 }

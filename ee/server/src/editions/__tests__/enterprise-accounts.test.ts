@@ -56,7 +56,7 @@ function federatedRequest(): NewAccountRequest {
       idpId: "okta|dana",
       email: "dana@acme.example",
       provisioningMode: IdentityAccountProvisioningMode.federated,
-      identityProviderRef: { org: "org_acme", slug: "acme-okta" },
+      federationIssuerRef: { org: "org_acme", slug: "acme-okta" },
     }),
   };
 }

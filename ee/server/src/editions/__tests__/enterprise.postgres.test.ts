@@ -36,7 +36,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
-import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
+import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
 import { InvitationCommandController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/command_pb";
 import { TeamCommandController } from "@stigmer/protos/ai/stigmer/iam/team/v1/command_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -243,7 +243,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("licensed", () => {
     const token = federatedToken(issuer, "acme-okta", "okta|dana", "dana@acme.example");
     const dana = await createClient(IdentityAccountQueryController, transportTo(booted.port, token)).whoAmI({});
     expect(dana.spec?.email).toBe("dana@acme.example");
-    expect(dana.spec?.identityProviderRef?.slug).toBe("acme-okta");
+    expect(dana.spec?.federationIssuerRef?.slug).toBe("acme-okta");
   });
 
   it("a renamed identity provider signs the same person in, and the account names it by its new slug", async () => {
@@ -253,15 +253,15 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("licensed", () => {
         transportTo(booted.port, federatedToken(issuer, "acme-okta", "okta|dana", "dana@acme.example")),
       ).whoAmI({});
     const before = await asDana();
-    const providerId = before.spec?.identityProviderRef?.id ?? "";
+    const providerId = before.spec?.federationIssuerRef?.id ?? "";
     expect(providerId).toMatch(/^idp_/);
-    const providers = createClient(IdentityProviderCommandController, owner.transport);
+    const providers = createClient(FederationIssuerCommandController, owner.transport);
 
     const renamed = await providers.rename({ resourceId: providerId, slug: "acme-sso" });
     expect(renamed.metadata?.id).toBe(providerId);
     const after = await asDana();
     expect(after.metadata?.id, "the same account").toBe(before.metadata?.id);
-    expect(after.spec?.identityProviderRef).toMatchObject({ id: providerId, slug: "acme-sso" });
+    expect(after.spec?.federationIssuerRef).toMatchObject({ id: providerId, slug: "acme-sso" });
 
     await providers.rename({ resourceId: providerId, slug: "acme-okta" });
   });
@@ -291,13 +291,13 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("licensed", () => {
     const providerRef = { org: acme, slug: "acme-okta" };
     const created = await accounts.createFederatedAccount({
       org: acme,
-      identityProviderRef: providerRef,
+      federationIssuerRef: providerRef,
       externalSub: "okta|erin",
       email: "erin@acme.example",
     });
     const updated = await accounts.updateFederatedAccount({
       org: acme,
-      identityProviderRef: providerRef,
+      federationIssuerRef: providerRef,
       externalSub: "okta|erin",
       email: "erin.reyes@acme.example",
     });
@@ -305,7 +305,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("licensed", () => {
     expect(updated.spec?.email).toBe("erin.reyes@acme.example");
     const reread = await accounts.updateFederatedAccount({
       org: acme,
-      identityProviderRef: providerRef,
+      federationIssuerRef: providerRef,
       externalSub: "okta|erin",
       email: "erin.reyes@acme.example",
       firstName: "Erin",
@@ -341,7 +341,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("licensed", () => {
     const withKey = createClient(IdentityAccountQueryController, transportTo(booted.port, key));
     expect((await withKey.whoAmI({})).metadata?.id).toBe(first.metadata?.id);
 
-    await accounts.deprovisionFederatedAccount({ org: acme, identityProviderRef: providerRef, externalSub: "okta|gus", deleteAccount: true });
+    await accounts.deprovisionFederatedAccount({ org: acme, federationIssuerRef: providerRef, externalSub: "okta|gus", deleteAccount: true });
     const again = await accounts.createFederatedAccount(input);
     expect(again.metadata?.id).toBe(first.metadata?.id);
     expect((await refusalOf(withKey.whoAmI({}))).code).toBe(Code.Unauthenticated);
@@ -412,7 +412,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("lapsed: growth refused, everyt
   });
 
   it("refuses a new identity provider, a change to one and an apply either way, with the renewal reason", async () => {
-    const providers = createClient(IdentityProviderCommandController, owner.transport);
+    const providers = createClient(FederationIssuerCommandController, owner.transport);
     expectRenewalRefusal(await refusalOf(providers.create(providerRequest(issuer, acme, "acme-google"))));
     const changed = providerRequest(issuer, acme, "acme-entra", { displayName: "Acme Entra (renamed)" });
     expectRenewalRefusal(
@@ -435,7 +435,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("lapsed: growth refused, everyt
     await createClient(IamPolicyCommandController, owner.transport).create(
       grant(ref("identity_account", joiner.accountId), "member", ref("team", teamId)),
     );
-    await createClient(IdentityProviderCommandController, owner.transport).delete({ resourceId: providerId });
+    await createClient(FederationIssuerCommandController, owner.transport).delete({ resourceId: providerId });
 
     expect((await createClient(IdentityAccountQueryController, owner.transport).whoAmI({})).metadata?.id).toBe(
       owner.accountId,
@@ -444,6 +444,6 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("lapsed: growth refused, everyt
     expect(late.accountId).not.toBe("");
     const federated = federatedToken(issuer, "acme-okta", "okta|hal", "hal@acme.example");
     const hal = await createClient(IdentityAccountQueryController, transportTo(booted.port, federated)).whoAmI({});
-    expect(hal.spec?.identityProviderRef?.slug).toBe("acme-okta");
+    expect(hal.spec?.federationIssuerRef?.slug).toBe("acme-okta");
   });
 });

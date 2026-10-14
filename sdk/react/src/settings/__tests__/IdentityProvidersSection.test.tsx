@@ -22,15 +22,15 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  IdentityProviderSchema,
-  type IdentityProvider,
-} from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+  FederationIssuerSchema,
+  type FederationIssuer,
+} from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import type { DeploymentMode } from "@stigmer/sdk";
 import { DeploymentModeContext } from "../../deployment-mode";
 
 const stubs = vi.hoisted(() => ({
   listedOrg: undefined as string | null | undefined,
-  providers: [] as IdentityProvider[],
+  providers: [] as FederationIssuer[],
   allowed: new Set<string>(),
   checked: [] as Array<[string, string, string]>,
 }));
@@ -108,9 +108,9 @@ vi.mock("../../iam-policy/PermissionGate.js", () => ({
   }) => (verdict(resource.kind, resource.id, relation) ? <>{children}</> : null),
 }));
 
-import { IdentityProvidersSection } from "../IdentityProvidersSection";
+import { FederationIssuersSection } from "../IdentityProvidersSection";
 
-const OKTA = create(IdentityProviderSchema, {
+const OKTA = create(FederationIssuerSchema, {
   metadata: { id: "idp_okta", name: "Acme Okta", slug: "acme-okta", org: "acme" },
   spec: { displayName: "Acme Okta" },
 });
@@ -118,7 +118,7 @@ const OKTA = create(IdentityProviderSchema, {
 function renderSection(mode: DeploymentMode) {
   return render(
     <DeploymentModeContext.Provider value={mode}>
-      <IdentityProvidersSection />
+      <FederationIssuersSection />
     </DeploymentModeContext.Provider>,
   );
 }

@@ -10,8 +10,8 @@ import { useUpdateOrganization } from "./useUpdateOrganization.js";
 import { useRenameOrganization } from "./useRenameOrganization.js";
 import { useOptionalOrg } from "./OrgProvider.js";
 import { useSingleOrg } from "../server-info.js";
-import { useIdentityProviderList } from "../identity-provider/useIdentityProviderList.js";
-import { IDENTITY_PROVIDERS_MANAGED_BY_ADMINS } from "../identity-provider/copy.js";
+import { useFederationIssuerList } from "../identity-provider/useIdentityProviderList.js";
+import { FEDERATION_ISSUERS_MANAGED_BY_ADMINS } from "../identity-provider/copy.js";
 import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
 import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
@@ -388,7 +388,7 @@ export function OrgProfilePanel({
       </div>
 
       {/* -- Identity Providers summary -- */}
-      <IdentityProvidersSummary orgId={serverOrgId} />
+      <FederationIssuersSummary orgId={serverOrgId} />
     </form>
   );
 }
@@ -402,9 +402,9 @@ export function OrgProfilePanel({
  * invites setting one up only when the server has not said the caller may
  * not create providers; otherwise it says who manages them.
  */
-function IdentityProvidersSummary({ orgId }: { orgId: string }) {
-  const idpAvailable = useResourceAvailable(ApiResourceKind.identity_provider);
-  const { identityProviders, isLoading } = useIdentityProviderList(
+function FederationIssuersSummary({ orgId }: { orgId: string }) {
+  const idpAvailable = useResourceAvailable(ApiResourceKind.federation_issuer);
+  const { federationIssuers, isLoading } = useFederationIssuerList(
     idpAvailable && orgId ? orgId : null,
   );
   const createCheck = useCheckPermission(
@@ -425,11 +425,11 @@ function IdentityProvidersSummary({ orgId }: { orgId: string }) {
 
         {isLoading ? (
           <div className="stg:bg-muted-subtle stg:h-8 stg:animate-pulse stg:rounded" />
-        ) : identityProviders.length === 0 && deniedCreate ? (
+        ) : federationIssuers.length === 0 && deniedCreate ? (
           <p className="stg:text-xs stg:text-muted-foreground">
-            {IDENTITY_PROVIDERS_MANAGED_BY_ADMINS}
+            {FEDERATION_ISSUERS_MANAGED_BY_ADMINS}
           </p>
-        ) : identityProviders.length === 0 ? (
+        ) : federationIssuers.length === 0 ? (
           <p className="stg:text-xs stg:text-muted-foreground">
             No identity providers configured.{" "}
             <a
@@ -441,7 +441,7 @@ function IdentityProvidersSummary({ orgId }: { orgId: string }) {
           </p>
         ) : (
           <div className="stg:space-y-1.5">
-            {identityProviders.map((idp) => {
+            {federationIssuers.map((idp) => {
               const spec = idp.spec;
               const displayName =
                 spec?.displayName || idp.metadata?.name || "Unnamed";

@@ -1,5 +1,5 @@
-import { IdentityProvidersSection } from "@stigmer/react";
+import { FederationIssuersSection } from "@stigmer/react";
 
-export default function IdentityProvidersPage() {
-  return <IdentityProvidersSection />;
+export default function FederationIssuersPage() {
+  return <FederationIssuersSection />;
 }

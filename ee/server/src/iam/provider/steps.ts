@@ -27,9 +27,9 @@ import { Code, ConnectError } from "@connectrpc/connect";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { IdentityProviderQueryController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/query_pb";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { FederationIssuerQueryController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/query_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type {
   Authorizer,
@@ -55,7 +55,7 @@ import {
 } from "@stigmer/server";
 
 import { deniedCopyOf, refuseMissUnlessOrganizationBar } from "../reference-miss.js";
-import type { IdentityProviderStore } from "./store.js";
+import type { FederationIssuerStore } from "./store.js";
 
 /** The kind's name in refusal copy, as the provider service has always rendered it. */
 export const PROVIDER_DISPLAY_NAME = "IdentityProvider";
@@ -66,17 +66,17 @@ export const PROVIDER_DISPLAY_NAME = "IdentityProvider";
  */
 export async function findProviderByName(
   names: NameTable,
-  providers: Pick<IdentityProviderStore, "findById">,
+  providers: Pick<FederationIssuerStore, "findById">,
   org: string,
   slug: string,
-): Promise<IdentityProvider | undefined> {
-  const id = await resolveName(names, ApiResourceKind.identity_provider, org, slug);
+): Promise<FederationIssuer | undefined> {
+  const id = await resolveName(names, ApiResourceKind.federation_issuer, org, slug);
   return id === undefined ? undefined : providers.findById(id);
 }
 
 /** A provider holds its name while its row exists. */
 export function providerNameHolder(
-  providers: Pick<IdentityProviderStore, "findById">,
+  providers: Pick<FederationIssuerStore, "findById">,
 ): NameHolder {
   return portHolder((id) => providers.findById(id));
 }
@@ -89,21 +89,21 @@ export function providerNameHolder(
  */
 export function newCheckDuplicateProviderStep(
   names: NameTable,
-  providers: Pick<IdentityProviderStore, "findById">,
-): PipelineStep<typeof IdentityProviderSchema> {
+  providers: Pick<FederationIssuerStore, "findById">,
+): PipelineStep<typeof FederationIssuerSchema> {
   return {
     name: "CheckDuplicate",
-    async execute(ctx: RequestContext<typeof IdentityProviderSchema>): Promise<void> {
+    async execute(ctx: RequestContext<typeof FederationIssuerSchema>): Promise<void> {
       const metadata = ctx.newState.metadata;
       const slug = metadata?.slug ?? "";
       if (slug === "") {
         throw internalError(new Error("resource slug is empty"), "duplicate check");
       }
-      const entry = await resolveNameEntry(names, ApiResourceKind.identity_provider, metadata?.org ?? "", slug);
+      const entry = await resolveNameEntry(names, ApiResourceKind.federation_issuer, metadata?.org ?? "", slug);
       const existing = entry === undefined ? undefined : await providers.findById(entry.id);
       if (entry !== undefined && existing !== undefined) {
         throw entry.state === "previous"
-          ? nameTakenError(ApiResourceKind.identity_provider, entry)
+          ? nameTakenError(ApiResourceKind.federation_issuer, entry)
           : duplicateProviderError(existing);
       }
     },
@@ -111,7 +111,7 @@ export function newCheckDuplicateProviderStep(
 }
 
 /** The provider's duplicate copy, naming the held slug and organization. */
-export function duplicateProviderError(existing: IdentityProvider): Error {
+export function duplicateProviderError(existing: FederationIssuer): Error {
   const metadata = existing.metadata;
   return alreadyExistsError(
     PROVIDER_DISPLAY_NAME,
@@ -134,11 +134,11 @@ export const PROVIDER_BEING_DELETED_MESSAGE =
  * Authorize step, so only a caller who may edit it learns of the delete.
  */
 export function newLoadExistingProviderStep(
-  providers: Pick<IdentityProviderStore, "findById" | "isLive" | "readForWrite">,
-): PipelineStep<typeof IdentityProviderSchema> {
+  providers: Pick<FederationIssuerStore, "findById" | "isLive" | "readForWrite">,
+): PipelineStep<typeof FederationIssuerSchema> {
   return {
     name: "LoadExisting",
-    async execute(ctx: RequestContext<typeof IdentityProviderSchema>): Promise<void> {
+    async execute(ctx: RequestContext<typeof FederationIssuerSchema>): Promise<void> {
       const id = ctx.input.metadata?.id ?? "";
       if (id === "") {
         throw invalidArgumentError("resource id is required for update");
@@ -163,12 +163,12 @@ export function newLoadExistingProviderStep(
  * keeps the provider dark until it runs to the end.
  */
 export function newRefuseRenamingDeletedProviderStep<Desc extends DescMessage>(
-  providers: Pick<IdentityProviderStore, "isLive">,
+  providers: Pick<FederationIssuerStore, "isLive">,
 ): PipelineStep<Desc> {
   return {
     name: "RefuseBeingDeleted",
     async execute(ctx: RequestContext<Desc>): Promise<void> {
-      const provider = ctx.get(EXISTING_RESOURCE_KEY) as IdentityProvider;
+      const provider = ctx.get(EXISTING_RESOURCE_KEY) as FederationIssuer;
       if (!(await providers.isLive(provider.metadata?.id ?? ""))) {
         throw failedPreconditionError(PROVIDER_BEING_DELETED_MESSAGE);
       }
@@ -185,19 +185,19 @@ export function newRefuseRenamingDeletedProviderStep<Desc extends DescMessage>(
  */
 export function newLoadProviderForApplyStep(
   names: NameTable,
-  providers: Pick<IdentityProviderStore, "findById">,
-): PipelineStep<typeof IdentityProviderSchema> {
+  providers: Pick<FederationIssuerStore, "findById">,
+): PipelineStep<typeof FederationIssuerSchema> {
   return {
     name: "LoadForApply",
-    async execute(ctx: RequestContext<typeof IdentityProviderSchema>): Promise<void> {
+    async execute(ctx: RequestContext<typeof FederationIssuerSchema>): Promise<void> {
       const metadata = ctx.newState.metadata;
       const target = { id: metadata?.id ?? "", org: metadata?.org ?? "", slug: metadata?.slug ?? "" };
       if (target.id === "" && target.slug === "") {
         return;
       }
-      const existing = await findResourceForWrite<typeof IdentityProviderSchema>(
+      const existing = await findResourceForWrite<typeof FederationIssuerSchema>(
         names,
-        ApiResourceKind.identity_provider,
+        ApiResourceKind.federation_issuer,
         target,
         (id) => providers.findById(id),
       );
@@ -209,8 +209,8 @@ export function newLoadProviderForApplyStep(
 }
 
 /** The row LoadForApply found, or undefined when apply is a create. */
-export function providerForApply(ctx: { get(key: string): unknown }): IdentityProvider | undefined {
-  return ctx.get(EXISTING_RESOURCE_KEY) as IdentityProvider | undefined;
+export function providerForApply(ctx: { get(key: string): unknown }): FederationIssuer | undefined {
+  return ctx.get(EXISTING_RESOURCE_KEY) as FederationIssuer | undefined;
 }
 
 /**
@@ -221,10 +221,10 @@ export function providerForApply(ctx: { get(key: string): unknown }): IdentityPr
  * own id could name another organization's provider.
  */
 export function withResolvedProviderId(
-  original: IdentityProvider,
-  resolved: IdentityProvider,
-): IdentityProvider {
-  const enriched = clone(IdentityProviderSchema, original);
+  original: FederationIssuer,
+  resolved: FederationIssuer,
+): FederationIssuer {
+  const enriched = clone(FederationIssuerSchema, original);
   if (enriched.metadata !== undefined) {
     enriched.metadata.id = resolved.metadata?.id ?? "";
   }
@@ -239,10 +239,10 @@ export function withResolvedProviderId(
  */
 export function newLoadProviderByReferenceStep(
   names: NameTable,
-  providers: Pick<IdentityProviderStore, "findById">,
+  providers: Pick<FederationIssuerStore, "findById">,
   authorizer: Authorizer,
 ): PipelineStep<typeof ApiResourceReferenceSchema> {
-  const deniedMessage = deniedCopyOf(IdentityProviderQueryController.method.get);
+  const deniedMessage = deniedCopyOf(FederationIssuerQueryController.method.get);
   return {
     name: "LoadByReference",
     async execute(ctx: RequestContext<typeof ApiResourceReferenceSchema>): Promise<void> {
@@ -252,7 +252,7 @@ export function newLoadProviderByReferenceStep(
       }
       if (
         ref.kind !== ApiResourceKind.api_resource_kind_unknown &&
-        ref.kind !== ApiResourceKind.identity_provider
+        ref.kind !== ApiResourceKind.federation_issuer
       ) {
         throw invalidArgumentError(
           `kind mismatch: expected identity_provider, got ${ApiResourceKind[ref.kind] ?? String(ref.kind)}`,
@@ -261,11 +261,11 @@ export function newLoadProviderByReferenceStep(
       if (ref.org === "") {
         throw invalidArgumentError(`org is required for ${PROVIDER_DISPLAY_NAME} lookup`);
       }
-      const provider = await findByHeldReference(names, providers, ApiResourceKind.identity_provider, ref);
+      const provider = await findByHeldReference(names, providers, ApiResourceKind.federation_issuer, ref);
       if (provider === undefined) {
         await refuseMissUnlessOrganizationBar(authorizer, ctx.callerIdentity, {
           organization: ref.org,
-          permission: IamPermission.can_create_idp,
+          permission: IamPermission.can_create_federation_issuer,
           deniedMessage,
         });
         throw notFoundByReference(ref.org, ref.slug !== "" ? ref.slug : ref.id);
@@ -277,7 +277,7 @@ export function newLoadProviderByReferenceStep(
 
 /** A read by id, for `get` and `delete`; `idOf` names the request's id field. */
 export function newLoadProviderStep<Desc extends DescMessage>(
-  providers: Pick<IdentityProviderStore, "findById">,
+  providers: Pick<FederationIssuerStore, "findById">,
   idOf: (input: MessageShape<Desc>) => string,
 ): PipelineStep<Desc> {
   return {
@@ -293,8 +293,8 @@ export function newLoadProviderStep<Desc extends DescMessage>(
 }
 
 /** The row a load step stashed under `key`; the chain guarantees it. */
-export function providerAt(ctx: { get(key: string): unknown }, key: string): IdentityProvider {
-  const provider = ctx.get(key) as IdentityProvider | undefined;
+export function providerAt(ctx: { get(key: string): unknown }, key: string): FederationIssuer {
+  const provider = ctx.get(key) as FederationIssuer | undefined;
   if (provider === undefined) {
     throw internalError(
       new Error(`no identity provider under ${key}`),
@@ -315,9 +315,9 @@ function notFoundByReference(org: string, slug: string): Error {
 }
 
 async function requireProvider(
-  providers: Pick<IdentityProviderStore, "findById">,
+  providers: Pick<FederationIssuerStore, "findById">,
   id: string,
-): Promise<IdentityProvider> {
+): Promise<FederationIssuer> {
   const provider = await providers.findById(id);
   if (provider === undefined) {
     throw notFoundById(id);

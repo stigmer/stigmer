@@ -2,14 +2,14 @@
 
 import { useCallback, useState } from "react";
 import type { DeleteResourceInput } from "@stigmer/sdk";
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
-/** Return value of {@link useDeleteIdentityProvider}. */
-export interface UseDeleteIdentityProviderReturn {
+/** Return value of {@link useDeleteFederationIssuer}. */
+export interface UseDeleteFederationIssuerReturn {
   /** Delete an identity provider. Resolves with the deleted resource for confirmation display. */
-  readonly deleteProvider: (input: DeleteResourceInput) => Promise<IdentityProvider>;
+  readonly deleteProvider: (input: DeleteResourceInput) => Promise<FederationIssuer>;
   /** `true` while the delete request is in flight. */
   readonly isDeleting: boolean;
   /** Error from the last failed delete, or `null` when healthy. */
@@ -34,7 +34,7 @@ export interface UseDeleteIdentityProviderReturn {
  * refetch(); // refresh the list after deletion
  * ```
  */
-export function useDeleteIdentityProvider(): UseDeleteIdentityProviderReturn {
+export function useDeleteFederationIssuer(): UseDeleteFederationIssuerReturn {
   const stigmer = useStigmer();
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -42,12 +42,12 @@ export function useDeleteIdentityProvider(): UseDeleteIdentityProviderReturn {
   const clearError = useCallback(() => setError(null), []);
 
   const deleteProvider = useCallback(
-    async (input: DeleteResourceInput): Promise<IdentityProvider> => {
+    async (input: DeleteResourceInput): Promise<FederationIssuer> => {
       setIsDeleting(true);
       setError(null);
 
       try {
-        return await stigmer.identityProvider.delete(input);
+        return await stigmer.federationIssuer.delete(input);
       } catch (err) {
         setError(toError(err));
         throw err;

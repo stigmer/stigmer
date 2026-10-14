@@ -47,7 +47,7 @@ import {
   ExternalSubLookupSchema,
   UpdateFederatedAccountInputSchema,
 } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import type { CallerIdentity } from "@stigmer/server";
 import { createLogger, DuplicateAccountError } from "@stigmer/server";
 
@@ -64,7 +64,7 @@ const CALLER: CallerIdentity = {
 
 const REF: ApiResourceReference = create(ApiResourceReferenceSchema, {
   org: "acme",
-  kind: ApiResourceKind.identity_provider,
+  kind: ApiResourceKind.federation_issuer,
   id: "idp_acme_okta",
 });
 
@@ -78,7 +78,7 @@ function federatedRow(overrides: { id: string; externalSub: string }): IdentityA
       lastName: "Name",
       pictureUrl: "https://old.pic",
       provisioningMode: IdentityAccountProvisioningMode.federated,
-      identityProviderRef: REF,
+      federationIssuerRef: REF,
     },
   });
 }
@@ -226,7 +226,7 @@ function harness(
           ? ({
               metadata: { id, org: "acme", slug: "acme-okta" },
               spec: { externalIdClaim: initial.externalIdClaim ?? "" },
-            } as unknown as IdentityProvider)
+            } as unknown as FederationIssuer)
           : undefined,
       );
     },
@@ -263,7 +263,7 @@ function connectCode(error: unknown): Code | undefined {
 describe("the IdentityFederation capability — createFederatedAccount", () => {
   const input = create(CreateFederatedAccountInputSchema, {
     org: "acme",
-    identityProviderRef: REF,
+    federationIssuerRef: REF,
     externalSub: "okta|u1",
     email: "u1@acme.example",
     firstName: "Una",
@@ -281,8 +281,8 @@ describe("the IdentityFederation capability — createFederatedAccount", () => {
     expect(request.name).toBe("u1@acme.example");
     expect(request.spec.idpId).toBe("okta|u1");
     expect(request.spec.provisioningMode).toBe(IdentityAccountProvisioningMode.federated);
-    expect(request.spec.identityProviderRef?.id).toBe("idp_acme_okta");
-    expect(request.spec.identityProviderRef?.org).toBe("acme");
+    expect(request.spec.federationIssuerRef?.id).toBe("idp_acme_okta");
+    expect(request.spec.federationIssuerRef?.org).toBe("acme");
   });
 
   it("refuses to make an account under a provider whose delete has begun, and writes nothing", async () => {
@@ -386,7 +386,7 @@ describe("the IdentityFederation capability — createFederatedAccount", () => {
 describe("the IdentityFederation capability — updateFederatedAccount", () => {
   const input = create(UpdateFederatedAccountInputSchema, {
     org: "acme",
-    identityProviderRef: REF,
+    federationIssuerRef: REF,
     externalSub: "okta|u1",
     email: "new@acme.example",
     firstName: "New",
@@ -406,7 +406,7 @@ describe("the IdentityFederation capability — updateFederatedAccount", () => {
     expect(updated.spec?.pictureUrl).toBe("https://new.pic");
     expect(updated.spec?.idpId).toBe("okta|u1");
     expect(updated.spec?.provisioningMode).toBe(IdentityAccountProvisioningMode.federated);
-    expect(updated.spec?.identityProviderRef?.id).toBe("idp_acme_okta");
+    expect(updated.spec?.federationIssuerRef?.id).toBe("idp_acme_okta");
   });
 
   it("is NOT_FOUND with the byte-pinned copy when the account is deleted between the lookup and the write", async () => {
@@ -439,7 +439,7 @@ describe("the IdentityFederation capability — deprovisionFederatedAccount", ()
   function input(deleteAccount: boolean) {
     return create(DeprovisionFederatedAccountInputSchema, {
       org: "acme",
-      identityProviderRef: REF,
+      federationIssuerRef: REF,
       externalSub: "okta|u1",
       deleteAccount,
     });
@@ -614,7 +614,7 @@ describe("the IdentityFederation capability — deprovisionFederatedAccount", ()
 describe("the IdentityFederation capability — getByExternalSub and providerExists", () => {
   const lookup = create(ExternalSubLookupSchema, {
     org: "acme",
-    identityProviderRef: REF,
+    federationIssuerRef: REF,
     externalSub: "okta|u1",
   });
 

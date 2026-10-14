@@ -513,7 +513,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
         () =>
           command.createFederatedAccount({
             org: "acme",
-            identityProviderRef: ref,
+            federationIssuerRef: ref,
             externalSub: "okta|1",
             email: "person@example.com",
           }),
@@ -523,7 +523,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
         () =>
           command.updateFederatedAccount({
             org: "acme",
-            identityProviderRef: ref,
+            federationIssuerRef: ref,
             externalSub: "okta|1",
             email: "person@example.com",
           }),
@@ -533,7 +533,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
         () =>
           command.deprovisionFederatedAccount({
             org: "acme",
-            identityProviderRef: ref,
+            federationIssuerRef: ref,
             externalSub: "okta|1",
           }),
       ],
@@ -542,7 +542,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
         () =>
           query.getByExternalSub({
             org: "acme",
-            identityProviderRef: ref,
+            federationIssuerRef: ref,
             externalSub: "okta|1",
           }),
       ],

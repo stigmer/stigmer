@@ -16,9 +16,9 @@ import {
 } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { CheckMyPermissionInput } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import {
-  IdentityProviderSchema,
-  type IdentityProvider,
-} from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+  FederationIssuerSchema,
+  type FederationIssuer,
+} from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";
@@ -133,7 +133,7 @@ describe("OrgProfilePanel save payload", () => {
 describe("OrgProfilePanel identity-provider summary", () => {
   function renderCloudPanel(
     isAuthorized: boolean,
-    providers: IdentityProvider[] = [],
+    providers: FederationIssuer[] = [],
   ) {
     const checkMyPermission = vi.fn(async (_input: CheckMyPermissionInput) => ({
       isAuthorized,
@@ -170,7 +170,7 @@ describe("OrgProfilePanel identity-provider summary", () => {
 
   it("badges a provider that creates accounts JIT", async () => {
     const idp = (id: string, displayName: string, spec: object) =>
-      create(IdentityProviderSchema, {
+      create(FederationIssuerSchema, {
         metadata: { id, name: displayName, org: ACME_ID },
         spec: { displayName, ...spec },
       });

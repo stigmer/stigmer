@@ -14,7 +14,7 @@ import type { Authorizer, AuthzCheck, AuthzDecision, CallerIdentity } from "@sti
 import { describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IdentityProviderQueryController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/query_pb";
+import { FederationIssuerQueryController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/query_pb";
 import { TeamQueryController } from "@stigmer/protos/ai/stigmer/iam/team/v1/query_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
@@ -93,7 +93,7 @@ describe("the answer to a lookup that finds nothing", () => {
 describe("the refusal's copy", () => {
   it("is the method's own authorization copy", () => {
     expect(deniedCopyOf(TeamQueryController.method.get)).toBe("unauthorized to view team");
-    expect(deniedCopyOf(IdentityProviderQueryController.method.get)).toBe("unauthorized to view identity provider");
+    expect(deniedCopyOf(FederationIssuerQueryController.method.get)).toBe("unauthorized to view identity provider");
   });
 
   it("throws for a method that carries none, rather than refusing with no sentence", () => {

@@ -164,9 +164,9 @@ import type { OrganizationScopedRow } from "../iam/organization-links.js";
 import { reconcileOwnerRows } from "../iam/owner-rows.js";
 import type { OwnerRowKind } from "../iam/owner-rows.js";
 import { newIamPolicyGrantPathClient } from "../iam/policy/grant-path-client.js";
-import { newIdentityProviderRegistrations } from "../iam/provider/handlers.js";
+import { newFederationIssuerRegistrations } from "../iam/provider/handlers.js";
 import { newProviderRemoval } from "../iam/provider/removal.js";
-import type { IdentityProviderStore } from "../iam/provider/store.js";
+import type { FederationIssuerStore } from "../iam/provider/store.js";
 import { newTeamPrincipalDisplay } from "../iam/team/display.js";
 import { newOrganizationGrantGateStep } from "../iam/team/grant-gate.js";
 import type { TeamPlanGate } from "../iam/team/plan-gate.js";
@@ -182,7 +182,7 @@ export const ENTERPRISE_IDENTITY_UNIT = "enterprise-identity";
 
 /** What the unit is built over: the host's adapters behind their ports. */
 export interface EnterpriseIdentityPorts {
-  readonly providers: IdentityProviderStore;
+  readonly providers: FederationIssuerStore;
   readonly teams: TeamStore;
   readonly invitations: InvitationStore;
   /** The first sign-in of each (account, organization) through a provider (iam/federation/sign-in-grants.ts). */
@@ -215,7 +215,7 @@ export interface EnterpriseIdentityPorts {
 
 /** The kinds this domain serves that record no owner, in the order the boot reconciles them. */
 const ENTERPRISE_OWNER_ROW_KINDS: ReadonlyArray<OwnerRowKind> = [
-  { kind: ApiResourceKind.identity_provider, key: "identity-provider", idField: "provider" },
+  { kind: ApiResourceKind.federation_issuer, key: "identity-provider", idField: "provider" },
   { kind: ApiResourceKind.invitation, key: "invitation", idField: "invitation" },
 ];
 
@@ -390,7 +390,7 @@ export function newEnterpriseIdentityExtension(
   // failed read of one kind never skips the next.
   async function repairOrganizationLinks(): Promise<void> {
     await repairOrganizationLinksOf(
-      ApiResourceKind.identity_provider,
+      ApiResourceKind.federation_issuer,
       { key: "identity-provider", phrase: "identity provider", idField: "provider" },
       () => providers.findAll(),
     );
@@ -422,7 +422,7 @@ export function newEnterpriseIdentityExtension(
   }
 
   const rowReaders = new Map<ApiResourceKind, ResourceRowReader>([
-    [ApiResourceKind.identity_provider, { findById: (id) => providers.findById(id) }],
+    [ApiResourceKind.federation_issuer, { findById: (id) => providers.findById(id) }],
     [ApiResourceKind.invitation, { findById: (id) => ports.invitations.findById(id) }],
     [ApiResourceKind.team, { findById: (id) => teams.findById(id) }],
   ]);
@@ -478,7 +478,7 @@ export function newEnterpriseIdentityExtension(
       ],
     },
     services: [
-      ...newIdentityProviderRegistrations({
+      ...newFederationIssuerRegistrations({
         authorizer,
         logger,
         store: providers,

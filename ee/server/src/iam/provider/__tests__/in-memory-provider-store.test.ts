@@ -8,10 +8,10 @@
  */
 import { describe, it } from "vitest";
 
-import { identityProviderStoreContract, type IdentityProviderStoreContractFixture } from "../store-contract.js";
+import { federationIssuerStoreContract, type FederationIssuerStoreContractFixture } from "../store-contract.js";
 import { InMemoryProviderStore } from "./in-memory-provider-store.js";
 
-function makeFixture(): Promise<IdentityProviderStoreContractFixture> {
+function makeFixture(): Promise<FederationIssuerStoreContractFixture> {
   const inner = new InMemoryProviderStore();
   let cut = false;
   const store = new Proxy(inner, {
@@ -35,7 +35,7 @@ function makeFixture(): Promise<IdentityProviderStoreContractFixture> {
 }
 
 describe("the in-memory IdentityProvider store holds the port's contract", () => {
-  for (const contractCase of identityProviderStoreContract(makeFixture)) {
+  for (const contractCase of federationIssuerStoreContract(makeFixture)) {
     it(contractCase.name, contractCase.run);
   }
 });

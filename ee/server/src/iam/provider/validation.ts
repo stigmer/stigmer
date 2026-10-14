@@ -76,7 +76,7 @@ import { asFetch, EgressError, type OutboundFetch } from "@stigmer/outbound/egre
 import type { Logger } from "@stigmer/server";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import {
@@ -88,13 +88,13 @@ import type { OrganizationLookup } from "../organization-links.js";
 import { grantableRolesFor } from "../policy/roles.js";
 import { normalizeIssuerUrl } from "./issuer-url.js";
 import { routesOf, type ProviderRoute } from "./routes.js";
-import type { IdentityProviderStore } from "./store.js";
+import type { FederationIssuerStore } from "./store.js";
 
 /** The JWKS reachability check's timeout, and the budget of every live read here. */
 const JWKS_VALIDATION_TIMEOUT_MS = 5_000;
 
 export interface ProviderValidationDeps {
-  readonly store: Pick<IdentityProviderStore, "findProviderIdByRoute">;
+  readonly store: Pick<FederationIssuerStore, "findProviderIdByRoute">;
   /** The provider's organization, read for its parent when the provider routes to children. */
   readonly organizations: OrganizationLookup;
   /** The egress-guarded fetch every live read dials through (the composition's one). */
@@ -110,7 +110,7 @@ export interface ProviderValidationDeps {
  * normalize to nothing or to an issuer already kept (the first keeps its
  * place).
  */
-export function normalizeIssuers(provider: IdentityProvider): void {
+export function normalizeIssuers(provider: FederationIssuer): void {
   const spec = provider.spec;
   if (spec !== undefined) {
     spec.allowedIssuers = [
@@ -122,7 +122,7 @@ export function normalizeIssuers(provider: IdentityProvider): void {
 /** The matrix, in its pinned order; every refusal is a ConnectError with its pinned copy. */
 export async function validateProvider(
   deps: ProviderValidationDeps,
-  provider: IdentityProvider,
+  provider: FederationIssuer,
   isUpdate: boolean,
 ): Promise<void> {
   const spec = provider.spec;
@@ -251,7 +251,7 @@ function validateUserinfoEndpoint(endpoint: string): void {
  */
 async function validateIssuerDiscovery(
   deps: ProviderValidationDeps,
-  provider: IdentityProvider,
+  provider: FederationIssuer,
 ): Promise<void> {
   const spec = provider.spec;
   const issuers = spec?.allowedIssuers ?? [];

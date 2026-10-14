@@ -59,7 +59,7 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { SubscriptionSchema } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/api_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
-import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { InvitationSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
@@ -90,7 +90,7 @@ export const ORGANIZATION_SCOPED_KINDS_AT_LEDGER: ReadonlyArray<OrganizationScop
   [
     { kind: "iam_policy", schema: IamPolicySchema },
     { kind: "invitation", schema: InvitationSchema },
-    { kind: "identity_provider", schema: IdentityProviderSchema },
+    { kind: "identity_provider", schema: FederationIssuerSchema },
     { kind: "oauth_app", schema: OAuthAppSchema },
     { kind: "platform_client", schema: PlatformClientSchema },
     { kind: "team", schema: TeamSchema },

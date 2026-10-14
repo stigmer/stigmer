@@ -111,7 +111,7 @@ describe("reconcileOrganizationLinks", () => {
     });
 
     const report = await reconcileOrganizationLinks(
-      ApiResourceKind.identity_provider,
+      ApiResourceKind.federation_issuer,
       [
         storedProvider({ id: "idp_linked", org: "acme", slug: "linked", createdAt: ROW_CREATED }),
         storedProvider({ id: "idp_bare", org: "acme", slug: "bare", createdAt: ROW_CREATED }),
@@ -144,7 +144,7 @@ describe("reconcileOrganizationLinks", () => {
     });
 
     const report = await reconcileOrganizationLinks(
-      ApiResourceKind.identity_provider,
+      ApiResourceKind.federation_issuer,
       [storedProvider({ id: "idp_platform", org: "acme", slug: "platform", createdAt: ROW_CREATED })],
       r.deps,
     );
@@ -164,7 +164,7 @@ describe("reconcileOrganizationLinks", () => {
     undated.status = undefined;
 
     const report = await reconcileOrganizationLinks(
-      ApiResourceKind.identity_provider,
+      ApiResourceKind.federation_issuer,
       [
         storedProvider({ id: "idp_gone", org: "deleted", slug: "gone", createdAt: ROW_CREATED }),
         storedProvider({ id: "idp_old", org: "recreated", slug: "old", createdAt: ROW_CREATED }),
@@ -193,7 +193,7 @@ describe("reconcileOrganizationLinks", () => {
     });
 
     const report = await reconcileOrganizationLinks(
-      ApiResourceKind.identity_provider,
+      ApiResourceKind.federation_issuer,
       [
         storedProvider({ id: "idp_legacy", org: "legacy", slug: "legacy", createdAt: ROW_CREATED }),
         storedProvider({ id: "idp_same", org: "sametime", slug: "same", createdAt: ROW_CREATED }),
@@ -211,7 +211,7 @@ describe("reconcileOrganizationLinks", () => {
     });
 
     const report = await reconcileOrganizationLinks(
-      ApiResourceKind.identity_provider,
+      ApiResourceKind.federation_issuer,
       [
         storedProvider({ id: "idp_a", org: "acme", slug: "a", createdAt: ROW_CREATED }),
         storedProvider({ id: "idp_b", org: "acme", slug: "b", createdAt: ROW_CREATED }),
