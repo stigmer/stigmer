@@ -264,6 +264,7 @@ export class CloudTarget implements TargetProfile {
       directLoginTenant: this.directLoginTenant?.(),
       clientsPresenting: (bearerToken, options = {}) =>
         makeClients(createTransport(grpcBaseUrl, { ...options, bearerToken })),
+      managedAgentsBaseUrl: () => grpcBaseUrl,
     });
   }
 
@@ -313,6 +314,12 @@ export class CloudTarget implements TargetProfile {
     return makeClients(
       createTransport(this.requireBaseUrl("clientsPresenting"), { ...options, bearerToken }),
     );
+  }
+
+  // The composition serves the Managed Agents lane on the unified port it
+  // serves gRPC on, the one CLOUD_ENV.address names (target.ts).
+  managedAgentsBaseUrl(): string {
+    return this.requireBaseUrl("managedAgentsBaseUrl");
   }
 
   private requireBaseUrl(caller: string): string {

@@ -494,6 +494,10 @@ export interface EnforcingLane {
   // credential from the exchange) has to reach the server the lane's people
   // live on, and the primary's transport would reach the wrong one.
   clientsPresenting(bearerToken: string, options?: PresentingOptions): ConformanceClients;
+  // The base URL of THE LANE'S server's Claude Managed Agents lane, for the
+  // arms that drive it with Anthropic's SDK under enforcement — the same
+  // reason clientsPresenting is mirrored here.
+  managedAgentsBaseUrl(): string;
   // The scripted model the lane's OWN runner answers with. A lane has the
   // shape of its target: on an execution target the enforcing server runs
   // beside its own engine and a runner keyed with the founder's API key (the
@@ -515,6 +519,8 @@ export interface SiblingServer {
   // sibling deliberately offers no primary `clients()`: which credential
   // it admits depends on the posture the suite booted it in.
   clientsPresenting(bearerToken: string, options?: PresentingOptions): ConformanceClients;
+  // The sibling's Claude Managed Agents lane, on its unified port.
+  managedAgentsBaseUrl(): string;
   // Stops the server and releases its storage.
   teardown(): Promise<void>;
 }
@@ -763,6 +769,16 @@ export interface TargetProfile {
   // there and the registry-proxy suite reports SKIPPED — the "genuinely
   // skipped, not false green" posture. Valid only after setup().
   httpBaseUrl?(): string;
+
+  // Base URL of the server's Claude Managed Agents lane (`/v1/sessions/…`,
+  // driven with Anthropic's SDK as `baseURL`): the unified port, which
+  // serves it in every edition. Required, and deliberately not
+  // httpBaseUrl: that accessor's absence is how the registry-proxy suite
+  // skips on the cloud targets, while this lane is core and the same
+  // everywhere, so every target says where it is (the local targets their
+  // spawned server, the cloud targets CLOUD_ENV.address). Valid only after
+  // setup().
+  managedAgentsBaseUrl(): string;
 
   // The cloud-capability HTTP lanes, one accessor per lane because the
   // composition serves its extension-owned lanes on separate listeners.

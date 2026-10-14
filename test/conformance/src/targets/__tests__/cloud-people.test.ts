@@ -4,8 +4,10 @@
 // console token followed by provisionMyAccount through the clients that
 // present it, the outsider holds no grant, the colleague holds `member` on
 // the tenancy by the organization's id and the account the first login made,
-// and teardown forgets the tenant. The readiness probe and the clients are
-// stubbed; nothing here starts a server.
+// and teardown forgets the tenant. The Managed Agents lane is served on the
+// address the target dials, for its primary and its enforcing lane alike,
+// and the execution target answers its inner target's. The readiness probe
+// and the clients are stubbed; nothing here starts a server.
 import { generateKeyPairSync } from "node:crypto";
 
 import { create } from "@bufbuild/protobuf";
@@ -15,6 +17,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CLOUD_ENV } from "../../harness/cloud-env";
 import type { ConformanceClients } from "../../harness/clients";
 import { CloudTarget } from "../cloud";
+import { CloudExecutionTarget } from "../cloud-execution";
 
 vi.mock("../../harness/grpc-ready", () => ({ awaitGrpcReady: async () => {} }));
 
@@ -188,6 +191,23 @@ describe("the cloud target's people", () => {
     await expect(target.provisionIdentity()).rejects.toThrow(
       "provisionMyAccount answered no account",
     );
+  });
+
+  it("serves the Managed Agents lane on the address it dials, for its primary and its enforcing lane", async () => {
+    expect(() => new CloudTarget().managedAgentsBaseUrl()).toThrow(
+      "CloudTarget.setup() must be called before managedAgentsBaseUrl()",
+    );
+    const target = new CloudTarget();
+    primaryStub(target);
+    await target.setup();
+    expect(target.managedAgentsBaseUrl()).toBe(TENANT_ENV[CLOUD_ENV.address]);
+    expect((await target.enforcingLane()).managedAgentsBaseUrl()).toBe(TENANT_ENV[CLOUD_ENV.address]);
+
+    const execution = new CloudExecutionTarget();
+    // The inner target setup() would connect; its accessor is what the execution target answers.
+    const inner = (execution as unknown as { cloud: CloudTarget }).cloud;
+    vi.spyOn(inner, "managedAgentsBaseUrl").mockReturnValue("http://127.0.0.1:9");
+    expect(execution.managedAgentsBaseUrl()).toBe("http://127.0.0.1:9");
   });
 
   it("forgets the tenant at teardown", async () => {

@@ -46,3 +46,9 @@ export const MODEL_REGISTRY_PATH = "/v1/proxy/model-registry";
 export const SKILL_ARTIFACTS_PATH_PREFIX = "/v1/skill-artifacts";
 /** Stigmer's OAuth Client ID Metadata Document (domain/vault/sign-in/client-document.ts). */
 export const OAUTH_CLIENT_DOCUMENT_PATH = "/v1/oauth/client.json";
+/**
+ * The Claude Managed Agents lane (managed-agents/lane.ts): a session's
+ * events on Managed Agents' own paths, `/v1/sessions/{id}/events` and
+ * `/v1/sessions/{id}/events/stream`. No other lane serves under it.
+ */
+export const MANAGED_AGENTS_PATH_PREFIX = "/v1/sessions/";
