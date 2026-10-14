@@ -449,13 +449,14 @@ System.out.println("JWKS: " + idp.getSpec().getJwksUri());
 
 An Organization can have multiple Identity Providers. This is useful when your
 platform uses different auth providers for different regions or customer
-segments. Use `listByOrg` to see all providers for an Organization:
+segments. Use `list` to see an Organization's providers, one page at a time
+(follow `nextPageToken` for the next page):
 
 <SDKTabs>
 <Tab value="TypeScript">
 
 ```typescript
-const result = await stigmer.identityProvider.listByOrg({ org: "acme" });
+const result = await stigmer.identityProvider.list({ org: "acme" });
 
 for (const idp of result.entries) {
   console.log(`${idp.metadata.slug}: ${idp.spec.displayName}`);
@@ -466,7 +467,7 @@ for (const idp of result.entries) {
 <Tab value="Go">
 
 ```go
-result, err := client.IdentityProvider.ListByOrg(ctx, &stigmer.ListIdentityProvidersByOrgInput{
+result, err := client.IdentityProvider.List(ctx, &stigmer.ListIdentityProvidersInput{
   Org: "acme",
 })
 if err != nil {
@@ -481,7 +482,7 @@ for _, idp := range result.Entries {
 <Tab value="Python">
 
 ```python
-result = client.identity_providers.list_by_org(ListIdentityProvidersByOrgInput(
+result = client.identity_providers.list(ListIdentityProvidersInput(
     org="acme",
 ))
 
@@ -493,7 +494,7 @@ for idp in result.entries:
 <Tab value="Java">
 
 ```java
-IdentityProviders result = client.identityProviders().listByOrg(ListIdentityProvidersByOrgInput.builder()
+IdentityProviders result = client.identityProviders().list(ListIdentityProvidersInput.builder()
     .org("acme")
     .build());
 
