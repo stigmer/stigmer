@@ -18,6 +18,9 @@ stigmer list types
 # List with a result limit
 stigmer list agents --limit 10
 
+# List the agents labelled team=support
+stigmer list agents --label team=support
+
 # Output as JSON for scripting
 stigmer list skills --output json
 ```
@@ -77,6 +80,18 @@ every page:
 ```bash
 stigmer list agents --limit 200
 stigmer list agents --limit 0
+```
+
+### Filter by label
+
+`--label key=value` keeps only the resources carrying that label. Repeat it
+to require several; every pair must match exactly. A selective filter can
+take more than one page of reading to fill a page, and the CLI follows the
+pages for you:
+
+```bash
+stigmer list agents --label team=support
+stigmer list schedules -l team=support -l tier=gold
 ```
 
 {/* AUTO_GLOBAL_FLAGS */}
