@@ -32,6 +32,7 @@ import {
 } from "../run/FilePathContext.js";
 import { ThreadSkeleton } from "../run/ThreadSkeleton.js";
 import { SessionComposer } from "../composer/index.js";
+import { AgentHoursNotice, agentHoursUsedUp } from "../billing/AgentHoursNotice.js";
 import { ProviderKeyNotice, providerKeyRequired } from "../billing/ProviderKeyNotice.js";
 import { SecretFlowErrorGuide, isSecretFlowError } from "../error/index.js";
 import { useStigmer } from "../hooks.js";
@@ -1691,6 +1692,9 @@ function SendErrorBanner({ error }: { error: Error }) {
   }
   if (providerKeyRequired(error) !== null) {
     return <ProviderKeyNotice error={error} className="stg:mx-4 stg:my-2" />;
+  }
+  if (agentHoursUsedUp(error) !== null) {
+    return <AgentHoursNotice error={error} className="stg:mx-4 stg:my-2" />;
   }
   return (
     <div role="alert" className="stg:border-t stg:border-border stg:px-4 stg:py-2 stg:text-xs stg:text-destructive">

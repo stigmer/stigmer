@@ -50,6 +50,7 @@ function meteredReport(): GetSessionUsageReportOutput {
       cacheReadInputTokens: 200n,
       primaryModel: "claude-sonnet-4-6",
       primaryProvider: "anthropic",
+      workingSeconds: 95n,
       servedBy: [{ providerKeySource: ProviderKeySource.ORGANIZATION, totalTokens: 1_200n, llmCallCount: 2 }],
     },
     modelBreakdown: [
@@ -63,7 +64,7 @@ function meteredReport(): GetSessionUsageReportOutput {
         totalTokens: 1_200n,
       },
     ],
-    runs: [{ runId: "run_1", primaryModel: "claude-sonnet-4-6", totalTokens: 1_200n, isEstimated: false }],
+    runs: [{ runId: "run_1", primaryModel: "claude-sonnet-4-6", totalTokens: 1_200n, isEstimated: false, workingSeconds: 95n }],
     isEstimated: false,
   });
 }
@@ -106,6 +107,7 @@ describe("useSessionUsage", () => {
       cacheReadTokens: 200,
       cacheCreationTokens: 0,
       llmCallCount: 2,
+      workingSeconds: 95,
       modelBreakdown: [
         {
           model: "claude-sonnet-4-6",
@@ -118,13 +120,31 @@ describe("useSessionUsage", () => {
           callCount: 2,
         },
       ],
-      runBreakdown: [{ runId: "run_1", resolvedModel: "claude-sonnet-4-6", totalTokens: 1_200, isEstimated: false }],
+      runBreakdown: [
+        { runId: "run_1", resolvedModel: "claude-sonnet-4-6", totalTokens: 1_200, isEstimated: false, workingSeconds: 95 },
+      ],
       servedBy: [{ providerKeySource: ProviderKeySource.ORGANIZATION, totalTokens: 1_200, llmCallCount: 2 }],
       primaryModel: "claude-sonnet-4-6",
       primaryProvider: "anthropic",
       hasUsage: true,
       isEstimated: false,
     });
+  });
+
+  it("counts a session with working time and no tokens as having usage", async () => {
+    const report = create(GetSessionUsageReportOutputSchema, {
+      sessionId: SESSION_ID,
+      totalUsage: { workingSeconds: 30n },
+      runs: [{ runId: "run_1", workingSeconds: 30n }],
+    });
+    mockStigmer(vi.fn(async () => report));
+
+    const { result } = renderHook(() => useSessionUsage([makeRun(RunPhase.RUN_COMPLETED)]));
+    await flush();
+
+    expect(result.current.hasUsage).toBe(true);
+    expect(result.current.workingSeconds).toBe(30);
+    expect(result.current.runBreakdown.map((r) => r.workingSeconds)).toEqual([30]);
   });
 
   it("passes the report's estimated flag through for runner-reported runs", async () => {

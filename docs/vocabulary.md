@@ -69,6 +69,7 @@ definitions, API names, and examples follow below.
 | **Approval flow**     | approval flow    | approval flow                          | approval flow, HITL    | `destructiveHint`, `confirmToolUse`             | HITL, approval    |
 | **Organization**      | Organization     | Organization                           | Organization           | Organization, `kind: organization`              | Organization      |
 | **Agent hour**        | agent hours      | ---                                    | agent hours            | `included_agent_hours`, `per_agent_hour_micros` | agent hours       |
+| **Working time**      | ---              | working time                           | working time           | `working_seconds`                               | working time      |
 | **Team**              | teams            | ---                                    | Team                   | Team, `kind: team`                              | Team              |
 | **Vault**             | vault            | vault ("your keys and logins")         | Vault                  | Vault, `kind: Vault`                            | vault             |
 | **Preference**        | preferences      | preference ("standing context")        | Preference             | `spec.preferences.standing_context`             | Preference        |
@@ -740,8 +741,31 @@ is never an agent hour.
   Stigmer's computers; a child organization draws on its parent's hours. A
   self-hosted deployment runs on its own computers and counts none; a license
   ignores both fields. Model tokens are never counted or priced as agent hours.
+  Every edition's usage reports show each run's [working time](#working-time);
+  agent hours are the working time a Stigmer Cloud plan counts, in Stigmer's
+  sandboxes, never an automatic grade's. Where an Organization stands against
+  its allowance is on **Settings → Billing** and in `stigmer usage hours`.
 - **Context rule**: "agent hours" in every context. Never "compute hours" or
   "session hours".
+
+---
+
+#### Working time
+
+How long an agent worked on a run: thinking, calling tools, writing files.
+Waiting for a person is never working time. Each stretch of work is credited to
+the run whose start began it.
+
+- **Capitalize**: No.
+- **API surface**: `working_seconds` on the usage reports
+  (`UsageReportAggregate`, `RunUsageSummary`, `SessionUsageSummary`,
+  `AgentUsageSummary`). CLI: `stigmer usage session|agent|org` (`Working time:`
+  and the `WORKING` column).
+- **Note**: a clock, never priced, shown in every edition. On Stigmer Cloud it
+  can exceed a plan's [agent hours](#agent-hour), which count only the turns
+  Stigmer's sandboxes run and never an automatic grade.
+- **Context rule**: "working time" in usage reports; "agent hours" for what a
+  plan includes and bills. Never "agent hours" for a usage report's figure.
 
 ---
 

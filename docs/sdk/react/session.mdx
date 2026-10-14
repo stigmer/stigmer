@@ -960,7 +960,7 @@ function useSessionUsage(runs: readonly Run[]): UseSessionUsageReturn
   type={{
     cacheCreationTokens: { type: "number", description: "Total tokens used to create cache entries across all models." },
     cacheReadTokens: { type: "number", description: "Total tokens served from cache across all models." },
-    hasUsage: { type: "boolean", description: "`true` when the session has any tokens or calls." },
+    hasUsage: { type: "boolean", description: "`true` when the session has any tokens, calls or working time." },
     inputTokens: { type: "number", description: "Total non-cached input tokens across all models." },
     isEstimated: { type: "boolean", description: "`true` when any run is counted from its runner's own report rather than the deployment's meter. The UI shows an \"Estimated\" badge." },
     llmCallCount: { type: "number", description: "Total number of metered LLM calls in this session." },
@@ -971,6 +971,7 @@ function useSessionUsage(runs: readonly Run[]): UseSessionUsageReturn
     runBreakdown: { type: "readonly RunUsageEntry[]", description: "Per-run tokens and primary model, chronological." },
     servedBy: { type: "readonly ServedByEntry[]", description: "The session's tokens by whose provider credential served them." },
     totalTokens: { type: "number", description: "Total tokens across all models (cache-inclusive: input + output + cache)." },
+    workingSeconds: { type: "number", description: "Seconds an agent worked on this session; waiting for a person is never counted." },
   }}
 />
 
@@ -1706,6 +1707,7 @@ Per-run token usage and model provenance (stigmer/stigmer#362).
     resolvedModel: { type: "string", description: "The run's primary model — the model with the most tokens. For a metered run it is what the provider actually served, which for a Cursor Auto run answers \"which model did Auto pick\"; for an estimated run it is the model the runner reported.", required: true },
     runId: { type: "string", description: "Run identifier (`metadata.id`).", required: true },
     totalTokens: { type: "number", description: "Total tokens for this run (cache-inclusive).", required: true },
+    workingSeconds: { type: "number", description: "Seconds an agent worked in the stretches this run started.", required: true },
   }}
 />
 

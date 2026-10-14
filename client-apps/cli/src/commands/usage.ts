@@ -1,8 +1,15 @@
-// `stigmer usage {session,agent,org}` — token and model reports at three
-// granularities. Thin handlers: validate flags, fetch the report, render. The
-// dates pass through as typed: the server reads a UTC calendar day (the whole
-// day, both bounds inclusive) or an RFC 3339 instant. Heavy modules are
-// lazy-imported inside actions so `--help` stays fast.
+// `stigmer usage {session,agent,org}` — token, model and working-time reports
+// at three granularities — and `stigmer usage hours`, the organization's
+// agent hours against its plan. Thin handlers: validate flags, fetch the
+// report, render. The dates pass through as typed: the server reads a UTC
+// calendar day (the whole day, both bounds inclusive) or an RFC 3339
+// instant. Heavy modules are lazy-imported inside actions so `--help` stays
+// fast.
+//
+// Agent hours are a Stigmer Cloud plan's (the subscription kind's), so
+// `usage hours` asks the server whether it serves that kind before calling
+// it, the question `stigmer run` asks of account preferences, and a server
+// that does not gets a plain sentence instead of an Unimplemented error.
 
 import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
@@ -18,8 +25,12 @@ interface UsageFlags extends OutputFlags {
 const FROM_HELP = "start: a UTC day, inclusive (e.g. 2026-03-01), or an RFC 3339 instant";
 const TO_HELP = "end: a UTC day, inclusive (e.g. 2026-03-13), or an RFC 3339 instant";
 
+/** What `usage hours` says on a server that serves no subscriptions. */
+export const AGENT_HOURS_NOT_SERVED =
+  "This server does not count agent hours: they are a Stigmer Cloud plan's. `stigmer usage org` shows working time.";
+
 export function registerUsage(program: Command): void {
-  const usage = program.command("usage").description("view token usage reports");
+  const usage = program.command("usage").description("view token and working-time usage reports");
 
   usage
     .command("session <session-id>")
@@ -42,6 +53,12 @@ export function registerUsage(program: Command): void {
     .option("--to <date>", `${TO_HELP}, required`)
     .option("-o, --output <format>", "output format: table, json, or yaml")
     .action((options: UsageFlags, command: Command) => runOrgUsage(options, command));
+
+  usage
+    .command("hours")
+    .description("view the organization's agent hours against its plan (Stigmer Cloud)")
+    .option("-o, --output <format>", "output format: table, json, or yaml")
+    .action((options: UsageFlags, command: Command) => runAgentHours(options, command));
 }
 
 async function runSessionUsage(sessionId: string, options: UsageFlags): Promise<void> {
@@ -79,4 +96,21 @@ async function runOrgUsage(options: UsageFlags, command: Command): Promise<void>
 
   const report = await usage.getOrgUsageReport(client.stigmer, org, range);
   process.stdout.write(usage.renderOrgUsage(report, range, readFormat(options)));
+}
+
+async function runAgentHours(options: UsageFlags, command: Command): Promise<void> {
+  const [{ connectBackend }, usage, { ApiResourceKind }] = await Promise.all([
+    import("../backend.js"),
+    import("../resources/usage.js"),
+    import("@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb"),
+  ]);
+  const client = connectBackend();
+  ensureAuthenticated(client.config);
+  if (!(await client.isResourceAvailable(ApiResourceKind.subscription))) {
+    throw new UsageError(AGENT_HOURS_NOT_SERVED);
+  }
+  const org = resolveOrganization(client.config, globalOrg(command));
+
+  const hours = await usage.getAgentHours(client.stigmer, org);
+  process.stdout.write(usage.renderAgentHours(hours, readFormat(options)));
 }
