@@ -282,7 +282,7 @@ describe.skipIf(capabilities.licenseStatus !== "licensed")("License terms — a 
     const colleague = await licensed.person();
     const redeemed = await colleague.clients.invitationCommand.redeem({ token: invitationToken });
     expect(redeemed.status?.redemptionCount).toBe(1);
-    const membership = await founder.iamPolicyCommand.create(teamMembership(teamId, colleague.accountId));
+    const membership = await founder.grantCommand.create(teamMembership(teamId, colleague.accountId));
     expect(membership.spec?.relation).toBe("member");
 
     const deleted = await founder.federationIssuerCommand.delete({ resourceId: removable });
