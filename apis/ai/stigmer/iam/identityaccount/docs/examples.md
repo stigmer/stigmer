@@ -109,4 +109,4 @@ stigmer identity-account simulate-signup-webhook --email alice@example.com
 stigmer identity-account delete ia-01HQUSER123
 ```
 
-Deletion removes the IdentityAccount and triggers cleanup of all associated IAM policies via `cleanupResourcePolicies`.
+Deletion removes the IdentityAccount and triggers cleanup of all associated grants via `cleanupResourceGrants`.

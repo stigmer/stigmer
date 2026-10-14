@@ -1,12 +1,12 @@
 syntax = "proto3";
 
-package ai.stigmer.iam.iampolicy.v1;
+package ai.stigmer.iam.grant.v1;
 
 import "buf/validate/validate.proto";
 
-// IamPolicySpec defines the desired state of an IAM policy binding.
+// GrantSpec defines the desired state of a grant binding.
 // It specifies WHO (principal) gets WHAT permission (relation) on WHICH resource.
-message IamPolicySpec {
+message GrantSpec {
   // Principal: WHO is being granted access
   // This can be any API resource that acts as an identity:
   // - identity_account (individual user)
@@ -74,7 +74,7 @@ message ApiResourceRef {
   // means "members of team tm-123"
   //
   // This field qualifies HOW the principal relates to this resource reference,
-  // NOT the permission being granted (that's IamPolicySpec.relation).
+  // NOT the permission being granted (that's GrantSpec.relation).
   //
   // @internal
   // In OpenFGA tuple notation: team:tm-123#member (as the subject of the tuple)

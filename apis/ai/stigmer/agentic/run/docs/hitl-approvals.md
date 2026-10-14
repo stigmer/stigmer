@@ -134,7 +134,7 @@ stigmer run my-agent -m "Run automated deployment" --auto-approve
 When `auto_approve_all` is set, every call that would ask runs without waiting, a hook's ask included. The agent's tool lists still apply: a tool they exclude stays unavailable. The agent's hooks still run, and a call a hook refuses stays refused.
 
 **Security considerations:**
-- Restrict access to `auto_approve_all` with appropriate IAM policies
+- Restrict access to `auto_approve_all` with appropriate grants
 - Audit runs where this flag is used — they bypass every approval prompt (a hook's refusal and the tool lists still hold)
 - In interactive sessions, the platform's own surfaces never pre-arm it: the
   gate defaults are fail-closed, and users opt in per session at a gate

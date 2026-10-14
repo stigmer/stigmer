@@ -1,15 +1,15 @@
-# IamPolicy Validation Checklist and Common Pitfalls
+# Grant Validation Checklist and Common Pitfalls
 
-Pre-create checklist and known pitfalls when creating IAM policies.
+Pre-create checklist and known pitfalls when creating grants.
 
 ## Pre-Create Checklist
 
 ### Required Fields
 
 - [ ] `apiVersion` is exactly `iam.stigmer.ai/v1`
-- [ ] `kind` is exactly `IamPolicy`
-- [ ] `metadata.name` is descriptive and identifies the binding (e.g., `alice-org-admin`, not `policy1`)
-- [ ] `metadata.org` is set to the organization that owns this policy
+- [ ] `kind` is exactly `Grant`
+- [ ] `metadata.name` is descriptive and identifies the binding (e.g., `alice-org-admin`, not `grant1`)
+- [ ] `metadata.org` is set to the organization that owns this grant
 
 ### Principal
 
@@ -86,14 +86,14 @@ spec:
   relation: viewer
 ```
 
-### Attempting to Use `bootstrapPolicy` Without Operator Permissions
+### Attempting to Use `bootstrapGrant` Without Operator Permissions
 
-`bootstrapPolicy` and `createPlatformLink` are restricted to machine accounts with `operator` permission on `platform:stigmer`. Calling them as a regular user will return an authorization error.
+`bootstrapGrant` and `createPlatformLink` are restricted to machine accounts with `operator` permission on `platform:stigmer`. Calling them as a regular user will return an authorization error.
 
-### Deleting a Policy That Doesn't Exist Is Safe
+### Deleting a Grant That Doesn't Exist Is Safe
 
-The `delete` operation is idempotent. If the policy does not exist, the call succeeds without error. There is no need to check for existence before deleting.
+The `delete` operation is idempotent. If the grant does not exist, the call succeeds without error. There is no need to check for existence before deleting.
 
-### Creating a Duplicate Policy Is Safe
+### Creating a Duplicate Grant Is Safe
 
-The `create` operation is idempotent. If the exact policy (same principal, resource, and relation) already exists, the call succeeds and returns the existing policy. No duplicate is created.
+The `create` operation is idempotent. If the exact grant (same principal, resource, and relation) already exists, the call succeeds and returns the existing grant. No duplicate is created.

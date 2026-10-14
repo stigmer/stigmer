@@ -1,12 +1,12 @@
-# IamPolicy YAML Schema Reference
+# Grant YAML Schema Reference
 
-Core schema reference for the `iam.stigmer.ai/v1` IamPolicy resource. For conceptual overview and the OpenFGA model, see [README.md](README.md) and [authorization-model.md](authorization-model.md).
+Core schema reference for the `iam.stigmer.ai/v1` Grant resource. For conceptual overview and the OpenFGA model, see [README.md](README.md) and [authorization-model.md](authorization-model.md).
 
-## IamPolicy YAML Structure
+## Grant YAML Structure
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1
-kind: IamPolicy
+kind: Grant
 metadata:
   name: alice-demo-org-viewer
   org: acme-corp
@@ -26,9 +26,9 @@ status: {}  # System-managed, never set by users
 | Field | Required | Value |
 |---|---|---|
 | `apiVersion` | Yes | Must be exactly `iam.stigmer.ai/v1` |
-| `kind` | Yes | Must be exactly `IamPolicy` |
+| `kind` | Yes | Must be exactly `Grant` |
 | `metadata` | Yes | Standard API resource metadata (see below) |
-| `spec` | Yes | Policy binding (see below) |
+| `spec` | Yes | Grant binding (see below) |
 | `status` | No | System-managed; never set by users |
 
 ## Metadata Fields
@@ -36,8 +36,8 @@ status: {}  # System-managed, never set by users
 | Field | Required | Description |
 |---|---|---|
 | `metadata.name` | Yes | Human-readable name describing the binding (e.g., `alice-demo-org-viewer`). |
-| `metadata.id` | No | System-generated unique identifier (prefix `iamp-`). Never set by users. |
-| `metadata.org` | Yes | Organization this policy belongs to. Used for scoping and ownership. |
+| `metadata.id` | No | System-generated unique identifier (prefix `grt_`, derived from the spec's triple). Never set by users. |
+| `metadata.org` | Yes | Organization this grant belongs to. Used for scoping and ownership. |
 
 ## Spec Fields
 
@@ -91,17 +91,17 @@ Status is system-managed and must never be set by users.
 
 | Operation | RPC | Notes |
 |---|---|---|
-| Grant access | `IamPolicyCommandController.create` | Input: `IamPolicySpec`. Idempotent — creating an existing policy is a no-op. |
-| Revoke access | `IamPolicyCommandController.delete` | Input: `IamPolicySpec`. Idempotent — deleting a nonexistent policy is a no-op. |
-| Get policy | `IamPolicyQueryController.get` | Requires `can_view_access` on the policy. |
+| Grant access | `GrantCommandController.create` | Input: `GrantSpec`. Idempotent — creating an existing grant is a no-op. |
+| Revoke access | `GrantCommandController.delete` | Input: `GrantSpec`. Idempotent — deleting a nonexistent grant is a no-op. |
+| Get grant | `GrantQueryController.get` | Requires `can_view_access` on the grant. |
 
 ### Authorization Query Operations
 
 | Operation | RPC | Notes |
 |---|---|---|
-| Check authorization | `IamPolicyQueryController.checkAuthorization` | Boolean check: does principal X have permission Y on resource Z? No FGA check on the caller. |
-| List authorized resources | `IamPolicyQueryController.listAuthorizedResourceIds` | What resource IDs of a given kind can principal X access with relation Y? A user may ask only about their own identity account; machine callers about any principal. |
-| List authorized principals | `IamPolicyQueryController.listAuthorizedPrincipalIds` | What principal IDs of a given kind have relation Y on resource Z? Requires `can_view_access` on resource Z. |
+| Check authorization | `GrantQueryController.checkAuthorization` | Boolean check: does principal X have permission Y on resource Z? No FGA check on the caller. |
+| List authorized resources | `GrantQueryController.listAuthorizedResourceIds` | What resource IDs of a given kind can principal X access with relation Y? A user may ask only about their own identity account; machine callers about any principal. |
+| List authorized principals | `GrantQueryController.listAuthorizedPrincipalIds` | What principal IDs of a given kind have relation Y on resource Z? Requires `can_view_access` on resource Z. |
 
 ### Operator-Only Operations
 
@@ -109,27 +109,27 @@ These RPCs require `operator` permission on `platform:stigmer`. They are for int
 
 | Operation | RPC | Purpose |
 |---|---|---|
-| Bootstrap policy | `IamPolicyCommandController.bootstrapPolicy` | Creates initial policies during resource creation when no FGA tuples exist yet (chicken-and-egg problem). |
-| Create platform link | `IamPolicyCommandController.createPlatformLink` | Links an identity account to the platform. Used during account bootstrapping. |
-| Cleanup resource policies | `IamPolicyCommandController.cleanupResourcePolicies` | Removes all policies referencing a deleted resource (bidirectional). |
+| Bootstrap grant | `GrantCommandController.bootstrapGrant` | Creates initial grants during resource creation when no FGA tuples exist yet (chicken-and-egg problem). |
+| Create platform link | `GrantCommandController.createPlatformLink` | Links an identity account to the platform. Used during account bootstrapping. |
+| Cleanup resource grants | `GrantCommandController.cleanupResourceGrants` | Removes all grants referencing a deleted resource (bidirectional). |
 
 ## CLI Commands
 
 ```bash
-# Grant access (create a policy)
-stigmer iam-policy create policy.yaml
+# Grant access (create a grant)
+stigmer grant create grant.yaml
 
-# Revoke access (delete a policy)
-stigmer iam-policy delete policy.yaml
+# Revoke access (delete a grant)
+stigmer grant delete grant.yaml
 
-# Get a policy by ID
-stigmer iam-policy get iamp-01ABC123
+# Get a grant by ID
+stigmer grant get grt_01ABC123
 
-# Get a policy as YAML
-stigmer iam-policy get iamp-01ABC123 --output yaml
+# Get a grant as YAML
+stigmer grant get grt_01ABC123 --output yaml
 
 # Check authorization
-stigmer iam-policy check-authorization --principal-kind identity_account \
+stigmer grant check-authorization --principal-kind identity_account \
   --principal-id ia-01HQUSER123 \
   --resource-kind organization \
   --resource-id org-01HQDEMO456 \

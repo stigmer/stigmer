@@ -1,10 +1,10 @@
-An IamPolicy grants a specific permission to a principal on a resource. It
+A Grant gives a specific permission to a principal on a resource. It
 binds three elements: WHO (principal), WHAT (resource), and HOW (relation).
-Policies are the source of truth for authorization in Stigmer.
+Grants are the source of truth for authorization in Stigmer.
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1
-kind: IamPolicy
+kind: Grant
 metadata:
   name: alice-org-admin
   org: acme

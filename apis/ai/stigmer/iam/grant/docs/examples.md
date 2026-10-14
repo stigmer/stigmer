@@ -1,4 +1,4 @@
-# IamPolicy Examples
+# Grant Examples
 
 Complete examples for granting access, revoking access, and querying authorization.
 
@@ -6,7 +6,7 @@ Complete examples for granting access, revoking access, and querying authorizati
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1
-kind: IamPolicy
+kind: Grant
 metadata:
   name: alice-demo-org-viewer
   org: acme-corp
@@ -24,7 +24,7 @@ spec:
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1
-kind: IamPolicy
+kind: Grant
 metadata:
   name: alice-deploy-agent-admin
   org: acme-corp
@@ -44,7 +44,7 @@ Using the `principal.relation` qualifier to target all members of a team. The `u
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1
-kind: IamPolicy
+kind: Grant
 metadata:
   name: support-team-tools-user
   org: acme-corp
@@ -61,12 +61,12 @@ spec:
 
 ## Revoke Access
 
-Revoking access uses the same spec as granting. The policy is identified by the combination of principal, resource, and relation.
+Revoking access uses the same spec as granting. The grant is identified by the combination of principal, resource, and relation.
 
 ```yaml
 # revoke-alice-viewer.yaml
 apiVersion: iam.stigmer.ai/v1
-kind: IamPolicy
+kind: Grant
 metadata:
   name: alice-demo-org-viewer
   org: acme-corp
@@ -81,14 +81,14 @@ spec:
 ```
 
 ```bash
-stigmer iam-policy delete revoke-alice-viewer.yaml
+stigmer grant delete revoke-alice-viewer.yaml
 ```
 
 ## CLI: Check Authorization
 
 ```bash
 # Does Alice have viewer access on the Demo organization?
-stigmer iam-policy check-authorization \
+stigmer grant check-authorization \
   --principal-kind identity_account \
   --principal-id ia-01HQUSER123 \
   --resource-kind organization \
@@ -103,7 +103,7 @@ stigmer iam-policy check-authorization \
 
 ```bash
 # Which organizations can Alice view?
-stigmer iam-policy list-authorized-resources \
+stigmer grant list-authorized-resources \
   --principal-kind identity_account \
   --principal-id ia-01HQUSER123 \
   --resource-kind organization \
@@ -119,7 +119,7 @@ stigmer iam-policy list-authorized-resources \
 
 ```bash
 # Who may use the Support tools vault?
-stigmer iam-policy list-authorized-principals \
+stigmer grant list-authorized-principals \
   --resource-kind vault \
   --resource-id vlt-01HQSUPPORTTOOLS \
   --principal-kind identity_account \
@@ -137,7 +137,7 @@ This is an operator-only operation performed by platform services, not end users
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1
-kind: IamPolicy
+kind: Grant
 metadata:
   name: platform-link-alice
   org: stigmer

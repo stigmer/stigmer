@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-package ai.stigmer.iam.iampolicy.v1;
+package ai.stigmer.iam.grant.v1;
 
 import "ai/stigmer/commons/apiresource/io.proto";
-import "ai/stigmer/iam/iampolicy/v1/api.proto";
-import "ai/stigmer/iam/iampolicy/v1/spec.proto";
+import "ai/stigmer/iam/grant/v1/api.proto";
+import "ai/stigmer/iam/grant/v1/spec.proto";
 import "ai/stigmer/iam/identityaccount/v1/enum.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
@@ -65,9 +65,9 @@ message IdentityOrigin {
   string provider_display_name = 2;
 }
 
-// IamPolicyId identifies an IAM policy by its unique identifier.
-message IamPolicyId {
-  // Unique identifier of the IAM policy.
+// GrantId identifies a grant by its unique identifier.
+message GrantId {
+  // Unique identifier of the grant.
   string value = 1 [(buf.validate.field).required = true];
 }
 
@@ -104,10 +104,10 @@ message RevokeOrgAccessInput {
   ];
 }
 
-// IamPoliciesList contains a list of IAM policy resources.
-message IamPoliciesList {
-  // IAM policy entries.
-  repeated IamPolicy entries = 1;
+// GrantsList contains a list of grant resources.
+message GrantsList {
+  // grant entries.
+  repeated Grant entries = 1;
 }
 
 // ListResourceAccessInput defines input for querying access grants on a resource.
@@ -186,11 +186,11 @@ message PrincipalResourceRoles {
 
 // CheckAuthorizationInput defines input for checking if a principal is authorized.
 message CheckAuthorizationInput {
-  // The policy to check (principal, resource, relation)
-  IamPolicySpec policy = 1 [(buf.validate.field).required = true];
+  // The grant to check (principal, resource, relation)
+  GrantSpec grant = 1 [(buf.validate.field).required = true];
 
-  // Optional contextual policies for "what-if" scenarios
-  repeated IamPolicySpec contextual_policies = 2;
+  // Optional contextual grants for "what-if" scenarios
+  repeated GrantSpec contextual_grants = 2;
 }
 
 // CheckAuthorizationResult contains the result of an authorization check.
@@ -224,8 +224,8 @@ message CheckMyPermissionInput {
     (buf.validate.field).string.max_len = 64
   ];
 
-  // Optional contextual policies for "what-if" scenarios
-  repeated IamPolicySpec contextual_policies = 3;
+  // Optional contextual grants for "what-if" scenarios
+  repeated GrantSpec contextual_grants = 3;
 }
 
 // ListAuthorizedResourceIdsInput defines input for listing resources a principal can access.
@@ -245,8 +245,8 @@ message ListAuthorizedResourceIdsInput {
     (buf.validate.field).string.min_len = 1
   ];
 
-  // Optional contextual policies for "what-if" scenarios
-  repeated IamPolicySpec contextual_policies = 4;
+  // Optional contextual grants for "what-if" scenarios
+  repeated GrantSpec contextual_grants = 4;
 }
 
 // AuthorizedResourceIdsList contains all resource IDs a principal can access.
@@ -272,8 +272,8 @@ message ListAuthorizedPrincipalIdsInput {
     (buf.validate.field).string.min_len = 1
   ];
 
-  // Optional contextual policies for "what-if" scenarios
-  repeated IamPolicySpec contextual_policies = 4;
+  // Optional contextual grants for "what-if" scenarios
+  repeated GrantSpec contextual_grants = 4;
 }
 
 // AuthorizedPrincipalIdsList contains all principal IDs that can access a resource.

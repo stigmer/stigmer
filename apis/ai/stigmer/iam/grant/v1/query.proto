@@ -1,28 +1,35 @@
 syntax = "proto3";
 
-package ai.stigmer.iam.iampolicy.v1;
+package ai.stigmer.iam.grant.v1;
 
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
-import "ai/stigmer/iam/iampolicy/v1/api.proto";
-import "ai/stigmer/iam/iampolicy/v1/io.proto";
+import "ai/stigmer/iam/grant/v1/api.proto";
+import "ai/stigmer/iam/grant/v1/io.proto";
 
-// IamPolicyQueryController handles read operations for IAM policies.
-service IamPolicyQueryController {
-  option (ai.stigmer.commons.apiresource.api_resource_kind) = iam_policy;
+// GrantQueryController reads grants and answers what they allow.
+//
+// Three of its RPCs read grant rows (get, listResourceAccessByPrincipal and
+// listAccessHistory); the others are checks and lookups over what the
+// grants and the authorization model together let a principal do. The checks
+// live beside the grants they are answered from, as OpenFGA's Check sits
+// beside its Write and Google Cloud's testIamPermissions beside its IAM
+// policies.
+service GrantQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = grant;
 
-  // Get an IAM policy by its unique identifier.
+  // Get a grant by its unique identifier.
   //
-  // Returns the full IAM policy including its principal, resource, and relation binding.
+  // Returns the full grant including its principal, resource, and relation binding.
   //
   // @internal
-  // Authorization: can_view_access on the RESOURCE the loaded policy names.
+  // Authorization: can_view_access on the RESOURCE the loaded grant names.
   // The annotation carries no target on purpose — the target is inside the
-  // row — so the handler loads the policy (NOT_FOUND when absent) and then
+  // row — so the handler loads the grant (NOT_FOUND when absent) and then
   // authorizes against its resource.
-  rpc get(IamPolicyId) returns (IamPolicy) {
+  rpc get(GrantId) returns (Grant) {
     option (ai.stigmer.commons.rpc.config).permission = can_view_access;
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view access policies";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view grants";
   }
 
   // Check whether the AUTHENTICATED CALLER has a permission on a resource.
@@ -39,7 +46,7 @@ service IamPolicyQueryController {
   // - Pre-flight UI checks before showing buttons/actions
   // - Permission-gated rendering (PermissionGate components)
   //
-  // Input: CheckMyPermissionInput with resource, relation, and optional contextual policies
+  // Input: CheckMyPermissionInput with resource, relation, and optional contextual grants
   // Output: CheckAuthorizationResult with is_authorized boolean
   //
   // @internal
@@ -56,7 +63,7 @@ service IamPolicyQueryController {
   // "Does principal X have permission Y on resource Z?"
   //
   // It provides a simple boolean answer based on the complete authorization state,
-  // including existing IAM policies, inherited permissions, and group memberships.
+  // including existing grants, inherited permissions, and group memberships.
   //
   // This RPC is an INTERNAL-FACING contract for the platform's own
   // authorization pipeline (service-to-service and in-process checks).
@@ -67,7 +74,7 @@ service IamPolicyQueryController {
   // - Service-to-service authorization
   // - Team-based access checks
   //
-  // Input: CheckAuthorizationInput with policy spec and optional contextual policies
+  // Input: CheckAuthorizationInput with grant spec and optional contextual grants
   // Output: CheckAuthorizationResult with is_authorized boolean
   //
   // @internal
@@ -224,7 +231,7 @@ service IamPolicyQueryController {
   // @internal
   // Authorization: can_view_access_history on the organization named by
   // org. Then, on open source, UNIMPLEMENTED; then the
-  // iam-policy-list-access-history:pre-read gate slot; then the read.
+  // grant-list-access-history:pre-read gate slot; then the read.
   rpc listAccessHistory(ListAccessHistoryInput) returns (AccessHistoryPage) {
     option (ai.stigmer.commons.rpc.config).permission = can_view_access_history;
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
