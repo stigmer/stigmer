@@ -87,7 +87,9 @@ interface Licensed {
   readonly issuer: LocalOidcIssuer;
   readonly sibling: SiblingServer;
   readonly founderToken: string;
-  readonly founder: ConformanceClients;
+  // The founder's clients against the sibling as it is now: a restart may
+  // move it to another address, so they are built per call.
+  founder(): ConformanceClients;
   // The posture the sibling booted in, for a restart to name again.
   readonly oidcEnv: Record<string, string>;
   // A fresh person signed in on the sibling.
@@ -110,13 +112,12 @@ async function bootLicensed(env: Record<string, string>): Promise<Licensed> {
     await issuer.close();
     throw error;
   }
-  const founder = sibling.clientsPresenting(founderToken);
-  await founder.identityAccountCommand.provisionMyAccount({});
+  await sibling.clientsPresenting(founderToken).identityAccountCommand.provisionMyAccount({});
   return {
     issuer,
     sibling,
     founderToken,
-    founder,
+    founder: () => sibling.clientsPresenting(founderToken),
     oidcEnv,
     async person() {
       const clients = sibling.clientsPresenting(await mint());
@@ -164,7 +165,7 @@ describe.skipIf(capabilities.licenseStatus !== "licensed")("License terms — th
   });
 
   it("[rpc:OrganizationCommandController.create] a license for two organizations admits an organization and its child, refuses a third with ORGANIZATION_LIMIT_REACHED, and admits one again once the child is deleted", async () => {
-    const { founder } = licensed;
+    const founder = licensed.founder();
     const parent = await createUniqueOrganization(founder.organizationCommand, "the limit's first organization");
     const child = await createChildOrganization(founder.organizationCommand, parent.id, "the limit's child");
 
@@ -194,7 +195,7 @@ describe.skipIf(capabilities.licenseStatus !== "licensed")("License terms — th
   });
 
   it("[rpc:OrganizationCommandController.create] a person the operator's list does not name is refused with ORGANIZATION_CREATOR_NOT_LISTED, naming their own account", async () => {
-    const { founder } = licensed;
+    const founder = licensed.founder();
     const account = (await founder.identityAccountQuery.whoAmI({})).metadata?.id ?? "";
     expect(account, "the founder is a provisioned person").toMatch(/^ida_/);
 
@@ -221,7 +222,7 @@ describe.skipIf(capabilities.licenseStatus !== "licensed")("License terms — a 
 
   beforeAll(async () => {
     licensed = await bootLicensed({});
-    const { founder } = licensed;
+    const founder = licensed.founder();
     org = (await createUniqueOrganization(founder.organizationCommand, "the lapse's organization")).id;
     teamId = (await founder.teamCommand.create(makeTeam({ org, name: uniqueName("before-lapse") }))).metadata?.id ?? "";
     const keptIssuer = await founder.federationIssuerCommand.create(makeIssuer(org));
@@ -250,13 +251,13 @@ describe.skipIf(capabilities.licenseStatus !== "licensed")("License terms — a 
   });
 
   it("[rpc:PlatformQueryController.getLicenseStatus] the restarted server reports its license expired, with the ticket's claims", async () => {
-    const status = await licensed.founder.platformQuery.getLicenseStatus({});
+    const status = await licensed.founder().platformQuery.getLicenseStatus({});
     expect(status.state).toBe(LicenseState.expired);
     expect(status.claims, "an expired ticket still verified, so its claims are reported").toBeDefined();
   });
 
   it("[rpc:OrganizationCommandController.create] [rpc:TeamCommandController.create] [rpc:FederationIssuerCommandController.create] [rpc:FederationIssuerCommandController.update] [rpc:FederationIssuerCommandController.apply] creating an organization, a team or a federation issuer, and changing or applying an issuer, are refused with LICENSE_RENEWAL_REQUIRED", async () => {
-    const { founder } = licensed;
+    const founder = licensed.founder();
     await expectRenewalRequired(() => createUniqueOrganization(founder.organizationCommand, "growth after the lapse"), "an organization create");
     await expectRenewalRequired(() => founder.teamCommand.create(makeTeam({ org, name: uniqueName("after-lapse") })), "a team create");
     await expectRenewalRequired(() => founder.federationIssuerCommand.create(makeIssuer(org)), "an issuer create");
@@ -272,7 +273,7 @@ describe.skipIf(capabilities.licenseStatus !== "licensed")("License terms — a 
   });
 
   it("[rpc:InvitationCommandController.redeem] [rpc:FederationIssuerCommandController.delete] nobody is locked out: the founder reads what exists, a colleague redeems an earlier invitation and joins a team, and an issuer is deleted", async () => {
-    const { founder } = licensed;
+    const founder = licensed.founder();
     expect((await founder.organizationQuery.get({ value: org })).metadata?.id).toBe(org);
     expect((await founder.teamQuery.get({ value: teamId })).metadata?.id).toBe(teamId);
     expect((await founder.federationIssuerQuery.get({ value: kept.id })).metadata?.slug).toBe(kept.slug);
