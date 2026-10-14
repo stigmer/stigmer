@@ -9,6 +9,8 @@ kind: KubernetesDeployment
 metadata:
   name: stigmer-web
   org: stigmer
+  annotations:
+    planton.dev/provisioner: tofu # the organization's engine; named on each manifest until Planton makes OpenTofu its default, without which a deploy runs Pulumi
 spec:
   container:
     app:
@@ -53,6 +55,8 @@ kind: KubernetesHttpRoute
 metadata:
   name: stigmer-web
   org: stigmer
+  annotations:
+    planton.dev/provisioner: tofu # the organization's engine; named on each manifest until Planton makes OpenTofu its default, without which a deploy runs Pulumi
 spec:
   parentRefs:
   - kind: ListenerSet
