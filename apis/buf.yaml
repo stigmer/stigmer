@@ -29,20 +29,6 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
-  # One pull request renames the IdentityProvider kind for what it is: an
-  # outside issuer whose tokens Stigmer accepts. The package
-  # ai.stigmer.iam.identityprovider.v1 moves to
-  # ai.stigmer.iam.federationissuer.v1 with every message and service
-  # renamed; ApiResourceKind identity_provider = 21 becomes
-  # federation_issuer, IamPermission can_create_idp = 11 becomes
-  # can_create_federation_issuer, and the identity_provider_ref fields of
-  # IdentityAccountSpec and the federated account inputs become
-  # federation_issuer_ref. Every field and value number is kept. It is made
-  # before launch: the release notes name it under Upgrading. This block
-  # exists for that one pull request. While it stays, buf breaking does not
-  # report these rules on the listed files, so the pull request that removes
-  # it lands straight after the merge (#2279).
-  #
   # One pull request makes labels a filter on every list and tags search
   # words: ApiResourceMetadata's annotations go, with field 7 and its name
   # reserved, and ListRunsRequest's and ListSessionsRequest's tags filters,
@@ -52,24 +38,9 @@ breaking:
   # not report these rules on the listed files, so the pull request that
   # removes it lands straight after the merge (#2280).
   ignore_only:
-    ENUM_VALUE_SAME_NAME:
-      - ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto
-      - ai/stigmer/iam/v1/enum.proto
     FIELD_NO_DELETE:
       - ai/stigmer/agentic/run/v1/io.proto
       - ai/stigmer/agentic/session/v1/io.proto
       - ai/stigmer/commons/apiresource/metadata.proto
-    FIELD_SAME_JSON_NAME:
-      - ai/stigmer/iam/identityaccount/v1/io.proto
-      - ai/stigmer/iam/identityaccount/v1/spec.proto
-    FIELD_SAME_NAME:
-      - ai/stigmer/iam/identityaccount/v1/io.proto
-      - ai/stigmer/iam/identityaccount/v1/spec.proto
-    FILE_NO_DELETE:
-      - ai/stigmer/iam/identityprovider/v1/api.proto
-      - ai/stigmer/iam/identityprovider/v1/command.proto
-      - ai/stigmer/iam/identityprovider/v1/io.proto
-      - ai/stigmer/iam/identityprovider/v1/query.proto
-      - ai/stigmer/iam/identityprovider/v1/spec.proto
     MESSAGE_NO_DELETE:
       - ai/stigmer/commons/apiresource/metadata.proto
