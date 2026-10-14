@@ -53,6 +53,8 @@ const ISSUED = new Date("2026-10-01T00:00:00Z");
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** Long before any window: an entry stamped here is older than every one. */
 const LONG_AGO = "2000-01-01T00:00:00.000Z";
+/** A test that boots a server waits for it, as the suite's own setup does. */
+const BOOTS = 120_000;
 
 describe.skipIf(TEST_DATABASE_URL === undefined)("the access history's retention on a licensed server", () => {
   const signer = newTestSigner();
@@ -153,7 +155,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history's retention
     );
     expect(await headOf(acme)).toBe(acmeBefore.at(-1));
     expect(await headOf(doomed)).toBe(doomedBefore.at(-1));
-  });
+  }, BOOTS);
 
   it("says on every page how long the history is kept and where the kept history starts", async () => {
     const query = createClient(IamPolicyQueryController, asAlice());
@@ -183,7 +185,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history's retention
       pageSize: 1,
     });
     expect(newest.entries[0]?.sequence).toBe(BigInt(head + 1));
-  });
+  }, BOOTS);
 
   it("removes nothing on a licensed server with no window, and says it keeps the history for good", async () => {
     await booted?.close();
@@ -200,5 +202,5 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history's retention
     expect(page.retentionDays).toBe(0);
     expect(page.oldestSequence).toBe(3n);
     expect(await sequencesOf(acme)).toEqual(kept);
-  });
+  }, BOOTS);
 });
