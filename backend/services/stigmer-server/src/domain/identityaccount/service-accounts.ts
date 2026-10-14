@@ -33,25 +33,27 @@
  * listed, and its admins can delete it.
  *
  * List reads the organization's accounts (`findByOrg`) and keeps the
- * service accounts, newest first, so one whose role was removed is still
- * found and can be deleted.
+ * service accounts, so one whose role was removed is still found and can
+ * be deleted, and pages them newest first by the one page token over the
+ * set in hand (pipeline/steps/list-page.ts `inHandListPageSource`).
  *
  * Proven by __tests__/service-accounts.test.ts and the service-account
  * conformance suite.
  */
 import { ConnectError } from "@connectrpc/connect";
 import type { HandlerContext } from "@connectrpc/connect";
-import { create } from "@bufbuild/protobuf";
+import { create, fromBinary } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 import { IdentityAccountsListSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
 import type {
   CreateServiceAccountInput,
   IdentityAccountsList,
-  ListWithIdentityOrg,
+  ListServiceAccountsInput,
 } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -67,7 +69,11 @@ import {
 } from "../../pipeline/errors.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
-import { compareCreatedAtDesc } from "../../pipeline/steps/helpers.js";
+import {
+  inHandListPageSource,
+  listPageFingerprint,
+  readPage,
+} from "../../pipeline/steps/list-page.js";
 import { resolveName } from "../../pipeline/steps/names.js";
 import { refuseServiceAccountCaller } from "../../pipeline/steps/refuse-service-account.js";
 import { fittedSlug } from "../../pipeline/steps/slug.js";
@@ -89,9 +95,6 @@ export const SERVICE_ACCOUNT_NAME_TAKEN = "SERVICE_ACCOUNT_NAME_TAKEN";
 /** A name that fits to no slug (INVALID_ARGUMENT). */
 export const SERVICE_ACCOUNT_NAME_UNUSABLE_MESSAGE =
   "a service account's name needs at least one ASCII letter or digit";
-
-/** The page size listServiceAccounts answers when the request names none, and its ceiling. */
-const LIST_PAGE_SIZE = 100;
 
 export interface ServiceAccountDeps {
   readonly accounts: IdentityAccountStore;
@@ -181,7 +184,7 @@ export async function createServiceAccount(
 
 export async function listServiceAccounts(
   deps: ServiceAccountDeps,
-  input: ListWithIdentityOrg,
+  input: ListServiceAccountsInput,
   ctx: HandlerContext,
 ): Promise<IdentityAccountsList> {
   await authorizeDirect(
@@ -190,13 +193,18 @@ export async function listServiceAccounts(
     callerIdentityOf(ctx),
     input,
   );
-  const all = await serviceAccountsOf(deps.accounts, input.org);
-  const size = clampPageSize(input.page?.size ?? 0);
-  const num = Math.max(input.page?.num ?? 0, 1);
-  const start = (num - 1) * size;
+  const accounts = await serviceAccountsOf(deps.accounts, input.org);
+  const page = await readPage({
+    source: inHandListPageSource(IdentityAccountSchema, accounts),
+    request: { pageSize: input.pageSize, pageToken: input.pageToken },
+    fingerprint: listPageFingerprint({ org: input.org }),
+    decode: (data) => fromBinary(IdentityAccountSchema, data),
+    scope: (rows) => Promise.resolve(rows),
+    failure: "failed to list the organization's accounts",
+  });
   return create(IdentityAccountsListSchema, {
-    totalPages: Math.ceil(all.length / size),
-    entries: start >= all.length ? [] : all.slice(start, start + size),
+    entries: page.entries,
+    nextPageToken: page.nextPageToken,
   });
 }
 
@@ -261,14 +269,7 @@ async function serviceAccountsOf(
   } catch (error) {
     throw internalError(error, "failed to list the organization's accounts");
   }
-  return rows
-    .filter(isServiceAccount)
-    .sort((a, b) =>
-      compareCreatedAtDesc(
-        a.status?.audit?.specAudit?.createdAt,
-        b.status?.audit?.specAudit?.createdAt,
-      ),
-    );
+  return rows.filter(isServiceAccount);
 }
 
 function isServiceAccountRole(role: IamRole): boolean {
@@ -277,7 +278,4 @@ function isServiceAccountRole(role: IamRole): boolean {
   );
 }
 
-function clampPageSize(size: number): number {
-  return size <= 0 || size > LIST_PAGE_SIZE ? LIST_PAGE_SIZE : size;
-}
 

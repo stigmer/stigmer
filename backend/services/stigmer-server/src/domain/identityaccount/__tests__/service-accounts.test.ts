@@ -458,7 +458,7 @@ describe("service accounts with sign-in on (built-in Authorizer)", () => {
             IdentityAccountProvisioningMode.service_account,
         ),
       ).toBe(true);
-      expect(list.totalPages).toBe(1);
+      expect(list.nextPageToken).toBe("");
     });
 
     it("keeps a service account whose role was revoked, so it can still be deleted", async () => {
@@ -478,30 +478,27 @@ describe("service accounts with sign-in on (built-in Authorizer)", () => {
       expect(list.entries.map((a) => a.metadata?.id)).toContain(revoked);
     });
 
-    it("pages", async () => {
+    it("pages by token, newest first", async () => {
       const query = createClient(
         IdentityAccountQueryController,
         at.as(FOUNDER),
       );
       const first = await query.listServiceAccounts({
         org: listed,
-        page: { num: 1, size: 2 },
+        pageSize: 2,
       });
-      const second = await query.listServiceAccounts({
-        org: listed,
-        page: { num: 2, size: 2 },
-      });
-      const past = await query.listServiceAccounts({
-        org: listed,
-        page: { num: 3, size: 2 },
-      });
-      expect(first.totalPages).toBe(2);
       expect(first.entries.map((a) => a.metadata?.id)).toEqual([
         made[2],
         made[1],
       ]);
+      expect(first.nextPageToken).not.toBe("");
+      const second = await query.listServiceAccounts({
+        org: listed,
+        pageSize: 2,
+        pageToken: first.nextPageToken,
+      });
       expect(second.entries.map((a) => a.metadata?.id)).toEqual([made[0]]);
-      expect(past.entries).toEqual([]);
+      expect(second.nextPageToken).toBe("");
     });
 
     it("refuses a member of the organization", async () => {

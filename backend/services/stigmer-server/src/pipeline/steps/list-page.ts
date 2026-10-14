@@ -37,12 +37,19 @@
  */
 import { createHash } from "node:crypto";
 
+import { toBinary } from "@bufbuild/protobuf";
+import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
+
 import type { Store } from "../../store/interface.js";
 import type {
   ListIndexCursor,
   ListIndexDeclaration,
   ListIndexQuery,
   ListIndexRow,
+} from "../../store/list-index.js";
+import {
+  compareListIndexOrder,
+  listIndexInstant,
 } from "../../store/list-index.js";
 import {
   failedPreconditionError,
@@ -210,6 +217,54 @@ export async function readPage<T>(
       };
     }
   }
+}
+
+/** What `inHandListPageSource` reads off a resource for its place in the order. */
+interface InHandResource {
+  readonly metadata?: { readonly id?: string };
+  readonly status?: {
+    readonly audit?: {
+      readonly specAudit?: {
+        readonly createdAt?: { readonly seconds: bigint; readonly nanos: number };
+      };
+    };
+  };
+}
+
+/**
+ * A source over resources already in hand: those a port answers as a
+ * whole set (an edition's own table of an organization's accounts) or an
+ * authorization engine names by id. It orders them as the list index
+ * does (creation instant, then id, newest first) and hands out the rows
+ * after a cursor, so such a lane pages by the one loop and the one token,
+ * and a row created between two pages lands before the first rather than
+ * shifting an offset.
+ */
+export function inHandListPageSource<Desc extends DescMessage>(
+  schema: Desc,
+  resources: ReadonlyArray<MessageShape<Desc>>,
+): ListPageSource {
+  const rows: ListIndexRow[] = resources
+    .map((resource) => {
+      const shaped = resource as InHandResource;
+      const id = shaped.metadata?.id ?? "";
+      return {
+        id,
+        data: toBinary(schema, resource),
+        cursor: {
+          createdAt: listIndexInstant(shaped.status?.audit?.specAudit?.createdAt),
+          id,
+        },
+      };
+    })
+    .sort((a, b) => compareListIndexOrder(a.cursor, b.cursor));
+  return (after, limit) =>
+    Promise.resolve(
+      (after === undefined
+        ? rows
+        : rows.filter((row) => compareListIndexOrder(row.cursor, after) > 0)
+      ).slice(0, limit),
+    );
 }
 
 /** The most entries `readEveryPage` gathers before it refuses. */
