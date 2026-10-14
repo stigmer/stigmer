@@ -123,14 +123,17 @@ each adapter to another protocol (A2A, OpenTelemetry GenAI, AG-UI).
 - Stigmer-only data uses the specification's own extension mechanism under a
   `stigmer.` namespace. Where the specification has none, it travels as separate
   `stigmer.`-namespaced events. It is never a field added to one of the
-  specification's own messages.
+  specification's own messages. Each extension is listed, with the reason the
+  specification has none, beside the surface's documentation; the session's
+  events are listed in
+  [Stigmer's own events](../docs/sdk/streaming.mdx#stigmers-own-events).
 - An extension is optional. A client that ignores every `stigmer.` extension
   still gets a complete session: nothing waits on an answer that the
   specification's own clients cannot see or send, and a Stigmer-only step that
   needs one stays off unless a Stigmer client turns it on.
 
 No surface predates the rule any longer. The run once carried its own
-transcript on `RunStatus` (messages, tool calls, approvals, todos, sub-agents);
+transcript on `RunStatus` (messages, tool calls, approvals, todos, subagents);
 it left the contract, and its field numbers are reserved. Every client and the
 platform read a conversation from the session's event log, the CLI's `--json`
 writes one Managed Agents event per line, and new output goes only to the

@@ -55,7 +55,7 @@ const KIND_LABEL: Partial<Record<ToolKind, string>> = {
   web_search: "Web Search",
   think: "Thinking",
   todo: "Todos",
-  subagent: "Sub-agent",
+  subagent: "Subagent",
   // The CLI has no consent chip; the labeled row (with the fact as the
   // primary arg) plus the honest "proposed" result text is the whole story —
   // confirm/reject happen in the console's memory surfaces.

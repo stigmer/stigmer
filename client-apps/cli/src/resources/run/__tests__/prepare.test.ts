@@ -166,7 +166,7 @@ describe("prepareAgentExec vaults", () => {
 
   it("carries through scalar flags", async () => {
     const prepared = await prepareAgentExec(
-      { ...BASE_FLAGS, message: "go", model: "claude", autoApprove: true, detach: true, mode: "plan", approveDefault: "Approve_All" },
+      { ...BASE_FLAGS, message: "go", model: "claude", autoApprove: true, detach: true, mode: "plan", approveDefault: "Allow_All" },
       STUB_CLIENT,
     );
     expect(prepared.message).toBe("go");
@@ -174,11 +174,15 @@ describe("prepareAgentExec vaults", () => {
     expect(prepared.autoApproveAll).toBe(true);
     expect(prepared.detach).toBe(true);
     expect(prepared.mode).toBe("plan");
-    expect(prepared.approveDefault).toBe("approve-all");
+    expect(prepared.approveDefault).toBe("allow-all");
   });
 
   it("refuses an unknown --approve-default before anything else", async () => {
     await expect(prepareAgentExec({ ...BASE_FLAGS, approveDefault: "maybe" }, STUB_CLIENT)).rejects.toThrow(/must be one of/);
+  });
+
+  it("refuses a retired --approve-default word with the word that replaced it", async () => {
+    await expect(prepareAgentExec({ ...BASE_FLAGS, approveDefault: "skip" }, STUB_CLIENT)).rejects.toThrow('"skip" and "reject" are now "deny"');
   });
 });
 

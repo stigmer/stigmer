@@ -41,7 +41,7 @@ function rowKey(toolUse: ToolUse): string {
  *
  * This is the layout pass behind the "persistent-row timeline": instead of
  * hiding a whole turn behind one collapse, only repetitive noise is compressed,
- * and high-signal rows (edits, shell, MCP, sub-agents) always remain visible.
+ * and high-signal rows (edits, shell, MCP, subagents) always remain visible.
  * Chronology is preserved — a run never reorders calls, and an interleaving of
  * categories (read, search, read) yields three separate segments, not one.
  *

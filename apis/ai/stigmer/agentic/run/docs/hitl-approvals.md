@@ -32,9 +32,9 @@ Nothing else asks by default; an agent's hooks can change that (below). An MCP t
 
 To keep an agent away from a tool rather than asking about it, leave the tool out with the agent's `tools` and `disallowed_tools` lists (see the Agent resource's `plugin-integration.md`). The lists hold under every bypass below: a run that approves everything still cannot call a tool its lists exclude.
 
-An agent's hooks also decide which tools ask (`AgentSpec.hooks`, a plugin's hooks or a block written in the agent, in Claude Code's or Cursor's format). Before a call runs, a `PreToolUse` hook can refuse it, ask a person first, or let it run; whichever it answers replaces the default for that call. A hook that gives no answer leaves the call to the default. When several hooks answer, a refusal wins over an ask, and an ask over an allow. Both engines run hooks in both formats; on the Cursor engine a hook sees no sub-agent identity, and web fetch and web search, which reach no hook there, are left out of an agent whose `PreToolUse` hooks would match them (a `PostToolUse` hook on them does not run there). Hooks are the agent author's policy: a hook that lets a call run skips the approval the default would have asked of whoever runs the agent, so an agent shared with others carries that choice to them, and a hook's command runs in that person's workspace with their run values, without a prompt. An allow from a handler whose condition the runner cannot read for sure is not honoured; the call falls to the default.
+An agent's hooks also decide which tools ask (`AgentSpec.hooks`, a plugin's hooks or a block written in the agent, in Claude Code's or Cursor's format). Before a call runs, a `PreToolUse` hook can refuse it, ask a person first, or let it run; whichever it answers replaces the default for that call. A hook that gives no answer leaves the call to the default. When several hooks answer, a refusal wins over an ask, and an ask over an allow. Both engines run hooks in both formats; on the Cursor engine a hook sees no subagent identity, and web fetch and web search, which reach no hook there, are left out of an agent whose `PreToolUse` hooks would match them (a `PostToolUse` hook on them does not run there). Hooks are the agent author's policy: a hook that lets a call run skips the approval the default would have asked of whoever runs the agent, so an agent shared with others carries that choice to them, and a hook's command runs in that person's workspace with their run values, without a prompt. An allow from a handler whose condition the runner cannot read for sure is not honoured; the call falls to the default.
 
-`RunSpec.auto_approve_all`, an approve-all grant, and the unattended mode decide only how a required approval is resolved, never which tools ask. None of them opens a call a hook refuses.
+`RunSpec.auto_approve_all`, an "approve all" grant, and the unattended mode decide only how a required approval is resolved, never which tools ask. None of them opens a call a hook refuses.
 
 ---
 
@@ -47,7 +47,7 @@ An agent's hooks also decide which tools ask (`AgentSpec.hooks`, a plugin's hook
 | `builtin_category` | The default asked for a built-in tool that writes, deletes or runs a shell. |
 | `annotation_destructive_tighten` | The default asked for an MCP tool its server marks destructive, or whose server's tools could not be listed. |
 | `hook` | A hook decided the call. `policy_hook` names the plugin; it is empty for the agent's own hooks block. |
-| `approval_lease` | An approve-all grant for the call's class resolved it. |
+| `approval_lease` | An "approve all" grant for the call's class resolved it. |
 | `auto_approve_all` | The run approves every call (`RunSpec.auto_approve_all`). |
 | `unattended_skip` | No one can answer on this turn, so the call was skipped. See [Unattended Surfaces](#unattended-surfaces-channels-and-guest-shares). |
 
@@ -74,7 +74,7 @@ stigmer runs approve run_abc123 --tool-call <tool-use-id> \
   --action deny --comment "Wrong repository — this looks like a mistake"
 
 # Allow it and every waiting call of its class for the rest of the turn
-stigmer runs approve run_abc123 --tool-call <tool-use-id> --action approve-all
+stigmer runs approve run_abc123 --tool-call <tool-use-id> --action allow-all
 ```
 
 ### Several Calls at Once
@@ -100,7 +100,7 @@ confirmToolUse(tool_use_id: C, result: deny, deny_message: "not now")
 - otherwise, for a built-in tool, its approval category (shell commands, file edits and writes, or deletions);
 - otherwise, for an MCP tool, every tool of its server.
 
-Every other call of the same class waiting in the turn is allowed with it; calls of another class keep waiting. A category or server grant never clears a hook's ask. The grant covers sub-agent tool calls too. It lasts for the current turn only and is not saved to the session or the agent. Interactive clients may carry a session-scoped preference forward in memory (reset on reload); the server saves no such state. A call no rule asks about is allowed alone, with no grant.
+Every other call of the same class waiting in the turn is allowed with it; calls of another class keep waiting. A category or server grant never clears a hook's ask. The grant covers subagent tool calls too. It lasts for the current turn only and is not saved to the session or the agent. Interactive clients may carry a session-scoped preference forward in memory (reset on reload); the server saves no such state. A call no rule asks about is allowed alone, with no grant.
 
 ---
 
@@ -154,9 +154,9 @@ set the prop.
 
 ---
 
-## Sub-Agent Approvals
+## Subagent Approvals
 
-A sub-agent's call that asks waits in the same session and is answered the same way. Its `agent.tool_use` carries the sub-agent's `session_thread_id` (empty for the primary thread), and the idle names it beside the primary thread's waiting calls, so one approval surface answers both.
+A subagent's call that asks waits in the same session and is answered the same way. Its `agent.tool_use` carries the subagent's `session_thread_id` (empty for the primary thread), and the idle names it beside the primary thread's waiting calls, so one approval surface answers both.
 
 ---
 

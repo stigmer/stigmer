@@ -357,7 +357,7 @@ Renders a single message in the terminal conversation thread.
 Renders a continuous conversation thread from a session's folded turns in
 the terminal.
 
-Composes `MessageEntry`, `ToolCallGroup`, `SubAgentBlock`,
+Composes `MessageEntry`, `ToolCallGroup`, `SubagentBlock`,
 `RunProgress`, `ApprovalPrompt`, and (for settled file reviews)
 `FileReviewRecord` into a scrolling terminal log.
 
@@ -496,15 +496,15 @@ A one-line summary of a settled set's outcome, e.g. `2 kept · 1
 discarded`, or `3 files changed` when nothing was decided.
 
 
-### SubAgentBlock
+### SubagentBlock
 
-Renders a sub-agent's thread as a collapsible block in the terminal.
+Renders a subagent's thread as a collapsible block in the terminal.
 
 Shows a summary line with status glyph, subject (or the agent's name), and
 duration. When expanded, renders the thread's items using the same
 MessageEntry and ToolCallGroup components as the main thread.
 
-**Props** — `SubAgentBlockProps`
+**Props** — `SubagentBlockProps`
 
 <TypeTable
   type={{
@@ -513,7 +513,7 @@ MessageEntry and ToolCallGroup components as the main thread.
     isFocused: { type: "boolean", description: "Whether this component can receive keyboard focus for toggling." },
     startedAt: { type: "string", description: "When it started (its `task` call's time)." },
     subject: { type: "string", description: "What it was asked to do, in a few words (the `task` call's description)." },
-    thread: { type: "Thread", description: "The sub-agent's thread, from the session's fold (`ToolUse.thread`).", required: true },
+    thread: { type: "Thread", description: "The subagent's thread, from the session's fold (`ToolUse.thread`).", required: true },
   }}
 />
 

@@ -46,7 +46,7 @@ export function mcpServerWayForward(document: unknown): string | undefined {
 }
 
 /**
- * The way forward for an agent manifest written while a sub-agent was
+ * The way forward for an agent manifest written while a subagent was
  * written inside its agent: a subagent is now a saved agent the agent
  * lists. Shared with the CLI's `apply` and `validate`.
  */
@@ -56,7 +56,7 @@ export const SUBAGENTS_WAY_FORWARD =
 
 /**
  * {@link SUBAGENTS_WAY_FORWARD} when `document` is an agent whose spec still
- * writes sub-agents inside it (`sub_agents`). Undefined for every other
+ * writes subagents inside it (`sub_agents`). Undefined for every other
  * document.
  */
 export function subagentsWayForward(document: unknown): string | undefined {
@@ -68,7 +68,7 @@ export function subagentsWayForward(document: unknown): string | undefined {
 /**
  * The way forward for any retired shape a document still uses: an MCP
  * server resource or server usages ({@link mcpServerWayForward}), or
- * sub-agents written inside an agent ({@link subagentsWayForward}).
+ * subagents written inside an agent ({@link subagentsWayForward}).
  */
 export function retiredShapeWayForward(document: unknown): string | undefined {
   return mcpServerWayForward(document) ?? subagentsWayForward(document);
