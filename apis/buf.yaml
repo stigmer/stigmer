@@ -41,7 +41,7 @@ breaking:
   # before launch: the release notes name it under Upgrading. This block
   # exists for that one pull request. While it stays, buf breaking does not
   # report these rules on the listed files, so the pull request that removes
-  # it lands straight after the merge.
+  # it lands straight after the merge (#2279).
   ignore_only:
     ENUM_VALUE_SAME_NAME:
       - ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto

@@ -8,7 +8,7 @@
  * touches DNS or a socket).
  *
  * Pins, in the order a reviewer would ask:
- *   - create shapes the envelope the OSS way (an `idp_` id the server
+ *   - create shapes the envelope the OSS way (a `fis_` id the server
  *     minted, whatever id the request carried; the slug from the name;
  *     the audit stamped for the caller), writes the row, tells the
  *     verifier, then fires the creation event: the organization link, no

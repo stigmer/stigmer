@@ -1980,7 +1980,51 @@ async function migrateToV29(client: PoolClient, logger: StoreLogger): Promise<vo
  * rows are an edition's, in tables of its own, and it renames them itself.
  * SQLite has no twin (kind-rename.ts says why). Issuers keep their ids,
  * the `idp_` ones included.
+ *
+ * The permission history (v27), which the earlier renames predate, follows
+ * too: each entry naming the kind gets the kind's new name in its columns,
+ * and the policy id and bytes its grant was re-keyed to, so the history
+ * reads the kind by its name and a revoke after the upgrade names the id
+ * the grant's entry holds. Entries are read in keyset pages on
+ * `(org, sequence)`; their numbers and times are kept.
  */
 async function migrateToV30(client: PoolClient): Promise<void> {
-  await renameKind(client, FEDERATION_ISSUER_RENAME_V30);
+  const rename = FEDERATION_ISSUER_RENAME_V30;
+  await renameKind(client, rename);
+  const [fromKind, toKind] = rename.kind;
+  for (let afterOrg = "", afterSequence = 0; ; ) {
+    const rows = (
+      await client.query<{ org: string; sequence: string; data: Buffer }>(
+        `SELECT org, sequence, data FROM iam_policy_history
+         WHERE (principal_kind = $1 OR resource_kind = $1)
+           AND (org COLLATE "C", sequence) > ($2 COLLATE "C", $3)
+         ORDER BY org COLLATE "C", sequence
+         LIMIT $4`,
+        [fromKind, afterOrg, afterSequence, KIND_RENAME_PAGE_SIZE],
+      )
+    ).rows;
+    for (const row of rows) {
+      let policy: RekeyedPolicy | undefined;
+      try {
+        policy = rekeyedPolicy(rename, new Uint8Array(row.data));
+      } catch (error) {
+        throw unreadableKindRenameRowError(rename, "iam_policy_history", `${row.org}/${row.sequence}`, error);
+      }
+      await client.query(
+        `UPDATE iam_policy_history
+            SET principal_kind = CASE WHEN principal_kind = $1 THEN $2 ELSE principal_kind END,
+                resource_kind = CASE WHEN resource_kind = $1 THEN $2 ELSE resource_kind END,
+                policy_id = COALESCE($3, policy_id),
+                data = COALESCE($4, data)
+          WHERE org = $5 AND sequence = $6`,
+        [fromKind, toKind, policy?.id ?? null, policy === undefined ? null : Buffer.from(policy.data), row.org, row.sequence],
+      );
+    }
+    if (rows.length < KIND_RENAME_PAGE_SIZE) {
+      return;
+    }
+    const last = rows[rows.length - 1]!;
+    afterOrg = last.org;
+    afterSequence = Number(last.sequence);
+  }
 }

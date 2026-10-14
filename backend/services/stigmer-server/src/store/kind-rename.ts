@@ -11,9 +11,11 @@
  *   - Postgres v30: the identity provider became a federation issuer
  *     (`identity_provider`, `IdentityProvider` to `federation_issuer`,
  *     `FederationIssuer`), named for what it is once Stigmer had no single
- *     sign-on of its own. SQLite has no step: the kind is Enterprise's, and
- *     Enterprise refuses SQLite (ee/server/src/editions/enterprise.ts), so
- *     no SQLite store holds its names or its grants.
+ *     sign-on of its own; its driver also rewrites the permission
+ *     history's entries for the kind (postgres/migrations.ts). SQLite has
+ *     no step: the kind is Enterprise's, and Enterprise refuses SQLite
+ *     (ee/server/src/editions/enterprise.ts), so no SQLite store holds its
+ *     names or its grants.
  *
  * The drivers own the SQL (which rows to read, in what pages, how to write
  * them, the transaction), one helper each that takes a rename; this module

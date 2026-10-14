@@ -66,7 +66,9 @@
  * v30 renames the identity provider kind to federation_issuer by v13's
  * transformation: from a store at v29, the name claims an edition made for
  * its issuers name the new kind with their idp_ ids, and every grant on one
- * is re-keyed to the id its new triple derives, so a revoke finds it.
+ * is re-keyed to the id its new triple derives, so a revoke finds it; the
+ * permission history's entries for those grants take the kind's new name
+ * and the re-keyed id, and every other entry keeps its bytes.
  * A step's starting database is built by running the chain up to the step
  * before it.
  * Newer schemas are refused without writes or reconciliation; refusal
@@ -3203,7 +3205,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         resource: `${kind}:idp_1`,
       });
 
-      it("renames the issuers' name claims and re-keys every grant naming one, from a store at v29", async () => {
+      it("renames the issuers' name claims, re-keys every grant naming one and the permission history's entries for them, from a store at v29", async () => {
         await migrateTo(db.databaseUrl, SCHEMA_VERSION_29);
         const client = new pg.Client({ connectionString: db.databaseUrl });
         await client.connect();
@@ -3224,7 +3226,40 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             );
           }
 
+          const history = async (sequence: number, change: string, held: { id: string; principal: string; relation: string; resource: string }) => {
+            const [principalKind, principalId] = held.principal.split(":");
+            const [resourceKind, resourceId] = held.resource.split(":");
+            await client.query(
+              `INSERT INTO iam_policy_history (org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id,
+                 principal_kind, principal_id, relation, resource_kind, resource_id, data)
+               VALUES ($1, $2, '2026-10-14T00:00:00.000Z', $3, 'grant', 'ida_1', 'user', $4, $5, $6, $7, $8, $9, $10)`,
+              [org, sequence, change, held.id, principalKind, principalId, held.relation, resourceKind, resourceId, Buffer.from(policyRow(held))],
+            );
+          };
+          await history(1, "granted", grant("identity_provider"));
+          await history(2, "revoked", grant("identity_provider"));
+          const unrelated = { id: "iamp_on_agent", principal: "identity_account:ida_3", relation: "viewer", resource: "agent:agt_1" };
+          await history(3, "granted", unrelated);
+
           await migrateTo(db.databaseUrl, SCHEMA_VERSION_30);
+
+          const entries = (
+            await client.query<{ sequence: string; policy_id: string; principal_kind: string; resource_kind: string; data: Buffer }>(
+              `SELECT sequence, policy_id, principal_kind, resource_kind, data FROM iam_policy_history WHERE org = $1 ORDER BY sequence`,
+              [org],
+            )
+          ).rows;
+          const renamedGrant = policyIdFor(fromBinary(IamPolicySchema, policyRow(grant("federation_issuer"))).spec!);
+          expect(entries.map((e) => [e.sequence, e.policy_id, e.resource_kind])).toEqual([
+            ["1", renamedGrant, "federation_issuer"],
+            ["2", renamedGrant, "federation_issuer"],
+            ["3", "iamp_on_agent", "agent"],
+          ]);
+          expect(fromBinary(IamPolicySchema, new Uint8Array(entries[0]!.data)).spec?.resource).toMatchObject({
+            kind: "federation_issuer",
+            id: "idp_1",
+          });
+          expect(new Uint8Array(entries[2]!.data)).toEqual(policyRow(unrelated));
 
           const version = Number(
             (await client.query(`SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`)).rows[0].version,
@@ -3248,6 +3283,60 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
               id: "idp_1",
             });
           }
+        } finally {
+          await client.end();
+        }
+      });
+      it("rewrites the permission history's entries for issuers across its keyset pages", async () => {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_29);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        try {
+          const held = grant("identity_provider");
+          const [, principalId] = held.principal.split(":");
+          const sequences = Array.from({ length: KIND_RENAME_PAGE_SIZE + 1 }, (_, i) => i + 1);
+          await client.query(
+            `INSERT INTO iam_policy_history (org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id,
+               principal_kind, principal_id, relation, resource_kind, resource_id, data)
+             SELECT $1, s, '2026-10-14T00:00:00.000Z', 'granted', 'grant', 'ida_1', 'user', $2,
+               'identity_account', $3, 'viewer', 'identity_provider', 'idp_1', $4
+             FROM unnest($5::bigint[]) AS s`,
+            [org, held.id, principalId, Buffer.from(policyRow(held)), sequences],
+          );
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_30);
+
+          const left = await client.query(`SELECT 1 FROM iam_policy_history WHERE resource_kind = 'identity_provider'`);
+          expect(left.rowCount).toBe(0);
+          const last = await client.query<{ policy_id: string }>(
+            `SELECT policy_id FROM iam_policy_history WHERE org = $1 AND sequence = $2`,
+            [org, KIND_RENAME_PAGE_SIZE + 1],
+          );
+          expect(last.rows[0]!.policy_id).toBe(policyIdFor(fromBinary(IamPolicySchema, policyRow(grant("federation_issuer"))).spec!));
+        } finally {
+          await client.end();
+        }
+      }, 60_000);
+
+      it("fails on a permission history entry for an issuer it cannot decode, naming it, and leaves the database at v29", async () => {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_29);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        try {
+          await client.query(
+            `INSERT INTO iam_policy_history (org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id,
+               principal_kind, principal_id, relation, resource_kind, resource_id, data)
+             VALUES ($1, 7, '2026-10-14T00:00:00.000Z', 'granted', 'grant', 'ida_1', 'user', 'iamp_bad',
+               'identity_account', 'ida_2', 'viewer', 'identity_provider', 'idp_1', '\\xffffff')`,
+            [org],
+          );
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_30)).rejects.toThrow(
+            `the iam_policy_history row ${org}/7 cannot be read for the rename of the identity provider to a federation issuer`,
+          );
+          const version = Number(
+            (await client.query(`SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`)).rows[0].version,
+          );
+          expect(version).toBe(SCHEMA_VERSION_29);
         } finally {
           await client.end();
         }
