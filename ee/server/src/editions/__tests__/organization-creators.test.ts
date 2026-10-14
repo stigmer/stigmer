@@ -59,7 +59,7 @@ function creating(
   return ctx;
 }
 
-async function refusalOf(run: Promise<void>): Promise<ConnectError> {
+async function refusalOf(run: Promise<void> | void): Promise<ConnectError> {
   try {
     await run;
   } catch (error) {
