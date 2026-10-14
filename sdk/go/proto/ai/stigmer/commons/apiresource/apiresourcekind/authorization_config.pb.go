@@ -470,8 +470,8 @@ type AuthorizationConfig struct {
 	// a different purpose: owner is mutable (can be transferred), creator is
 	// permanent attribution.
 	RequiresCreatorTuple bool `protobuf:"varint,6,opt,name=requires_creator_tuple,json=requiresCreatorTuple,proto3" json:"requires_creator_tuple,omitempty"`
-	// Roles that can be granted on this resource kind via IAM policies.
-	// Drives the web app role selector and SDK validation for IAM policy creation.
+	// Roles that can be granted on this resource kind by a Grant.
+	// Drives the web app role selector and SDK validation for grant creation.
 	//
 	// Each value must correspond to a directly-assignable FGA relation
 	// (defined with [identity_account] in the FGA model). Computed roles

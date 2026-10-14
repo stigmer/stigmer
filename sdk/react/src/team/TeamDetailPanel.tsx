@@ -23,7 +23,7 @@ import { buildTeamProto, getUserMessage } from "@stigmer/sdk";
 import { maskedEdit, saveErrorMessage } from "../internal/maskedEdit.js";
 import { Field, INPUT_CLASSES } from "../internal/form-primitives.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
-import { PermissionGate } from "../iam-policy/PermissionGate.js";
+import { PermissionGate } from "../grant/PermissionGate.js";
 import { TEAM_DESCRIPTION_MAX_LENGTH } from "./CreateTeamForm.js";
 import { TeamMembersPanel } from "./TeamMembersPanel.js";
 import { useDeleteTeam, useUpdateTeam } from "./useTeamMutations.js";

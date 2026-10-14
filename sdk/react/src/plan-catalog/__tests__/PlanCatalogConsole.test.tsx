@@ -25,7 +25,7 @@ function mockClient(operator: boolean) {
       retire: vi.fn().mockResolvedValue(TEAM),
       create: vi.fn().mockResolvedValue(TEAM),
     },
-    iamPolicy: { checkMyPermission: vi.fn().mockResolvedValue({ isAuthorized: operator }) },
+    grant: { checkMyPermission: vi.fn().mockResolvedValue({ isAuthorized: operator }) },
   };
 }
 

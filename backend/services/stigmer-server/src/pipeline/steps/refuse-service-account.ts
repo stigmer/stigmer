@@ -9,9 +9,9 @@
  *   - create a service account;
  *   - change or delete an identity account, its own included;
  *   - create or delete an organization, a child one included;
- *   - grant or revoke a role on the organization itself (IamPolicy
+ *   - grant or revoke a role on the organization itself (Grant
  *     `create`, `delete` and `revokeOrgAccess` when the resource is the
- *     organization, domain/iampolicy);
+ *     organization, domain/grant);
  *   - change the organization's embedding settings (their sign-in role
  *     decides which role the key's own mint grants: minting is the one
  *     act that creates accounts the key may do, and only with the role

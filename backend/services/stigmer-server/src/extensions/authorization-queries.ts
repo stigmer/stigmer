@@ -1,16 +1,16 @@
 /**
  * The authorization-query capability:
- * the TUPLE half of the IamPolicy query surface — the questions only an
+ * the TUPLE half of the Grant query surface — the questions only an
  * authorization engine can answer over its own graph, as opposed to the
  * ROW half (who holds which role on what) that every edition answers from
- * IamPolicy rows. Single instance, registered as
+ * Grant rows. Single instance, registered as
  * `drivers.authorizationQueries` (the identityFederation shape: a driver
  * point that is open source's own behaviour when absent).
  *
- * Absent, the IamPolicy query controller refuses `checkAuthorization`,
+ * Absent, the Grant query controller refuses `checkAuthorization`,
  * `listAuthorizedResourceIds`, `listAuthorizedPrincipalIds`, and a
- * `checkMyPermission` that carries contextual policies, UNIMPLEMENTED with
- * the edition reason (domain/iampolicy/constants.ts
+ * `checkMyPermission` that carries contextual grants, UNIMPLEMENTED with
+ * the edition reason (domain/grant/constants.ts
  * AUTHORIZATION_QUERIES_UNIMPLEMENTED_MESSAGE) — never INTERNAL, the
  * organization directory's absent-method precedent. Present, the
  * controller still owns everything that is not the graph question: the
@@ -23,8 +23,8 @@
  * The engine speaks the CONTRACT's vocabulary, not a backend's
  * (2026-09-13): `ApiResourceRef` for a principal or resource (kind = the
  * enum member name, id, and for a principal an optional relation — the
- * userset form `organization:X#viewer`), `IamPolicySpec` for a policy and
- * for the what-if policies every query may carry, and the relation and
+ * userset form `organization:X#viewer`), `GrantSpec` for a grant and
+ * for the what-if grants every query may carry, and the relation and
  * kind strings as the wire sends them. The cloud's driver renders these to
  * OpenFGA's `type:id#relation` strings itself; that grammar belongs to the
  * store that runs it and never enters this library.
@@ -38,7 +38,7 @@
  *   - the two listings never expand usersets, and `listPrincipalIds`
  *     answers DIRECT principals only — a listing is an inventory of who
  *     was named, never a resolution of who could reach.
- *   - contextual policies are evaluated as if held, and nothing is written.
+ *   - contextual grants are evaluated as if held, and nothing is written.
  *
  * Error rule (the ListReadScope rule, verbatim in spirit: a seam that
  * cannot answer THROWS — never an empty set, never false): `false` and
@@ -52,26 +52,26 @@
  * Why this is not `ListReadScope`: the read scope narrows the server's OWN
  * list lanes for the calling identity with no what-if input; this engine
  * answers the wire's explicit queries about an ARBITRARY principal with
- * contextual policies. Both are seams with distinct consumers;
+ * contextual grants. Both are seams with distinct consumers;
  * a cloud driver may wrap one client for both, and that is its business.
  */
 import type {
   ApiResourceRef,
-  IamPolicySpec,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+  GrantSpec,
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 
 /** The query-engine contract (single-instance point, ExtensionDrivers.authorizationQueries). */
 export interface AuthorizationQueryEngine {
   /**
-   * Whether `policy` is effectively held — its principal has its relation
-   * on its resource — given `contextualPolicies` evaluated as if held.
+   * Whether `grant` is effectively held — its principal has its relation
+   * on its resource — given `contextualGrants` evaluated as if held.
    * The proto's CheckAuthorizationInput shape; `checkMyPermission` builds
    * the spec from the caller's account ref. The spec's refs are present
    * (boundary-validated, or controller-built).
    */
   check(
-    policy: IamPolicySpec,
-    contextualPolicies: ReadonlyArray<IamPolicySpec>,
+    grant: GrantSpec,
+    contextualGrants: ReadonlyArray<GrantSpec>,
   ): Promise<boolean>;
   /**
    * The ids of `resourceKind` resources on which `principal` holds
@@ -82,7 +82,7 @@ export interface AuthorizationQueryEngine {
     principal: ApiResourceRef,
     relation: string,
     resourceKind: string,
-    contextualPolicies: ReadonlyArray<IamPolicySpec>,
+    contextualGrants: ReadonlyArray<GrantSpec>,
   ): Promise<ReadonlyArray<string>>;
   /**
    * The ids of `principalKind` principals holding `relation` on `resource`
@@ -93,6 +93,6 @@ export interface AuthorizationQueryEngine {
     resource: ApiResourceRef,
     relation: string,
     principalKind: string,
-    contextualPolicies: ReadonlyArray<IamPolicySpec>,
+    contextualGrants: ReadonlyArray<GrantSpec>,
   ): Promise<ReadonlyArray<string>>;
 }

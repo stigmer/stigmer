@@ -75,7 +75,7 @@ import type {
   ResourceNameRename,
   Store,
 } from "../../../store/interface.js";
-import { fakeIamPolicyStore } from "../../iampolicy/__tests__/support.js";
+import { fakeGrantStore } from "../../grant/__tests__/support.js";
 import {
   ABANDONED_NAME_AFTER_MS,
   ORGANIZATION_SLUG_RESERVED,
@@ -134,7 +134,7 @@ function reasonOf(error: ConnectError): string | undefined {
 }
 
 describe("organization names (composed server, trusted-local posture)", () => {
-  const policies = fakeIamPolicyStore();
+  const grants = fakeGrantStore();
   /** Slugs the pre-side-effect gate refuses while listed. */
   const gateRefuses = new Set<string>();
   /** Slugs whose post-persist step fails, after the row is stored. */
@@ -167,7 +167,7 @@ describe("organization names (composed server, trusted-local posture)", () => {
       ["org-create:pre-side-effect-gate", [gateStep]],
       ["org-create:post-persist", [postPersistStep]],
     ]),
-    drivers: { iamPolicyStore: policies },
+    drivers: { grantStore: grants },
   };
 
   let dir: string;
@@ -181,11 +181,11 @@ describe("organization names (composed server, trusted-local posture)", () => {
       new Date().toISOString(),
     );
   const ownersOf = (org: string) =>
-    [...policies.rows.values()].filter(
-      (policy) =>
-        policy.spec?.resource?.kind === "organization" &&
-        policy.spec.resource.id === org &&
-        policy.spec.relation === "owner",
+    [...grants.rows.values()].filter(
+      (grant) =>
+        grant.spec?.resource?.kind === "organization" &&
+        grant.spec.resource.id === org &&
+        grant.spec.relation === "owner",
     ).length;
 
   beforeAll(async () => {

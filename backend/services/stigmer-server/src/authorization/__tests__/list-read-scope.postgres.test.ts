@@ -28,18 +28,18 @@ import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 
 import {
-  IAM_POLICY_API_VERSION,
-  IAM_POLICY_KIND,
-  policyIdFor,
-} from "../../domain/iampolicy/constants.js";
-import { newResourceIamPolicyStore } from "../../domain/iampolicy/resource-store.js";
-import type { IamPolicyStore } from "../../domain/iampolicy/store.js";
-import { orgRole } from "../../domain/iampolicy/__tests__/support.js";
+  GRANT_API_VERSION,
+  GRANT_KIND,
+  grantIdFor,
+} from "../../domain/grant/constants.js";
+import { newResourceGrantStore } from "../../domain/grant/resource-store.js";
+import type { GrantStore } from "../../domain/grant/store.js";
+import { orgRole } from "../../domain/grant/__tests__/support.js";
 import { accountIdFor } from "../../domain/identityaccount/constants.js";
 import { newResourceIdentityAccountStore } from "../../domain/identityaccount/resource-store.js";
 import type { IdentityAccountStore } from "../../domain/identityaccount/store.js";
@@ -79,7 +79,7 @@ const FRESH_SUBJECT = "auth0|fresh";
 const ORG = "acme";
 
 const SEEDED_KINDS = [
-  ApiResourceKind.iam_policy,
+  ApiResourceKind.grant,
   ApiResourceKind.identity_account,
   ApiResourceKind.organization,
   ApiResourceKind.agent,
@@ -139,7 +139,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
       "restrictListEntries and authorizedResourceIds",
       () => {
         let opened: OpenedStore;
-        let policies: IamPolicyStore;
+        let grants: GrantStore;
         let accounts: IdentityAccountStore;
         let storeReads: { rows: number; scans: number };
         let accountReads: number;
@@ -167,11 +167,11 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         }
 
         async function grant(spec: ReturnType<typeof orgRole>) {
-          await policies.save(
-            create(IamPolicySchema, {
-              apiVersion: IAM_POLICY_API_VERSION,
-              kind: IAM_POLICY_KIND,
-              metadata: { id: policyIdFor(spec) },
+          await grants.save(
+            create(GrantSchema, {
+              apiVersion: GRANT_API_VERSION,
+              kind: GRANT_KIND,
+              metadata: { id: grantIdFor(spec) },
               spec,
             }),
           );
@@ -199,7 +199,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         ): ListReadScope {
           return newBuiltInListReadScope({
             store: countingStore(),
-            policies,
+            grants,
             accounts: {
               findById: (id) => {
                 accountReads += 1;
@@ -236,7 +236,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           storeReads = { rows: 0, scans: 0 };
           accountReads = 0;
           rows.clear();
-          policies = newResourceIamPolicyStore(opened.store, { keepsHistory: false });
+          grants = newResourceGrantStore(opened.store, { keepsHistory: false });
           accounts = newResourceIdentityAccountStore(opened.store);
           for (const [id, subject] of [
             [FOUNDER, "auth0|founder"],
@@ -381,7 +381,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           it("an OUTSIDER lists nothing of the organization's — a row still carrying the retired public level included", async () => {
             for (const kind of SEEDED_KINDS.filter(
               (k) =>
-                k !== ApiResourceKind.iam_policy &&
+                k !== ApiResourceKind.grant &&
                 k !== ApiResourceKind.identity_account &&
                 k !== ApiResourceKind.organization,
             )) {
@@ -573,8 +573,8 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           it("a store fault THROWS — never an empty answer (an empty set means 'authorized to see nothing')", async () => {
             const fault = new Error("connection reset");
             const faulting = scope({
-              policies: {
-                ...policies,
+              grants: {
+                ...grants,
                 findByPrincipal: () => Promise.reject(fault),
               },
             });
@@ -645,7 +645,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           it("equals the restrict verb over the whole kind, for every seeded kind and every person", async () => {
             for (const kind of SEEDED_KINDS.filter(
               (k) =>
-                k !== ApiResourceKind.iam_policy &&
+                k !== ApiResourceKind.grant &&
                 k !== ApiResourceKind.identity_account,
             )) {
               for (const who of [FOUNDER, ADMIN, MEMBER, VIEWER, OUTSIDER]) {
@@ -696,11 +696,11 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             let principalReads = 0;
             await restrictListByReadScope(
               scope({
-                policies: {
-                  ...policies,
+                grants: {
+                  ...grants,
                   findByPrincipal(principalKind, principalId) {
                     principalReads += 1;
-                    return policies.findByPrincipal(principalKind, principalId);
+                    return grants.findByPrincipal(principalKind, principalId);
                   },
                 },
               }),

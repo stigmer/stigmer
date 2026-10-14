@@ -11,7 +11,7 @@
  * hides a control; the server refuses whatever the answer misses.
  */
 import { useMemo } from "react";
-import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 
 /** Return value of {@link useSessionAccess}. */
 export interface UseSessionAccessReturn {

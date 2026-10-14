@@ -34,7 +34,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { FixtureTracker } from "../harness/fixtures";
 import type { ConformanceClients } from "../harness/clients";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { policyTriple } from "../support/iampolicies";
+import { grantTriple } from "../support/grants";
 import { uniqueName } from "../support/naming";
 import {
   awaitTerminal,
@@ -146,8 +146,8 @@ describe("a conversation's participant sends a message", () => {
         .catch(() => undefined),
     );
 
-    await founder.iamPolicyCommand.create(
-      policyTriple(
+    await founder.grantCommand.create(
+      grantTriple(
         { kind: "identity_account", id: await lane.accountIdOf(member) },
         "participant",
         { kind: "session", id: sessionId },

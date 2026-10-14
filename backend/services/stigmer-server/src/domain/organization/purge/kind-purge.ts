@@ -16,13 +16,13 @@
  * `RESOURCE_ID_KEY` and `EXISTING_RESOURCE_KEY` set, the purge's caller
  * stamped.
  *
- * Before the steps, every policy row naming the row is revoked through the
+ * Before the steps, every grant row naming the row is revoked through the
  * grant path, failing the batch on a fault. A delete chain's
- * CleanupIamPolicies is best-effort (it logs and lets the delete answer);
+ * CleanupGrants is best-effort (it logs and lets the delete answer);
  * a purge must leave nothing, and it is retried, so it fails instead. The
  * revocation comes first because the row is how a retry finds what is
  * left, and how the grant path resolves the row's organization: a fault
- * after the row's delete would leave policy rows nothing could reach. The
+ * after the row's delete would leave grant rows nothing could reach. The
  * same rule orders each kind's own removals (blobs before the row that
  * names them).
  *
@@ -37,13 +37,13 @@
  *
  * What the tests pin (__tests__/kind-purge.test.ts): only the
  * organization's rows go, a batch answers whether more are left, the steps
- * see the loaded row, and a policy fault fails the batch.
+ * see the loaded row, and a grant fault fails the batch.
  */
 import type { DescMessage, Message, MessageShape } from "@bufbuild/protobuf";
 import { create, fromBinary } from "@bufbuild/protobuf";
 
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 
 import type { Logger } from "../../../boot/logger.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
@@ -57,7 +57,7 @@ import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js"
 import { metadataOf } from "../../../pipeline/steps/shapes.js";
 import type { Store } from "../../../store/interface.js";
 import type { ListIndexDeclaration } from "../../../store/list-index.js";
-import type { IamPolicyGrantPath } from "../../iampolicy/grant-path.js";
+import type { GrantPath } from "../../grant/grant-path.js";
 
 /** How many rows of a kind one batch removes. */
 export const KIND_PURGE_BATCH = 50;
@@ -82,8 +82,8 @@ export interface KindPurge {
 export interface KindPurgeDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The one grant path: each removed row's policy rows are revoked through it. */
-  readonly grantPath: Pick<IamPolicyGrantPath, "cleanupResource">;
+  /** The one grant path: each removed row's grant rows are revoked through it. */
+  readonly grantPath: Pick<GrantPath, "cleanupResource">;
 }
 
 export interface KindPurgeSpec<

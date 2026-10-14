@@ -22,7 +22,7 @@
  * it then) revokes everywhere it can and answers ABORTED naming that child,
  * so offboarding never reports done while a role could survive there; one
  * that deletes the account goes through, its removal reaching every
- * policy. A provider whose delete has begun still exists
+ * grant. A provider whose delete has begun still exists
  * for the controller's question, so deprovision still offboards under it,
  * while create refuses to make an account under it: before it writes, and
  * again after, when the delete began while it wrote; then it removes the
@@ -40,7 +40,7 @@ import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/ap
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import {
   CreateFederatedAccountInputSchema,
   DeprovisionFederatedAccountInputSchema,
@@ -53,7 +53,7 @@ import { createLogger, DuplicateAccountError } from "@stigmer/server";
 
 import type { IdentityAccountService, NewAccountRequest } from "../account/port.js";
 import { newIdentityFederation } from "../identity-federation.js";
-import type { IamPolicyGrantPathClient } from "../policy/grant-path-client.js";
+import type { GrantPathClient } from "../grant/grant-path-client.js";
 
 const CALLER: CallerIdentity = {
   identityId: "ida_platform_admin",
@@ -196,7 +196,7 @@ function harness(
   } as unknown as IdentityAccountService;
   const beingDeletedReads = [...(initial.beingDeletedReads ?? [])];
   const unreachable = new Set(initial.unreachable ?? initial.childrenBeingDeleted ?? []);
-  const policies = {
+  const grants = {
     bootstrapRevokeOrgAccess: (accountId: string, org: string) => {
       if (recorded.revokeFailure !== undefined) {
         return Promise.reject(recorded.revokeFailure);
@@ -210,7 +210,7 @@ function harness(
       recorded.revoked.push({ accountId, org });
       return Promise.resolve();
     },
-  } as unknown as IamPolicyGrantPathClient;
+  } as unknown as GrantPathClient;
   // The provider a reference's id names: gone after the first read when
   // asked, and so when another provider took its slug (a new id).
   const providers = {
@@ -248,7 +248,7 @@ function harness(
   };
   const federation = newIdentityFederation({
     accounts,
-    policies,
+    grants,
     providers,
     childOrganizations,
     logger,
@@ -591,7 +591,7 @@ describe("the IdentityFederation capability — deprovisionFederatedAccount", ()
     expect(recorded.deleted).toEqual([]);
   });
 
-  it("goes through while a child is mid-delete when the account is deleted too: its removal reaches every policy", async () => {
+  it("goes through while a child is mid-delete when the account is deleted too: its removal reaches every grant", async () => {
     const { federation, recorded } = harness({
       byNaturalKey: federatedRow({ id: "ida_u1", externalSub: "okta|u1" }),
       childrenBeingDeleted: ["org_pending"],

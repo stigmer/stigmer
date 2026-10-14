@@ -19,7 +19,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -27,13 +27,13 @@ import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_inf
 
 import { createLogger } from "../../boot/logger.js";
 import {
-  IAM_POLICY_API_VERSION,
-  IAM_POLICY_KIND,
-  policyIdFor,
-} from "../../domain/iampolicy/constants.js";
-import { newResourceIamPolicyStore } from "../../domain/iampolicy/resource-store.js";
-import type { IamPolicyStore } from "../../domain/iampolicy/store.js";
-import { orgRole } from "../../domain/iampolicy/__tests__/support.js";
+  GRANT_API_VERSION,
+  GRANT_KIND,
+  grantIdFor,
+} from "../../domain/grant/constants.js";
+import { newResourceGrantStore } from "../../domain/grant/resource-store.js";
+import type { GrantStore } from "../../domain/grant/store.js";
+import { orgRole } from "../../domain/grant/__tests__/support.js";
 import { accountIdFor } from "../../domain/identityaccount/constants.js";
 import { newResourceIdentityAccountStore } from "../../domain/identityaccount/resource-store.js";
 import type { IdentityAccountStore } from "../../domain/identityaccount/store.js";
@@ -104,7 +104,7 @@ function check(
 }
 
 const SEEDED_KINDS: ReadonlyArray<ApiResourceKind> = [
-  ApiResourceKind.iam_policy,
+  ApiResourceKind.grant,
   ApiResourceKind.identity_account,
   ApiResourceKind.organization,
   ApiResourceKind.agent,
@@ -115,13 +115,13 @@ const SEEDED_KINDS: ReadonlyArray<ApiResourceKind> = [
 afterAll(dropPostgresFixture);
 
 describe("NOT_FOUND_EXEMPT_KINDS", () => {
-  it("is the cloud's probe exemption: accounts and policies, and the platform, providers, invitations and teams a wider edition serves", () => {
+  it("is the cloud's probe exemption: accounts and grants, and the platform, providers, invitations and teams a wider edition serves", () => {
     expect([...NOT_FOUND_EXEMPT_KINDS].sort()).toEqual(
       [
         ApiResourceKind.platform,
         ApiResourceKind.identity_account,
         ApiResourceKind.federation_issuer,
-        ApiResourceKind.iam_policy,
+        ApiResourceKind.grant,
         ApiResourceKind.invitation,
         ApiResourceKind.team,
       ].sort(),
@@ -134,7 +134,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
   (fixture) => {
     describe.skipIf(fixture.skip)("authorize", () => {
       let opened: OpenedStore;
-      let policies: IamPolicyStore;
+      let grants: GrantStore;
       let accounts: IdentityAccountStore;
       let storeReads: number;
 
@@ -154,7 +154,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
       ) {
         return newBuiltInAuthorizer({
           store: overrides.store ?? countingStore(opened.store),
-          policies,
+          grants,
           accounts,
           edition: overrides.edition ?? ServerEdition.oss,
           logger: silentLogger,
@@ -174,11 +174,11 @@ describe.each(driverFixtures(SEEDED_KINDS))(
       }
 
       async function grant(spec: ReturnType<typeof orgRole>) {
-        await policies.save(
-          create(IamPolicySchema, {
-            apiVersion: IAM_POLICY_API_VERSION,
-            kind: IAM_POLICY_KIND,
-            metadata: { id: policyIdFor(spec) },
+        await grants.save(
+          create(GrantSchema, {
+            apiVersion: GRANT_API_VERSION,
+            kind: GRANT_KIND,
+            metadata: { id: grantIdFor(spec) },
             spec,
           }),
         );
@@ -206,7 +206,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
       beforeEach(async () => {
         opened = await fixture.open();
         storeReads = 0;
-        policies = newResourceIamPolicyStore(opened.store, { keepsHistory: false });
+        grants = newResourceGrantStore(opened.store, { keepsHistory: false });
         accounts = newResourceIdentityAccountStore(opened.store);
         for (const who of [FOUNDER, ADMIN, MEMBER, OUTSIDER]) {
           await provision(who);
@@ -623,7 +623,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
               resolved(MEMBER),
               check(
                 IamPermission.can_view,
-                ApiResourceKind.iam_policy,
+                ApiResourceKind.grant,
                 "pol_missing",
               ),
             ),
@@ -676,7 +676,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           });
           const decision = await newBuiltInAuthorizer({
             store: opened.store,
-            policies,
+            grants,
             accounts,
             edition: ServerEdition.oss,
             logger: silentLogger,
@@ -694,7 +694,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
 
       describe("cost", () => {
         it("one blueprint point check reads the target once and the account once — three reads through the port and the store in all", async () => {
-          const reads = { store: 0, accounts: 0, policies: 0 };
+          const reads = { store: 0, accounts: 0, grants: 0 };
           const auth = newBuiltInAuthorizer({
             store: {
               ...opened.store,
@@ -703,11 +703,11 @@ describe.each(driverFixtures(SEEDED_KINDS))(
                 return opened.store.getResource(kind, id, schema);
               },
             },
-            policies: {
-              ...policies,
+            grants: {
+              ...grants,
               findByPrincipal(principalKind, principalId) {
-                reads.policies += 1;
-                return policies.findByPrincipal(principalKind, principalId);
+                reads.grants += 1;
+                return grants.findByPrincipal(principalKind, principalId);
               },
             },
             accounts: {
@@ -731,7 +731,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           // The agent row once (the loader's memo serves the derivation
           // and the walk); the organization row once (the `viewer`
           // userset hop); the member's account once (resolved by id).
-          expect(reads).toEqual({ store: 2, accounts: 1, policies: 1 });
+          expect(reads).toEqual({ store: 2, accounts: 1, grants: 1 });
         });
       });
     });

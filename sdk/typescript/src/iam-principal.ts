@@ -1,5 +1,5 @@
 /**
- * Who an IAM policy grants a role to: a person or a team, in one shape a
+ * Who a grant gives a role to: a person or a team, in one shape a
  * client builds grants from and reads access lists back into.
  *
  * The wire spells a grantee as an `ApiResourceRef`: a person is
@@ -33,12 +33,12 @@
  */
 import { create } from "@bufbuild/protobuf";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ApiResourceRefView } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import type { ApiResourceRefView } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import {
   type ApiResourceRef,
   ApiResourceRefSchema,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 
 const PERSON_KIND = ApiResourceKind[ApiResourceKind.identity_account];
 const TEAM_KIND = ApiResourceKind[ApiResourceKind.team];
@@ -46,7 +46,7 @@ const TEAM_KIND = ApiResourceKind[ApiResourceKind.team];
 /** The relation that makes every member of a team the grantee. */
 const TEAM_MEMBERS_RELATION = "member";
 
-/** A person or a team an IAM policy can grant a role to. */
+/** A person or a team a grant can give a role to. */
 export type Grantee =
   | { readonly kind: "identity_account"; readonly id: string }
   | { readonly kind: "team"; readonly id: string };
@@ -65,7 +65,7 @@ export function teamGrantee(id: string): Grantee {
 }
 
 /**
- * The `ApiResourceRef` an IAM policy spec names the grantee with: a person
+ * The `ApiResourceRef` a grant spec names the grantee with: a person
  * unqualified, a team as its members.
  */
 export function granteeRef(grantee: Grantee): ApiResourceRef {

@@ -1,0 +1,148 @@
+/**
+ * What the grant path says about a change to a grant row: who made it,
+ * through which door, and in which organization. The grant path
+ * (grant-path.ts) builds one for every row it writes or deletes that
+ * grants access, and hands it to the store beside the row
+ * (`GrantStore.save` and `deleteById`), so an edition that keeps a
+ * permission history writes it in the same atomic unit as the row: the
+ * Cloud's own grant store, and the library's adapter in every edition
+ * above open source (resource-store.ts, store/permission-history.ts). Open
+ * source keeps none; the same facts ride the path's grant and revoke log
+ * lines.
+ *
+ * The cause names a door the grant path already has, never an edition's
+ * business reason: an edition that grants on a person's behalf (an
+ * invitation, a federated sign-in) says whom it acted for through the
+ * actor (`serverActingFor`, pipeline/interceptors/auth.ts), not through a
+ * cause of its own. The strings are stored bytes in an edition's history:
+ * a cause is added, never renamed or reused.
+ *
+ * An access row is a row that lets someone reach something: it names a
+ * person, or an audience written as a userset (`team:T#member`,
+ * `organization:O#viewer`, `organization:O#child_org_viewer`). A row
+ * naming a resource as its principal with no relation is a structural link
+ * (a parent, a child organization), the bookkeeping
+ * a resource's own creation implies; it carries no change record.
+ *
+ * The actor is the caller's id and class and nothing else: never the email,
+ * the display name or the token, so a history holds no more of a person
+ * than the rows it describes already do.
+ */
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+
+import type { CallerClass, CallerIdentity } from "../../extensions/identity.js";
+import { kindEnumName } from "../../pipeline/apiresource-meta.js";
+
+/**
+ * The door a change came through. Stored bytes in an edition's history.
+ *
+ *   - `grant`: Grant.create, a grant on the user lane.
+ *   - `revoke`: Grant.delete.
+ *   - `structural`: Grant.bootstrapGrant, the server recording what a
+ *     resource's creation or visibility implies (its creator's authorship,
+ *     its audience).
+ *   - `organization_access_revoked`: revokeOrgAccess and its system twin,
+ *     a person removed from an organization.
+ *   - `left_organization`: the sweep that follows a person's last role on
+ *     an organization, revoking what they held on its resources.
+ *   - `resource_deleted`: the rows that die with a deleted resource
+ *     (cleanupResourceGrants, the built-in lifecycle's delete cleanup,
+ *     an organization's revoke before its row goes).
+ *   - `organization_created`: open source's creator `owner` row.
+ *   - `first_sign_in`: open source's membership rules for a new account.
+ *   - `role_reconciliation`: the one-shot pass that gives existing
+ *     accounts the roles the membership rules would have.
+ *   - `operator_ownership`: the trusted-local operator made owner of an
+ *     organization nobody owns.
+ *   - `platform_client_grant`: a platform client's sign-in role on the
+ *     account its mint created. No longer written: a minted user's
+ *     sign-in role is an ordinary `grant` acting for the minting service
+ *     account (domain/token/mint.ts). Kept because history entries hold
+ *     it, and the reader names every stored cause.
+ *   - `service_account_created`: a service account's organization role,
+ *     granted by the admin who created it.
+ */
+export type GrantChangeCause =
+  | "grant"
+  | "revoke"
+  | "structural"
+  | "organization_access_revoked"
+  | "left_organization"
+  | "resource_deleted"
+  | "organization_created"
+  | "first_sign_in"
+  | "role_reconciliation"
+  | "operator_ownership"
+  | "platform_client_grant"
+  | "service_account_created";
+
+/** Who made a change: the caller's id and class, nothing that identifies a person beyond the id. */
+export interface GrantActor {
+  readonly id: string;
+  readonly callerClass: CallerClass;
+}
+
+/**
+ * What the store is handed beside an access row it writes or deletes. An
+ * implementation that keeps a history records exactly one entry for it, in
+ * the same atomic unit as the row change, and none when the row did not
+ * change (GrantStore, store.ts).
+ */
+export interface GrantChangeRecord {
+  readonly actor: GrantActor;
+  readonly cause: GrantChangeCause;
+  /**
+   * The organization the row's resource belongs to, resolved before any
+   * row of the operation is deleted; "" when none can be found (a kind
+   * outside organization scope, a legacy row with no scope link).
+   */
+  readonly organizationId: string;
+}
+
+/**
+ * Which recorded changes one read of an organization's history returns
+ * (`GrantStore.listChanges`): newest first, below `before` when given;
+ * or, with `after`, oldest first, above it. At most `limit`, a positive
+ * integer, either way.
+ */
+export type GrantChangePage =
+  | { readonly limit: number; readonly before?: bigint }
+  | { readonly limit: number; readonly after: bigint };
+
+/** One recorded change, as a store that keeps a history reads it back. */
+export interface GrantChange {
+  /** The organization's number for it: 1 for its first, one more for each after, in commit order. */
+  readonly sequence: bigint;
+  /** When it committed: fixed-width UTC with milliseconds, never before the change numbered before it. */
+  readonly occurredAt: string;
+  /** Whether the row was written or removed. */
+  readonly change: "granted" | "revoked";
+  readonly actor: GrantActor;
+  /**
+   * The stored cause: a `GrantChangeCause` when this binary wrote it, but
+   * a reader may meet one a later binary added, so it reads as a string.
+   */
+  readonly cause: string;
+  /** The organization the change was recorded in. */
+  readonly organizationId: string;
+  /** The row as granted, or as it stood when revoked. */
+  readonly grant: Grant;
+}
+
+const ACCOUNT_KIND = kindEnumName(ApiResourceKind.identity_account);
+
+/** The actor a caller is recorded as. */
+export function grantActorOf(caller: CallerIdentity): GrantActor {
+  return { id: caller.identityId, callerClass: caller.callerClass };
+}
+
+/** Whether a row lets someone reach something (a person or an audience), as opposed to a structural link. */
+export function grantsAccess(spec: GrantSpec): boolean {
+  const principal = spec.principal;
+  if (principal === undefined) {
+    return false;
+  }
+  return principal.kind === ACCOUNT_KIND || principal.relation !== "";
+}

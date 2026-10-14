@@ -33,7 +33,7 @@ type api_key
     define can_delete: owner or can_manage_keys from owner
     
     # ========================================
-    # IAM POLICY MANAGEMENT
+    # ACCESS MANAGEMENT
     # ========================================
     define can_grant_access: owner
     define can_view_access: owner

@@ -10,7 +10,7 @@
  * The find is a store read through the score list index; each delete is
  * the score's own delete chain, reached through the in-process edge
  * (`ScoreDeleter`, served by boot/inprocess.ts) as the server, so
- * `CleanupIamPolicies` and any step the chain gains later run by
+ * `CleanupGrants` and any step the chain gains later run by
  * construction (stigmer#1647's lesson: a bare store delete leaves the
  * access rows behind).
  *

@@ -4,7 +4,7 @@
  * kit (iam/account/port-contract.ts): a federated account made through the
  * library's own create path and found by its natural key, a held account
  * answered as `DuplicateAccountError`, a profile written email included,
- * and a delete that leaves no key, no policy row and no row behind.
+ * and a delete that leaves no key, no grant row and no row behind.
  *
  * The service is the one the server composes, filled from the same
  * hand-over: a unit composed after the entry's receives the composition's
@@ -38,7 +38,7 @@ import {
   createIssuer,
   issueKey,
   keysOf,
-  policyRowsNaming,
+  grantRowsNaming,
   signIn,
   testClock,
   type BootedServer,
@@ -87,7 +87,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the Enterprise account service
         await issueKey(server, account.metadata?.id ?? "", acme);
       },
       keysOf: (accountId) => keysOf(server, accountId),
-      policyRowsNaming: (accountId) => policyRowsNaming(server, accountId),
+      grantRowsNaming: (accountId) => grantRowsNaming(server, accountId),
     };
   }, 120_000);
 

@@ -9,7 +9,7 @@
  * What it registers, and nothing else: the federated verifier; the
  * IdentityFederation capability and the team principal display; the
  * removal on `org-delete:pre-delete`; the organization grant
- * gate on `iam-policy-create:pre-side-effect-gate`; the FederationIssuer,
+ * gate on `grant-create:pre-side-effect-gate`; the FederationIssuer,
  * Invitation and Team services; the row readers of its three kinds; the
  * hand-over, which refuses a composition with no list scope or no
  * authorization check; and the start its boot repairs run on. No removal
@@ -17,7 +17,7 @@
  *
  * The boot repair is pinned here too, run through the unit's start after
  * the hand-over, over fakes of the ports it reads and an in-process
- * organization and IamPolicy service (the transport the composition hands
+ * organization and Grant service (the transport the composition hands
  * it), because it is the one piece of
  * the domain whose failure is silent: an invitation or a team left
  * unlinked is invisible to its own organization's admins, and nothing
@@ -26,7 +26,7 @@
  * failed read of one never skips the next, and the provider's log lines
  * keep their words.
  * The owner-row reconcile beside it runs the same way, one read of the
- * policy rows per kind, and logs every owner row it revokes with the
+ * grant rows per kind, and logs every owner row it revokes with the
  * account the row named.
  *
  * The unit's authorization inventory,
@@ -60,14 +60,14 @@ import {
   ApiResourceAuditInfoSchema,
   ApiResourceAuditSchema,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
-import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
+import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import {
   ApiResourceRefSchema,
-  IamPolicySpecSchema,
-  type IamPolicySpec,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+  GrantSpecSchema,
+  type GrantSpec,
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
 import { FederationIssuerQueryController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/query_pb";
@@ -87,7 +87,7 @@ import { createLogger } from "@stigmer/server";
 import type {
   AuthorizationQueryEngine,
   ChildOrganizations,
-  ComposedIamPolicies,
+  ComposedGrants,
   ResourceOrganizations,
   ComposedIdentityAccounts,
   ComposedServices,
@@ -258,7 +258,7 @@ function refusingComposition(overrides: Partial<ComposedServices> = {}): Compose
     resourceAuthorizationLifecycle: undefined,
     childOrganizations: refusingPort<ChildOrganizations>("childOrganizations"),
     identityAccounts: refusingPort<ComposedIdentityAccounts>("identityAccounts"),
-    iamPolicies: refusingPort<ComposedIamPolicies>("iamPolicies"),
+    grants: refusingPort<ComposedGrants>("grants"),
     resourceOrganizations: refusingPort<ResourceOrganizations>("resourceOrganizations"),
     inProcessTransport: createRouterTransport(() => {}),
     resourceNames: refusingPort<ResourceNameStore>("resourceNames"),
@@ -288,10 +288,10 @@ describe("the enterprise-identity unit", () => {
     expect(drivers?.principalDisplay).toBeDefined();
   });
 
-  it("puts exactly one step, OrganizationGrantGate, on iam-policy-create:pre-side-effect-gate", () => {
+  it("puts exactly one step, OrganizationGrantGate, on grant-create:pre-side-effect-gate", () => {
     expect(
       unit()
-        .gateSteps?.get("iam-policy-create:pre-side-effect-gate")
+        .gateSteps?.get("grant-create:pre-side-effect-gate")
         ?.map((step) => step.name),
     ).toEqual(["OrganizationGrantGate"]);
   });
@@ -306,7 +306,7 @@ describe("the enterprise-identity unit", () => {
 
   it("fills no other slot and guards no caller", () => {
     expect([...(unit().gateSteps?.keys() ?? [])].sort()).toEqual([
-      "iam-policy-create:pre-side-effect-gate",
+      "grant-create:pre-side-effect-gate",
       "org-delete:pre-delete",
     ]);
     expect(unit().callerGuards ?? []).toHaveLength(0);
@@ -441,8 +441,8 @@ function repairRig(rows: {
   /** The invitations' read fails. */
   failInvitationsRead?: boolean;
   failGrantFor?: ReadonlySet<string>;
-  /** The policy rows each row holds as resource, by id. */
-  policiesOn?: ReadonlyMap<string, ReadonlyArray<IamPolicy>>;
+  /** The grant rows each row holds as resource, by id. */
+  grantsOn?: ReadonlyMap<string, ReadonlyArray<Grant>>;
   /** Kinds whose read by kind and relation fails. */
   failKindReadFor?: ReadonlySet<string>;
   /** The schema chain fails. */
@@ -471,18 +471,18 @@ function repairRig(rows: {
         });
       },
     });
-    service(IamPolicyCommandController, {
-      bootstrapPolicy: (spec: IamPolicySpec) => {
+    service(GrantCommandController, {
+      bootstrapGrant: (spec: GrantSpec) => {
         const id = spec.resource?.id ?? "";
         granted.push(`${spec.resource?.kind}:${id}`);
         if (rows.failGrantFor?.has(id) === true) {
           throw new ConnectError("engine down", Code.Unavailable);
         }
-        return create(IamPolicySchema);
+        return create(GrantSchema);
       },
-      delete: (spec: IamPolicySpec) => {
+      delete: (spec: GrantSpec) => {
         revoked.push(`${spec.resource?.kind}:${spec.resource?.id}#${spec.relation}@${spec.principal?.id}`);
-        return create(IamPolicySchema, { spec });
+        return create(GrantSchema, { spec });
       },
     });
   });
@@ -516,19 +516,19 @@ function repairRig(rows: {
       },
     }),
   });
-  const iamPolicies: ComposedIamPolicies = {
+  const grants: ComposedGrants = {
       findScopeTuple: () => Promise.resolve(undefined),
-      findByResource: (_kind: string, id: string) => Promise.resolve(rows.policiesOn?.get(id) ?? []),
+      findByResource: (_kind: string, id: string) => Promise.resolve(rows.grantsOn?.get(id) ?? []),
       findByResourceKindAndRelation: (kind: string, relation: string) =>
         rows.failKindReadFor?.has(kind) === true
           ? Promise.reject(new Error("store down"))
           : Promise.resolve(
-              [...(rows.policiesOn?.values() ?? [])]
+              [...(rows.grantsOn?.values() ?? [])]
                 .flat()
                 .filter((p) => p.spec?.resource?.kind === kind && p.spec?.relation === relation),
             ),
   };
-  unit.onComposed?.(refusingComposition({ inProcessTransport: transport, iamPolicies }));
+  unit.onComposed?.(refusingComposition({ inProcessTransport: transport, grants }));
   /** The unit's boot work, as the server's start runs it. */
   const start = async (): Promise<void> => {
     if (unit.start === undefined) {
@@ -540,9 +540,9 @@ function repairRig(rows: {
 }
 
 /** A direct owner row, as the creation event wrote one before the kinds recorded no owner. */
-function ownerRow(kind: string, id: string, accountId: string): IamPolicy {
-  return create(IamPolicySchema, {
-    spec: create(IamPolicySpecSchema, {
+function ownerRow(kind: string, id: string, accountId: string): Grant {
+  return create(GrantSchema, {
+    spec: create(GrantSpecSchema, {
       principal: create(ApiResourceRefSchema, { kind: "identity_account", id: accountId }),
       relation: "owner",
       resource: create(ApiResourceRefSchema, { kind, id }),
@@ -556,7 +556,7 @@ describe("the unit's start", () => {
       providers: () =>
         Promise.resolve([storedIssuer({ id: "fis_acme", org: "acme", slug: "acme-idp" })]),
       invitations: [],
-      policiesOn: new Map([["fis_acme", [ownerRow("federation_issuer", "fis_acme", "ida_carol")]]]),
+      grantsOn: new Map([["fis_acme", [ownerRow("federation_issuer", "fis_acme", "ida_carol")]]]),
       failSchema: true,
     });
 
@@ -572,7 +572,7 @@ describe("the owner-row reconcile", () => {
       providers: () =>
         Promise.resolve([storedIssuer({ id: "fis_acme", org: "acme", slug: "acme-idp" })]),
       invitations: [storedInvitation({ id: "inv_acme", org: "acme", token: "AcmeToken" })],
-      policiesOn: new Map([
+      grantsOn: new Map([
         ["fis_acme", [ownerRow("federation_issuer", "fis_acme", "ida_carol")]],
         ["inv_acme", [ownerRow("invitation", "inv_acme", "ida_carl")]],
       ]),
@@ -604,7 +604,7 @@ describe("the owner-row reconcile", () => {
     const r = repairRig({
       providers: () => Promise.resolve([]),
       invitations: [],
-      policiesOn: new Map([
+      grantsOn: new Map([
         ["fis_acme", [ownerRow("federation_issuer", "fis_acme", "ida_carol")]],
         ["inv_acme", [ownerRow("invitation", "inv_acme", "ida_carl")]],
       ]),

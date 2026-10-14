@@ -7,7 +7,7 @@ import { CreateOAuthAppForm } from "../oauth-app/CreateOAuthAppForm.js";
 import { OAuthAppDetailPanel } from "../oauth-app/OAuthAppDetailPanel.js";
 import { OAUTH_APPS_MANAGED_BY_ADMINS } from "../oauth-app/copy.js";
 import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
-import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
 

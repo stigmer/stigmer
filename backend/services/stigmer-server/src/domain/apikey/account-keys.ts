@@ -19,7 +19,7 @@ import { create } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
-import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
@@ -27,20 +27,20 @@ import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-a
 import { kindEnumName } from "../../pipeline/apiresource-meta.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import { RequestContext } from "../../pipeline/request-context.js";
-import { newCleanupIamPoliciesStep } from "../../pipeline/steps/authorization-tuples.js";
+import { newCleanupGrantsStep } from "../../pipeline/steps/authorization-tuples.js";
 import {
   RESOURCE_ID_KEY,
   newDeleteResourceStep,
 } from "../../pipeline/steps/delete.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
-import type { IamPolicyGrantPath } from "../iampolicy/grant-path.js";
+import type { GrantPath } from "../grant/grant-path.js";
 import { keysOwnedBy } from "./queries.js";
 
 export interface AccountKeysDeps {
   readonly store: Store;
   readonly logger: Logger;
-  readonly grantPath: Pick<IamPolicyGrantPath, "cleanupResource">;
+  readonly grantPath: Pick<GrantPath, "cleanupResource">;
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
 }
 
@@ -75,7 +75,7 @@ export async function deleteKeysOwnedBy(
     await newPipeline<typeof input>("apikey-delete-for-account", deps.logger)
       .addStep(newDeleteResourceStep(deps.store))
       .addStep(
-        newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+        newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger),
       )
       .build()
       .execute(ctx);

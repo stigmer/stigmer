@@ -13,7 +13,7 @@ import "buf/validate/validate.proto";
 // other grant is.
 //
 // @internal
-// Membership rows are IamPolicy grants of the `member` role on the team
+// Membership rows are Grants of the `member` role on the team
 // (`identity_account:<id> member team:<id>`), written through the one grant
 // path. Keeping them out of the spec leaves one writer of authorization
 // facts.

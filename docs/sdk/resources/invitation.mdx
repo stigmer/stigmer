@@ -255,7 +255,7 @@ Invitation invitation = client.invitations().create(InvitationInput.builder()
 
 Redeem an invitation to join an organization.
 
-Creates an IAM policy granting the invitation's configured role to the authenticated user on the invitation's organization. The redemption is atomic: the IAM policy is created and the redemption count is incremented in a single operation.
+Creates a grant of the invitation's configured role to the authenticated user on the invitation's organization. The redemption is atomic: the grant is created and the redemption count is incremented in a single operation.
 
 Validation: - Invitation must be in active state - Invitation must not be expired - Invitation must not have reached max_redemptions (if &gt; 0) - Redeemer must not already be a member of the organization - The invitation's creator must still be able to create it: a link carries its creator's authority, so it stops redeeming once they no longer hold the role it needed (FAILED_PRECONDITION)
 
@@ -452,7 +452,7 @@ InvitationRedemption records a single successful redemption event.
 
 ### IamRole
 
-IamRole defines the roles that can be assigned to principals on resources via IAM policies.
+IamRole defines the roles that can be assigned to principals on resources via Grants.
 
 | Value | Description |
 |-------|-------------|

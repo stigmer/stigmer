@@ -30,7 +30,7 @@ enum IamPermission {
   // organization: only its owners hold it.
   //
   // @internal
-  // The organization relation `can_assign_roles`. The IamPolicy lanes and
+  // The organization relation `can_assign_roles`. The Grant lanes and
   // the invitation lane ask it whenever a change touches the owner role, on
   // top of can_grant_access. Every caller that reaches them already holds
   // can_grant_access (admin), so this one question is the whole of "no role
@@ -330,7 +330,7 @@ message IamRoleMeta {
 }
 
 // IamRole defines the roles that can be assigned to principals on resources
-// via IAM policies.
+// via Grants.
 //
 // Roles are human-assigned and represent a principal's relationship to a
 // resource. They are distinct from permissions (which are computed from roles

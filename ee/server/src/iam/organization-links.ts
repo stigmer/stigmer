@@ -2,7 +2,7 @@
  * The organization-link reconcile: at every boot, every row of an
  * organization-scoped kind this edition keeps in its own table gets back
  * the one tuple its management hangs off,
- * `<kind>:<id>#organization@organization:<org>`, when that tuple's policy
+ * `<kind>:<id>#organization@organization:<org>`, when that tuple's grant
  * row is missing. Kind-agnostic: the identity unit wires it for identity
  * providers, invitations and teams, and a host may wire it for kinds of its
  * own that carry the link.
@@ -20,7 +20,7 @@
  * lifecycle contract every create chain follows answers INTERNAL with the
  * row in place).
  *
- * The check is the exact triple, read from the row's policies as
+ * The check is the exact triple, read from the row's grants as
  * resource (`findByResource`), never "any structural row": a lookup
  * satisfied by another structural row would skip the hole it exists for,
  * a row with no organization link at all.
@@ -38,7 +38,7 @@
  * creation time cannot be told apart, and is reported.
  *
  * Posture: the tuple backfill's. The write goes through the grant path's
- * structural lane (`bootstrapPolicy`), which is safe to repeat; one row's
+ * structural lane (`bootstrapGrant`), which is safe to repeat; one row's
  * failure is reported and the rest continue; the caller logs and boot
  * proceeds. Two replicas booting together may both write one link; the
  * grant path writes one row. A row deleted by another replica between the
@@ -64,15 +64,15 @@ import type { ApiResourceMetadata } from "@stigmer/protos/ai/stigmer/commons/api
 import type { ApiResourceAudit } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 import {
   ApiResourceRefSchema,
-  IamPolicySpecSchema,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+  GrantSpecSchema,
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import { OrganizationIdSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
-import type { IamPolicyStore } from "@stigmer/server";
+import type { GrantStore } from "@stigmer/server";
 import { rethrownStatusError } from "@stigmer/server";
 
 import type { TransportRef } from "../rpc/transport-ref.js";
-import type { IamPolicyGrantPathClient } from "./policy/grant-path-client.js";
+import type { GrantPathClient } from "./grant/grant-path-client.js";
 
 /** The relation a row's organization link is written on, and the principal kind it names. */
 const ORGANIZATION = "organization";
@@ -124,8 +124,8 @@ export interface OrganizationLinkReport {
 }
 
 export interface OrganizationLinkDeps {
-  readonly policyStore: Pick<IamPolicyStore, "findByResource">;
-  readonly policies: Pick<IamPolicyGrantPathClient, "bootstrapPolicy">;
+  readonly grantStore: Pick<GrantStore, "findByResource">;
+  readonly grants: Pick<GrantPathClient, "bootstrapGrant">;
   readonly organizations: OrganizationLookup;
 }
 
@@ -157,7 +157,7 @@ export async function reconcileOrganizationLinks(
         orphaned.push({ id, org, reason: "row-has-no-organization" });
         continue;
       }
-      if (await hasOrganizationLink(deps.policyStore, kindName, id, org)) {
+      if (await hasOrganizationLink(deps.grantStore, kindName, id, org)) {
         continue;
       }
       const reason = orphanReason(row, await factsOf(org));
@@ -165,8 +165,8 @@ export async function reconcileOrganizationLinks(
         orphaned.push({ id, org, reason });
         continue;
       }
-      await deps.policies.bootstrapPolicy(
-        create(IamPolicySpecSchema, {
+      await deps.grants.bootstrapGrant(
+        create(GrantSpecSchema, {
           principal: create(ApiResourceRefSchema, { kind: ORGANIZATION, id: org }),
           relation: ORGANIZATION,
           resource: create(ApiResourceRefSchema, { kind: kindName, id }),
@@ -220,18 +220,18 @@ export function newInProcessOrganizationLookup(transportRef: TransportRef): Orga
 }
 
 async function hasOrganizationLink(
-  policyStore: Pick<IamPolicyStore, "findByResource">,
+  grantStore: Pick<GrantStore, "findByResource">,
   kindName: string,
   id: string,
   org: string,
 ): Promise<boolean> {
-  const policies = await policyStore.findByResource(kindName, id);
-  return policies.some(
-    (policy) =>
-      policy.spec?.relation === ORGANIZATION &&
-      policy.spec.principal?.kind === ORGANIZATION &&
-      policy.spec.principal.id === org &&
-      policy.spec.principal.relation === "",
+  const grants = await grantStore.findByResource(kindName, id);
+  return grants.some(
+    (grant) =>
+      grant.spec?.relation === ORGANIZATION &&
+      grant.spec.principal?.kind === ORGANIZATION &&
+      grant.spec.principal.id === org &&
+      grant.spec.principal.relation === "",
   );
 }
 

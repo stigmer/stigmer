@@ -106,7 +106,7 @@ switch (state.status) {
 Data hook that fetches the current authenticated user's full
 `IdentityAccount` via `identityAccount.whoAmI()`.
 
-Unlike [`useWhoAmI`](/docs/sdk/react/iam-policy#usewhoami) (a cached identity lookup for "is this me?"
+Unlike [`useWhoAmI`](/docs/sdk/react/grant#usewhoami) (a cached identity lookup for "is this me?"
 checks), this hook is a refetchable data source for editors of the
 caller's own account — after a mutation, call `refetch()` to re-sync.
 `whoAmI()` returns the complete resource, so no follow-up `get()` is

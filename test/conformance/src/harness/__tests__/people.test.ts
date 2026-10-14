@@ -1,5 +1,5 @@
 // Pins the pure arms of the people an enforcing primary makes: the member
-// grant's shape — the ordinary IamPolicy create the Members page performs,
+// grant's shape — the ordinary Grant create the Members page performs,
 // naming the organization by ID (the FGA object) and the `member` role the
 // organization kind declares grantable — and a first sign-in that answers no
 // account refused rather than carried on as a person. The targets that make
@@ -11,7 +11,7 @@ import { organizationMemberGrant, provisionPerson } from "../people";
 
 describe("organizationMemberGrant", () => {
   it("names the identity account as principal, the organization by id, and the member role", () => {
-    // An IamPolicySpec message (the create RPC's input), so the shape is
+    // A GrantSpec message (the create RPC's input), so the shape is
     // matched field by field rather than as a bare object.
     expect(organizationMemberGrant("org_01acme", "ida_01member")).toMatchObject({
       principal: { kind: "identity_account", id: "ida_01member" },

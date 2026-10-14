@@ -31,7 +31,7 @@
 import { create } from "@bufbuild/protobuf";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import type { ApiResourceRef } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import type { ApiResourceRef } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import { createLogger } from "@stigmer/server";
 import { describe, expect, it } from "vitest";
 
@@ -128,8 +128,8 @@ function rig(
         return Promise.resolve();
       },
     },
-    policies: {
-      cleanupResourcePolicies: (ref: ApiResourceRef, actingFor?: string) => {
+    grants: {
+      cleanupResourceGrants: (ref: ApiResourceRef, actingFor?: string) => {
         actors.push(actingFor);
         order.push(`grants:${ref.kind}:${ref.id}`);
         if (options.lateAccount !== undefined) {
@@ -330,7 +330,7 @@ describe("the provider's name release", () => {
         store: { findByIssuer: () => Promise.resolve([]) },
         deleteAccount: () => Promise.resolve(),
       },
-      policies: { cleanupResourcePolicies: () => Promise.resolve() },
+      grants: { cleanupResourceGrants: () => Promise.resolve() },
       invalidate: () => {},
       logger: createLogger({
         level: "error",

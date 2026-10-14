@@ -59,7 +59,7 @@ function generateTSAuthorizationConfig(outputDir: string, entries: ReturnType<ty
   buf.push('import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";\n\n');
 
   buf.push("/**\n");
-  buf.push(" * Roles that can be granted on each resource kind via IAM policies.\n");
+  buf.push(" * Roles that can be granted on each resource kind by a Grant.\n");
   buf.push(" *\n");
   buf.push(" * Source of truth: api_resource_kind.proto — each ApiResourceKind enum\n");
   buf.push(" * value carries an AuthorizationConfig with grantable_roles in its\n");

@@ -83,7 +83,7 @@ tuples:
     relation: owner
     object: agent_channel:wa-line
 
-  # --- The participant grants (IamPolicy-written: participant vs plain viewer) ---
+  # --- The participant grants (Grant-written: participant vs plain viewer) ---
   - user: identity_account:trina
     relation: participant
     object: agent_channel:wa-line

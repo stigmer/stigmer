@@ -13,7 +13,7 @@ import { EvaluatorCommandController } from "@stigmer/protos/ai/stigmer/agentic/e
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
-import { newCleanupIamPoliciesStep } from "../../pipeline/steps/authorization-tuples.js";
+import { newCleanupGrantsStep } from "../../pipeline/steps/authorization-tuples.js";
 import { newDeleteResourceStep } from "../../pipeline/steps/delete.js";
 import { newReleaseNamesStep } from "../../pipeline/steps/names.js";
 import { newKindPurge } from "../organization/purge/kind-purge.js";
@@ -36,7 +36,7 @@ export function newEvaluatorPurge(deps: EvaluatorPurgeDeps): KindPurge {
     steps: [
       newDeleteResourceStep(deps.store),
       newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.evaluator),
-      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+      newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger),
     ],
   });
 }

@@ -61,7 +61,7 @@ export enum ApiResourceGroup {
   agentic = 1,
 
   /**
-   * Identity and Access Management - IAM policies, identity accounts, and credentials
+   * Identity and Access Management - grants, identity accounts, and credentials
    *
    * @generated from enum value: iam = 2;
    */

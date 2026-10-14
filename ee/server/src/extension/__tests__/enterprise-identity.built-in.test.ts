@@ -2,12 +2,12 @@
  * The Enterprise identity unit on open source's own authorization: the
  * unit composed onto `@stigmer/server` at edition `enterprise` with no
  * Authorizer of its own, so the library's built-in Authorizer, list read
- * scope and policy check answer every one of its questions from the one
+ * scope and grant check answer every one of its questions from the one
  * authorization model, over the rows the unit keeps in its own stores
  * (read through the row readers it registers). The host is the least an
  * Enterprise host can be: a unit that declares the edition and the
  * require-authentication posture, signs its callers in with one verifier,
- * and registers one IamPolicy store the library's grant path writes and
+ * and registers one Grant store the library's grant path writes and
  * the unit's repairs read; its people hold accounts in the library's own
  * store, as people who have signed in before do. Everything else is the
  * library's.
@@ -49,7 +49,7 @@
  * until its row exists. A host that serves these kinds keeps its own
  * inventory of the whole contract and names this suite as their home.
  *
- * The in-memory IamPolicy store is first held to the library's own
+ * The in-memory Grant store is first held to the library's own
  * port-contract kit, so the answers below rest on a store the contract
  * vouches for.
  */
@@ -71,13 +71,13 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
-import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
+import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
 import {
   ApiResourceRefSchema,
-  type IamPolicySpec,
-  IamPolicySpecSchema,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+  type GrantSpec,
+  GrantSpecSchema,
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
@@ -93,19 +93,19 @@ import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenanc
 import {
   composeServer,
   createLogger,
-  iamPolicyStoreContract,
+  grantStoreContract,
   loadConfig,
   platformTokenKeyRingFromPem,
   strictEgressPolicy,
 } from "@stigmer/server";
 import type { ComposedServer, IdentityVerifier, ServerExtension } from "@stigmer/server";
 
-import { InMemoryIamPolicyStore } from "../../__test-utils__/in-memory-iam-policy-store.js";
+import { InMemoryGrantStore } from "../../__test-utils__/in-memory-grant-store.js";
 import { foreignId, kindMetaOf, mintedIdPattern } from "../../__test-utils__/minted-id.js";
 import { refusingPort } from "../../__test-utils__/refusing-doubles.js";
 import type { IdentityAccountService } from "../../iam/account/port.js";
 import { InMemoryInvitationStore } from "../../iam/invitation/__tests__/in-memory-invitation-store.js";
-import { newKindMetaPolicyGrantScope } from "../../iam/policy/roles.js";
+import { newKindMetaGrantScope } from "../../iam/grant/roles.js";
 import { InMemoryIssuerStore } from "../../iam/issuer/__tests__/in-memory-issuer-store.js";
 import {
   publicLookup,
@@ -181,13 +181,13 @@ function grant(
   principal: ReturnType<typeof ref>,
   relation: string,
   resource: ReturnType<typeof ref>,
-): IamPolicySpec {
-  return create(IamPolicySpecSchema, { principal, relation, resource });
+): GrantSpec {
+  return create(GrantSpecSchema, { principal, relation, resource });
 }
 
-describe("the in-memory IamPolicy store this suite composes", () => {
-  for (const contractCase of iamPolicyStoreContract(async () => {
-    const store = new InMemoryIamPolicyStore();
+describe("the in-memory Grant store this suite composes", () => {
+  for (const contractCase of grantStoreContract(async () => {
+    const store = new InMemoryGrantStore();
     return {
       store,
       disconnect: () => {
@@ -207,7 +207,7 @@ describe("the Enterprise identity unit on open source's own authorization (compo
   let dir: string;
   // The services the unit registers, read from its registrations.
   let served: ReadonlyArray<DescService> = [];
-  const policyStore = new InMemoryIamPolicyStore();
+  const grantStore = new InMemoryGrantStore();
   const providers = new InMemoryIssuerStore();
   const invitations = new InMemoryInvitationStore();
   const teams = new InMemoryTeamStore();
@@ -241,7 +241,7 @@ describe("the Enterprise identity unit on open source's own authorization (compo
   }
 
   function rowsNaming(kind: string, id: string): number {
-    return policyStore
+    return grantStore
       .all()
       .filter(
         (row) =>
@@ -347,8 +347,8 @@ describe("the Enterprise identity unit on open source's own authorization (compo
       identityVerifiers: [fixtureVerifier],
       drivers: {
         platformTokenKeys: RING,
-        iamPolicyStore: policyStore,
-        policyGrantScope: newKindMetaPolicyGrantScope(),
+        grantStore,
+        grantScope: newKindMetaGrantScope(),
       },
     };
     const unit = newEnterpriseIdentityExtension({
@@ -407,7 +407,7 @@ describe("the Enterprise identity unit on open source's own authorization (compo
 
     await createOrganization(ACME, FOUNDER);
     await createOrganization(GLOBEX, OUTSIDER);
-    const acme = createClient(IamPolicyCommandController, as(FOUNDER));
+    const acme = createClient(GrantCommandController, as(FOUNDER));
     for (const [who, role] of [
       [CAROL, "admin"],
       [ANA, "admin"],
@@ -434,7 +434,7 @@ describe("the Enterprise identity unit on open source's own authorization (compo
       expect(providerId).toMatch(/^fis_[0-9a-z]{26}$/);
       expect(await providers.findById(providerId)).toBeDefined();
       expect(
-        policyStore
+        grantStore
           .all()
           .filter((row) => row.spec?.resource?.kind === "federation_issuer" && row.spec?.resource?.id === providerId)
           .filter((row) => row.spec?.relation === "owner"),
@@ -474,7 +474,7 @@ describe("the Enterprise identity unit on open source's own authorization (compo
     });
 
     it("its creator, demoted below admin, can no longer edit it; restored, can again", async () => {
-      const owner = createClient(IamPolicyCommandController, as(FOUNDER));
+      const owner = createClient(GrantCommandController, as(FOUNDER));
       await owner.create(grant(ref("identity_account", CAROL), "member", ref("organization", ACME)));
       await owner.delete(grant(ref("identity_account", CAROL), "admin", ref("organization", ACME)));
       expect((await refusalOf(editIssuer(CAROL, providerId, "edited by its creator"))).code).toBe(
@@ -591,17 +591,17 @@ describe("the Enterprise identity unit on open source's own authorization (compo
     });
 
     it("adds one of the organization's viewers and refuses an outsider before anything is written", async () => {
-      const policies = createClient(IamPolicyCommandController, as(ANA));
-      await policies.create(grant(ref("identity_account", VIC), "member", ref("team", teamId)));
+      const grants = createClient(GrantCommandController, as(ANA));
+      await grants.create(grant(ref("identity_account", VIC), "member", ref("team", teamId)));
       const refused = await refusalOf(
-        policies.create(grant(ref("identity_account", OUTSIDER), "member", ref("team", teamId))),
+        grants.create(grant(ref("identity_account", OUTSIDER), "member", ref("team", teamId))),
       );
       expect(refused.code).toBe(Code.FailedPrecondition);
       expect(refused.rawMessage).toBe(
         `identity account '${OUTSIDER}' is not a member of organization '${ACME}'; add them to the organization before adding them to one of its teams`,
       );
       expect(
-        policyStore
+        grantStore
           .all()
           .filter((row) => row.spec?.principal?.id === OUTSIDER && row.spec?.resource?.id === teamId),
       ).toEqual([]);
@@ -609,7 +609,7 @@ describe("the Enterprise identity unit on open source's own authorization (compo
 
     it("a private agent shared with the team reaches the member, not the outsider, and its access list names the team", async () => {
       expect(await canViewAgent(VIC, agentId)).toBe(false);
-      await createClient(IamPolicyCommandController, as(ANA)).create(
+      await createClient(GrantCommandController, as(ANA)).create(
         grant(ref("team", teamId, "member"), "viewer", ref("agent", agentId)),
       );
       expect(await canViewAgent(VIC, agentId)).toBe(true);
@@ -617,7 +617,7 @@ describe("the Enterprise identity unit on open source's own authorization (compo
         (await refusalOf(createClient(AgentQueryController, as(OUTSIDER)).get({ value: agentId }))).code,
       ).toBe(Code.PermissionDenied);
 
-      const access = await createClient(IamPolicyQueryController, as(ANA)).listResourceAccessByPrincipal({
+      const access = await createClient(GrantQueryController, as(ANA)).listResourceAccessByPrincipal({
         resource: ref("agent", agentId),
         includeInherited: false,
       });
@@ -630,7 +630,7 @@ describe("the Enterprise identity unit on open source's own authorization (compo
     it("refuses a team of another organization on the agent", async () => {
       const otherTeam = await createTeam("Partners", GLOBEX, OUTSIDER);
       const refused = await refusalOf(
-        createClient(IamPolicyCommandController, as(ANA)).create(
+        createClient(GrantCommandController, as(ANA)).create(
           grant(ref("team", otherTeam, "member"), "viewer", ref("agent", agentId)),
         ),
       );
@@ -643,10 +643,10 @@ describe("the Enterprise identity unit on open source's own authorization (compo
     });
 
     it("leaving the organization removes access through the team at once, and rejoining restores it", async () => {
-      const policies = createClient(IamPolicyCommandController, as(ANA));
-      await policies.revokeOrgAccess({ identityAccountId: VIC, org: ACME });
+      const grants = createClient(GrantCommandController, as(ANA));
+      await grants.revokeOrgAccess({ identityAccountId: VIC, org: ACME });
       expect(await canViewAgent(VIC, agentId)).toBe(false);
-      await policies.create(grant(ref("identity_account", VIC), "viewer", ref("organization", ACME)));
+      await grants.create(grant(ref("identity_account", VIC), "viewer", ref("organization", ACME)));
       expect(await canViewAgent(VIC, agentId)).toBe(true);
     });
 

@@ -18,7 +18,7 @@ import { create } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { SqliteStore } from "../sqlite/store.js";
@@ -100,11 +100,11 @@ describe("the organization census", () => {
   it("does not read a table kept on purpose: the permission history outlives the rows it records", async () => {
     const change = { cause: "grant", actorId: "ida_1", actorClass: "user", org: "org_a" };
     await store.insertResource(
-      ApiResourceKind.iam_policy,
-      "iamp_1",
-      IamPolicySchema,
-      create(IamPolicySchema, {
-        metadata: { id: "iamp_1" },
+      ApiResourceKind.grant,
+      "grt_1",
+      GrantSchema,
+      create(GrantSchema, {
+        metadata: { id: "grt_1" },
         spec: {
           principal: { kind: "identity_account", id: "ida_2" },
           relation: "member",
@@ -117,10 +117,10 @@ describe("the organization census", () => {
     expect(
       (await organizationCensus(reader, new Set(["org_a"]))).map((finding) => finding.table),
     ).toEqual(["resources"]);
-    await store.deleteResource(ApiResourceKind.iam_policy, "iamp_1", { ...change, cause: "resource_deleted" });
+    await store.deleteResource(ApiResourceKind.grant, "grt_1", { ...change, cause: "resource_deleted" });
     expect(await organizationCensus(reader, new Set(["org_a"]))).toEqual([]);
     expect(
-      (db.prepare(`SELECT COUNT(*) AS count FROM iam_policy_history WHERE org = 'org_a'`).get() as {
+      (db.prepare(`SELECT COUNT(*) AS count FROM grant_history WHERE org = 'org_a'`).get() as {
         count: number;
       }).count,
     ).toBe(2);

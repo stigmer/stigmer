@@ -24,18 +24,18 @@ import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 
 import {
-  IAM_POLICY_API_VERSION,
-  IAM_POLICY_KIND,
-  policyIdFor,
-} from "../../domain/iampolicy/constants.js";
-import { newResourceIamPolicyStore } from "../../domain/iampolicy/resource-store.js";
-import type { IamPolicyStore } from "../../domain/iampolicy/store.js";
-import { orgRole, triple } from "../../domain/iampolicy/__tests__/support.js";
+  GRANT_API_VERSION,
+  GRANT_KIND,
+  grantIdFor,
+} from "../../domain/grant/constants.js";
+import { newResourceGrantStore } from "../../domain/grant/resource-store.js";
+import type { GrantStore } from "../../domain/grant/store.js";
+import { orgRole, triple } from "../../domain/grant/__tests__/support.js";
 import { fakeIdentityAccountStore } from "../../domain/identityaccount/__tests__/support.js";
 import { newResourceIdentityAccountStore } from "../../domain/identityaccount/resource-store.js";
 import type { IdentityAccountStore } from "../../domain/identityaccount/store.js";
@@ -231,7 +231,7 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
 
 /** Every kind a driver arm below seeds — cleared before each test on the shared Postgres database. */
 const SEEDED_KINDS: ReadonlyArray<ApiResourceKind> = [
-  ApiResourceKind.iam_policy,
+  ApiResourceKind.grant,
   ApiResourceKind.organization,
   ApiResourceKind.agent,
   ApiResourceKind.identity_account,
@@ -246,27 +246,27 @@ const DAVE: Person = { accountId: "ida_dave", aliases: new Set(["ida_dave"]) };
 const VIC: Person = { accountId: "ida_vic", aliases: new Set(["ida_vic"]) };
 
 async function grant(
-  policies: IamPolicyStore,
+  grants: GrantStore,
   spec: ReturnType<typeof orgRole>,
 ): Promise<void> {
-  await policies.save(
-    create(IamPolicySchema, {
-      apiVersion: IAM_POLICY_API_VERSION,
-      kind: IAM_POLICY_KIND,
-      metadata: { id: policyIdFor(spec) },
+  await grants.save(
+    create(GrantSchema, {
+      apiVersion: GRANT_API_VERSION,
+      kind: GRANT_KIND,
+      metadata: { id: grantIdFor(spec) },
       spec,
     }),
   );
 }
 
 /** Wraps the port so the test can count the one read the source is allowed. */
-function countingPolicies(inner: IamPolicyStore): {
-  readonly policies: IamPolicyStore;
+function countingGrants(inner: GrantStore): {
+  readonly grants: GrantStore;
   reads(): number;
 } {
   let reads = 0;
   return {
-    policies: {
+    grants: {
       ...inner,
       findByPrincipal(principalKind, principalId) {
         reads += 1;
@@ -282,12 +282,12 @@ describe.each(driverFixtures(SEEDED_KINDS))(
   (fixture) => {
     describe.skipIf(fixture.skip)("rows and derived tuples", () => {
       let opened: OpenedStore;
-      let counted: ReturnType<typeof countingPolicies>;
+      let counted: ReturnType<typeof countingGrants>;
       let accounts: IdentityAccountStore;
 
       beforeEach(async () => {
         opened = await fixture.open();
-        counted = countingPolicies(newResourceIamPolicyStore(opened.store, { keepsHistory: false }));
+        counted = countingGrants(newResourceGrantStore(opened.store, { keepsHistory: false }));
         accounts = newResourceIdentityAccountStore(opened.store);
         const organization = storedDeclaration("organization");
         await opened.store.saveResource(
@@ -313,15 +313,15 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             createdBy: "ida_carol",
           }),
         );
-        await grant(counted.policies, orgRole(ROOT.accountId, "owner", "acme"));
+        await grant(counted.grants, orgRole(ROOT.accountId, "owner", "acme"));
         await grant(
-          counted.policies,
+          counted.grants,
           orgRole(DAVE.accountId, "member", "acme"),
         );
-        // A structural row (the cloud's `bootstrapPolicy` shape): a
+        // A structural row (the cloud's `bootstrapGrant` shape): a
         // userset principal, carried as a userset subject.
         await grant(
-          counted.policies,
+          counted.grants,
           triple(
             { kind: "organization", id: "partner", relation: "member" },
             "viewer",
@@ -336,7 +336,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
 
       function sourceFor(person: Person) {
         return newDerivedTupleSource(
-          { store: opened.store, policies: counted.policies, accounts },
+          { store: opened.store, grants: counted.grants, accounts },
           person,
         );
       }
@@ -379,7 +379,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           }),
         );
         await grant(
-          counted.policies,
+          counted.grants,
           orgRole(VIC.accountId, "viewer", "acme-cust"),
         );
 
@@ -451,7 +451,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         const source = newDerivedTupleSource(
           {
             store: opened.store,
-            policies: counted.policies,
+            grants: counted.grants,
             accounts: detached,
           },
           ROOT,
@@ -593,7 +593,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
                 return opened.store.getResource(kind, id, schema);
               },
             },
-            policies: counted.policies,
+            grants: counted.grants,
             accounts,
           },
           DAVE,
@@ -660,7 +660,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
                 return opened.store.getResource(kind, id, schema);
               },
             },
-            policies: counted.policies,
+            grants: counted.grants,
             accounts,
           },
           DAVE,
@@ -700,7 +700,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
      */
     describe.skipIf(fixture.skip)("the grants made to a person's teams", () => {
       let opened: OpenedStore;
-      let counted: ReturnType<typeof countingPolicies>;
+      let counted: ReturnType<typeof countingGrants>;
       const ERIN: Person = {
         accountId: "ida_erin",
         aliases: new Set(["ida_erin"]),
@@ -720,7 +720,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
 
       beforeEach(async () => {
         opened = await fixture.open();
-        counted = countingPolicies(newResourceIamPolicyStore(opened.store, { keepsHistory: false }));
+        counted = countingGrants(newResourceGrantStore(opened.store, { keepsHistory: false }));
         await seed(storedDeclaration("organization"), {
           id: "acme",
           org: "",
@@ -746,21 +746,21 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             createdBy: "ida_carol",
           });
           await grant(
-            counted.policies,
+            counted.grants,
             triple({ kind: "team", id: team, relation: "member" }, "viewer", {
               kind: "agent",
               id,
             }),
           );
         }
-        await grant(counted.policies, orgRole(ROOT.accountId, "owner", "acme"));
+        await grant(counted.grants, orgRole(ROOT.accountId, "owner", "acme"));
         await grant(
-          counted.policies,
+          counted.grants,
           orgRole(DAVE.accountId, "member", "acme"),
         );
         for (const member of [DAVE, ERIN]) {
           await grant(
-            counted.policies,
+            counted.grants,
             triple(
               { kind: "identity_account", id: member.accountId },
               "member",
@@ -778,7 +778,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         return newDerivedTupleSource(
           {
             store: opened.store,
-            policies: counted.policies,
+            grants: counted.grants,
             accounts: newResourceIdentityAccountStore(opened.store),
             model: builtInModel,
           },

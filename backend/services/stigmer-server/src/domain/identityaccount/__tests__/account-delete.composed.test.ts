@@ -4,12 +4,12 @@
  * on and the built-in Authorizer, over the wire:
  *
  *   - deleting a service account deletes every key that speaks for it and
- *     revokes every policy row naming it, so its key is refused on the next
+ *     revokes every grant row naming it, so its key is refused on the next
  *     request and nothing names the account afterwards;
  *   - a person who deletes their account and signs up again under the same
  *     subject (and therefore the same derived id) does not get their old
  *     key back: the key's row went with the account (stigmer#1771);
- *   - a fault deleting the keys, or revoking the policy rows, fails the
+ *   - a fault deleting the keys, or revoking the grant rows, fails the
  *     delete INTERNAL with the account, its keys and its role still in
  *     place, and the same delete, retried, finishes the job;
  *   - a service account's own key may neither update nor delete an
@@ -31,7 +31,7 @@ import {
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
@@ -40,7 +40,7 @@ import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { serviceAccountRefusedMessage } from "../../../pipeline/steps/refuse-service-account.js";
 import type { Store } from "../../../store/interface.js";
 import { apiKeyListIndex } from "../../apikey/list-index.js";
-import { iamPolicyListIndex } from "../../iampolicy/list-index.js";
+import { grantListIndex } from "../../grant/list-index.js";
 import { accountIdFor } from "../constants.js";
 import {
   bootSignInServer,
@@ -82,11 +82,11 @@ async function keysOf(...owners: string[]): Promise<string[]> {
     .map((key) => key.metadata?.id ?? "");
 }
 
-/** Every stored policy row naming `id`, as principal or resource. */
+/** Every stored grant row naming `id`, as principal or resource. */
 async function rowsNaming(id: string): Promise<string[]> {
-  const rows = await at.server.store.listResources(ApiResourceKind.iam_policy);
+  const rows = await at.server.store.listResources(ApiResourceKind.grant);
   return rows
-    .map((row) => fromBinary(IamPolicySchema, row))
+    .map((row) => fromBinary(GrantSchema, row))
     .filter((p) => p.spec?.principal?.id === id || p.spec?.resource?.id === id)
     .map((p) => `${p.spec?.relation}@${p.spec?.resource?.id}`);
 }
@@ -115,7 +115,7 @@ async function serviceAccountWithKey(): Promise<{ id: string; key: string }> {
 }
 
 describe("deleting an account removes what speaks for it before its row goes", () => {
-  it("a service account: its keys are deleted and refused on the next request, and no policy row names it", async () => {
+  it("a service account: its keys are deleted and refused on the next request, and no grant row names it", async () => {
     const { id, key } = await serviceAccountWithKey();
     const overKey = createClient(
       IdentityAccountQueryController,
@@ -204,7 +204,7 @@ describe("a fault before the row goes fails the delete with everything in place"
     expect(await rowsNaming(id)).toEqual([]);
   });
 
-  it("revoking the policy rows: INTERNAL, the account and its role remain, and a retry finishes", async () => {
+  it("revoking the grant rows: INTERNAL, the account and its role remain, and a retry finishes", async () => {
     const { id } = await serviceAccountWithKey();
     const queryResources = at.server.store.queryResources.bind(at.server.store);
     vi.spyOn(at.server.store, "queryResources").mockImplementation(((
@@ -214,10 +214,10 @@ describe("a fault before the row goes fails the delete with everything in place"
       // Only the read of the deleted account's own rows: the admin's
       // authorization reads the admin's rows through the same index.
       if (
-        declaration === iamPolicyListIndex &&
+        declaration === grantListIndex &&
         (request.anyKey ?? []).some((key) => key.value === id)
       ) {
-        return Promise.reject(new Error("policy index unavailable"));
+        return Promise.reject(new Error("grant index unavailable"));
       }
       return queryResources(declaration, request);
     }) as Store["queryResources"]);

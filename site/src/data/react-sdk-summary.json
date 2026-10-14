@@ -148,9 +148,9 @@
       "components": 1
     },
     {
-      "slug": "iam-policy",
-      "title": "IAM Policy",
-      "description": "Hooks and components for access control bindings, role assignment, and org membership.",
+      "slug": "grant",
+      "title": "Grants",
+      "description": "Who has which role on what, and the gates that read it.",
       "hooks": 12,
       "components": 8
     },

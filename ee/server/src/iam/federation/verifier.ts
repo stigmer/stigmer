@@ -44,7 +44,7 @@
  * logs): the provider's save refused the same address with its cause.
  *
  * The identity minted is the ACCOUNT id, not the raw sub, so every
- * policy row and audit line names the platform's account, never an
+ * grant row and audit line names the platform's account, never an
  * federation issuer's subject.
  *
  * EVERY TOKEN IS BOUND TO ONE ORGANIZATION (`boundOrg`; the library's
@@ -106,7 +106,7 @@
  * mark that lands between the first read and the write is seen by one side
  * or the other. A sign-in that finds it marked, or gone, undoes its own
  * write and is refused: an account it created is removed through the
- * account service, its policies with it, and on an account that already
+ * account service, its grants with it, and on an account that already
  * existed only the grant it made is revoked, since the removal deletes
  * that account. Either way nothing the deleted provider's identity
  * provider signed in during the delete outlives it.
@@ -138,9 +138,9 @@ import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/a
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   ApiResourceRefSchema,
-  IamPolicySpecSchema,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
-import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+  GrantSpecSchema,
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import type {
   CallerIdentity,
   ChildOrganizations,
@@ -148,7 +148,7 @@ import type {
   Logger,
 } from "@stigmer/server";
 
-import type { IamPolicyGrantPathClient } from "../policy/grant-path-client.js";
+import type { GrantPathClient } from "../grant/grant-path-client.js";
 import type { UserInfoClient } from "./userinfo.js";
 import type { IdentityAccountService } from "../account/port.js";
 import { orphanReason } from "../organization-links.js";
@@ -174,7 +174,7 @@ export interface FederatedVerifierDeps {
    */
   readonly providers: Pick<FederationIssuerStore, "findLive" | "isLive">;
   readonly accounts: IdentityAccountService;
-  readonly policies: IamPolicyGrantPathClient;
+  readonly grants: GrantPathClient;
   /** The provider organization's children, by the external id a token's claim carries. */
   readonly childOrganizations: Pick<ChildOrganizations, "findByExternalId">;
   /** The first sign-in of each (account, organization), which the sign-in role is granted on. */
@@ -572,7 +572,7 @@ async function resolveBoundOrg(
  */
 type SettledSignInGrant =
   | { readonly claimed: false }
-  | { readonly claimed: true; readonly granted: IamPolicySpec | undefined };
+  | { readonly claimed: true; readonly granted: GrantSpec | undefined };
 
 const NOTHING_CLAIMED: SettledSignInGrant = { claimed: false };
 
@@ -615,7 +615,7 @@ async function settleSignInGrant(
   }
   const grant = signInRoleGrant(accountId, boundOrg, IamRole[role]);
   try {
-    await deps.policies.create(grant, providerId);
+    await deps.grants.create(grant, providerId);
   } catch (grantError) {
     deps.logger.error("federated sign-in role grant failed; the sign-in is refused", {
       accountId,
@@ -649,7 +649,7 @@ async function settleSignInGrant(
  * A sign-in that wrote reads its provider again, and undoes its own write
  * when the provider's delete has begun (the module header;
  * provider/removal.ts has the ordering argument). An account this request
- * created is removed through the account service, its policies with it,
+ * created is removed through the account service, its grants with it,
  * and the grant it just made among them. On an account that already
  * existed only the grant this request made is revoked: the first read
  * proved the provider live, so the account is the deleted provider's own,
@@ -689,7 +689,7 @@ async function undoUnlessIssuerLive(
     await undo("delete the account", () => deps.accounts.deleteAccount(signedIn.account, providerId));
   } else if (settled.claimed && settled.granted !== undefined) {
     const granted = settled.granted;
-    await undo("revoke the sign-in role", () => deps.policies.delete(granted, providerId));
+    await undo("revoke the sign-in role", () => deps.grants.delete(granted, providerId));
   }
   if (settled.claimed) {
     await undo("release the first sign-in", () => deps.signInGrants.release(accountId, boundOrg));
@@ -763,7 +763,7 @@ function refuseUnlessLive(provider: FederationIssuer, liveness: IssuerLiveness):
 /**
  * Removes an account this request created, so the next sign-in runs a
  * clean creation, when the sign-in is refused before anything was granted
- * or after the grant failed. (Its self-owner policy row is deliberately
+ * or after the grant failed. (Its self-owner grant row is deliberately
  * left: it references a dead account and has no authorization effect.) A
  * sign-in refused because its provider's delete began undoes through the
  * account service instead, since a grant may already stand
@@ -796,8 +796,8 @@ function signInRoleGrant(
   accountId: string,
   targetOrgId: string,
   role: string,
-): IamPolicySpec {
-  return create(IamPolicySpecSchema, {
+): GrantSpec {
+  return create(GrantSpecSchema, {
     principal: create(ApiResourceRefSchema, {
       kind: "identity_account",
       id: accountId,

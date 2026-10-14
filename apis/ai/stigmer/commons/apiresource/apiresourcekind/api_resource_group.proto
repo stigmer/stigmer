@@ -27,7 +27,7 @@ enum ApiResourceGroup {
     display_name: "Agentic"
   }];
 
-  // Identity and Access Management - IAM policies, identity accounts, and credentials
+  // Identity and Access Management - grants, identity accounts, and credentials
   iam = 2 [(group_meta) = {
     domain: "iam.stigmer.ai"
     display_name: "IAM"

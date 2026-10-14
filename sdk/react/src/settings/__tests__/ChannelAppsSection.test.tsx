@@ -51,7 +51,7 @@ vi.mock("../../channel-app/useChannelAppList.js", () => ({
     };
   },
 }));
-vi.mock("../../iam-policy/useCheckPermission.js", () => ({
+vi.mock("../../grant/useCheckPermission.js", () => ({
   useCheckPermission: (
     resource: { kind: string; id: string } | null,
     relation: string,

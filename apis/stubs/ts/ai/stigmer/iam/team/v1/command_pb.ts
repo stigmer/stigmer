@@ -23,7 +23,7 @@ export const file_ai_stigmer_iam_team_v1_command: GenFile = /*@__PURE__*/
  * TeamCommandController provides write operations for teams.
  *
  * Membership is not written here: a person joins a team when they are granted
- * the member role on it, through the IAM policy service, like any other grant.
+ * the member role on it, through the Grant service, like any other grant.
  *
  * @generated from service ai.stigmer.iam.team.v1.TeamCommandController
  */

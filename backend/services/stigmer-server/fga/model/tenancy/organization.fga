@@ -62,7 +62,7 @@ type organization
     # Stored, so the bound costs one read instead of a walk up the role
     # chain on every object a list checks. It is DERIVED, never granted:
     # exactly while the person holds at least one role row on the
-    # organization. The IamPolicy grant path refuses it as a grant and
+    # organization. The grant path refuses it as a grant and
     # announces every change of a person's organization rows; an edition
     # that stores tuples writes and removes it from those announcements,
     # and open source derives it from the rows at check time.
@@ -119,7 +119,7 @@ type organization
     # ========================================
     # MEMBER MANAGEMENT
     # ========================================
-    # Granting, revoking or removing the owner role. The IamPolicy lanes and
+    # Granting, revoking or removing the owner role. The Grant lanes and
     # the invitation lane ask it whenever a change touches owner, on top of
     # can_grant_access: an admin grants every role up to admin, and only an
     # owner makes an owner.
@@ -171,7 +171,7 @@ type organization
     define can_mint_user_tokens: admin or parent_admin
     
     # ========================================
-    # IAM POLICY MANAGEMENT
+    # ACCESS MANAGEMENT
     # ========================================
     define can_grant_access: admin or parent_admin
     define can_view_access: viewer or parent_admin

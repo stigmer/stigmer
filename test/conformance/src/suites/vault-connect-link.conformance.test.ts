@@ -304,7 +304,7 @@ describe("Connect link conformance — the maker's standing (on the enforcing la
     const token = tokenOf((await createLink(admin, org, vaultId, address)).url);
     const started = await owner.connectLink.startConnectLink({ token });
 
-    await owner.iamPolicyCommand.revokeOrgAccess({ identityAccountId: adminId, org });
+    await owner.grantCommand.revokeOrgAccess({ identityAccountId: adminId, org });
 
     const done = await owner.connectLink.completeConnectLink({ token, state: started.state, code: "c" });
     expect(done.returnUrl).toBe(`${RETURN_URL}?stigmer_connect=error&reason=not_allowed`);

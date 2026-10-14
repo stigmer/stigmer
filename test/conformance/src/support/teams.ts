@@ -2,7 +2,7 @@
 // Domain: conformance support.
 //
 // A team is a named group of an organization's people. Joining one is not a
-// Team RPC: a person becomes a member through an IamPolicy grant of
+// Team RPC: a person becomes a member through an Grant grant of
 // `member` on `team:<id>`, and a resource is shared with a team as a grant
 // whose principal is the team's members (`team:<id>#member`) in one of the
 // roles the resource's kind lets a team hold (the agent: editor or viewer).
@@ -12,10 +12,10 @@
 // The refusal copy below is the proto's own annotation copy
 // (apis/ai/stigmer/iam/team/v1/command.proto and query.proto) and the
 // Enterprise grant gate's sentence, which a client may match on.
-import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 
-import { policyTriple } from "./iampolicies";
+import { grantTriple } from "./grants";
 import type { InitShape } from "./init-shape";
 
 export const TEAM_API_VERSION = "iam.stigmer.ai/v1";
@@ -44,11 +44,11 @@ export function makeTeam(input: { org: string; name: string; description?: strin
 }
 
 // `identity_account:<accountId>` holds `member` on `team:<teamId>`.
-export function teamMembership(teamId: string, accountId: string): IamPolicySpec {
-  return policyTriple({ kind: "identity_account", id: accountId }, "member", { kind: "team", id: teamId });
+export function teamMembership(teamId: string, accountId: string): GrantSpec {
+  return grantTriple({ kind: "identity_account", id: accountId }, "member", { kind: "team", id: teamId });
 }
 
 // The team's members hold `role` on the resource.
-export function teamShare(teamId: string, role: string, resource: { kind: string; id: string }): IamPolicySpec {
-  return policyTriple({ kind: "team", id: teamId, relation: "member" }, role, resource);
+export function teamShare(teamId: string, role: string, resource: { kind: string; id: string }): GrantSpec {
+  return grantTriple({ kind: "team", id: teamId, relation: "member" }, role, resource);
 }

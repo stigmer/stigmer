@@ -21,7 +21,7 @@
  * purge removes what it owned, its row and its names in the background.
  *
  * Every chain opens with Authorize; create and the purge run the shared
- * tuple-lifecycle steps (CreateAuthorizationTuples, CleanupIamPolicies)
+ * tuple-lifecycle steps (CreateAuthorizationTuples, CleanupGrants)
  * against the lifecycle compose.ts hands it: a composed
  * resourceAuthorizationLifecycle driver when a unit registers one, else,
  * under the built-in posture, open source's role lifecycle (the creator's
@@ -60,7 +60,7 @@ import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
 import { ALL_ORGANIZATIONS } from "../../extensions/organization-directory.js";
 import type { OrganizationDirectory } from "../../extensions/organization-directory.js";
-import type { IamPolicyGrantPath } from "../iampolicy/grant-path.js";
+import type { GrantPath } from "../grant/grant-path.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError } from "../../pipeline/errors.js";
@@ -169,7 +169,7 @@ import {
   newLoadOrganizationForApplyStep,
   newRefuseBoundCredentialStep,
   newRefuseOrganizationOrgStep,
-  newRevokeOrganizationPoliciesStep,
+  newRevokeOrganizationGrantsStep,
 } from "./steps.js";
 import { matchesAllLabels, sortedLabels } from "../../pipeline/steps/helpers.js";
 
@@ -181,7 +181,7 @@ export interface OrganizationControllerDeps {
   /** The composed slot registrations — this domain's create and delete slots. */
   readonly gateSteps: ResolvedGateSteps;
   /** The one grant path: the delete revokes the organization's rows through it before its row goes. */
-  readonly grantPath: IamPolicyGrantPath;
+  readonly grantPath: GrantPath;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The composed query directory — undefined = OSS single-tenant behavior. */
@@ -604,7 +604,7 @@ async function apply(
  *   3. the `org-delete:pre-delete` slot, where an edition refuses, or
  *      removes what must not outlive the delete's answer (credentials,
  *      trust configuration);
- *   4. RevokeOrganizationPolicies, every policy row naming the
+ *   4. RevokeOrganizationGrants, every grant row naming the
  *      organization, through the grant path, so nobody holds a role in it
  *      from the answer on;
  *   5. AcceptPurge: the mark is the purge's, and the purge is kicked.
@@ -662,7 +662,7 @@ async function deleteOrganization(
     builder.addStep(step);
   }
   const pipeline = builder
-    .addStep(newRevokeOrganizationPoliciesStep<DeleteInput>(deps.grantPath))
+    .addStep(newRevokeOrganizationGrantsStep<DeleteInput>(deps.grantPath))
     .addStep(newAcceptPurgeStep<DeleteInput>(deps.store, deps.purge))
     .build();
   try {

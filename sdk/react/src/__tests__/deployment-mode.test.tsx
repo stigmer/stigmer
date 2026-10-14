@@ -45,7 +45,7 @@ describe("useDeploymentMode", () => {
 
 describe("useResourceAvailable under the enterprise mode", () => {
   it("serves an enterprise-tier kind", () => {
-    // `invitation` is the example since `iam_policy` moved to open_source
+    // `invitation` is the example since `grant` moved to open_source
     // (the row half is served by every edition).
     const { result } = renderHook(
       () => useResourceAvailable(ApiResourceKind.invitation),

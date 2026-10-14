@@ -8,7 +8,7 @@
  *     the error every lane's race arm resolves by, however the host's
  *     create path reports a duplicate;
  *   - `updateAccount` writes the profile as given, email included;
- *   - `deleteAccount` removes the account's keys, every policy row naming
+ *   - `deleteAccount` removes the account's keys, every grant row naming
  *     it and its row, so an account made again under the same id finds
  *     nothing of the old one alive; deleting an account that is already
  *     gone resolves;
@@ -19,7 +19,7 @@
  *   - the store lists a provider's accounts in id order, every account made
  *     under it and none another provider vouches for (what the provider's
  *     removal deletes).
- * A host answers the probes the cases read (its keys, its policy rows)
+ * A host answers the probes the cases read (its keys, its grant rows)
  * from its own stores, through the fixture. The cases read accounts back
  * through `service.store`, so the provider lines hold over whichever store
  * the host composes, and they make every row through the host's own create
@@ -62,8 +62,8 @@ export interface IdentityAccountServiceUnderTest {
   issueKey(account: IdentityAccount): Promise<void>;
   /** How many live keys speak for the account. */
   keysOf(accountId: string): Promise<number>;
-  /** How many policy rows name the account, as principal or as resource. */
-  policyRowsNaming(accountId: string): Promise<number>;
+  /** How many grant rows name the account, as principal or as resource. */
+  grantRowsNaming(accountId: string): Promise<number>;
 }
 
 /** The runner's fixture over a service. */
@@ -137,7 +137,7 @@ const SERVICE_CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountServic
     },
   ],
   [
-    "deleteAccount removes the account's keys, every policy row naming it and its row",
+    "deleteAccount removes the account's keys, every grant row naming it and its row",
     async ({ store: host }) => {
       const { provider, service } = host;
       const created = await service.createAccount(
@@ -150,7 +150,7 @@ const SERVICE_CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountServic
       await service.deleteAccount(created, provider.id);
       assert.equal(await service.store.findById(id), undefined, "the row is gone");
       assert.equal(await host.keysOf(id), 0, "no key outlives its account");
-      assert.equal(await host.policyRowsNaming(id), 0, "no policy row names a deleted account");
+      assert.equal(await host.grantRowsNaming(id), 0, "no grant row names a deleted account");
     },
   ],
   [

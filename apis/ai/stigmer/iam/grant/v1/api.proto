@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.grant.v1;
+
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "ai/stigmer/iam/grant/v1/spec.proto";
+import "buf/validate/validate.proto";
+
+// Grant represents a binding between a principal (who), a resource (what),
+// and a relation/permission (how).
+//
+// A grant gives a specific permission (relation) to a principal on a resource.
+// For example: "Grant 'admin' permission to user 'john@example.com' on VPC 'vpc-123'"
+//
+// The grant is the source of truth for authorization and is synced to the
+// authorization backend (OpenFGA) as FGA tuples.
+message Grant {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'iam.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'Grant'];
+
+  // Resource metadata including name, organization, and labels.
+  //
+  // @internal
+  // id format: grt_ followed by 26 Crockford-base32 characters derived
+  // from the spec's triple (see ApiResourceMetadata.id)
+  // name: human-readable identifier (e.g., "john-vpc-admin")
+  // org: organization this grant belongs to
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
+
+  // Grant binding: principal, resource, and relation.
+  GrantSpec spec = 4;
+
+  // System-managed state including audit trail.
+  GrantStatus status = 5;
+}
+
+// GrantStatus represents the runtime state of the grant.
+// It contains information about the grant's lifecycle and sync status with
+// the authorization backend.
+message GrantStatus {
+  // Standard audit status containing created_by, created_at, updated_by, updated_at
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 1;
+}

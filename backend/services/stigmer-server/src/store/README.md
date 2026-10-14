@@ -62,7 +62,7 @@ One lock order everywhere: the session first, then rows. Postgres takes a transa
 
 ## The permission history
 
-Every change to an access row can be recorded in `iam_policy_history`
+Every change to an access row can be recorded in `grant_history`
 (`permission-history.ts`), in the same transaction as the row. A writer hands
 `Store.insertResource` or `Store.deleteResource` a `PermissionChange` (the
 cause, the actor, the organization) and the store appends one entry: `granted`
@@ -70,12 +70,12 @@ for a row it inserted, `revoked` for a row it removed, nothing for an insert
 that found the id held or a delete that found nothing. The entry's triple and
 bytes are read from the row the store wrote or removed, never handed in, so an
 entry cannot describe another row. Entries are numbered per organization from
-`iam_policy_history_heads`, in commit order with no gaps, with times that never
+`grant_history_heads`, in commit order with no gaps, with times that never
 go back. Lock order: Postgres takes a transaction-scoped advisory lock on the
-organization (`hashtextextended('iam_policy_history/' || org)`) before the row;
+organization (`hashtextextended('grant_history/' || org)`) before the row;
 SQLite runs under `BEGIN IMMEDIATE`. A write with no change takes no lock. Only
-the IamPolicy adapter hands a change, and only in a composition that keeps a
-history (`domain/iampolicy/resource-store.ts`). An organization's purge leaves
+the Grant adapter hands a change, and only in a composition that keeps a
+history (`domain/grant/resource-store.ts`). An organization's purge leaves
 the history in place. `Store.listPermissionHistory` reads one organization's
 entries on the primary key: newest first below a number, or oldest first above
 one, a bounded page at a time. The numbering is what makes "everything after
@@ -83,7 +83,7 @@ N", asked again later, skip nothing above the oldest kept entry.
 
 Retention is the one removal: `Store.prunePermissionHistory` deletes a batch of
 the entries recorded before a cutoff, ordered by time, then organization, then
-number, over the index `iam_policy_history_by_time` in that order. An
+number, over the index `grant_history_by_time` in that order. An
 organization's times never go back as its numbers rise, so what goes is always
 a prefix of its numbers and its kept entries stay one unbroken run; the
 `(org, sequence)` tie-break keeps entries sharing a millisecond in number order
@@ -91,7 +91,14 @@ across a batch boundary. It takes no lock: an entry still being written is
 stamped after the cutoff. The heads are never removed, so a number is never
 handed out twice, and `Store.permissionHistoryHead` reads an organization's last
 number even when every entry has gone. The runner that calls it, and how long a history is kept, are
-the domain's (`domain/iampolicy/history-retention.ts`).
+the domain's (`domain/grant/history-retention.ts`).
+
+The tables were `iam_policy_history` and `iam_policy_history_heads`, with the
+column `policy_id`, until the kind was renamed Grant (Postgres v34, SQLite
+v38). That step also moved every stored grant's id from `iamp_X` to `grt_X`, in
+its row, its list keys and its history entries: a grant's id is derived from
+its triple and copied by nothing but its own history, so unlike every other
+kind's ids it follows the rename (`kind-rename.ts` has the reasons).
 
 ## Contract and continuity
 

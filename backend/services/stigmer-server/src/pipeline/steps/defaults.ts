@@ -37,7 +37,7 @@
  * This module is also the one home of how an id is SPELLED. `generateId`
  * mints `{prefix}_{ulid}`; `derivedId` is its sibling for the kinds
  * metadata.proto names as deriving their id from a natural key instead
- * (a direct IdentityAccount from its issuer subject, an IamPolicy from its
+ * (a direct IdentityAccount from its issuer subject, a Grant from its
  * triple): `{prefix}_` + the top 130 bits of sha256 over the key's
  * canonical text as 26 lowercase Crockford-base32 characters. The two
  * shapes are indistinguishable on the wire, so nothing downstream learns

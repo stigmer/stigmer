@@ -411,7 +411,7 @@ describe("cleanUpDeletedResource (the delete cleanup every chain and cascade sha
     expect(warnings).toEqual([
       {
         message:
-          "authorization cleanup failed — orphaned IAM policies may remain",
+          "authorization cleanup failed — orphaned grants may remain",
         fields: {
           kind: "Run",
           resourceId: "aex_cleanup_subject",

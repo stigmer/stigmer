@@ -46,7 +46,7 @@
  * and in open source a session has no participant but its owner: the
  * contract lists `participant` and `viewer` as grantable on a session, but
  * open source's grant scope is organization-only
- * (domain/iampolicy/grant-scope.ts) and the session model derives no
+ * (domain/grant/grant-scope.ts) and the session model derives no
  * organization-wide participant. A scheduled run is created as the
  * schedule's creator, who owns the session the fire creates. The verifier
  * test pins the grant-scope fact by name; an edition that grants

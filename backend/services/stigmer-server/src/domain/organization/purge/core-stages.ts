@@ -32,7 +32,7 @@
  *              passed; then the composed lifecycle's organization arm, a
  *              sweep of the search entries and fire-ledger rows that name
  *              it (the kind purges' own removals of those log a fault and
- *              go on), the organization's policy rows (failing closed),
+ *              go on), the organization's grant rows (failing closed),
  *              its search entry, the row, then its names, then its
  *              deletion mark. The names
  *              follow the row on purpose: while the row stands the claim
@@ -83,12 +83,12 @@ import type { ExecutionEngineStateProvider } from "../../run/engine.js";
 import { EngineWorkflowNotFoundError } from "../../run/engine.js";
 import { agentExecutionListIndex } from "../../run/list-index.js";
 import { isTerminalExecutionPhase } from "../../run/phases.js";
-import type { IamPolicyGrantPath } from "../../iampolicy/grant-path.js";
+import type { GrantPath } from "../../grant/grant-path.js";
 import { sessionListIndex } from "../../session/list-index.js";
 import { newReleaseExternalIdStep } from "../children.js";
 import { organizationListIndex } from "../list-index.js";
 import { newRetireOrganizationSlugStep } from "../names.js";
-import { newRevokeOrganizationPoliciesStep } from "../steps.js";
+import { newRevokeOrganizationGrantsStep } from "../steps.js";
 import type { KindPurge } from "./kind-purge.js";
 
 /** The core stages' names, as the deletion record and the logs carry them. */
@@ -281,7 +281,7 @@ export function newChildrenStage(store: Store): OrganizationPurgeStage {
 export interface FinalStageDeps {
   readonly store: Store;
   readonly logger: Logger;
-  readonly grantPath: IamPolicyGrantPath;
+  readonly grantPath: GrantPath;
   /** The organization's lifecycle (the composed driver, or open source's role lifecycle). */
   readonly lifecycle: ResourceAuthorizationLifecycle | undefined;
   /**
@@ -349,7 +349,7 @@ export function newFinalStage(deps: FinalStageDeps): OrganizationPurgeStage {
       await deps.store.deleteScheduleFiresByOrg(id);
       await deps.store.sessionEvents.deleteByOrg(id);
       await newPipeline<DeleteInput>("organization-purge-final", deps.logger)
-        .addStep(newRevokeOrganizationPoliciesStep<DeleteInput>(deps.grantPath))
+        .addStep(newRevokeOrganizationGrantsStep<DeleteInput>(deps.grantPath))
         .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))
         .addStep(newDeleteResourceStep(deps.store))
         .addStep(newRetireOrganizationSlugStep<DeleteInput>(deps.store, deps.logger))

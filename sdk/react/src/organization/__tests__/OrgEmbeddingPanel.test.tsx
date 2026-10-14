@@ -62,7 +62,7 @@ function createMockStigmer(org: Organization, canEdit = true, refusal?: Error) {
         return org;
       }),
     },
-    iamPolicy: {
+    grant: {
       checkMyPermission: vi.fn(async () => ({ isAuthorized: canEdit })),
     },
     vault: {

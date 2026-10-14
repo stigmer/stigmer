@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState, type ReactNode } from "react";
-import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 import type { DetailAction } from "../resource-detail/types.js";
 import { ManageAccessDialog } from "./ManageAccessDialog.js";
 import type {

@@ -92,7 +92,7 @@ import {
 } from "../../pipeline/steps/authorize-resolved-target.js";
 import { versionHistoryTarget } from "../../pipeline/steps/version-history.js";
 import {
-  newCleanupIamPoliciesStep,
+  newCleanupGrantsStep,
   newRecordVisibilityBeforeUpdateStep,
   newUpdateVisibilityTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
@@ -640,7 +640,7 @@ async function deleteSkill(
     .addStep(newDeleteResourceStep(deps.store))
     .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.skill))
     .addStep(
-      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+      newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger),
     )
     .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))
     .build()

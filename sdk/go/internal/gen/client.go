@@ -14,7 +14,7 @@ type Client struct {
 	ChannelApp       *ChannelAppClient
 	Evaluator        *EvaluatorClient
 	FederationIssuer *FederationIssuerClient
-	IamPolicy        *IamPolicyClient
+	Grant            *GrantClient
 	IdentityAccount  *IdentityAccountClient
 	Invitation       *InvitationClient
 	License          *LicenseClient
@@ -46,7 +46,7 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		ChannelApp:       NewChannelAppClient(conn),
 		Evaluator:        NewEvaluatorClient(conn),
 		FederationIssuer: NewFederationIssuerClient(conn),
-		IamPolicy:        NewIamPolicyClient(conn),
+		Grant:            NewGrantClient(conn),
 		IdentityAccount:  NewIdentityAccountClient(conn),
 		Invitation:       NewInvitationClient(conn),
 		License:          NewLicenseClient(conn),

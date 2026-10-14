@@ -14,7 +14,7 @@ import { toast } from "../feedback/toast.js";
 import { ActionMenu } from "../action-menu/index.js";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
-import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";

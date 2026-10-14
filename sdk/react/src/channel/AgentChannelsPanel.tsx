@@ -20,7 +20,7 @@ import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { Switch } from "../switch/Switch.js";
 import { useChannelAppList } from "../channel-app/useChannelAppList.js";
-import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { EditResourceYamlDialog } from "../manifest/EditResourceYamlDialog.js";

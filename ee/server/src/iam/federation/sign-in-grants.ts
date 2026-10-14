@@ -6,7 +6,7 @@
  * role an admin removes stays removed; the row is how "first" is known.
  *
  * Why claim-then-grant and not one transaction: the grant is an in-process
- * IamPolicy create through the library's grant path, and the row is in
+ * Grant create through the library's grant path, and the row is in
  * this package's own table, so the two cannot share a transaction. Instead
  * the lane claims the row first (`claim`, an insert that answers whether
  * THIS request wrote it), grants only when it won, and releases the row

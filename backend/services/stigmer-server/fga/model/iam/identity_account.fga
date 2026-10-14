@@ -54,7 +54,7 @@ type identity_account
     define can_manage_keys: admin from organization
     
     # ========================================
-    # IAM POLICY MANAGEMENT
+    # ACCESS MANAGEMENT
     # ========================================
     define can_grant_access: owner
     define can_view_access: owner

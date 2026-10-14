@@ -14,7 +14,11 @@
  *   - A RETIRED prefix still names its kind. Ids are identities and are
  *     never rewritten, so a run minted as `aex_…` before the kind's
  *     prefix became `run` is still a run; a pre-upgrade run waiting on an
- *     approval keeps its credential.
+ *     approval keeps its credential. A derived id is the one exception to
+ *     "never rewritten": a grant's id is its triple's, so the kind's rename
+ *     moved stored `iamp_…` ids to `grt_…`; `iamp` stays listed so the
+ *     prefix stays reserved and an id held outside the store still names
+ *     a grant.
  *   - Every prefix in the contract, current and retired together, is
  *     UNIQUE. The lookup is a Map over the `kind_meta` table; a duplicate
  *     prefix would silently win for one kind and lose for the other. The
@@ -38,6 +42,8 @@ describe("kindByIdPrefix — a minted id names its kind by prefix", () => {
     ["aex_01m2mp45efcjvq2z1e1yn4cyz7", ApiResourceKind.run],
     ["fis_01m2mp45efcjvq2z1e1yn4cyz7", ApiResourceKind.federation_issuer],
     ["idp_01m2mp45efcjvq2z1e1yn4cyz7", ApiResourceKind.federation_issuer],
+    ["grt_vkbjb6nvqm77vtwnr2bj0x95f9", ApiResourceKind.grant],
+    ["iamp_vkbjb6nvqm77vtwnr2bj0x95f9", ApiResourceKind.grant],
     ["ses_x", ApiResourceKind.session],
     ["ida_carol", ApiResourceKind.identity_account],
   ])("%s is %s", (id, kind) => {
@@ -100,5 +106,14 @@ describe("kindByIdPrefix — a minted id names its kind by prefix", () => {
       kind_meta,
     );
     expect(meta.retiredIdPrefixes).toEqual(["idp"]);
+  });
+
+  it("the grant kind mints grt_ and keeps iamp reserved, so an id held outside the store still names a grant", () => {
+    expect(getIdPrefix(ApiResourceKind.grant)).toBe("grt");
+    const meta = getOption(
+      ApiResourceKindSchema.values.find((v) => v.number === ApiResourceKind.grant)!,
+      kind_meta,
+    );
+    expect(meta.retiredIdPrefixes).toEqual(["iamp"]);
   });
 });

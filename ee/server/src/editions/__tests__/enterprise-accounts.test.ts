@@ -22,7 +22,7 @@ import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityac
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
 import type { ComposedIdentityAccounts, IdentityAccountStore } from "@stigmer/server";
 import { IN_PROCESS_CALLER_HEADER } from "@stigmer/server";
 
@@ -70,8 +70,8 @@ function filled(options: { createFault?: Error; deleteFault?: ConnectError; seen
     create: () => (options.createFault === undefined ? Promise.resolve(create(IdentityAccountSchema)) : Promise.reject(options.createFault)),
   };
   const inProcessTransport = createRouterTransport((router) => {
-    router.service(IamPolicyCommandController, {
-      cleanupResourcePolicies: () => ({}),
+    router.service(GrantCommandController, {
+      cleanupResourceGrants: () => ({}),
     });
     router.service(IdentityAccountCommandController, {
       delete: (_input, context) => {

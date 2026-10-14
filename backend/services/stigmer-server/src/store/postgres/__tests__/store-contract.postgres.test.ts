@@ -51,8 +51,8 @@ const ALL_TABLES = [
   "connect_attempt",
   "session_events",
   "session_event_heads",
-  "iam_policy_history",
-  "iam_policy_history_heads",
+  "grant_history",
+  "grant_history_heads",
 ] as const;
 
 describe.skipIf(testDatabaseAdminUrl() === undefined)(
@@ -99,10 +99,10 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         },
         async permissionHistory() {
           const result = await hooks.query(
-            `SELECT org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id,
+            `SELECT org, sequence, occurred_at, change, cause, actor_id, actor_class, grant_id,
                   principal_kind, principal_id, principal_relation, relation, resource_kind,
                   resource_id, data
-           FROM iam_policy_history ORDER BY org, sequence`,
+           FROM grant_history ORDER BY org, sequence`,
           );
           return (
             result.rows as Array<Record<string, string | number | Uint8Array>>
@@ -110,7 +110,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         },
         async stampPermissionHistory(org, sequence, occurredAt) {
           await hooks.query(
-            `UPDATE iam_policy_history SET occurred_at = $3 WHERE org = $1 AND sequence = $2`,
+            `UPDATE grant_history SET occurred_at = $3 WHERE org = $1 AND sequence = $2`,
             [org, sequence, occurredAt],
           );
         },

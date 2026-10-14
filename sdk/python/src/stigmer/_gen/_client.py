@@ -12,7 +12,7 @@ from ._apikey import ApiKeyClient
 from ._channelapp import ChannelAppClient
 from ._evaluator import EvaluatorClient
 from ._federationissuer import FederationIssuerClient
-from ._iampolicy import IamPolicyClient
+from ._grant import GrantClient
 from ._identityaccount import IdentityAccountClient
 from ._invitation import InvitationClient
 from ._license import LicenseClient
@@ -45,7 +45,7 @@ class GeneratedClient:
         self.channelapps = ChannelAppClient(channel)
         self.evaluators = EvaluatorClient(channel)
         self.federation_issuers = FederationIssuerClient(channel)
-        self.iam_policies = IamPolicyClient(channel)
+        self.grants = GrantClient(channel)
         self.identity_accounts = IdentityAccountClient(channel)
         self.invitations = InvitationClient(channel)
         self.licenses = LicenseClient(channel)

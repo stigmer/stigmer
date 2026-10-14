@@ -67,8 +67,8 @@ import { Health } from "@stigmer/protos/grpc/health/v1/health_pb";
 import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
-import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
+import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
 import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
 import { FederationIssuerQueryController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/query_pb";
@@ -113,8 +113,8 @@ export interface ConformanceClients {
   search: Client<typeof SearchService>;
   identityAccountCommand: Client<typeof IdentityAccountCommandController>;
   identityAccountQuery: Client<typeof IdentityAccountQueryController>;
-  iamPolicyCommand: Client<typeof IamPolicyCommandController>;
-  iamPolicyQuery: Client<typeof IamPolicyQueryController>;
+  grantCommand: Client<typeof GrantCommandController>;
+  grantQuery: Client<typeof GrantQueryController>;
   // The identity kinds above open source: teams, invitation links and an
   // organization's own federation issuers. Open source routes none of the
   // six, so every call answers Unimplemented there — the boundary their
@@ -253,8 +253,8 @@ export function makeClients(transport: Transport): ConformanceClients {
       IdentityAccountQueryController,
       transport,
     ),
-    iamPolicyCommand: createClient(IamPolicyCommandController, transport),
-    iamPolicyQuery: createClient(IamPolicyQueryController, transport),
+    grantCommand: createClient(GrantCommandController, transport),
+    grantQuery: createClient(GrantQueryController, transport),
     teamCommand: createClient(TeamCommandController, transport),
     teamQuery: createClient(TeamQueryController, transport),
     invitationCommand: createClient(InvitationCommandController, transport),

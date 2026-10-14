@@ -50,7 +50,7 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
-import { OWNER_ASSIGNMENT_DENIED_MESSAGE, ref } from "../support/iampolicies";
+import { OWNER_ASSIGNMENT_DENIED_MESSAGE, ref } from "../support/grants";
 import type { InitShape } from "../support/init-shape";
 import { uniqueName } from "../support/naming";
 import { makeTeam, teamMembership, teamShare } from "../support/teams";
@@ -122,7 +122,7 @@ async function requireLane(): Promise<EnforcingLane> {
 
 // The roles a principal holds on the organization, read by its owner.
 async function organizationRolesOf(org: string, accountId: string): Promise<string[]> {
-  const { roles } = await clients.iamPolicyQuery.getPrincipalResourceRoles({
+  const { roles } = await clients.grantQuery.getPrincipalResourceRoles({
     principal: ref("identity_account", accountId),
     resource: ref("organization", org),
   });
@@ -300,12 +300,12 @@ describe.skipIf(!capabilities.invitations || capabilities.teams === "unimplement
       fixtures.defer(() => clients.agentCommand.delete({ value: agentId }));
       const team = await clients.teamCommand.create(makeTeam({ org: tenancy.org, name: uniqueName("journey-team") }));
       const teamId = team.metadata?.id ?? "";
-      await clients.iamPolicyCommand.create(teamShare(teamId, "viewer", { kind: "agent", id: agentId }));
+      await clients.grantCommand.create(teamShare(teamId, "viewer", { kind: "agent", id: agentId }));
       const invitation = await clients.invitationCommand.create(makeInvitation({ org: tenancy.org, role: IamRole.member }));
 
       const colleague = await lane.provisionIdentity();
       await colleague.invitationCommand.redeem({ token: invitation.status?.token ?? "" });
-      await clients.iamPolicyCommand.create(teamMembership(teamId, await lane.accountIdOf(colleague)));
+      await clients.grantCommand.create(teamMembership(teamId, await lane.accountIdOf(colleague)));
 
       const opened = await colleague.agentQuery.get({ value: agentId });
       expect(opened.metadata?.id).toBe(agentId);

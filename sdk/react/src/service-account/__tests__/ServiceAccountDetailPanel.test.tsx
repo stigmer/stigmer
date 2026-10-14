@@ -33,8 +33,8 @@ import {
   type IdentityAccount,
 } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import { ResourceAccessByPrincipalListSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
-import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import { ResourceAccessByPrincipalListSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import { StigmerContext } from "../../context";
 import { ServiceAccountDetailPanel } from "../ServiceAccountDetailPanel";
 
@@ -68,7 +68,7 @@ function wrapper({ children }: { children: ReactNode }) {
         return ACCOUNT;
       },
     },
-    iamPolicy: {
+    grant: {
       listResourceAccessByPrincipal: async () =>
         create(ResourceAccessByPrincipalListSchema, {
           entries: [
@@ -78,12 +78,12 @@ function wrapper({ children }: { children: ReactNode }) {
             },
           ],
         }),
-      create: async (spec: IamPolicySpec) => {
+      create: async (spec: GrantSpec) => {
         calls.log.push(`grant ${spec.relation} to ${spec.principal?.id} on ${spec.resource?.id}`);
         if (calls.refuseGrant) throw new Error("refused");
         return {};
       },
-      delete: async (spec: IamPolicySpec) => {
+      delete: async (spec: GrantSpec) => {
         calls.log.push(`revoke ${spec.relation} from ${spec.principal?.id}`);
         return {};
       },

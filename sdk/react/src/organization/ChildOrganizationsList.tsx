@@ -3,7 +3,7 @@
 import { useId } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
-import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { useSingleOrg } from "../server-info.js";
 import { useChildOrganizations } from "./useChildOrganizations.js";
 

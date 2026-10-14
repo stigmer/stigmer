@@ -5,7 +5,7 @@
  * `listMine` with OpenFGA's list-objects for
  * `organization#can_view`; this one answers the same question over the
  * derived source: the candidates are the organizations the person's own
- * IamPolicy rows name (on open source a person reaches an organization
+ * Grant rows name (on open source a person reaches an organization
  * through a role row and nothing else — the derivation writes no
  * organization tuple), and each candidate is kept when
  * `can_view` holds for the person, evaluated by the same evaluator the
@@ -36,7 +36,7 @@
  */
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import type { IamPolicyStore } from "../domain/iampolicy/store.js";
+import type { GrantStore } from "../domain/grant/store.js";
 import type { CallerIdentity } from "../extensions/identity.js";
 import type { ResourceRowReader } from "../extensions/resource-row-reader.js";
 import type { OrganizationDirectory } from "../extensions/organization-directory.js";
@@ -52,7 +52,7 @@ import { resolvePerson } from "./person.js";
 
 export interface BuiltInOrganizationDirectoryDeps {
   readonly store: Store;
-  readonly policies: IamPolicyStore;
+  readonly grants: GrantStore;
   readonly accounts: AccountsByCaller;
   /** The readers of the kinds units keep themselves (`drivers.resourceRowReaders`), handed to every tuple source. */
   readonly rowReaders?: ReadonlyMap<ApiResourceKind, ResourceRowReader>;
@@ -76,7 +76,7 @@ export function newBuiltInOrganizationDirectory(
       const source = newDerivedTupleSource(
         {
           store: deps.store,
-          policies: deps.policies,
+          grants: deps.grants,
           accounts: deps.accounts,
           rowReaders: deps.rowReaders,
           model,

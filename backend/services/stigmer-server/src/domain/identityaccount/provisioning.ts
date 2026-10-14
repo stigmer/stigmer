@@ -36,7 +36,7 @@
  * organization roles at first sign-in — keys on `created` instead, through
  * the AccountCreatedHook this domain offers and the controller runs. The
  * hook is declared here, in the domain that fires it, so the domain that
- * implements it (iampolicy) depends on this one and never the reverse.
+ * implements it (grant) depends on this one and never the reverse.
  *
  * This module holds the domain flow over two PORTS — the store and the
  * userinfo client — and no network code; identity/oidc-userinfo.ts is the
@@ -180,7 +180,7 @@ export interface ProvisionedAccount {
 /**
  * What the identity-account domain offers a core rule keyed on a person's
  * FIRST provisioning (the open-source membership rules,
- * domain/iampolicy/membership.ts). Runs once per account, on the call
+ * domain/grant/membership.ts). Runs once per account, on the call
  * whose `created` is true, with the caller RE-STAMPED as the account, so
  * whatever the hook writes attributes to the account and never to the
  * idp-shaped principal the verifier admitted before the row existed. Its

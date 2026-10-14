@@ -13,7 +13,7 @@ import { ListTeamsInput, Teams } from "./io_pbjs";
  *
  * Every member of an organization can see its teams, so anyone who can share
  * a resource can pick a team to share it with. Who is in a team is read
- * through the IAM policy service's access list on the team.
+ * through the Grant service's access list on the team.
  *
  * @generated from service ai.stigmer.iam.team.v1.TeamQueryController
  */

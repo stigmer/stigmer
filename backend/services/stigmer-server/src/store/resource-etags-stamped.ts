@@ -23,6 +23,13 @@
  * held one, with the count and the first ids ({@link
  * logUnreadableEtagRows}).
  *
+ * The step pages the `kind` column, so it reads each kind by the name its
+ * rows carried when the step ran (Postgres v29, SQLite v34), not the name
+ * the enum gives it today: a kind renamed after the step has its name at
+ * the step's time in {@link KIND_NAMES_AT_STEP}, frozen, and a later
+ * step renames its rows. Without it a store replayed from before the step
+ * would stamp no row of that kind.
+ *
  * Pinned by __tests__/resource-etags-stamped.test.ts and both drivers'
  * migration arms.
  */
@@ -48,7 +55,7 @@ import { LicenseSchema } from "@stigmer/protos/ai/stigmer/billing/license/v1/api
 import { PlanSchema } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
 import { SubscriptionSchema } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/api_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { InvitationSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
@@ -73,7 +80,7 @@ export const RESOURCE_SCHEMAS: ReadonlyMap<ApiResourceKind, DescMessage> = new M
   [ApiResourceKind.api_key, ApiKeySchema],
   [ApiResourceKind.channel_app, ChannelAppSchema],
   [ApiResourceKind.evaluator, EvaluatorSchema],
-  [ApiResourceKind.iam_policy, IamPolicySchema],
+  [ApiResourceKind.grant, GrantSchema],
   [ApiResourceKind.identity_account, IdentityAccountSchema],
   [ApiResourceKind.federation_issuer, FederationIssuerSchema],
   [ApiResourceKind.invitation, InvitationSchema],
@@ -94,8 +101,17 @@ export const RESOURCE_SCHEMAS: ReadonlyMap<ApiResourceKind, DescMessage> = new M
   [ApiResourceKind.vault, VaultSchema],
 ]);
 
+/**
+ * The stored name of each kind renamed after this step and the label and
+ * tag report (Postgres v29 and v32, SQLite v34 and v36), as their rows
+ * spelled it. Postgres v34 and SQLite v38 renamed `iam_policy` to `grant`.
+ */
+export const KIND_NAMES_AT_STEP: ReadonlyMap<ApiResourceKind, string> = new Map([
+  [ApiResourceKind.grant, "iam_policy"],
+]);
+
 const SCHEMAS_BY_KIND_NAME: ReadonlyMap<string, DescMessage> = new Map(
-  [...RESOURCE_SCHEMAS].map(([kind, schema]) => [apiResourceKindName(kind), schema]),
+  [...RESOURCE_SCHEMAS].map(([kind, schema]) => [KIND_NAMES_AT_STEP.get(kind) ?? apiResourceKindName(kind), schema]),
 );
 
 /** The `kind` column values of the rows the step reads. */

@@ -242,8 +242,8 @@ Organization, or accept an invitation to another one.
 
 JIT (Just-In-Time) provisioning lets Stigmer create federated accounts and grant
 roles automatically when users sign in. Instead of your backend calling
-`createFederatedAccount` and `iamPolicy.create` for each user, you set two
-fields on the Federation Issuer and Stigmer handles the rest:
+`createFederatedAccount` and `grant.create` for each user, you set two fields on
+the Federation Issuer and Stigmer handles the rest:
 
 - `createAccountsOnSignIn` creates the account the first time a valid token
   arrives for an unknown subject.
@@ -365,7 +365,7 @@ sign-in role: Organization ownership must be assigned explicitly.
 If you set `createAccountsOnSignIn` to `true` and leave `signInRole` unset,
 Stigmer creates the account but grants no Organization access. The user is
 authenticated (Stigmer knows who they are) but not authorized (they can't access
-anything). Your backend must still create IAM Policies to grant access.
+anything). Your backend must still create Grants to grant access.
 
 This suits a platform that decides each user's role itself. A platform with
 child organizations can also set `externalIdClaim` without either field: Stigmer

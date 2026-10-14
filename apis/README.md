@@ -7,7 +7,7 @@ This directory contains Protocol Buffer definitions for Stigmer's APIs.
 The `apis/` directory houses all `.proto` files that define:
 - Agent definitions and configurations
 - Agent runs, schedules and sessions
-- IAM policies and permissions
+- Grants and permissions
 - Common types and resources
 
 ## Structure

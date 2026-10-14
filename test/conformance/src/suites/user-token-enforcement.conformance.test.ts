@@ -236,7 +236,7 @@ describe.skipIf(!enforcementServed)(
       expect(viaMobile?.mintedBy).toBe(mobile.accountId);
     });
 
-    it("[rpc:IamPolicyQueryController.listResourceAccessByPrincipal] a person a first sign-in creates holds the sign-in role once, and the access list names them an app user", async () => {
+    it("[rpc:GrantQueryController.listResourceAccessByPrincipal] a person a first sign-in creates holds the sign-in role once, and the access list names them an app user", async () => {
       const context = await tenancy({ signInRole: IamRole.member });
       const admin = await minter(context.org);
       const userId = uniqueName("user");
@@ -248,7 +248,7 @@ describe.skipIf(!enforcementServed)(
       await setEmbedding(lane.clients, context.org, { signInRole: IamRole.viewer });
       await mintUserToken(admin.as, context.org, userId);
 
-      const access = await lane.clients.iamPolicyQuery.listResourceAccessByPrincipal({
+      const access = await lane.clients.grantQuery.listResourceAccessByPrincipal({
         resource: { kind: "organization", id: context.org },
       });
       const entryOf = (id: string) => access.entries.find((entry) => entry.principal?.id === id);

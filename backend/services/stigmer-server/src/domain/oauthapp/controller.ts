@@ -91,7 +91,7 @@ import {
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
 import {
-  newCleanupIamPoliciesStep,
+  newCleanupGrantsStep,
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
@@ -370,7 +370,7 @@ async function deleteOAuthApp(
     .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.oauth_app))
     .addStep(newReleaseAddressesStep(deps.store, deps.logger))
     .addStep(
-      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+      newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger),
     )
     .addStep(
       newDestroySecretBackingStateStep<

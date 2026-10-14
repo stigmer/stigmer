@@ -167,7 +167,7 @@ describe("the cloud target's people", () => {
           metadata: { slug: "conformance-acme", id: ORG_ID },
         }),
       },
-      iamPolicyCommand: {
+      grantCommand: {
         create: async (input: unknown) => (granted.push(input), {}),
       },
     });
@@ -244,7 +244,7 @@ describe("the cloud target's people", () => {
       organizationCommand: {
         create: async () => ({ metadata: { slug: "conformance-acme", id: ORG_ID } }),
       },
-      iamPolicyCommand: {
+      grantCommand: {
         create: async (input: unknown) => (granted.push(input), {}),
         delete: async () => ({}),
       },

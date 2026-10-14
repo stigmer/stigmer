@@ -50,7 +50,7 @@ function renderStep(
     {
     wrapper: orgWrapper(
       {
-        iamPolicy: { checkMyPermission },
+        grant: { checkMyPermission },
         plugin: {
           list: vi.fn(async () => ({
             entries: [{ metadata: { id: NOTION.id, org: NOTION.org, slug: NOTION.slug, name: NOTION.name, tags: [] } }],

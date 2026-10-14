@@ -33,14 +33,14 @@ type platform
     # IAM BOOTSTRAP
     # ========================================
     # Permission to create and clean up FGA tuples during resource lifecycle.
-    # Used by server pipeline steps (bootstrapPolicy, cleanupResourcePolicies).
+    # Used by server pipeline steps (bootstrapGrant, cleanupResourceGrants).
     # FGA check: identity_account:<caller_id> can_bootstrap_iam platform:stigmer
     define can_bootstrap_iam: operator
     
     # ========================================
-    # IAM POLICY MANAGEMENT
+    # ACCESS MANAGEMENT
     # ========================================
-    # Platform-level IAM policy operations (operators only)
+    # Platform-level grant operations (operators only)
     define can_grant_access: operator
     define can_view_access: operator
     

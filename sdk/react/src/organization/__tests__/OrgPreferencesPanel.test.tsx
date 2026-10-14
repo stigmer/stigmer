@@ -58,7 +58,7 @@ function createMockStigmer(overrides?: {
       get: vi.fn(async () => ORG),
       update: overrides?.update ?? vi.fn(async () => ORG),
     },
-    iamPolicy: {
+    grant: {
       checkMyPermission: vi.fn(async () => ({
         isAuthorized: overrides?.canEdit ?? true,
       })),
@@ -190,7 +190,7 @@ describe("OrgPreferencesPanel", () => {
         get: vi.fn(async () => orgWithMemoryOn),
         update,
       },
-      iamPolicy: {
+      grant: {
         checkMyPermission: vi.fn(async () => ({ isAuthorized: true })),
       },
     } as never;
@@ -247,7 +247,7 @@ describe("OrgPreferencesPanel", () => {
         }),
         update: vi.fn(),
       },
-      iamPolicy: {
+      grant: {
         checkMyPermission: vi.fn(async () => ({ isAuthorized: true })),
       },
     } as never;

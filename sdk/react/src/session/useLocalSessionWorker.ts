@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { useWhoAmI } from "../iam-policy/useWhoAmI.js";
+import { useWhoAmI } from "../grant/useWhoAmI.js";
 import { useRunnerAdapter } from "../runner-adapter.js";
 import { useExecutionTarget } from "../execution-target-context.js";
 import { fromProtoExecutionTarget } from "./execution-target.js";

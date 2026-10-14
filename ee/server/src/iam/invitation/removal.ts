@@ -6,7 +6,7 @@
  * nobody administers.
  *
  * Team's removal is the shape (team/removal.ts): the invitation's rows
- * first, through the grant path's `cleanupResourcePolicies` (its
+ * first, through the grant path's `cleanupResourceGrants` (its
  * organization link, which the organization's own cleanup has usually
  * revoked already, and any owner row an older server wrote), then its
  * row; one
@@ -22,10 +22,10 @@
 import { create } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import type { Logger } from "@stigmer/server";
 
-import type { IamPolicyGrantPathClient } from "../policy/grant-path-client.js";
+import type { GrantPathClient } from "../grant/grant-path-client.js";
 import type { InvitationStore } from "./store.js";
 
 /** The invitation's kind as an `ApiResourceRef.kind` spells it. */
@@ -42,7 +42,7 @@ export interface InvitationRemoval {
 
 export interface InvitationRemovalDeps {
   readonly invitations: Pick<InvitationStore, "findIdsByOrg" | "deleteById">;
-  readonly policies: Pick<IamPolicyGrantPathClient, "cleanupResourcePolicies">;
+  readonly grants: Pick<GrantPathClient, "cleanupResourceGrants">;
   readonly logger: Logger;
 }
 
@@ -52,7 +52,7 @@ export function newInvitationRemoval(deps: InvitationRemovalDeps): InvitationRem
       let failed = 0;
       for (const id of await deps.invitations.findIdsByOrg(orgId)) {
         try {
-          await deps.policies.cleanupResourcePolicies(
+          await deps.grants.cleanupResourceGrants(
             create(ApiResourceRefSchema, { kind: INVITATION_KIND_NAME, id }),
             actingFor,
           );
@@ -60,7 +60,7 @@ export function newInvitationRemoval(deps: InvitationRemovalDeps): InvitationRem
         } catch (error) {
           failed += 1;
           deps.logger.error(
-            "invitation removal failed with its organization; the invitation row and its policies remain, and the organization delete stops",
+            "invitation removal failed with its organization; the invitation row and its grants remain, and the organization delete stops",
             {
               invitation: id,
               org: orgId,

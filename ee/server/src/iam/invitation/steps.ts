@@ -30,7 +30,7 @@ import {
   TARGET_RESOURCE_KEY,
 } from "@stigmer/server";
 
-import { isPersonCaller } from "../policy/roles.js";
+import { isPersonCaller } from "../grant/roles.js";
 import type { InvitationStore } from "./store.js";
 
 /** The kind's display name in refusal copy, as the OSS steps render it. */

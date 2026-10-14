@@ -19,7 +19,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { ApiKeyCreatedAlert } from "../api-key/ApiKeyCreatedAlert.js";
-import { RoleSelector } from "../iam-policy/RoleSelector.js";
+import { RoleSelector } from "../grant/RoleSelector.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import {
   DEFAULT_SERVICE_ACCOUNT_ROLE,

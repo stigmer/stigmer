@@ -11,7 +11,7 @@ import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
-import { newCleanupIamPoliciesStep } from "../../pipeline/steps/authorization-tuples.js";
+import { newCleanupGrantsStep } from "../../pipeline/steps/authorization-tuples.js";
 import { newDeleteResourceStep } from "../../pipeline/steps/delete.js";
 import { newKindPurge } from "../organization/purge/kind-purge.js";
 import type {
@@ -31,7 +31,7 @@ export function newApiKeyPurge(deps: ApiKeyPurgeDeps): KindPurge {
     belongsTo: (key, org) => (key.spec?.boundOrg ?? "") === org.id,
     steps: [
       newDeleteResourceStep(deps.store),
-      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+      newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger),
     ],
   });
 }

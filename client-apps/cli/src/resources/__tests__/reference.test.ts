@@ -68,7 +68,7 @@ describe("a kind's retired id prefixes", () => {
   });
 
   it("are none for a kind the CLI's table does not carry", () => {
-    expect(idPrefixesFor(ApiResourceKind.iam_policy)).toEqual([]);
+    expect(idPrefixesFor(ApiResourceKind.grant)).toEqual([]);
   });
 
   it("classify a stored id as an id of the kind, for every reader", () => {
