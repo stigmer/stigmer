@@ -219,6 +219,31 @@ describe("useEditResourceYaml", () => {
     });
   });
 
+  it("degrades the target to 'unknown' when the lookup fails", async () => {
+    const getByReference = vi.fn((_ref: ApiResourceReference) =>
+      Promise.reject(new ConnectError("offline", Code.Unavailable)),
+    );
+    const { result } = renderHook(
+      () => useEditResourceYaml({ resource: agent }),
+      { wrapper: wrapper(createMockStigmer({ getByReference })) },
+    );
+
+    act(() => {
+      result.current.setYaml(
+        result.current.yaml.replace("Short messages.", "Long messages."),
+      );
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(DEBOUNCE_MS + 10);
+    });
+
+    expect(result.current.target).toEqual({
+      action: "unknown",
+      slug: "clinic-patient-assistant",
+    });
+  });
+
   it("applies the edited document and clears the dirty flag", async () => {
     const apply = vi.fn().mockResolvedValue({
       yamlKind: "Agent",

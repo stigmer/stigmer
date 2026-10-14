@@ -139,6 +139,16 @@ describe("EditResourceYamlDialog — what applying will do", () => {
     ).toBeTruthy();
   });
 
+  it("says nothing about applying while the document is invalid", () => {
+    editState = {
+      validation: { status: "invalid", message: "unknown field spec.instructionz" },
+      target: { action: "update", slug: "clinic", slugKept: false },
+    };
+    renderDialog();
+    expect(screen.getByText("unknown field spec.instructionz")).toBeTruthy();
+    expect(screen.queryByText(/Applying will/)).toBeNull();
+  });
+
   it("reads a new resource as a create", () => {
     editState = { target: { action: "create", slug: "second-bot" } };
     renderDialog();

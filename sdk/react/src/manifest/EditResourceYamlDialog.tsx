@@ -230,6 +230,7 @@ function targetSummary(
       return `Applying will rename ${target.from} to ${target.slug}.`;
     case "unknown":
       return `Applying will create or update ${target.slug}.`;
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over EditYamlTarget; the hook answers only the arms above */
     default: {
       const unhandled: never = target;
       return String(unhandled);

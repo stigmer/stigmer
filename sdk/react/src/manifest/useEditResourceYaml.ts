@@ -224,6 +224,7 @@ export function useEditResourceYaml({
           case "rename":
             next = { action: "rename", from: resolved.from, slug: resolved.slug };
             break;
+          /* v8 ignore next -- @preserve: the exhaustiveness guard over ManifestTarget; resolveTarget answers only the arms above */
           default: {
             const unhandled: never = resolved;
             throw new Error(`unhandled target ${String(unhandled)}`);

@@ -322,6 +322,7 @@ function badgeLabel(entry: ManifestPreviewEntry): string {
           return "Will rename";
         case "unknown":
           return "Create or update";
+        /* v8 ignore next -- @preserve: the exhaustiveness guard over the preview's actions; the hook answers only the arms above */
         default: {
           const unhandled: never = entry.action;
           return String(unhandled);

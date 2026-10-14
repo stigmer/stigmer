@@ -319,6 +319,7 @@ async function applyDeclaredSlug(
     }
     return undefined;
   } catch (err) {
+    /* v8 ignore next -- @preserve: followDeclaredSlug throws only SlugChangeRefusedError; the guard narrows the type */
     if (!(err instanceof SlugChangeRefusedError)) throw err;
     const visibilityLanded =
       declared !== undefined &&

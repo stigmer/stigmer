@@ -170,6 +170,32 @@ describe("ManifestClient.apply on a renamed-away slug", () => {
   });
 });
 
+describe("ManifestClient.apply passes other refusals through", () => {
+  it("leaves a refusal that is not SLUG_RENAMED as it is, reading nothing", async () => {
+    const fake = fakeHandler({ apply: () => Promise.reject(new ConnectError("slug taken", Code.AlreadyExists)) });
+
+    const err = await client().apply(documentOf(fake.handler, agent("support-bot", ""))).catch((e: unknown) => e);
+
+    expect((err as StigmerError).code).toBe("already-exists");
+    expect(err).not.toBeInstanceOf(SlugRenamedError);
+    expect(fake.reads).toHaveLength(0);
+  });
+
+  it("gives the server's refusal when the read finds the slug the manifest names, or no slug", async () => {
+    for (const found of ["test-bot", ""]) {
+      const fake = fakeHandler({
+        apply: () => Promise.reject(slugRenamed("test-bot")),
+        read: () => Promise.resolve(agent(found)),
+      });
+
+      const err = await client().apply(documentOf(fake.handler, agent("test-bot", ""))).catch((e: unknown) => e);
+
+      expect(err, `read answered '${found}'`).not.toBeInstanceOf(SlugRenamedError);
+      expect((err as StigmerError).code).toBe("failed-precondition");
+    }
+  });
+});
+
 describe("ManifestClient.resolveTarget", () => {
   it("answers create when neither the id nor the slug finds a resource", async () => {
     const fake = fakeHandler({});
