@@ -1,10 +1,11 @@
 /**
  * Add an MCP server — the walkthrough for "Connect your tools", showing the
  * flow the console ships: Library → Plugins → Add MCP server → the form
- * (name, URL, what it is for, headers) → the new plugin's page. An MCP
- * server lives only in a plugin, so "Add MCP server" installs a plugin of
- * that one server, named after it; the page it lands on is the same page
- * any installed plugin has.
+ * (name, URL, what it is for, headers) → the new plugin's page. A plugin is
+ * the shared home of an MCP server (an agent can also write one in its own
+ * mcp_servers), so "Add MCP server" installs a plugin of that one server,
+ * named after it; the page it lands on is the same page any installed
+ * plugin has.
  *
  * The form beats are a tour-local replica of `AddMcpServerDialog` (see
  * `index.tsx` for why the real dialog cannot render in an embed); the
@@ -81,7 +82,7 @@ export const mcpServerCreationTourSteps: ScenarioStep<McpServerCreationTourStep>
     delayMs: 0,
     data: { view: "home" },
     narration:
-      "Your agent knows your domain, but it can't act yet. MCP servers are the bridge to your APIs and services, and on Stigmer every MCP server lives in a plugin. Let's add one.",
+      "Your agent knows your domain, but it can't act yet. MCP servers are the bridge to your APIs and services: add one as a plugin, and every agent and chat in your organization can use it.",
     // No cursor here: the embed arms step-0 interactions at mount (under the
     // poster), so they fire before Play — a @scenar/react quirk every tour
     // works around by keeping its first step cursor-less.

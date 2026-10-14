@@ -57,11 +57,11 @@ The SDK supports three authentication methods:
   their JWT directly.
   [Set up identity federation](/docs/guides/authentication/federation/overview)
   to enable this.
-- **PlatformClient** (`getAccessToken`) — Your backend mints Stigmer tokens per
-  user using PlatformClient credentials. Use this to embed Stigmer in your
-  product without OIDC setup.
-  [Set up PlatformClient](/docs/guides/authentication/platform-client/overview)
-  to enable this.
+- **Minted user tokens** (`getAccessToken`) — Your backend mints Stigmer tokens
+  per user with an admin service account's API key. Use this to embed Stigmer in
+  your product without OIDC setup.
+  [Sign your product's users in](/docs/guides/authentication/product-users) to
+  enable this.
 
 Both `getAccessToken` paths produce the same result: a JWT that the SDK sends as
 `Authorization: Bearer`. The difference is where the token comes from. See the
@@ -94,7 +94,7 @@ it leaves.
   credential that acts with every permission its account holds. In browser apps,
   use `getAccessToken` with
   [identity federation](/docs/guides/authentication/federation/overview) or
-  [PlatformClient](/docs/guides/authentication/platform-client/overview) instead.
+  [minted user tokens](/docs/guides/authentication/product-users) instead.
 </Callout>
 
 Set the `STIGMER_API_KEY` environment variable, then pass it to the client

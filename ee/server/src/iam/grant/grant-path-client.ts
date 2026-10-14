@@ -1,5 +1,5 @@
 /**
- * The composition's client of the OSS Grant grant path.
+ * The composition's client of the OSS grant path.
  * `@stigmer/server`'s grant path is the ONE code that writes or deletes a
  * grant row in every edition, and it is deliberately not exported: a
  * composition reaches it as in-process RPCs, so every write — the

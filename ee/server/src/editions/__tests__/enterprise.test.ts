@@ -31,11 +31,11 @@ import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_inf
 import { createLogger, loadConfig, openSourceEdition } from "@stigmer/server";
 
 import { ENTERPRISE_IDENTITY_UNIT } from "../../extension/enterprise-identity.js";
-import { newTestSigner, writeTicket } from "../../license/__tests__/test-tickets.js";
+import { licenseClaims, newTestSigner, writeTicket } from "../../license/__tests__/test-tickets.js";
 import { readEnterpriseSettings } from "../enterprise-config.js";
 import { composeEnterprise, ENTERPRISE_LICENSE_UNIT } from "../enterprise.js";
 import { ORGANIZATION_CREATORS_STEP } from "../organization-creators.js";
-import { licenseClaims, SILENT_LOGGER } from "./enterprise-harness.js";
+import { SILENT_LOGGER } from "./enterprise-harness.js";
 
 const ISSUED = new Date("2026-10-01T00:00:00Z");
 /** The token key ladder's place for these cases: their own home, never the person's running them. */

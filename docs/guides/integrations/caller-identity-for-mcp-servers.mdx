@@ -98,7 +98,8 @@ identity.
 ## Template your headers
 
 Reference the reserved keys in your server's headers, in the plugin's MCP
-configuration (its `.mcp.json` or `mcp.json`):
+configuration (its `.mcp.json` or `mcp.json`), or in the Agent's own
+`mcp_servers` entry. In a plugin:
 
 ```json
 {
@@ -116,13 +117,27 @@ configuration (its `.mcp.json` or `mcp.json`):
 }
 ```
 
-The plugin declares nothing for the reserved keys: Stigmer recognizes them and
-records each as an optional variable the platform fills, so no vault is ever
-asked for one. A fourth key, `STIGMER_SERVER_ADDRESS`, carries the address of
-the Stigmer server the run belongs to, for a server that calls back. Every other
-key you template, such as `GYM_MCP_SHARED_SECRET` here, is the plugin's to
-declare in its manifest; one it does not declare is taken as a required secret,
-which a conversation finds in its vaults by name.
+Written in an Agent instead:
+
+```yaml validate-as="Agent"
+spec:
+  mcp_servers:
+    - name: gym-management
+      url: https://gym-mcp.example.com/mcp
+      headers:
+        Authorization: Bearer ${GYM_MCP_SHARED_SECRET}
+        X-Stigmer-Caller-Kind: ${STIGMER_CALLER_IDENTITY_KIND}
+        X-Stigmer-Caller-Value: ${STIGMER_CALLER_IDENTITY_VALUE}
+```
+
+The plugin or the Agent declares nothing for the reserved keys: Stigmer
+recognizes them and records each as an optional variable the platform fills, so
+no vault is ever asked for one. A fourth key, `STIGMER_SERVER_ADDRESS`, carries
+the address of the Stigmer server the run belongs to, for a server that calls
+back. Every other key you template, such as `GYM_MCP_SHARED_SECRET` here, is the
+plugin's to declare in its manifest, or the Agent's in its `env`; one it does
+not declare is taken as a required secret, which a conversation finds in its
+vaults by name.
 
 ## Handle the anonymous caller
 

@@ -236,6 +236,13 @@ export interface GrantPath {
     organizationId: string,
     caller: CallerIdentity,
   ): Promise<void>;
+  /**
+   * The organization a resource belongs to, as every change record names
+   * it: through its scope links, else the `metadata.org` of the stored row
+   * the walk ends on; "" when neither names one. Under open source's own
+   * authorization no chain seeds a scope link, so the row answers.
+   */
+  organizationOf(resource: ApiResourceRef): Promise<string>;
 }
 
 /**
@@ -457,6 +464,8 @@ export function newGrantPath(
   }
 
   return {
+    organizationOf: organizationOfResource,
+
     async grant(spec, caller, cause): Promise<GrantResult> {
       requireWellFormedTriple(spec);
       const change: Change = { actor: grantActorOf(caller), cause };

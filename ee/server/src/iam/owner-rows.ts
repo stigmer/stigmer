@@ -9,7 +9,7 @@
  * since stigmer/stigmer#1329 and stigmer/stigmer#1426, the host's.
  *
  * Why the rows exist at all: until those models, the creation event wrote
- * `<kind>:<id>#owner@identity_account:<creator>`, and a Grant grant
+ * `<kind>:<id>#owner@identity_account:<creator>`, and a grant
  * could write the same shape. A creator demoted below admin, or removed,
  * kept full control of the row through it: for a provider enough to mint
  * an owner of the organization, for an app enough to change its

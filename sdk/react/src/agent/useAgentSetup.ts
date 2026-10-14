@@ -15,7 +15,7 @@ import { useMyVault } from "../vault/useMyVault.js";
 import { valuesOf } from "../vault/types.js";
 import { toolLoginKeyOf, vaultLoginServes } from "../vault/address.js";
 import { MY_VAULT_ONLY, conversationVaultsKey, type ConversationVaults } from "../vault/conversationVaults.js";
-import { pluginDeclarations, readPlugins, serversOf, signInKeys, signInServers } from "../plugin/pluginRequirements.js";
+import { declarationsOf, readAgentServers, serversOf, signInKeys, signInServers } from "./runServers.js";
 import { useOrganizationId } from "./usePersonalKeys.js";
 import { diffEnv } from "../vault/diffEnv.js";
 import {
@@ -28,13 +28,13 @@ import {
   type PendingSignIn,
 } from "./agentSetupReducer.js";
 
-/** What the agent's plugins say about its readiness. */
-interface PluginReadings {
-  /** Every MCP server of the plugins the agent lists. */
+/** What the servers a run of the agent dials say about its readiness. */
+interface ServerReadings {
+  /** Every MCP server of the run: the agent's own, then its plugins'. */
   readonly servers: McpServerEntry[];
-  /** The servers that sign in and have no login where the run reads, one per address. */
+  /** The plugins' servers that sign in and have no login where the run reads, one per address. */
   readonly pendingSignIns: PendingSignIn[];
-  /** The keys the plugins' servers and hooks read, with their declarations. */
+  /** The keys the servers and the plugins' hooks read, with their declarations. */
   readonly declarations: Record<string, EnvVarDeclaration>;
   /**
    * The login key of every server that signs in, signed in or not: the
@@ -44,24 +44,27 @@ interface PluginReadings {
 }
 
 /**
- * Reads the plugins the agent lists once, and judges their servers that
- * sign in: such a server is satisfied by a login at its address in a vault
- * the run reads ({@link vaultLoginServes}, the run's own rule: a sign-in
- * and a pasted login alike, whichever page saved it). A plugin that cannot
- * be read is the resolution's error, thrown to the caller's catch.
+ * Reads every server a run of the agent dials once (its own, then those
+ * of the plugins it lists; `runServers.ts`), and judges the plugins'
+ * servers that sign in: such a server is satisfied by a login at its
+ * address in a vault the run reads ({@link vaultLoginServes}, the run's
+ * own rule: a sign-in and a pasted login alike, whichever page saved it).
+ * A plugin that cannot be read is the resolution's error, thrown to the
+ * caller's catch.
  *
  * `readVaults` are the vaults the run reads, as the person can see them
  * (My vault first when the conversation includes it, then the listed
  * vaults). Every sign-in still owed is saved in My vault.
  */
-async function readAgentPlugins(
+async function readServers(
   stigmer: Stigmer,
   agent: Agent,
   readVaults: readonly Vault[],
-): Promise<PluginReadings> {
-  const read = await readPlugins(stigmer, agent.spec?.plugins ?? [], agent.metadata?.org ?? "");
-  const plugins = read.map((entry) => entry.plugin);
-  const pendingSignIns = signInServers(read)
+): Promise<ServerReadings> {
+  const reading = agent.spec
+    ? await readAgentServers(stigmer, agent.spec, agent.metadata?.org ?? "", { plugins: "throw" })
+    : { servers: [], hooks: [] };
+  const pendingSignIns = signInServers(reading)
     .filter(({ server }) => !readVaults.some((vault) => vaultLoginServes(vault.spec?.connections ?? {}, server)))
     .map(({ plugin, pluginName, server, address }) => ({
       plugin,
@@ -71,10 +74,10 @@ async function readAgentPlugins(
       name: pluginName === server.name ? pluginName : `${pluginName} · ${server.name}`,
     }));
   return {
-    servers: serversOf(plugins),
+    servers: serversOf(reading),
     pendingSignIns,
-    declarations: pluginDeclarations(plugins),
-    signInVariables: signInKeys(plugins),
+    declarations: declarationsOf(reading),
+    signInVariables: signInKeys(reading),
   };
 }
 
@@ -106,7 +109,7 @@ function keysHeldBy(vaults: readonly Vault[], servers: readonly McpServerEntry[]
 
 /**
  * The declarations the composer may ask the user to type: the agent's own
- * and those of the plugins it lists.
+ * and those its servers and its plugins' hooks read.
  *
  * The login key of a server that signs in is filled by a sign-in: a run
  * fills it from the login saved at the server's address, never from a
@@ -325,7 +328,7 @@ export function useAgentSetup(
         );
         const mine = latestMyVaultRef.current.current;
         const readVaults = readsMyVault && mine !== null ? [mine, ...listed] : listed;
-        const { servers, pendingSignIns, declarations, signInVariables } = await readAgentPlugins(stigmer, agent, readVaults);
+        const { servers, pendingSignIns, declarations, signInVariables } = await readServers(stigmer, agent, readVaults);
         const declared = { ...declarations, ...(agent.spec?.env ?? {}) };
         const envDeclarations = Object.keys(declared).length > 0 ? typedDeclarations(declared, signInVariables) : undefined;
         if (pendingSignIns.length > 0) {

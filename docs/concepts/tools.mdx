@@ -1,9 +1,10 @@
 ---
 title: Tools
 description:
-  Agents interact with external systems through MCP servers, which live in
-  plugins and use the open Model Context Protocol. Learn how tool access works,
-  how it's configured, and how Stigmer keeps it safe.
+  Agents interact with external systems through MCP servers, which come in
+  plugins or are written in the Agent itself, and use the open Model Context
+  Protocol. Learn how tool access works, how it's configured, and how Stigmer
+  keeps it safe.
 ---
 
 [Skills](/docs/concepts/skills) give an Agent domain knowledge. Tools give it
@@ -48,22 +49,29 @@ fetches to private and internal addresses are refused.
 Reach for an MCP server when you need more than retrieval of a public page —
 authenticated APIs, site-specific extraction, or write operations.
 
-## MCP servers live in plugins
+## Where an MCP server comes from
 
-An MCP server is part of a [plugin](/docs/concepts/plugins), and only of a
-plugin: the plugin's MCP configuration (its `.mcp.json` or `mcp.json`) names
-each server and how to reach it, beside the plugin's Skills, agents and hooks.
-There is no MCP server to create on its own.
+An MCP server reaches an Agent two ways: in a plugin the Agent lists, or written
+in the Agent itself under `mcp_servers`. There is no MCP server to create on its
+own.
 
-There are two ways to get one:
-
-- **Install a plugin.** A plugin from Stigmer's catalogue, or from a catalogue
-  you add, carries the servers it needs. Installing it stores the plugin, and
-  its page lists every server it holds.
-- **Add one server by its address.** `stigmer mcp add <name> <url>`, or **Add
-  MCP server** on the console's **Library → Plugins** page, builds a plugin
-  holding that one server and installs it, the way `claude mcp add` adds a
-  server to Claude Code. Use it like any other plugin.
+- **In a plugin.** A [plugin](/docs/concepts/plugins)'s MCP configuration (its
+  `.mcp.json` or `mcp.json`) names each server and how to reach it, beside the
+  plugin's Skills, agents and hooks. A plugin is how a server is packaged and
+  shared: every Agent and every chat that lists the plugin gets it, and only a
+  plugin can run a local program. Install one from Stigmer's catalogue or one
+  you add, or add one server by its address with `stigmer mcp add <name> <url>`
+  or **Add MCP server** on the console's **Library → Plugins** page, which
+  builds a plugin holding that one server, the way `claude mcp add` adds a
+  server to Claude Code.
+- **In the Agent itself.** An Agent's `mcp_servers` lists servers of its own,
+  each a name, an address and optional headers, as an agent in Claude Managed
+  Agents or a Claude Code subagent lists its own. It is for a server one Agent
+  needs, or for Agents you create from code in one call. These servers are
+  reached over HTTP only, and only the Organization's admins add one or change
+  its address or headers; anyone who may edit the Agent may keep or remove them.
+  [Give an agent its own MCP server](/docs/guides/integrations/connect-an-mcp-server#give-an-agent-its-own-mcp-server)
+  walks through it.
 
 A server another Organization owns is yours to use only through a plugin you
 install, or when that Organization is a platform sharing the plugin with the
@@ -91,12 +99,27 @@ Here is a plugin's MCP configuration with one server of each kind:
 }
 ```
 
+An Agent's own server is written in its spec:
+
+```yaml validate-as="Agent"
+spec:
+  mcp_servers:
+    - name: orders
+      url: https://orders.acme.example/mcp
+      headers:
+        Authorization: Bearer ${ORDER_API_KEY}
+  tools:
+    - mcp__orders
+```
+
 ### Transport options
 
 | Mode      | When to use                                                                      | Configuration                                                            |
 | --------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | **stdio** | The tool must run on your own machine: **conversations on your own runner only** | `command` and `args`: the runner launches it and talks over stdin/stdout |
 | **HTTP**  | The tool server is a remote service: works in every conversation, local or cloud | `url` and optional `headers`, with `${VAR}` substitution                 |
+
+An Agent's own server is HTTP only; a local program comes in a plugin.
 
 A local program (stdio) runs where the person's own runner runs: the desktop app
 or the CLI. A conversation hosted in a cloud sandbox, whose runner runs in cloud
@@ -114,6 +137,12 @@ setting may carry its value in the plugin's declaration. A required variable no
 vault holds refuses the run before it starts, naming the key and who must add
 it.
 
+An Agent's own server follows the same rule from the Agent: a `${NAME}` in one
+of its headers is a required secret unless the Agent's `env` declares it. Its
+value is sent to that server only, never to the Agent's shell. Header values are
+stored in the Agent and shown to everyone who can read it, so a secret goes in a
+vault and the header names it.
+
 The platform fills four optional variables itself, so a server can know who is
 calling without a vault: `STIGMER_CALLER_IDENTITY_KIND`,
 `STIGMER_CALLER_IDENTITY_VALUE`, `STIGMER_SESSION_ID` and
@@ -123,11 +152,11 @@ calling without a vault: `STIGMER_CALLER_IDENTITY_KIND`,
 The plugin stays portable: the same plugin works for every person and team that
 uses it, and only the vault values change.
 
-## Using a plugin's tools
+## Using a server's tools
 
 [Agents](/docs/concepts/agents) list the plugins they use in `plugins`. A plugin
 is attached whole: its Skills, its agents (as subagents), its hooks and its MCP
-servers.
+servers. The servers in the Agent's own `mcp_servers` join them.
 
 ```yaml validate-as="Agent"
 spec:
@@ -139,8 +168,8 @@ spec:
     - mcp__plugin_orders_orders__list_orders
 ```
 
-The Agent gets every tool its plugins' servers offer. To narrow that, it carries
-Claude Code's two lists:
+The Agent gets every tool its servers offer. To narrow that, it carries Claude
+Code's two lists:
 
 | Field              | Purpose                                                 |
 | ------------------ | ------------------------------------------------------- |
@@ -149,11 +178,12 @@ Claude Code's two lists:
 
 Entries use Claude Code's names: built-ins such as `Read`, `Grep` or
 `Bash(git push *)`; `mcp__plugin_<plugin>_<server>` for every tool of one
-plugin's server; `mcp__plugin_<plugin>_<server>__<tool>` for one tool; and
-`mcp__*` for every MCP tool. Every character outside letters, digits, `_` and
-`-` in the plugin or server name is written as `_`. A specifier such as
-`(git push *)` is accepted but governs the whole tool: it never narrows `Bash`
-to some commands.
+plugin's server; `mcp__plugin_<plugin>_<server>__<tool>` for one tool;
+`mcp__<server>` and `mcp__<server>__<tool>` for a server in the Agent's own
+`mcp_servers`; and `mcp__*` for every MCP tool. Every character outside letters,
+digits, `_` and `-` in a plugin's or its server's name is written as `_`. A
+specifier such as `(git push *)` is accepted but governs the whole tool: it
+never narrows `Bash` to some commands.
 
 You install the plugin once and list it on as many Agents as you like. Each
 Agent can keep a different subset: the read-only Agent above only gets
@@ -168,6 +198,11 @@ Stigmer stores nothing about a server's tools. To see them, ask the live server:
 several), or **Check tools** on the plugin's page in the console. Either reaches
 the server as you, with the keys and sign-ins in your own vault, and marks the
 tools the server calls destructive.
+
+A server in an Agent's own `mcp_servers` cannot be listed this way yet
+([#2325](https://github.com/stigmer/stigmer/issues/2325)). Name the whole server
+as `mcp__<server>` in `tools`, or take its tool names from the server's own
+documentation.
 
 A tool asks for human approval before it runs when its server marks it
 destructive, with the MCP annotation `destructiveHint: true`, and every other
@@ -198,6 +233,14 @@ vault as a connection at the server's address, refreshed automatically before
 each run. If it expires and cannot be refreshed, they sign in again from the
 plugin's page. A local program has no sign-in: it takes its keys from secrets.
 
+A server in an Agent's own `mcp_servers` is not probed. A run logs in to it with
+the connection saved in its vaults at the server's address, else a secret named
+`<SERVER>_ACCESS_TOKEN` (the server's name upper-cased, each other character
+written as `_`), else it calls the server with no login. A header that names
+`Authorization` takes the login from its `${NAME}` instead, and the run then
+needs that key. For a server that asks for one, **Sign in** sits beside it on
+the Agent's page.
+
 An Organization that needs its own OAuth app for an address — for a vendor
 Stigmer cannot sign in to on its own, or for tighter control — adds a login app
 listing that address, and every sign-in there uses it.
@@ -207,8 +250,9 @@ For a deeper look at OAuth patterns and configuration, see the
 
 ## Tool discovery
 
-When a turn starts, Stigmer reaches the servers of every plugin the Agent and
-the conversation list, and asks each for its tools. Each tool has:
+When a turn starts, Stigmer reaches the Agent's own servers and the servers of
+every plugin the Agent and the conversation list, and asks each for its tools.
+Each tool has:
 
 - A **name** — used to call it (for example, `get_order`)
 - A **description** — helps the LLM decide when to use it
@@ -242,9 +286,10 @@ exposes them.
 
 Just as [Skills](/docs/concepts/skills) can be added at the Session level, a
 [Session](/docs/concepts/sessions) can list plugins of its own in `plugins`.
-They join the Agent's, one entry per plugin. A chat with the built-in assistant,
-which has no Agent, gets its tools from the plugins its conversation lists, and
-runs their hooks.
+They join the Agent's, one entry per plugin. A conversation adds plugins only;
+the servers written in an Agent stay the Agent's. A chat with the built-in
+assistant, which has no Agent, gets its tools from the plugins its conversation
+lists, and runs their hooks.
 
 The Agent's tool lists govern these plugins like its own: an Agent whose `tools`
 list does not name a conversation's plugin server cannot use it.

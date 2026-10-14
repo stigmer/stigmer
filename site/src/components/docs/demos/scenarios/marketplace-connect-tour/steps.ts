@@ -2,8 +2,8 @@
  * Connect tour for "Connect an MCP Server" (the scenario id keeps its
  * historical name; the docs inventory keys the embed by it).
  *
- * A server lives in a plugin, so connecting one is opening the plugin
- * that holds it. Five beats: the Library's Plugins grid → cursor selects
+ * A shared server comes in a plugin, so connecting one is opening the
+ * plugin that holds it. Five beats: the Library's Plugins grid → cursor selects
  * Neon → the plugin's page, its one MCP server and the key it reads →
  * cursor on "Check tools" → the tools the server lists now, one of them
  * marked destructive by the server.

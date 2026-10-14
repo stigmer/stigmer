@@ -62,7 +62,7 @@ type organization
     # Stored, so the bound costs one read instead of a walk up the role
     # chain on every object a list checks. It is DERIVED, never granted:
     # exactly while the person holds at least one role row on the
-    # organization. The Grant grant path refuses it as a grant and
+    # organization. The grant path refuses it as a grant and
     # announces every change of a person's organization rows; an edition
     # that stores tuples writes and removes it from those announcements,
     # and open source derives it from the rows at check time.

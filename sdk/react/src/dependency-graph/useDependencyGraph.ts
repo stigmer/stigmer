@@ -46,9 +46,11 @@ export function useDependencyGraph({
     if (!spec) return { tree: null, isEmpty: true };
 
     const { plugins, skillRefs, subagents } = spec;
+    const mcpServers = spec.mcpServers ?? [];
 
     const hasDeps =
       plugins.length > 0 ||
+      mcpServers.length > 0 ||
       skillRefs.length > 0 ||
       subagents.length > 0;
 
@@ -95,18 +97,31 @@ export function useDependencyGraph({
     };
 
     const pluginNodes = plugins.map((ref, i) => leaf("plugin", ApiResourceKind.plugin, ref, i));
+    // A server the agent writes is part of the agent: a leaf named by its
+    // name, showing the host it dials, and linking nowhere.
+    const serverNodes = mcpServers.map((server): DependencyNode => {
+      nodeCount++;
+      const host = URL.canParse(server.url) ? new URL(server.url).host : "";
+      return {
+        id: `mcp-server:${server.name}`,
+        kind: "mcp-server",
+        label: server.name,
+        ...(host !== "" ? { metadata: { host } } : {}),
+        children: [],
+      };
+    });
     const skillNodes = skillRefs.map((ref, i) => leaf("skill", ApiResourceKind.skill, ref, i));
     // A subagent is an agent of its own: a link to its page at the version
     // this agent pinned, whose own dependencies that page shows.
     const subagentNodes = subagents.map((ref, i) => leaf("subagent", ApiResourceKind.agent, ref, i));
 
-    // Child ordering mirrors the Overview sections: plugins, skills,
-    // then subagents.
+    // Child ordering mirrors the Overview sections: plugins, the agent's
+    // own MCP servers, skills, then subagents.
     const root: DependencyNode = {
       id: `agent:${agentName}`,
       kind: "agent",
       label: agentName,
-      children: [...pluginNodes, ...skillNodes, ...subagentNodes],
+      children: [...pluginNodes, ...serverNodes, ...skillNodes, ...subagentNodes],
     };
 
     return {

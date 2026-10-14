@@ -27,14 +27,16 @@ import { toDesiredState } from "./serialize.js";
 
 /**
  * The way forward for a manifest written while an MCP server was its own
- * resource: one is now part of a plugin, the only home of a server. Shared
+ * resource: a server now lives in an agent's own `mcp_servers`, which only
+ * an organization's admins write, or in a plugin the agent uses. Shared
  * with the CLI's `apply` and `validate`, so every surface refusing such a
- * file says the same sentence.
+ * file says the same sentence. It follows "… is no longer read." and
+ * "… is no longer a Stigmer resource.".
  */
 export const MCP_SERVER_WAY_FORWARD =
-  "An MCP server is now part of a plugin: run `stigmer mcp add <name> <url>` " +
-  "to install a one-off server as a plugin, or list the plugin that carries " +
-  "it under the agent's `plugins`.";
+  "An agent lists its own MCP servers under `mcp_servers`, written by an " +
+  "organization's admins, or uses a plugin that carries one: " +
+  "`stigmer mcp add <name> <url>` installs a one-off server as a plugin.";
 
 /**
  * {@link MCP_SERVER_WAY_FORWARD} when `document` (one parsed YAML document)

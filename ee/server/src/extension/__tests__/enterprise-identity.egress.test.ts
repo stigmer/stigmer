@@ -54,6 +54,7 @@ import {
   type Authorizer,
   type ChildOrganizations,
   type ComposedGrants,
+  type ResourceOrganizations,
   type ComposedIdentityAccounts,
   type ListReadScope,
   type ResourceAuthorizationLifecycle,
@@ -204,6 +205,7 @@ function rig(store: InMemoryIssuerStore = new InMemoryIssuerStore()): Rig {
     childOrganizations: refusingPort<ChildOrganizations>("childOrganizations"),
     identityAccounts: refusingPort<ComposedIdentityAccounts>("identityAccounts"),
     grants: refusingPort<ComposedGrants>("grants"),
+    resourceOrganizations: refusingPort<ResourceOrganizations>("resourceOrganizations"),
     inProcessTransport: organizations,
     resourceNames: inMemoryNames().resourceNames,
   });

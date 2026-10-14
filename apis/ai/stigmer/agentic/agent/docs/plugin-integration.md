@@ -1,21 +1,27 @@
-# Plugin Integration
+# Plugins and MCP Servers
 
-How Agents use plugins and the MCP servers inside them, narrow their tools with
-the two tool lists, and which MCP tools ask for approval before they run.
+How Agents use plugins and the MCP servers inside them, carry MCP servers of
+their own, narrow their tools with the two tool lists, and which MCP tools ask
+for approval before they run.
 
-## Plugins and MCP servers
+## Where an MCP server comes from
 
 MCP (Model Context Protocol) servers provide external tools to AI agents through
 a standard protocol: an agent reaches GitHub, Slack, a database or an internal
 service through one.
 
-An MCP server exists only inside a plugin. A plugin (`kind: plugin`, enum value
-58) is an installed Agent Plugins package: its MCP configuration names its
+An MCP server reaches an agent two ways: in a plugin the agent lists, or written
+in the agent itself under `spec.mcp_servers` (see
+[An Agent's own MCP servers](#an-agents-own-mcp-servers)). Neither is a resource
+of its own.
+
+A plugin (`kind: plugin`, enum value 58) is an installed Agent Plugins package: its MCP configuration names its
 servers, beside its skills, agents and hooks. Installing it stores the plugin
 alone, and its `status` lists what the archive holds (`skills`, `agents`,
 `mcp_servers`, `env`, `hooks`). See the Plugin resource's `overview.md`.
 
-To use one server at an address, install it as a plugin of its own:
+To share one server at an address with every agent and chat, install it as a
+plugin of its own:
 
 ```bash
 stigmer mcp add linear https://mcp.linear.app/mcp
@@ -47,12 +53,67 @@ are added to the agent's, one entry per plugin, and the agent's tool lists
 govern them like its own. A chat with the built-in assistant (no agent) gets its
 tools from the plugins its conversation lists.
 
+## An Agent's own MCP servers
+
+`spec.mcp_servers` lists MCP servers written in the agent itself, beside its
+plugins' servers, as Claude Managed Agents' `mcp_servers` and a Claude Code
+subagent's `mcpServers` do. Each entry is an `AgentMcpServer`: a `name`, a
+`url` and optional `headers`.
+
+```yaml
+spec:
+  mcp_servers:
+    - name: tickets
+      url: https://tickets.acme-helpdesk.example/mcp
+      headers:
+        Authorization: Bearer ${TICKETS_API_KEY}
+  tools: [Read, mcp__tickets]
+```
+
+- **Who writes them.** Only the organization's admins (`can_create_plugin` on
+  the organization) may add a server or change one's address or headers;
+  anyone who may edit the agent may keep or remove them. The check runs on
+  every write of `spec`, by content.
+- **What they are.** HTTP only: an `https` address, or `http` on a loopback
+  host, with no credentials or fragment. At most 20. They are on agents only:
+  a Session has no `mcp_servers`, and a local program (stdio) comes in a
+  plugin.
+- **Names.** 2 to 63 lowercase letters, digits and hyphens, starting with a
+  letter and not ending with a hyphen. The save refuses a name used twice, any
+  name starting with `stigmer` (the platform's own servers), and `plugin`.
+- **Headers.** A value may name a run value as `${NAME}`. A `${NAME}` the
+  agent's `env` does not declare is a required secret, except the platform's
+  own variables. Each value is sent to that server only, never to the agent's
+  shell. Header values are stored in the agent and returned to anyone who can
+  read it, so a secret goes in a vault and the header names it. The save
+  refuses a header named twice in any letter case and a `${...}` that is not a
+  variable name.
+- **The login.** With no `Authorization` header, a run uses the vault
+  connection saved at the server's address, else a vault secret named
+  `<NAME>_ACCESS_TOKEN` (the name upper-cased, each other character written as
+  `_`), else it calls the server with no login. An `Authorization` header that
+  names `${NAME}` takes the login from that key, and the run then needs it.
+  The server is not probed at save; the agent's page offers **Sign in** for a
+  server that asks for one.
+- **One name per turn.** An agent and a subagent it lists may not both have a
+  server of the same name: run planning refuses the turn, naming both homes.
+- **Versions.** A conversation runs the agent version it started on, so a
+  changed address or header reaches the conversations started after it.
+- **Listing.** `PluginCommandController.listTools` and `stigmer connect` list a
+  plugin's servers only; an agent's own server cannot be listed yet
+  ([#2325](https://github.com/stigmer/stigmer/issues/2325)).
+
 ## Tool Names
 
-A plugin server's tools are named as Claude Code names them:
+A server's tools are named as Claude Code names them. For a plugin's server:
 
 - `mcp__plugin_<plugin>_<server>` for every tool of one server
 - `mcp__plugin_<plugin>_<server>__<tool>` for one tool
+
+For a server in the agent's own `mcp_servers`:
+
+- `mcp__<server>` for every tool of the server
+- `mcp__<server>__<tool>` for one tool
 
 `<plugin>` is the plugin's slug and `<server>` the server's key in the plugin's
 MCP configuration (`status.mcp_servers[].name`). Every character outside
@@ -78,6 +139,8 @@ tool named in both is excluded.
 | `Agent(explore)`                                            | In the main agent's `tools`, limits which subagents it may start (native harness; the Cursor harness refuses such a turn).  |
 | `mcp__plugin_<plugin>_<server>`                             | Every tool of one plugin's MCP server.                                                                                      |
 | `mcp__plugin_<plugin>_<server>__<tool>`                     | One tool of that server, by the name the server reports in `tools/list`.                                                    |
+| `mcp__<server>`                                             | Every tool of one of the agent's own MCP servers (`spec.mcp_servers`).                                                      |
+| `mcp__<server>__<tool>`                                     | One tool of that server.                                                                                                    |
 | `mcp__*`                                                    | Every MCP tool.                                                                                                             |
 
 Rules that follow from the lists:
@@ -97,7 +160,8 @@ Rules that follow from the lists:
 
 Find a server's tool names by asking it. Nothing about a server's tools is
 stored; each listing reaches the live server as you, with the keys and sign-ins
-in your own vault:
+in your own vault (a plugin's server only; see
+[An Agent's own MCP servers](#an-agents-own-mcp-servers) for the agent's own):
 
 ```bash
 stigmer connect plugin github
@@ -131,9 +195,12 @@ human-in-the-loop approval is not needed. It never widens the tool lists.
 
 At runtime, the Agent does not connect to MCP servers directly. The flow is:
 
-1. **Agent** lists `plugins` (references only: no connections, no secrets).
+1. **Agent** lists `plugins` (references only: no connections, no secrets) and
+   its own `mcp_servers` (addresses and headers, with secrets named as
+   `${NAME}`).
 2. **The run** resolves each plugin at turn start, at the reference's version or
-   the installed one, and adds the conversation's own plugins.
+   the installed one, adds the conversation's own plugins, and adds the agent's
+   own servers at the agent version the conversation runs.
 3. **The run** resolves the variables each server reads (`status.env`) from
    vaults: a server's login by a sign-in at the server's address, other keys by
    secret name. The sender's My vault comes first when the conversation includes
@@ -144,7 +211,7 @@ At runtime, the Agent does not connect to MCP servers directly. The flow is:
    `STIGMER_CALLER_IDENTITY_VALUE`, `STIGMER_SESSION_ID` and
    `STIGMER_SERVER_ADDRESS`.
 4. **Agent Runner** starts each local program (stdio) or calls each address
-   (HTTP) with those values, and the servers' tools become available to the
+   (HTTP, which every agent's own server is) with those values, and the servers' tools become available to the
    agent during the run.
 
 A local program runs only where the person's own runner runs (the desktop app,

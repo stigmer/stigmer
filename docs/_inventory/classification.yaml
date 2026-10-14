@@ -103,9 +103,9 @@ pages:
       into SDK code.
     medium: screenshot-journey
     why:
-      The Add MCP server form, the sign-in and the plugin page's Check tools
-      are a console procedure the reader replays on their own screen;
-      reference journeys read at the reader's pace.
+      The Add MCP server form, the sign-in and the plugin page's Check tools are
+      a console procedure the reader replays on their own screen; reference
+      journeys read at the reader's pace.
     embeds:
       connect-tools-tour: replace
       mcp-server-creation-tour: replace
@@ -133,8 +133,8 @@ pages:
     medium: animated-tour
     why:
       The payoff is the chat streaming inside a third-party product; the motion
-      is the demonstration (a deliberate deviation from the
-      screenshot-journey default for getting-started pages, 2026-08-23).
+      is the demonstration (a deliberate deviation from the screenshot-journey
+      default for getting-started pages, 2026-08-23).
     embeds:
       embed-agent-tour: keep
 
@@ -178,8 +178,8 @@ pages:
       comment, the three free run-health checks with their reasons, or an AI
       judge's verdict on four standard rubrics, switched on per Agent with a
       sample rate and a monthly limit in its Quality tab, or a plugin eval's
-      checks on one try, and the not-graded state; whoever sees the run sees
-      its scores, read with `stigmer runs scores`.
+      checks on one try, and the not-graded state; whoever sees the run sees its
+      scores, read with `stigmer runs scores`.
     medium: none
 
   concepts/sessions:
@@ -187,8 +187,8 @@ pages:
     diataxis: explanation
     teaches:
       A Session is the durable conversation context that names its Agent, runs
-      the version it started on until updated, re-checks run permission on
-      every message, locks a Harness, and can override Skills and tools.
+      the version it started on until updated, re-checks run permission on every
+      message, locks a Harness, and can override Skills and tools.
     medium: diagram
     why:
       The lifecycle (Agent to Session to runs) is structure; the existing
@@ -211,9 +211,9 @@ pages:
     fate: split
     diataxis: explanation
     teaches:
-      How MCP servers live in plugins, how they are added, authenticated and
-      sandboxed, how their tools are named and listed, and how Agents and
-      Sessions use them by listing plugins.
+      How MCP servers reach an Agent in a plugin or in the Agent's own
+      mcp_servers, how they are added, authenticated and sandboxed, how their
+      tools are named and listed, and how Agents and Sessions use them.
     medium: animated-tour
     why:
       A tool call firing, streaming results, and returning to the conversation
@@ -237,10 +237,10 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Install a plugin from Stigmer's official catalogue and read what it
-      leaves to do, add your own plugin marketplace, see what it offers, install
-      a plugin from it by name, and understand what the server does and does
-      not record about where a plugin came from.
+      Install a plugin from Stigmer's official catalogue and read what it leaves
+      to do, add your own plugin marketplace, see what it offers, install a
+      plugin from it by name, and understand what the server does and does not
+      record about where a plugin came from.
     medium: none
 
   guides/plugins/install-from-the-console:
@@ -248,11 +248,11 @@ pages:
     diataxis: how-to
     teaches:
       Find a plugin in the Marketplace (the official catalogue and one you add)
-      or upload a plugin folder or zip from your computer, in the web console
-      or the desktop app; understand what the preview states before the act
-      (what installs, its hooks, already installed, upgrade); sign in to the
-      plugin's MCP servers and check their tools from the plugin's page; read
-      its hooks; start a chat with it or add it to an agent.
+      or upload a plugin folder or zip from your computer, in the web console or
+      the desktop app; understand what the preview states before the act (what
+      installs, its hooks, already installed, upgrade); sign in to the plugin's
+      MCP servers and check their tools from the plugin's page; read its hooks;
+      start a chat with it or add it to an agent.
     medium: none
     why:
       A console how-to is a screenshot journey; the tour follows when the
@@ -381,15 +381,15 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Watch customer conversations in the console's Conversations area, take
-      one over, reply through the channel's number, hand it back, and answer
-      an Agent escalation.
+      Watch customer conversations in the console's Conversations area, take one
+      over, reply through the channel's number, hand it back, and answer an
+      Agent escalation.
     medium: screenshot-journey
     why:
       A console procedure the reader follows at their own pace — the
       Conversations inbox, timeline, and banners are depictable stills (the
-      connect-guide precedent); the page ships prose-only until the stills
-      are rendered.
+      connect-guide precedent); the page ships prose-only until the stills are
+      rendered.
 
   # ── Tools & MCP ────────────────────────────────────────────────────────
   guides/integrations/overview:
@@ -403,9 +403,9 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      How to add an MCP server by its address as a plugin of one server, sign
-      in to it, list its tools and which ask first, and use it in a chat or an
-      Agent.
+      How to add an MCP server by its address as a plugin of one server, sign in
+      to it, list its tools and which ask first, and use it in a chat or an
+      Agent; and how to give one Agent a server of its own in one call.
     medium: animated-tour
     why:
       Adding a server, signing in and checking its tools is a sequence the
@@ -417,8 +417,8 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      How a URL-only server is recognized as one you sign in to at install,
-      how a person signs in once from the plugin's page or the CLI, and how the
+      How a URL-only server is recognized as one you sign in to at install, how
+      a person signs in once from the plugin's page or the CLI, and how the
       login is kept and refreshed.
     medium: animated-tour
     why:
@@ -431,8 +431,8 @@ pages:
     fate: keep
     diataxis: explanation
     teaches:
-      The internals behind OAuth tool connections — how the login for an
-      address is found, credential storage, refresh mechanics.
+      The internals behind OAuth tool connections — how the login for an address
+      is found, credential storage, refresh mechanics.
     medium: diagram
     why:
       Backend resolution chains and credential flows are structure; the page's
@@ -442,8 +442,8 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      When and how to add your Organization's own OAuth app for the addresses
-      it signs in to.
+      When and how to add your Organization's own OAuth app for the addresses it
+      signs in to.
     medium: screenshot-journey
     why:
       The most console-centric integrations page — a form procedure quoted by
@@ -462,10 +462,9 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Template the reserved caller-identity variables into a plugin's MCP
-      server headers so the server receives the platform-verified caller,
-      handle the anonymous tool-listing context, and pair the header with a
-      shared secret.
+      Template the reserved caller-identity variables into a plugin's MCP server
+      headers so the server receives the platform-verified caller, handle the
+      anonymous tool-listing context, and pair the header with a shared secret.
     medium: none
 
   guides/editors/connect-mcp:
@@ -511,9 +510,8 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Make the Cursor engine available to a runner in direct mode, or on
-      Stigmer Cloud through the Organization's own Cursor key, and pin a
-      Session to it.
+      Make the Cursor engine available to a runner in direct mode, or on Stigmer
+      Cloud through the Organization's own Cursor key, and pin a Session to it.
     medium: none
 
   guides/runners/model-backends:
@@ -576,8 +574,8 @@ pages:
     fate: keep
     diataxis: explanation
     teaches:
-      Organizations are the tenant boundary; a parent organization has one
-      child organization per customer, which it manages and never reads.
+      Organizations are the tenant boundary; a parent organization has one child
+      organization per customer, which it manages and never reads.
     medium: diagram
     why: Tenancy fan-out is structure; the two existing mermaids carry it.
 
@@ -597,7 +595,7 @@ pages:
     teaches:
       The five Identity Account types, service accounts for automation among
       them, and the two trust models — external OIDC federation vs
-      Stigmer-signed PlatformClient tokens.
+      Stigmer-signed minted user tokens.
     medium: diagram
     why:
       Both trust models are eight-step sequences already rendered as sequence
@@ -607,7 +605,7 @@ pages:
     fate: keep
     diataxis: landing
     teaches:
-      Choose among API key, identity federation, and PlatformClient based on
+      Choose among API key, identity federation, and minted user tokens based on
       where the request originates and who makes it.
     medium: none
 
@@ -628,21 +626,20 @@ pages:
     diataxis: how-to
     teaches:
       Read an Organization's access history in the Console and with the CLI,
-      what each entry and cause says, and export it as JSON Lines to a tool
-      that keeps its copy current with --after.
+      what each entry and cause says, and export it as JSON Lines to a tool that
+      keeps its copy current with --after.
     medium: none
 
   guides/authentication/federation/overview:
     fate: keep
     diataxis: landing
     teaches:
-      The two provisioning modes (JIT and manual) and which numbered
-      sub-guide applies to each.
+      The two provisioning modes (JIT and manual) and which numbered sub-guide
+      applies to each.
     medium: diagram
     why:
       A mode-selection hub; the architecture diagram plus cards carry it, and
-      the animated overview tour added nothing a hub needs (dropped
-      2026-07-28).
+      the animated overview tour added nothing a hub needs (dropped 2026-07-28).
 
   guides/authentication/federation/authentication-flow:
     fate: keep
@@ -691,36 +688,31 @@ pages:
     diataxis: how-to
     teaches:
       Give each customer an isolated child organization under yours, manage it
-      without reading it, route sign-ins with externalIdClaim or PlatformClient
+      without reading it, route sign-ins with externalIdClaim or minted user
       tokens, and share a catalog with every child.
     medium: diagram
-    why:
-      Parent-to-child fan-out is structure; the two mermaids carry it.
+    why: Parent-to-child fan-out is structure; the two mermaids carry it.
     embeds:
       multi-tenant-setup-playback: keep
       multi-tenant-jit-playback: keep
 
-  guides/authentication/platform-client/overview:
+  guides/authentication/product-users:
     fate: keep
     diataxis: how-to
     teaches:
-      Mint per-user Stigmer JWTs from your backend with PlatformClient
-      credentials and hand them to StigmerProvider.
+      Mint per-user Stigmer JWTs from your backend with an admin service
+      account's API key, set the Organization's embedding settings, and hand the
+      tokens to StigmerProvider.
     medium: diagram
-    why:
-      Token minting is a backend sequence; the existing diagram plus the
-      token-flow playback carry it. The legacy setup tour that followed the
-      playback was a second embed on the same topic (dropped 2026-07-28).
-    embeds:
-      platform-client-token-flow: keep
+    why: Token minting is a backend sequence; one sequence diagram carries it.
 
   guides/authentication/customer-keys:
     fate: keep
     diataxis: how-to
     teaches:
-      Keep each customer's keys in a vault no other customer can name, chosen
-      by how the customers sign in and the edition; put a key in, rotate it,
-      and check where a run's values came from.
+      Keep each customer's keys in a vault no other customer can name, chosen by
+      how the customers sign in and the edition; put a key in, rotate it, and
+      check where a run's values came from.
     medium: none
 
   concepts/billing:
@@ -749,21 +741,20 @@ pages:
     teaches:
       Which way to run Stigmer fits the reader's team — what self-hosting
       includes (the full contract, Postgres, OIDC + API keys, isolation
-      drivers), what Stigmer Cloud adds (tenancy, fine-grained
-      permissions, channels, metered billing, managed ops), and the honest
-      limitation of self-hosting today (two production packagings, no
-      operator).
+      drivers), what Stigmer Cloud adds (tenancy, fine-grained permissions,
+      channels, metered billing, managed ops), and the honest limitation of
+      self-hosting today (two production packagings, no operator).
     medium: none
 
   guides/self-hosting/all-in-one:
     fate: keep
     diataxis: how-to
     teaches:
-      Run the whole stack from one Docker image for evaluation — the run
-      command and what each flag means, a first message to the built-in assistant
-      from the console, stopping and upgrading, looking inside with the CLI,
-      what runs where — with the evaluation-only label, the no-auth trust model
-      and the laptop sibling (`stigmer up`) named up front.
+      Run the whole stack from one Docker image for evaluation — the run command
+      and what each flag means, a first message to the built-in assistant from
+      the console, stopping and upgrading, looking inside with the CLI, what
+      runs where — with the evaluation-only label, the no-auth trust model and
+      the laptop sibling (`stigmer up`) named up front.
     medium: none
 
   guides/self-hosting/docker-compose:
@@ -771,16 +762,16 @@ pages:
     diataxis: how-to
     teaches:
       Run the production one-server stack (server, Postgres, Temporal, runner)
-      with Docker Compose, every setting a line in .env; open the console
-      (the server made its one Organization at first start), connect the CLI
-      as a named backend and run a first Agent; then
-      put a TLS proxy in front and turn authentication on from .env — with
-      sign-in off-by-default stated up front.
+      with Docker Compose, every setting a line in .env; open the console (the
+      server made its one Organization at first start), connect the CLI as a
+      named backend and run a first Agent; then put a TLS proxy in front and
+      turn authentication on from .env — with sign-in off-by-default stated up
+      front.
     medium: diagram
     why:
-      The four-service topology and which volume holds what state is
-      structure; the compose file's inline comments can't orient a reader the
-      way one flowchart does.
+      The four-service topology and which volume holds what state is structure;
+      the compose file's inline comments can't orient a reader the way one
+      flowchart does.
 
   guides/self-hosting/kubernetes:
     fate: keep
@@ -790,10 +781,9 @@ pages:
       one rule, every setting is a line in your values file — create the
       Secrets, write the values file and install, reach the console through a
       port-forward (the server made its one Organization at first start),
-      connect the CLI as a named backend and run a first Agent, add the
-      two-host Ingress, turn
-      authentication on, bring your own Postgres and Temporal, back up and
-      upgrade — with the no-auth trust model stated up front.
+      connect the CLI as a named backend and run a first Agent, add the two-host
+      Ingress, turn authentication on, bring your own Postgres and Temporal,
+      back up and upgrade — with the no-auth trust model stated up front.
     medium: none
 
   guides/self-hosting/authentication:
@@ -807,9 +797,9 @@ pages:
       set issuer, audience and console client ID as .env lines or values-file
       lines, read the server's /config.json to confirm, sign in, create the
       runner's never-expiring key and your own under Settings → API Keys, give
-      the runner its key (the chart's Secret and the order it forces), point
-      the CLI at the stack on 443 — then what changes (roles, run attribution,
-      what stays open) and what still needs an API key.
+      the runner its key (the chart's Secret and the order it forces), point the
+      CLI at the stack on 443 — then what changes (roles, run attribution, what
+      stays open) and what still needs an API key.
     medium: none
 
   guides/self-hosting/operations:
@@ -828,10 +818,10 @@ pages:
     teaches:
       What executes Agents on a self-hosted stack and how a run reaches it
       through the one task queue; what an Agent run does when no runner is
-      polling; where the LLM key, the shared
-      artifact disk and the runner's own API key come from per shape; why the
-      runner is one trust domain; the per-Session sandbox provisioner as a
-      mechanism and its limit at the current release.
+      polling; where the LLM key, the shared artifact disk and the runner's own
+      API key come from per shape; why the runner is one trust domain; the
+      per-Session sandbox provisioner as a mechanism and its limit at the
+      current release.
     medium: diagram
     why:
       The path one run takes (you, the server, the queue, the runner, your LLM
@@ -842,12 +832,12 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Send every run to a tracing tool over OpenTelemetry — what one trace
-      holds (a span per turn, model call, tool call, subagent, Cursor run),
-      the standard variables per runner shape (the login on the server's
-      secrets list for sandboxed runners), the gRPC default that changed, the
-      content switch and what it never shows, Langfuse and a generic collector
-      as examples, and that the conventions may still rename attributes.
+      Send every run to a tracing tool over OpenTelemetry — what one trace holds
+      (a span per turn, model call, tool call, subagent, Cursor run), the
+      standard variables per runner shape (the login on the server's secrets
+      list for sandboxed runners), the gRPC default that changed, the content
+      switch and what it never shows, Langfuse and a generic collector as
+      examples, and that the conventions may still rename attributes.
     medium: none
 
   # ── CLI ────────────────────────────────────────────────────────────────

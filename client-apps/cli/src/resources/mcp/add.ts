@@ -1,8 +1,9 @@
 // `stigmer mcp add`: one MCP server at an address, made into a plugin of its
 // own, as Claude Code's `claude mcp add` adds one server.
 //
-// An MCP server lives only in a plugin, so a one-off server is a plugin
-// holding nothing else: a Claude Code manifest naming the plugin and a
+// Outside an agent's own `mcp_servers`, an MCP server lives in a plugin, so
+// a one-off server is a plugin holding nothing else: a Claude Code manifest
+// naming the plugin and a
 // `.mcp.json` naming the one server, both called `<name>`. The files are
 // built in memory and go through the same shared tail every push runs
 // (`preparePluginArchive`: read, validate, zip, digest), so the plugin is

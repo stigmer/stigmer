@@ -137,6 +137,7 @@ import type {
   Logger,
   PipelineStep,
   ResourceAuthorizationLifecycle,
+  ResourceOrganizations,
   ResourceRowReader,
   ServerExtension,
 } from "@stigmer/server";
@@ -227,6 +228,7 @@ interface HandedOver {
   readonly authorizationQueries: Pick<AuthorizationQueryEngine, "check">;
   readonly lifecycle: ResourceAuthorizationLifecycle | undefined;
   readonly grants: ComposedGrants;
+  readonly resourceOrganizations: ResourceOrganizations;
 }
 
 export function newEnterpriseIdentityExtension(
@@ -292,6 +294,11 @@ export function newEnterpriseIdentityExtension(
     findScopeTuple: (kind, id) => composed().grants.findScopeTuple(kind, id),
     findByResourceKindAndRelation: (kind, relation) =>
       composed().grants.findByResourceKindAndRelation(kind, relation),
+  };
+  // Which organization a shared resource belongs to, for the grant gate
+  // where no scope link is stored (the built-in posture stores none).
+  const resourceOrganizations: ResourceOrganizations = {
+    organizationOf: (resource) => composed().resourceOrganizations.organizationOf(resource),
   };
   const grants = newGrantPathClient(transportRef);
   // The server's one name table: a team's and a provider's slug is a name
@@ -459,6 +466,7 @@ export function newEnterpriseIdentityExtension(
             teams,
             queries: authorizationQueries,
             scopes: grantStore,
+            resources: resourceOrganizations,
             organizations,
             accounts: ports.accounts.store,
             ...(ports.teamPlanGate === undefined ? {} : { plan: ports.teamPlanGate }),
@@ -531,6 +539,7 @@ export function newEnterpriseIdentityExtension(
         authorizationQueries: services.authorizationQueries,
         lifecycle: services.resourceAuthorizationLifecycle,
         grants: services.grants,
+        resourceOrganizations: services.resourceOrganizations,
       };
       nameTable.fill(services.resourceNames);
       children.fill(services.childOrganizations);

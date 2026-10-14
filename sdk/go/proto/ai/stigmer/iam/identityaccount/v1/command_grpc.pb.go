@@ -126,9 +126,9 @@ type IdentityAccountCommandControllerClient interface {
 	// and the SDK's ensureMyIdentityAccount. Derives the account from the
 	// caller's token and the userinfo endpoint of the issuer that vouched for
 	// it. Idempotent: returns the existing account on retry. A caller another
-	// lane vouched for (an organization's federation issuer, a platform
-	// client, a system lane) already has the account that lane provisions,
-	// and is refused PERMISSION_DENIED.
+	// lane vouched for (an organization's federation issuer, a product
+	// minting its users' tokens, a system lane) already has the account that
+	// lane provisions, and is refused PERMISSION_DENIED.
 	ProvisionMyAccount(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*IdentityAccount, error)
 }
 
@@ -316,9 +316,9 @@ type IdentityAccountCommandControllerServer interface {
 	// and the SDK's ensureMyIdentityAccount. Derives the account from the
 	// caller's token and the userinfo endpoint of the issuer that vouched for
 	// it. Idempotent: returns the existing account on retry. A caller another
-	// lane vouched for (an organization's federation issuer, a platform
-	// client, a system lane) already has the account that lane provisions,
-	// and is refused PERMISSION_DENIED.
+	// lane vouched for (an organization's federation issuer, a product
+	// minting its users' tokens, a system lane) already has the account that
+	// lane provisions, and is refused PERMISSION_DENIED.
 	ProvisionMyAccount(context.Context, *emptypb.Empty) (*IdentityAccount, error)
 }
 

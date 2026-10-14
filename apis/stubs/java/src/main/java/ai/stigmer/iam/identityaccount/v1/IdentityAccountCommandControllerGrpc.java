@@ -458,9 +458,9 @@ public final class IdentityAccountCommandControllerGrpc {
      * and the SDK's ensureMyIdentityAccount. Derives the account from the
      * caller's token and the userinfo endpoint of the issuer that vouched for
      * it. Idempotent: returns the existing account on retry. A caller another
-     * lane vouched for (an organization's federation issuer, a platform
-     * client, a system lane) already has the account that lane provisions,
-     * and is refused PERMISSION_DENIED.
+     * lane vouched for (an organization's federation issuer, a product
+     * minting its users' tokens, a system lane) already has the account that
+     * lane provisions, and is refused PERMISSION_DENIED.
      * </pre>
      */
     default void provisionMyAccount(com.google.protobuf.Empty request,
@@ -638,9 +638,9 @@ public final class IdentityAccountCommandControllerGrpc {
      * and the SDK's ensureMyIdentityAccount. Derives the account from the
      * caller's token and the userinfo endpoint of the issuer that vouched for
      * it. Idempotent: returns the existing account on retry. A caller another
-     * lane vouched for (an organization's federation issuer, a platform
-     * client, a system lane) already has the account that lane provisions,
-     * and is refused PERMISSION_DENIED.
+     * lane vouched for (an organization's federation issuer, a product
+     * minting its users' tokens, a system lane) already has the account that
+     * lane provisions, and is refused PERMISSION_DENIED.
      * </pre>
      */
     public void provisionMyAccount(com.google.protobuf.Empty request,
@@ -798,9 +798,9 @@ public final class IdentityAccountCommandControllerGrpc {
      * and the SDK's ensureMyIdentityAccount. Derives the account from the
      * caller's token and the userinfo endpoint of the issuer that vouched for
      * it. Idempotent: returns the existing account on retry. A caller another
-     * lane vouched for (an organization's federation issuer, a platform
-     * client, a system lane) already has the account that lane provisions,
-     * and is refused PERMISSION_DENIED.
+     * lane vouched for (an organization's federation issuer, a product
+     * minting its users' tokens, a system lane) already has the account that
+     * lane provisions, and is refused PERMISSION_DENIED.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount provisionMyAccount(com.google.protobuf.Empty request) throws io.grpc.StatusException {
@@ -957,9 +957,9 @@ public final class IdentityAccountCommandControllerGrpc {
      * and the SDK's ensureMyIdentityAccount. Derives the account from the
      * caller's token and the userinfo endpoint of the issuer that vouched for
      * it. Idempotent: returns the existing account on retry. A caller another
-     * lane vouched for (an organization's federation issuer, a platform
-     * client, a system lane) already has the account that lane provisions,
-     * and is refused PERMISSION_DENIED.
+     * lane vouched for (an organization's federation issuer, a product
+     * minting its users' tokens, a system lane) already has the account that
+     * lane provisions, and is refused PERMISSION_DENIED.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount provisionMyAccount(com.google.protobuf.Empty request) {
@@ -1123,9 +1123,9 @@ public final class IdentityAccountCommandControllerGrpc {
      * and the SDK's ensureMyIdentityAccount. Derives the account from the
      * caller's token and the userinfo endpoint of the issuer that vouched for
      * it. Idempotent: returns the existing account on retry. A caller another
-     * lane vouched for (an organization's federation issuer, a platform
-     * client, a system lane) already has the account that lane provisions,
-     * and is refused PERMISSION_DENIED.
+     * lane vouched for (an organization's federation issuer, a product
+     * minting its users' tokens, a system lane) already has the account that
+     * lane provisions, and is refused PERMISSION_DENIED.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> provisionMyAccount(

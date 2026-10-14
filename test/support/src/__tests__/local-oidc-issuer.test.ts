@@ -315,6 +315,22 @@ describe("local OIDC issuer", () => {
     expect(typeof claims.exp).toBe("number");
   });
 
+  it("mints for five minutes unless the caller asks for longer", async () => {
+    const lifetime = async (ttlSeconds?: number): Promise<number> => {
+      const token = await issuer.mint({
+        sub: "auth0|lifetime",
+        email: "lifetime@example.com",
+        ...(ttlSeconds === undefined ? {} : { ttlSeconds }),
+      });
+      const claims = JSON.parse(
+        Buffer.from(token.split(".")[1] ?? "", "base64url").toString("utf8"),
+      ) as { iat: number; exp: number };
+      return claims.exp - claims.iat;
+    };
+    expect(await lifetime()).toBe(5 * 60);
+    expect(await lifetime(8 * 60 * 60)).toBe(8 * 60 * 60);
+  });
+
   it("answers /userinfo with the bearer's claims and the fixed profile names", async () => {
     const token = await issuer.mint({
       sub: "auth0|profile",

@@ -13,9 +13,10 @@
  *     create path, through which a unit provisions a federated account at
  *     its provider-and-subject address; and the grant store binding's
  *     reads, the registered driver where a unit registered one and open
- *     source's adapter over the composition's store otherwise; and the
- *     store's one name table, where a unit's claim is the one every chain
- *     meets.
+ *     source's adapter over the composition's store otherwise; which
+ *     organization a resource belongs to, from the row where no scope link
+ *     says (open source's own authorization seeds none); and the store's
+ *     one name table, where a unit's claim is the one every chain meets.
  *   - `start` runs in unit order, first in `start()`, before the server
  *     reports SERVING; a failing start fails `start()`, naming its unit.
  *   - An edition above open source with no sign-in is refused at boot,
@@ -48,7 +49,8 @@ import { newPermissiveSingleTeamAuthorizer } from "../../pipeline/steps/authoriz
 import { platformTokenKeyRingFromPem } from "../../platformtoken/key-ring.js";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
-import { GrantSpecSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+import { ApiResourceRefSchema, GrantSpecSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 
 import { BOUND_ELSEWHERE_DENY_REASON } from "../../authorization/credential-binding.js";
 import type { AuthorizationQueryEngine } from "../authorization-queries.js";
@@ -348,6 +350,36 @@ describe("onComposed: the grant store binding under open source's own authorizat
         (grant) => grant.metadata?.id,
       ),
     ).toEqual([id]);
+  });
+});
+
+describe("onComposed: which organization a resource belongs to", () => {
+  it("answers a resource's organization from its row where no scope link names one, an organization itself, and nothing for a row the server does not hold", async () => {
+    let received: ComposedServices | undefined;
+    const server = await compose([
+      enterpriseUnit({
+        onComposed: (composed) => {
+          received = composed;
+        },
+      }),
+    ]);
+    const ref = (kind: string, id: string) => create(ApiResourceRefSchema, { kind, id });
+    const organizations = received?.resourceOrganizations;
+    if (organizations === undefined) {
+      throw new Error("the unit received no resource organizations");
+    }
+    await server.store.saveResource(
+      ApiResourceKind.agent,
+      "agt_acme",
+      AgentSchema,
+      create(AgentSchema, { metadata: { id: "agt_acme", org: "org_acme", slug: "helper" } }),
+    );
+
+    expect(await organizations.organizationOf(ref("agent", "agt_acme"))).toBe("org_acme");
+    expect(await organizations.organizationOf(ref("organization", "org_acme"))).toBe(
+      "org_acme",
+    );
+    expect(await organizations.organizationOf(ref("agent", "agt_nowhere"))).toBe("");
   });
 });
 

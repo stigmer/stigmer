@@ -11,7 +11,8 @@
 // service. What remains is the contract (CLOUD_ENV) and the way the targets
 // make a person: a console sign-in through the environment's direct-login
 // tenant, then the first-login provisioning a console runs
-// (provisionConsolePerson).
+// (provisionConsolePerson, over people.ts, which the Enterprise target
+// shares).
 //
 // Why a console sign-in and not a minted user token: a minted token works
 // in one organization only, so a person
@@ -20,11 +21,11 @@
 // organization they hold a role in, which is what the suites' founder,
 // member and outsider are. Minted user tokens appear only in the suites
 // that test them.
-import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+
 import type { DirectLoginTenant } from "../targets/target";
 import type { ConformanceClients } from "./clients";
 import { newDirectLoginTenant, readDirectLoginTenantMaterial } from "./direct-login-tenant";
-import { organizationRoleGrant } from "./enforcing-lane";
+import { PERSON_TOKEN_TTL_SECONDS, provisionPerson, type ProvisionedPerson } from "./people";
 import { freshSubject } from "../support/identityaccounts";
 
 // Contract between the provisioner (writer) and the cloud targets (readers);
@@ -96,9 +97,6 @@ export const CLOUD_ENV = {
   fixturesControlUrl: "STIGMER_CONFORMANCE_CLOUD_FIXTURES_CONTROL_URL",
 } as const;
 
-// How long a console person's token lives: a whole cloud run on one mint.
-const CONSOLE_PERSON_TTL_SECONDS = 8 * 60 * 60;
-
 // The environment's direct-login tenant, which every cloud target needs to
 // make its people (the global setup refuses a run without it).
 export function requireDirectLoginTenant(): DirectLoginTenant {
@@ -112,35 +110,16 @@ export function requireDirectLoginTenant(): DirectLoginTenant {
   return newDirectLoginTenant(material);
 }
 
-export interface ConsolePerson {
-  // The person's console token, unbound to any organization.
-  readonly token: string;
-  // The identity account the first login made: the principal a grant names.
-  readonly accountId: string;
-}
-
 // A brand-new person: a console token for a fresh subject, then the
 // first-login provisioning a console runs (provisionMyAccount) through the
 // clients that present it, so the person is a real account before any grant
 // names them.
-export async function provisionConsolePerson(
+export function provisionConsolePerson(
   tenant: DirectLoginTenant,
   presenting: (token: string) => Pick<ConformanceClients, "identityAccountCommand">,
-): Promise<ConsolePerson> {
-  const token = tenant.mint({ subject: freshSubject(), ttlSeconds: CONSOLE_PERSON_TTL_SECONDS });
-  const account = await presenting(token).identityAccountCommand.provisionMyAccount({});
-  const accountId = account.metadata?.id ?? "";
-  if (accountId === "") {
-    throw new Error("provisionMyAccount answered no account for a fresh console person");
-  }
-  return { token, accountId };
-}
-
-// The ordinary Grant grant that makes an identity a `member` of an
-// organization — the Members-page grant, through GrantCommandController.
-// create as the org's owner (never bootstrapGrant, which is the operator
-// lane for grants the ordinary create cannot express). The general form,
-// any role, is the enforcing lane's `organizationRoleGrant`.
-export function organizationMemberGrant(organizationId: string, identityAccountId: string): GrantSpec {
-  return organizationRoleGrant(organizationId, identityAccountId, "member");
+): Promise<ProvisionedPerson> {
+  return provisionPerson(
+    tenant.mint({ subject: freshSubject(), ttlSeconds: PERSON_TOKEN_TTL_SECONDS }),
+    presenting,
+  );
 }

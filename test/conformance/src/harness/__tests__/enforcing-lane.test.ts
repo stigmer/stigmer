@@ -143,7 +143,6 @@ describe("newPrimaryEnforcingLane", () => {
       provisionIdentity: refuse,
       provisionMember: async () => member,
       organizationIdOf: () => "org_01acme",
-      directLoginTenant: undefined,
       clientsPresenting: () => founder,
       managedAgentsBaseUrl: () => "http://127.0.0.1:0",
     });

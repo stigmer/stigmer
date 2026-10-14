@@ -2,8 +2,8 @@
 title: Identity
 description:
   How Stigmer identifies users and services. Learn the five account types, how
-  Federation Issuers and PlatformClients establish trust, and how your
-  platform's users access Stigmer.
+  Federation Issuers and minted user tokens establish trust, and how your
+  product's users access Stigmer.
 ---
 
 Every API call to Stigmer is made by an **Identity Account**---a principal that
@@ -12,19 +12,19 @@ each suited to a different integration pattern.
 
 ## Account types
 
-| Type                     | How it's created                                                                                                           | Use case                                                     |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| **Direct**               | User signs up on Stigmer or through a Stigmer-hosted login                                                                 | Organizations using Stigmer's own auth                       |
-| **Federated**            | Created via JIT provisioning or explicit `createFederatedAccount` call                                                     | Organizations bringing their own OIDC provider               |
-| **Platform** (app users) | Created automatically when your backend calls `mintUserToken`                                                              | Embedding Stigmer in your product without OIDC setup         |
-| **Service account**      | Created by your Organization's admins (`stigmer service-account create`)                                                   | CI jobs, scripts and backends that act for your Organization |
-| **Machine**              | Assigned by the hosted platform to its own services when they sign in with client credentials; never created by a customer | Stigmer's own service-to-service calls                       |
+| Type                | How it's created                                                                                                           | Use case                                                     |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| **Direct**          | User signs up on Stigmer or through a Stigmer-hosted login                                                                 | Organizations using Stigmer's own auth                       |
+| **Federated**       | Created via JIT provisioning or explicit `createFederatedAccount` call                                                     | Organizations bringing their own OIDC provider               |
+| **App user**        | Created automatically when your backend calls `mintUserToken`                                                              | Embedding Stigmer in your product without OIDC setup         |
+| **Service account** | Created by your Organization's admins (`stigmer service-account create`)                                                   | CI jobs, scripts and backends that act for your Organization |
+| **Machine**         | Assigned by the hosted platform to its own services when they sign in with client credentials; never created by a customer | Stigmer's own service-to-service calls                       |
 
-Direct accounts use Stigmer's own authentication tenant. Federated and Platform
-accounts both represent your platform's users, but they establish trust
+Direct accounts use Stigmer's own authentication tenant. Federated accounts and
+app users both represent your product's users, but they establish trust
 differently---federated accounts authenticate with tokens from an external OIDC
-provider, while Platform accounts authenticate with tokens that Stigmer itself
-signs. The console lists Platform accounts as **App users**, apart from your
+provider, while app users authenticate with tokens that Stigmer itself signs
+when your backend asks. The console lists them as **App users**, apart from your
 Organization's own people.
 
 A [service account](/docs/guides/authentication/service-accounts) is your
@@ -113,13 +113,14 @@ authentication. Steps 4--8 happen on every API call.
 For the full setup guide, see
 [Identity federation](/docs/guides/authentication/federation/overview).
 
-## How PlatformClient authentication works
+## How minted user tokens work
 
-PlatformClient uses a different trust model. Instead of validating tokens from
-an external OIDC provider, **Stigmer acts as the token issuer**. Your backend
-authenticates users with your own auth system, then calls Stigmer's
-`mintUserToken` endpoint with the user's identity. Stigmer signs a JWT and
-returns it. Your frontend passes this token to the React SDK.
+Minted user tokens use a different trust model. Instead of validating tokens
+from an external OIDC provider, **Stigmer acts as the token issuer**. Your
+backend authenticates users with your own auth system, then calls Stigmer's
+`mintUserToken` with a service account's API key and the user's identity.
+Stigmer signs a JWT and returns it. Your frontend passes this token to the React
+SDK.
 
 {/* vale off */}
 
@@ -133,7 +134,7 @@ sequenceDiagram
   participant Stigmer as Stigmer API
   User->>App: 1. Use your app
   App->>Backend: 2. Request Stigmer token
-  Backend->>Stigmer: 3. mintUserToken(clientId, secret, userId)
+  Backend->>Stigmer: 3. mintUserToken(org, userId) with the service account's key
   Note right of Stigmer: Auto-provision account if new
   Stigmer-->>Backend: 4. Stigmer-signed JWT
   Backend-->>App: 5. Return token
@@ -145,17 +146,18 @@ sequenceDiagram
 
 {/* vale on */}
 
-No Federation Issuer registration or JWKS endpoint is needed. You create a
-PlatformClient in the Stigmer Console, store its credentials in your backend,
-and call `mintUserToken` for each user.
+No Federation Issuer registration or JWKS endpoint is needed. An admin creates a
+service account with the admin role and an API key for it, sets the
+Organization's embedding settings (whether a first sign-in creates the account,
+and with which role), and your backend calls `mintUserToken` for each user.
 
-Platform accounts are **org-scoped**: the same user ID from any PlatformClient
-in your Organization resolves to a single Identity Account. A user who accesses
-Stigmer through your dashboard, mobile app, and admin tool shares one identity
-and one set of permissions.
+App users are **org-scoped**: every mint for your Organization resolves the same
+user ID to a single Identity Account. A user who reaches Stigmer through your
+dashboard, mobile app, and admin tool shares one identity and one set of
+permissions.
 
 For the full setup guide, see
-[Embed Stigmer with PlatformClient](/docs/guides/authentication/platform-client/overview).
+[Sign your product's users in](/docs/guides/authentication/product-users).
 
 ## Authorization
 
@@ -193,8 +195,8 @@ Choose the authentication path that fits your integration:
   through registering a Federation Issuer, provisioning accounts, and the
   runtime authentication flow.
 - **You want to embed Stigmer without OIDC setup** --- the
-  [PlatformClient guide](/docs/guides/authentication/platform-client/overview)
-  shows how to mint user tokens from your backend.
+  [product users guide](/docs/guides/authentication/product-users) shows how to
+  mint user tokens from your backend.
 - **Not sure which to use?** --- the
   [authentication overview](/docs/guides/authentication/overview) compares all
   three authentication paths side by side.

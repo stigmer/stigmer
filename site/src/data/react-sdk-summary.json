@@ -19,7 +19,7 @@
       "title": "Agent",
       "description": "Hooks and components for agent definitions, search, setup orchestration, and detail views.",
       "hooks": 11,
-      "components": 7
+      "components": 8
     },
     {
       "slug": "agent-eval",
@@ -207,15 +207,15 @@
       "slug": "organization",
       "title": "Organization",
       "description": "Hooks and components for organization creation and management.",
-      "hooks": 14,
-      "components": 8
+      "hooks": 15,
+      "components": 9
     },
     {
       "slug": "plugin",
       "title": "plugin",
       "description": "",
-      "hooks": 18,
-      "components": 21
+      "hooks": 19,
+      "components": 22
     },
     {
       "slug": "plugin-eval",
@@ -285,7 +285,7 @@
       "title": "Settings",
       "description": "Pre-composed settings sections for organization console embedding.",
       "hooks": 1,
-      "components": 16
+      "components": 17
     },
     {
       "slug": "sharing",

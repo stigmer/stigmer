@@ -9,7 +9,8 @@ import { PersonalKeyDisclosure } from "../PersonalKeyDisclosure";
 // ---------------------------------------------------------------------------
 // The disclosure before a conversation's message: it names, sorted, the
 // keys a run of the agent reads from the person's My vault —
-// the keys the agent declares (`spec.env`) and its plugins read, minus the
+// the keys the agent declares (`spec.env`), its own MCP servers read and
+// its plugins read, minus the
 // login key of each plugin server that signs in (the sign-in fills it),
 // and none for an agent of another
 // organization than the conversation's. Given the conversation's pinned
@@ -88,6 +89,26 @@ describe("PersonalKeyDisclosure", () => {
     );
     expect(getByReference).toHaveBeenCalledWith({ org: ORG, slug: "pr-reviewer" });
     expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("names the keys the agent's own MCP servers read in their headers", async () => {
+    const getByReference = vi.fn().mockResolvedValue({
+      metadata: { id: "agt_1", org: ORG, slug: "pr-reviewer" },
+      spec: {
+        env: { GITHUB_TOKEN: {} },
+        plugins: [],
+        mcpServers: [{ name: "zendesk", url: "https://acme-co.zendesk.com/mcp", headers: { "X-Api-Key": "${ZENDESK_KEY}" } }],
+      },
+    });
+    render(<PersonalKeyDisclosure agentRef={REF} runOrg={ORG} />, {
+      wrapper: wrapperFor({ getByReference }),
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId(LINE).textContent).toBe(
+        "This agent can read these keys from your My vault: GITHUB_TOKEN, ZENDESK_KEY",
+      ),
+    );
   });
 
   it("says nothing for an agent of another organization, which reads none of the person's keys", async () => {

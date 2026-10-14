@@ -20,8 +20,8 @@ to the people of another child.
 
 You already have a working
 [Federation Issuer](/docs/guides/authentication/federation/register-federation-issuer),
-or a [PlatformClient](/docs/guides/authentication/platform-client/overview), and
-you want to:
+or a backend that
+[mints user tokens](/docs/guides/authentication/product-users), and you want to:
 
 - give each of your customers its own Agents, Skills, Plugins and Sessions
 - mirror your platform's customers in Stigmer, one Organization each, and find
@@ -418,32 +418,34 @@ Stigmer refuses a missing or unknown claim on every sign-in, returning users
 included, and the refusal does not name the value. A first sign-in refused this
 way leaves no account behind.
 
-### Without a Federation Issuer: PlatformClient tokens
+### Without a Federation Issuer: Minted user tokens
 
-A platform that mints tokens from its backend with a
-[PlatformClient](/docs/guides/authentication/platform-client/overview) of its
-own Organization routes its customers the same way: name the child organization
-as `org` when you mint.
+A platform whose backend
+[mints user tokens](/docs/guides/authentication/product-users) with the API key
+of an admin service account of its own Organization routes its customers the
+same way: name the child organization as `org` when you mint.
 
 ```typescript
-const auth = createPlatformClientAuth({
+import { createNodeClient } from "@stigmer/sdk/node";
+
+const stigmer = createNodeClient({
   baseUrl: "https://api.stigmer.ai",
-  clientId: process.env.STIGMER_CLIENT_ID!,
-  clientSecret: process.env.STIGMER_CLIENT_SECRET!,
+  apiKey: process.env.STIGMER_API_KEY!,
 });
 
-const { accessToken } = await auth.mintUserToken({
+const { accessToken } = await stigmer.tokens.mintUserToken({
+  org: "tenant-alpha",
   userId: user.id,
   userEmail: user.email,
-  org: "tenant-alpha",
 });
 ```
 
-`org` may name the PlatformClient's own Organization or one of its children;
-anything else is refused with `INVALID_ARGUMENT`. The token works in that child
-only. Accounts are per child: the same `userId` minted into two children is two
-accounts, each created at its first mint into that child, where it receives the
-client's `sign_in_role`.
+`org` may name the service account's own Organization or one of its children: an
+admin of the parent is an administrator of its children too. Anything else is
+refused with `PERMISSION_DENIED`. The token works in that child only. Accounts
+are per child: the same `userId` minted into two children is two accounts, each
+created at its first mint into that child, where it receives the sign-in role in
+the parent's embedding settings.
 
 ## Provision users and place them in children
 

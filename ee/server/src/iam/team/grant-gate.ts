@@ -36,10 +36,15 @@
  *   - sharing a resource with a person who is not one of its
  *     organization's viewers (FAILED_PRECONDITION), with the step the
  *     sharer can take. The resource's organization is its scope link, the
- *     structural row its creation wrote (the grant store's
- *     `findScopeTuple`); a resource no organization holds has nothing to
- *     stay inside, and a grant on the organization itself is a role, never
- *     a share.
+ *     structural row its creation wrote (the policy store's
+ *     `findScopeTuple`), where one exists: a link to another resource (a
+ *     parent that is not an organization) is left to the model. Where none
+ *     exists, which is every resource under open source's own
+ *     authorization (it derives links from the rows and stores none), the
+ *     composition answers from the resource's row
+ *     (`ResourceOrganizations`). A resource no organization holds has
+ *     nothing to stay inside, and a grant on the organization itself is a
+ *     role, never a share.
  *
  * The organization questions go to the authorization engine through the
  * composition's query engine, the same instance `drivers.authorizationQueries`
@@ -78,6 +83,7 @@ import type {
   IdentityAccountStore,
   PipelineStep,
   RequestContext,
+  ResourceOrganizations,
 } from "@stigmer/server";
 import { failedPreconditionError } from "@stigmer/server";
 
@@ -98,8 +104,10 @@ const ORGANIZATION_VIEWER_RELATION = "viewer";
 export interface OrganizationGrantGateDeps {
   readonly teams: Pick<TeamStore, "findById">;
   readonly queries: Pick<AuthorizationQueryEngine, "check">;
-  /** The resource's scope link: which organization a shared resource belongs to. */
+  /** The resource's scope link: which organization a shared resource belongs to, where the posture stores one. */
   readonly scopes: Pick<GrantStore, "findScopeTuple">;
+  /** The resource's organization from its row, where no scope link is stored. */
+  readonly resources: ResourceOrganizations;
   /** The organization's slug, for a refusal's copy. */
   readonly organizations: Pick<OrganizationLookup, "find">;
   /** The host's plan gate; absent, every organization may add team members. */
@@ -229,16 +237,28 @@ async function requirePersonInResourceOrganization(
   person: ApiResourceRef,
   resource: ApiResourceRef,
 ): Promise<void> {
-  const link = await deps.scopes.findScopeTuple(resource.kind, resource.id);
-  const parent = link?.spec?.principal;
-  if (parent === undefined || parent.kind !== ORGANIZATION_KIND_NAME) {
+  const organizationId = await organizationOfResource(deps, resource);
+  if (organizationId === "") {
     return;
   }
-  if (!(await isOrganizationViewer(deps, person, parent.id))) {
+  if (!(await isOrganizationViewer(deps, person, organizationId))) {
     throw failedPreconditionError(
-      `identity account '${person.id}' is not a member of organization '${await slugOf(deps, parent.id)}'; add them to the organization before sharing its resources with them`,
+      `identity account '${person.id}' is not a member of organization '${await slugOf(deps, organizationId)}'; add them to the organization before sharing its resources with them`,
     );
   }
+}
+
+/** The organization a shared resource stays inside, or "" for none (the header's rule). */
+async function organizationOfResource(
+  deps: OrganizationGrantGateDeps,
+  resource: ApiResourceRef,
+): Promise<string> {
+  const link = await deps.scopes.findScopeTuple(resource.kind, resource.id);
+  if (link === undefined) {
+    return deps.resources.organizationOf(resource);
+  }
+  const parent = link.spec?.principal;
+  return parent?.kind === ORGANIZATION_KIND_NAME ? parent.id : "";
 }
 
 /** The name a refusal gives the organization: its slug, or its id when the lookup answers none. */

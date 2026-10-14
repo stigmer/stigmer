@@ -39,14 +39,13 @@ import {
   type ProvisionedEnterpriseDatabase,
 } from "../../__test-utils__/enterprise-postgres.js";
 import { startLoopbackIssuer, type LoopbackIssuer } from "../../__test-utils__/loopback-issuer.js";
-import { newTestSigner, writeTicket } from "../../license/__tests__/test-tickets.js";
+import { licenseClaims, newTestSigner, writeTicket } from "../../license/__tests__/test-tickets.js";
 import { ORGANIZATION_CREATOR_NOT_LISTED } from "../organization-creators.js";
 import {
   bootEnterprise,
   createOrganization,
   grant,
   issueKey,
-  licenseClaims,
   OPERATOR_AUDIENCE,
   OPERATOR_ISSUER_NAME,
   ref,

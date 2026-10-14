@@ -10,15 +10,15 @@ where the request comes from and who makes it.
 
 ## Three authentication paths
 
-|                       | API key                                                                          | Identity federation                                          | PlatformClient                                                      |
-| --------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------- |
-| **What it is**        | A static secret you create in the Console, for yourself or for a service account | A trust relationship with your OIDC provider                 | A credential pair your backend uses to mint Stigmer tokens per user |
-| **Who uses it**       | Your backend, CLI, CI/CD (as a service account)                                  | Your end users (via their existing IdP)                      | Your end users (via your backend)                                   |
-| **Where it runs**     | Server-side only                                                                 | Browser (user's JWT sent directly)                           | Browser (token fetched from your backend)                           |
-| **Setup effort**      | Create a key in the Console                                                      | Register a Federation Issuer, configure JWKS + issuer        | Create a PlatformClient in the Console, add one backend endpoint    |
-| **User provisioning** | Not applicable (server credential)                                               | JIT automatic or manual                                      | Automatic on first token mint, or manual                            |
-| **Organizations**     | Every Organization of its owner, or one; a service account's key, its own        | One per token                                                | The PlatformClient's Organization                                   |
-| **Best for**          | Server-to-server, scripts, internal tools                                        | Apps where users already have an OIDC provider (Auth0, Okta) | Embedding Stigmer in your product without OIDC setup                |
+|                       | API key                                                                          | Identity federation                                          | Minted user tokens                                                                                |
+| --------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| **What it is**        | A static secret you create in the Console, for yourself or for a service account | A trust relationship with your OIDC provider                 | Tokens your backend mints per user with a service account's API key                               |
+| **Who uses it**       | Your backend, CLI, CI/CD (as a service account)                                  | Your end users (via their existing IdP)                      | Your end users (via your backend)                                                                 |
+| **Where it runs**     | Server-side only                                                                 | Browser (user's JWT sent directly)                           | Browser (token fetched from your backend)                                                         |
+| **Setup effort**      | Create a key in the Console                                                      | Register a Federation Issuer, configure JWKS + issuer        | Create an admin service account and its key, set the embedding settings, add one backend endpoint |
+| **User provisioning** | Not applicable (server credential)                                               | JIT automatic or manual                                      | Automatic on first sign-in when the embedding settings allow it, or manual                        |
+| **Organizations**     | Every Organization of its owner, or one; a service account's key, its own        | One per token                                                | The service account's Organization, or a child of it                                              |
+| **Best for**          | Server-to-server, scripts, internal tools                                        | Apps where users already have an OIDC provider (Auth0, Okta) | Embedding Stigmer in your product without OIDC setup                                              |
 
 ## How to choose
 
@@ -64,14 +64,14 @@ users' JWTs directly. Stigmer validates them against your JWKS endpoint.
 </Card>
 
 **You want to embed Stigmer in your product and your users don't have a
-Stigmer-compatible IdP** (or you want a simpler integration path). Use a
-**PlatformClient**. Your backend authenticates users with your own auth system,
-calls Stigmer's `mintUserToken` endpoint with their identity, and passes the
-returned token to the React SDK.
+Stigmer-compatible IdP** (or you want a simpler integration path). Use **minted
+user tokens**. Your backend authenticates users with your own auth system, calls
+Stigmer's `mintUserToken` with an admin service account's API key and their
+identity, and passes the returned token to the React SDK.
 
 <Card
-  href="/docs/guides/authentication/platform-client/overview"
-  title="Embed Stigmer with PlatformClient"
+  href="/docs/guides/authentication/product-users"
+  title="Sign your product's users in"
 >
   Mint user tokens from your backend so your users can interact with Stigmer
   through the React SDK without OIDC federation setup.
@@ -96,15 +96,15 @@ const stigmer = new Stigmer({
 The difference is where the JWT comes from:
 
 - **Federation**: your auth provider issues it directly.
-- **PlatformClient**: your backend mints it via Stigmer's `mintUserToken`
-  endpoint.
+- **Minted user tokens**: your backend mints it with Stigmer's `mintUserToken`,
+  using a service account's API key.
 - **API key**: no JWT needed — the key authenticates the request directly
   (server-side only).
 
 ## Credentials bound to one Organization
 
-A federated token, a PlatformClient user token and a limited API key each name
-one Organization and work in that Organization only. A bound credential still
+A federated token, a minted user token and a limited API key each name one
+Organization and work in that Organization only. A bound credential still
 reaches the person's own account, and their API keys limited to the same
 Organization, and, in a child organization, can read and run the Agents, Skills
 and Plugins its parent shares with its child organizations. It cannot create an
@@ -113,5 +113,5 @@ another one. A call it makes into another Organization fails with
 `PERMISSION_DENIED`.
 
 A person who signs in at the Stigmer Console with their own Stigmer sign-in, not
-through a Federation Issuer or a PlatformClient, is not bound: they move between
-all the Organizations they hold a role in.
+through a Federation Issuer or a minted user token, is not bound: they move
+between all the Organizations they hold a role in.

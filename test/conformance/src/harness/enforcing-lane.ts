@@ -10,8 +10,8 @@
 // either, so an arm is written once and runs against both:
 //
 //   - newPrimaryEnforcingLane: a view over a target whose primary enforces
-//     (cloud). People come from the target's own provisioning; the founder
-//     is the target's primary caller.
+//     (cloud, enterprise). People come from the target's own provisioning;
+//     the founder is the target's primary caller.
 //   - newSiblingEnforcingLane: an open-source sibling booted in the OIDC
 //     posture against the harness's local issuer (the shape the
 //     identityaccount and grant suites already use), with a founder the
@@ -20,10 +20,11 @@
 // What the two hide from the arms:
 //
 //   - How a person exists. Cloud: a console token the environment's
-//     direct-login tenant mints for a fresh subject. Sibling: an
-//     issuer-minted access token for a fresh subject. Either way, then
-//     `provisionMyAccount` — the console's first sign-in, over the wire.
-//   - What a newcomer holds. Cloud: nothing. Open source: the membership
+//     direct-login tenant mints for a fresh subject. Enterprise and the
+//     sibling: an issuer-minted access token for a fresh subject. Either
+//     way, then `provisionMyAccount` — the console's first sign-in, over the
+//     wire.
+//   - What a newcomer holds. Cloud and Enterprise: nothing. Open source: the membership
 //     rules make every later arrival a MEMBER of every
 //     organization that already exists. `provisionIdentity` therefore
 //     revokes the newcomer on every organization the founder can see
@@ -48,7 +49,6 @@ import {
 } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 
 import type {
-  DirectLoginTenant,
   EnforcingLane,
   OrganizationRole,
   SiblingServer,
@@ -155,7 +155,7 @@ async function applyExactRole(
   }
 }
 
-// --- the primary lane (cloud) -----------------------------------------------
+// --- the primary lane (cloud, enterprise) -----------------------------------
 
 // What a target whose primary enforces must lend the lane. The target's own
 // provisioning is the source of people; the lane adds only what the target
@@ -170,8 +170,11 @@ export interface PrimaryEnforcingLaneDeps {
   // The organization id behind a tenancy this target provisioned — on
   // cloud the id and the slug differ, and the grant names the id.
   organizationIdOf(tenancy: TenancyContext): string;
-  // Present where the harness holds the platform tenant's key.
-  readonly directLoginTenant: DirectLoginTenant | undefined;
+  // A token for a subject with no account, admitted idp-shaped: present
+  // where the harness holds the issuer the primary trusts (the Cloud's
+  // platform tenant, Enterprise's loopback issuer). Absent, the lane offers
+  // no unprovisionedCaller and its arm skips visibly.
+  unprovisionedBearer?(): Promise<string>;
   clientsPresenting(
     bearerToken: string,
     options?: PresentingOptions,
@@ -204,12 +207,10 @@ export function newPrimaryEnforcingLane(
       deps.clientsPresenting(bearerToken, options),
     managedAgentsBaseUrl: () => deps.managedAgentsBaseUrl(),
   };
-  const tenant = deps.directLoginTenant;
-  if (tenant !== undefined) {
+  const unprovisionedBearer = deps.unprovisionedBearer;
+  if (unprovisionedBearer !== undefined) {
     lane.unprovisionedCaller = async () =>
-      deps.clientsPresenting(
-        tenant.mint({ subject: `auth0|${uniqueName("lane-unprovisioned")}` }),
-      );
+      deps.clientsPresenting(await unprovisionedBearer());
   }
   return lane;
 }

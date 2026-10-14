@@ -1,7 +1,8 @@
 /**
  * Plugin: what you install, used whole. A chat or an agent lists a plugin
  * and gets its skills, its agents, its hooks and its MCP servers; a plugin
- * is the only home of an MCP server.
+ * is how an MCP server is packaged and shared (an agent's own servers are
+ * in its spec, see `agent/`).
  *
  * Data hooks over the installed kind (`usePlugin`, `usePluginList`,
  * `usePluginCount`, `usePluginSearch`, `usePluginVersions`), the
@@ -126,11 +127,15 @@ export type { PluginServerSignInProps } from "./PluginServerSignIn.js";
 export { PluginServerSignIns } from "./PluginServerSignIns.js";
 export type { PluginServerSignInsProps } from "./PluginServerSignIns.js";
 export { usePluginServerSignIn } from "./usePluginServerSignIn.js";
-export type { PluginServerSignInKind, UsePluginServerSignInReturn } from "./usePluginServerSignIn.js";
+export type { PluginServerSignInKind, UsePluginServerSignInOptions, UsePluginServerSignInReturn } from "./usePluginServerSignIn.js";
 export { usePluginTools } from "./usePluginTools.js";
 export type { UsePluginToolsReturn } from "./usePluginTools.js";
 export { AddMcpServerDialog } from "./AddMcpServerDialog.js";
 export type { AddMcpServerDialogProps } from "./AddMcpServerDialog.js";
+export { HeaderRowsEditor, headerRowsOf } from "./HeaderRowsEditor.js";
+export type { HeaderRow, HeaderRowsEditorProps } from "./HeaderRowsEditor.js";
+export { useCanCreatePlugin } from "./useCanCreatePlugin.js";
+export type { UseCanCreatePluginReturn } from "./useCanCreatePlugin.js";
 export { mcpServerPluginFiles, prepareMcpServerPlugin, useAddMcpServer } from "./useAddMcpServer.js";
 export type { AddMcpServerOptions, McpServerFormInput, UseAddMcpServerReturn } from "./useAddMcpServer.js";
 export { AddPluginToAgentDialog } from "./AddPluginToAgentDialog.js";

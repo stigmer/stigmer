@@ -21,7 +21,7 @@ customers' people reach Stigmer, which you chose on the
 | Your customers' people                                                                                                                  | Where a customer's keys live                                                | Who can name them                                                                             |
 | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | Sign in as themselves: the console, or your own sign-in through an [Federation Issuer](/docs/guides/authentication/federation/overview) | Each person's own My vault; a team's key in a shared vault the team may use | That person alone; for a shared vault, the people granted its use                             |
-| Get a token your backend mints with a [PlatformClient](/docs/guides/authentication/platform-client/overview), all in your Organization  | One private shared vault per customer                                       | On Stigmer Cloud, the customer's accounts you grant **Can use**; on open source, your backend |
+| Get a token your backend [mints with a service account's key](/docs/guides/authentication/product-users), all in your Organization      | One private shared vault per customer                                       | On Stigmer Cloud, the customer's accounts you grant **Can use**; on open source, your backend |
 | Each customer is a [child organization](/docs/guides/authentication/federation/child-organizations)                                     | A shared vault in that customer's child, with **Organization** visibility   | The child's members, who are that customer's people alone                                     |
 
 <Callout type="warn">
@@ -41,17 +41,18 @@ short-lived token for its user saves it into that user's My vault, with that
 user's own credential, each time it refreshes. A key a whole team shares goes in
 a shared vault the team may use.
 
-### Users your backend signs in with a PlatformClient
+### Users your backend signs in with minted tokens
 
-The runs of a user signed in through a PlatformClient read no My vault, even
-when the conversation includes it, and even a key that user saved in their own
-My vault themselves. Give each customer one private shared vault instead. Create
-it once, when the customer signs up, with `external_id` set to your own customer
-id, and find it again with that id. A run such a user sends checks that whoever
-attached the vault to the conversation may still use it.
+The runs of a user your backend signs in with a minted token read no My vault,
+even when the conversation includes it, and even a key that user saved in their
+own My vault themselves. Give each customer one private shared vault instead.
+Create it once, when the customer signs up, with `external_id` set to your own
+customer id, and find it again with that id. A run such a user sends checks that
+whoever attached the vault to the conversation may still use it.
 
-Users who chat need the PlatformClient's `sign_in_role` set to `member`: a
-viewer may read, but cannot start a conversation.
+Users who chat need the `member` role, for example as the sign-in role in your
+Organization's embedding settings: a viewer may read, but cannot start a
+conversation.
 
 How the vault reaches the conversation depends on the edition:
 
@@ -68,12 +69,12 @@ How the vault reaches the conversation depends on the edition:
 ### A child organization per customer
 
 The customer's vault lives in their child organization, where only that
-customer's people are members, so **Organization** visibility is safe there: a
-PlatformClient user you mint into the child as a member, and every other member,
-may use it. This works in every edition. Your Organization's admins manage a
-child but read nothing in it, its vaults included, so the vault is created by an
-admin of the child, or by one of your admins after they add themselves to the
-child, which the child's member list shows.
+customer's people are members, so **Organization** visibility is safe there: an
+app user you mint into the child as a member, and every other member, may use
+it. This works in every edition. Your Organization's admins manage a child but
+read nothing in it, its vaults included, so the vault is created by an admin of
+the child, or by one of your admins after they add themselves to the child,
+which the child's member list shows.
 
 ## Put a key in, and rotate it
 
@@ -121,9 +122,9 @@ their vault without a Stigmer account. See
 ## Keys every customer's runs share
 
 A key of your own that every customer's runs use, such as the shared secret of
-your own MCP server, goes in one vault named on the PlatformClient, not in each
-customer's vault. See
-[Give embedded assistants their credentials](/docs/guides/authentication/platform-client/overview#give-embedded-assistants-their-credentials).
+your own MCP server, goes in one vault named in your Organization's embedding
+settings, not in each customer's vault. See
+[Give embedded assistants their credentials](/docs/guides/authentication/product-users#give-embedded-assistants-their-credentials).
 
 ## What never goes in a vault
 

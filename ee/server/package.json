@@ -38,7 +38,7 @@
   },
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.build.json",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test/conformance",
     "test": "vitest run",
     "verify:dist": "node ../../backend/services/stigmer-server/scripts/verify-boot.mjs \"$PWD/dist/main.js\"",
     "verify:consumer": "node ../../scripts/verify-consumer-install.mjs"
