@@ -59,7 +59,7 @@ import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { createChildOrganization } from "../support/organizations";
+import { createChildOrganization, takeAdminIn } from "../support/organizations";
 import { AGENT_API_VERSION, AGENT_KIND, type AgentRefInit, agentRefOf, makeAgent, makeAgentSpec } from "../support/agents";
 import { makeSlackAgentChannel } from "../support/agentchannels";
 import { uniqueName } from "../support/naming";
@@ -877,6 +877,7 @@ describe("Session conformance — references across organizations and on update"
     const { org: otherOrg } = await target.provisionTenancy();
     const { id: org } = await createChildOrganization(clients.organizationCommand, otherOrg, "the session's organization");
     fixtures.defer(() => clients.organizationCommand.delete({ value: org }));
+    await takeAdminIn(clients, org);
     const orgVisible = await createAgent(otherOrg, { visibility: ApiResourceVisibility.visibility_org });
     const platformVisible = await createAgent(otherOrg, { visibility: ApiResourceVisibility.visibility_child_orgs });
 

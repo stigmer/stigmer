@@ -36,13 +36,12 @@ import {
   type ProvisionedEnterpriseDatabase,
 } from "../../__test-utils__/enterprise-postgres.js";
 import { startLoopbackIssuer, type LoopbackIssuer } from "../../__test-utils__/loopback-issuer.js";
-import { newTestSigner, writeTicket } from "../../license/__tests__/test-tickets.js";
+import { licenseClaims, newTestSigner, writeTicket } from "../../license/__tests__/test-tickets.js";
 import { ENTERPRISE_IDENTITY_UNIT } from "../../extension/enterprise-identity.js";
 import {
   bootEnterprise,
   createOrganization,
   federatedToken,
-  licenseClaims,
   OPERATOR_ISSUER_NAME,
   providerRequest,
   refusalOf,

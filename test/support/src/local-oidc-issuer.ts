@@ -110,8 +110,10 @@ export interface LocalOidcIssuer {
   readonly person: { readonly sub: string; readonly email: string };
   // An access token this issuer would mint for `sub`: RS256 under the
   // published kid, `iss` / `aud` as above, `iat` / `exp`, and the `email`
-  // claim (the server's verifier carries it onto CallerIdentity).
-  mint(input: { sub: string; email: string }): Promise<string>;
+  // claim (the server's verifier carries it onto CallerIdentity). It lives
+  // five minutes unless `ttlSeconds` says otherwise: a person a target
+  // holds for a whole suite file asks for longer.
+  mint(input: { sub: string; email: string; ttlSeconds?: number }): Promise<string>;
   // Make /userinfo answer 503 for one subject; `undefined` clears the lever.
   refuseUserinfoFor(sub: string | undefined): void;
   close(): Promise<void>;
@@ -157,7 +159,7 @@ export async function startLocalOidcIssuer(
   const pendingCodes = new Map<string, PendingCode>();
   const refreshGrants = new Map<string, RefreshGrant>();
 
-  const mintAccessToken = (input: { sub: string; email: string }): string => {
+  const mintAccessToken = (input: { sub: string; email: string; ttlSeconds?: number }): string => {
     const now = Math.floor(Date.now() / 1000);
     return signRs256Jwt({
       privateKeyPem,
@@ -167,7 +169,7 @@ export async function startLocalOidcIssuer(
         sub: input.sub,
         aud: audience,
         iat: now,
-        exp: now + TOKEN_TTL_SECONDS,
+        exp: now + (input.ttlSeconds ?? TOKEN_TTL_SECONDS),
         email: input.email,
       },
     });

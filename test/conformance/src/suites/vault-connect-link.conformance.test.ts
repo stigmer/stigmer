@@ -158,7 +158,10 @@ describe("Connect link conformance — creation", () => {
       Code.NotFound,
       "a link to an unknown vault",
     );
-    expect(err.rawMessage).toBe("vault not found: vlt_00000000000000000000000000");
+    // The vault's id, in either edition's casing of the kind: the open-source
+    // handler writes "vault not found", the composed authorization step
+    // "Vault not found" (stigmer#2069).
+    expect(err.rawMessage).toMatch(/^vault not found: vlt_00000000000000000000000000$/i);
   });
 });
 

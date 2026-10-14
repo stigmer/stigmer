@@ -2306,7 +2306,8 @@ export async function composeServer(
   // the composition's own instances — the one Authorizer the Authorize
   // step calls, the list read scope, the policy check, the tuple lifecycle,
   // the in-process transport, the identity accounts' store binding and
-  // create path, and the policy store binding — before composeServer returns, because a
+  // create path, the policy store binding and the grant path's answer to
+  // "whose resource is this" — before composeServer returns, because a
   // unit's lanes may be called by anyone from then on. The policy check is
   // the registered engine's, or under the built-in posture the evaluator's.
   const composedServices: ComposedServices = {
@@ -2331,6 +2332,9 @@ export async function composeServer(
       create: createIdentityAccount,
     },
     iamPolicies,
+    resourceOrganizations: {
+      organizationOf: (resource) => iamPolicyGrantPath.organizationOf(resource),
+    },
     resourceNames: store.resourceNames,
   };
   for (const { hook } of extensions.onComposed) {

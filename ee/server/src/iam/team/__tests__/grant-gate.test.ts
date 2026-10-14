@@ -2,7 +2,9 @@
  * The team grant gate over an in-memory store and a recording query
  * engine. Pins:
  *   - a person shared a resource: the resource's organization is its scope
- *     link; someone who is not one of that organization's viewers is
+ *     link, or its row's where no link is stored (open source's own
+ *     authorization), and a link to another resource is left to the model
+ *     without reading the row; someone who is not one of that organization's viewers is
  *     FAILED_PRECONDITION, asked as `identity_account:<p> viewer
  *     organization:<org>`; a viewer passes; a resource no organization
  *     holds, an organization role and a structural principal ask nothing;
@@ -30,7 +32,7 @@
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import type { AuthorizationQueryEngine, IamPolicyStore } from "@stigmer/server";
+import type { AuthorizationQueryEngine, IamPolicyStore, ResourceOrganizations } from "@stigmer/server";
 import { RequestContext } from "@stigmer/server";
 import { describe, expect, it } from "vitest";
 
@@ -103,18 +105,24 @@ interface Asked {
 function rig(
   answer: (asked: Asked) => boolean | Error = () => true,
   plan?: { allowsTeams(orgId: string): Promise<boolean> },
-  /** Each resource's organization, as its scope link names it: `kind:id` → org. */
-  organizationOf: Readonly<Record<string, string>> = {},
+  /**
+   * Each resource's scope link: `kind:id` → its organization's id, or the
+   * parent resource it links to when that is not an organization.
+   */
+  organizationOf: Readonly<Record<string, string | { readonly kind: string; readonly id: string }>> = {},
+  /** Each resource's organization, as its row names it where no link is stored: `kind:id` → org. */
+  rowOrganizationOf: Readonly<Record<string, string>> = {},
 ) {
   const teams = new InMemoryTeamStore();
   const scopes: Pick<IamPolicyStore, "findScopeTuple"> = {
     findScopeTuple: (kind, id) => {
-      const org = organizationOf[`${kind}:${id}`];
+      const link = organizationOf[`${kind}:${id}`];
+      const parent = typeof link === "string" ? { kind: "organization", id: link } : link;
       return Promise.resolve(
-        org === undefined
+        parent === undefined
           ? undefined
           : create(IamPolicySchema, {
-              spec: spec({ kind: "organization", id: org }, "organization", { kind, id }),
+              spec: spec(parent, parent.kind, { kind, id }),
             }),
       );
     },
@@ -132,10 +140,14 @@ function rig(
       return result instanceof Error ? Promise.reject(result) : Promise.resolve(result);
     },
   };
+  const resources: ResourceOrganizations = {
+    organizationOf: (resource) => Promise.resolve(rowOrganizationOf[`${resource.kind}:${resource.id}`] ?? ""),
+  };
   const step = newOrganizationGrantGateStep({
     teams,
     queries,
     scopes,
+    resources,
     organizations,
     accounts: { findById: (id) => Promise.resolve(ACCOUNTS.get(id)) },
     ...(plan === undefined ? {} : { plan }),
@@ -182,6 +194,32 @@ describe("a resource shared with a person", () => {
     expect(r.asked).toEqual([
       { user: "identity_account:vic", relation: "viewer", object: `organization:${ACME_ID}` },
     ]);
+  });
+
+  it("reads the organization from the resource's row where no scope link is stored, as under open source's own authorization", async () => {
+    const outsider = rig(() => false, undefined, {}, { "agent:agt_1": ACME_ID });
+    const refused = await refusal(outsider.run(share));
+    expect(refused.code).toBe(Code.FailedPrecondition);
+    expect(refused.rawMessage).toBe(
+      "identity account 'vic' is not a member of organization 'acme'; add them to the organization before sharing its resources with them",
+    );
+
+    const viewer = rig(() => true, undefined, {}, { "agent:agt_1": ACME_ID });
+    await viewer.run(share);
+    expect(viewer.asked).toEqual([
+      { user: "identity_account:vic", relation: "viewer", object: `organization:${ACME_ID}` },
+    ]);
+  });
+
+  it("leaves a resource whose scope link names another resource to the model, never reading its row", async () => {
+    const r = rig(
+      () => false,
+      undefined,
+      { "agent_share:shr_1": { kind: "agent", id: "agt_1" } },
+      { "agent_share:shr_1": ACME_ID },
+    );
+    await r.run(spec({ kind: "identity_account", id: "vic" }, "viewer", { kind: "agent_share", id: "shr_1" }));
+    expect(r.asked).toEqual([]);
   });
 
   it("asks nothing for a resource no organization holds, an organization role, or a structural principal", async () => {

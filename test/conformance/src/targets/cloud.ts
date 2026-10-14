@@ -15,16 +15,8 @@
 // organization's own key for its provider (keyTenancy): the fixture Anthropic
 // and OpenAI keys always, and a Cursor key only when the invoking shell
 // supplies a real one in CURSOR_API_KEY.
-import { createClient } from "@connectrpc/connect";
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
-import {
-  CLOUD_ENV,
-  organizationMemberGrant,
-  provisionConsolePerson,
-  requireDirectLoginTenant,
-  type ConsolePerson,
-} from "../harness/cloud-env";
+import { CLOUD_ENV, requireDirectLoginTenant } from "../harness/cloud-env";
 import {
   createTransport,
   makeClients,
@@ -33,8 +25,9 @@ import {
 } from "../harness/clients";
 import { newPrimaryEnforcingLane } from "../harness/enforcing-lane";
 import { awaitGrpcReady } from "../harness/grpc-ready";
+import { PERSON_TOKEN_TTL_SECONDS, PrimaryPeople } from "../harness/people";
+import { freshSubject, optInToMemory } from "../support/identityaccounts";
 import { uniqueName } from "../support/naming";
-import { optInToMemory } from "../support/identityaccounts";
 import { createUniqueOrganization } from "../support/organizations";
 import type {
   CapabilityFlags,
@@ -154,6 +147,10 @@ export class CloudTarget implements TargetProfile {
     perResourceGrants: true,
     authorizationQueries: true,
     accessHistory: "plan-upgrade-required",
+    // A newcomer holds nothing until a grant or an invitation.
+    membershipOnArrival: false,
+    // The Cloud holds no license key: its plans are subscriptions.
+    licenseStatus: "absent",
     // The three cloud-capability surfaces, all served by the composition (the
     // flag is the edition's contract; the lane address is CLOUD_ENV's).
     billingEngine: true,
@@ -178,14 +175,21 @@ export class CloudTarget implements TargetProfile {
   private grpcBaseUrl: string | undefined;
   private conformanceClients: ConformanceClients | undefined;
   private operatorClients: ConformanceClients | undefined;
-  // The organizations this target provisioned, keyed by the id a
-  // TenancyContext names (the value repeats it): cleanup deletes only what
-  // this target made, without widening TenancyContext beyond the shape the
-  // suites share with local targets.
-  private readonly provisionedOrgIds = new Map<string, string>();
   // The environment's direct-login tenant, which mints every person this
   // target makes; set by setup().
   private tenant: DirectLoginTenant | undefined;
+  // The tenancies the primary founds and the people the tenant signs in
+  // (harness/people.ts, which the Enterprise target shares).
+  private readonly people = new PrimaryPeople({
+    founder: () => this.clients(),
+    freshToken: async (caller) => {
+      if (this.tenant === undefined) {
+        throw new Error(`CloudTarget.setup() must be called before ${caller}()`);
+      }
+      return this.tenant.mint({ subject: freshSubject(), ttlSeconds: PERSON_TOKEN_TTL_SECONDS });
+    },
+    clientsPresenting: (token) => this.clientsPresenting(token),
+  });
 
   // Present only when the environment carries an operator credential — the
   // hermetic bootstrap always mints one; pre-provisioned/deployed endpoints
@@ -252,18 +256,14 @@ export class CloudTarget implements TargetProfile {
       cleanupTenancy: (context) => this.cleanupTenancy(context),
       provisionIdentity: () => this.provisionIdentity(),
       provisionMember: (tenancy) => this.provisionMember(tenancy),
-      organizationIdOf: (tenancy) => {
-        const organizationId = this.provisionedOrgIds.get(tenancy.org);
-        if (organizationId === undefined) {
-          throw new Error(
-            `enforcingLane: tenancy "${tenancy.org}" was not provisioned by this target (provisionTenancy() first)`,
-          );
+      organizationIdOf: (tenancy) => this.people.organizationIdOf(tenancy, "enforcingLane"),
+      unprovisionedBearer: async () => {
+        if (this.tenant === undefined) {
+          throw new Error("CloudTarget.setup() must be called before enforcingLane()");
         }
-        return organizationId;
+        return this.tenant.mint({ subject: `auth0|${uniqueName("lane-unprovisioned")}` });
       },
-      directLoginTenant: this.directLoginTenant?.(),
-      clientsPresenting: (bearerToken, options = {}) =>
-        makeClients(createTransport(grpcBaseUrl, { ...options, bearerToken })),
+      clientsPresenting: (bearerToken, options) => this.clientsPresenting(bearerToken, options),
       managedAgentsBaseUrl: () => grpcBaseUrl,
     });
   }
@@ -353,18 +353,14 @@ export class CloudTarget implements TargetProfile {
     };
   }
 
-  async provisionTenancy(): Promise<TenancyContext> {
-    // The tenancy names its organization by id, as every resource does.
-    const { id } = await createUniqueOrganization(this.clients().organizationCommand, "tenancy");
-    this.provisionedOrgIds.set(id, id);
-    return { org: id };
+  // The tenancy names its organization by id, as every resource does, and
+  // cleanup deletes it by that id.
+  provisionTenancy(): Promise<TenancyContext> {
+    return this.people.provisionTenancy();
   }
 
-  async cleanupTenancy(context: TenancyContext): Promise<void> {
-    const id = this.provisionedOrgIds.get(context.org);
-    if (id === undefined) return;
-    this.provisionedOrgIds.delete(context.org);
-    await this.clients().organizationCommand.delete({ value: id });
+  cleanupTenancy(context: TenancyContext): Promise<void> {
+    return this.people.cleanupTenancy(context);
   }
 
   // On this Class A target provisionTenancy already yields the keyless shape
@@ -393,32 +389,16 @@ export class CloudTarget implements TargetProfile {
 
   // A brand-new console person holding no grants on any org this run
   // provisioned: the outsider for isolation assertions.
-  async provisionIdentity(): Promise<ConformanceClients> {
-    const person = await this.newPerson("provisionIdentity");
-    return this.clientsPresenting(person.token);
+  provisionIdentity(): Promise<ConformanceClients> {
+    return this.people.provisionIdentity();
   }
 
   // A brand-new console person granted exactly `member` on the tenancy, as
   // the primary (the org's owner, through the ordinary IamPolicy create).
   // The colleague for within-organization authorization assertions: past the
   // organization-level checks, subject to every resource-level rule.
-  async provisionMember(tenancy: TenancyContext): Promise<ConformanceClients> {
-    const organizationId = this.provisionedOrgIds.get(tenancy.org);
-    if (organizationId === undefined) {
-      throw new Error(
-        `provisionMember: tenancy "${tenancy.org}" was not provisioned by this target (provisionTenancy() first)`,
-      );
-    }
-    const person = await this.newPerson("provisionMember");
-    await this.clients().iamPolicyCommand.create(organizationMemberGrant(organizationId, person.accountId));
-    return this.clientsPresenting(person.token);
-  }
-
-  private newPerson(caller: string): Promise<ConsolePerson> {
-    if (this.tenant === undefined) {
-      throw new Error(`CloudTarget.setup() must be called before ${caller}()`);
-    }
-    return provisionConsolePerson(this.tenant, (token) => this.clientsPresenting(token));
+  provisionMember(tenancy: TenancyContext): Promise<ConformanceClients> {
+    return this.people.provisionMember(tenancy);
   }
 
   async teardown(): Promise<void> {
@@ -429,6 +409,6 @@ export class CloudTarget implements TargetProfile {
     this.operatorClients = undefined;
     this.provisionPrivilegedScope = undefined;
     this.tenant = undefined;
-    this.provisionedOrgIds.clear();
+    this.people.forget();
   }
 }

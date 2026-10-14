@@ -960,6 +960,7 @@ test("the setup rule still finds the setups and installs it exists for", () => {
     "codegen",
     "compose-stack",
     "conformance",
+    "conformance-enterprise",
     "conformance-execution",
     "docs",
     "e2e-interactive",
@@ -979,11 +980,12 @@ test("the setup rule still finds the setups and installs it exists for", () => {
   assert.deepEqual(readers("package-lock.json"), rootInstalls);
   assert.deepEqual(readers("backend/services/stigmer-server/package-lock.json"), [
     "conformance",
+    "conformance-enterprise",
     "conformance-execution",
     "ee",
     "stigmer-server",
   ]);
-  assert.deepEqual(readers("ee/server/package-lock.json"), ["ee"]);
+  assert.deepEqual(readers("ee/server/package-lock.json"), ["conformance-enterprise", "ee"]);
   assert.deepEqual(readers("ee/server/test/consumer/package-lock.json"), ["ee"]);
   assert.deepEqual(readers("backend/services/runner/package-lock.json"), ["runner"]);
   assert.deepEqual(readers("test/extension-consumer/package-lock.json"), ["stigmer-server"]);

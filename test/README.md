@@ -4,7 +4,7 @@ The test surfaces of the Stigmer platform that live outside a package's own unit
 
 | Suite | Directory | What it tests | Runs |
 |-------|-----------|---------------|------|
-| **Conformance** | `conformance/` | The gRPC API contract, implementation-agnostic: the same suites run against the OSS `stigmer-server` (`local*` targets, booted from source) and against the cloud composition (`cloud*` targets, pre-provisioned by stigmer-cloud's readout recipe). Class A (CRUD) and the execution class (runner-backed), which since stigmer#1022 also carries the runner-behavior facets the Go offline suite used to hold — HITL and file review, structured output, sub-agents, memory retrieval, provider-error attribution — as scripted-turn arms on the same harness. The cross-edition instrument. | `make test-conformance`, `make test-conformance-execution`; the `cloud*` targets from stigmer-cloud |
+| **Conformance** | `conformance/` | The gRPC API contract, implementation-agnostic: the same suites run against the OSS `stigmer-server` (`local*` targets, booted from source), against a licensed Stigmer Enterprise server (the `enterprise` target, booted from source) and against the cloud composition (`cloud*` targets, pre-provisioned by stigmer-cloud's readout recipe). Class A (CRUD) and the execution class (runner-backed), which since stigmer#1022 also carries the runner-behavior facets the Go offline suite used to hold — HITL and file review, structured output, sub-agents, memory retrieval, provider-error attribution — as scripted-turn arms on the same harness. The cross-edition instrument. | `make test-conformance`, `make test-conformance-execution`, `make test-conformance-enterprise`; the `cloud*` targets from stigmer-cloud |
 | **E2E (Playwright)** | `e2e/` | Browser UI tests — smoke, functional, and interactive tiers | see `e2e/` |
 | **Extension consumer** | `extension-consumer/` | A clean-room consumer of the `@stigmer/server` extension registry | `make test-extension-consumer` |
 
@@ -119,6 +119,7 @@ Coverage says a test ran a line. It does not say the test would notice the line 
 
 - `ci.conformance.yaml` — Class A on the `local` targets (SQLite and Postgres drivers) plus the harness unit lane.
 - `ci.conformance-execution.yaml` — the execution class on `local-execution`.
+- `ci.conformance-enterprise.yaml` — Class A on the `enterprise` target, a licensed Enterprise server spawned from `ee/server`'s test entry.
 - `ci.e2e*.yaml` — Playwright.
 
 ## Test output

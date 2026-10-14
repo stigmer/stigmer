@@ -18,9 +18,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { clone, create, fromBinary } from "@bufbuild/protobuf";
+import { create, fromBinary } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { ConnectError, createClient } from "@connectrpc/connect";
 import type { Interceptor, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
@@ -40,7 +39,6 @@ import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/ia
 import type { FederationIssuer, FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { LicenseClaimsSchema, type LicenseClaims } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import {
   composeServer,
@@ -52,7 +50,6 @@ import {
 import type { ComposedServer, Logger, ServerExtension } from "@stigmer/server";
 
 import type { LoopbackIssuer } from "../../__test-utils__/loopback-issuer.js";
-import { goldenVector } from "../../license/__tests__/test-tickets.js";
 import { composeEnterprise } from "../enterprise.js";
 import type { EgressPosture } from "../enterprise-config.js";
 
@@ -63,8 +60,6 @@ export const OPERATOR_AUDIENCE = "https://stigmer.example/api";
 export const OPERATOR_ISSUER_NAME = "operator";
 
 export const SILENT_LOGGER: Logger = createLogger({ level: "error", pretty: false, write: () => {} });
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** A clock the suite moves. */
 export interface TestClock {
@@ -78,25 +73,6 @@ export function testClock(at: Date): TestClock {
     read: () => clock.now,
   };
   return clock;
-}
-
-/** Claims valid from `issuedAt` for `days`, then a grace period of `graceDays`; `maxOrgs` absent grants no limit. */
-export function licenseClaims(options: {
-  readonly issuedAt: Date;
-  readonly days: number;
-  readonly graceDays: number;
-  readonly maxOrgs?: number;
-}): LicenseClaims {
-  const claims = clone(LicenseClaimsSchema, goldenVector().claims);
-  const expires = new Date(options.issuedAt.getTime() + options.days * DAY_MS);
-  claims.issuedAt = timestampFromDate(options.issuedAt);
-  claims.expiresAt = timestampFromDate(expires);
-  claims.graceUntil = timestampFromDate(new Date(expires.getTime() + options.graceDays * DAY_MS));
-  const limits = claims.entitlements?.limits;
-  if (limits !== undefined) {
-    limits.maxOrgs = options.maxOrgs;
-  }
-  return claims;
 }
 
 export interface BootOptions {
