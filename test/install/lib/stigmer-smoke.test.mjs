@@ -246,7 +246,8 @@ async function serveConnectLane(routes) {
 
 const ORG_CREATE = "ai.stigmer.tenancy.organization.v1.OrganizationCommandController/create";
 const SERVER_INFO = "ai.stigmer.platform.v1.PlatformQueryController/getServerInfo";
-const MY_ORGS = "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/findMyOrganizations";
+const MY_ORGS = "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/listMine";
+const MY_ORGS_BEFORE_LIST_RENAME = "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/findMyOrganizations";
 const STIGMER_ORG = { metadata: { id: "stigmer", slug: "stigmer", name: "Stigmer" } };
 const OTHER_ORG = { metadata: { id: "acme", slug: "acme", name: "acme" } };
 const AGENT_CREATE = "ai.stigmer.agentic.agent.v1.AgentCommandController/create";
@@ -458,6 +459,32 @@ test("the organization probe refuses a server that does not fill one, and any ot
     } finally {
       await lane.close();
     }
+  }
+});
+
+test("a release from before the list rename answers the organization probes through findMyOrganizations", async () => {
+  const lane = await serveConnectLane({
+    [SERVER_INFO]: () => ({ edition: "oss", singleOrg: true }),
+    [MY_ORGS_BEFORE_LIST_RENAME]: () => ({ entries: [STIGMER_ORG] }),
+  });
+  try {
+    assert.equal(await readSingleOrganization(lane.baseUrl), "stigmer");
+    assert.equal(await smokeOrganization(lane.baseUrl, "smoke-org-1"), "stigmer");
+    assert.equal(lane.calls(MY_ORGS_BEFORE_LIST_RENAME), 2);
+  } finally {
+    await lane.close();
+  }
+});
+
+test("the organization probe names a listMine refusal other than an unrouted 404", async () => {
+  const lane = await serveConnectLane({
+    [SERVER_INFO]: () => ({ edition: "oss", singleOrg: true }),
+    [MY_ORGS]: () => ({ refuse: { status: 500, code: "internal", message: "store down" } }),
+  });
+  try {
+    await assert.rejects(readSingleOrganization(lane.baseUrl), /listMine -> HTTP 500/);
+  } finally {
+    await lane.close();
   }
 });
 
