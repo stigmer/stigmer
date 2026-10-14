@@ -11,8 +11,10 @@
  * - a plugin's server takes the plugin's declaration, else a required
  *   secret, and its hooks' names count too;
  * - a name the runner always fills is no requirement, for either home;
- * - a name two homes read keeps the first declaration, the agent's own
- *   servers read first;
+ * - a name two homes read is required when either requires it, else it
+ *   keeps the first declaration, the agent's own servers read first; a
+ *   plugin's hooks reading a name undeclared make it required even when
+ *   another plugin's server declares it optional;
  * - the servers that sign in are a plugin's, one per address, named by
  *   the first plugin to list it (by its name, else its slug); an agent's
  *   server never has a sign-in record;
@@ -127,7 +129,7 @@ describe("declarationsOf", () => {
     expect(declarationsOf(reading)).toEqual({});
   });
 
-  it("declares each key a plugin's server reads once, the first declaration kept, the agent's own servers first", async () => {
+  it("declares each key once, a required declaration winning over an optional one, the agent's own servers first", async () => {
     const first = plugin("search", "search", {
       mcpServers: [{ name: "search", transport: { case: "stdio", value: { command: "npx", args: [] } }, env: ["SEARCH_KEY", "REGION"] }],
       env: { SEARCH_KEY: create(EnvVarDeclarationSchema, { isSecret: false, optional: true }) },
@@ -149,9 +151,35 @@ describe("declarationsOf", () => {
 
     const declarations = declarationsOf(reading);
     expect(Object.keys(declarations)).toEqual(["REGION", "SEARCH_KEY"]);
-    expect(declarations.SEARCH_KEY).toMatchObject({ isSecret: false, optional: true });
-    // The agent's server read REGION first: its declaration stands.
+    // The second plugin requires SEARCH_KEY: the run refuses without it.
+    expect(declarations.SEARCH_KEY).toMatchObject({ isSecret: true, optional: false });
+    // The agent's server read REGION first and requires it: its declaration
+    // stands over the first plugin's undeclared, equally required, read.
     expect(declarations.REGION).toMatchObject({ isSecret: false, optional: false });
+  });
+
+  it("keeps the first of two optional declarations, and a hook's undeclared read makes a name required", () => {
+    const optional = (description: string) => create(EnvVarDeclarationSchema, { isSecret: false, optional: true, description });
+    const first = pluginReadings(
+      { org: "acme", slug: "a" },
+      plugin("a", "a", {
+        mcpServers: [{ name: "a", transport: { case: "stdio", value: { command: "a", args: [] } }, env: ["REGION", "TOKEN"] }],
+        env: { REGION: optional("first"), TOKEN: optional("optional here") },
+      }),
+    );
+    const second = pluginReadings(
+      { org: "acme", slug: "b" },
+      plugin("b", "b", {
+        mcpServers: [{ name: "b", transport: { case: "stdio", value: { command: "b", args: [] } }, env: ["REGION"] }],
+        env: { REGION: optional("second") },
+        hooks: { groups: [{ matcher: "*", handlers: [{ command: "audit", args: ["${user_config.TOKEN}"] }] }] },
+      }),
+    );
+
+    const declarations = declarationsOf({ servers: [...first.servers, ...second.servers], hooks: [...first.hooks, ...second.hooks] });
+    expect(declarations.REGION).toMatchObject({ optional: true, description: "first" });
+    // Plugin b's hook reads TOKEN undeclared, a required secret, whatever plugin a's server says.
+    expect(declarations.TOKEN).toMatchObject({ isSecret: true, optional: false });
   });
 
   it("makes a key no home declares a required secret", () => {

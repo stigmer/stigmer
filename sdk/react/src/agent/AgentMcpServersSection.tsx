@@ -8,7 +8,11 @@
 // URL or headers changed. So the section offers editing only to someone the
 // server's own self-check says holds it (`useCanCreatePlugin`, failing
 // closed), and tells anyone else who may edit the agent that only admins
-// change its servers. Every change sends the whole list back
+// change its servers. That is stricter than the save: the server lets
+// anyone who may edit the agent remove a server, since a removal only
+// shrinks where runs reach. The console holds removal back from members
+// too on purpose, so nobody strips an admin's choice in passing; a manifest
+// apply still can. Every change sends the whole list back
 // (`spec.mcp_servers` alone), untouched servers as they were, which the
 // server reads as echoes. Each row shows the viewer's login at the
 // server's address, with a sign-in offered when the server sends no

@@ -4,6 +4,7 @@ import { useCallback, useState, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { PluginIcon } from "../plugin/PluginIcon.js";
+import { McpServerIcon } from "../plugin/McpServerIcon.js";
 import type { DependencyNode, NodeKind } from "./types.js";
 
 interface DependencyTreeNodeProps {
@@ -211,29 +212,10 @@ function NodeIcon({
     case "plugin":
       return <PluginIcon className={className} />;
     case "mcp-server":
-      return <ServerIcon className={className} />;
+      return <McpServerIcon className={className} />;
     case "skill":
       return <SkillIcon className={className} />;
   }
-}
-
-function ServerIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="2.5" y="2.5" width="11" height="4.5" rx="1" />
-      <rect x="2.5" y="9" width="11" height="4.5" rx="1" />
-      <path d="M5 4.75h.01M5 11.25h.01" strokeWidth="2" />
-    </svg>
-  );
 }
 
 function AgentIcon({ className }: { readonly className?: string }) {

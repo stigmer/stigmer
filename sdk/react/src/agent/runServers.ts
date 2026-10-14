@@ -21,9 +21,10 @@
  * One rule over every home then: a name the runner always fills
  * (`RUNNER_FILLED_VARIABLES`: who is calling, the conversation) is no
  * requirement and nobody is asked for it; any other name takes its home's
- * declaration, else it is a required secret. A name two homes read keeps
- * the first declaration: the run matches each declarer on its own, and
- * the composer asks for a name once.
+ * declaration, else it is a required secret. The run matches each
+ * declarer on its own, so a name two homes read is required when either
+ * requires it, and the composer asks for it once: a required declaration
+ * wins over an optional one, and otherwise the first seen is kept.
  *
  * Logins. A plugin's server with a sign-in record is filled by a login at
  * its address; its login key is never typed (`signInKeys`). Any HTTP
@@ -196,21 +197,21 @@ export async function readAgentServers(
 
 /**
  * Every name the run's servers and hooks read, with its declaration: its
- * home's, else a required secret. A name the runner always fills is none;
- * a name read twice keeps the first declaration seen.
+ * home's, else a required secret. A name the runner always fills is none.
+ * A name read twice is required when any reader requires it: a required
+ * declaration replaces an optional one, and otherwise the first is kept.
  */
 export function declarationsOf(reading: RunServersReading): Record<string, EnvVarDeclaration> {
   const declarations: Record<string, EnvVarDeclaration> = {};
   const declare = (names: readonly string[], env: Readonly<Record<string, EnvVarDeclaration>>) => {
     for (const name of names) {
-      if (RUNNER_FILLED_VARIABLES.has(name) || Object.hasOwn(declarations, name)) continue;
+      if (RUNNER_FILLED_VARIABLES.has(name)) continue;
+      const declared =
+        (Object.hasOwn(env, name) ? env[name] : undefined) ?? create(EnvVarDeclarationSchema, { isSecret: true, optional: false });
+      const seen = Object.hasOwn(declarations, name) ? declarations[name] : undefined;
+      if (seen !== undefined && (declared.optional || !seen.optional)) continue;
       // Defined, not assigned: a name read from a plugin may be `__proto__`.
-      Object.defineProperty(declarations, name, {
-        value: (Object.hasOwn(env, name) ? env[name] : undefined) ?? create(EnvVarDeclarationSchema, { isSecret: true, optional: false }),
-        enumerable: true,
-        writable: true,
-        configurable: true,
-      });
+      Object.defineProperty(declarations, name, { value: declared, enumerable: true, writable: true, configurable: true });
     }
   };
   for (const server of reading.servers) declare(server.entry.env, server.env);

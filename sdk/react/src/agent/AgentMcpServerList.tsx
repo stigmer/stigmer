@@ -17,6 +17,7 @@ import { type ReactNode, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { Button } from "../button/Button.js";
 import { INPUT_CLASS } from "../vault/styles.js";
+import { McpServerIcon } from "../plugin/McpServerIcon.js";
 import { type HeaderRow, HeaderRowsEditor, headerRowsOf } from "../plugin/HeaderRowsEditor.js";
 import { type AgentMcpServerValue, agentMcpServerProblem, headerValueShown } from "./agentMcpServers.js";
 
@@ -138,7 +139,7 @@ function ServerRow({
     <li className="stg:flex stg:flex-col stg:gap-1 stg:px-3 stg:py-2">
       <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-x-3 stg:gap-y-1">
         <span className="stg:flex stg:min-w-0 stg:items-center stg:gap-3">
-          <ServerIcon className="stg:size-4 stg:shrink-0 stg:text-muted-foreground" />
+          <McpServerIcon className="stg:size-4 stg:shrink-0 stg:text-muted-foreground" />
           <span className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground">{server.name}</span>
         </span>
         <span className="stg:ml-auto stg:flex stg:min-w-0 stg:items-center stg:gap-2">
@@ -277,25 +278,6 @@ function AgentMcpServerForm({
 // ---------------------------------------------------------------------------
 // Icons: inline SVGs, as the agent page draws them
 // ---------------------------------------------------------------------------
-
-function ServerIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="2.5" y="2.5" width="11" height="4.5" rx="1" />
-      <rect x="2.5" y="9" width="11" height="4.5" rx="1" />
-      <path d="M5 4.75h.01M5 11.25h.01" strokeWidth="2" />
-    </svg>
-  );
-}
 
 function PlusIcon({ className }: { readonly className?: string }) {
   return (
