@@ -235,14 +235,19 @@ describe("organization query surface", () => {
     expect(error.rawMessage).toBe(`Organization not found: ${id}`);
   });
 
-  it("find paginates with totalPages; findMyOrganizations returns everything (no IAM filter)", async () => {
-    const all = await query.find({ org: "conformance", pageSize: 100 });
-    const mine = await query.findMyOrganizations({});
-    expect(mine.entries.length).toBe(all.entries.length);
+  it("listMine pages every organization by token (no IAM filter)", async () => {
+    const all = await query.listMine({ pageSize: 100 });
+    expect(all.entries.length).toBeGreaterThan(2);
 
-    const page = await query.find({ org: "conformance", pageSize: 2 });
-    expect(page.entries.length).toBeLessThanOrEqual(2);
-    expect(page.totalPages).toBe(Math.ceil(all.entries.length / 2));
+    const walked: string[] = [];
+    let pageToken = "";
+    do {
+      const page = await query.listMine({ pageSize: 2, pageToken });
+      expect(page.entries.length).toBeLessThanOrEqual(2);
+      walked.push(...page.entries.map((org) => org.metadata?.id ?? ""));
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
+    expect(walked).toEqual(all.entries.map((org) => org.metadata?.id ?? ""));
   });
 
 });

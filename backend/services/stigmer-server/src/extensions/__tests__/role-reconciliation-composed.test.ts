@@ -15,7 +15,7 @@
  *      blueprint stay.
  *   2. The same directory boots again: the rows are back — the founder
  *      `owner`, the member `member` — each written AS the account it names
- *      (the audit actor), `findMyOrganizations` answers the organization
+ *      (the audit actor), `listMine` answers the organization
  *      to both, and the marker is set.
  *   3. The founder removes the member, and is refused removing themself
  *      (an organization keeps its last owner on the member lanes); the
@@ -181,11 +181,11 @@ describe("role reconciliation (composed server, OIDC with no unit Authorizer, th
     const founderOrgs = await createClient(
       OrganizationQueryController,
       asFounder(),
-    ).findMyOrganizations({});
+    ).listMine({});
     const memberOrgs = await createClient(
       OrganizationQueryController,
       asMember(),
-    ).findMyOrganizations({});
+    ).listMine({});
     expect(founderOrgs.entries.map((entry) => entry.metadata?.id)).toEqual([
       orgId,
     ]);
@@ -218,7 +218,7 @@ describe("role reconciliation (composed server, OIDC with no unit Authorizer, th
     const founderOrgs = await createClient(
       OrganizationQueryController,
       asFounder(),
-    ).findMyOrganizations({});
+    ).listMine({});
     expect(founderOrgs.entries).toEqual([]);
   });
 });

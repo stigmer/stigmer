@@ -203,7 +203,7 @@ describe("roles on the server's organization (composed server, OIDC with no unit
       const found = await createClient(
         OrganizationQueryController,
         as(),
-      ).findMyOrganizations({});
+      ).listMine({});
       expect(found.entries.map((entry) => entry.metadata?.id)).toEqual([
         stigmerId,
       ]);
@@ -228,7 +228,7 @@ describe("roles on the server's organization (composed server, OIDC with no unit
     const found = await createClient(
       OrganizationQueryController,
       asSecond(),
-    ).findMyOrganizations({});
+    ).listMine({});
     expect(found.entries).toEqual([]);
   });
 });
@@ -295,7 +295,7 @@ describe("a laptop that turns sign-in on (composed server, trusted-local then OI
     const found = await createClient(
       OrganizationQueryController,
       transportFor(port, fakeJwt(FIRST, "first@example.com")),
-    ).findMyOrganizations({});
+    ).listMine({});
     expect(found.entries.map((entry) => entry.metadata?.id)).toEqual([
       laptopOrganization.id,
     ]);

@@ -15,7 +15,7 @@
  *     that off, and never shares one with child organizations; a target that does not exist
  *     answers NOT_FOUND before any permission question (stigmer#224); an
  *     outsider on an EXISTING resource hears PERMISSION_DENIED, the
- *     cloud's answer; `findMyOrganizations` lists what a person may view
+ *     cloud's answer; `listMine` lists what a person may view
  *     and `find` refuses enumeration; `checkMyPermission` tells the truth;
  *     the retired public level is refused for the founder too, as an
  *     invalid level and not a permission question; an unprovisioned
@@ -390,26 +390,19 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
     ).toBe(otherOrgAgent.metadata!.id);
   });
 
-  it("findMyOrganizations lists what a person may view — the member one, the founder both — and `find` refuses enumeration", async () => {
+  it("listMine lists what a person may view — the member one, the founder both", async () => {
     const mine = await createClient(
       OrganizationQueryController,
       asMember(),
-    ).findMyOrganizations({});
+    ).listMine({});
     expect(mine.entries.map((o) => o.metadata?.id)).toEqual([orgId]);
     const founders = await createClient(
       OrganizationQueryController,
       asFounder(),
-    ).findMyOrganizations({});
+    ).listMine({});
     expect(founders.entries.map((o) => o.metadata?.id).sort()).toEqual(
       [orgId, otherOrgId].sort(),
     );
-    expect(
-      await codeOf(
-        createClient(OrganizationQueryController, asMember()).find({
-          org: ORG,
-        }),
-      ),
-    ).toBe(Code.Unimplemented);
   });
 
   it("checkMyPermission tells the truth through the built-in authorizer", async () => {
@@ -510,13 +503,13 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
         VaultQueryController,
         asMember(),
       ).list({ org: OTHER_ORG });
-      expect(list.items).toEqual([]);
+      expect(list.entries).toEqual([]);
       // The positive beside the negative: the founder lists their own.
       const founders = await createClient(
         VaultQueryController,
         asFounder(),
       ).list({ org: OTHER_ORG });
-      expect(founders.items.map((e) => e.metadata?.id)).toEqual([
+      expect(founders.entries.map((e) => e.metadata?.id)).toEqual([
         otherOrgVault,
       ]);
     });
@@ -526,14 +519,14 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
         VaultQueryController,
         asFounder(),
       ).list({ org: ORG });
-      expect(founders.items.map((e) => e.metadata?.id)).toEqual([
+      expect(founders.entries.map((e) => e.metadata?.id)).toEqual([
         founderVault,
       ]);
       const members = await createClient(
         VaultQueryController,
         asMember(),
       ).list({ org: ORG });
-      expect(members.items.map((e) => e.metadata?.id)).toEqual([
+      expect(members.entries.map((e) => e.metadata?.id)).toEqual([
         memberVault,
       ]);
     });
@@ -624,14 +617,14 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
 
     it("an unprovisioned subject's lists are empty, and become theirs after `provisionMyAccount`", async () => {
       const visitorVaults = createClient(VaultQueryController, asVisitor());
-      expect((await visitorVaults.list({ org: ORG })).items).toEqual([]);
+      expect((await visitorVaults.list({ org: ORG })).entries).toEqual([]);
       await createClient(
         IdentityAccountCommandController,
         asVisitor(),
       ).provisionMyAccount({});
       const own = await myVaultOf(asVisitor());
       expect(
-        (await visitorVaults.list({ org: ORG })).items.map(
+        (await visitorVaults.list({ org: ORG })).entries.map(
           (e) => e.metadata?.id,
         ),
       ).toEqual([own]);
@@ -723,7 +716,7 @@ describe("built-in authorizer (composed server, trusted-local: the permissive de
     expect(read.metadata?.id).toBe(created.metadata!.id);
   });
 
-  it("the laptop keeps organization enumeration and refuses the retired public level like every posture — the level is gone, not gated", async () => {
+  it("the laptop lists every organization as its own and refuses the retired public level like every posture — the level is gone, not gated", async () => {
     const anonymous = transportFor(port);
     const failure = await failureOf(
       createClient(AgentCommandController, anonymous).create(
@@ -735,9 +728,10 @@ describe("built-in authorizer (composed server, trusted-local: the permissive de
     );
     expect(failure.code).toBe(Code.InvalidArgument);
     expect(failure.rawMessage).toBe(PUBLIC_LEVEL_REFUSED_FOR_AGENT);
-    const all = await createClient(OrganizationQueryController, anonymous).find(
-      { org: ORG },
-    );
+    const all = await createClient(
+      OrganizationQueryController,
+      anonymous,
+    ).listMine({});
     expect(all.entries.map((o) => o.metadata?.id)).toContain(orgId);
   });
 
@@ -754,7 +748,7 @@ describe("built-in authorizer (composed server, trusted-local: the permissive de
     const list = await createClient(VaultQueryController, anonymous).list({
       org: ORG,
     });
-    expect(list.items.map((e) => e.metadata?.name).sort()).toEqual([
+    expect(list.entries.map((e) => e.metadata?.name).sort()).toEqual([
       "laptop vault one",
       "laptop vault two",
     ]);
@@ -914,7 +908,7 @@ describe("built-in list scope (two boots, one seed — the scope is the only var
     return {
       search: search.entries.map((e) => e.name).sort(),
       keys: keys.entries.map((k) => k.metadata?.name ?? "").sort(),
-      vaults: vaults.items.map((e) => e.metadata?.name ?? "").sort(),
+      vaults: vaults.entries.map((e) => e.metadata?.name ?? "").sort(),
       recents: recents.entries.map((e) => e.id).sort(),
       summaryActive: summary.activeCount,
     };

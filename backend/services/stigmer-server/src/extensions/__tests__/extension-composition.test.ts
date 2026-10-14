@@ -527,7 +527,7 @@ describe("extension composition (require-authentication posture)", () => {
   it("a tokenless non-public RPC is UNAUTHENTICATED with the Java byte-pinned copy — no issuer configured", async () => {
     const client = createClient(OrganizationQueryController, transportWith());
     const failure = await client
-      .findMyOrganizations({})
+      .listMine({})
       .then(() => null)
       .catch((error: unknown) => ConnectError.from(error));
     expect(failure?.code).toBe(Code.Unauthenticated);
@@ -551,7 +551,7 @@ describe("extension composition (require-authentication posture)", () => {
       OrganizationQueryController,
       transportWith(CLAIMED_TOKEN),
     );
-    const orgs = await client.findMyOrganizations({});
+    const orgs = await client.listMine({});
     expect(orgs.entries).toEqual([]);
   });
 
@@ -560,7 +560,7 @@ describe("extension composition (require-authentication posture)", () => {
       OrganizationQueryController,
       server.inProcessTransport,
     );
-    const orgs = await client.findMyOrganizations({});
+    const orgs = await client.listMine({});
     expect(orgs.entries).toEqual([]);
   });
 
@@ -570,7 +570,7 @@ describe("extension composition (require-authentication posture)", () => {
       transportWith("not-a-credential"),
     );
     const failure = await client
-      .findMyOrganizations({})
+      .listMine({})
       .then(() => null)
       .catch((error: unknown) => ConnectError.from(error));
     expect(failure?.code).toBe(Code.Unauthenticated);
@@ -633,7 +633,7 @@ describe("extension composition (require-authentication posture)", () => {
         transportWith("stk_not-a-real-key"),
       );
       const failure = await client
-        .findMyOrganizations({})
+        .listMine({})
         .then(() => null)
         .catch((error: unknown) => ConnectError.from(error));
       expect(failure?.code).toBe(Code.Unauthenticated);
@@ -1200,7 +1200,6 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
   // stores or hands a driver carries this id, so the expectations do too.
   let seededOrgId = "";
   const fakeDirectory: OrganizationDirectory = {
-    refusesEnumeration: true,
     listMyOrganizationIds: async () => [...myOrgIds],
   };
   // Every check is allowed except managing the children of the parents
@@ -1543,20 +1542,9 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
     expect(half.metadata?.name).toBe("seeded-halfcreated-agent");
   });
 
-  it("the directory's enumeration refusal answers UNIMPLEMENTED on a valid find", async () => {
+  it("listMine answers exactly the directory's authorized set", async () => {
     const query = createClient(OrganizationQueryController, portTransport);
-    let refused: ConnectError | undefined;
-    try {
-      await query.find({ org: "seededorg", pageSize: 10, pageNumber: 1 });
-    } catch (error) {
-      refused = ConnectError.from(error);
-    }
-    expect(refused?.code).toBe(Code.Unimplemented);
-  });
-
-  it("findMyOrganizations answers exactly the directory's authorized set", async () => {
-    const query = createClient(OrganizationQueryController, portTransport);
-    const mine = await query.findMyOrganizations({});
+    const mine = await query.listMine({});
     expect(mine.entries.map((org) => org.metadata?.id)).toEqual(myOrgIds);
   });
 

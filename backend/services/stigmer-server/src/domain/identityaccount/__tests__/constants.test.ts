@@ -202,9 +202,9 @@ describe("byte-pinned copy", () => {
   });
 
   it("the two new sentences name the edition and the subject", () => {
-    // The organization directory's absent-method shape ("<method> is not
-    // implemented", controller.ts refusesEnumeration) so clients that match
-    // on it keep working, followed by the reason a person can act on.
+    // Connect's absent-method shape ("<method> is not implemented") so
+    // clients that match on it keep working, followed by the reason a
+    // person can act on.
     expect(FEDERATION_UNIMPLEMENTED_REASON).toBe(
       "federated identity accounts are served by the Enterprise and Cloud editions",
     );

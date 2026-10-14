@@ -88,7 +88,7 @@ computes.
   edition above open source serves — ids cannot be enumerated); the model's answer with an empty reason on a denial so
   the annotation's copy wins; every fault `unavailable`, never a denial and
   never a throw.
-- `organization-directory.ts` — `findMyOrganizations` as the cloud answers it
+- `organization-directory.ts` — `listMine` as the cloud answers it
   (`listObjectIds(can_view, organization)`): the organizations the person's rows
   name, kept when `can_view` holds; the `internal` class sees all (the
   in-process authorization skip); enumeration refused.

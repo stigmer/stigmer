@@ -1,7 +1,6 @@
 /**
  * Pins the organization lanes that list organizations (controller.ts
- * `find`, `findMyOrganizations` with and without a directory, and
- * `listChildOrgs`) against the deleting rule: an organization being deleted
+ * `listMine` with and without a directory, and `listChildOrgs`) against the deleting rule: an organization being deleted
  * is left out of every list, its row still standing, and a deletion table
  * that cannot be read answers INTERNAL with the lane's fixed copy, never a
  * list that might hold it. The registered handlers run on an in-process
@@ -99,20 +98,14 @@ function idsOf(entries: ReadonlyArray<{ metadata?: { id: string } }>): string[] 
 }
 
 describe("the organization lists, with an organization being deleted", () => {
-  it("find leaves it out", async () => {
-    const listed = await query().find({ org: PARENT });
-    expect(idsOf(listed.entries)).toEqual([LIVE, PARENT].sort());
-  });
-
-  it("findMyOrganizations leaves it out, with no directory and through one", async () => {
-    expect(idsOf((await query().findMyOrganizations({})).entries)).toEqual(
+  it("listMine leaves it out, with no directory and through one", async () => {
+    expect(idsOf((await query().listMine({})).entries)).toEqual(
       [LIVE, PARENT].sort(),
     );
     const directory: OrganizationDirectory = {
-      refusesEnumeration: false,
       listMyOrganizationIds: () => Promise.resolve([LIVE, DELETING]),
     };
-    expect(idsOf((await query(directory).findMyOrganizations({})).entries)).toEqual([LIVE]);
+    expect(idsOf((await query(directory).listMine({})).entries)).toEqual([LIVE]);
   });
 
   it("listChildOrgs leaves it out", async () => {
@@ -126,10 +119,7 @@ describe("the organization lists, with an organization being deleted", () => {
         .spyOn(temp.store.organizationDeletions, "list")
         .mockRejectedValueOnce(new Error("store down"));
     down();
-    const found = await codeOf(() => query().find({ org: PARENT }));
-    expect([found.code, found.rawMessage]).toEqual([Code.Internal, "failed to list organizations"]);
-    down();
-    const mine = await codeOf(() => query().findMyOrganizations({}));
+    const mine = await codeOf(() => query().listMine({}));
     expect([mine.code, mine.rawMessage]).toEqual([Code.Internal, "failed to list organizations"]);
     down();
     const children = await codeOf(() => query().listChildOrgs({ org: PARENT, pageSize: 10 }));

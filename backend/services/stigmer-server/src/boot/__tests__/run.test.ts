@@ -111,7 +111,7 @@ describe("runServer", () => {
       createGrpcTransport({ baseUrl: `http://127.0.0.1:${grpcPort}` }),
     );
     // The one organization is named `stigmer` and filed under a minted id.
-    const held = (await organizations.findMyOrganizations({})).entries;
+    const held = (await organizations.listMine({})).entries;
     expect(held.map((org) => org.metadata?.slug)).toEqual(["stigmer"]);
     expect(held[0]?.metadata?.id).toMatch(/^org_[0-9a-z]{26}$/);
 

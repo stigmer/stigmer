@@ -210,7 +210,7 @@ describe("PlatformClient on a composed server (authentication posture, built-in 
     const mine = await createClient(
       OrganizationQueryController,
       presenting(token),
-    ).findMyOrganizations({});
+    ).listMine({});
     expect(
       mine.entries.map((organization) => organization.metadata?.slug),
     ).toEqual([ORG]);
@@ -220,7 +220,7 @@ describe("PlatformClient on a composed server (authentication posture, built-in 
     await createClient(
       OrganizationQueryController,
       asFounder(),
-    ).findMyOrganizations({});
+    ).listMine({});
 
     const guest = signPlatformToken(RING, {
       sub: "ida_guest",
@@ -230,7 +230,7 @@ describe("PlatformClient on a composed server (authentication posture, built-in 
       createClient(
         OrganizationQueryController,
         presenting(guest),
-      ).findMyOrganizations({}),
+      ).listMine({}),
     );
     expect(refused.code).toBe(Code.Unauthenticated);
   });
@@ -243,7 +243,7 @@ describe("PlatformClient on a composed server (authentication posture, built-in 
       createClient(
         OrganizationQueryController,
         presenting(token, "https://evil.example"),
-      ).findMyOrganizations({}),
+      ).listMine({}),
     );
     expect(denied.code).toBe(Code.PermissionDenied);
     expect(denied.rawMessage).toBe(
@@ -253,11 +253,11 @@ describe("PlatformClient on a composed server (authentication posture, built-in 
     await createClient(
       OrganizationQueryController,
       presenting(token),
-    ).findMyOrganizations({});
+    ).listMine({});
     await createClient(
       OrganizationQueryController,
       presenting(token, "https://app.example"),
-    ).findMyOrganizations({});
+    ).listMine({});
   });
 
   it("refuses a deleted client's token on the next request with the liveness copy", async () => {
@@ -266,7 +266,7 @@ describe("PlatformClient on a composed server (authentication posture, built-in 
     await createClient(
       OrganizationQueryController,
       presenting(token),
-    ).findMyOrganizations({});
+    ).listMine({});
 
     await createClient(PlatformClientCommandController, asFounder()).delete({
       resourceId: client.id,
@@ -276,7 +276,7 @@ describe("PlatformClient on a composed server (authentication posture, built-in 
       createClient(
         OrganizationQueryController,
         presenting(token),
-      ).findMyOrganizations({}),
+      ).listMine({}),
     );
     expect(denied.code).toBe(Code.Unauthenticated);
     expect(denied.rawMessage).toBe(DELETED_CLIENT_MESSAGE);

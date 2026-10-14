@@ -2,7 +2,7 @@
  * The built-in organization directory — open source's driver for the
  * organization-directory seam (extensions/organization-directory.ts),
  * composed under the built-in posture. The cloud's directory answers
- * `findMyOrganizations` with OpenFGA's list-objects for
+ * `listMine` with OpenFGA's list-objects for
  * `organization#can_view`; this one answers the same question over the
  * derived source: the candidates are the organizations the person's own
  * IamPolicy rows name (on open source a person reaches an organization
@@ -13,12 +13,8 @@
  * answer stays right if the grant scope ever widens past the four roles,
  * and stays equal to the cloud's today.
  *
- * `refusesEnumeration` is TRUE, the cloud's posture: `find` is
- * skip-authorization by annotation, so under an enforcing server it would
- * hand every member every organization row — the list that lies. The
- * first-party clients list through `findMyOrganizations`. Trusted-local
- * composes no directory and keeps enumerating (one caller, nothing to
- * hide from).
+ * Trusted-local composes no directory and lists every organization (one
+ * caller, nothing to hide from).
  *
  * A caller who resolves to no account (an idp-shaped subject before
  * provisioning) holds no rows and is answered `[]`, never a fault: the
@@ -28,7 +24,7 @@
  * step treats that class as the in-process authorization skip (pipeline/
  * interceptors/auth.ts), and a directory answer IS an
  * authorization answer, so a server-internal hop sees what the permissive
- * default showed it. `findMyOrganizations` is skip-authorization by
+ * default showed it. `listMine` is skip-authorization by
  * annotation, which is why this driver meets that caller at all: a
  * skip lane hands the directory the identity the interceptor stamped,
  * and no Authorize arm ran before it. Every other caller gets the
@@ -70,8 +66,6 @@ export function newBuiltInOrganizationDirectory(
 ): OrganizationDirectory {
   const model = deps.model ?? builtInModel;
   return {
-    refusesEnumeration: true,
-
     async listMyOrganizationIds(
       caller: CallerIdentity,
     ): Promise<ReadonlyArray<string> | typeof ALL_ORGANIZATIONS> {

@@ -87,7 +87,7 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | ChannelAppCommandController.create | `metadata.org` |
 | ChannelAppCommandController.update | `resource.metadata.org` |
 | ChannelAppQueryController.getByReference | `org` |
-| ChannelAppQueryController.listByOrg | `org` |
+| ChannelAppQueryController.list | `org` |
 
 ## `ai.stigmer.agentic.evaluator.v1`
 
@@ -222,7 +222,7 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | OAuthAppCommandController.create | `metadata.org` |
 | OAuthAppCommandController.update | `resource.metadata.org` |
 | OAuthAppQueryController.getByReference | `org` |
-| OAuthAppQueryController.listByOrg | `org` |
+| OAuthAppQueryController.list | `org` |
 
 ## `ai.stigmer.iam.platformclient.v1`
 
@@ -231,7 +231,7 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | PlatformClientCommandController.create | `metadata.org`, `spec.vaults.org` |
 | PlatformClientCommandController.update | `resource.metadata.org`, `resource.spec.vaults.org` |
 | PlatformClientQueryController.getByReference | `org` |
-| PlatformClientQueryController.listByOrg | `org` |
+| PlatformClientQueryController.list | `org` |
 | PlatformClientTokenController.mintUserToken | `org` |
 
 ## `ai.stigmer.platform.github.v1`
@@ -260,7 +260,6 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | OrganizationCommandController.rename | `resource_id (annotation)` |
 | OrganizationCommandController.update | `resource.metadata.org`, `resource.spec.parent_org`, `resource.metadata.id (annotation)` |
 | OrganizationCommandController.updatePolicies | `org_id (annotation)` |
-| OrganizationQueryController.find | `org` |
 | OrganizationQueryController.get | `value (annotation)` |
 | OrganizationQueryController.getByExternalId | `parent_org` |
 | OrganizationQueryController.listChildOrgs | `org` |

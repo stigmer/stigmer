@@ -81,7 +81,7 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | ChannelAppCommandController.apply | metadata.org |
 | ChannelAppCommandController.create | metadata.org |
 | ChannelAppQueryController.getByReference | org |
-| ChannelAppQueryController.listByOrg | org |
+| ChannelAppQueryController.list | org |
 
 ## `ai.stigmer.agentic.evaluator.v1`
 
@@ -179,7 +179,7 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | OAuthAppCommandController.apply | metadata.org |
 | OAuthAppCommandController.create | metadata.org |
 | OAuthAppQueryController.getByReference | org |
-| OAuthAppQueryController.listByOrg | org |
+| OAuthAppQueryController.list | org |
 
 ## `ai.stigmer.iam.platformclient.v1`
 
@@ -187,7 +187,7 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 |---|---|
 | PlatformClientCommandController.create | metadata.org |
 | PlatformClientQueryController.getByReference | org |
-| PlatformClientQueryController.listByOrg | org |
+| PlatformClientQueryController.list | org |
 | PlatformClientTokenController.mintUserToken | org |
 
 ## `ai.stigmer.platform.github.v1`
@@ -227,5 +227,4 @@ These kinds are owned by a person, not an organization, yet these methods take a
 | IdentityAccountCommandController.create | not filled: kind belongs to no organization |
 | OrganizationCommandController.apply | not filled: organization service |
 | OrganizationCommandController.create | not filled: organization service |
-| OrganizationQueryController.find | not filled: organization service |
 | OrganizationQueryController.listChildOrgs | not filled: organization service |

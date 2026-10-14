@@ -159,7 +159,7 @@ describe("the open-source edition's one organization (composed as main.ts compos
       await server.start(),
     ));
     stigmerId =
-      (await organizationQuery.findMyOrganizations({})).entries[0]?.metadata
+      (await organizationQuery.listMine({})).entries[0]?.metadata
         ?.id ?? "";
   });
 
@@ -170,7 +170,7 @@ describe("the open-source edition's one organization (composed as main.ts compos
   });
 
   it("the first start makes `stigmer`, owned by the operator, and records it", async () => {
-    const mine = await organizationQuery.findMyOrganizations({});
+    const mine = await organizationQuery.listMine({});
     expect(mine.entries.map((org) => org.metadata?.slug)).toEqual(["stigmer"]);
     expect(stigmerId).toMatch(/^org_[0-9a-z]{26}$/);
     const made = mine.entries[0];
@@ -241,7 +241,7 @@ describe("the open-source edition's one organization (composed as main.ts compos
       { reason: ORGANIZATION_IS_SINGLE, metadata: { org: stigmerId } },
     ]);
     expect(
-      (await organizationQuery.findMyOrganizations({})).entries,
+      (await organizationQuery.listMine({})).entries,
     ).toHaveLength(1);
     expect(
       (
@@ -269,7 +269,7 @@ describe("the open-source edition's one organization (composed as main.ts compos
     ));
 
     expect(
-      (await organizationQuery.findMyOrganizations({})).entries.map(
+      (await organizationQuery.listMine({})).entries.map(
         (org) => org.metadata?.id,
       ),
     ).toEqual([stigmerId]);

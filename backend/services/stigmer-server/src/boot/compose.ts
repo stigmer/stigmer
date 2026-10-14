@@ -686,7 +686,7 @@ export async function composeServer(
   // and answers only whether a named Organization exists, as the other two
   // do (stigmer#1163). The organization directory and the
   // schedule fire caller are bound beside it under the same posture, so
-  // `findMyOrganizations` lists what a person may view and a scheduled run
+  // `listMine` lists what a person may view and a scheduled run
   // belongs to the person who scheduled it — a fire the internal lane
   // would otherwise hand to nobody an enforcing evaluator recognizes.
   const postureAuthorizer: Authorizer =
