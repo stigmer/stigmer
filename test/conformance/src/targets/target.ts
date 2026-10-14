@@ -600,6 +600,15 @@ export interface SiblingServer {
   clientsPresenting(bearerToken: string, options?: PresentingOptions): ConformanceClients;
   // The sibling's Claude Managed Agents lane, on its unified port.
   managedAgentsBaseUrl(): string;
+  // Stops the server and boots it again OVER THE SAME STORAGE, in the
+  // posture `options` names, then awaits readiness: the operator's path
+  // when a setting or a license changes. The new env REPLACES the old one,
+  // so a restart names everything it boots with, as a spawn does. The
+  // address may change; clientsPresenting and managedAgentsBaseUrl follow
+  // the server as it is now. Required of a licensed target's siblings
+  // (`licenseStatus: "licensed"`), where a license's lapse is proven on
+  // data written before it.
+  restart?(options: SpawnSiblingOptions): Promise<void>;
   // Stops the server and releases its storage.
   teardown(): Promise<void>;
 }

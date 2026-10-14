@@ -12,8 +12,11 @@
 // an outside issuer serves TLS with exactly that certificate; the sign-in
 // issuer is the harness's; a teams tenancy is the plain tenancy; teardown
 // stops the server, drops its database, closes the issuer and removes the
-// trusted file. The build, the spawns, the database, the issuers and the
-// readiness gate are stubbed; nothing here starts a server.
+// trusted file; a sibling restarts over the same database in the env the
+// restart names, its clients following the new address, and a restart that
+// does not come back releases the database once. The build, the spawns, the
+// database, the issuers and the readiness gate are stubbed; nothing here
+// starts a server.
 import { existsSync, readFileSync } from "node:fs";
 import { X509Certificate } from "node:crypto";
 
@@ -368,6 +371,62 @@ describe("the enterprise target", () => {
     );
     expect(logTails.at(-1)).toBe("log of http://127.0.0.1:2");
     expect(stopped).toEqual(["http://127.0.0.1:2"]);
+    expect(released).toEqual(["postgres://db/2"]);
+  });
+
+  it("restarts a sibling over the same database in the env the restart names, and its clients follow the new address", async () => {
+    const target = new EnterpriseTarget();
+    stubClients(target);
+    await target.setup();
+    const sibling = await target.spawnSibling({
+      env: { STIGMER_OIDC_ISSUER: "http://127.0.0.1:8/other", STIGMER_TEST_LICENSE_TERMS: "" },
+      readinessBearer: "sibling-reader",
+    });
+
+    await sibling.restart?.({
+      env: { STIGMER_OIDC_ISSUER: "http://127.0.0.1:8/other", STIGMER_TEST_LICENSE_TERMS: '{"days":1}' },
+      readinessBearer: "after-restart",
+    });
+    expect(stopped, "the first process stops").toEqual(["http://127.0.0.1:2"]);
+    expect(spawned[2]?.env, "the same database, and only the env the restart names").toEqual({
+      DATABASE_URL: "postgres://db/2",
+      STIGMER_OIDC_ISSUER: "http://127.0.0.1:8/other",
+      STIGMER_TEST_LICENSE_TERMS: '{"days":1}',
+    });
+    expect(readinessBearers.at(-1)).toBe("after-restart");
+    expect(released, "a restart keeps the database").toEqual([]);
+    expect(sibling.managedAgentsBaseUrl()).toBe("http://127.0.0.1:3");
+    expect(sibling.clientsPresenting("someone")).toEqual({ readinessBearer: "someone" });
+
+    await sibling.teardown();
+    expect(stopped).toEqual(["http://127.0.0.1:2", "http://127.0.0.1:3"]);
+    expect(released).toEqual(["postgres://db/2"]);
+  });
+
+  it("releases the database once when a restart does not come back, and refuses to be driven after", async () => {
+    const target = new EnterpriseTarget();
+    stubClients(target);
+    await target.setup();
+    const sibling = await target.spawnSibling({ env: {}, readinessBearer: "sibling-reader" });
+
+    failNextSpawn = true;
+    await expect(sibling.restart?.({ env: {}, readinessBearer: "" })).rejects.toThrow("boot failed: the sibling's posture");
+    expect(released).toEqual(["postgres://db/2"]);
+    expect(() => sibling.managedAgentsBaseUrl()).toThrow("the sibling is stopped: its restart did not come back");
+    await sibling.teardown();
+    expect(released, "teardown after a failed restart releases nothing twice").toEqual(["postgres://db/2"]);
+  });
+
+  it("stops a restarted sibling and releases its database when its readiness fails", async () => {
+    const target = new EnterpriseTarget();
+    stubClients(target);
+    await target.setup();
+    const sibling = await target.spawnSibling({ env: {}, readinessBearer: "sibling-reader" });
+
+    failNextReadiness = true;
+    await expect(sibling.restart?.({ env: {}, readinessBearer: "" })).rejects.toThrow("gRPC readiness gate failed");
+    expect(logTails.at(-1)).toBe("log of http://127.0.0.1:3");
+    expect(stopped).toEqual(["http://127.0.0.1:2", "http://127.0.0.1:3"]);
     expect(released).toEqual(["postgres://db/2"]);
   });
 
