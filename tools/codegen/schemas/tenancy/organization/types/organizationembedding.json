@@ -1,6 +1,6 @@
 {
   "name": "OrganizationEmbedding",
-  "description": "OrganizationEmbedding holds how people sign in to an organization from\n the organization's own product: which web pages may use their tokens,\n whether their first sign-in creates their account and with which role,\n and which vaults their conversations use.",
+  "description": "OrganizationEmbedding holds how people sign in to an organization from\n the organization's own product: which web pages may use their tokens,\n whether their first sign-in creates their account and with which role,\n and which vaults their conversations use. Every reader of the\n organization sees them, its app users included, as it sees the\n organization's policies: none of it is secret (origins are what browsers\n send, vaults are named, never opened), and only the organization's\n admins change it.",
   "protoType": "ai.stigmer.tenancy.organization.v1.OrganizationEmbedding",
   "protoFile": "apis/ai/stigmer/tenancy/organization/v1/spec.proto",
   "fields": [

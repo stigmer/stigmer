@@ -20,8 +20,11 @@
  *   - an edition's own doors of the same kind (the hosted edition's
  *     invitations and federation issuers splice the step).
  *
- * So a leaked key can neither outlive its revocation, by minting another
- * credential, nor widen the organization. The model alone cannot hold this:
+ * So a leaked key, acting as itself, can neither outlive its revocation, by
+ * minting another credential, nor widen the organization. What it reaches
+ * through the mint is its app users' own reach, the trust an organization
+ * gives its product's backend as it gives a federation issuer's key
+ * (domain/token/mint.ts). The model alone cannot hold this:
  * an admin service account is `admin from organization` of its own
  * organization, so it holds `can_manage_keys` on itself and on every other
  * service account there. A share of one resource by an admin service

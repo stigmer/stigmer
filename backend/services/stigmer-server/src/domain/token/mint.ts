@@ -56,8 +56,13 @@
  * and the grant is an ordinary `grant`, the way a federated sign-in's is
  * recorded for its federation issuer. The service account's own key is
  * refused every account and organization-role write on the wire; this is
- * the one place its organization's admins let it do either, bounded by
- * the role they set in the embedding settings.
+ * the one place its organization's admins let it do either. A first
+ * sign-in receives the role they set in the embedding settings; an account
+ * that exists signs in with whatever roles it holds now, one an admin
+ * promoted included, as a federated sign-in does. The key vouches for the
+ * person, as a federation issuer's signing key does, so a leaked mint key
+ * reaches every app user of its organization and of its children, and
+ * what each may do: it is guarded as an admin's credential.
  *
  * The email and name in the token and on the account are the product's
  * assertion; nothing on the server derives authority from either.

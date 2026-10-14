@@ -10,7 +10,11 @@ package ai.stigmer.tenancy.organization.v1;
  * OrganizationEmbedding holds how people sign in to an organization from
  * the organization's own product: which web pages may use their tokens,
  * whether their first sign-in creates their account and with which role,
- * and which vaults their conversations use.
+ * and which vaults their conversations use. Every reader of the
+ * organization sees them, its app users included, as it sees the
+ * organization's policies: none of it is secret (origins are what browsers
+ * send, vaults are named, never opened), and only the organization's
+ * admins change it.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.tenancy.organization.v1.OrganizationEmbedding}
@@ -549,7 +553,11 @@ private static final long serialVersionUID = 0L;
    * OrganizationEmbedding holds how people sign in to an organization from
    * the organization's own product: which web pages may use their tokens,
    * whether their first sign-in creates their account and with which role,
-   * and which vaults their conversations use.
+   * and which vaults their conversations use. Every reader of the
+   * organization sees them, its app users included, as it sees the
+   * organization's policies: none of it is secret (origins are what browsers
+   * send, vaults are named, never opened), and only the organization's
+   * admins change it.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.tenancy.organization.v1.OrganizationEmbedding}

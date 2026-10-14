@@ -126,7 +126,7 @@ A service account is an organization's own non-person account: the principal its
 - `metadata.name`: its one name, unique among the organization's service accounts; `email`, `first_name`, `last_name` and `picture_url` stay empty
 - Managed by the organization's admins: they rename it, change its role, list, create and revoke its keys, and delete it, which ends every key at once
 - It is never a person: whatever credential speaks for it, it is refused creating or changing keys and service accounts, creating or deleting organizations, changing any identity account, granting or revoking a role on the organization, creating invitations, federation issuers or federated accounts; it is never a team member
-- The one exception is minting: an administrator's service account may mint user tokens for its organization and its child organizations (`TokenService.mintUserToken`), which creates a person's App user account on first sign-in and grants the organization's embedding sign-in role when one is set
+- The one exception is minting: an administrator's service account may mint user tokens for its organization and its child organizations (`TokenService.mintUserToken`), which creates a person's App user account on first sign-in and grants the organization's embedding sign-in role when one is set. An App user who already exists signs in with the roles they hold now, an admin's promotion included, as a federated sign-in does: the key vouches for the person, as an issuer's signing key does, so a minting key is guarded as an admin's credential
 - Deleted and created again under the same name, it is a new principal: the random part of its subject is never reissued
 
 ## Related Documentation
