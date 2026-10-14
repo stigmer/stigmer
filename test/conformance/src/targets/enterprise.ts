@@ -273,36 +273,72 @@ export class EnterpriseTarget implements TargetProfile {
   // suite's env names: its OIDC issuer, and any license terms, egress
   // posture or creators rule (the header says which). Readiness is the
   // harness's one gate, presented with the bearer the suite supplied.
+  //
+  // `restart` stops the process and boots the same entry again over the
+  // same database, in the env the restart names, awaiting readiness as a
+  // spawn does: the operator's own path when a license runs out. A restart
+  // that fails to come back releases the database, as a failed spawn does.
   async spawnSibling(options: SpawnSiblingOptions): Promise<SiblingServer> {
     const entry = await ensureEnterpriseServerEntry();
     const storage = await provisionPostgresStorage();
-    let server: RunningServer;
-    try {
-      server = await spawnServer(process.execPath, {
+    const boot = (posture: SpawnSiblingOptions): Promise<RunningServer> =>
+      spawnServer(process.execPath, {
         args: ["--import", tsxLoaderUrl(), entry],
-        env: { ...storage.serverEnv, ...options.env },
+        env: { ...storage.serverEnv, ...posture.env },
         readyTimeoutMs: ENTERPRISE_READY_TIMEOUT_MS,
       });
-    } catch (error) {
+    // Released once, whichever of a failed boot or the teardown comes first.
+    let released = false;
+    const release = async (): Promise<void> => {
+      if (released) return;
+      released = true;
       await storage.release();
+    };
+    let server: RunningServer | undefined;
+    try {
+      server = await boot(options);
+    } catch (error) {
+      await release();
       throw error;
     }
+    const current = (): RunningServer => {
+      if (server === undefined) {
+        throw new Error("the sibling is stopped: its restart did not come back");
+      }
+      return server;
+    };
     const clientsPresenting = (
       bearerToken: string,
       presenting: PresentingOptions = {},
     ): ConformanceClients =>
-      makeClients(createTransport(server.baseUrl, { ...presenting, bearerToken }));
+      makeClients(createTransport(current().baseUrl, { ...presenting, bearerToken }));
     const teardown = async (): Promise<void> => {
-      await server.stop();
-      await storage.release();
+      await server?.stop();
+      server = undefined;
+      await release();
     };
-    try {
-      await awaitGrpcReady(clientsPresenting(options.readinessBearer), () => server.logTail());
-    } catch (error) {
-      await teardown();
-      throw error;
-    }
-    return { clientsPresenting, managedAgentsBaseUrl: () => server.baseUrl, teardown };
+    const ready = async (posture: SpawnSiblingOptions): Promise<void> => {
+      const running = current();
+      try {
+        await awaitGrpcReady(clientsPresenting(posture.readinessBearer), () => running.logTail());
+      } catch (error) {
+        await teardown();
+        throw error;
+      }
+    };
+    await ready(options);
+    const restart = async (posture: SpawnSiblingOptions): Promise<void> => {
+      await current().stop();
+      server = undefined;
+      try {
+        server = await boot(posture);
+      } catch (error) {
+        await release();
+        throw error;
+      }
+      await ready(posture);
+    };
+    return { clientsPresenting, managedAgentsBaseUrl: () => current().baseUrl, restart, teardown };
   }
 
   clients(): ConformanceClients {

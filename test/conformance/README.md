@@ -286,7 +286,10 @@ The posture is the one a licensed server needs:
 
 A sibling (`spawnSibling`) is the same entry on its own database, in the env
 the suite names: its issuer, and license terms through
-`STIGMER_TEST_LICENSE_TERMS` (the entry's header lists them).
+`STIGMER_TEST_LICENSE_TERMS` (the entry's header lists them). A sibling
+`restart`s over the same database in the env the restart names, which is how
+the license-terms suite proves a lapse on data written while the license was
+current: the operator's own path when a license runs out.
 
 An organization's federation issuer is an outside provider the server reads
 only over HTTPS, so the target can start one: `startOutsideIssuer()` is the
