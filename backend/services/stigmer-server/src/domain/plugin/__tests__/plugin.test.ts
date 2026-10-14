@@ -529,8 +529,8 @@ describe("Plugin push — one row", () => {
       first.status?.audit?.specAudit?.updatedAt,
     );
     const versions = await pluginQuery.listVersions({ org: ORG, slug: name });
-    expect(versions.totalCount).toBe(1);
-    expect(versions.versions[0]?.tag).toBe("1.2.0");
+    expect(versions.entries).toHaveLength(1);
+    expect(versions.entries[0]?.tag).toBe("1.2.0");
   });
 
   it("an upgrade replaces the lists and grows the version history; getByReference resolves latest, the digest and the tag", async () => {
@@ -560,9 +560,9 @@ describe("Plugin push — one row", () => {
     expect(second.status?.digest).not.toBe(first.status?.digest);
     expect(second.status?.skills.map((s) => s.name)).toEqual(["second"]);
     const versions = await pluginQuery.listVersions({ org: ORG, slug: name });
-    expect(versions.totalCount).toBe(2);
+    expect(versions.entries).toHaveLength(2);
     expect(
-      versions.versions.filter((v) => v.isCurrent).map((v) => v.digest),
+      versions.entries.filter((v) => v.isCurrent).map((v) => v.digest),
     ).toEqual([second.status?.digest]);
     for (const version of ["", "latest", second.status!.digest, "1.3.0"]) {
       const resolved = await pluginQuery.getByReference(
@@ -921,7 +921,7 @@ describe("Plugin delete and visibility", () => {
     );
     expect(await rowCount(ApiResourceKind.skill)).toBe(skillsBefore);
     const versions = await pluginQuery.listVersions({ org: ORG, slug: name });
-    expect(versions.totalCount).toBe(1);
+    expect(versions.entries).toHaveLength(1);
 
     await agents.delete({ value: mine.metadata!.id });
   });
