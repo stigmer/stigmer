@@ -1,8 +1,7 @@
 package ai.stigmer.sdk;
 
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
-import ai.stigmer.commons.rpc.PageInfo;
-import ai.stigmer.sdk.gen.Page;
+import ai.stigmer.sdk.gen.Pages;
 import ai.stigmer.sdk.gen.StigmerException;
 import ai.stigmer.search.v1.SearchRequest;
 import ai.stigmer.search.v1.SearchResult;
@@ -11,14 +10,15 @@ import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
  * Cross-resource search client.
  *
- * <p>Unlike the per-resource {@code list()} methods (which search within a
- * single resource kind), {@code SearchClient.query()} searches across multiple
- * resource kinds in a single call.
+ * <p>Unlike the per-resource {@code list()} methods (which browse one
+ * resource kind), {@code SearchClient.query()} finds resources of several
+ * kinds by their words in a single call.
  *
  * <pre>{@code
  * SearchClient.SearchResponse results = client.search().query(
@@ -47,21 +47,29 @@ public final class SearchClient {
             if (params.query != null) {
                 req.setQuery(params.query);
             }
-            if (params.page != null) {
-                req.setPage(PageInfo.newBuilder()
-                        .setNum(params.page.getNum())
-                        .setSize(params.page.getSize())
-                        .build());
-            }
+            req.setPageSize(params.pageSize).setPageToken(params.pageToken);
 
             ai.stigmer.search.v1.SearchResponse resp = stub.search(req.build());
             return new SearchResponse(
                     resp.getEntriesList(),
-                    resp.getTotalCount(),
-                    resp.getTotalPages());
+                    resp.getCountsByKindMap(),
+                    resp.getNextPageToken());
         } catch (StatusRuntimeException e) {
             throw StigmerException.wrap(e);
         }
+    }
+
+    /**
+     * Every result of a search, page after page: follows the next page token
+     * from the token the params name until the results end. Each page is
+     * read as the iteration reaches it.
+     */
+    public Iterable<SearchResult> queryAll(SearchParams params) {
+        return Pages.<SearchResponse, SearchResult>iterate(
+                params.pageToken,
+                token -> query(params.withPageToken(token)),
+                SearchResponse::getEntries,
+                SearchResponse::getNextPageToken);
     }
 
     // -- SearchParams ---------------------------------------------------------
@@ -71,22 +79,30 @@ public final class SearchClient {
         final List<ApiResourceKind> kinds;
         final String org;
         final String query;
-        final Page page;
+        final int pageSize;
+        final String pageToken;
 
         private SearchParams(Builder builder) {
             this.kinds = builder.kinds;
             this.org = builder.org;
             this.query = builder.query;
-            this.page = builder.page;
+            this.pageSize = builder.pageSize;
+            this.pageToken = builder.pageToken;
         }
 
         public static Builder builder() { return new Builder(); }
+
+        SearchParams withPageToken(String token) {
+            Builder b = builder().kinds(kinds).org(org).query(query).pageSize(pageSize);
+            return b.pageToken(token).build();
+        }
 
         public static final class Builder {
             private List<ApiResourceKind> kinds = List.of();
             private String org = "";
             private String query;
-            private Page page;
+            private int pageSize;
+            private String pageToken = "";
 
             private Builder() {}
 
@@ -112,9 +128,15 @@ public final class SearchClient {
                 return this;
             }
 
-            /** Pagination parameters. */
-            public Builder page(Page page) {
-                this.page = page;
+            /** The most results to return: 0 asks for the default page of 50, and above 100 reads 100. */
+            public Builder pageSize(int pageSize) {
+                this.pageSize = pageSize;
+                return this;
+            }
+
+            /** The previous response's next page token, to continue the same query. */
+            public Builder pageToken(String pageToken) {
+                this.pageToken = Objects.requireNonNull(pageToken);
                 return this;
             }
 
@@ -129,17 +151,19 @@ public final class SearchClient {
     /** A page of cross-resource search results. */
     public static final class SearchResponse {
         private final List<SearchResult> entries;
-        private final int totalCount;
-        private final int totalPages;
+        private final Map<String, Integer> countsByKind;
+        private final String nextPageToken;
 
-        SearchResponse(List<SearchResult> entries, int totalCount, int totalPages) {
+        SearchResponse(List<SearchResult> entries, Map<String, Integer> countsByKind, String nextPageToken) {
             this.entries = entries;
-            this.totalCount = totalCount;
-            this.totalPages = totalPages;
+            this.countsByKind = countsByKind;
+            this.nextPageToken = nextPageToken;
         }
 
         public List<SearchResult> getEntries() { return entries; }
-        public int getTotalCount() { return totalCount; }
-        public int getTotalPages() { return totalPages; }
+        /** Matches per resource kind across every page, keyed by kind name. */
+        public Map<String, Integer> getCountsByKind() { return countsByKind; }
+        /** Set when more results may follow: pass it as the page token to continue. */
+        public String getNextPageToken() { return nextPageToken; }
     }
 }
