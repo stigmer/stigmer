@@ -20,7 +20,7 @@ export const glossary: Record<string, string> = {
   Evaluator:
     "AI grading switched on for one Agent: how many of its runs an AI judge grades, the monthly spending limit, and the judge's model.",
   "Eval Run":
-    "One run of test cases on an Agent, or of a plugin's own test cases on the built-in assistant, each case tried several times on the models the eval run names. Comparing a plugin tries each case with it and without it and records the difference it makes. An eval run on an Agent is stamped with the Agent's version, so two versions compare side by side.",
+    "One run of test cases: on an Agent, the cases of the plugins it uses, tried several times on the Agent itself; or on a plugin, the plugin's own cases, tried on the built-in assistant. Comparing a plugin tries each case with the plugin and without it and records the difference it makes. An eval run on an Agent is stamped with the Agent's version, so two versions compare side by side.",
   Session:
     "An ongoing conversation with an Agent across multiple messages. A session remembers what was said earlier so the Agent can follow along.",
   Skill:
