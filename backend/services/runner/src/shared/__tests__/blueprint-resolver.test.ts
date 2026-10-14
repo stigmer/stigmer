@@ -29,6 +29,11 @@
  *     subagent's reference winning; a subagent that cannot be read fails
  *     the turn naming it; a subagent or plugin reference with no slug is
  *     passed over unread.
+ *   - excluded plugins: a plugin the run excludes is read but left out of
+ *     the turn, by its resolved id, whether the agent, the session or a
+ *     subagent lists it, a subagent's copy included whether the turn's
+ *     merge already held it or the subagent's reference read it afresh;
+ *     its agents are not the turn's; the plugins kept keep their order.
  *
  * `mergeSkillRefs` carried from `skill-writer.test.ts` in #1096, when the
  * native orchestrator's byte-twin of this function was deleted with its
@@ -478,6 +483,78 @@ describe("resolveBlueprint: subagents", () => {
     expect(failure).not.toBeInstanceOf(ConnectError);
     expect((failure as Error).message).toContain("the subagent 'release-notes'");
     expect((failure as Error).message).toContain("socket hang up");
+  });
+});
+
+describe("resolveBlueprint: excluded plugins", () => {
+  const PIN = "c".repeat(64);
+
+  /** The agent's version: its plugins and the subagents it pinned. */
+  const agentVersion = (plugins: { org: string; slug: string }[], subagents: string[] = []) =>
+    create(AgentVersionEntrySchema, {
+      versionHash: HASH,
+      specSnapshot: {
+        instructions: "x",
+        plugins,
+        subagents: subagents.map((slug) => ({ kind: ApiResourceKind.agent, org: "acme", slug, version: PIN })),
+      },
+    });
+
+  /** A client whose agent lists `plugins` and `subagents`, each subagent listing `subagentPlugins`. */
+  function clientFor(plugins: { org: string; slug: string }[], subagents: string[] = [], subagentPlugins: { slug: string }[] = []) {
+    const getPluginByReference = vi.fn(async (ref: ApiResourceReference) => pluginNamed(ref.slug, [`${ref.slug}-helper`]));
+    const client = mockStigmerClient({
+      getAgentVersion: vi.fn().mockResolvedValue(agentVersion(plugins, subagents)),
+      getAgentByReference: vi.fn(async (ref: ApiResourceReference) =>
+        create(AgentSchema, { metadata: { id: `agt_${ref.slug}`, slug: ref.slug, org: "acme" }, spec: { plugins: subagentPlugins } }),
+      ),
+      getPluginByReference,
+    });
+    return { client, getPluginByReference };
+  }
+
+  const STAMP = { agentId: "agt_1", agentVersionHash: HASH };
+
+  it("leaves out an excluded plugin the agent or the session lists, still reading it, keeping the others in order", async () => {
+    const { client, getPluginByReference } = clientFor([
+      { org: "acme", slug: "linear" },
+      { org: "acme", slug: "github" },
+    ]);
+    const session = create(SessionSchema, { metadata: { id: "ses_x", org: "acme" }, spec: { plugins: [{ org: "acme", slug: "notes" }] } });
+
+    const withoutLinear = await resolveBlueprint(client, session, STAMP, {}, ["plg_linear"]);
+    expect(withoutLinear.plugins.map((p) => p.metadata?.slug)).toEqual(["github", "notes"]);
+    expect(withoutLinear.pluginAgents.map((a) => a.name)).toEqual(["github:github-helper", "notes:notes-helper"]);
+    expect(getPluginByReference.mock.calls.map(([ref]) => ref.slug), "an excluded plugin is still read").toContain("linear");
+
+    const withoutNotes = await resolveBlueprint(client, session, STAMP, {}, ["plg_notes"]);
+    expect(withoutNotes.plugins.map((p) => p.metadata?.slug)).toEqual(["linear", "github"]);
+  });
+
+  it("leaves an excluded plugin out of a subagent that shares the turn's copy, and out of one that reads its own", async () => {
+    const shared = clientFor([{ org: "acme", slug: "linear" }], ["triage"], [{ slug: "linear" }]);
+    const session = create(SessionSchema, { metadata: { id: "ses_s", org: "acme" }, spec: {} });
+    const sharedBlueprint = await resolveBlueprint(shared.client, session, STAMP, {}, ["plg_linear"]);
+    expect(sharedBlueprint.plugins).toEqual([]);
+    expect(sharedBlueprint.subagents[0]?.plugins).toEqual([]);
+
+    const own = clientFor([], ["triage"], [{ slug: "linear" }, { slug: "changelog" }]);
+    const ownBlueprint = await resolveBlueprint(own.client, session, STAMP, {}, ["plg_linear"]);
+    expect(own.getPluginByReference.mock.calls.map(([ref]) => ref.slug), "the subagent's own reference is read").toEqual([
+      "linear",
+      "changelog",
+    ]);
+    expect(ownBlueprint.subagents[0]?.plugins.map((p) => p.metadata?.slug)).toEqual(["changelog"]);
+  });
+
+  it("runs every plugin when the run excludes none, or only plugins the turn does not list", async () => {
+    const { client } = clientFor([{ org: "acme", slug: "linear" }], ["triage"], [{ slug: "changelog" }]);
+    const session = create(SessionSchema, { metadata: { id: "ses_n", org: "acme" }, spec: {} });
+    for (const excluded of [[], ["plg_other"]]) {
+      const blueprint = await resolveBlueprint(client, session, STAMP, {}, excluded);
+      expect(blueprint.plugins.map((p) => p.metadata?.slug), excluded.join()).toEqual(["linear"]);
+      expect(blueprint.subagents[0]?.plugins.map((p) => p.metadata?.slug), excluded.join()).toEqual(["changelog"]);
+    }
   });
 });
 

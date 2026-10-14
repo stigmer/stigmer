@@ -44,6 +44,8 @@ private static final long serialVersionUID = 0L;
     workspaceFileRefs_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
     supersedesRunId_ = "";
+    excludedPluginIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -1223,6 +1225,71 @@ private static final long serialVersionUID = 0L;
     return reconcileFileReview_;
   }
 
+  public static final int EXCLUDED_PLUGIN_IDS_FIELD_NUMBER = 27;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList excludedPluginIds_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <pre>
+   * Plugins this turn leaves out, by id, wherever the turn would take them
+   * from: its agent version, its conversation or one of its subagents. A
+   * plugin left out loads nothing into the turn: no skills, agents, hooks
+   * or MCP servers, and no values planned for it.
+   * </pre>
+   *
+   * <code>repeated string excluded_plugin_ids = 27 [json_name = "excludedPluginIds", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the excludedPluginIds.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getExcludedPluginIdsList() {
+    return excludedPluginIds_;
+  }
+  /**
+   * <pre>
+   * Plugins this turn leaves out, by id, wherever the turn would take them
+   * from: its agent version, its conversation or one of its subagents. A
+   * plugin left out loads nothing into the turn: no skills, agents, hooks
+   * or MCP servers, and no values planned for it.
+   * </pre>
+   *
+   * <code>repeated string excluded_plugin_ids = 27 [json_name = "excludedPluginIds", (.buf.validate.field) = { ... }</code>
+   * @return The count of excludedPluginIds.
+   */
+  public int getExcludedPluginIdsCount() {
+    return excludedPluginIds_.size();
+  }
+  /**
+   * <pre>
+   * Plugins this turn leaves out, by id, wherever the turn would take them
+   * from: its agent version, its conversation or one of its subagents. A
+   * plugin left out loads nothing into the turn: no skills, agents, hooks
+   * or MCP servers, and no values planned for it.
+   * </pre>
+   *
+   * <code>repeated string excluded_plugin_ids = 27 [json_name = "excludedPluginIds", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The excludedPluginIds at the given index.
+   */
+  public java.lang.String getExcludedPluginIds(int index) {
+    return excludedPluginIds_.get(index);
+  }
+  /**
+   * <pre>
+   * Plugins this turn leaves out, by id, wherever the turn would take them
+   * from: its agent version, its conversation or one of its subagents. A
+   * plugin left out loads nothing into the turn: no skills, agents, hooks
+   * or MCP servers, and no values planned for it.
+   * </pre>
+   *
+   * <code>repeated string excluded_plugin_ids = 27 [json_name = "excludedPluginIds", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the excludedPluginIds at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getExcludedPluginIdsBytes(int index) {
+    return excludedPluginIds_.getByteString(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1287,6 +1354,9 @@ private static final long serialVersionUID = 0L;
     }
     if (reconcileFileReview_ != false) {
       output.writeBool(26, reconcileFileReview_);
+    }
+    for (int i = 0; i < excludedPluginIds_.size(); i++) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 27, excludedPluginIds_.getRaw(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -1378,6 +1448,14 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(26, reconcileFileReview_);
     }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < excludedPluginIds_.size(); i++) {
+        dataSize += computeStringSizeNoTag(excludedPluginIds_.getRaw(i));
+      }
+      size += dataSize;
+      size += 2 * getExcludedPluginIdsList().size();
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1434,6 +1512,8 @@ private static final long serialVersionUID = 0L;
     }
     if (getReconcileFileReview()
         != other.getReconcileFileReview()) return false;
+    if (!getExcludedPluginIdsList()
+        .equals(other.getExcludedPluginIdsList())) return false;
     if (!getTargetCase().equals(other.getTargetCase())) return false;
     switch (targetCase_) {
       case 1:
@@ -1507,6 +1587,10 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + RECONCILE_FILE_REVIEW_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getReconcileFileReview());
+    if (getExcludedPluginIdsCount() > 0) {
+      hash = (37 * hash) + EXCLUDED_PLUGIN_IDS_FIELD_NUMBER;
+      hash = (53 * hash) + getExcludedPluginIdsList().hashCode();
+    }
     switch (targetCase_) {
       case 1:
         hash = (37 * hash) + SESSION_ID_FIELD_NUMBER;
@@ -1708,6 +1792,8 @@ private static final long serialVersionUID = 0L;
         pluginEvalCaseBuilder_ = null;
       }
       reconcileFileReview_ = false;
+      excludedPluginIds_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
       targetCase_ = 0;
       target_ = null;
       return this;
@@ -1814,6 +1900,10 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00010000) != 0)) {
         result.reconcileFileReview_ = reconcileFileReview_;
+      }
+      if (((from_bitField0_ & 0x00020000) != 0)) {
+        excludedPluginIds_.makeImmutable();
+        result.excludedPluginIds_ = excludedPluginIds_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1933,6 +2023,16 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getReconcileFileReview() != false) {
         setReconcileFileReview(other.getReconcileFileReview());
+      }
+      if (!other.excludedPluginIds_.isEmpty()) {
+        if (excludedPluginIds_.isEmpty()) {
+          excludedPluginIds_ = other.excludedPluginIds_;
+          bitField0_ |= 0x00020000;
+        } else {
+          ensureExcludedPluginIdsIsMutable();
+          excludedPluginIds_.addAll(other.excludedPluginIds_);
+        }
+        onChanged();
       }
       switch (other.getTargetCase()) {
         case SESSION_ID: {
@@ -2078,6 +2178,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00010000;
               break;
             } // case 208
+            case 218: {
+              ensureExcludedPluginIdsIsMutable();
+              excludedPluginIds_.add(input.readStringRequireUtf8());
+              break;
+            } // case 218
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -5435,6 +5540,180 @@ private static final long serialVersionUID = 0L;
     public Builder clearReconcileFileReview() {
       bitField0_ = (bitField0_ & ~0x00010000);
       reconcileFileReview_ = false;
+      onChanged();
+      return this;
+    }
+
+    private com.google.protobuf.LazyStringArrayList excludedPluginIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensureExcludedPluginIdsIsMutable() {
+      if (!excludedPluginIds_.isModifiable()) {
+        excludedPluginIds_ = new com.google.protobuf.LazyStringArrayList(excludedPluginIds_);
+      }
+      bitField0_ |= 0x00020000;
+    }
+    /**
+     * <pre>
+     * Plugins this turn leaves out, by id, wherever the turn would take them
+     * from: its agent version, its conversation or one of its subagents. A
+     * plugin left out loads nothing into the turn: no skills, agents, hooks
+     * or MCP servers, and no values planned for it.
+     * </pre>
+     *
+     * <code>repeated string excluded_plugin_ids = 27 [json_name = "excludedPluginIds", (.buf.validate.field) = { ... }</code>
+     * @return A list containing the excludedPluginIds.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getExcludedPluginIdsList() {
+      excludedPluginIds_.makeImmutable();
+      return excludedPluginIds_;
+    }
+    /**
+     * <pre>
+     * Plugins this turn leaves out, by id, wherever the turn would take them
+     * from: its agent version, its conversation or one of its subagents. A
+     * plugin left out loads nothing into the turn: no skills, agents, hooks
+     * or MCP servers, and no values planned for it.
+     * </pre>
+     *
+     * <code>repeated string excluded_plugin_ids = 27 [json_name = "excludedPluginIds", (.buf.validate.field) = { ... }</code>
+     * @return The count of excludedPluginIds.
+     */
+    public int getExcludedPluginIdsCount() {
+      return excludedPluginIds_.size();
+    }
+    /**
+     * <pre>
+     * Plugins this turn leaves out, by id, wherever the turn would take them
+     * from: its agent version, its conversation or one of its subagents. A
+     * plugin left out loads nothing into the turn: no skills, agents, hooks
+     * or MCP servers, and no values planned for it.
+     * </pre>
+     *
+     * <code>repeated string excluded_plugin_ids = 27 [json_name = "excludedPluginIds", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the element to return.
+     * @return The excludedPluginIds at the given index.
+     */
+    public java.lang.String getExcludedPluginIds(int index) {
+      return excludedPluginIds_.get(index);
+    }
+    /**
+     * <pre>
+     * Plugins this turn leaves out, by id, wherever the turn would take them
+     * from: its agent version, its conversation or one of its subagents. A
+     * plugin left out loads nothing into the turn: no skills, agents, hooks
+     * or MCP servers, and no values planned for it.
+     * </pre>
+     *
+     * <code>repeated string excluded_plugin_ids = 27 [json_name = "excludedPluginIds", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the excludedPluginIds at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getExcludedPluginIdsBytes(int index) {
+      return excludedPluginIds_.getByteString(index);
+    }
+    /**
+     * <pre>
+     * Plugins this turn leaves out, by id, wherever the turn would take them
+     * from: its agent version, its conversation or one of its subagents. A
+     * plugin left out loads nothing into the turn: no skills, agents, hooks
+     * or MCP servers, and no values planned for it.
+     * </pre>
+     *
+     * <code>repeated string excluded_plugin_ids = 27 [json_name = "excludedPluginIds", (.buf.validate.field) = { ... }</code>
+     * @param index The index to set the value at.
+     * @param value The excludedPluginIds to set.
+     * @return This builder for chaining.
+     */
+    public Builder setExcludedPluginIds(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureExcludedPluginIdsIsMutable();
+      excludedPluginIds_.set(index, value);
+      bitField0_ |= 0x00020000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Plugins this turn leaves out, by id, wherever the turn would take them
+     * from: its agent version, its conversation or one of its subagents. A
+     * plugin left out loads nothing into the turn: no skills, agents, hooks
+     * or MCP servers, and no values planned for it.
+     * </pre>
+     *
+     * <code>repeated string excluded_plugin_ids = 27 [json_name = "excludedPluginIds", (.buf.validate.field) = { ... }</code>
+     * @param value The excludedPluginIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addExcludedPluginIds(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureExcludedPluginIdsIsMutable();
+      excludedPluginIds_.add(value);
+      bitField0_ |= 0x00020000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Plugins this turn leaves out, by id, wherever the turn would take them
+     * from: its agent version, its conversation or one of its subagents. A
+     * plugin left out loads nothing into the turn: no skills, agents, hooks
+     * or MCP servers, and no values planned for it.
+     * </pre>
+     *
+     * <code>repeated string excluded_plugin_ids = 27 [json_name = "excludedPluginIds", (.buf.validate.field) = { ... }</code>
+     * @param values The excludedPluginIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllExcludedPluginIds(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureExcludedPluginIdsIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, excludedPluginIds_);
+      bitField0_ |= 0x00020000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Plugins this turn leaves out, by id, wherever the turn would take them
+     * from: its agent version, its conversation or one of its subagents. A
+     * plugin left out loads nothing into the turn: no skills, agents, hooks
+     * or MCP servers, and no values planned for it.
+     * </pre>
+     *
+     * <code>repeated string excluded_plugin_ids = 27 [json_name = "excludedPluginIds", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearExcludedPluginIds() {
+      excludedPluginIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00020000);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Plugins this turn leaves out, by id, wherever the turn would take them
+     * from: its agent version, its conversation or one of its subagents. A
+     * plugin left out loads nothing into the turn: no skills, agents, hooks
+     * or MCP servers, and no values planned for it.
+     * </pre>
+     *
+     * <code>repeated string excluded_plugin_ids = 27 [json_name = "excludedPluginIds", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes of the excludedPluginIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addExcludedPluginIdsBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensureExcludedPluginIdsIsMutable();
+      excludedPluginIds_.add(value);
+      bitField0_ |= 0x00020000;
       onChanged();
       return this;
     }

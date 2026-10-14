@@ -213,8 +213,13 @@ type RunSpec struct {
 	// earlier turn ended: it runs no model and carries no message. The
 	// server starts one when an undo is decided on a finished turn.
 	ReconcileFileReview bool `protobuf:"varint,26,opt,name=reconcile_file_review,json=reconcileFileReview,proto3" json:"reconcile_file_review,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// Plugins this turn leaves out, by id, wherever the turn would take them
+	// from: its agent version, its conversation or one of its subagents. A
+	// plugin left out loads nothing into the turn: no skills, agents, hooks
+	// or MCP servers, and no values planned for it.
+	ExcludedPluginIds []string `protobuf:"bytes,27,rep,name=excluded_plugin_ids,json=excludedPluginIds,proto3" json:"excluded_plugin_ids,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *RunSpec) Reset() {
@@ -375,6 +380,13 @@ func (x *RunSpec) GetReconcileFileReview() bool {
 		return x.ReconcileFileReview
 	}
 	return false
+}
+
+func (x *RunSpec) GetExcludedPluginIds() []string {
+	if x != nil {
+		return x.ExcludedPluginIds
+	}
+	return nil
 }
 
 type isRunSpec_Target interface {
@@ -781,7 +793,7 @@ var File_ai_stigmer_agentic_run_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"$ai/stigmer/agentic/run/v1/spec.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a0ai/stigmer/agentic/run/v1/plugin_eval_case.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe3\f\n" +
+	"$ai/stigmer/agentic/run/v1/spec.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a0ai/stigmer/agentic/run/v1/plugin_eval_case.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa8\r\n" +
 	"\aRunSpec\x12\x1f\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tH\x00R\tsessionId\x12O\n" +
@@ -802,7 +814,8 @@ const file_ai_stigmer_agentic_run_v1_spec_proto_rawDesc = "" +
 	"\x11supersedes_run_id\x18\f \x01(\tR\x0fsupersedesRunId\x12a\n" +
 	"\x14conversation_catchup\x18\x0e \x01(\v2..ai.stigmer.agentic.run.v1.ConversationCatchupR\x13conversationCatchup\x12Z\n" +
 	"\x10plugin_eval_case\x18\x19 \x01(\v20.ai.stigmer.agentic.run.v1.PluginEvalCaseContextR\x0epluginEvalCase\x122\n" +
-	"\x15reconcile_file_review\x18\x1a \x01(\bR\x13reconcileFileReview:f\xbaHc\x1aa\n" +
+	"\x15reconcile_file_review\x18\x1a \x01(\bR\x13reconcileFileReview\x12C\n" +
+	"\x13excluded_plugin_ids\x18\x1b \x03(\tB\x13\xbaH\x10\x92\x01\r\x10\b\x18\x01\"\ar\x05\x10\x01\x18\x80\x01R\x11excludedPluginIds:f\xbaHc\x1aa\n" +
 	"\x14run.message_required\x12\x13message is required\x1a4this.reconcile_file_review || size(this.message) > 0B\b\n" +
 	"\x06targetJ\x04\b\x02\x10\x03J\x04\b\x06\x10\aJ\x04\b\b\x10\tJ\x04\b\v\x10\fJ\x04\b\x11\x10\x12J\x04\b\x0f\x10\x10J\x04\b\x10\x10\x11J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\bagent_idR\x0ecallback_tokenR\x12parent_workflow_idR\x13activity_task_queueR\x06parentR\x14declared_preferencesR\x11recalled_memoriesR\x10execution_configR\vruntime_env\"\x96\x03\n" +
 	"\n" +
