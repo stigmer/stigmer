@@ -3,8 +3,8 @@
  * hooks share (internal/useCursorPages): the first page and its request
  * (page size, organization), loadMore appending the next page from the
  * tail's token, a short page that still carries a token being followed, a
- * refetched first page merging with the loaded rows without a gap, and an
- * answer that lands after the list's identity changed being dropped.
+ * refetch after a new session walking the loaded depth again without a gap,
+ * and an answer that lands after the list's identity changed being dropped.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
@@ -126,13 +126,15 @@ describe("useSessionList", () => {
     expect(result.current.hasMore).toBe(true);
   });
 
-  it("a refetched first page keeps the loaded rows, with nothing lost between them", async () => {
-    const list = vi
-      .fn()
-      .mockResolvedValueOnce(page(["ses-3", "ses-2"], "t1"))
-      .mockResolvedValueOnce(page(["ses-1"]))
-      // A session created since pushes ses-2 off the first page.
-      .mockResolvedValueOnce(page(["ses-4", "ses-3"], "t9"));
+  it("a refetch after a session is created walks the loaded depth again, with nothing lost between pages", async () => {
+    // A keyset server: a token is the id the next page starts after.
+    const rows = ["ses-3", "ses-2", "ses-1"];
+    const list = vi.fn(async (...args: unknown[]) => {
+      const req = args[0] as { pageSize: number; pageToken: string };
+      const at = req.pageToken === "" ? 0 : rows.indexOf(req.pageToken) + 1;
+      const ids = rows.slice(at, at + req.pageSize);
+      return page(ids, at + req.pageSize < rows.length ? ids[ids.length - 1] : "");
+    });
     const { result } = renderHook(() => useSessionList({ pageSize: 2 }), {
       wrapper: wrapper(createMockStigmer({ list })),
     });
@@ -140,10 +142,12 @@ describe("useSessionList", () => {
     act(() => result.current.loadMore());
     await waitFor(() => expect(result.current.hasMore).toBe(false));
 
+    // A session created since pushes ses-2 off the first page.
+    rows.unshift("ses-4");
     act(() => result.current.refetch());
     await waitFor(() => expect(idsOf(result.current.sessions)[0]).toBe("ses-4"));
 
-    expect(idsOf(result.current.sessions)).toEqual(["ses-4", "ses-3", "ses-2", "ses-1"]);
+    await waitFor(() => expect(idsOf(result.current.sessions)).toEqual(["ses-4", "ses-3", "ses-2", "ses-1"]));
     expect(result.current.hasMore).toBe(false);
   });
 
