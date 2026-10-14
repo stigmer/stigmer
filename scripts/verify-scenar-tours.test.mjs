@@ -171,10 +171,9 @@ test("findAuthoredInstants ignores the displayed-text cases that exist in the tr
   // Verbatim from shipped tours: a date-only value in a rendered JSON
   // payload (connect-tools-tour), token-expiry labels where the instant is
   // embedded in prose (authentication-flow-playback), and displayed code
-  // text (create-agent-tour). All render as
-  // literal text, identically for every reader — flagging them is the
-  // false-positive class this check's anchored full-match rule exists to
-  // avoid. Date-only strings are safe because parsing them is separately
+  // text (create-agent-tour). All render as literal text, identically for
+  // every reader — flagging them is the false-positive class this check's
+  // anchored full-match rule exists to avoid. Date-only strings are safe because parsing them is separately
   // forbidden by the Date-construction rule.
   const source = [
     'const result = { estimated_refund_date: "2026-04-07" };',

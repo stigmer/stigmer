@@ -7,6 +7,8 @@
  *   - the form starts from the stored settings, and a save sends every
  *     setting, its vaults by the id they hold, through updateEmbedding,
  *     and still says so once the new settings are read back;
+ *   - an origin is added on Enter as on Add, and an origin or a vault
+ *     removed is not sent;
  *   - turning account creation off clears the sign-in role, which is
  *     offered only with it, and owner is never offered;
  *   - someone without can_edit reads the settings and cannot change them,
@@ -170,6 +172,25 @@ describe("OrgEmbeddingPanel", () => {
     const sent = client.organization.updateEmbedding.mock.calls[0]![0];
     expect(sent.embedding?.createAccountsOnSignIn).toBe(false);
     expect(sent.embedding?.signInRole).toBe(IamRole.iam_role_unspecified);
+  });
+
+  it("adds an origin on Enter as on Add", async () => {
+    const client = createMockStigmer(orgWith(STORED));
+    renderPanel(client);
+    const input = await screen.findByLabelText("Add an allowed origin");
+    fireEvent.change(input, { target: { value: "https://portal.acme.example" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(screen.getByText("https://portal.acme.example")).toBeTruthy();
+    expect((input as HTMLInputElement).value).toBe("");
+  });
+
+  it("removes a vault from what it sends", async () => {
+    const client = createMockStigmer(orgWith(STORED));
+    renderPanel(client);
+    fireEvent.click(await screen.findByRole("button", { name: "Remove product-keys" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(client.organization.updateEmbedding).toHaveBeenCalledTimes(1));
+    expect(client.organization.updateEmbedding.mock.calls[0]![0].embedding?.vaults).toEqual([]);
   });
 
   it("removes an origin from what it sends", async () => {
