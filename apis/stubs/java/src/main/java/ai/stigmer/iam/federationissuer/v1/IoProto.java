@@ -42,6 +42,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_iam_federationissuer_v1_ListFederationIssuersInput_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_iam_federationissuer_v1_ListFederationIssuersInput_LabelsEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_iam_federationissuer_v1_ListFederationIssuersInput_LabelsEntry_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_iam_federationissuer_v1_UpdateFederationIssuerInput_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -64,25 +69,29 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "value\"\213\001\n\021FederationIssuers\022N\n\007entries\030\001" +
       " \003(\01324.ai.stigmer.iam.federationissuer.v" +
       "1.FederationIssuerR\007entries\022&\n\017next_page" +
-      "_token\030\002 \001(\tR\rnextPageToken\"\206\001\n\032ListFede" +
+      "_token\030\002 \001(\tR\rnextPageToken\"\245\002\n\032ListFede" +
       "rationIssuersInput\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001" +
       "R\003org\022$\n\tpage_size\030\002 \001(\005B\007\272H\004\032\002(\000R\010pageS" +
       "ize\022\'\n\npage_token\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageT" +
-      "oken\"\210\003\n\033UpdateFederationIssuerInput\022X\n\010" +
-      "resource\030\001 \001(\01324.ai.stigmer.iam.federati" +
-      "onissuer.v1.FederationIssuerB\006\272H\003\330\001\003R\010re" +
-      "source\022C\n\013update_mask\030\002 \001(\0132\032.google.pro" +
-      "tobuf.FieldMaskB\006\272H\003\310\001\001R\nupdateMask:\311\001\272H" +
-      "\305\001\032\302\001\n\027update_names_its_target\022Qresource" +
-      ".metadata.id is required: an update name" +
-      "s the federation issuer by its id\032Thas(t" +
-      "his.resource) && has(this.resource.metad" +
-      "ata) && this.resource.metadata.id != \'\'B" +
-      "\266\001B\007IoProtoP\001\242\002\004ASIF\252\002\"Ai.Stigmer.Iam.Fe" +
-      "derationissuer.V1\312\002\"Ai\\Stigmer\\Iam\\Feder" +
-      "ationissuer\\V1\342\002.Ai\\Stigmer\\Iam\\Federati" +
-      "onissuer\\V1\\GPBMetadata\352\002&Ai::Stigmer::I" +
-      "am::Federationissuer::V1b\006proto3"
+      "oken\022b\n\006labels\030\004 \003(\0132J.ai.stigmer.iam.fe" +
+      "derationissuer.v1.ListFederationIssuersI" +
+      "nput.LabelsEntryR\006labels\0329\n\013LabelsEntry\022" +
+      "\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:" +
+      "\0028\001\"\210\003\n\033UpdateFederationIssuerInput\022X\n\010r" +
+      "esource\030\001 \001(\01324.ai.stigmer.iam.federatio" +
+      "nissuer.v1.FederationIssuerB\006\272H\003\330\001\003R\010res" +
+      "ource\022C\n\013update_mask\030\002 \001(\0132\032.google.prot" +
+      "obuf.FieldMaskB\006\272H\003\310\001\001R\nupdateMask:\311\001\272H\305" +
+      "\001\032\302\001\n\027update_names_its_target\022Qresource." +
+      "metadata.id is required: an update names" +
+      " the federation issuer by its id\032Thas(th" +
+      "is.resource) && has(this.resource.metada" +
+      "ta) && this.resource.metadata.id != \'\'B\266" +
+      "\001B\007IoProtoP\001\242\002\004ASIF\252\002\"Ai.Stigmer.Iam.Fed" +
+      "erationissuer.V1\312\002\"Ai\\Stigmer\\Iam\\Federa" +
+      "tionissuer\\V1\342\002.Ai\\Stigmer\\Iam\\Federatio" +
+      "nissuer\\V1\\GPBMetadata\352\002&Ai::Stigmer::Ia" +
+      "m::Federationissuer::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -108,7 +117,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_federationissuer_v1_ListFederationIssuersInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_federationissuer_v1_ListFederationIssuersInput_descriptor,
-        new java.lang.String[] { "Org", "PageSize", "PageToken", });
+        new java.lang.String[] { "Org", "PageSize", "PageToken", "Labels", });
+    internal_static_ai_stigmer_iam_federationissuer_v1_ListFederationIssuersInput_LabelsEntry_descriptor =
+      internal_static_ai_stigmer_iam_federationissuer_v1_ListFederationIssuersInput_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_iam_federationissuer_v1_ListFederationIssuersInput_LabelsEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_iam_federationissuer_v1_ListFederationIssuersInput_LabelsEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
     internal_static_ai_stigmer_iam_federationissuer_v1_UpdateFederationIssuerInput_descriptor =
       getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_iam_federationissuer_v1_UpdateFederationIssuerInput_fieldAccessorTable = new

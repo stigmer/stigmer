@@ -337,6 +337,56 @@ describe("the lists", () => {
   });
 });
 
+describe("the lists filtered by label", () => {
+  function labelledEval(runId: string, suiteVersion: string, labels: Record<string, string>): Score {
+    const score = check(runId);
+    score.metadata!.labels = labels;
+    score.spec!.metric = "eval";
+    score.spec!.source = ScoreSource.eval;
+    score.spec!.evaluatorVersion = suiteVersion;
+    return score;
+  }
+
+  async function walk(
+    read: (pageToken: string) => Promise<{ entries: Score[]; nextPageToken: string }>,
+  ): Promise<string[]> {
+    const ids: string[] = [];
+    let pageToken = "";
+    do {
+      const page = await read(pageToken);
+      expect(page.entries.length).toBeLessThanOrEqual(1);
+      ids.push(...page.entries.map((score) => score.metadata!.id));
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
+    return ids;
+  }
+
+  it("walk only a run's and a session's scores carrying every label named", async () => {
+    const labels = { suite: "nightly", tier: "gold" };
+    const first = await seedRun(RunPhase.RUN_COMPLETED);
+    const second = await seedRun(RunPhase.RUN_COMPLETED, first.sessionId);
+    await inProcess.create(labelledEval(first.runId, "v0", {}));
+    const onFirst = [
+      (await inProcess.create(labelledEval(first.runId, "v1", labels))).metadata!.id,
+      (await inProcess.create(labelledEval(first.runId, "v2", { ...labels, extra: "x" }))).metadata!.id,
+    ];
+    await inProcess.create(labelledEval(first.runId, "v3", { suite: "nightly" }));
+    const onSecond = (await inProcess.create(labelledEval(second.runId, "v1", labels))).metadata!.id;
+
+    const byRun = await walk((pageToken) =>
+      query.listByRun({ runId: first.runId, labels, pageSize: 1, pageToken }),
+    );
+    expect(new Set(byRun)).toEqual(new Set(onFirst));
+    expect(byRun).toHaveLength(2);
+
+    const bySession = await walk((pageToken) =>
+      query.listBySession({ sessionId: first.sessionId, labels, pageSize: 1, pageToken }),
+    );
+    expect(new Set(bySession)).toEqual(new Set([...onFirst, onSecond]));
+    expect(bySession).toHaveLength(3);
+  });
+});
+
 describe("the cascades", () => {
   it("deleting a run removes its scores", async () => {
     const { runId } = await seedRun(RunPhase.RUN_COMPLETED);

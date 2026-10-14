@@ -104,6 +104,7 @@ import {
 } from "./workflows.js";
 import type { PluginEvalWorkflows } from "./workflows.js";
 import { releaseNamesOfDeleted } from "../../pipeline/steps/names.js";
+import { matchesAllLabels, sortedLabels } from "../../pipeline/steps/helpers.js";
 
 /** Context key for the plugin a create evaluates, stashed by LoadEvaluatedPlugin. */
 export const EVALUATED_PLUGIN_KEY = "evaluatedPlugin";
@@ -677,13 +678,16 @@ export function newListPluginEvalsByPluginStep(
         fingerprint: listPageFingerprint({
           lane: "pluginEval.listByPlugin",
           pluginId,
+          labels: sortedLabels(ctx.input.labels),
         }),
         decode: decodeOrSkip<PluginEval>(PluginEvalSchema, {
           logger,
           message: "skipped a plugin eval row that does not decode",
           fields: { pluginId },
         }),
-        keep: (pluginEval) => pluginEval.spec?.pluginId === pluginId,
+        keep: (pluginEval) =>
+          pluginEval.spec?.pluginId === pluginId &&
+          matchesAllLabels(pluginEval.metadata?.labels ?? {}, ctx.input.labels),
         scope: async (evals) => {
           if (isServerComposedRequest(ctx.callerIdentity)) {
             return evals;

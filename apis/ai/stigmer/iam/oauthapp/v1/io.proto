@@ -38,6 +38,11 @@ message ListOAuthAppsInput {
   // The previous response's next_page_token, to continue that list; every
   // other field must equal that request's, or the call is refused.
   string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+
+  // Only resources carrying every label given, each matched exactly (AND).
+  // A selective filter may answer short pages, even empty ones, that still
+  // carry a token.
+  map<string, string> labels = 4;
 }
 
 // The changes an update makes to an OAuth app: the fields update_mask names,

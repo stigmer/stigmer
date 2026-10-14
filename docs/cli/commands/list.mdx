@@ -30,18 +30,22 @@ stigmer list types
 # List with a result limit
 stigmer list agents --limit 10
 
+# List the agents labelled team=support
+stigmer list agents --label team=support
+
 # Output as JSON for scripting
 stigmer list skills --output json
 ```
 
 ## Options
 
-| Flag             | Type     | Default | Description                                                  |
-| ---------------- | -------- | ------- | ------------------------------------------------------------ |
-| `--json`         | `bool`   |         | shorthand for --output json                                  |
-| `--limit`        | `string` | `50`    | maximum number of results (0 reads every page)               |
-| `--output`, `-o` | `string` |         | output format: table, json, or yaml                          |
-| `--verb`         | `string` |         | filter to types supporting this verb (only for 'list types') |
+| Flag             | Type     | Default | Description                                                                 |
+| ---------------- | -------- | ------- | --------------------------------------------------------------------------- |
+| `--json`         | `bool`   |         | shorthand for --output json                                                 |
+| `--label`, `-l`  | `string` |         | keep only resources carrying this label (repeatable; every pair must match) |
+| `--limit`        | `string` | `50`    | maximum number of results (0 reads every page)                              |
+| `--output`, `-o` | `string` |         | output format: table, json, or yaml                                         |
+| `--verb`         | `string` |         | filter to types supporting this verb (only for 'list types')                |
 
 ### Supported resource types
 
@@ -96,6 +100,17 @@ every page:
 ```bash
 stigmer list agents --limit 200
 stigmer list agents --limit 0
+```
+
+### Filter by label
+
+`--label key=value` keeps only the resources carrying that label. Repeat it to
+require several; every pair must match exactly. A selective filter can take more
+than one page of reading to fill a page, and the CLI follows the pages for you:
+
+```bash
+stigmer list agents --label team=support
+stigmer list schedules -l team=support -l tier=gold
 ```
 
 ## Global Flags

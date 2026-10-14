@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/plugineval/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_plugineval_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luZXZhbC92MS9pby5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbmV2YWwudjEiKgoMUGx1Z2luRXZhbElkEhoKBXZhbHVlGAEgASgJQgu6SAjIAQFyAxiAASJ5Ch5MaXN0UGx1Z2luRXZhbHNCeVBsdWdpblJlcXVlc3QSHQoJcGx1Z2luX2lkGAEgASgJQgq6SAdyBRABGIABEhoKCXBhZ2Vfc2l6ZRgCIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACCJ7Cg5QbHVnaW5FdmFsTGlzdBI9CgdlbnRyaWVzGAIgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbmV2YWwudjEuUGx1Z2luRXZhbBIXCg9uZXh0X3BhZ2VfdG9rZW4YAyABKAlKBAgBEAJSC3RvdGFsX2NvdW50YgZwcm90bzM", [file_ai_stigmer_agentic_plugineval_v1_api, file_buf_validate_validate]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luZXZhbC92MS9pby5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbmV2YWwudjEiKgoMUGx1Z2luRXZhbElkEhoKBXZhbHVlGAEgASgJQgu6SAjIAQFyAxiAASKGAgoeTGlzdFBsdWdpbkV2YWxzQnlQbHVnaW5SZXF1ZXN0Eh0KCXBsdWdpbl9pZBgBIAEoCUIKukgHcgUQARiAARIaCglwYWdlX3NpemUYAiABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgSXAoGbGFiZWxzGAQgAygLMkwuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbmV2YWwudjEuTGlzdFBsdWdpbkV2YWxzQnlQbHVnaW5SZXF1ZXN0LkxhYmVsc0VudHJ5Gi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiewoOUGx1Z2luRXZhbExpc3QSPQoHZW50cmllcxgCIAMoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW5ldmFsLnYxLlBsdWdpbkV2YWwSFwoPbmV4dF9wYWdlX3Rva2VuGAMgASgJSgQIARACUgt0b3RhbF9jb3VudGIGcHJvdG8z", [file_ai_stigmer_agentic_plugineval_v1_api, file_buf_validate_validate]);
 
 /**
  * PluginEvalId wraps a plugin eval identifier.
@@ -64,6 +64,15 @@ export type ListPluginEvalsByPluginRequest = Message<"ai.stigmer.agentic.plugine
    * @generated from field: string page_token = 3;
    */
   pageToken: string;
+
+  /**
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   *
+   * @generated from field: map<string, string> labels = 4;
+   */
+  labels: { [key: string]: string };
 };
 
 /**

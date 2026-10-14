@@ -885,6 +885,28 @@ describe("an agent's quality, composed (trusted local)", () => {
     expect(all.entries[1]?.metadata?.id).toBe(second.entries[0]?.metadata?.id);
   });
 
+  it("walks only the flagged grades carrying every label named, a page at a time", async () => {
+    const labels = { reviewer: "triage", tier: "gold" };
+    const flagged = [
+      (await wire.create(thumbs(await seedRun({ version: "hash-label" }), false, labels))).metadata!.id,
+      (await wire.create(thumbs(await seedRun({ version: "hash-label" }), false, { ...labels, extra: "x" }))).metadata!.id,
+    ];
+    await wire.create(thumbs(await seedRun({ version: "hash-label" }), false, { reviewer: "triage" }));
+    await wire.create(thumbs(await seedRun({ version: "hash-label" }), false));
+    await wire.create(thumbs(await seedRun({ version: "hash-label" }), true, labels));
+
+    const walked: string[] = [];
+    let pageToken = "";
+    do {
+      const page = await query.listFlaggedByAgent({ org, agentId, labels, pageSize: 1, pageToken });
+      expect(page.entries.length).toBeLessThanOrEqual(1);
+      walked.push(...page.entries.map((score) => score.metadata!.id));
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
+    expect(new Set(walked)).toEqual(new Set(flagged));
+    expect(walked).toHaveLength(2);
+  });
+
   it("refuses a person's thumbs that names an evaluator version, which would split the report's thumbs", async () => {
     const live = await seedRun();
     const forged = thumbs(live, false);

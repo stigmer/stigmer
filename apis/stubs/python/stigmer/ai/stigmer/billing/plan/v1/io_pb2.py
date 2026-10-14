@@ -26,7 +26,7 @@ from ai.stigmer.billing.plan.v1 import api_pb2 as ai_dot_stigmer_dot_billing_dot
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n#ai/stigmer/billing/plan/v1/io.proto\x12\x1a\x61i.stigmer.billing.plan.v1\x1a$ai/stigmer/billing/plan/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\")\n\x06PlanId\x12\x1f\n\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"k\n\x05Plans\x12:\n\x07\x65ntries\x18\x01 \x03(\x0b\x32 .ai.stigmer.billing.plan.v1.PlanR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x88\x01\n\x0eListPlansInput\x12\'\n\x0finclude_retired\x18\x01 \x01(\x08R\x0eincludeRetired\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageTokenB\xb6\x01\n\x1e\x63om.ai.stigmer.billing.plan.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SBP\xaa\x02\x1a\x41i.Stigmer.Billing.Plan.V1\xca\x02\x1a\x41i\\Stigmer\\Billing\\Plan\\V1\xe2\x02&Ai\\Stigmer\\Billing\\Plan\\V1\\GPBMetadata\xea\x02\x1e\x41i::Stigmer::Billing::Plan::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n#ai/stigmer/billing/plan/v1/io.proto\x12\x1a\x61i.stigmer.billing.plan.v1\x1a$ai/stigmer/billing/plan/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\")\n\x06PlanId\x12\x1f\n\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"k\n\x05Plans\x12:\n\x07\x65ntries\x18\x01 \x03(\x0b\x32 .ai.stigmer.billing.plan.v1.PlanR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x93\x02\n\x0eListPlansInput\x12\'\n\x0finclude_retired\x18\x01 \x01(\x08R\x0eincludeRetired\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\x12N\n\x06labels\x18\x04 \x03(\x0b\x32\x36.ai.stigmer.billing.plan.v1.ListPlansInput.LabelsEntryR\x06labels\x1a\x39\n\x0bLabelsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\x42\xb6\x01\n\x1e\x63om.ai.stigmer.billing.plan.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SBP\xaa\x02\x1a\x41i.Stigmer.Billing.Plan.V1\xca\x02\x1a\x41i\\Stigmer\\Billing\\Plan\\V1\xe2\x02&Ai\\Stigmer\\Billing\\Plan\\V1\\GPBMetadata\xea\x02\x1e\x41i::Stigmer::Billing::Plan::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -36,6 +36,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n\036com.ai.stigmer.billing.plan.v1B\007IoProtoP\001\242\002\004ASBP\252\002\032Ai.Stigmer.Billing.Plan.V1\312\002\032Ai\\Stigmer\\Billing\\Plan\\V1\342\002&Ai\\Stigmer\\Billing\\Plan\\V1\\GPBMetadata\352\002\036Ai::Stigmer::Billing::Plan::V1'
   _globals['_PLANID'].fields_by_name['value']._loaded_options = None
   _globals['_PLANID'].fields_by_name['value']._serialized_options = b'\272H\006r\004\020\001\030@'
+  _globals['_LISTPLANSINPUT_LABELSENTRY']._loaded_options = None
+  _globals['_LISTPLANSINPUT_LABELSENTRY']._serialized_options = b'8\001'
   _globals['_LISTPLANSINPUT'].fields_by_name['page_size']._loaded_options = None
   _globals['_LISTPLANSINPUT'].fields_by_name['page_size']._serialized_options = b'\272H\004\032\002(\000'
   _globals['_LISTPLANSINPUT'].fields_by_name['page_token']._loaded_options = None
@@ -45,5 +47,7 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_PLANS']._serialized_start=177
   _globals['_PLANS']._serialized_end=284
   _globals['_LISTPLANSINPUT']._serialized_start=287
-  _globals['_LISTPLANSINPUT']._serialized_end=423
+  _globals['_LISTPLANSINPUT']._serialized_end=562
+  _globals['_LISTPLANSINPUT_LABELSENTRY']._serialized_start=505
+  _globals['_LISTPLANSINPUT_LABELSENTRY']._serialized_end=562
 # @@protoc_insertion_point(module_scope)

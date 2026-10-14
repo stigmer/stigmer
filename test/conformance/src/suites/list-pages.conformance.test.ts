@@ -21,6 +21,21 @@
 //     identity ever made, hundreds on a long-lived target, so those two
 //     walks stop once the seeded rows, the newest, have come back.
 //
+// Every list of resources filters by label, an exact AND match. Each
+// label arm seeds three rows carrying a label only that walk uses, with
+// unlabelled rows before and among them, and walks the filtered list at
+// page_size 1: only the labelled rows come back, newest first, and no page
+// holds more than one. A page may be short, even empty, and still carry a
+// token, since the filter is each row's keep under the examine budget.
+// Plugins take no labels at push, and the lists whose rows only a runner
+// or the edition writes take their filtered walks in the server's own
+// tests: runs and a session's runs (domain/run run.test.ts), a run's and a
+// session's scores (score.test.ts), an agent's flagged grades
+// (quality.test.ts), an agent's and a plugin's evals (each steps.test.ts),
+// service accounts (service-accounts.test.ts), child organizations
+// (children.test.ts), and Enterprise's teams, federation issuers and
+// invitations (each handlers.test.ts).
+//
 // page_size 0 asks for the default page of 50: one arm per edition proves
 // it end to end; the page loop's unit test and the list-shape inventory pin
 // it for every lane. A version pushed between two pages repeats nothing,
@@ -548,6 +563,311 @@ describe("List conformance — an organization's lists walk every seeded row onc
       (entry) => entry.id,
     );
     expectSeededWalk(walked, seeded);
+  });
+});
+
+
+// =============================================================================
+// The label filter
+// =============================================================================
+
+/** A label only one walk's rows carry: the walk's filter. */
+function walkLabels(): Record<string, string> {
+  return { "list-walk": uniqueName("walk") };
+}
+
+/** `message` with `labels` on its metadata. */
+function labelled<T extends { metadata?: object }>(message: T, labels: Record<string, string>): T {
+  return { ...message, metadata: { ...message.metadata, labels } };
+}
+
+/**
+ * Seeds an unlabelled row, two rows carrying a fresh label, another
+ * unlabelled row and a third labelled one, then walks the list filtered by
+ * that label at page_size 1: only the labelled rows, newest first.
+ */
+async function expectLabelledWalk<T>(
+  seed: (labels: Record<string, string>) => Promise<string>,
+  read: (labels: Record<string, string>, pageToken: string) => Promise<Page<T>>,
+  idOf: (entry: T) => string,
+): Promise<void> {
+  const labels = walkLabels();
+  await seed({});
+  const ids = [await seed(labels), await seed(labels)];
+  await seed({});
+  ids.push(await seed(labels));
+
+  const walked = await walk((pageToken) => read(labels, pageToken), idOf);
+  expect(walked.ids, "only the labelled rows, newest first").toEqual([...ids].reverse());
+  for (const size of walked.sizes) {
+    expect(size, "a page never exceeds page_size").toBeLessThanOrEqual(1);
+  }
+}
+
+describe("List conformance — a label filter walks only the rows carrying every label named", () => {
+  it("[rpc:AgentQueryController.list] agents", async () => {
+    const { org } = await target.provisionTenancy();
+    await expectLabelledWalk(
+      async (labels) => {
+        const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("lbl-agent"), labels }));
+        fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }).catch(() => undefined));
+        return agent.metadata!.id;
+      },
+      (labels, pageToken) => clients.agentQuery.list({ org, labels, pageSize: 1, pageToken }),
+      (entry) => entry.metadata!.id,
+    );
+  });
+
+  it("[rpc:SkillQueryController.list] skills", async () => {
+    const { org } = await target.provisionTenancy();
+    await expectLabelledWalk(
+      async (labels) => {
+        const skill = await clients.skillCommand.push({
+          org,
+          labels,
+          artifact: makeSkillArtifact({ name: uniqueName("lbl-skill"), description: "a labelled skill" }),
+        });
+        fixtures.defer(() => clients.skillCommand.delete({ value: skill.metadata!.id }));
+        return skill.metadata!.id;
+      },
+      (labels, pageToken) => clients.skillQuery.list({ org, labels, pageSize: 1, pageToken }),
+      (entry) => entry.metadata!.id,
+    );
+  });
+
+  it("[rpc:AgentChannelQueryController.list] [rpc:AgentChannelQueryController.listByAgent] agent channels, of the organization and of one agent", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgent(org);
+    const seed = async (labels: Record<string, string>) => {
+      const channel = await clients.agentChannelCommand.create(
+        labelled(makeSlackAgentChannel(org, uniqueName("lbl-channel"), agent.metadata!.slug), labels),
+      );
+      fixtures.defer(() => clients.agentChannelCommand.delete({ value: channel.metadata!.id }));
+      return channel.metadata!.id;
+    };
+    await expectLabelledWalk(
+      seed,
+      (labels, pageToken) => clients.agentChannelQuery.list({ org, labels, pageSize: 1, pageToken }),
+      (entry) => entry.metadata!.id,
+    );
+    await expectLabelledWalk(
+      seed,
+      (labels, pageToken) =>
+        clients.agentChannelQuery.listByAgent({ agentId: agent.metadata!.id, labels, pageSize: 1, pageToken }),
+      (entry) => entry.metadata!.id,
+    );
+  });
+
+  it("[rpc:AgentShareQueryController.list] [rpc:AgentShareQueryController.listByAgent] agent shares, of the organization and of one agent", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgent(org);
+    const seed = async (labels: Record<string, string>) => {
+      const share = await clients.agentShareCommand.create(
+        labelled(makeAgentShare(org, agent.metadata!.slug, { name: uniqueName("lbl-share") }), labels),
+      );
+      fixtures.defer(() => clients.agentShareCommand.delete({ value: share.metadata!.id }));
+      return share.metadata!.id;
+    };
+    await expectLabelledWalk(
+      seed,
+      (labels, pageToken) => clients.agentShareQuery.list({ org, labels, pageSize: 1, pageToken }),
+      (entry) => entry.metadata!.id,
+    );
+    await expectLabelledWalk(
+      seed,
+      (labels, pageToken) =>
+        clients.agentShareQuery.listByAgent({ agentId: agent.metadata!.id, labels, pageSize: 1, pageToken }),
+      (entry) => entry.metadata!.id,
+    );
+  });
+
+  it("[rpc:ScheduleQueryController.list] [rpc:ScheduleQueryController.listByAgent] schedules, of the organization and of one agent", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgent(org);
+    const seed = async (labels: Record<string, string>) => {
+      const schedule = await clients.scheduleCommand.create(
+        labelled(makeSchedule(org, uniqueName("lbl-sched"), agent.metadata!.slug), labels),
+      );
+      fixtures.defer(() => clients.scheduleCommand.delete({ value: schedule.metadata!.id }));
+      return schedule.metadata!.id;
+    };
+    await expectLabelledWalk(
+      seed,
+      (labels, pageToken) => clients.scheduleQuery.list({ org, labels, pageSize: 1, pageToken }),
+      (entry) => entry.metadata!.id,
+    );
+    await expectLabelledWalk(
+      seed,
+      (labels, pageToken) =>
+        clients.scheduleQuery.listByAgent({ agentId: agent.metadata!.id, labels, pageSize: 1, pageToken }),
+      (entry) => entry.metadata!.id,
+    );
+  });
+
+  it("[rpc:SessionQueryController.list] [rpc:SessionQueryController.listByAgent] sessions, of the organization and of one agent", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgent(org);
+    const seed = async (labels: Record<string, string>) => {
+      const session = await clients.sessionCommand.create(
+        makeSession({ org, name: uniqueName("lbl-session"), agentRef: agentRefOf(agent), labels }),
+      );
+      fixtures.defer(() => clients.sessionCommand.delete({ value: session.metadata!.id }).catch(() => undefined));
+      return session.metadata!.id;
+    };
+    await expectLabelledWalk(
+      seed,
+      (labels, pageToken) => clients.sessionQuery.list({ org, labels, pageSize: 1, pageToken }),
+      (entry) => entry.metadata!.id,
+    );
+    await expectLabelledWalk(
+      seed,
+      (labels, pageToken) =>
+        clients.sessionQuery.listByAgent({ agentId: agent.metadata!.id, labels, pageSize: 1, pageToken }),
+      (entry) => entry.metadata!.id,
+    );
+  });
+
+  it("[rpc:VaultQueryController.list] vaults", async () => {
+    const { org } = await target.provisionTenancy();
+    await expectLabelledWalk(
+      async (labels) => {
+        const vault = await clients.vaultCommand.create(
+          labelled(makeSharedVault({ org, name: uniqueName("lbl-vault") }), labels),
+        );
+        fixtures.defer(() => clients.vaultCommand.delete({ resourceId: vault.metadata!.id }));
+        return vault.metadata!.id;
+      },
+      (labels, pageToken) => clients.vaultQuery.list({ org, labels, pageSize: 1, pageToken }),
+      (entry) => entry.metadata!.id,
+    );
+  });
+
+  it.skipIf(!capabilities.firstPartyMemoryCapture)("[rpc:MemoryQueryController.list] memories", async () => {
+    const created = await clients.organizationCommand.create({
+      apiVersion: ORG_API_VERSION,
+      kind: ORG_KIND,
+      metadata: { name: uniqueName("lbl-memorg") },
+      spec: { preferences: { memoryEnabled: true } },
+    });
+    fixtures.defer(() => clients.organizationCommand.delete({ value: created.metadata!.id }));
+    const org = created.metadata!.id;
+    let fact = 0;
+    await expectLabelledWalk(
+      async (labels) => {
+        fact += 1;
+        const memory = await clients.memoryCommand.create(
+          labelled(makeMemory(org, { content: `Labelled fact ${fact}.` }), labels),
+        );
+        fixtures.defer(() => clients.memoryCommand.delete({ value: memory.metadata!.id }).catch(() => undefined));
+        return memory.metadata!.id;
+      },
+      (labels, pageToken) => clients.memoryQuery.list({ org, labels, pageSize: 1, pageToken }),
+      (entry) => entry.metadata!.id,
+    );
+  });
+
+  it("[rpc:OAuthAppQueryController.list] OAuth apps", async () => {
+    const { org } = await target.provisionTenancy();
+    await expectLabelledWalk(
+      async (labels) => {
+        const app = await clients.oauthAppCommand.create(labelled(makeOAuthApp(org, uniqueName("lbl-oauth")), labels));
+        fixtures.defer(() => clients.oauthAppCommand.delete({ resourceId: app.metadata!.id }));
+        return app.metadata!.id;
+      },
+      (labels, pageToken) => clients.oauthAppQuery.list({ org, labels, pageSize: 1, pageToken }),
+      (entry) => entry.metadata!.id,
+    );
+  });
+
+  it("[rpc:ChannelAppQueryController.list] channel apps", async () => {
+    const { org } = await target.provisionTenancy();
+    await expectLabelledWalk(
+      async (labels) => {
+        const app = await clients.channelAppCommand.create(
+          labelled(makeSlackChannelApp(org, uniqueName("lbl-chapp")), labels),
+        );
+        fixtures.defer(() => clients.channelAppCommand.delete({ resourceId: app.metadata!.id }));
+        return app.metadata!.id;
+      },
+      (labels, pageToken) => clients.channelAppQuery.list({ org, labels, pageSize: 1, pageToken }),
+      (entry) => entry.metadata!.id,
+    );
+  });
+
+  it("[rpc:PlatformClientQueryController.list] platform clients", async () => {
+    const context = await target.provisionTenancy();
+    fixtures.defer(() => target.cleanupTenancy(context));
+    const { org } = context;
+    await expectLabelledWalk(
+      async (labels) => {
+        const client = await createPlatformClient(clients, { org, name: uniqueName("lbl-pc"), labels });
+        fixtures.defer(async () => {
+          try {
+            await deletePlatformClient(clients, client.id);
+          } catch {
+            // Already gone with its tenancy.
+          }
+        });
+        return client.id;
+      },
+      (labels, pageToken) => clients.platformClientQuery.list({ org, labels, pageSize: 1, pageToken }),
+      (entry) => entry.metadata!.id,
+    );
+  });
+
+  it("[rpc:ApiKeyQueryController.list] the caller's API keys", async () => {
+    const { org } = await target.provisionTenancy();
+    await expectLabelledWalk(
+      async (labels) => {
+        const key = await clients.apiKeyCommand.create({
+          apiVersion: "iam.stigmer.ai/v1",
+          kind: "ApiKey",
+          metadata: { name: uniqueName("lbl-key"), org, labels },
+          spec: {},
+        });
+        fixtures.defer(() => clients.apiKeyCommand.delete({ value: key.metadata!.id }).catch(() => undefined));
+        return key.metadata!.id;
+      },
+      (labels, pageToken) => clients.apiKeyQuery.list({ labels, pageSize: 1, pageToken }),
+      (entry) => entry.metadata!.id,
+    );
+  });
+
+  it("[rpc:OrganizationQueryController.listMine] the caller's organizations", async () => {
+    await expectLabelledWalk(
+      async (labels) => {
+        const created = await clients.organizationCommand.create({
+          apiVersion: ORG_API_VERSION,
+          kind: ORG_KIND,
+          metadata: { name: uniqueName("lbl-org"), labels },
+        });
+        fixtures.defer(() => clients.organizationCommand.delete({ value: created.metadata!.id }).catch(() => undefined));
+        return created.metadata!.id;
+      },
+      (labels, pageToken) => clients.organizationQuery.listMine({ labels, pageSize: 1, pageToken }),
+      (entry) => entry.metadata!.id,
+    );
+  });
+
+  it("[rpc:AgentQueryController.list] two labels match only the rows carrying both", async () => {
+    const { org } = await target.provisionTenancy();
+    const team = walkLabels();
+    const both = { ...team, tier: "gold" };
+    const create = async (labels: Record<string, string>) => {
+      const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("lbl-two"), labels }));
+      fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }).catch(() => undefined));
+      return agent.metadata!.id;
+    };
+    const first = await create(both);
+    await create(team);
+    await create({ tier: "gold" });
+    const last = await create(both);
+
+    const walked = await walk(
+      (pageToken) => clients.agentQuery.list({ org, labels: both, pageSize: 1, pageToken }),
+      (entry) => entry.metadata!.id,
+    );
+    expect(walked.ids).toEqual([last, first]);
   });
 });
 

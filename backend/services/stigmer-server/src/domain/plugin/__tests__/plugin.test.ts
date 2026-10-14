@@ -359,6 +359,17 @@ describe("Plugin push — one row", () => {
     expect(read.status?.agents.map((a) => a.name)).toEqual(["reviewer"]);
   });
 
+  it("derives the plugin's tags from its manifest's keywords, which stay verbatim on its spec", async () => {
+    const name = uniqueName("tagged");
+    const keywords = ["SEC filings", "a/b testing", "otter.ai", "a/b testing", "Market Data"];
+    const fixture = cursorPlugin({ name, version: "1.0.0", description: "Keyword fixture", manifest: { keywords } });
+    const installed = await plugins.push({ org: ORG, artifact: archiveOf(fixture) });
+    expect(installed.metadata?.tags).toEqual(["sec-filings", "a-b-testing", "otter-ai", "market-data"]);
+    expect(installed.spec?.keywords).toEqual(keywords);
+    const read = await pluginQuery.get({ value: installed.metadata!.id });
+    expect(read.metadata?.tags).toEqual(installed.metadata?.tags);
+  });
+
   it("summarises the plugin's eval suite on its status, a case that does not load included, and drops it when the suite goes", async () => {
     const name = uniqueName("evals");
     const judge = "---\ntype: llm\n---\nPASS if it reviews.\n";

@@ -12,8 +12,6 @@ metadata:
   slug: my-org
   labels:
     team: platform
-  annotations:
-    docs-url: "https://internal.example.com/orgs/my-org"
 spec:
   description: "Human-readable description of the organization"
   logo_url: "https://example.com/logo.svg"
@@ -21,6 +19,10 @@ spec:
   external_id: ""    # the parent's identifier for a child
 status: {}  # System-managed, never set by users
 ```
+
+Metadata carries labels only. A link about the organization, such as its
+internal page at `https://internal.example.com/orgs/my-org`, belongs in
+`spec.description`.
 
 ## Top-Level Fields
 
@@ -42,8 +44,7 @@ All metadata fields are defined by `ApiResourceMetadata` in `ai/stigmer/commons/
 | `metadata.slug` | No | URL-friendly identifier. Auto-generated from `name` if omitted. Format: lowercase letters, numbers, and hyphens; must start with a lowercase letter; **2–15 characters** (shorter than other resources). |
 | `metadata.id` | No | The organization's permanent id (`org_<ulid>`), minted at creation. Every resource the organization owns names it by this id. Never set by users. |
 | `metadata.org` | No | Always empty: an organization belongs to no organization. |
-| `metadata.labels` | No | Key-value pairs for organization and filtering (e.g., `team: platform`). |
-| `metadata.annotations` | No | Key-value pairs for additional metadata not used for filtering (e.g., `docs-url: "https://..."`). |
+| `metadata.labels` | No | Key-value pairs for organization and filtering (e.g., `team: platform`). Each key is an optional DNS-subdomain prefix and `/`, then a name of at most 63 letters, digits, `-`, `_` and `.`, starting and ending with a letter or digit; each value is empty or such a name; at most 64 pairs. The caller's organization list filters by them. |
 | `metadata.version` | No | System-managed version tracking. Contains `id`, `message`, and `previous_version_id` for audit trail. Never set directly in YAML. |
 
 ### Slug Constraints

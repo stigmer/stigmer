@@ -64,47 +64,6 @@ public interface ListRunsRequestOrBuilder extends
 
   /**
    * <pre>
-   * Filter by tags (optional).
-   * </pre>
-   *
-   * <code>repeated string tags = 4 [json_name = "tags"];</code>
-   * @return A list containing the tags.
-   */
-  java.util.List<java.lang.String>
-      getTagsList();
-  /**
-   * <pre>
-   * Filter by tags (optional).
-   * </pre>
-   *
-   * <code>repeated string tags = 4 [json_name = "tags"];</code>
-   * @return The count of tags.
-   */
-  int getTagsCount();
-  /**
-   * <pre>
-   * Filter by tags (optional).
-   * </pre>
-   *
-   * <code>repeated string tags = 4 [json_name = "tags"];</code>
-   * @param index The index of the element to return.
-   * @return The tags at the given index.
-   */
-  java.lang.String getTags(int index);
-  /**
-   * <pre>
-   * Filter by tags (optional).
-   * </pre>
-   *
-   * <code>repeated string tags = 4 [json_name = "tags"];</code>
-   * @param index The index of the value to return.
-   * @return The bytes of the tags at the given index.
-   */
-  com.google.protobuf.ByteString
-      getTagsBytes(int index);
-
-  /**
-   * <pre>
    * Organization slug to scope the results to.
    *
    * When set, only runs whose metadata.org matches are returned — the
@@ -132,4 +91,68 @@ public interface ListRunsRequestOrBuilder extends
    */
   com.google.protobuf.ByteString
       getOrgBytes();
+
+  /**
+   * <pre>
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+   */
+  int getLabelsCount();
+  /**
+   * <pre>
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+   */
+  boolean containsLabels(
+      java.lang.String key);
+  /**
+   * Use {@link #getLabelsMap()} instead.
+   */
+  @java.lang.Deprecated
+  java.util.Map<java.lang.String, java.lang.String>
+  getLabels();
+  /**
+   * <pre>
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+   */
+  java.util.Map<java.lang.String, java.lang.String>
+  getLabelsMap();
+  /**
+   * <pre>
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+   */
+  /* nullable */
+java.lang.String getLabelsOrDefault(
+      java.lang.String key,
+      /* nullable */
+java.lang.String defaultValue);
+  /**
+   * <pre>
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+   */
+  java.lang.String getLabelsOrThrow(
+      java.lang.String key);
 }

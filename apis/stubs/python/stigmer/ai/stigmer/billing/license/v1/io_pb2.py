@@ -26,7 +26,7 @@ from ai.stigmer.billing.license.v1 import api_pb2 as ai_dot_stigmer_dot_billing_
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/billing/license/v1/io.proto\x12\x1d\x61i.stigmer.billing.license.v1\x1a\'ai/stigmer/billing/license/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\",\n\tLicenseId\x12\x1f\n\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"t\n\x08Licenses\x12@\n\x07\x65ntries\x18\x01 \x03(\x0b\x32&.ai.stigmer.billing.license.v1.LicenseR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x83\x01\n\x11ListLicensesInput\x12\x1f\n\x0b\x63ustomer_id\x18\x01 \x01(\tR\ncustomerId\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageTokenB\xc5\x01\n!com.ai.stigmer.billing.license.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SBL\xaa\x02\x1d\x41i.Stigmer.Billing.License.V1\xca\x02\x1d\x41i\\Stigmer\\Billing\\License\\V1\xe2\x02)Ai\\Stigmer\\Billing\\License\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Billing::License::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/billing/license/v1/io.proto\x12\x1d\x61i.stigmer.billing.license.v1\x1a\'ai/stigmer/billing/license/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\",\n\tLicenseId\x12\x1f\n\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"t\n\x08Licenses\x12@\n\x07\x65ntries\x18\x01 \x03(\x0b\x32&.ai.stigmer.billing.license.v1.LicenseR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x94\x02\n\x11ListLicensesInput\x12\x1f\n\x0b\x63ustomer_id\x18\x01 \x01(\tR\ncustomerId\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\x12T\n\x06labels\x18\x04 \x03(\x0b\x32<.ai.stigmer.billing.license.v1.ListLicensesInput.LabelsEntryR\x06labels\x1a\x39\n\x0bLabelsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\x42\xc5\x01\n!com.ai.stigmer.billing.license.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SBL\xaa\x02\x1d\x41i.Stigmer.Billing.License.V1\xca\x02\x1d\x41i\\Stigmer\\Billing\\License\\V1\xe2\x02)Ai\\Stigmer\\Billing\\License\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Billing::License::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -36,6 +36,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n!com.ai.stigmer.billing.license.v1B\007IoProtoP\001\242\002\004ASBL\252\002\035Ai.Stigmer.Billing.License.V1\312\002\035Ai\\Stigmer\\Billing\\License\\V1\342\002)Ai\\Stigmer\\Billing\\License\\V1\\GPBMetadata\352\002!Ai::Stigmer::Billing::License::V1'
   _globals['_LICENSEID'].fields_by_name['value']._loaded_options = None
   _globals['_LICENSEID'].fields_by_name['value']._serialized_options = b'\272H\006r\004\020\001\030@'
+  _globals['_LISTLICENSESINPUT_LABELSENTRY']._loaded_options = None
+  _globals['_LISTLICENSESINPUT_LABELSENTRY']._serialized_options = b'8\001'
   _globals['_LISTLICENSESINPUT'].fields_by_name['page_size']._loaded_options = None
   _globals['_LISTLICENSESINPUT'].fields_by_name['page_size']._serialized_options = b'\272H\004\032\002(\000'
   _globals['_LISTLICENSESINPUT'].fields_by_name['page_token']._loaded_options = None
@@ -45,5 +47,7 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LICENSES']._serialized_start=189
   _globals['_LICENSES']._serialized_end=305
   _globals['_LISTLICENSESINPUT']._serialized_start=308
-  _globals['_LISTLICENSESINPUT']._serialized_end=439
+  _globals['_LISTLICENSESINPUT']._serialized_end=584
+  _globals['_LISTLICENSESINPUT_LABELSENTRY']._serialized_start=527
+  _globals['_LISTLICENSESINPUT_LABELSENTRY']._serialized_end=584
 # @@protoc_insertion_point(module_scope)

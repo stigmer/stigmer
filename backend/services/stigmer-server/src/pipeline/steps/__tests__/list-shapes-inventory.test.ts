@@ -14,8 +14,10 @@
  *
  * A `paged` row's request takes `page_size` and `page_token` and its
  * response returns `entries` and `next_page_token`, with no total
- * (`total_count`, `total_pages`, `total_size`); and no message the
- * contract carries is a `PageInfo`. The page rule itself, 0 reading the
+ * (`total_count`, `total_pages`, `total_size`). A paged list whose
+ * entries carry resource metadata (`ApiResourceMetadata`) takes a `labels`
+ * map on its request, so every list of resources filters by label. No
+ * message the contract carries is a `PageInfo`. The page rule itself, 0 reading the
  * default page and a size above the maximum read as the maximum, is
  * pipeline/steps/list-page.ts's `listPageSizeOf`, the one reader of
  * `page_size` (its own tests).
@@ -39,6 +41,7 @@ const INVENTORY_DOC = path.join(PACKAGE_ROOT, "docs/list-shapes.md");
 
 const LIST_NAME = /^(list|search|find)/;
 const TOTAL_FIELDS = new Set(["total_count", "total_pages", "total_size"]);
+const RESOURCE_METADATA = "ai.stigmer.commons.apiresource.ApiResourceMetadata";
 
 /** A list-shaped method, named `package.Service.method`. */
 interface ListMethod {
@@ -138,6 +141,18 @@ function pagedShapeProblems(list: ListMethod): string[] {
     if (TOTAL_FIELDS.has(field.name)) {
       problems.push(`${list.name}'s response carries ${field.name}`);
     }
+  }
+  const entryMessage = entries === undefined ? undefined : childOf(entries);
+  const carriesMetadata =
+    entryMessage?.fields.some(
+      (f) =>
+        f.name === "metadata" && childOf(f)?.typeName === RESOURCE_METADATA,
+    ) ?? false;
+  const labels = list.method.input.fields.find((f) => f.name === "labels");
+  if (carriesMetadata && labels?.fieldKind !== "map") {
+    problems.push(
+      `${list.name}'s entries carry resource metadata and its request has no labels filter`,
+    );
   }
   return problems;
 }
@@ -288,6 +303,26 @@ describe("the list-shape inventory (docs/list-shapes.md) is true to the contract
       `${paged.name}'s request has no page_size`,
       `${paged.name}'s response has no next_page_token`,
       `${paged.name}'s response carries total_count`,
+    ]);
+  });
+
+  it("the label rule bites: a list of resources whose request lost its labels filter disagrees", () => {
+    const paged = lists.find(
+      (list) =>
+        list.name === "ai.stigmer.agentic.agent.v1.AgentQueryController.list",
+    )!;
+    expect(pagedShapeProblems(paged)).toEqual([]);
+    const input = {
+      ...paged.method.input,
+      fields: paged.method.input.fields.filter((f) => f.name !== "labels"),
+    } as DescMessage;
+    expect(
+      pagedShapeProblems({
+        name: paged.name,
+        method: { ...paged.method, input } as DescMethod,
+      }),
+    ).toEqual([
+      `${paged.name}'s entries carry resource metadata and its request has no labels filter`,
     ]);
   });
 

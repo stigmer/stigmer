@@ -168,6 +168,7 @@ const federationIssuers = await stigmer.federationIssuer.list({
   org: "...",
   pageSize: 0,
   pageToken: "...",
+  labels: {},
 });
 ```
 </Tab>
@@ -177,6 +178,7 @@ federationIssuers, err := client.FederationIssuer.List(ctx, &stigmer.ListFederat
   Org:       "...",
   PageSize:  0,
   PageToken: "...",
+  Labels:    map[string]string{},
 })
 ```
 </Tab>
@@ -186,6 +188,7 @@ federation_issuers = client.federation_issuers.list(ListFederationIssuersInput(
     org="...",
     page_size=0,
     page_token="...",
+    labels={},
 ))
 ```
 </Tab>
@@ -195,6 +198,7 @@ FederationIssuers federationIssuers = client.federationIssuers().list(ListFedera
     .org("...")
     .pageSize(0)
     .pageToken("...")
+    .labels(Map.of())
     .build());
 ```
 </Tab>
@@ -603,6 +607,7 @@ ListFederationIssuersInput specifies the organization whose federation issuers s
     org: { type: "string", description: "Organization slug to list federation issuers for." },
     pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
     pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
+    labels: { type: "Record<string, string>", description: "Only resources carrying every label given, each matched exactly (AND)." },
   }}
 />
 

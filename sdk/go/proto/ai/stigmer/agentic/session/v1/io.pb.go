@@ -179,15 +179,17 @@ type ListSessionsRequest struct {
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
 	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	// Filter by tags (optional).
-	Tags []string `protobuf:"bytes,3,rep,name=tags,proto3" json:"tags,omitempty"`
 	// Organization slug to scope the results to.
 	//
 	// When set, only sessions of that organization are returned — the
 	// org-context view a console needs. When empty, results are bounded only
 	// by the caller's view permissions, which for a member of several
 	// organizations spans all of them.
-	Org           string `protobuf:"bytes,4,opt,name=org,proto3" json:"org,omitempty"`
+	Org string `protobuf:"bytes,4,opt,name=org,proto3" json:"org,omitempty"`
+	// Only resources carrying every label given, each matched exactly (AND).
+	// A selective filter may answer short pages, even empty ones, that still
+	// carry a token.
+	Labels        map[string]string `protobuf:"bytes,5,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -236,18 +238,18 @@ func (x *ListSessionsRequest) GetPageToken() string {
 	return ""
 }
 
-func (x *ListSessionsRequest) GetTags() []string {
-	if x != nil {
-		return x.Tags
-	}
-	return nil
-}
-
 func (x *ListSessionsRequest) GetOrg() string {
 	if x != nil {
 		return x.Org
 	}
 	return ""
+}
+
+func (x *ListSessionsRequest) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
 }
 
 // ListSessionsByAgentRequest lists the conversations on one agent.
@@ -261,7 +263,11 @@ type ListSessionsByAgentRequest struct {
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
-	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Only resources carrying every label given, each matched exactly (AND).
+	// A selective filter may answer short pages, even empty ones, that still
+	// carry a token.
+	Labels        map[string]string `protobuf:"bytes,4,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -317,6 +323,13 @@ func (x *ListSessionsByAgentRequest) GetPageToken() string {
 	return ""
 }
 
+func (x *ListSessionsByAgentRequest) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
+}
+
 // ListSessionsByChannelRequest lists the conversations an agent channel created.
 type ListSessionsByChannelRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -327,7 +340,11 @@ type ListSessionsByChannelRequest struct {
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
-	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Only resources carrying every label given, each matched exactly (AND).
+	// A selective filter may answer short pages, even empty ones, that still
+	// carry a token.
+	Labels        map[string]string `protobuf:"bytes,4,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -381,6 +398,13 @@ func (x *ListSessionsByChannelRequest) GetPageToken() string {
 		return x.PageToken
 	}
 	return ""
+}
+
+func (x *ListSessionsByChannelRequest) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
 }
 
 // UpdateSessionSubjectRequest sets the conversation title for a session.
@@ -1680,24 +1704,35 @@ const file_ai_stigmer_agentic_session_v1_io_proto_rawDesc = "" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x8a\x01\n" +
 	"\vSessionList\x12@\n" +
 	"\aentries\x18\x02 \x03(\v2&.ai.stigmer.agentic.session.v1.SessionR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\b\x01\x10\x02R\vtotal_pages\"\x8a\x01\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\b\x01\x10\x02R\vtotal_pages\"\x95\x02\n" +
 	"\x13ListSessionsRequest\x12$\n" +
 	"\tpage_size\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12\x12\n" +
-	"\x04tags\x18\x03 \x03(\tR\x04tags\x12\x10\n" +
-	"\x03org\x18\x04 \x01(\tR\x03org\"\x8e\x01\n" +
+	"page_token\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12\x10\n" +
+	"\x03org\x18\x04 \x01(\tR\x03org\x12V\n" +
+	"\x06labels\x18\x05 \x03(\v2>.ai.stigmer.agentic.session.v1.ListSessionsRequest.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x03\x10\x04R\x04tags\"\xa8\x02\n" +
 	"\x1aListSessionsByAgentRequest\x12!\n" +
 	"\bagent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\aagentId\x12$\n" +
 	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x94\x01\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12]\n" +
+	"\x06labels\x18\x04 \x03(\v2E.ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb0\x02\n" +
 	"\x1cListSessionsByChannelRequest\x12%\n" +
 	"\n" +
 	"channel_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tchannelId\x12$\n" +
 	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"O\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12_\n" +
+	"\x06labels\x18\x04 \x03(\v2G.ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"O\n" +
 	"\x1bUpdateSessionSubjectRequest\x12\x16\n" +
 	"\x02id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\"\x90\x04\n" +
@@ -1807,7 +1842,7 @@ func file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_session_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_session_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_ai_stigmer_agentic_session_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
 var file_ai_stigmer_agentic_session_v1_io_proto_goTypes = []any{
 	(*SessionId)(nil),                    // 0: ai.stigmer.agentic.session.v1.SessionId
 	(*AgentId)(nil),                      // 1: ai.stigmer.agentic.session.v1.AgentId
@@ -1833,36 +1868,42 @@ var file_ai_stigmer_agentic_session_v1_io_proto_goTypes = []any{
 	(*UpdateSessionInput)(nil),           // 21: ai.stigmer.agentic.session.v1.UpdateSessionInput
 	(*BindHarnessStateInput)(nil),        // 22: ai.stigmer.agentic.session.v1.BindHarnessStateInput
 	(*BindHarnessStateResponse)(nil),     // 23: ai.stigmer.agentic.session.v1.BindHarnessStateResponse
-	(*Session)(nil),                      // 24: ai.stigmer.agentic.session.v1.Session
-	(*SessionEvent)(nil),                 // 25: ai.stigmer.agentic.session.v1.SessionEvent
-	(*EventStart)(nil),                   // 26: ai.stigmer.agentic.session.v1.EventStart
-	(*EventDelta)(nil),                   // 27: ai.stigmer.agentic.session.v1.EventDelta
-	(*ToolOutputDelta)(nil),              // 28: ai.stigmer.agentic.session.v1.ToolOutputDelta
-	(*fieldmaskpb.FieldMask)(nil),        // 29: google.protobuf.FieldMask
+	nil,                                  // 24: ai.stigmer.agentic.session.v1.ListSessionsRequest.LabelsEntry
+	nil,                                  // 25: ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest.LabelsEntry
+	nil,                                  // 26: ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest.LabelsEntry
+	(*Session)(nil),                      // 27: ai.stigmer.agentic.session.v1.Session
+	(*SessionEvent)(nil),                 // 28: ai.stigmer.agentic.session.v1.SessionEvent
+	(*EventStart)(nil),                   // 29: ai.stigmer.agentic.session.v1.EventStart
+	(*EventDelta)(nil),                   // 30: ai.stigmer.agentic.session.v1.EventDelta
+	(*ToolOutputDelta)(nil),              // 31: ai.stigmer.agentic.session.v1.ToolOutputDelta
+	(*fieldmaskpb.FieldMask)(nil),        // 32: google.protobuf.FieldMask
 }
 var file_ai_stigmer_agentic_session_v1_io_proto_depIdxs = []int32{
-	24, // 0: ai.stigmer.agentic.session.v1.SessionList.entries:type_name -> ai.stigmer.agentic.session.v1.Session
-	25, // 1: ai.stigmer.agentic.session.v1.GrantPermissionResponse.grant:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
-	25, // 2: ai.stigmer.agentic.session.v1.GrantPermissionResponse.confirmations:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
-	25, // 3: ai.stigmer.agentic.session.v1.InterruptSessionResponse.event:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
-	25, // 4: ai.stigmer.agentic.session.v1.SessionEventList.events:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
-	25, // 5: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.event:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
-	26, // 6: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.event_start:type_name -> ai.stigmer.agentic.session.v1.EventStart
-	27, // 7: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.event_delta:type_name -> ai.stigmer.agentic.session.v1.EventDelta
-	28, // 8: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.stigmer_tool_output_delta:type_name -> ai.stigmer.agentic.session.v1.ToolOutputDelta
-	26, // 9: ai.stigmer.agentic.session.v1.SessionEventPreview.event_start:type_name -> ai.stigmer.agentic.session.v1.EventStart
-	27, // 10: ai.stigmer.agentic.session.v1.SessionEventPreview.event_delta:type_name -> ai.stigmer.agentic.session.v1.EventDelta
-	28, // 11: ai.stigmer.agentic.session.v1.SessionEventPreview.stigmer_tool_output_delta:type_name -> ai.stigmer.agentic.session.v1.ToolOutputDelta
-	25, // 12: ai.stigmer.agentic.session.v1.AppendSessionEventsInput.events:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
-	18, // 13: ai.stigmer.agentic.session.v1.AppendSessionEventsInput.previews:type_name -> ai.stigmer.agentic.session.v1.SessionEventPreview
-	25, // 14: ai.stigmer.agentic.session.v1.AppendSessionEventsResponse.events:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
-	24, // 15: ai.stigmer.agentic.session.v1.UpdateSessionInput.resource:type_name -> ai.stigmer.agentic.session.v1.Session
-	29, // 16: ai.stigmer.agentic.session.v1.UpdateSessionInput.update_mask:type_name -> google.protobuf.FieldMask
-	17, // [17:17] is the sub-list for method output_type
-	17, // [17:17] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	27, // 0: ai.stigmer.agentic.session.v1.SessionList.entries:type_name -> ai.stigmer.agentic.session.v1.Session
+	24, // 1: ai.stigmer.agentic.session.v1.ListSessionsRequest.labels:type_name -> ai.stigmer.agentic.session.v1.ListSessionsRequest.LabelsEntry
+	25, // 2: ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest.labels:type_name -> ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest.LabelsEntry
+	26, // 3: ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest.labels:type_name -> ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest.LabelsEntry
+	28, // 4: ai.stigmer.agentic.session.v1.GrantPermissionResponse.grant:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
+	28, // 5: ai.stigmer.agentic.session.v1.GrantPermissionResponse.confirmations:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
+	28, // 6: ai.stigmer.agentic.session.v1.InterruptSessionResponse.event:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
+	28, // 7: ai.stigmer.agentic.session.v1.SessionEventList.events:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
+	28, // 8: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.event:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
+	29, // 9: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.event_start:type_name -> ai.stigmer.agentic.session.v1.EventStart
+	30, // 10: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.event_delta:type_name -> ai.stigmer.agentic.session.v1.EventDelta
+	31, // 11: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.stigmer_tool_output_delta:type_name -> ai.stigmer.agentic.session.v1.ToolOutputDelta
+	29, // 12: ai.stigmer.agentic.session.v1.SessionEventPreview.event_start:type_name -> ai.stigmer.agentic.session.v1.EventStart
+	30, // 13: ai.stigmer.agentic.session.v1.SessionEventPreview.event_delta:type_name -> ai.stigmer.agentic.session.v1.EventDelta
+	31, // 14: ai.stigmer.agentic.session.v1.SessionEventPreview.stigmer_tool_output_delta:type_name -> ai.stigmer.agentic.session.v1.ToolOutputDelta
+	28, // 15: ai.stigmer.agentic.session.v1.AppendSessionEventsInput.events:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
+	18, // 16: ai.stigmer.agentic.session.v1.AppendSessionEventsInput.previews:type_name -> ai.stigmer.agentic.session.v1.SessionEventPreview
+	28, // 17: ai.stigmer.agentic.session.v1.AppendSessionEventsResponse.events:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
+	27, // 18: ai.stigmer.agentic.session.v1.UpdateSessionInput.resource:type_name -> ai.stigmer.agentic.session.v1.Session
+	32, // 19: ai.stigmer.agentic.session.v1.UpdateSessionInput.update_mask:type_name -> google.protobuf.FieldMask
+	20, // [20:20] is the sub-list for method output_type
+	20, // [20:20] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_session_v1_io_proto_init() }
@@ -1890,7 +1931,7 @@ func file_ai_stigmer_agentic_session_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_session_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_session_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   24,
+			NumMessages:   27,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

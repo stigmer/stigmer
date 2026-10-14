@@ -180,7 +180,11 @@ type ListApiKeysInput struct {
 	PageSize int32 `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
-	PageToken     string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Only resources carrying every label given, each matched exactly (AND).
+	// A selective filter may answer short pages, even empty ones, that still
+	// carry a token.
+	Labels        map[string]string `protobuf:"bytes,3,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -229,6 +233,13 @@ func (x *ListApiKeysInput) GetPageToken() string {
 	return ""
 }
 
+func (x *ListApiKeysInput) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
+}
+
 // Input for listing the API keys that speak for one identity account,
 // newest first.
 type ListApiKeysByAccountInput struct {
@@ -240,7 +251,11 @@ type ListApiKeysByAccountInput struct {
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
-	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Only resources carrying every label given, each matched exactly (AND).
+	// A selective filter may answer short pages, even empty ones, that still
+	// carry a token.
+	Labels        map[string]string `protobuf:"bytes,4,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -294,6 +309,13 @@ func (x *ListApiKeysByAccountInput) GetPageToken() string {
 		return x.PageToken
 	}
 	return ""
+}
+
+func (x *ListApiKeysByAccountInput) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
 }
 
 // CreateServiceAccountKeyInput is the command for creating an API key that
@@ -442,17 +464,25 @@ const file_ai_stigmer_iam_apikey_v1_io_proto_rawDesc = "" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"*\n" +
 	"\n" +
 	"ApiKeyHash\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"a\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xec\x01\n" +
 	"\x10ListApiKeysInput\x12$\n" +
 	"\tpage_size\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x91\x01\n" +
+	"page_token\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12N\n" +
+	"\x06labels\x18\x03 \x03(\v26.ai.stigmer.iam.apikey.v1.ListApiKeysInput.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa5\x02\n" +
 	"\x19ListApiKeysByAccountInput\x12%\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\taccountId\x12$\n" +
 	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\xd5\x01\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12W\n" +
+	"\x06labels\x18\x04 \x03(\v2?.ai.stigmer.iam.apikey.v1.ListApiKeysByAccountInput.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xd5\x01\n" +
 	"\x1cCreateServiceAccountKeyInput\x124\n" +
 	"\x12service_account_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x10serviceAccountId\x12\x1f\n" +
 	"\x04name\x18\x02 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\x04name\x129\n" +
@@ -478,7 +508,7 @@ func file_ai_stigmer_iam_apikey_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_apikey_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_ai_stigmer_iam_apikey_v1_io_proto_goTypes = []any{
 	(*ApiKeys)(nil),                      // 0: ai.stigmer.iam.apikey.v1.ApiKeys
 	(*ApiKeyId)(nil),                     // 1: ai.stigmer.iam.apikey.v1.ApiKeyId
@@ -487,20 +517,24 @@ var file_ai_stigmer_iam_apikey_v1_io_proto_goTypes = []any{
 	(*ListApiKeysByAccountInput)(nil),    // 4: ai.stigmer.iam.apikey.v1.ListApiKeysByAccountInput
 	(*CreateServiceAccountKeyInput)(nil), // 5: ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput
 	(*UpdateApiKeyInput)(nil),            // 6: ai.stigmer.iam.apikey.v1.UpdateApiKeyInput
-	(*ApiKey)(nil),                       // 7: ai.stigmer.iam.apikey.v1.ApiKey
-	(*timestamppb.Timestamp)(nil),        // 8: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil),        // 9: google.protobuf.FieldMask
+	nil,                                  // 7: ai.stigmer.iam.apikey.v1.ListApiKeysInput.LabelsEntry
+	nil,                                  // 8: ai.stigmer.iam.apikey.v1.ListApiKeysByAccountInput.LabelsEntry
+	(*ApiKey)(nil),                       // 9: ai.stigmer.iam.apikey.v1.ApiKey
+	(*timestamppb.Timestamp)(nil),        // 10: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil),        // 11: google.protobuf.FieldMask
 }
 var file_ai_stigmer_iam_apikey_v1_io_proto_depIdxs = []int32{
-	7, // 0: ai.stigmer.iam.apikey.v1.ApiKeys.entries:type_name -> ai.stigmer.iam.apikey.v1.ApiKey
-	8, // 1: ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput.expires_at:type_name -> google.protobuf.Timestamp
-	7, // 2: ai.stigmer.iam.apikey.v1.UpdateApiKeyInput.resource:type_name -> ai.stigmer.iam.apikey.v1.ApiKey
-	9, // 3: ai.stigmer.iam.apikey.v1.UpdateApiKeyInput.update_mask:type_name -> google.protobuf.FieldMask
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	9,  // 0: ai.stigmer.iam.apikey.v1.ApiKeys.entries:type_name -> ai.stigmer.iam.apikey.v1.ApiKey
+	7,  // 1: ai.stigmer.iam.apikey.v1.ListApiKeysInput.labels:type_name -> ai.stigmer.iam.apikey.v1.ListApiKeysInput.LabelsEntry
+	8,  // 2: ai.stigmer.iam.apikey.v1.ListApiKeysByAccountInput.labels:type_name -> ai.stigmer.iam.apikey.v1.ListApiKeysByAccountInput.LabelsEntry
+	10, // 3: ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput.expires_at:type_name -> google.protobuf.Timestamp
+	9,  // 4: ai.stigmer.iam.apikey.v1.UpdateApiKeyInput.resource:type_name -> ai.stigmer.iam.apikey.v1.ApiKey
+	11, // 5: ai.stigmer.iam.apikey.v1.UpdateApiKeyInput.update_mask:type_name -> google.protobuf.FieldMask
+	6,  // [6:6] is the sub-list for method output_type
+	6,  // [6:6] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_apikey_v1_io_proto_init() }
@@ -515,7 +549,7 @@ func file_ai_stigmer_iam_apikey_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_apikey_v1_io_proto_rawDesc), len(file_ai_stigmer_iam_apikey_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

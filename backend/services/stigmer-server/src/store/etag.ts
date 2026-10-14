@@ -1,6 +1,6 @@
 /**
  * A resource's etag (AIP-154): a fingerprint of what a person edits, its
- * spec, name, labels, tags and annotations, as stored. Every driver stamps
+ * spec, name, labels and tags, as stored. Every driver stamps
  * it onto the message it is handed on every write, as it derives the list
  * index facts from that message, so a chain's response carries the etag
  * with no read. A status write leaves those fields as they were, so it
@@ -45,7 +45,11 @@ export function etagOf<Desc extends DescMessage>(
     name: metadata.name,
     labels: { ...metadata.labels },
     tags: [...metadata.tags],
-    annotations: { ...metadata.annotations },
+    // The fingerprint keeps the shape it had while metadata carried
+    // annotations, as an empty map: every row's stamp was taken with that
+    // key present, so dropping it would move each row's etag on its next
+    // status write and refuse an editor's save that changed nothing.
+    annotations: {},
   };
   return createHash("sha256").update(canonicalJson(edited)).digest("hex");
 }

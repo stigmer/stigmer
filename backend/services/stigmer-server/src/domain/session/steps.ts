@@ -66,6 +66,7 @@ import type { Store } from "../../store/interface.js";
 import type { ListIndexQuery, ListIndexRow } from "../../store/list-index.js";
 import { agentExecutionListIndex } from "../run/list-index.js";
 import { sessionListIndex } from "./list-index.js";
+import { matchesAllLabels, sortedLabels } from "../../pipeline/steps/helpers.js";
 
 type SessionDesc = typeof SessionSchema;
 
@@ -444,7 +445,6 @@ export function newListAllSessionsStep(
           fingerprint: {
             lane: "session.list",
             org: input.org,
-            tags: input.tags,
           },
         },
       );
@@ -572,13 +572,13 @@ export function newFilterByChannelStep(
   };
 }
 
-/** The three session lanes' shared read: one page, the scope last, as a SessionList. */
+/** The three session lanes' shared read: one page, the request's labels as each row's keep, the scope last, as a SessionList. */
 async function readSessionPage(
   store: Store,
   logger: Logger,
   listReadScope: ListReadScope | undefined,
   caller: CallerIdentity,
-  request: ListPageRequest,
+  request: ListPageRequest & { readonly labels: Readonly<Record<string, string>> },
   lane: {
     readonly query: ListIndexQuery<"agent" | "channel" | "plugin_eval">;
     readonly fingerprint: Readonly<Record<string, unknown>>;
@@ -589,7 +589,10 @@ async function readSessionPage(
     declaration: sessionListIndex,
     query: lane.query,
     request,
-    fingerprint: listPageFingerprint(lane.fingerprint),
+    fingerprint: listPageFingerprint({
+      ...lane.fingerprint,
+      labels: sortedLabels(request.labels),
+    }),
     decode: (data) => {
       try {
         return fromBinary(SessionSchema, data);
@@ -600,6 +603,8 @@ async function readSessionPage(
         return undefined;
       }
     },
+    keep: (session) =>
+      matchesAllLabels(session.metadata?.labels ?? {}, request.labels),
     scope: (sessions) =>
       restrictListByReadScope(
         listReadScope,

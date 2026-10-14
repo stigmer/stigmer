@@ -42,6 +42,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_iam_platformclient_v1_ListPlatformClientsInput_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_iam_platformclient_v1_ListPlatformClientsInput_LabelsEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_iam_platformclient_v1_ListPlatformClientsInput_LabelsEntry_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_iam_platformclient_v1_PlatformClientCreateResponse_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -69,29 +74,32 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\n\017PlatformClients\022J\n\007entries\030\001 \003(\01320.ai." +
       "stigmer.iam.platformclient.v1.PlatformCl" +
       "ientR\007entries\022&\n\017next_page_token\030\002 \001(\tR\r" +
-      "nextPageToken\"\204\001\n\030ListPlatformClientsInp" +
+      "nextPageToken\"\237\002\n\030ListPlatformClientsInp" +
       "ut\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022$\n\tpage_si" +
       "ze\030\002 \001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'\n\npage_toke" +
-      "n\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageToken\"\236\001\n\034Platfor" +
-      "mClientCreateResponse\022Y\n\017platform_client" +
-      "\030\001 \001(\01320.ai.stigmer.iam.platformclient.v" +
-      "1.PlatformClientR\016platformClient\022#\n\rclie" +
-      "nt_secret\030\002 \001(\tR\014clientSecret\"\200\003\n\031Update" +
-      "PlatformClientInput\022T\n\010resource\030\001 \001(\01320." +
-      "ai.stigmer.iam.platformclient.v1.Platfor" +
-      "mClientB\006\272H\003\330\001\003R\010resource\022C\n\013update_mask" +
-      "\030\002 \001(\0132\032.google.protobuf.FieldMaskB\006\272H\003\310" +
-      "\001\001R\nupdateMask:\307\001\272H\303\001\032\300\001\n\027update_names_i" +
-      "ts_target\022Oresource.metadata.id is requi" +
-      "red: an update names the platform client" +
-      " by its id\032Thas(this.resource) && has(th" +
-      "is.resource.metadata) && this.resource.m" +
-      "etadata.id != \'\'B\256\001B\007IoProtoP\001\242\002\004ASIP\252\002 " +
-      "Ai.Stigmer.Iam.Platformclient.V1\312\002 Ai\\St" +
-      "igmer\\Iam\\Platformclient\\V1\342\002,Ai\\Stigmer" +
-      "\\Iam\\Platformclient\\V1\\GPBMetadata\352\002$Ai:" +
-      ":Stigmer::Iam::Platformclient::V1b\006proto" +
-      "3"
+      "n\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageToken\022^\n\006labels\030\004" +
+      " \003(\0132F.ai.stigmer.iam.platformclient.v1." +
+      "ListPlatformClientsInput.LabelsEntryR\006la" +
+      "bels\0329\n\013LabelsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n" +
+      "\005value\030\002 \001(\tR\005value:\0028\001\"\236\001\n\034PlatformClie" +
+      "ntCreateResponse\022Y\n\017platform_client\030\001 \001(" +
+      "\01320.ai.stigmer.iam.platformclient.v1.Pla" +
+      "tformClientR\016platformClient\022#\n\rclient_se" +
+      "cret\030\002 \001(\tR\014clientSecret\"\200\003\n\031UpdatePlatf" +
+      "ormClientInput\022T\n\010resource\030\001 \001(\01320.ai.st" +
+      "igmer.iam.platformclient.v1.PlatformClie" +
+      "ntB\006\272H\003\330\001\003R\010resource\022C\n\013update_mask\030\002 \001(" +
+      "\0132\032.google.protobuf.FieldMaskB\006\272H\003\310\001\001R\nu" +
+      "pdateMask:\307\001\272H\303\001\032\300\001\n\027update_names_its_ta" +
+      "rget\022Oresource.metadata.id is required: " +
+      "an update names the platform client by i" +
+      "ts id\032Thas(this.resource) && has(this.re" +
+      "source.metadata) && this.resource.metada" +
+      "ta.id != \'\'B\256\001B\007IoProtoP\001\242\002\004ASIP\252\002 Ai.St" +
+      "igmer.Iam.Platformclient.V1\312\002 Ai\\Stigmer" +
+      "\\Iam\\Platformclient\\V1\342\002,Ai\\Stigmer\\Iam\\" +
+      "Platformclient\\V1\\GPBMetadata\352\002$Ai::Stig" +
+      "mer::Iam::Platformclient::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -117,7 +125,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_platformclient_v1_ListPlatformClientsInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_platformclient_v1_ListPlatformClientsInput_descriptor,
-        new java.lang.String[] { "Org", "PageSize", "PageToken", });
+        new java.lang.String[] { "Org", "PageSize", "PageToken", "Labels", });
+    internal_static_ai_stigmer_iam_platformclient_v1_ListPlatformClientsInput_LabelsEntry_descriptor =
+      internal_static_ai_stigmer_iam_platformclient_v1_ListPlatformClientsInput_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_iam_platformclient_v1_ListPlatformClientsInput_LabelsEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_iam_platformclient_v1_ListPlatformClientsInput_LabelsEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
     internal_static_ai_stigmer_iam_platformclient_v1_PlatformClientCreateResponse_descriptor =
       getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_iam_platformclient_v1_PlatformClientCreateResponse_fieldAccessorTable = new

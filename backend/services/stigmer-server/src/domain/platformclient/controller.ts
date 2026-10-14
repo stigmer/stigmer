@@ -136,6 +136,7 @@ import { PlatformClientStatusSchema } from "@stigmer/protos/ai/stigmer/iam/platf
 import type { UpdatePlatformClientInput } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 import { updateContext } from "../../pipeline/steps/update-input.js";
+import { matchesAllLabels, sortedLabels } from "../../pipeline/steps/helpers.js";
 
 export interface PlatformClientControllerDeps {
   /** The composed store — a driver's, or the OSS adapter over the generic Store. */
@@ -549,9 +550,14 @@ async function list(
   const page = await readPage({
     source: (after, limit) => deps.clients.pageByOrg(input.org, after, limit),
     request: { pageSize: input.pageSize, pageToken: input.pageToken },
-    fingerprint: listPageFingerprint({ org: input.org }),
+    fingerprint: listPageFingerprint({
+      org: input.org,
+      labels: sortedLabels(input.labels),
+    }),
     decode: decodePlatformClient,
-    keep: (client) => client.metadata?.org === input.org,
+    keep: (client) =>
+      client.metadata?.org === input.org &&
+      matchesAllLabels(client.metadata?.labels ?? {}, input.labels),
     scope: (rows) =>
       restrictListByReadScope(
         deps.listReadScope,

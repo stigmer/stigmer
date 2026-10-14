@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/team/v1/io.proto.
  */
 export const file_ai_stigmer_iam_team_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("Ch9haS9zdGlnbWVyL2lhbS90ZWFtL3YxL2lvLnByb3RvEhZhaS5zdGlnbWVyLmlhbS50ZWFtLnYxIk8KBVRlYW1zEi0KB2VudHJpZXMYASADKAsyHC5haS5zdGlnbWVyLmlhbS50ZWFtLnYxLlRlYW0SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJImAKDkxpc3RUZWFtc0lucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQARIaCglwYWdlX3NpemUYAiABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgiwQIKD1VwZGF0ZVRlYW1JbnB1dBI2CghyZXNvdXJjZRgBIAEoCzIcLmFpLnN0aWdtZXIuaWFtLnRlYW0udjEuVGVhbUIGukgD2AEDEjcKC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFza0IGukgDyAEBOrwBuki4ARq1AQoXdXBkYXRlX25hbWVzX2l0c190YXJnZXQSRHJlc291cmNlLm1ldGFkYXRhLmlkIGlzIHJlcXVpcmVkOiBhbiB1cGRhdGUgbmFtZXMgdGhlIHRlYW0gYnkgaXRzIGlkGlRoYXModGhpcy5yZXNvdXJjZSkgJiYgaGFzKHRoaXMucmVzb3VyY2UubWV0YWRhdGEpICYmIHRoaXMucmVzb3VyY2UubWV0YWRhdGEuaWQgIT0gJydiBnByb3RvMw", [file_ai_stigmer_iam_team_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
+  fileDesc("Ch9haS9zdGlnbWVyL2lhbS90ZWFtL3YxL2lvLnByb3RvEhZhaS5zdGlnbWVyLmlhbS50ZWFtLnYxIk8KBVRlYW1zEi0KB2VudHJpZXMYASADKAsyHC5haS5zdGlnbWVyLmlhbS50ZWFtLnYxLlRlYW0SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJItMBCg5MaXN0VGVhbXNJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhwKCnBhZ2VfdG9rZW4YAyABKAlCCLpIBXIDGIAIEkIKBmxhYmVscxgEIAMoCzIyLmFpLnN0aWdtZXIuaWFtLnRlYW0udjEuTGlzdFRlYW1zSW5wdXQuTGFiZWxzRW50cnkaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASLBAgoPVXBkYXRlVGVhbUlucHV0EjYKCHJlc291cmNlGAEgASgLMhwuYWkuc3RpZ21lci5pYW0udGVhbS52MS5UZWFtQga6SAPYAQMSNwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrQga6SAPIAQE6vAG6SLgBGrUBChd1cGRhdGVfbmFtZXNfaXRzX3RhcmdldBJEcmVzb3VyY2UubWV0YWRhdGEuaWQgaXMgcmVxdWlyZWQ6IGFuIHVwZGF0ZSBuYW1lcyB0aGUgdGVhbSBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJ2IGcHJvdG8z", [file_ai_stigmer_iam_team_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * Teams contains a list of team resources.
@@ -74,6 +74,15 @@ export type ListTeamsInput = Message<"ai.stigmer.iam.team.v1.ListTeamsInput"> & 
    * @generated from field: string page_token = 3;
    */
   pageToken: string;
+
+  /**
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   *
+   * @generated from field: map<string, string> labels = 4;
+   */
+  labels: { [key: string]: string };
 };
 
 /**

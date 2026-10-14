@@ -45,8 +45,8 @@ message ListRunsRequest {
   // Filter by run phase (optional).
   RunPhase phase = 3;
 
-  // Filter by tags (optional).
-  repeated string tags = 4;
+  reserved 4;
+  reserved "tags";
 
   // Organization slug to scope the results to.
   //
@@ -60,6 +60,11 @@ message ListRunsRequest {
   // behavior. Every edition honours it in the store's indexed read, never
   // client-side.
   string org = 5;
+
+  // Only resources carrying every label given, each matched exactly (AND).
+  // A selective filter may answer short pages, even empty ones, that still
+  // carry a token.
+  map<string, string> labels = 6;
 }
 
 // ListRunsBySessionRequest lists the runs of a session, newest first, one
@@ -75,6 +80,11 @@ message ListRunsBySessionRequest {
   // The previous response's next_page_token, to continue that list; every
   // other field must equal that request's, or the call is refused.
   string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+
+  // Only resources carrying every label given, each matched exactly (AND).
+  // A selective filter may answer short pages, even empty ones, that still
+  // carry a token.
+  map<string, string> labels = 4;
 }
 
 // Input message for updateStatus RPC.

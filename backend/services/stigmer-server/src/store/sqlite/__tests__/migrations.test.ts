@@ -70,6 +70,9 @@
  * field kept, across keyset pages; a session without them, and every other
  * kind's row, keeps its bytes; a session it cannot decode fails the step,
  * naming the row, and leaves the database at v22.
+ * v36 reports the stored labels, tags and annotations the new rules
+ * refuse, one warning per kind with its counts and the first ten ids,
+ * across keyset pages, and writes nothing.
  * A schema written by a newer release is refused before any migration or
  * list-index reconciliation, with the failed store's connection closed.
  */
@@ -81,6 +84,7 @@ import { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { create, fromBinary, fromJson, toBinary } from "@bufbuild/protobuf";
+import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -123,6 +127,7 @@ import {
   SCHEMA_VERSION_33,
   SCHEMA_VERSION_34,
   SCHEMA_VERSION_35,
+  SCHEMA_VERSION_36,
   SCHEMA_VERSION_7,
   getSchemaVersion,
   runMigrations,
@@ -143,6 +148,7 @@ import { EXECUTION_CONFIG_PAGE_SIZE } from "../../execution-config-retired.js";
 import { SESSION_VALUES_PAGE_SIZE } from "../../session-values-retired.js";
 import { SESSION_HARNESS_PAGE_SIZE } from "../../session-harness-state-moved.js";
 import { ETAG_STAMP_PAGE_SIZE } from "../../resource-etags-stamped.js";
+import { LABEL_TAG_REPORT_PAGE_SIZE } from "../../label-tag-report.js";
 import { etagOf, stampEtag } from "../../etag.js";
 import { currentSessionRow, sessionRowWithValues } from "../../__tests__/retired-session-rows.js";
 import { HISTORY_PAGE_SIZE } from "../../organization-slug-history.js";
@@ -341,7 +347,7 @@ describe("fresh database", () => {
       .all() as Array<{ version: number }>;
     expect(rows.map((row) => row.version)).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-      22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
+      22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
     ]);
   });
 
@@ -3255,5 +3261,84 @@ describe("v33 and v34: a session's harness state moves to its status, and every 
     expect(db.prepare(`SELECT org, sequence FROM iam_policy_history`).all()).toEqual([
       { org: "acme", sequence: 1 },
     ]);
+  });
+});
+
+describe("v36: the stored labels, tags and annotations the new rules refuse are reported", () => {
+  const ORG = "org_01jz0000000000000000000000";
+  const reviewer = (id: string, metadata: { labels?: Record<string, string>; tags?: string[] } = {}) =>
+    create(AgentSchema, {
+      metadata: { id, org: ORG, slug: id, name: "Reviewer", ...metadata },
+      spec: { instructions: "Review every pull request." },
+    });
+
+  /** An agent's bytes whose metadata also carries field 7, as a row written before annotations were removed. */
+  function withStoredAnnotations(id: string): Uint8Array {
+    const resource = reviewer(id);
+    const entry = new BinaryWriter()
+      .tag(1, WireType.LengthDelimited)
+      .string("note")
+      .tag(2, WireType.LengthDelimited)
+      .string("kept")
+      .finish();
+    resource.metadata!.$unknown = [
+      { no: 7, wireType: WireType.LengthDelimited, data: new BinaryWriter().bytes(entry).finish() },
+    ];
+    return toBinary(AgentSchema, resource);
+  }
+
+  it("names each kind's offenders once, with counts across pages, and leaves every row byte for byte", () => {
+    const dbPath = tempDbPath();
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_35);
+    const seeded = new Map<string, Uint8Array>();
+    const insert = db.prepare(
+      `INSERT INTO resources (kind, id, data, updated_at) VALUES ('agent', ?, ?, '2026-10-14 00:00:00')`,
+    );
+    const plant = (id: string, data: Uint8Array) => {
+      seeded.set(id, data);
+      insert.run(id, data);
+    };
+    plant("agt_0_clean", toBinary(AgentSchema, reviewer("agt_0_clean", { labels: { team: "support" }, tags: ["prod"] })));
+    plant("agt_1_label", toBinary(AgentSchema, reviewer("agt_1_label", { labels: { "-team": "support" } })));
+    plant("agt_2_note", withStoredAnnotations("agt_2_note"));
+    plant("agt_2_unreadable", new Uint8Array([0xff, 0xff, 0xff]));
+    for (let i = 0; i <= LABEL_TAG_REPORT_PAGE_SIZE; i++) {
+      const id = `agt_3_tag_${String(i).padStart(4, "0")}`;
+      plant(id, toBinary(AgentSchema, reviewer(id, { tags: ["SEC filings"] })));
+    }
+    const warned: Array<{ message: string; fields?: Record<string, unknown> }> = [];
+    runMigrations(db, SCHEMA_VERSION_36, {
+      debug() {},
+      info() {},
+      warn(message, fields) {
+        warned.push({ message, fields });
+      },
+    });
+
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_36);
+    expect(warned).toHaveLength(1);
+    expect(warned[0]!.fields).toEqual({
+      kind: "agent",
+      labels: 1,
+      tags: LABEL_TAG_REPORT_PAGE_SIZE + 1,
+      annotations: 1,
+      unreadable: 1,
+      ids: [
+        "agt_1_label",
+        "agt_2_note",
+        "agt_2_unreadable",
+        ...Array.from({ length: 7 }, (_, i) => `agt_3_tag_${String(i).padStart(4, "0")}`),
+      ],
+    });
+    const stored = db.prepare(`SELECT id, data FROM resources WHERE kind = 'agent'`).all() as Array<{
+      id: string;
+      data: Uint8Array;
+    }>;
+    expect(stored).toHaveLength(seeded.size);
+    for (const row of stored) {
+      expect(Buffer.from(seeded.get(row.id)!).equals(Buffer.from(row.data)), row.id).toBe(true);
+    }
   });
 });

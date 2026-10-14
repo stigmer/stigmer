@@ -28,8 +28,6 @@ metadata:
   labels:
     industry: fintech
     tier: enterprise
-  annotations:
-    docs-url: "https://internal.acme.com/stigmer"
 spec:
   description: "Acme Corp AI agents and automation platform"
   logo_url: "https://acme.com/assets/logo.svg"
@@ -38,6 +36,8 @@ spec:
 Key points:
 - `slug` is explicit and within the 2–15 character limit
 - `parent_org` and `external_id` are omitted: this organization has no parent
+- a link such as Acme's internal guide (`https://internal.acme.com/stigmer`)
+  belongs in `spec.description`; metadata carries labels only
 
 ## Child Organization
 
@@ -82,7 +82,7 @@ spec:
 
 ## Post-Creation: Updating an Organization
 
-Fields that are **mutable** after creation: `metadata.name`, `metadata.labels`, `metadata.annotations`, `spec.description`, `spec.logo_url`.
+Fields that are **mutable** after creation: `metadata.name`, `metadata.labels`, `spec.description`, `spec.logo_url`.
 
 Fields that are **immutable** after creation: `spec.parent_org`, `spec.external_id` (an update or apply keeps the stored values).
 

@@ -462,6 +462,49 @@ var next = client.session.list(ListSessionsRequest.newBuilder()
 `sessionv1` is
 `github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1`.
 
+### Filter by label
+
+Every list of resources takes `labels`: only the resources carrying every pair
+come back, each matched exactly. The filter is read a page at a time, so a
+selective one can answer short pages, even empty ones, that still carry a
+token; the iterators follow them.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+for await (const session of stigmer.session.listAll({ org: "acme", labels: { team: "support" } })) {
+  console.log(session.metadata?.name);
+}
+```
+</Tab>
+<Tab value="Go">
+```go
+req := &sessionv1.ListSessionsRequest{Org: "acme", Labels: map[string]string{"team": "support"}}
+for s, err := range client.Session.ListAll(ctx, req) {
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Println(s.GetMetadata().GetName())
+}
+```
+</Tab>
+<Tab value="Python">
+```python
+request = io_pb2.ListSessionsRequest(org="acme", labels={"team": "support"})
+for session in client.sessions.list_all(request):
+    print(session.metadata.name)
+```
+</Tab>
+<Tab value="Java">
+```java
+var request = ListSessionsRequest.newBuilder().setOrg("acme").putLabels("team", "support").build();
+for (var session : client.session.listAll(request)) {
+    System.out.println(session.getMetadata().getName());
+}
+```
+</Tab>
+</SDKTabs>
+
 ## Streaming
 
 A Session's output is one ordered log of events, in the Claude Managed Agents
