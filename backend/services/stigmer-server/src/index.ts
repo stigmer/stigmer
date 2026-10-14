@@ -96,11 +96,13 @@ export type {
 // Authorizer and list read scope (bound by the credential binding), the
 // binding itself, the policy check, tuple lifecycle, in-process transport
 // and the identity accounts' store binding and create path, whichever
-// posture built them, and the policy store's reads.
+// posture built them, the policy store's reads, and which organization a
+// resource belongs to.
 export type {
   ComposedIamPolicies,
   ComposedIdentityAccounts,
   ComposedServices,
+  ResourceOrganizations,
 } from "./extensions/composed-services.js";
 // The identity-account create path's input, as a unit hands it: the spec,
 // the name, and how the account was provisioned (a federated account names

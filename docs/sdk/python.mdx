@@ -45,7 +45,8 @@ options.
 ## Make your first call
 
 Every resource has its own client with methods like `get`, `create`, `list`,
-`apply`, and `delete`. Python uses plural snake_case attributes:
+`apply`, `update`, `rename`, and `delete`
+([Update and apply](/docs/sdk/overview#update-and-apply)). Python uses plural snake_case attributes:
 
 ```python
 from stigmer import StigmerError, is_not_found
@@ -80,7 +81,7 @@ except StigmerError as err:
   />
   <Card
     title="Authentication guide"
-    description="Choose between API keys, identity federation, and PlatformClient."
+    description="Choose between API keys, identity federation, and minted user tokens."
     href="/docs/guides/authentication/overview"
   />
 </Cards>

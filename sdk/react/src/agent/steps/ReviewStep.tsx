@@ -74,6 +74,9 @@ export function ReviewStep({
                 : "None"
             }
           />
+          {data.mcpServers.length > 0 && (
+            <SummaryItem label="MCP servers" value={`${data.mcpServers.length} added`} />
+          )}
           <SummaryItem
             label="Skills"
             value={
@@ -183,6 +186,10 @@ export function buildAgentInput(
 
   if (data.plugins.length > 0) {
     input.plugins = data.plugins;
+  }
+
+  if (data.mcpServers.length > 0) {
+    input.mcpServers = data.mcpServers;
   }
 
   if (data.skillRefs.length > 0) {

@@ -35,6 +35,16 @@ export type {
   OrganizationPoliciesValue,
   UseUpdateOrganizationPoliciesReturn,
 } from "./useUpdateOrganizationPolicies.js";
+export { OrgEmbeddingPanel, formatSignInRole } from "./OrgEmbeddingPanel.js";
+export type { OrgEmbeddingPanelProps } from "./OrgEmbeddingPanel.js";
+export {
+  useUpdateOrganizationEmbedding,
+  organizationEmbeddingOf,
+} from "./useUpdateOrganizationEmbedding.js";
+export type {
+  OrganizationEmbeddingValue,
+  UseUpdateOrganizationEmbeddingReturn,
+} from "./useUpdateOrganizationEmbedding.js";
 export { OrgSwitcher } from "./OrgSwitcher.js";
 export type { OrgSwitcherProps } from "./OrgSwitcher.js";
 export { useChildOrganizations } from "./useChildOrganizations.js";

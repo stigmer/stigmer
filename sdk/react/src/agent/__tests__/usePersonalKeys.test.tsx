@@ -1,11 +1,12 @@
 /**
  * The keys a run reads from the person's My vault, as the server fills
- * them: the agent's own keys and the keys its plugins' servers and hooks
- * read, minus the login key of every server that signs in (a sign-in fills
- * it), and none for an agent of another organization. Not ready while the
- * plugins load; a plugin that cannot be read leaves only the agent's own
- * keys named. Without an organization list, an organization reference is
- * taken as the id it names.
+ * them: the agent's own keys, the keys its own MCP servers read, and the
+ * keys its plugins' servers and hooks read, minus the login key of every
+ * server that signs in (a sign-in fills it) and every key the runner fills
+ * itself, and none for an agent of another organization. Not ready while
+ * the plugins load; a plugin that cannot be read leaves the other keys
+ * named. Without an organization list, an organization reference is taken
+ * as the id it names.
  */
 import { describe, it, expect, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
@@ -76,6 +77,28 @@ describe("usePersonalKeys", () => {
     await waitFor(() => expect(result.current.isReady).toBe(true));
     expect(result.current.keys).toEqual(["CAL_REGION", "GITHUB_TOKEN"]);
     expect(getPlugin).toHaveBeenCalledWith({ org: ORG, slug: "calendar" });
+  });
+
+  it("names the keys the agent's own servers read, but no value the runner fills", async () => {
+    const agent = create(AgentSchema, {
+      metadata: { id: "agt_1", org: ORG, slug: "support" },
+      spec: {
+        mcpServers: [
+          {
+            name: "zendesk",
+            url: "https://acme-co.zendesk.com/mcp",
+            headers: { "X-Api-Key": "${ZENDESK_KEY}", "X-Caller": "${STIGMER_CALLER_IDENTITY_VALUE}" },
+          },
+        ],
+      },
+    });
+    const getPlugin = vi.fn();
+    const { result } = renderHook(() => usePersonalKeys(agent, agent.spec, ORG), {
+      wrapper: wrapperFor(getPlugin),
+    });
+    await waitFor(() => expect(result.current.isReady).toBe(true));
+    expect(result.current.keys).toEqual(["ZENDESK_KEY"]);
+    expect(getPlugin).not.toHaveBeenCalled();
   });
 
   it("names only the agent's own keys when a plugin cannot be read", async () => {

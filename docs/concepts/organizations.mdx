@@ -175,9 +175,9 @@ parent's admins grant its first members and owner.
 
 A child's people sign in through the parent's Federation Issuer, whose
 `external_id_claim` names each token's child by its `external_id`, or with
-tokens a PlatformClient of the parent mints for that child. On Stigmer Cloud a
-child runs on its parent's plan. An Organization can be deleted once every child
-it has is being deleted (see
+tokens an admin service account of the parent mints for that child. On Stigmer
+Cloud a child runs on its parent's plan. An Organization can be deleted once
+every child it has is being deleted (see
 [Deleting an Organization](#deleting-an-organization)).
 
 <Callout type="info">
@@ -290,9 +290,11 @@ what a person can run they can also read. A reference that fails either check is
 refused with the field and the reason named, rather than failing later at run
 time.
 
-This keeps resource definitions portable — they reference resources by name, not
-by internal IDs. Stigmer stores a reference's Organization by id, so a stored
-reference keeps pointing at its Organization across a rename.
+You write a reference by slug, which keeps a file portable, and Stigmer stores
+the ID the slug named, the Organization's included. A stored reference keeps
+pointing at its resource and its Organization across a rename, and never at a
+new resource that takes a deleted one's name.
+[Resources](/docs/concepts/resources#what-a-reference-holds) explains the forms.
 
 ## What's next
 
@@ -301,10 +303,10 @@ reference keeps pointing at its Organization across a rename.
   walks through Federation Issuer registration, account provisioning, and access
   granting.
 - Want to embed Stigmer without OIDC setup? The
-  [PlatformClient guide](/docs/guides/authentication/platform-client/overview)
-  shows how to mint user tokens from your backend. PlatformClient identities are
-  org-scoped --- the same user across multiple PlatformClients in your
-  Organization shares one Identity Account.
+  [product users guide](/docs/guides/authentication/product-users) shows how to
+  mint user tokens from your backend with a service account's key. App users are
+  org-scoped --- every mint for your Organization resolves the same user to one
+  Identity Account.
 - Need tenant isolation for multiple customers? The
   [Child organizations](/docs/guides/authentication/federation/child-organizations)
   guide covers creating a child organization per customer, managing it, and

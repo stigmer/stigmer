@@ -171,7 +171,7 @@ import type {
   SubagentValues,
   ToolValues,
 } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
-import { hookVariableReferences, PLATFORM_VARIABLES } from "@stigmer/plugin-package";
+import { hookVariableReferences, RUNNER_FILLED_VARIABLES } from "@stigmer/plugin-package";
 import { accessTokenVariable } from "@stigmer/tool-vocabulary";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -485,18 +485,6 @@ function declarationRequirements(
       : { plainValue: declaration.value }),
   }));
 }
-
-/**
- * The platform keys the runner always fills, over anything a run planned:
- * who is calling and the conversation. They are no requirement, so no vault
- * value is read for them. The Stigmer server's address is the one platform
- * key a person may set: a value saved for it wins, and the runner fills it
- * only when nothing is (stigmer/stigmer#1446), so it is planned as the
- * optional key it is declared.
- */
-const RUNNER_FILLED_VARIABLES: ReadonlySet<string> = new Set(
-  [...PLATFORM_VARIABLES].filter((name) => name !== "STIGMER_SERVER_ADDRESS"),
-);
 
 /**
  * The declarations of the keys a server reads; a name the plugin did not

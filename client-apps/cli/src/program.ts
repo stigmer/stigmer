@@ -59,7 +59,7 @@ export const RETIRED_COMMANDS: ReadonlyMap<string, string> = new Map([
   // starts Stigmer's own MCP server, so only the connect subcommand is gone.
   [
     "mcp-server",
-    "An MCP server is now part of a plugin: `stigmer connect plugin <plugin>` lists its tools, and `stigmer mcp add <name> <url>` installs a one-off server as a plugin.",
+    "An agent lists its own MCP servers under `mcp_servers`, written by an organization's admins, or uses a plugin that carries one: `stigmer connect plugin <plugin>` lists a plugin's tools, and `stigmer mcp add <name> <url>` installs a one-off server as a plugin.",
   ],
   ["plugin", "`stigmer plugin eval <plugin>` is now `stigmer eval run --plugin <plugin>`; cancel with `stigmer eval cancel`."],
 ]);

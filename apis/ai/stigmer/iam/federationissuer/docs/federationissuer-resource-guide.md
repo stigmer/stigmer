@@ -36,7 +36,7 @@ status: {}  # System-managed, never set by users
 | Field | Required | Description |
 |---|---|---|
 | `metadata.name` | Yes | Human-readable name (e.g., `Planton`). Used in UI and audit logs. |
-| `metadata.slug` | No | URL-friendly identifier, unique within the organization. Auto-generated from `name` if omitted. Format: lowercase alphanumeric with hyphens, starts with a letter. |
+| `metadata.slug` | No | URL-friendly identifier, unique within the organization. Auto-generated from `name` if omitted. Format: lowercase alphanumeric with hyphens, starts with a letter. Changed only by `rename`; the old slug reads for 30 days, and sign-in does not name it. |
 | `metadata.id` | No | System-generated unique identifier (prefix `idp_`). Never set by users. |
 | `metadata.org` | Yes | Organization that owns this federation issuer. All federated accounts created via this provider are associated with this org. |
 
@@ -60,6 +60,7 @@ status: {}  # System-managed, never set by users
 | Apply (create or update) | `FederationIssuerCommandController.apply` | Kubernetes-style upsert: creating asks what Create asks, updating asks what Update asks. |
 | Create | `FederationIssuerCommandController.create` | `can_create_federation_issuer` on the owning organization |
 | Update | `FederationIssuerCommandController.update` | `can_edit` on the FederationIssuer |
+| Rename | `FederationIssuerCommandController.rename` | `can_delete` on the FederationIssuer: whoever may delete it may rename it |
 | Delete | `FederationIssuerCommandController.delete` | `can_delete` on the FederationIssuer. |
 | Get by ID | `FederationIssuerQueryController.get` | `can_view` on the FederationIssuer |
 | Get by reference | `FederationIssuerQueryController.getByReference` | `can_view` on the resolved FederationIssuer, exactly as Get by ID |

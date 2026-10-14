@@ -1,5 +1,5 @@
 // Builds the TypeScript server from source so the suite always tests HEAD —
-// used by the local targets and the MCP bridge suite.
+// used by the local targets, the enterprise target and the MCP bridge suite.
 // Domain: test support (stack spawns).
 //
 // The build compiles in place (backend/services/stigmer-server/dist):
@@ -11,8 +11,9 @@
 // editor runs working from a fresh checkout.
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -21,6 +22,8 @@ const execFileAsync = promisify(execFile);
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 const SERVER_DIR = join(REPO_ROOT, "backend", "services", "stigmer-server");
+
+const ENTERPRISE_DIR = join(REPO_ROOT, "ee", "server");
 
 // The shipped entry: the open-source edition, which holds one organization.
 export function tsServerEntryPath(): string {
@@ -73,4 +76,34 @@ export async function ensureTsServerEntry(): Promise<string> {
 export async function ensureLibraryServerEntry(): Promise<string> {
   await ensureTsServerEntry();
   return libraryServerEntryPath();
+}
+
+// The conformance suite's licensed Enterprise server: TypeScript under
+// Stigmer Enterprise's own package, run from source and never built
+// (ee/server/test/conformance/licensed-server.ts says why). The harness
+// starts it by path; nothing here imports from ee/.
+export function enterpriseServerEntryPath(): string {
+  return join(ENTERPRISE_DIR, "test", "conformance", "licensed-server.ts");
+}
+
+// The loader `node --import` takes to run that entry: the repository root's
+// own tsx, resolved from the root manifest that declares it, so the spawned
+// server's working directory never decides which tsx loads.
+export function tsxLoaderUrl(): string {
+  return pathToFileURL(createRequire(join(REPO_ROOT, "package.json")).resolve("tsx")).href;
+}
+
+// The Enterprise entry, building the server first when its dist is missing
+// (the entry composes onto the built library). Enterprise keeps its own
+// dependencies, which this harness does not install: without them it
+// refuses, naming the install.
+export async function ensureEnterpriseServerEntry(): Promise<string> {
+  await ensureTsServerEntry();
+  if (!existsSync(join(ENTERPRISE_DIR, "node_modules"))) {
+    throw new Error(
+      "ee/server/node_modules is missing: the enterprise target runs Stigmer Enterprise from source " +
+        "on its own dependencies; install them with `npm ci` in ee/server first",
+    );
+  }
+  return enterpriseServerEntryPath();
 }

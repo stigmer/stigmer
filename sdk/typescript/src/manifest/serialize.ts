@@ -10,21 +10,19 @@
 // the *editable manifest* use case:
 //   - `status` and `metadata.version` are stripped — they are system-managed
 //     and would be ignored (or rejected) on apply.
-//   - `metadata.etag` is stripped: an apply that carries one is refused once
-//     the resource changes, which a file kept for later must not be. An
-//     editor that wants that refusal sends the etag it read itself.
-//   - every reference to another resource names it by `org` and `slug`
-//     alone: its `id` is dropped. The server stores the id and fills the
-//     current slug in what it returns; a manifest names things, so a name
-//     edited by hand is never refused as disagreeing with a leftover id. A
-//     reference whose target was deleted (an id the server could name with
-//     no slug) keeps its id: it has no name to write, and an apply refuses
-//     it as a missing resource.
+//   - the message is reduced to its desired state ({@link toDesiredState}):
+//     no etag, and references named by slug alone.
 //   - the envelope field is spelled `apiVersion` (the canonical form used in
 //     every repo manifest and doc); `fromJson` accepts both spellings.
+//
+// A file is a desired state, wherever it came from: `toDesiredState` is the
+// one statement of that rule. The serializer applies it on the way out,
+// `parseManifest` and the CLI's `apply -f` on the way in, so a file a read
+// printed whole (`stigmer get -o yaml`) applies the same as one written here.
 
-import { clone, toJson, type DescMessage, type Message } from "@bufbuild/protobuf";
+import { clone, toJson, type DescMessage, type Message, type MessageShape } from "@bufbuild/protobuf";
 import { reflect, type ReflectMessage } from "@bufbuild/protobuf/reflect";
+import type { ApiResourceMetadata } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { stringify as stringifyYaml } from "yaml";
 import { manifestHandlerForTypeName, manifestKinds } from "./registry.js";
 
@@ -62,7 +60,7 @@ export function serializeManifest(message: Message): string {
     );
   }
 
-  const json = toJson(handler.schema, namedReferences(handler.schema, message), {
+  const json = toJson(handler.schema, toDesiredState(handler.schema, message), {
     useProtoFieldName: true,
   });
   if (json === null || typeof json !== "object" || Array.isArray(json)) {
@@ -92,15 +90,12 @@ export function serializeManifest(message: Message): string {
 
 // metadata.version (version id, previous-version pointer, tag) is written by
 // the server on every mutation; round-tripping it through an edit would be
-// misleading at best. metadata.etag is the stored content's fingerprint: an
-// apply carrying it is refused once anything changes (the module header).
-// Everything else — including id — is user-meaningful.
+// misleading at best. Everything else — including id — is user-meaningful.
 function stripSystemMetadata(
   metadata: Record<string, unknown>,
 ): Record<string, unknown> {
-  const { version, etag, ...rest } = metadata;
+  const { version, ...rest } = metadata;
   void version;
-  void etag;
   return rest;
 }
 
@@ -111,10 +106,36 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 const API_RESOURCE_REFERENCE_TYPE =
   "ai.stigmer.commons.apiresource.ApiResourceReference";
 
-// A copy of the message whose references name their targets by slug alone
-// (the module header): each reference that carries a slug loses its id.
-function namedReferences(schema: DescMessage, message: Message): Message {
+/**
+ * A copy of a resource reduced to the desired state a file declares.
+ *
+ * Two things a full read carries are dropped, because a file kept for
+ * later must apply as what it says, not as when it was read:
+ * - `metadata.etag`: an apply that carries one is refused once the resource
+ *   changes. An editor that wants that refusal sends the etag it read
+ *   itself, as a message rather than a file.
+ * - the `id` of every reference that names its target by slug: the server
+ *   stores the id and fills the current slug in what it returns, so a slug
+ *   edited by hand is never refused as disagreeing with a leftover id. A
+ *   reference whose target was deleted (an id with no slug) keeps its id:
+ *   it has no name to write, and an apply refuses it as a missing resource.
+ *
+ * The resource's own `metadata.id` stays: it is how an apply finds the
+ * resource after a rename, and how a changed slug renames it.
+ *
+ * @param schema - The resource's schema (any kind, manifest or not).
+ * @param message - The resource, as read or as parsed from a file.
+ * @returns A copy; the argument is not changed.
+ */
+export function toDesiredState<Desc extends DescMessage>(
+  schema: Desc,
+  message: MessageShape<Desc>,
+): MessageShape<Desc> {
   const copy = clone(schema, message);
+  const metadata = (copy as unknown as { metadata?: ApiResourceMetadata }).metadata;
+  if (metadata !== undefined) {
+    metadata.etag = "";
+  }
   dropReferenceIds(reflect(schema, copy));
   return copy;
 }
@@ -135,7 +156,7 @@ function dropReferenceIds(message: ReflectMessage): void {
     if (field.fieldKind === "message") {
       dropReferenceIds(message.get(field));
     } else if (field.fieldKind === "list" && field.listKind === "message") {
-      // No manifest kind holds messages in a map, so a map is not walked.
+      // No applied kind holds messages in a map, so a map is not walked.
       for (const item of message.get(field)) {
         dropReferenceIds(item as ReflectMessage);
       }

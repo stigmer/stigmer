@@ -36,13 +36,13 @@ have been replaced with pointers to this document:
 Five contexts, each with its own register. When the quick-reference table says
 "use X in context Y," this section explains why.
 
-| Context                    | Audience                                   | Register                                                                           | Example                                                                         |
-| -------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| **Sales site**             | Technical founders choosing infrastructure | Business-outcome language. No jargon. Lead with what they gain.                    | "Teach your Agent your domain."                                                 |
-| **Quickstart / tutorials** | Developers following steps                 | Action-oriented. Introduce Stigmer terms with a plain-language gloss on first use. | "Create a Skill (a piece of domain knowledge your Agent can use)."              |
-| **Concepts / how-to**      | Developers building understanding          | Explanatory. Use Stigmer terms as proper nouns. Analogies welcome.                 | "A Skill is like a training manual for your Agent."                             |
-| **Reference / SDK**        | Developers looking up specifics            | Precise. Use API field names. Assume familiarity with the platform.                | "`spec.skill_refs`---list of Skill IDs attached to this Agent."                 |
-| **README / GitHub**        | Developers evaluating Stigmer              | Developer-direct. CLI-first. Technical credibility.                                | "Versioned knowledge artifacts. A Skill is a directory with a `SKILL.md` file." |
+| Context                    | Audience                                   | Register                                                                           | Example                                                                            |
+| -------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **Sales site**             | Technical founders choosing infrastructure | Business-outcome language. No jargon. Lead with what they gain.                    | "Teach your Agent your domain."                                                    |
+| **Quickstart / tutorials** | Developers following steps                 | Action-oriented. Introduce Stigmer terms with a plain-language gloss on first use. | "Create a Skill (a piece of domain knowledge your Agent can use)."                 |
+| **Concepts / how-to**      | Developers building understanding          | Explanatory. Use Stigmer terms as proper nouns. Analogies welcome.                 | "A Skill is like a training manual for your Agent."                                |
+| **Reference / SDK**        | Developers looking up specifics            | Precise. Use API field names. Assume familiarity with the platform.                | "`spec.skill_refs`---the Skills this Agent loads, each a reference by slug or ID." |
+| **README / GitHub**        | Developers evaluating Stigmer              | Developer-direct. CLI-first. Technical credibility.                                | "Versioned knowledge artifacts. A Skill is a directory with a `SKILL.md` file."    |
 
 **Rule of thumb**: move left in the table for simpler language, move right for
 more precise language. Never use a right-column term in a left-column context.
@@ -56,32 +56,35 @@ definitions, API names, and examples follow below.
 
 <!-- vale Stigmer.terms = NO -->
 
-| Term                  | Sales site       | Quickstart / tutorial                  | Concepts / how-to      | Reference / SDK                                 | README            |
-| --------------------- | ---------------- | -------------------------------------- | ---------------------- | ----------------------------------------------- | ----------------- |
-| **Agent**             | Agent            | Agent                                  | Agent                  | Agent, `kind: Agent`                            | Agent             |
-| **Skill**             | domain knowledge | Skill ("domain knowledge")             | Skill                  | Skill, `skill_refs`                             | Skill             |
-| **Plugin**            | plugin           | plugin ("what you install")            | Plugin                 | Plugin, `kind: Plugin`                          | plugin            |
-| **Marketplace**       | marketplace      | Marketplace ("where you install from") | Marketplace            | Marketplace; source, `stigmer install`          | marketplace       |
-| **MCP server**        | tools            | MCP server ("tool connection")         | MCP server             | `PluginStatus.mcp_servers`, `plugins`           | MCP server        |
-| **Session**           | conversation     | Session ("conversation")               | Session                | Session, `kind: Session`                        | Session           |
-| **Session event**     | ---              | ---                                    | event                  | `SessionEvent`, `agent.message`, `stigmer.*`    | event             |
-| **Runner**            | compute          | runner ("where your Agent runs")       | Runner                 | Runner                                          | runner            |
-| **Harness**           | execution engine | harness ("execution engine")           | Harness                | Harness, `SessionSpec.harness`                  | harness           |
-| **Approval flow**     | approval flow    | approval flow                          | approval flow, HITL    | `destructiveHint`, `confirmToolUse`             | HITL, approval    |
-| **Organization**      | Organization     | Organization                           | Organization           | Organization, `kind: organization`              | Organization      |
-| **Agent hour**        | agent hours      | ---                                    | agent hours            | `included_agent_hours`, `per_agent_hour_micros` | agent hours       |
-| **Working time**      | ---              | working time                           | working time           | `working_seconds`                               | working time      |
-| **Team**              | teams            | ---                                    | Team                   | Team, `kind: team`                              | Team              |
-| **Vault**             | vault            | vault ("your keys and logins")         | Vault                  | Vault, `kind: Vault`                            | vault             |
-| **Preference**        | preferences      | preference ("standing context")        | Preference             | `spec.preferences.standing_context`             | Preference        |
-| **Federation Issuer** | ---              | identity provider (Auth0, Okta, …)     | Federation Issuer      | FederationIssuer, `kind: FederationIssuer`      | Federation Issuer |
-| **Identity Account**  | ---              | ---                                    | Identity Account       | IdentityAccount, `kind: identity_account`       | Identity Account  |
-| **PlatformClient**    | ---              | ---                                    | PlatformClient         | PlatformClient, `kind: platform_client`         | PlatformClient    |
-| **Run**               | ---              | run                                    | run                    | Run, `kind: Run`                                | Run               |
-| **Subagent**          | ---              | ---                                    | subagent               | subagent, `subagents`, `<plugin>:<agent>`       | subagent          |
-| **Agent Channel**     | ---              | ---                                    | channel, Agent Channel | AgentChannel, `kind: AgentChannel`              | Agent Channel     |
-| **Channel App**       | ---              | ---                                    | Channel App            | ChannelApp, `kind: ChannelApp`                  | Channel App       |
-| **Schedule**          | ---              | ---                                    | schedule, Schedule     | Schedule, `kind: Schedule`                      | Schedule          |
+| Term                   | Sales site       | Quickstart / tutorial                  | Concepts / how-to      | Reference / SDK                                 | README             |
+| ---------------------- | ---------------- | -------------------------------------- | ---------------------- | ----------------------------------------------- | ------------------ |
+| **Agent**              | Agent            | Agent                                  | Agent                  | Agent, `kind: Agent`                            | Agent              |
+| **Skill**              | domain knowledge | Skill ("domain knowledge")             | Skill                  | Skill, `skill_refs`                             | Skill              |
+| **Plugin**             | plugin           | plugin ("what you install")            | Plugin                 | Plugin, `kind: Plugin`                          | plugin             |
+| **Marketplace**        | marketplace      | Marketplace ("where you install from") | Marketplace            | Marketplace; source, `stigmer install`          | marketplace        |
+| **MCP server**         | tools            | MCP server ("tool connection")         | MCP server             | `PluginStatus.mcp_servers`, `plugins`           | MCP server         |
+| **Session**            | conversation     | Session ("conversation")               | Session                | Session, `kind: Session`                        | Session            |
+| **Session event**      | ---              | ---                                    | event                  | `SessionEvent`, `agent.message`, `stigmer.*`    | event              |
+| **Runner**             | compute          | runner ("where your Agent runs")       | Runner                 | Runner                                          | runner             |
+| **Harness**            | execution engine | harness ("execution engine")           | Harness                | Harness, `SessionSpec.harness`                  | harness            |
+| **Approval flow**      | approval flow    | approval flow                          | approval flow, HITL    | `destructiveHint`, `confirmToolUse`             | HITL, approval     |
+| **Organization**       | Organization     | Organization                           | Organization           | Organization, `kind: organization`              | Organization       |
+| **Agent hour**         | agent hours      | ---                                    | agent hours            | `included_agent_hours`, `per_agent_hour_micros` | agent hours        |
+| **Working time**       | ---              | working time                           | working time           | `working_seconds`                               | working time       |
+| **Team**               | teams            | ---                                    | Team                   | Team, `kind: team`                              | Team               |
+| **Vault**              | vault            | vault ("your keys and logins")         | Vault                  | Vault, `kind: Vault`                            | vault              |
+| **Preference**         | preferences      | preference ("standing context")        | Preference             | `spec.preferences.standing_context`             | Preference         |
+| **Federation Issuer**  | ---              | identity provider (Auth0, Okta, …)     | Federation Issuer      | FederationIssuer, `kind: FederationIssuer`      | Federation Issuer  |
+| **Identity Account**   | ---              | ---                                    | Identity Account       | IdentityAccount, `kind: identity_account`       | Identity Account   |
+| **Embedding settings** | ---              | ---                                    | embedding settings     | `OrganizationSpec.embedding`                    | embedding settings |
+| **App user**           | ---              | ---                                    | app user               | `provisioning_mode: app_user`                   | app user           |
+| **Run**                | ---              | run                                    | run                    | Run, `kind: Run`                                | Run                |
+| **Subagent**           | ---              | ---                                    | subagent               | subagent, `subagents`, `<plugin>:<agent>`       | subagent           |
+| **Agent Channel**      | ---              | ---                                    | channel, Agent Channel | AgentChannel, `kind: AgentChannel`              | Agent Channel      |
+| **Channel App**        | ---              | ---                                    | Channel App            | ChannelApp, `kind: ChannelApp`                  | Channel App        |
+| **Schedule**           | ---              | ---                                    | schedule, Schedule     | Schedule, `kind: Schedule`                      | Schedule           |
+| **Label**              | ---              | label                                  | label                  | `metadata.labels`, `labels` filter              | label              |
+| **Tag**                | ---              | tag                                    | tag                    | `metadata.tags`                                 | tag                |
 
 <!-- vale Stigmer.terms = YES -->
 
@@ -684,8 +687,8 @@ delete has answered.
 only.
 
 - **Use it for**: the Stigmer platform as a whole ("the Stigmer platform"), and
-  inside names that already carry it: `PlatformClient`, the `platform/v1`
-  package, the `platform` authorization scope.
+  inside names that already carry it: the `platform/v1` package, the `platform`
+  authorization scope.
 - **Say instead**:
   - a company that builds its product on Stigmer: an **integrator**;
   - Stigmer's own staff who run Stigmer Cloud: **Stigmer operators**;
@@ -832,10 +835,10 @@ and decide who may use them.
   vaults in an ordered `vaults` list; a Session also sets `include_my_vault` to
   use each sender's own My vault first. An Agent names no vaults.
 - **Surfaces**: a Session, a Schedule (`agent.vaults`), an Agent Channel, an
-  Agent Share (a public-audience share only: members' runs use their own) and a
-  PlatformClient each carry `vaults`. A run with no person (a schedule fire, a
-  channel or guest message, a PlatformClient user's turn) uses its surface's
-  vaults after the conversation's.
+  Agent Share (a public-audience share only: members' runs use their own) and an
+  Organization's embedding settings each carry `vaults`. A run with no person (a
+  schedule fire, a channel or guest message) and an app user's turn use the
+  surface's vaults after the conversation's.
 - **Related terms**: a **secret** is a vault entry matched by its name
   (`OPENAI_API_KEY`). A **connection** (in the console, a **login**) is a vault
   entry matched by the address of the tool or Git host it is for
@@ -951,23 +954,23 @@ those tokens get.
 
 A principal that Stigmer can authenticate and authorize. Comes in five types:
 Direct (user signed up on Stigmer), Federated (created via a Federation Issuer),
-Platform (created via PlatformClient; "App users" in the console's pickers),
-Service account (an Organization's own account for automation), and Machine (the
-hosted platform's own service-to-service account, never created by a customer).
+App user (signed in by your product's backend with a minted user token), Service
+account (an Organization's own account for automation), and Machine (the hosted
+platform's own service-to-service account, never created by a customer).
 
 - **Capitalize**: Yes, when referring to the Stigmer resource.
 - **API surface**: `kind: identity_account`, prefix `ida`. proto:
   `iam/identityaccount/v1/spec.proto`.
-- **Key fields**: `provisioning_mode` (`direct`, `federated`, `platform_client`,
+- **Key fields**: `provisioning_mode` (`direct`, `federated`, `app_user`,
   `machine`, `service_account`), `federation_issuer_ref`, `idp_id`.
 - **Context rule**: Do not use on the sales site. In how-to and concept docs,
   capitalize as "Identity Account." In reference, use `IdentityAccount`. In
-  quickstart, avoid unless the tutorial covers federation or PlatformClient.
+  quickstart, avoid unless the tutorial covers federation or minted user tokens.
 - **Note**: Federated accounts can be provisioned via JIT (automatic on first
   token, when the Federation Issuer sets `create_accounts_on_sign_in`) or
-  explicitly via `createFederatedAccount`. Platform accounts are created by
-  `mintUserToken` when the PlatformClient sets `create_accounts_on_sign_in`, or
-  by the platform beforehand.
+  explicitly via `createFederatedAccount`. App users are created by
+  `mintUserToken` when the Organization's embedding settings set
+  `create_accounts_on_sign_in`, or by the integrator beforehand.
 
 ---
 
@@ -1052,8 +1055,8 @@ whatever roles its person holds elsewhere.
 
 - **Capitalize**: No. "Bound credential" is a property of a credential, not a
   Stigmer resource type.
-- **Examples**: a PlatformClient user token (bound to the PlatformClient's
-  Organization, or the child organization it was minted for), a federated token
+- **Examples**: a minted user token (bound to the Organization it was minted
+  for: the minting service account's, or a child of it), a federated token
   through a Federation Issuer (bound to the child organization
   `external_id_claim` names, or the provider's own), an API key limited to an
   Organization (`ApiKeySpec.bound_org`), and the credential a runner holds for
@@ -1071,7 +1074,7 @@ whatever roles its person holds elsewhere.
   still performs them.
 - **Context rule**: Use in authentication guides and reference. On the sales
   site, say "a key that works in one Organization." In quickstart, avoid unless
-  the tutorial covers API keys, federation or PlatformClient.
+  the tutorial covers API keys, federation or minted user tokens.
 - **Note**: a bound credential used in another Organization gets
   `PERMISSION_DENIED`. A federated token whose external id claim is missing or
   names no child organization gets `UNAUTHENTICATED`, on every sign-in.
@@ -1154,33 +1157,56 @@ Organization.
 
 ---
 
-#### PlatformClient
+#### Embedding settings
 
-An OAuth2 credential pair (`client_id` + `client_secret`) that lets your backend
-mint Stigmer-signed user tokens for embedding Stigmer in your product.
+How an Organization's own product signs its users in: which web origins may use
+the minted tokens, whether a first sign-in creates the person's account and with
+which role, and which shared vaults their runs use.
 
-- **Capitalize**: Yes, as one word: "PlatformClient." Do not split into
-  "Platform Client" in prose---the API surface uses the compound form.
-- **API surface**: `kind: platform_client`, prefix `pc`. proto:
-  `iam/platformclient/v1/spec.proto`, `iam/platformclient/v1/token.proto`.
-- **Key fields**: `client_id`, `client_secret_hash`,
-  `create_accounts_on_sign_in`, `sign_in_role`, `allowed_origins`, `vaults` (the
-  integrator's own keys, used by the runs of the users it signs in).
+- **Capitalize**: No. "Embedding settings" is a group of settings, not a Stigmer
+  resource type. The console's section is **Embedding**.
+- **API surface**: `OrganizationSpec.embedding` (`OrganizationEmbedding`),
+  written only through `updateEmbedding`;
+  `OrganizationStatus.embedding_vault_attachers`. The tokens come from
+  `TokenService.mintUserToken` (`iam/token/v1/token.proto`), called with an
+  admin service account's API key.
+- **Key fields**: `allowed_origins`, `create_accounts_on_sign_in`,
+  `sign_in_role` (never owner), `vaults` (the integrator's own keys, used by the
+  runs of the users it signs in).
 - **Context rule**: Do not use on the sales site---say "embed Stigmer in your
   app" or "add Stigmer to your product." In quickstart, avoid unless the
-  tutorial covers PlatformClient setup. In concepts and how-to, capitalize as
-  "PlatformClient." In reference, use `PlatformClient`.
+  tutorial covers signing your product's users in.
+- **Former names**: the settings of a `PlatformClient`
+  (`kind: platform_client`), removed with the kind. Do not use it in new
+  writing.
 
 <!-- vale Vale.Spelling = NO -->
 
-- **Note**: PlatformClient credentials authenticate your backend, not your
+- **Note**: the service account's key authenticates your backend, not your
   users. The backend calls `mintUserToken` to get user-scoped JWTs, each a
-  **bound credential** that works in the PlatformClient's Organization only.
-  This is the same pattern used by Twilio (Access Tokens), Stream (User Tokens),
-  and Liveblocks (access tokens). The people it signs in appear as **App users**
-  in the console's people pickers, apart from the Organization's own people.
+  **bound credential** that works in one Organization only. This is the same
+  pattern used by Twilio (Access Tokens), Stream (User Tokens), and Liveblocks
+  (access tokens).
 
 <!-- vale Vale.Spelling = YES -->
+
+---
+
+#### App user
+
+A person your product signs in to Stigmer with a minted user token, rather than
+someone with their own Stigmer sign-in.
+
+- **Capitalize**: No, except at the start of a sentence or as the console's
+  label ("App users").
+- **API surface**: an `IdentityAccount` with `provisioning_mode: app_user`.
+- **Context rule**: Use in authentication guides, concepts and the console. The
+  people it signs in appear as **App users** in the console's people pickers,
+  apart from the Organization's own people.
+- **Note**: an app user's conversations and memory are their own. An app user
+  who already has an account signs in with the roles they hold now; the
+  embedding settings' `sign_in_role` is granted only when a sign-in creates the
+  account.
 
 ---
 
@@ -1581,19 +1607,136 @@ exactly where they left off.
 
 #### Resource model (apiVersion, kind, metadata, spec)
 
-Stigmer resources follow a declarative model inspired by Kubernetes resource
-conventions. Every resource has four top-level fields: `apiVersion`, `kind`,
-`metadata`, and `spec`.
+Stigmer resources are declarative: a file states what a resource should be, and
+the server makes it so. Every resource has the same top-level fields:
+`apiVersion`, `kind`, `metadata`, `spec`, and `status` where the system records
+state.
 
-- **apiVersion**: Always `agentic.stigmer.ai/v1` for current resources.
+- **apiVersion**: The kind's group and version: `agentic.stigmer.ai/v1` for
+  Agents, Skills, Plugins and their kin, `iam.stigmer.ai/v1` for identity kinds
+  such as Federation Issuer.
 - **kind**: The resource type (for example, `Agent`, `Skill`, `Plugin`).
-- **metadata**: Contains `name` and optional labels.
+- **metadata**: the ID, `slug`, `name`, `org`, `visibility`, `labels`, `tags`,
+  and `etag`; the entries below explain each.
 - **spec**: The resource-specific configuration.
 - **Context rule**: Show by example in quickstart (the reader sees the YAML
   structure). Explain the pattern in concepts. Define the fields in reference.
   Never mention on the sales site.
-- **Do not say**: "Kubernetes-style resources" or "CRD-like definitions"---the
-  document writer role explicitly prohibits Kubernetes analogies.
+- **Do not say**: "Kubernetes-style resources" or "CRD-like definitions" on the
+  sales site or in introductory pages, where an infrastructure analogy is a
+  barrier. A reference page may name the Kubernetes label syntax or the API
+  design rule (AIP) a behaviour follows, as the proto comments do, because the
+  reader can look the exact rule up.
+
+---
+
+#### Slug and ID
+
+Every resource has two names. The ID is permanent and assigned by the server
+(`agt_…`); the slug is the short name people type, unique within its
+Organization, and it can be renamed.
+
+- **Capitalize**: No. Prose writes "ID"; the field is `metadata.id`.
+- **API surface**: `metadata.id`, `metadata.slug`; `rename` on every kind whose
+  slug may change. After a rename the old slug keeps leading to the resource for
+  reading for 30 days, and nothing else of the kind can take it then. A write
+  that names the old slug is refused with `SLUG_RENAMED`, and a create or rename
+  that asks for it is refused with `SLUG_RESERVED`.
+- **Context rule**: "slug" in reference, concepts and how-to; in tutorials,
+  gloss it on first use ("the slug, the short name in the URL"). On the sales
+  site, describe the benefit: "rename anything without breaking what uses it."
+- **Do not say**: "the name" for the slug where `metadata.name` (the display
+  name) could be meant; "fixed once created" for a slug.
+
+---
+
+#### Reference
+
+How one resource names another: an Agent's Skills, Plugins and subagents, a
+Schedule's Agent. A person writes a reference by slug, by ID or both; the server
+stores the ID; every answer names it by the target's current slug.
+
+- **Capitalize**: No.
+- **API surface**: `ApiResourceReference`: `org`, `kind`, `slug` or the ID, and
+  `version`. A renamed target keeps every reference to it working. A deleted
+  target's references come back with an empty slug, and a new resource that
+  takes the deleted one's name is never bound to them. A Skill or Plugin
+  reference's `version` is read at the start of each turn, and the run records
+  what it loaded; a subagent's is fixed when the listing Agent is saved.
+- **Context rule**: Concepts and reference. In tutorials, "the Skills your Agent
+  uses."
+- **Do not say**: "list of Skill IDs" for `skill_refs`: a person writes slugs.
+
+---
+
+#### Update and apply
+
+Two ways to change a resource. An update changes the fields it names and keeps
+every other one; an apply states the whole resource, as a file does, and creates
+it when it does not exist yet.
+
+- **Capitalize**: No.
+- **API surface**: `update(Update<Kind>Input)`: the resource named by
+  `metadata.id`, plus an `update_mask` of paths (`spec.instructions`); `*` names
+  every path. `apply(<Kind>)`: found by `metadata.id`, then by slug. Either
+  carries the `metadata.etag` it read to ask for a freshness check, refused with
+  `ABORTED` and `ETAG_MISMATCH` when the resource changed since; without one,
+  the last write wins. A file is applied as it is written, never as a freshness
+  check: an etag in it is dropped. Visibility, a slug and a vault's secrets each
+  change only through their own RPC.
+- **Context rule**: "apply" for files and the CLI (`stigmer apply -f`); "update"
+  for SDK code that changes one field. In concepts, "a change names only the
+  fields it changes."
+- **Do not say**: "full spec replacement" or "always provide complete state" for
+  an update.
+
+---
+
+#### Page
+
+One slice of a list. Every list returns a page of entries and a token for the
+next; the list is complete when the token is empty.
+
+- **Capitalize**: No.
+- **API surface**: request `page_size` (0 for the default 50, at most 100) and
+  `page_token`; response `entries` and `next_page_token`. No list returns a
+  total. The SDKs walk every page with an iterator.
+- **Context rule**: Reference and SDK guides. Elsewhere, "the list loads more as
+  you scroll."
+- **Do not say**: `PageInfo`, "page number" or "total count": none exists.
+
+---
+
+#### Label
+
+A key and value set on a resource to group and filter it (`team: support`). A
+list filtered by labels returns only the resources that carry every one.
+
+- **Capitalize**: No.
+- **API surface**: `metadata.labels`, at most 64; the `labels` filter on every
+  resource list. A key is an optional DNS-style prefix and a slash, then a name
+  of at most 63 characters; a value is empty or follows the name rule. The
+  `stigmer.ai/` prefix is the platform's and refused from clients.
+- **Context rule**: Concepts, how-to and reference. In reference, name the
+  syntax as the proto comment does (the Kubernetes label form).
+- **Do not say**: "tag" for a label. "annotation": the field was retired, and
+  `metadata.annotations` is reserved.
+
+---
+
+#### Tag
+
+A search word on a resource (`billing`, `refunds`). Tags help people find a
+resource; they never filter a list.
+
+- **Capitalize**: No.
+- **API surface**: `metadata.tags`, at most 20, each lowercase letters, digits
+  and hyphens, at most 50 characters (GitHub's topic form). A Plugin's tags come
+  from its manifest's `keywords`.
+- **Context rule**: Concepts, how-to and reference.
+- **Do not say**: "label" for a tag. A Skill version tag (`stable`, `latest`) is
+  a version's name, not a search word; say "version tag" where both could be
+  meant.
 
 ---
 
@@ -1878,3 +2021,22 @@ organization names its parent in `parent_org`, carries the parent's customer id
 in `external_id`, and is reached through `external_id_claim` and shared with at
 `visibility_child_orgs`. See
 [Parent organization, child organization](#parent-organization-child-organization).
+
+---
+
+### 7. Resource-contract words---RESOLVED
+
+**What**: Pages and comments written before the one resource contract described
+names, references, writes and lists in words that no longer hold.
+
+**Resolution**: Each retired word has a replacement, defined in its entry:
+
+- "fixed once created" for a slug: renamed through `rename` (Slug and ID).
+- "list of Skill IDs" for `skill_refs`: references written by slug or ID
+  (Reference).
+- "full spec replacement" and "always provide complete state" for an update: an
+  update changes the fields its mask names (Update and apply).
+- `PageInfo`, `page_number` and `total_count` on a list: a page of `entries` and
+  a `next_page_token` (Page).
+- `annotations` in metadata: retired and reserved; use labels to filter and tags
+  to find (Label, Tag).

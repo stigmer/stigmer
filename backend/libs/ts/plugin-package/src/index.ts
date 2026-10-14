@@ -36,7 +36,13 @@ export {
 export { HOOK_CONDITION_PATTERN, RUN_EVENTS, hookVariableReferences, isValidMatcher } from "./normalise/hooks.js";
 export { isAcceptableServerUrl } from "./normalise/mcp-servers.js";
 export { SUB_AGENT_INSTRUCTIONS_MIN, classifyModel } from "./normalise/sub-agents.js";
-export { PLACEHOLDER_PATTERN, PLATFORM_VARIABLES, VARIABLE_NAME_PATTERN, findPluginRootPlaceholder } from "./placeholders.js";
+export {
+  PLACEHOLDER_PATTERN,
+  PLATFORM_VARIABLES,
+  RUNNER_FILLED_VARIABLES,
+  VARIABLE_NAME_PATTERN,
+  findPluginRootPlaceholder,
+} from "./placeholders.js";
 export { HOOK_WARNING_KINDS } from "./outcome.js";
 export type {
   Finding,

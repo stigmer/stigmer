@@ -420,6 +420,35 @@ await update(
 ```
 
 
+### useUpdateOrganizationEmbedding
+
+Changes an organization's embedding settings. The message is replaced
+whole, so the caller passes every setting; a role is sent only with
+account creation, which the contract requires.
+
+**Signature**
+
+```tsx
+function useUpdateOrganizationEmbedding(): UseUpdateOrganizationEmbeddingReturn
+```
+
+**Returns** — `UseUpdateOrganizationEmbeddingReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    error: { type: "Error | null", description: "Error from the last failed save, or `null`." },
+    isUpdating: { type: "boolean", description: "`true` while the request is in flight." },
+    updateEmbedding: { type: "(org: string, embedding: OrganizationEmbeddingValue) => Promise<Organization>", description: "Replace the organization's embedding settings (by id or slug) with `embedding`. Resolves with the updated organization." },
+  }}
+/>
+
+```tsx
+const { updateEmbedding, isUpdating } = useUpdateOrganizationEmbedding();
+await updateEmbedding(orgId, { ...organizationEmbeddingOf(org), allowedOrigins: ["https://app.example"] });
+```
+
+
 ### useUpdateOrganizationPolicies
 
 Changes an organization's policies. The caller passes every policy: a
@@ -505,6 +534,30 @@ All visual properties flow through `--stgm-*` design tokens.
   onCreated={(org) => console.log("Created:", org.metadata?.slug)}
   onCancel={() => setShowForm(false)}
 />
+```
+
+
+### OrgEmbeddingPanel
+
+Self-contained editor for an organization's embedding settings
+(`spec.embedding`), saved through `organization.updateEmbedding()`.
+
+All visual properties flow through `--stgm-*` design tokens; no routing
+or auth dependencies, so a platform builder can embed it directly:
+
+**Props** — `OrgEmbeddingPanelProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    onUpdated: { type: "(org: Organization) => void", description: "Fired with the updated resource after a successful save." },
+    org: { type: "string", description: "The ID of the organization whose embedding settings to display and edit.", required: true },
+    serviceAccountsHref: { type: "string", description: "Where the organization's service accounts are managed; the link is omitted when absent." },
+  }}
+/>
+
+```tsx
+<OrgEmbeddingPanel org="org-id-123" serviceAccountsHref="/settings/service-accounts" />
 ```
 
 
@@ -684,6 +737,39 @@ Must be rendered inside an [`OrgProvider`](#orgprovider).
 
 
 ## Types
+
+### formatSignInRole
+
+The display name of a sign-in role; unspecified reads as "None".
+
+```tsx
+function formatSignInRole(role: IamRole): string
+```
+
+
+### organizationEmbeddingOf
+
+An organization's embedding settings as they stand. An organization that
+stores none creates no accounts, grants nothing and allows every origin.
+
+```tsx
+function organizationEmbeddingOf(organization: Organization | null | undefined): OrganizationEmbeddingValue
+```
+
+
+### OrganizationEmbeddingValue
+
+An organization's embedding settings, as they should stand after the save.
+
+<TypeTable
+  type={{
+    allowedOrigins: { type: "readonly string[]", description: "Web origins whose pages may use the minted tokens; empty allows every origin.", required: true },
+    createAccountsOnSignIn: { type: "boolean", description: "A first sign-in creates the person's account; when `false`, the account must exist.", required: true },
+    signInRole: { type: "IamRole", description: "The role a created account receives; unspecified grants nothing. Never owner.", required: true },
+    vaults: { type: "readonly ResourceRef[]", description: "Shared vaults whose keys the runs of people signed in this way use, in order.", required: true },
+  }}
+/>
+
 
 ### organizationPoliciesOf
 

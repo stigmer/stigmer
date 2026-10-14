@@ -243,7 +243,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Version of the resource (optional, only applicable to versioned resources like Skills).\n Supports three formats:\n 1. Empty/unset → Resolves to \"latest\" (most recent version)\n 2. Tag name → Resolves to version with this tag (e.g., \"stable\", \"v1.0\")\n 3. Exact hash → Immutable reference to specific version (e.g., \"abc123...\")\n\n Default behavior: Empty means \"latest\" (current version).\n This field is ignored for non-versioned resources.\n\n Examples:\n - version: \"\"           → Use latest version\n - version: \"latest\"     → Use latest version (explicit)\n - version: \"stable\"     → Use version tagged as \"stable\"\n - version: \"v1.0\"       → Use version tagged as \"v1.0\"\n - version: \"abc123...\"  → Use exact version with this hash (immutable)",
+          "description": "The version of a skill, a plugin or a subagent the reference asks for;\n every other kind ignores it.\n\n Formats:\n - empty or \"latest\": the latest version;\n - a tag (e.g. \"stable\", \"v1.0\"): the version the tag names;\n - a 64-character hash: that exact version, which never changes.\n\n When it is read: a skill or plugin reference is resolved at the start\n of each turn, so a reference without a hash follows each new push, and\n the run records the version it loaded (RunStatus.loaded_versions). A\n subagent reference is resolved once, when the agent that lists it is\n saved, and the saved reference carries the hash it resolved to.",
           "required": false,
           "validation": {
             "pattern": "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"

@@ -558,8 +558,10 @@ Operational detail hub for an Agent blueprint.
 Fetches the agent via [`useAgent`](#useagent) internally and renders its
 full configuration inside a [`ResourceDetailShell`](/docs/sdk/react/resource-detail#resourcedetailshell): a
 standardized header with action bar, followed by structured content
-sections (instructions, plugins, tool lists, hooks, skills,
-subagents, and environment variables). Sections with no data are
+sections (instructions, plugins, the agent's own MCP servers, tool
+lists, hooks, skills, subagents, and environment variables). The MCP
+servers are edited only by the organization's admins
+([`AgentMcpServersSection`](#agentmcpserverssection)). Sections with no data are
 omitted entirely — reducing visual noise per Nielsen heuristic #8.
 The Evals tab runs test cases on the agent, with and without a plugin
 when one is compared, and compares its versions ([`EvalRunsTab`](/docs/sdk/react/eval-run#evalrunstab)).
@@ -652,6 +654,35 @@ saved in My vault, since a conversation keeps no values of its own.
   ]}
   onSubmit={(values) => saveToMyVault(values)}
   onCancel={() => console.log("cancelled")}
+/>
+```
+
+
+### AgentMcpServersSection
+
+Lists the MCP servers an agent writes itself and, for an organization's
+admins, adds, changes and removes them.
+
+**Props** — `AgentMcpServersSectionProps`
+
+<TypeTable
+  type={{
+    editable: { type: "boolean", description: "When `true`, the viewer may edit the agent; the servers are editable only when the server also says the viewer may change them." },
+    error: { type: "string", description: "The last failed save's message, when it was this list's." },
+    isSaving: { type: "boolean", description: "`true` while a save is in flight." },
+    onEditStart: { type: "() => void", description: "Called when the list is opened for editing, to discard a stale error." },
+    onSave: { type: "(servers: AgentMcpServerInput[]) => Promise<boolean>", description: "Saves the whole list. Resolves to whether the save succeeded." },
+    org: { type: "string", description: "Id of the agent's organization: whose admins may change the servers, and whose My vault holds the viewer's logins.", required: true },
+    servers: { type: "readonly AgentMcpServer[]", description: "`AgentSpec.mcpServers`, as stored.", required: true },
+  }}
+/>
+
+```tsx
+<AgentMcpServersSection
+  servers={agent.spec.mcpServers}
+  org={agent.metadata.org}
+  editable
+  onSave={(servers) => saveField("mcpServers", servers)}
 />
 ```
 
@@ -908,6 +939,7 @@ an `AgentInput` for submission on the final step.
     env: { type: "EnvVarEntry[]", description: "Environment variable declarations.", required: true },
     iconUrl: { type: "string", description: "Icon URL (optional).", required: true },
     instructions: { type: "string", description: "System prompt / instructions (the agent's core content).", required: true },
+    mcpServers: { type: "AgentMcpServerInput[]", description: "MCP servers the agent writes itself, each by name, URL and headers. Only an organization's admins may save an agent with one; the step offers them to no one else.", required: true },
     name: { type: "string", description: "Agent display name (required).", required: true },
     plugins: { type: "ResourceRef[]", description: "Plugins the agent uses, each whole: its skills, agents, hooks and MCP servers.", required: true },
     skillRefs: { type: "ResourceRef[]", description: "Skill references.", required: true },

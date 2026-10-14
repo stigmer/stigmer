@@ -56,8 +56,10 @@ stigmer apply --dry-run
 
 Apply individual YAML files or entire directories of resources. Supports agents,
 schedules, channels and multi-document YAML (separated by `---`). An MCP server
-is not a file of its own: it lives in a plugin, and an agent lists the plugins
-it uses under `spec.plugins`. A file of `kind: McpServer`, or an agent listing
+is not a file of its own. An agent lists its own servers under
+`spec.mcp_servers` (name, URL and headers), which only an organization's admins
+may add or change, or uses a plugin that carries one, listed under
+`spec.plugins`. A file of `kind: McpServer`, or an agent listing
 `mcp_server_usages`, is refused with that way forward;
 `stigmer mcp add <name> <url>` installs a one-off server as a plugin.
 
@@ -71,6 +73,26 @@ stigmer apply -f agent.yaml --dry-run
 # Apply all YAML files in a directory
 stigmer apply -f ./manifests/
 ```
+
+### A file is the resource as you want it
+
+Applying a file makes the resource match it. Stigmer finds the resource by the
+file's `metadata.id`, then by its slug, and creates it when neither finds one;
+applying the same file again changes nothing.
+
+- **Renaming.** A file that keeps a resource's `metadata.id` and changes its
+  `metadata.slug` renames it after the rest of the file lands. Everything that
+  points at the resource keeps working, and the old slug keeps finding it for
+  reading for 30 days. Renaming needs the permission to delete the resource. A
+  kind that cannot be renamed keeps its slug, and the command warns that the
+  file's slug was not applied.
+- **An old slug.** A file without `metadata.id` that names a slug the resource
+  was renamed away from is refused, naming the slug it has now; change the
+  file's `metadata.slug` and apply again.
+- **No freshness check.** A file's `metadata.etag`, such as the one
+  `stigmer get -o yaml` prints, is dropped, and so is the id of each reference
+  the file names by slug. A file you kept applies as written, and a reference
+  whose slug you edited follows the new slug.
 
 ### Plugin mode
 
@@ -106,8 +128,8 @@ stigmer apply -f agent.yaml --dry-run
 stigmer apply -f agent.yaml
 ```
 
-Creates or updates the agent defined in the file. The CLI auto-detects the
-resource kind from the YAML `kind` field.
+Creates the agent defined in the file, or makes the existing one match it. The
+CLI auto-detects the resource kind from the YAML `kind` field.
 
 ### Deploy to a specific organization
 

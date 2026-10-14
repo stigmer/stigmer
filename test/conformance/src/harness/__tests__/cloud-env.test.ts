@@ -1,27 +1,30 @@
-// Pins the pure arm of the cloud-env identity helpers: the member grant's
-// shape — the ordinary IamPolicy create the
-// Members page performs, naming the organization by ID (the FGA object) and
-// the `member` role the organization kind declares grantable.
+// Pins how the cloud environment makes a console person: a token the
+// environment's direct-login tenant mints for a fresh subject, living a
+// whole run, then the first sign-in (provisionMyAccount) through the clients
+// that present it. The tenant and the clients are stubbed.
 import { describe, expect, it } from "vitest";
-import { organizationMemberGrant } from "../cloud-env";
 
-describe("organizationMemberGrant", () => {
-  it("names the identity account as principal, the organization by id, and the member role", () => {
-    // An IamPolicySpec message (the create RPC's input), so the shape is
-    // matched field by field rather than as a bare object.
-    expect(organizationMemberGrant("org_01acme", "ida_01member")).toMatchObject({
-      principal: { kind: "identity_account", id: "ida_01member" },
-      resource: { kind: "organization", id: "org_01acme" },
-      relation: "member",
+import type { DirectLoginTenant } from "../../targets/target";
+import type { ConformanceClients } from "../clients";
+import { provisionConsolePerson } from "../cloud-env";
+import { PERSON_TOKEN_TTL_SECONDS } from "../people";
+
+describe("provisionConsolePerson", () => {
+  it("mints a whole-run token for a fresh subject and provisions the account it names", async () => {
+    const minted: Array<{ subject: string; ttlSeconds?: number }> = [];
+    const tenant = {
+      mint: (input: { subject: string; ttlSeconds?: number }) => (minted.push(input), "console-token"),
+    } as unknown as DirectLoginTenant;
+    const presented: string[] = [];
+    const person = await provisionConsolePerson(tenant, (token) => {
+      presented.push(token);
+      return {
+        identityAccountCommand: { provisionMyAccount: async () => ({ metadata: { id: "ida_01person" } }) },
+      } as unknown as Pick<ConformanceClients, "identityAccountCommand">;
     });
-  });
 
-  it("refuses empty ids rather than minting a grant on nothing", () => {
-    expect(() => organizationMemberGrant("", "ida_01member")).toThrow(
-      /non-empty/,
-    );
-    expect(() => organizationMemberGrant("org_01acme", "")).toThrow(
-      /non-empty/,
-    );
+    expect(person).toEqual({ token: "console-token", accountId: "ida_01person" });
+    expect(presented).toEqual(["console-token"]);
+    expect(minted).toEqual([{ subject: expect.stringMatching(/^auth0\|conformance-/), ttlSeconds: PERSON_TOKEN_TTL_SECONDS }]);
   });
 });

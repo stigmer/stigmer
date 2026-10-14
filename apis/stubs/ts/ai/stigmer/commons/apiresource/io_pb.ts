@@ -257,21 +257,19 @@ export type ApiResourceReference = Message<"ai.stigmer.commons.apiresource.ApiRe
   slug: string;
 
   /**
-   * Version of the resource (optional, only applicable to versioned resources like Skills).
-   * Supports three formats:
-   * 1. Empty/unset → Resolves to "latest" (most recent version)
-   * 2. Tag name → Resolves to version with this tag (e.g., "stable", "v1.0")
-   * 3. Exact hash → Immutable reference to specific version (e.g., "abc123...")
+   * The version of a skill, a plugin or a subagent the reference asks for;
+   * every other kind ignores it.
    *
-   * Default behavior: Empty means "latest" (current version).
-   * This field is ignored for non-versioned resources.
+   * Formats:
+   * - empty or "latest": the latest version;
+   * - a tag (e.g. "stable", "v1.0"): the version the tag names;
+   * - a 64-character hash: that exact version, which never changes.
    *
-   * Examples:
-   * - version: ""           → Use latest version
-   * - version: "latest"     → Use latest version (explicit)
-   * - version: "stable"     → Use version tagged as "stable"
-   * - version: "v1.0"       → Use version tagged as "v1.0"
-   * - version: "abc123..."  → Use exact version with this hash (immutable)
+   * When it is read: a skill or plugin reference is resolved at the start
+   * of each turn, so a reference without a hash follows each new push, and
+   * the run records the version it loaded (RunStatus.loaded_versions). A
+   * subagent reference is resolved once, when the agent that lists it is
+   * saved, and the saved reference carries the hash it resolved to.
    *
    * @generated from field: string version = 4;
    */

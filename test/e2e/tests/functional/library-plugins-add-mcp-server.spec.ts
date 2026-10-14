@@ -1,9 +1,9 @@
 import { test, expect } from "../../fixtures";
 
 /**
- * "Add MCP server" on the Plugins list: an MCP server lives in a plugin,
- * so adding one installs a plugin of that one server, built in the
- * browser. Pins the three places the form opens from (the list header,
+ * "Add MCP server" on the Plugins list: outside an agent's own MCP
+ * servers, a server lives in a plugin, so adding one installs a plugin of
+ * that one server, built in the browser. Pins the three places the form opens from (the list header,
  * the empty state of an organization with no plugin, and the Library Add
  * menu's `?add=mcp-server` link) and the add itself: a name, a URL and a
  * header naming a key as `${NAME}` install the plugin and land on its

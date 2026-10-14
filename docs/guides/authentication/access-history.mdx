@@ -48,20 +48,20 @@ member was. An account that no longer exists is shown by its ID.
 
 The causes:
 
-| Cause                         | What happened                                                                             |
-| ----------------------------- | ----------------------------------------------------------------------------------------- |
-| `grant`                       | Someone gave a person, a service account or a group a role                                |
-| `revoke`                      | Someone took a role away                                                                  |
-| `organization_access_revoked` | Someone removed a person from the Organization                                            |
-| `left_organization`           | A person left, and the server took away what they still held on its resources             |
-| `resource_deleted`            | A resource was deleted, and the access to it with it                                      |
-| `structural`                  | Creating a resource, or setting who it is visible to, gave its creator or audience access |
-| `organization_created`        | A person created the Organization and became its owner                                    |
-| `first_sign_in`               | A person signed in for the first time and got the roles the server gives new people       |
-| `role_reconciliation`         | The server gave existing accounts the roles its membership rules give                     |
-| `operator_ownership`          | The server's operator became owner of an Organization nobody owned                        |
-| `platform_client_grant`       | A person signed in through a PlatformClient and got the role it grants                    |
-| `service_account_created`     | An admin created a service account with its Organization role                             |
+| Cause                         | What happened                                                                                                                                             |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `grant`                       | Someone gave a person, a service account or a group a role                                                                                                |
+| `revoke`                      | Someone took a role away                                                                                                                                  |
+| `organization_access_revoked` | Someone removed a person from the Organization                                                                                                            |
+| `left_organization`           | A person left, and the server took away what they still held on its resources                                                                             |
+| `resource_deleted`            | A resource was deleted, and the access to it with it                                                                                                      |
+| `structural`                  | Creating a resource, or setting who it is visible to, gave its creator or audience access                                                                 |
+| `organization_created`        | A person created the Organization and became its owner                                                                                                    |
+| `first_sign_in`               | A person signed in for the first time and got the roles the server gives new people                                                                       |
+| `role_reconciliation`         | The server gave existing accounts the roles its membership rules give                                                                                     |
+| `operator_ownership`          | The server's operator became owner of an Organization nobody owned                                                                                        |
+| `platform_client_grant`       | Older entries only: a person signed in from a product and got its sign-in role. Such a sign-in now records a `grant` made for the minting service account |
+| `service_account_created`     | An admin created a service account with its Organization role                                                                                             |
 
 ## Read it in the Console
 

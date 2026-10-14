@@ -12,6 +12,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { setTimeout as delay } from "node:timers/promises";
 import type { ConformanceClients } from "../harness/clients";
+import { organizationRole } from "./iampolicies";
 import { DEFAULT_POLL_MS, DEFAULT_TIMEOUT_MS } from "./run-poll";
 import { uniqueOrg } from "./naming";
 
@@ -85,6 +86,26 @@ export async function createChildOrganization(
     );
   }
   return { slug, id };
+}
+
+/**
+ * Gives the caller `admin` in a child organization they created, through
+ * the ordinary grant a parent's admin makes. A child has no creator owner
+ * (backend/services/stigmer-server/src/domain/organization/children.ts):
+ * where the server enforces the model, the parent's admins manage the
+ * child without acting in it, so an arm that writes into a child it made
+ * takes a role there first. Where the caller already acts everywhere
+ * (trusted-local), the grant changes nothing.
+ */
+export async function takeAdminIn(
+  clients: Pick<ConformanceClients, "identityAccountQuery" | "iamPolicyCommand">,
+  childOrg: string,
+): Promise<void> {
+  const me = (await clients.identityAccountQuery.whoAmI({})).metadata?.id ?? "";
+  if (me === "") {
+    throw new Error("whoAmI answered no account; the caller cannot take a role in the child organization");
+  }
+  await clients.iamPolicyCommand.create(organizationRole(me, "admin", childOrg));
 }
 
 /**

@@ -21,10 +21,10 @@
 //   - getLicenseStatus answers on every edition and follows the same
 //     presence contract: the state names what the server holds, claims are
 //     present exactly when a ticket verified, key_id exactly when a ticket
-//     was presented, checked_at always. Every target here answers `absent`
-//     (open source and the cloud hold no key); an Enterprise target with a
-//     configured ticket would answer from it, and that assertion arrives
-//     with the edition that serves it.
+//     was presented, checked_at always. The open-source targets and the
+//     cloud answer `absent` (neither holds a key); the enterprise target
+//     answers `valid` from the license its primary runs on
+//     (CapabilityFlags.licenseStatus).
 //
 // getRunnerScopedToken is deliberately NOT covered here: its arms are gated
 // on runner-class credentials (embedded_runner / pool_sandbox / sandbox
@@ -35,6 +35,8 @@ import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_inf
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { createTarget, type TargetProfile } from "../targets";
+
+const capabilities = createTarget().capabilities;
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -76,7 +78,7 @@ describe("Platform conformance — getServerInfo", () => {
 });
 
 describe("Platform conformance — getLicenseStatus", () => {
-  it("[rpc:PlatformQueryController.getLicenseStatus] answers absent with no claims, no key and a checked_at — the presence contract of a keyless server", async () => {
+  it.skipIf(capabilities.licenseStatus !== "absent")("[rpc:PlatformQueryController.getLicenseStatus] answers absent with no claims, no key and a checked_at — the presence contract of a keyless server", async () => {
     const status = await clients.platformQuery.getLicenseStatus({});
 
     expect(
@@ -87,6 +89,17 @@ describe("Platform conformance — getLicenseStatus", () => {
     // there is no key to name and no claims to report.
     expect(status.claims, "absent carries no claims").toBeUndefined();
     expect(status.keyId, "absent names no key").toBe("");
+    expect(status.checkedAt, "checked_at is always set").toBeDefined();
+  });
+
+  it.skipIf(capabilities.licenseStatus !== "licensed")("[rpc:PlatformQueryController.getLicenseStatus] answers valid with the ticket's claims, the key that signed it and a checked_at — the presence contract of a licensed server", async () => {
+    const status = await clients.platformQuery.getLicenseStatus({});
+
+    expect(status.state, "a current license verified at boot is valid").toBe(LicenseState.valid);
+    // Presence follows the state: a ticket verified, so its claims are
+    // reported, and the key it named is the issuer's signing key.
+    expect(status.claims, "valid carries the ticket's claims").toBeDefined();
+    expect(status.keyId, "valid names the key that signed the ticket").toMatch(/^license-signing:.+$/);
     expect(status.checkedAt, "checked_at is always set").toBeDefined();
   });
 });

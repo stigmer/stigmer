@@ -13,7 +13,18 @@
  * is read from My vault (`useMyVault`), the sign-in is `useVaultSignIn` at
  * the address, and signing out removes the login at the address with
  * `removeConnections`. A server without `sign_in` that reads variables
- * wants a key; one with neither is open.
+ * wants a key; one with neither is open. A name the runner fills itself
+ * (who is calling, the conversation) is no key the person gives.
+ *
+ * An MCP server an agent writes itself has no `sign_in` record: install's
+ * probe never ran for it, and the console cannot tell whether an address
+ * signs in without one. When it sends no `Authorization` header, a run
+ * still reads a login saved at its address, if there is one. With
+ * `optionalSignIn`, such a server is `signed-in` when My vault holds that
+ * login, and otherwise `sign-in-available`: the same sign-in at the same
+ * address, offered rather than owed. At an address that offers no
+ * sign-in, the server's refusal says what to do instead. A server that
+ * sends its own `Authorization` reads its key by name, as any server does.
  *
  * Only My vault is read: a sign-in made here is saved there, and a shared
  * vault's logins are the business of the conversations that list it.
@@ -22,6 +33,7 @@
 import { useCallback, useMemo, useState } from "react";
 import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import type { VaultConnection } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
+import { RUNNER_FILLED_VARIABLES } from "@stigmer/plugin-package";
 import { toError } from "../internal/toError.js";
 import { toolAddressOf, vaultLoginServes } from "../vault/address.js";
 import { useMyVault } from "../vault/useMyVault.js";
@@ -37,6 +49,12 @@ export type PluginServerSignInKind =
   | "signed-in"
   /** The server signs in, and no login serves its address yet; `signIn` starts one. */
   | "sign-in-needed"
+  /**
+   * An agent's own server may sign in, if its address offers one, and no
+   * login serves its address yet; `signIn` starts one. Only with
+   * `optionalSignIn`.
+   */
+  | "sign-in-available"
   /** The server reads keys by name, given when a conversation that uses it starts. */
   | "api-key"
   /** Neither a sign-in nor keys: nothing stands between the server and a tool call. */
@@ -49,11 +67,14 @@ export interface UsePluginServerSignInReturn {
   readonly address: string | null;
   /** The login saved at exactly this address, when there is one: what "Sign out" removes. */
   readonly connection: VaultConnection | null;
-  /** The variables an `api-key` server reads, in the plugin's order. */
+  /** The variables an `api-key` server reads, in the plugin's order, leaving out any the runner fills. */
   readonly declaredVariables: readonly string[];
   /** The read error, or the last sign-in or sign-out error, or `null`. */
   readonly error: Error | null;
-  /** Start the sign-in. Call from a click handler so the popup is allowed. A no-op unless `kind` is `sign-in-needed`. */
+  /**
+   * Start the sign-in. Call from a click handler so the popup is allowed.
+   * A no-op unless `kind` is `sign-in-needed` or `sign-in-available`.
+   */
   readonly signIn: () => void;
   /** Remove the login saved at this address from My vault. */
   readonly signOut: () => Promise<void>;
@@ -65,11 +86,23 @@ export interface UsePluginServerSignInReturn {
   readonly refetch: () => void;
 }
 
+/** Options for {@link usePluginServerSignIn}. */
+export interface UsePluginServerSignInOptions {
+  /**
+   * Offer a sign-in to an HTTP server with no sign-in record that sends no
+   * `Authorization` header: an MCP server an agent writes itself, whose
+   * run reads a login at its address when one is saved.
+   * @default false
+   */
+  readonly optionalSignIn?: boolean;
+}
+
 /**
  * Behaviour hook for one plugin server's sign-in. Pass `null` for either
  * argument to hold the hook idle.
  *
  * @param onSignedIn - Called with the address when a sign-in started here lands.
+ * @param options - {@link UsePluginServerSignInOptions}.
  *
  * @example
  * ```tsx
@@ -81,6 +114,7 @@ export function usePluginServerSignIn(
   org: string | null,
   server: McpServerEntry | null,
   onSignedIn?: (address: string) => void,
+  options?: UsePluginServerSignInOptions,
 ): UsePluginServerSignInReturn {
   const myVault = useMyVault(org);
   const vaultSignIn = useVaultSignIn();
@@ -89,23 +123,35 @@ export function usePluginServerSignIn(
 
   const address = useMemo(() => toolAddressOf(server), [server]);
   const signsIn = server !== null && server.transport.case === "http" && server.signIn !== undefined;
+  const mayOfferSignIn =
+    options?.optionalSignIn === true &&
+    !signsIn &&
+    server !== null &&
+    server.transport.case === "http" &&
+    address !== null &&
+    !Object.keys(server.transport.value.headers).some((header) => header.toLowerCase() === "authorization");
   const connections = myVault.vault?.spec?.connections;
   const connection = address !== null ? (connections?.[address] ?? null) : null;
-  const declaredVariables = server?.env ?? EMPTY;
+  const serverEnv = server?.env;
+  const declaredVariables = useMemo(
+    () => (serverEnv === undefined ? EMPTY : serverEnv.filter((name) => !RUNNER_FILLED_VARIABLES.has(name))),
+    [serverEnv],
+  );
 
   const kind = useMemo<PluginServerSignInKind>(() => {
     if (server === null || org === null) return "loading";
-    if (!signsIn) return declaredVariables.length > 0 ? "api-key" : "open";
+    if (!signsIn && !mayOfferSignIn) return declaredVariables.length > 0 ? "api-key" : "open";
     if (myVault.isLoading) return "loading";
     if (myVault.vault === null && myVault.error !== null) return "unreadable";
-    return vaultLoginServes(connections ?? {}, server) ? "signed-in" : "sign-in-needed";
-  }, [server, org, signsIn, declaredVariables.length, myVault.isLoading, myVault.vault, myVault.error, connections]);
+    if (vaultLoginServes(connections ?? {}, server)) return "signed-in";
+    return signsIn ? "sign-in-needed" : "sign-in-available";
+  }, [server, org, signsIn, mayOfferSignIn, declaredVariables.length, myVault.isLoading, myVault.vault, myVault.error, connections]);
 
   const { refetch } = myVault;
   const startSignIn = vaultSignIn.signIn;
   const clearSignInError = vaultSignIn.clearError;
   const signIn = useCallback(() => {
-    if (kind !== "sign-in-needed" || address === null || org === null) return;
+    if ((kind !== "sign-in-needed" && kind !== "sign-in-available") || address === null || org === null) return;
     clearSignInError();
     setSignOutError(null);
     // A sign-in that fails leaves the row on "Sign in" with the reason; one

@@ -740,7 +740,7 @@ Generic reference to any API resource.
     org: { type: "string", description: "Organization that owns the referenced resource, by slug or id." },
     kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org)." },
-    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+    version: { type: "string", description: "The version of a skill, a plugin or a subagent the reference asks for; every other kind ignores it." },
     id: { type: "string", description: "The referenced resource's id: what a stored reference holds." },
   }}
 />

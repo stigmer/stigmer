@@ -1,10 +1,13 @@
 "use client";
 
-import { useCallback, useId, useState } from "react";
+import { useCallback, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { ResourceRef } from "@stigmer/sdk";
 import { PluginPicker } from "../../plugin/PluginPicker.js";
+import { useCanCreatePlugin } from "../../plugin/useCanCreatePlugin.js";
 import { SkillPicker } from "../../skill/SkillPicker.js";
+import { AgentMcpServerList } from "../AgentMcpServerList.js";
+import type { AgentMcpServerValue } from "../agentMcpServers.js";
 import type { AgentWizardData, EnvVarEntry } from "./types.js";
 
 /** Props for {@link CapabilitiesStep}. */
@@ -18,8 +21,11 @@ export interface CapabilitiesStepProps {
  * Wizard step 2: Agent capabilities.
  *
  * All sections are optional and start collapsed. The user expands
- * sections to add plugins, skills, and environment variables.
- * No validation gate — the user can proceed with zero capabilities.
+ * sections to add plugins, MCP servers, skills, and environment
+ * variables. No validation gate — the user can proceed with zero
+ * capabilities. The MCP servers section shows only to someone the
+ * server's self-check says may add one (`can_create_plugin`, an
+ * organization's admins): anyone else's create would be refused.
  */
 export function CapabilitiesStep({
   org,
@@ -29,6 +35,7 @@ export function CapabilitiesStep({
   const [expandedSections, setExpandedSections] = useState<Set<string>>(() => {
     const initial = new Set<string>();
     if (data.plugins.length > 0) initial.add("plugins");
+    if (data.mcpServers.length > 0) initial.add("mcp-servers");
     if (data.skillRefs.length > 0) initial.add("skills");
     if (data.env.length > 0) initial.add("env");
     return initial;
@@ -46,6 +53,19 @@ export function CapabilitiesStep({
   const handlePluginsChange = useCallback(
     (refs: ResourceRef[]) => {
       updateData({ plugins: refs });
+    },
+    [updateData],
+  );
+
+  const canAddServers = useCanCreatePlugin(org || null).allowed;
+  const serverValues = useMemo(
+    () => data.mcpServers.map((server) => ({ name: server.name ?? "", url: server.url ?? "", headers: server.headers ?? {} })),
+    [data.mcpServers],
+  );
+  const handleServersChange = useCallback(
+    (servers: AgentMcpServerValue[]) => {
+      updateData({ mcpServers: servers.map((server) => ({ name: server.name, url: server.url, headers: { ...server.headers } })) });
+      return true;
     },
     [updateData],
   );
@@ -84,6 +104,27 @@ export function CapabilitiesStep({
           onChange={handlePluginsChange}
         />
       </CollapsibleSection>
+
+      {/* MCP servers: an organization's admins only */}
+      {canAddServers && (
+        <CollapsibleSection
+          id="mcp-servers"
+          title="MCP servers"
+          subtitle="Servers the agent dials itself, by name and address"
+          count={data.mcpServers.length}
+          expanded={expandedSections.has("mcp-servers")}
+          onToggle={toggleSection}
+        >
+          <div className="stg:-mx-4 stg:-my-4">
+            <AgentMcpServerList
+              servers={serverValues}
+              editing
+              onChange={handleServersChange}
+              emptyText="No MCP servers. Every conversation with this agent dials the servers added here, beside its plugins' servers."
+            />
+          </div>
+        </CollapsibleSection>
+      )}
 
       {/* Skills */}
       <CollapsibleSection

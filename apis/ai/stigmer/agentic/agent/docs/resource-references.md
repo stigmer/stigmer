@@ -1,6 +1,6 @@
 # ApiResourceReference Format
 
-When an Agent references another resource (plugin, skill, or an agent it lists as a subagent), it uses the `ApiResourceReference` message defined in `ai/stigmer/commons/apiresource/io.proto`. This document is the single source of truth for that format.
+When an Agent references another resource (plugin, skill, or an agent it lists as a subagent), it uses the `ApiResourceReference` message defined in `ai/stigmer/commons/apiresource/io.proto`. This document is the single source of truth for that format, for what a reference survives, and for when the version it asks for is read.
 
 ## YAML Format
 
@@ -14,37 +14,39 @@ version: stable
 
 | Field | Required | Format | Description |
 |---|---|---|---|
-| `org` | No | `^$\|^[a-z][a-z0-9-]*[a-z0-9]$\|^org_[0-9a-z]{26}$`, at most 63 chars | Organization that owns the referenced resource. Empty = relative reference (resolved from the parent resource's `metadata.org` at write time). |
-| `kind` | Yes | Lowercase string enum name | Resource kind. See [Kind Values](#kind-values). |
-| `id` | No | A resource id, at most 64 chars | The target's id, which a stored reference holds. Name the target by `id`, by `slug`, or by both. |
-| `slug` | One of `id` or `slug` | `^[a-z][a-z0-9-]*[a-z0-9]$`, 2 to 63 chars | Resource slug, unique within the organization. |
-| `version` | No | Tag, hash, or empty | Version pin. Only applicable to versioned resources (Skills, Plugins, and Agents listed in `subagents`). Ignored for non-versioned resources. |
+| `org` | No | `^$\|^[a-z][a-z0-9-]*[a-z0-9]$\|^org_[0-9a-z]{26}$`, at most 63 chars | Organization that owns the referenced resource, by slug or id. Empty = relative reference (resolved from the parent resource's `metadata.org` at write time). |
+| `kind` | No | Lowercase string enum name | Resource kind. The field the reference sits in decides it; a reference that names another kind is refused. See [Kind Values](#kind-values). |
+| `id` | One of `id` or `slug` | A resource id, at most 64 chars | The target's id, which a stored reference holds. |
+| `slug` | One of `id` or `slug` | `^[a-z][a-z0-9-]*[a-z0-9]$`, 2 to 63 chars | The target's slug, unique within the organization. |
+| `version` | No | Tag, hash, or empty | The version asked for. Read by skills, plugins and subagents; ignored for every other kind. See [When a Version Is Read](#when-a-version-is-read). |
+
+## Three Forms
+
+A reference is written one way, stored another, and returned a third.
+
+| Form | What it holds |
+|---|---|
+| Written | The target by name (`org` and `slug`), by `id`, or by both. When both are given they must name the same resource, or the write is refused naming both. |
+| Stored | `org` (the organization's id), `kind`, `id` and `version`. The slug is resolved to the id when the referring resource is written, and is not stored. |
+| Returned | As stored, with `slug` filled with the target's current slug, or empty once the target is deleted. |
+
+Write references by slug: that is what a person reads and types, and what a manifest kept in a repository should hold. The id is what the server keeps.
+
+## What a Reference Survives
+
+**A rename.** Renaming the target changes nothing the reference holds. The agent keeps loading the same skill, and every response names it by its new slug. The old slug keeps leading to the target for reading for 30 days, so a manifest that still names it can be corrected; an apply of that manifest is refused with `SLUG_RENAMED` until it names the new slug or the id.
+
+**A delete.** A reference whose target was deleted is returned with an empty `slug` and its `id`. A turn runs without a skill or plugin that was deleted. A new resource that later takes the deleted one's name is never bound to the stored reference: only a write that names the slug again resolves it to the new resource.
 
 ## Kind Values
 
-The `kind` field uses the **lowercase string name** of the `ApiResourceKind` enum. In YAML, always use the string form — never the integer.
+The `kind` field uses the **lowercase string name** of the `ApiResourceKind` enum. In YAML, always use the string form (`kind: skill`), never the integer and never a capitalized name. It may be left out: the field decides the kind (`skill_refs` holds skills, `plugins` plugins, `subagents` agents), and a reference that names another kind is refused with `skill_refs must reference resources with kind=skill`.
 
-| YAML Value | Enum Integer | Resource Type |
-|---|---|---|
-| `skill` | 43 | Skill — reusable knowledge package |
-| `plugin` | 58 | Plugin — an installed package of skills, agents, hooks and MCP servers |
-| `agent` | 40 | Agent — a saved agent this agent lists in `subagents` |
-
-**Important:** The proto enum uses integer values internally (e.g., `this.kind == 43` in CEL validation expressions). In YAML serialization, the YAML parser accepts the **lowercase string name**. Always use `kind: skill` or `kind: plugin` in YAML files.
-
-```yaml
-# Correct
-kind: skill
-kind: plugin
-
-# Wrong — do not use integers in YAML
-kind: 43
-kind: 58
-
-# Wrong — do not capitalize
-kind: Skill
-kind: PLUGIN
-```
+| YAML Value | Resource Type |
+|---|---|
+| `skill` | Skill — reusable knowledge package |
+| `plugin` | Plugin — an installed package of skills, agents, hooks and MCP servers |
+| `agent` | Agent — a saved agent this agent lists in `subagents` |
 
 ## Organization (`org`)
 
@@ -94,39 +96,40 @@ Slugs are user-friendly identifiers that are unique within an organization. Form
 ```yaml
 # Correct
 slug: code-reviewer
-slug: github
-slug: my-deployment-tool-v2
-
-# Wrong
-slug: Code_Reviewer    # uppercase and underscores
-slug: codeReviewer     # camelCase
-slug: 2nd-reviewer     # starts with digit
 ```
 
-## Version Pinning
+`Code_Reviewer` (uppercase and underscores), `codeReviewer` (camelCase) and `2nd-reviewer` (starts with a digit) are refused.
 
-The `version` field is only meaningful for versioned resources: Skills, Plugins, and Agents listed in `subagents`. A plugin's versions are its archive digests, each tagged with the manifest's `version`; a plugin reference with no `version` follows the installed version. A subagent reference is pinned when the agent listing it is saved: the saved reference carries the hash its version resolved to, so a later move of a tag, or a new version of the listed agent, changes nothing until the agent is saved again (see [subagents.md](subagents.md#which-version-runs)). For other resources, the field is ignored.
+## When a Version Is Read
 
-| Value | Behavior |
+The `version` field is read by three kinds: skills, plugins, and agents listed in `subagents`. Every other kind ignores it.
+
+| Value | Asks for |
 |---|---|
-| Empty or omitted | Resolves to the latest version |
-| `latest` | Explicitly resolves to the latest version (same as empty) |
-| Tag name (e.g., `stable`, `v1.0`) | Resolves to the version tagged with this name |
-| 64-character hex hash (e.g., `abc123...`) | Immutable reference to an exact version by content hash |
+| Empty or omitted | The latest version |
+| `latest` | The latest version (same as empty) |
+| Tag name (e.g., `stable`, `v1.0`) | The version the tag names |
+| 64-character hex hash | That exact version, which never changes |
+
+**Skills and plugins are read at the start of each turn.** A reference without a hash follows each new push: a turn that starts after a push loads the new version, and a tag that moves takes the next turn with it. Each run records the exact version every turn loaded (`RunStatus.loaded_versions`), and the conversation marks a turn whose skills or plugins moved since the turn before. A plugin's versions are its archive digests, each tagged with the manifest's `version`; a plugin reference with no `version` follows the installed version.
+
+**Subagents are read when the agent that lists them is saved.** The saved reference carries the hash its version resolved to, so a later move of a tag, or a new version of the listed agent, changes nothing until the agent is saved again ([subagents.md](subagents.md#which-version-runs)).
+
+**A session adds to its agent's lists.** A session's `skill_refs` and `plugins` are loaded beside the agent's at each turn. When both name the same skill or plugin, the session's reference wins.
 
 ```yaml
-# Use latest version (implicit)
+# Follow the latest version
 skill_refs:
   - kind: skill
     slug: code-review-best-practices
 
-# Pin to a named tag
+# Follow a named tag
 skill_refs:
   - kind: skill
     slug: code-review-best-practices
     version: stable
 
-# Pin to an exact content hash (immutable)
+# Pin to an exact content hash
 skill_refs:
   - kind: skill
     slug: code-review-best-practices
@@ -144,10 +147,5 @@ The proto enforces these constraints via `buf.validate`:
 - `slug`: optional when `id` is set, matches `^[a-z][a-z0-9-]*[a-z0-9]$`, 2 to 63 chars
 - `id` or `slug`: one of them is required (`reference.id_or_slug`)
 - `version`: optional, matches `^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$`
-- `kind`: required, must be a defined `ApiResourceKind` enum value
 
-Additional CEL validation on Agent fields:
-
-- `plugins[*].kind` must equal `plugin` (enum value 58)
-- `skill_refs[*].kind` must equal `skill` (enum value 43)
-- `subagents[*].kind` must equal `agent` (enum value 40), at most 20 entries
+Each reference field of the contract declares the kind it holds with the `reference_kind` field option: on an Agent, `plugins` holds plugins, `skill_refs` skills, and `subagents` agents (at most 20 entries). When the agent is written, every reference is checked: the target must exist, and one in another organization must be shared as above. A reference that fails is refused at write, never at run.

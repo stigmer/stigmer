@@ -563,6 +563,15 @@ pages:
     why:
       The engine-selection fork is structure; the existing mermaid carries it.
 
+  concepts/resources:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      Every resource has a permanent ID and a renamable slug, is pointed at by
+      ID, changes by apply or by a named update with an optional freshness
+      check, lists in pages, and carries labels to filter and tags to find.
+    medium: none
+
   concepts/organizations:
     fate: keep
     diataxis: explanation
@@ -588,7 +597,7 @@ pages:
     teaches:
       The five Identity Account types, service accounts for automation among
       them, and the two trust models — external OIDC federation vs
-      Stigmer-signed PlatformClient tokens.
+      Stigmer-signed minted user tokens.
     medium: diagram
     why:
       Both trust models are eight-step sequences already rendered as sequence
@@ -598,7 +607,7 @@ pages:
     fate: keep
     diataxis: landing
     teaches:
-      Choose among API key, identity federation, and PlatformClient based on
+      Choose among API key, identity federation, and minted user tokens based on
       where the request originates and who makes it.
     medium: none
 
@@ -682,7 +691,7 @@ pages:
     diataxis: how-to
     teaches:
       Give each customer an isolated child organization under yours, manage it
-      without reading it, route sign-ins with externalIdClaim or PlatformClient
+      without reading it, route sign-ins with externalIdClaim or minted user
       tokens, and share a catalog with every child.
     medium: diagram
     why:
@@ -691,19 +700,16 @@ pages:
       multi-tenant-setup-playback: keep
       multi-tenant-jit-playback: keep
 
-  guides/authentication/platform-client/overview:
+  guides/authentication/product-users:
     fate: keep
     diataxis: how-to
     teaches:
-      Mint per-user Stigmer JWTs from your backend with PlatformClient
-      credentials and hand them to StigmerProvider.
+      Mint per-user Stigmer JWTs from your backend with an admin service
+      account's API key, set the Organization's embedding settings, and hand
+      the tokens to StigmerProvider.
     medium: diagram
     why:
-      Token minting is a backend sequence; the existing diagram plus the
-      token-flow playback carry it. The legacy setup tour that followed the
-      playback was a second embed on the same topic (dropped 2026-07-28).
-    embeds:
-      platform-client-token-flow: keep
+      Token minting is a backend sequence; one sequence diagram carries it.
 
   guides/authentication/customer-keys:
     fate: keep

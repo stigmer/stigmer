@@ -125,7 +125,7 @@
           "inputFullType": "ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest",
           "outputType": "SessionList",
           "outputFullType": "ai.stigmer.agentic.session.v1.SessionList",
-          "description": "List the conversations on one agent, whichever version each runs.\n\n Results are filtered to the sessions the caller can view. A plugin\n eval's tries are left out, as in list."
+          "description": "List the conversations on one agent, whichever version each runs.\n\n Results are filtered to the sessions the caller can view. An eval\n run's tries are left out, as in list."
         },
         {
           "name": "ListByChannel",
