@@ -97,6 +97,23 @@ describe("useConversationList", () => {
     );
   });
 
+  it("reads nothing on loadMore when the head page is the last", async () => {
+    const listConversations = vi.fn().mockResolvedValue({
+      entries: [conversation("ach_1", "15550001111", "Pat")],
+      nextPageToken: "",
+    });
+    const { result } = renderHook(
+      () => useConversationList({ org: "acme", ...NO_POLL }),
+      { wrapper: wrapper(createMockStigmer(listConversations)) },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.hasMore).toBe(false);
+    act(() => result.current.loadMore());
+    expect(listConversations).toHaveBeenCalledTimes(1);
+    expect(result.current.isLoadingMore).toBe(false);
+  });
+
   it("passes the channel filter through", async () => {
     const listConversations = vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" });
     renderHook(
