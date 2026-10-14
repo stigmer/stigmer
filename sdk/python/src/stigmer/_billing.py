@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Iterator
 
 import grpc
 
@@ -139,23 +140,46 @@ class BillingClient:
     # ── Pricing ──────────────────────────────────────────────────────────
 
     def list_model_pricing_baselines(
-        self, include_history: bool = False
+        self,
+        include_history: bool = False,
+        page_size: int = 0,
+        page_token: str = "",
     ) -> billing_io_pb2.ModelPricingBaselinesResponse:
-        """Retrieve the model registry baseline catalog.
+        """Retrieve one page of the model registry baseline catalog.
 
         ACTIVE entries by default, or the full append-only revision history
-        with ``include_history=True``.
+        with ``include_history=True``. ``page_size`` 0 asks for the default
+        page of 50, and above 100 reads 100; pass a response's
+        ``next_page_token`` as ``page_token`` to continue.
 
         Platform-operator surface (``can_manage_model_pricing`` on
         ``platform:stigmer``): rates are the providers' list prices.
         """
         req = billing_io_pb2.ListModelPricingBaselinesInput(
-            include_history=include_history
+            include_history=include_history,
+            page_size=page_size,
+            page_token=page_token,
         )
         try:
             return self._query.listModelPricingBaselines(req)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
+
+    def list_model_pricing_baselines_all(
+        self,
+        include_history: bool = False,
+        page_size: int = 0,
+        page_token: str = "",
+    ) -> Iterator[model_pricing_baseline_pb2.ModelPricingBaseline]:
+        """Every baseline of the catalog, page after page: follows
+        ``next_page_token`` from ``page_token`` until the catalog ends."""
+        token = page_token
+        while True:
+            page = self.list_model_pricing_baselines(include_history, page_size, token)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            token = page.next_page_token
 
     def upsert_model_pricing_baseline(
         self, params: UpsertModelPricingBaselineParams
