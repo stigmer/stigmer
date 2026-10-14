@@ -78,7 +78,11 @@ type ListAgentEvalsByAgentRequest struct {
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
-	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Only resources carrying every label given, each matched exactly (AND).
+	// A selective filter may answer short pages, even empty ones, that still
+	// carry a token.
+	Labels        map[string]string `protobuf:"bytes,4,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -132,6 +136,13 @@ func (x *ListAgentEvalsByAgentRequest) GetPageToken() string {
 		return x.PageToken
 	}
 	return ""
+}
+
+func (x *ListAgentEvalsByAgentRequest) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
 }
 
 // AgentEvalList is a list of agent evals.
@@ -196,13 +207,17 @@ const file_ai_stigmer_agentic_agenteval_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"(ai/stigmer/agentic/agenteval/v1/io.proto\x12\x1fai.stigmer.agentic.agenteval.v1\x1a)ai/stigmer/agentic/agenteval/v1/api.proto\x1a\x1bbuf/validate/validate.proto\"0\n" +
 	"\vAgentEvalId\x12!\n" +
-	"\x05value\x18\x01 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\x05value\"\x94\x01\n" +
+	"\x05value\x18\x01 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\x05value\"\xb2\x02\n" +
 	"\x1cListAgentEvalsByAgentRequest\x12%\n" +
 	"\bagent_id\x18\x01 \x01(\tB\n" +
 	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\aagentId\x12$\n" +
 	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x90\x01\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12a\n" +
+	"\x06labels\x18\x04 \x03(\v2I.ai.stigmer.agentic.agenteval.v1.ListAgentEvalsByAgentRequest.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x90\x01\n" +
 	"\rAgentEvalList\x12D\n" +
 	"\aentries\x18\x02 \x03(\v2*.ai.stigmer.agentic.agenteval.v1.AgentEvalR\aentries\x12&\n" +
 	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\b\x01\x10\x02R\vtotal_countB\xa5\x02\n" +
@@ -220,20 +235,22 @@ func file_ai_stigmer_agentic_agenteval_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agenteval_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agenteval_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_agentic_agenteval_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_agentic_agenteval_v1_io_proto_goTypes = []any{
 	(*AgentEvalId)(nil),                  // 0: ai.stigmer.agentic.agenteval.v1.AgentEvalId
 	(*ListAgentEvalsByAgentRequest)(nil), // 1: ai.stigmer.agentic.agenteval.v1.ListAgentEvalsByAgentRequest
 	(*AgentEvalList)(nil),                // 2: ai.stigmer.agentic.agenteval.v1.AgentEvalList
-	(*AgentEval)(nil),                    // 3: ai.stigmer.agentic.agenteval.v1.AgentEval
+	nil,                                  // 3: ai.stigmer.agentic.agenteval.v1.ListAgentEvalsByAgentRequest.LabelsEntry
+	(*AgentEval)(nil),                    // 4: ai.stigmer.agentic.agenteval.v1.AgentEval
 }
 var file_ai_stigmer_agentic_agenteval_v1_io_proto_depIdxs = []int32{
-	3, // 0: ai.stigmer.agentic.agenteval.v1.AgentEvalList.entries:type_name -> ai.stigmer.agentic.agenteval.v1.AgentEval
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	3, // 0: ai.stigmer.agentic.agenteval.v1.ListAgentEvalsByAgentRequest.labels:type_name -> ai.stigmer.agentic.agenteval.v1.ListAgentEvalsByAgentRequest.LabelsEntry
+	4, // 1: ai.stigmer.agentic.agenteval.v1.AgentEvalList.entries:type_name -> ai.stigmer.agentic.agenteval.v1.AgentEval
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agenteval_v1_io_proto_init() }
@@ -248,7 +265,7 @@ func file_ai_stigmer_agentic_agenteval_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agenteval_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_agenteval_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

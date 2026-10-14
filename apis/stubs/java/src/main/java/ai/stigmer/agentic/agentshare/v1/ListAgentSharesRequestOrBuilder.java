@@ -32,7 +32,9 @@ public interface ListAgentSharesRequestOrBuilder extends
 
   /**
    * <pre>
-   * Filter by metadata labels. AND semantics: all labels must match.
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
    * </pre>
    *
    * <code>map&lt;string, string&gt; labels = 2 [json_name = "labels"];</code>
@@ -40,7 +42,9 @@ public interface ListAgentSharesRequestOrBuilder extends
   int getLabelsCount();
   /**
    * <pre>
-   * Filter by metadata labels. AND semantics: all labels must match.
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
    * </pre>
    *
    * <code>map&lt;string, string&gt; labels = 2 [json_name = "labels"];</code>
@@ -55,7 +59,9 @@ public interface ListAgentSharesRequestOrBuilder extends
   getLabels();
   /**
    * <pre>
-   * Filter by metadata labels. AND semantics: all labels must match.
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
    * </pre>
    *
    * <code>map&lt;string, string&gt; labels = 2 [json_name = "labels"];</code>
@@ -64,7 +70,9 @@ public interface ListAgentSharesRequestOrBuilder extends
   getLabelsMap();
   /**
    * <pre>
-   * Filter by metadata labels. AND semantics: all labels must match.
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
    * </pre>
    *
    * <code>map&lt;string, string&gt; labels = 2 [json_name = "labels"];</code>
@@ -76,7 +84,9 @@ java.lang.String getLabelsOrDefault(
 java.lang.String defaultValue);
   /**
    * <pre>
-   * Filter by metadata labels. AND semantics: all labels must match.
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
    * </pre>
    *
    * <code>map&lt;string, string&gt; labels = 2 [json_name = "labels"];</code>

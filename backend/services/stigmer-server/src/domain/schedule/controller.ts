@@ -700,28 +700,24 @@ function newListByOrgAndLabelsStep(
         SCHEDULE_LIST_KEY,
         await readSchedulePage(store, listReadScope, ctx.callerIdentity, req, {
           query: { org: req.org },
-          keep: (schedule) =>
-            matchesAllLabels(schedule.metadata?.labels ?? {}, req.labels),
-          fingerprint: {
-            lane: "schedule.list",
-            org: req.org,
-            labels: sortedLabels(req.labels),
-          },
+          fingerprint: { lane: "schedule.list", org: req.org },
         }),
       );
     },
   };
 }
 
-/** The two schedule lanes' shared read: one page, the scope last, as a ScheduleList. */
+/**
+ * The two schedule lanes' shared read: one page, the request's labels as
+ * each row's keep (an exact AND match), the scope last, as a ScheduleList.
+ */
 async function readSchedulePage(
   store: Store,
   listReadScope: ListReadScope | undefined,
   caller: CallerIdentity,
-  request: ListPageRequest,
+  request: ListPageRequest & { readonly labels: Readonly<Record<string, string>> },
   lane: {
     readonly query: ListIndexQuery<"agent">;
-    readonly keep?: (schedule: Schedule) => boolean;
     readonly fingerprint: Readonly<Record<string, unknown>>;
   },
 ): Promise<ScheduleList> {
@@ -730,9 +726,13 @@ async function readSchedulePage(
     declaration: scheduleListIndex,
     query: lane.query,
     request,
-    fingerprint: listPageFingerprint(lane.fingerprint),
+    fingerprint: listPageFingerprint({
+      ...lane.fingerprint,
+      labels: sortedLabels(request.labels),
+    }),
     decode: decodeOrSkip(ScheduleSchema),
-    ...(lane.keep === undefined ? {} : { keep: lane.keep }),
+    keep: (schedule: Schedule) =>
+      matchesAllLabels(schedule.metadata?.labels ?? {}, request.labels),
     scope: (schedules) =>
       restrictListByReadScope(
         listReadScope,

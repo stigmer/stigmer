@@ -5,8 +5,7 @@
  * Paths are proto field names joined by dots (`spec.instructions`,
  * `metadata.labels`). An update may name:
  *   - `spec`, or any field under it, at any depth through message fields;
- *   - `metadata.name`, `metadata.labels`, `metadata.tags` and
- *     `metadata.annotations`;
+ *   - `metadata.name`, `metadata.labels` and `metadata.tags`;
  *   - `*`, every one of those.
  * A list or map at a named path is replaced whole; a path never goes
  * through one. A path that names nothing on the kind, an empty mask, and a
@@ -40,7 +39,6 @@ export const UPDATABLE_METADATA_PATHS: ReadonlyArray<string> = [
   "metadata.name",
   "metadata.labels",
   "metadata.tags",
-  "metadata.annotations",
 ];
 
 /** A field an update may not name, and the door that writes it (the refusal's words). */
@@ -77,7 +75,7 @@ export function checkUpdateMask(
     }
     if (!(path === "spec" || path.startsWith("spec.") || UPDATABLE_METADATA_PATHS.includes(path))) {
       throw invalidArgumentError(
-        `update_mask path '${path}' cannot be updated: an update changes spec, metadata.name, metadata.labels, metadata.tags and metadata.annotations`,
+        `update_mask path '${path}' cannot be updated: an update changes spec, metadata.name, metadata.labels and metadata.tags`,
       );
     }
     if (fieldsAlong(schema, path) === undefined) {

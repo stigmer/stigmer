@@ -68,8 +68,8 @@ export function compareCreatedAtDesc(
 
 /** True when resourceLabels contains every filter entry (empty = all). */
 export function matchesAllLabels(
-  resourceLabels: Record<string, string>,
-  filterLabels: Record<string, string>,
+  resourceLabels: Readonly<Record<string, string>>,
+  filterLabels: Readonly<Record<string, string>>,
 ): boolean {
   return Object.entries(filterLabels).every(
     ([key, value]) => resourceLabels[key] === value,
@@ -82,7 +82,7 @@ export function matchesAllLabels(
  * list.
  */
 export function sortedLabels(
-  labels: Record<string, string>,
+  labels: Readonly<Record<string, string>>,
 ): Array<[string, string]> {
   return Object.entries(labels).sort(([a], [b]) =>
     a < b ? -1 : a > b ? 1 : 0,

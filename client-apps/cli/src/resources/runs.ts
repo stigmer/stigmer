@@ -88,11 +88,17 @@ export async function getRun(client: Stigmer, id: string): Promise<ResourceResul
  * as many pages as that takes.
  *
  * `org` scopes results to that organization; empty means permission-bounded
- * (all orgs the caller can view — the OSS single-tenant behavior).
+ * (all orgs the caller can view — the OSS single-tenant behavior). `labels`
+ * keeps only the runs carrying every pair given.
  */
-export async function listAgentRuns(client: Stigmer, limit: number, org = ""): Promise<ResourceResult> {
+export async function listAgentRuns(
+  client: Stigmer,
+  limit: number,
+  org = "",
+  labels: Record<string, string> = {},
+): Promise<ResourceResult> {
   const entries = await readCursorPages(limit, (pageSize, pageToken) =>
-    client.run.list(create(ListRunsRequestSchema, { pageSize, pageToken, org })),
+    client.run.list(create(ListRunsRequestSchema, { pageSize, pageToken, org, labels })),
   );
   return { schema: RunListSchema, message: create(RunListSchema, { entries }) };
 }

@@ -431,6 +431,40 @@ describe("ListPluginEvalsByPlugin", () => {
   });
 });
 
+describe("ListPluginEvalsByPlugin's label filter", () => {
+  it("walks only the plugin's evals carrying every label named, a page at a time", async () => {
+    const labels = { suite: "nightly-plugin-evals", tier: "gold" };
+    const labelled = (id: string, rowLabels: Record<string, string>) => {
+      const row = evalRow(id, PluginEvalPhase.completed, "plg_lbl");
+      row.metadata!.labels = rowLabels;
+      return saved(row);
+    };
+    await labelled("pev_lbl_0", {});
+    await labelled("pev_lbl_1", labels);
+    await labelled("pev_lbl_2", { suite: "nightly-plugin-evals" });
+    await labelled("pev_lbl_3", { ...labels, extra: "x" });
+    const allow: Authorizer = { authorize: () => Promise.resolve({ kind: "allow" }) };
+
+    const walked: string[] = [];
+    let pageToken = "";
+    do {
+      const ctx = new RequestContext(
+        ListPluginEvalsByPluginRequestSchema,
+        create(ListPluginEvalsByPluginRequestSchema, { pluginId: "plg_lbl", labels, pageSize: 1, pageToken }),
+        testCallerIdentity(),
+        ApiResourceKind.plugin,
+      );
+      await newListPluginEvalsByPluginStep(temp.store, allow, silentLogger).execute(ctx);
+      const page = ctx.get(PLUGIN_EVAL_RESULT_KEY) as PluginEvalList;
+      expect(page.entries.length).toBeLessThanOrEqual(1);
+      walked.push(...page.entries.map((row) => row.metadata!.id));
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
+    expect(new Set(walked)).toEqual(new Set(["pev_lbl_1", "pev_lbl_3"]));
+    expect(walked).toHaveLength(2);
+  });
+});
+
 describe("ListPluginEvalsByPlugin's answer", () => {
   it("empties every arm's tries and keeps the summaries", async () => {
     const row = evalRow("pev_tries", PluginEvalPhase.completed);

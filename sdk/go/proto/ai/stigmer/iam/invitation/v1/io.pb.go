@@ -138,7 +138,11 @@ type ListInvitationsInput struct {
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
-	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Only resources carrying every label given, each matched exactly (AND).
+	// A selective filter may answer short pages, even empty ones, that still
+	// carry a token.
+	Labels        map[string]string `protobuf:"bytes,4,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -192,6 +196,13 @@ func (x *ListInvitationsInput) GetPageToken() string {
 		return x.PageToken
 	}
 	return ""
+}
+
+func (x *ListInvitationsInput) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
 }
 
 // InvitationTokenInput identifies an invitation by its shareable token.
@@ -417,12 +428,16 @@ const file_ai_stigmer_iam_invitation_v1_io_proto_rawDesc = "" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"y\n" +
 	"\vInvitations\x12B\n" +
 	"\aentries\x18\x01 \x03(\v2(.ai.stigmer.iam.invitation.v1.InvitationR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x80\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x93\x02\n" +
 	"\x14ListInvitationsInput\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
 	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"5\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12V\n" +
+	"\x06labels\x18\x04 \x03(\v2>.ai.stigmer.iam.invitation.v1.ListInvitationsInput.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"5\n" +
 	"\x14InvitationTokenInput\x12\x1d\n" +
 	"\x05token\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05token\"6\n" +
 	"\x15RedeemInvitationInput\x12\x1d\n" +
@@ -452,7 +467,7 @@ func file_ai_stigmer_iam_invitation_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_invitation_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_invitation_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_ai_stigmer_iam_invitation_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_ai_stigmer_iam_invitation_v1_io_proto_goTypes = []any{
 	(*InvitationId)(nil),          // 0: ai.stigmer.iam.invitation.v1.InvitationId
 	(*Invitations)(nil),           // 1: ai.stigmer.iam.invitation.v1.Invitations
@@ -460,19 +475,21 @@ var file_ai_stigmer_iam_invitation_v1_io_proto_goTypes = []any{
 	(*InvitationTokenInput)(nil),  // 3: ai.stigmer.iam.invitation.v1.InvitationTokenInput
 	(*RedeemInvitationInput)(nil), // 4: ai.stigmer.iam.invitation.v1.RedeemInvitationInput
 	(*InvitationPreview)(nil),     // 5: ai.stigmer.iam.invitation.v1.InvitationPreview
-	(*Invitation)(nil),            // 6: ai.stigmer.iam.invitation.v1.Invitation
-	(v1.IamRole)(0),               // 7: ai.stigmer.iam.v1.IamRole
-	(*timestamppb.Timestamp)(nil), // 8: google.protobuf.Timestamp
+	nil,                           // 6: ai.stigmer.iam.invitation.v1.ListInvitationsInput.LabelsEntry
+	(*Invitation)(nil),            // 7: ai.stigmer.iam.invitation.v1.Invitation
+	(v1.IamRole)(0),               // 8: ai.stigmer.iam.v1.IamRole
+	(*timestamppb.Timestamp)(nil), // 9: google.protobuf.Timestamp
 }
 var file_ai_stigmer_iam_invitation_v1_io_proto_depIdxs = []int32{
-	6, // 0: ai.stigmer.iam.invitation.v1.Invitations.entries:type_name -> ai.stigmer.iam.invitation.v1.Invitation
-	7, // 1: ai.stigmer.iam.invitation.v1.InvitationPreview.role:type_name -> ai.stigmer.iam.v1.IamRole
-	8, // 2: ai.stigmer.iam.invitation.v1.InvitationPreview.expires_at:type_name -> google.protobuf.Timestamp
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	7, // 0: ai.stigmer.iam.invitation.v1.Invitations.entries:type_name -> ai.stigmer.iam.invitation.v1.Invitation
+	6, // 1: ai.stigmer.iam.invitation.v1.ListInvitationsInput.labels:type_name -> ai.stigmer.iam.invitation.v1.ListInvitationsInput.LabelsEntry
+	8, // 2: ai.stigmer.iam.invitation.v1.InvitationPreview.role:type_name -> ai.stigmer.iam.v1.IamRole
+	9, // 3: ai.stigmer.iam.invitation.v1.InvitationPreview.expires_at:type_name -> google.protobuf.Timestamp
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_invitation_v1_io_proto_init() }
@@ -487,7 +504,7 @@ func file_ai_stigmer_iam_invitation_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_invitation_v1_io_proto_rawDesc), len(file_ai_stigmer_iam_invitation_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

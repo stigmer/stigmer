@@ -1,10 +1,12 @@
 /**
  * Plugin search extractor — both sides of the searchable contract (the
  * index side pipeline/steps/index-search.ts consumes, the query side the
- * SearchService renders). A plugin's summary is its manifest description;
- * its keywords and the names of its skills, agents and MCP servers join
- * the tags, so `stigmer list plugin` and the console's search find a
- * plugin by what its author called it or by any part it holds.
+ * SearchService renders). A plugin's summary is its manifest description.
+ * Its searchable words are its tags (its keywords, normalized at push),
+ * the keywords as the manifest wrote them, each word once, and the names of
+ * its skills, agents and MCP servers, so `stigmer list plugin` and the
+ * console's search find a plugin by what its author called it or by any
+ * part it holds.
  */
 import type { Message } from "@bufbuild/protobuf";
 
@@ -51,8 +53,7 @@ export const pluginSearchExtractor: SearchableExtractor = {
       // The index carries one tags string; the manifest's keywords and the
       // names of the plugin's parts are what a search should match.
       tags: [
-        ...metadata.tags,
-        ...(plugin.spec?.keywords ?? []),
+        ...new Set([...metadata.tags, ...(plugin.spec?.keywords ?? [])]),
         ...(plugin.status?.skills ?? []).map((skill) => skill.name),
         ...(plugin.status?.agents ?? []).map((agent) => agent.name),
         ...(plugin.status?.mcpServers ?? []).map((server) => server.name),

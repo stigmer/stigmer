@@ -122,6 +122,7 @@ import {
   redactOAuthApp,
 } from "./steps.js";
 import { oauthAppListIndex } from "./list-index.js";
+import { matchesAllLabels, sortedLabels } from "../../pipeline/steps/helpers.js";
 
 export interface OAuthAppControllerDeps {
   readonly store: Store;
@@ -532,12 +533,17 @@ function newListStep(
           pageSize: ctx.input.pageSize,
           pageToken: ctx.input.pageToken,
         },
-        fingerprint: listPageFingerprint({ org }),
+        fingerprint: listPageFingerprint({
+          org,
+          labels: sortedLabels(ctx.input.labels),
+        }),
         decode: decodeOrSkip<OAuthApp>(OAuthAppSchema, {
           logger,
           message: "failed to unmarshal OAuthApp, skipping",
         }),
-        keep: (app) => (app.metadata?.org ?? "") === org,
+        keep: (app) =>
+          (app.metadata?.org ?? "") === org &&
+          matchesAllLabels(app.metadata?.labels ?? {}, ctx.input.labels),
         scope: (rows) =>
           restrictListByReadScope(
             listReadScope,

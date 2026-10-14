@@ -32,36 +32,61 @@ class SessionList(_message.Message):
     def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.Session, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
 
 class ListSessionsRequest(_message.Message):
-    __slots__ = ("page_size", "page_token", "tags", "org")
+    __slots__ = ("page_size", "page_token", "org", "labels")
+    class LabelsEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
     PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
     PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
-    TAGS_FIELD_NUMBER: _ClassVar[int]
     ORG_FIELD_NUMBER: _ClassVar[int]
+    LABELS_FIELD_NUMBER: _ClassVar[int]
     page_size: int
     page_token: str
-    tags: _containers.RepeatedScalarFieldContainer[str]
     org: str
-    def __init__(self, page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., tags: _Optional[_Iterable[str]] = ..., org: _Optional[str] = ...) -> None: ...
+    labels: _containers.ScalarMap[str, str]
+    def __init__(self, page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., org: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ...) -> None: ...
 
 class ListSessionsByAgentRequest(_message.Message):
-    __slots__ = ("agent_id", "page_size", "page_token")
+    __slots__ = ("agent_id", "page_size", "page_token", "labels")
+    class LabelsEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
     AGENT_ID_FIELD_NUMBER: _ClassVar[int]
     PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
     PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    LABELS_FIELD_NUMBER: _ClassVar[int]
     agent_id: str
     page_size: int
     page_token: str
-    def __init__(self, agent_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
+    labels: _containers.ScalarMap[str, str]
+    def __init__(self, agent_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ...) -> None: ...
 
 class ListSessionsByChannelRequest(_message.Message):
-    __slots__ = ("channel_id", "page_size", "page_token")
+    __slots__ = ("channel_id", "page_size", "page_token", "labels")
+    class LabelsEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
     CHANNEL_ID_FIELD_NUMBER: _ClassVar[int]
     PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
     PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    LABELS_FIELD_NUMBER: _ClassVar[int]
     channel_id: str
     page_size: int
     page_token: str
-    def __init__(self, channel_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
+    labels: _containers.ScalarMap[str, str]
+    def __init__(self, channel_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ...) -> None: ...
 
 class UpdateSessionSubjectRequest(_message.Message):
     __slots__ = ("id", "subject")

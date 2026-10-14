@@ -37,6 +37,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agenteval_v1_ListAgentEvalsByAgentRequest_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agenteval_v1_ListAgentEvalsByAgentRequest_LabelsEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agenteval_v1_ListAgentEvalsByAgentRequest_LabelsEntry_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_agenteval_v1_AgentEvalList_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -54,19 +59,23 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "to\022\037ai.stigmer.agentic.agenteval.v1\032)ai/" +
       "stigmer/agentic/agenteval/v1/api.proto\032\033" +
       "buf/validate/validate.proto\"0\n\013AgentEval" +
-      "Id\022!\n\005value\030\001 \001(\tB\013\272H\010r\003\030\200\001\310\001\001R\005value\"\224\001" +
+      "Id\022!\n\005value\030\001 \001(\tB\013\272H\010r\003\030\200\001\310\001\001R\005value\"\262\002" +
       "\n\034ListAgentEvalsByAgentRequest\022%\n\010agent_" +
       "id\030\001 \001(\tB\n\272H\007r\005\020\001\030\200\001R\007agentId\022$\n\tpage_si" +
       "ze\030\002 \001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'\n\npage_toke" +
-      "n\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageToken\"\220\001\n\rAgentEv" +
-      "alList\022D\n\007entries\030\002 \003(\0132*.ai.stigmer.age" +
-      "ntic.agenteval.v1.AgentEvalR\007entries\022&\n\017" +
-      "next_page_token\030\003 \001(\tR\rnextPageTokenJ\004\010\001" +
-      "\020\002R\013total_countB\252\001B\007IoProtoP\001\242\002\004ASAA\252\002\037A" +
-      "i.Stigmer.Agentic.Agenteval.V1\312\002\037Ai\\Stig" +
-      "mer\\Agentic\\Agenteval\\V1\342\002+Ai\\Stigmer\\Ag" +
-      "entic\\Agenteval\\V1\\GPBMetadata\352\002#Ai::Sti" +
-      "gmer::Agentic::Agenteval::V1b\006proto3"
+      "n\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageToken\022a\n\006labels\030\004" +
+      " \003(\0132I.ai.stigmer.agentic.agenteval.v1.L" +
+      "istAgentEvalsByAgentRequest.LabelsEntryR" +
+      "\006labels\0329\n\013LabelsEntry\022\020\n\003key\030\001 \001(\tR\003key" +
+      "\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\"\220\001\n\rAgentEval" +
+      "List\022D\n\007entries\030\002 \003(\0132*.ai.stigmer.agent" +
+      "ic.agenteval.v1.AgentEvalR\007entries\022&\n\017ne" +
+      "xt_page_token\030\003 \001(\tR\rnextPageTokenJ\004\010\001\020\002" +
+      "R\013total_countB\252\001B\007IoProtoP\001\242\002\004ASAA\252\002\037Ai." +
+      "Stigmer.Agentic.Agenteval.V1\312\002\037Ai\\Stigme" +
+      "r\\Agentic\\Agenteval\\V1\342\002+Ai\\Stigmer\\Agen" +
+      "tic\\Agenteval\\V1\\GPBMetadata\352\002#Ai::Stigm" +
+      "er::Agentic::Agenteval::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -85,7 +94,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agenteval_v1_ListAgentEvalsByAgentRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agenteval_v1_ListAgentEvalsByAgentRequest_descriptor,
-        new java.lang.String[] { "AgentId", "PageSize", "PageToken", });
+        new java.lang.String[] { "AgentId", "PageSize", "PageToken", "Labels", });
+    internal_static_ai_stigmer_agentic_agenteval_v1_ListAgentEvalsByAgentRequest_LabelsEntry_descriptor =
+      internal_static_ai_stigmer_agentic_agenteval_v1_ListAgentEvalsByAgentRequest_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_agentic_agenteval_v1_ListAgentEvalsByAgentRequest_LabelsEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agenteval_v1_ListAgentEvalsByAgentRequest_LabelsEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
     internal_static_ai_stigmer_agentic_agenteval_v1_AgentEvalList_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_agenteval_v1_AgentEvalList_fieldAccessorTable = new

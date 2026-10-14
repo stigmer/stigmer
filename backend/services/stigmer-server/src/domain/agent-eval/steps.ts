@@ -118,6 +118,7 @@ import { agentEvalListIndex } from "./list-index.js";
 import { writtenServerNames } from "./written-servers.js";
 import { agentTargetOf } from "./target.js";
 import { releaseNamesOfDeleted } from "../../pipeline/steps/names.js";
+import { matchesAllLabels, sortedLabels } from "../../pipeline/steps/helpers.js";
 
 /** Context key for the agent a create evaluates, stashed by LoadEvaluatedAgent. */
 export const EVALUATED_AGENT_KEY = "evaluatedAgent";
@@ -629,13 +630,16 @@ export function newListAgentEvalsByAgentStep(
         fingerprint: listPageFingerprint({
           lane: "agentEval.listByAgent",
           agentId,
+          labels: sortedLabels(ctx.input.labels),
         }),
         decode: decodeOrSkip<AgentEval>(AgentEvalSchema, {
           logger,
           message: "skipped an agent eval row that does not decode",
           fields: { agentId },
         }),
-        keep: (agentEval) => agentEval.spec?.agentId === agentId,
+        keep: (agentEval) =>
+          agentEval.spec?.agentId === agentId &&
+          matchesAllLabels(agentEval.metadata?.labels ?? {}, ctx.input.labels),
         scope: async (evals) => {
           if (isServerComposedRequest(ctx.callerIdentity)) {
             return evals;
