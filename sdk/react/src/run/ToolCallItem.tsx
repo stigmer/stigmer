@@ -18,7 +18,7 @@ import {
 } from "../internal/thread-card/index.js";
 import { TerminalTail } from "./TerminalSession.js";
 import { ToolCallDetail, formatHeaderDuration } from "./ToolCallDetail.js";
-import { SubAgentSection, subAgentSubjectOf } from "./SubAgentSection.js";
+import { SubagentSection, subagentSubjectOf } from "./SubagentSection.js";
 import { ApprovalCardBody } from "./ApprovalCard.js";
 import { MemoryProposalCardBody } from "../memory/MemoryProposalCard.js";
 import { useApproval } from "./ApprovalContext.js";
@@ -35,8 +35,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js"
 export interface ToolCallItemProps {
   /**
    * The tool use to render as a summary row (from the session's fold). A
-   * tool use that started a sub-agent (`toolUse.thread`) renders its
-   * {@link SubAgentSection} as the detail panel instead of a
+   * tool use that started a subagent (`toolUse.thread`) renders its
+   * {@link SubagentSection} as the detail panel instead of a
    * {@link ToolCallDetail}.
    */
   readonly toolUse: ToolUse;
@@ -79,10 +79,10 @@ export interface ToolCallItemProps {
  *   A settled failure stays open: error output is content, not context. A
  *   result that isn't a terminal session (e.g. an offloaded `outputRef`)
  *   falls back to the preview layout — never hide evidence we cannot condense.
- * - **Summary / sub-agent** (read / list / search / delete / think, and
- *   sub-agent delegations): a chevron-gated `div[role=button]` header that
+ * - **Summary / subagent** (read / list / search / delete / think, and
+ *   subagent delegations): a chevron-gated `div[role=button]` header that
  *   discloses a body hidden by default — {@link ToolCallDetail}, a
- *   {@link SubAgentSection}, or, when gated, an inline {@link ApprovalCardBody}.
+ *   {@link SubagentSection}, or, when gated, an inline {@link ApprovalCardBody}.
  *   {@link useAutoDisclosure} force-opens it while *running* or *awaiting
  *   approval*, then settles it closed; a manual click always wins thereafter.
  *
@@ -130,14 +130,14 @@ export const ToolCallItem = memo(function ToolCallItem({
   // sub-second chips were noise pinned to the least interesting rows.
   const duration = formatHeaderDuration(toolUse.processedAt, toolUse.result?.processedAt ?? "");
   const thread = toolUse.thread;
-  const isSubAgent = thread !== undefined;
+  const isSubagent = thread !== undefined;
 
   const { category, label, intent, title, primaryArg, result, resultSummary, disclosure, chrome } =
     useToolPresentation(toolUse);
   const CategoryIcon = CATEGORY_ICON[category];
 
   // The decision for this exact call when it waits for a person (parent or
-  // nested sub-agent), or null. Drives the inline approval panel and forces
+  // nested subagent), or null. Drives the inline approval panel and forces
   // the row open.
   const approval = useApproval(toolUse);
 
@@ -145,7 +145,7 @@ export const ToolCallItem = memo(function ToolCallItem({
   // is the content the user needs next, so it must never settle into a dimmed
   // teaser. Detected on the result, not just the status: a command that
   // "completed" with a non-zero exit is a failure to the reader.
-  const isTailCategory = !isSubAgent && disclosure === "tail";
+  const isTailCategory = !isSubagent && disclosure === "tail";
   const tailFailed =
     isTailCategory &&
     (toolUse.state === "failed" ||
@@ -168,11 +168,11 @@ export const ToolCallItem = memo(function ToolCallItem({
     initialOpen: defaultExpanded || autoOpen,
   });
 
-  // Sub-agents title the row with their subject; every other row titles with
+  // Subagents title the row with their subject; every other row titles with
   // the resolved presentation `title` (host label override > model-authored
   // shell intent > category label, stigmer#276).
-  const displayLabel = isSubAgent
-    ? subAgentSubjectOf(toolUse) || thread.agentName || label
+  const displayLabel = isSubagent
+    ? subagentSubjectOf(toolUse) || thread.agentName || label
     : title;
 
   const approvalBadge = getApprovalBadge(toolUse);
@@ -221,7 +221,7 @@ export const ToolCallItem = memo(function ToolCallItem({
     result.type === "error";
   const variant: ThreadCardVariant = !bordered
     ? "row"
-    : chrome === "quiet" && !isSubAgent && approval == null && !rowFailed
+    : chrome === "quiet" && !isSubagent && approval == null && !rowFailed
       ? "quiet"
       : "card";
 
@@ -229,7 +229,7 @@ export const ToolCallItem = memo(function ToolCallItem({
   // path in the row is the complete information. Failed reads remain
   // expandable to show the error.
   const isNonExpandableRead =
-    !isSubAgent &&
+    !isSubagent &&
     category === "read" &&
     (toolUse.state === "completed" || toolUse.state === "denied");
 
@@ -315,7 +315,7 @@ export const ToolCallItem = memo(function ToolCallItem({
   // *why*, so the command surfaces as the secondary text and a fully
   // collapsed row still reads like a narrated log. Intent-less shell rows
   // render byte-identically to before.
-  const displaySubtitle = isSubAgent
+  const displaySubtitle = isSubagent
     ? null
     : category === "shell"
       ? (intent ? primaryArg : null)
@@ -325,7 +325,7 @@ export const ToolCallItem = memo(function ToolCallItem({
   // FilePathLink (full path on hover) rather than the raw, often-absolute string
   // that buried the file name behind a long prefix.
   const subtitleIsFilePath =
-    !isSubAgent && primaryArg != null && isFileCategory(category);
+    !isSubagent && primaryArg != null && isFileCategory(category);
 
   // A tail row condenses only a terminal session. While gated it renders like
   // preview — decision actions are never hidden behind a chevron — and any
@@ -339,20 +339,20 @@ export const ToolCallItem = memo(function ToolCallItem({
   // Preview categories (edit, write, fetch, web-search, unknown, mcp) render
   // their body ALWAYS — Cursor-style "previews aren't collapsible" — so no
   // header chevron competes with the body's own in-place reveal. Summary
-  // categories and sub-agents keep the chevron: their body is genuinely hidden
+  // categories and subagents keep the chevron: their body is genuinely hidden
   // by default, so the chevron has a real job. The two disclosure axes
   // (card-level chevron vs. content-overflow reveal) never govern one body.
   const isPreviewLayout =
-    !isSubAgent &&
+    !isSubagent &&
     (disclosure === "preview" || (isTailCategory && tailSession == null));
 
   // The disclosed body, shared by both layouts: a pending gate decides inline,
-  // a sub-agent shows its delegation, a settled remember call renders the
+  // a subagent shows its delegation, a settled remember call renders the
   // memory-proposal consent surface, otherwise the category detail.
-  const body = isSubAgent ? (
-    <SubAgentSection
+  const body = isSubagent ? (
+    <SubagentSection
       thread={thread}
-      subject={subAgentSubjectOf(toolUse)}
+      subject={subagentSubjectOf(toolUse)}
       startedAt={toolUse.processedAt}
       completedAt={toolUse.result?.processedAt}
       collapsible={false}
@@ -429,7 +429,7 @@ export const ToolCallItem = memo(function ToolCallItem({
             </Tooltip>
           )
         )}
-        {!isSubAgent && category !== "shell" && resultSummary && (
+        {!isSubagent && category !== "shell" && resultSummary && (
           <span className="stg:shrink-0 stg:tabular-nums stg:text-muted-foreground">
             {resultSummary}
           </span>
@@ -497,7 +497,7 @@ export const ToolCallItem = memo(function ToolCallItem({
     );
   }
 
-  // Summary / sub-agent layout: a chevron-gated header disclosing a body hidden
+  // Summary / subagent layout: a chevron-gated header disclosing a body hidden
   // by default. The shell's `expand` gesture renders the div[role=button]
   // header with Enter/Space keyboard parity and the chevron.
   return (
@@ -609,7 +609,7 @@ export const CATEGORY_ICON: Record<ToolCategory, () => React.JSX.Element> = {
   fetch: GlobeIcon,
   "web-search": GlobeIcon,
   think: BrainIcon,
-  "sub-agent": BotIcon,
+  "subagent": BotIcon,
   internal: WrenchIcon,
   mcp: McpPlugIcon,
   memory: BookmarkIcon,

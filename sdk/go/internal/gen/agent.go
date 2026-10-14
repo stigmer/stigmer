@@ -186,6 +186,7 @@ type AgentInput struct {
 	Harness         sessionv1.Harness
 	Plugins         []ResourceRef
 	Subagents       []ResourceRef
+	McpServers      []*AgentMcpServerInput
 }
 
 // EnvVarDeclarationInput is the SDK input type for EnvVarDeclaration.
@@ -231,6 +232,13 @@ type RunConfigInput struct {
 	ServiceTier        runv1.ServiceTier
 	ThinkingMode       runv1.ThinkingMode
 	MaxToolResultChars int32
+}
+
+// AgentMcpServerInput is the SDK input type for AgentMcpServer.
+type AgentMcpServerInput struct {
+	Name    string
+	Url     string
+	Headers map[string]string
 }
 
 func (i *AgentInput) toProto() (*agentv1.Agent, error) {
@@ -297,6 +305,13 @@ func (i *AgentInput) toProto() (*agentv1.Agent, error) {
 		ref.Kind = apiresourcekind.ApiResourceKind_agent
 		resource.Spec.Subagents = append(resource.Spec.Subagents, ref)
 	}
+	for idx, item := range i.McpServers {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("McpServers", idx, err)
+		}
+		resource.Spec.McpServers = append(resource.Spec.McpServers, v)
+	}
 	return resource, nil
 }
 
@@ -361,6 +376,14 @@ func (i *RunConfigInput) toProto() (*runv1.RunConfig, error) {
 	}, nil
 }
 
+func (i *AgentMcpServerInput) toProto() (*agentv1.AgentMcpServer, error) {
+	return &agentv1.AgentMcpServer{
+		Name:    i.Name,
+		Url:     i.Url,
+		Headers: i.Headers,
+	}, nil
+}
+
 // AgentInputFromProto creates a AgentInput from a proto Agent resource.
 func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 	if p == nil {
@@ -400,6 +423,9 @@ func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 		}
 		for _, r := range s.GetSubagents() {
 			input.Subagents = append(input.Subagents, resourceRefFromProto(r))
+		}
+		for _, item := range s.GetMcpServers() {
+			input.McpServers = append(input.McpServers, agentMcpServerInputFromProto(item))
 		}
 	}
 	return input
@@ -475,5 +501,16 @@ func runConfigInputFromProto(p *runv1.RunConfig) *RunConfigInput {
 	input.ServiceTier = p.GetServiceTier()
 	input.ThinkingMode = p.GetThinkingMode()
 	input.MaxToolResultChars = p.GetMaxToolResultChars()
+	return input
+}
+
+func agentMcpServerInputFromProto(p *agentv1.AgentMcpServer) *AgentMcpServerInput {
+	if p == nil {
+		return nil
+	}
+	input := &AgentMcpServerInput{}
+	input.Name = p.GetName()
+	input.Url = p.GetUrl()
+	input.Headers = p.GetHeaders()
 	return input
 }

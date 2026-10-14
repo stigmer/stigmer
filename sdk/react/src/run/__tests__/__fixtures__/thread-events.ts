@@ -1,5 +1,5 @@
 // Session-event builders for the thread tests: the events `samples` does
-// not build (sub-agent threads, file reviews, memory recall, notes,
+// not build (subagent threads, file reviews, memory recall, notes,
 // compaction, answers), short spellings of the ones it does, a run record
 // carrying only what a turn's run holds (spec, phase, stamps, artifacts,
 // captured file changes), and the fold that turns events into the turns
@@ -38,7 +38,7 @@ export function user(runId: string, message: string): SessionEvent {
 
 /**
  * An agent message, the `index`-th of its thread: `<run>.root.m<index>` on
- * the primary thread, `<thread>.m<index>` on a sub-agent's.
+ * the primary thread, `<thread>.m<index>` on a subagent's.
  */
 export function said(runId: string, index: number, message: string, threadId = ""): SessionEvent {
   const id = threadId === "" ? `${runId}.root.m${index}` : `${threadId}.m${index}`;
@@ -98,11 +98,11 @@ export function confirmed(runId: string, call: string, answer: "allow" | "deny")
 }
 
 /**
- * A sub-agent's thread opened by `task` call `call`: created, running, the
+ * A subagent's thread opened by `task` call `call`: created, running, the
  * message it was sent, its `items`, and — once it finished — its reply and
  * idle. The thread's id is the call's id.
  */
-export function subAgent(
+export function subagent(
   runId: string,
   call: string,
   opts: { agentName?: string; input?: string; items?: readonly SessionEvent[]; finished?: "completed" | "failed"; reply?: string } = {},

@@ -1,7 +1,7 @@
 // The canonical, full-fidelity session transcript (stigmer/stigmer#814).
 //
 // A session's whole conversation — thinking included, tool calls with their
-// offloaded outputs resolved, sub-agent threads, the asks and their answers,
+// offloaded outputs resolved, subagent threads, the asks and their answers,
 // timestamps — assembled ONCE here so every consumer (the SessionViewer
 // export control, the CLI, an embedder's backend analysis job) reads the
 // same authoritative record instead of re-deriving it.
@@ -21,7 +21,7 @@
 //     the parts a polished view hides. The one thing left out is a repeat:
 //     a `session.error` saying what the turn's own status already says.
 //   - Each item renders once, in the order the agent produced it, and a
-//     sub-agent's thread renders inside the `task` call that opened it.
+//     subagent's thread renders inside the `task` call that opened it.
 //   - Superseded turns (edit-and-resubmit, the successor run's
 //     `spec.supersedes_run_id`) are excluded by default, matching what the
 //     conversation view shows; `includeSuperseded: true` keeps them, marked,
@@ -78,7 +78,7 @@ import { isBuildFromPlanTurn, supersededRunIds } from "./conversation-rules.js";
 /**
  * The fetched content of one offloaded tool output (a tool use's
  * {@link ToolFullOutput}), keyed in the transcript by its storage key —
- * the one identifier that is unique across runs and sub-agents.
+ * the one identifier that is unique across runs and subagents.
  */
 export interface ResolvedToolOutput {
   /** The full output's `storage_key` this content belongs to. */
@@ -337,10 +337,10 @@ async function listAllEvents(
 
 /**
  * Fetches the content behind every offloaded tool output in the given
- * turns (primary and sub-agent threads alike), keyed by storage key.
+ * turns (primary and subagent threads alike), keyed by storage key.
  *
  * Image outputs are never fetched — serializers render them as notes. Each
- * output is read from the run whose tool use it belongs to: a sub-agent's
+ * output is read from the run whose tool use it belongs to: a subagent's
  * call is its turn's, so its output is stored under that run too.
  */
 export async function resolveOffloadedOutputs(
@@ -400,7 +400,7 @@ export async function resolveOffloadedOutputs(
   return resolved;
 }
 
-/** Every tool use in a list of items — its own and each sub-agent thread's, at any depth. */
+/** Every tool use in a list of items — its own and each subagent thread's, at any depth. */
 function* allToolUses(items: readonly TurnItem[]): Generator<ToolUse> {
   for (const item of items) {
     if (item.kind !== "tool_use") continue;
@@ -458,7 +458,7 @@ export interface TranscriptToMarkdownOptions {
  * contract (see `__tests__/transcript.test.ts`). Roles are bold labels
  * (User / Assistant / Thinking / System), thinking and the platform's notes
  * are blockquoted, tool calls carry fenced input and output with their ask
- * and answer, and sub-agent threads are blockquoted sections. Fences
+ * and answer, and subagent threads are blockquoted sections. Fences
  * self-size past any backtick runs in the content, so hostile content
  * cannot break out of its block.
  */
@@ -523,7 +523,7 @@ export function transcriptToMarkdown(
   return out.join("\n");
 }
 
-/** Renders one thread's items — the turn's primary thread or a sub-agent's. */
+/** Renders one thread's items — the turn's primary thread or a subagent's. */
 function renderItems(
   out: string[],
   items: readonly TurnItem[],
@@ -547,7 +547,7 @@ function renderItems(
         continue;
       case "tool_use":
         if (item.thread !== undefined) {
-          renderSubAgent(out, item, item.thread, resolvedOutputs);
+          renderSubagent(out, item, item.thread, resolvedOutputs);
         } else {
           renderToolUse(out, item, resolvedOutputs);
         }
@@ -652,17 +652,17 @@ function toolSuffix(tool: ToolUse): string {
   return ` (${parts.join(" · ")})`;
 }
 
-/** A sub-agent's thread, inside the `task` call that opened it. */
-function renderSubAgent(
+/** A subagent's thread, inside the `task` call that opened it. */
+function renderSubagent(
   out: string[],
   tool: ToolUse,
   thread: Thread,
   resolvedOutputs: Readonly<Record<string, ResolvedToolOutput>>,
 ): void {
   const nested: string[] = [];
-  const title = thread.agentName || "sub-agent";
+  const title = thread.agentName || "subagent";
   const duration = formatDuration(tool.processedAt, tool.result?.processedAt);
-  nested.push(`**Sub-agent — ${title}**${duration ? ` (${duration})` : ""}`);
+  nested.push(`**Subagent — ${title}**${duration ? ` (${duration})` : ""}`);
   if (thread.input) {
     nested.push("", "Input:", "", thread.input);
   }

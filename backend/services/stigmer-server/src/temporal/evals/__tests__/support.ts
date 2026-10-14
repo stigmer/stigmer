@@ -172,7 +172,10 @@ export const AGENT_HASH = "a".repeat(64);
 export const AGENT_EVAL_ID = "aev_1";
 
 /** The agent under eval at AGENT_HASH, attaching the seeded plugin and running MODEL. */
-export async function seedAgent(store: Store): Promise<void> {
+export async function seedAgent(
+  store: Store,
+  options: { readonly mcpServers?: ReadonlyArray<{ readonly name: string; readonly url: string }> } = {},
+): Promise<void> {
   await store.saveResource(
     ApiResourceKind.agent,
     AGENT_ID,
@@ -183,6 +186,7 @@ export async function seedAgent(store: Store): Promise<void> {
         instructions: "You answer support tickets politely.",
         runConfig: { modelName: MODEL },
         plugins: [{ kind: ApiResourceKind.plugin, slug: "thermos" }],
+        mcpServers: (options.mcpServers ?? []).map((server) => ({ ...server })),
       },
       status: { versionHash: AGENT_HASH },
     }),

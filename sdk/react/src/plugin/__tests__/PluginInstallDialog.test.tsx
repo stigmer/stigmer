@@ -2,7 +2,7 @@
  * The install preview and the act, against a fetch fake for the marketplace
  * host and an in-memory Connect backend for the server. Pins: the dialog
  * shows the CLI's "Installs" facts in the CLI's words (skills, servers,
- * sub-agents, variables) and the sentence telling the user the agent will
+ * subagents, variables) and the sentence telling the user the agent will
  * ask for its variables; Install pushes exactly the prepared bytes and
  * says what the installed plugin holds, from its status lists; an org that already holds the digest reads
  * "already installed" and Install is disabled; another digest reads as an

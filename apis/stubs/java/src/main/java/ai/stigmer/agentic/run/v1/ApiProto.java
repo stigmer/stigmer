@@ -159,18 +159,20 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "rigin\022\031\n\010vault_id\030\004 \001(\tR\007vaultId\022\024\n\005entr" +
       "y\030\005 \001(\tR\005entry\022\024\n\005login\030\006 \001(\010R\005login\022\037\n\013" +
       "plain_value\030\010 \001(\tR\nplainValueJ\004\010\007\020\010R\007sig" +
-      "n_in\"\201\002\n\020RunValueDeclarer\022C\n\004kind\030\001 \001(\0162" +
+      "n_in\"\301\002\n\020RunValueDeclarer\022C\n\004kind\030\001 \001(\0162" +
       "/.ai.stigmer.agentic.run.v1.RunValueDecl" +
       "arerKindR\004kind\022\022\n\004name\030\002 \001(\tR\004name\022%\n\016re" +
       "pository_url\030\004 \001(\tR\rrepositoryUrl\022\033\n\tplu" +
       "gin_id\030\005 \001(\tR\010pluginId\022\026\n\006server\030\006 \001(\tR\006" +
       "server\022#\n\rplugin_digest\030\007 \001(\tR\014pluginDig" +
-      "estJ\004\010\003\020\004R\rmcp_server_id\"4\n\rSetupProgres" +
-      "s\022#\n\rcurrent_phase\030\001 \001(\tR\014currentPhaseB\223" +
-      "\001B\010ApiProtoP\001\242\002\004ASAR\252\002\031Ai.Stigmer.Agenti" +
-      "c.Run.V1\312\002\031Ai\\Stigmer\\Agentic\\Run\\V1\342\002%A" +
-      "i\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\352\002\035A" +
-      "i::Stigmer::Agentic::Run::V1b\006proto3"
+      "est\022\031\n\010agent_id\030\010 \001(\tR\007agentId\022#\n\ragent_" +
+      "version\030\t \001(\tR\014agentVersionJ\004\010\003\020\004R\rmcp_s" +
+      "erver_id\"4\n\rSetupProgress\022#\n\rcurrent_pha" +
+      "se\030\001 \001(\tR\014currentPhaseB\223\001B\010ApiProtoP\001\242\002\004" +
+      "ASAR\252\002\031Ai.Stigmer.Agentic.Run.V1\312\002\031Ai\\St" +
+      "igmer\\Agentic\\Run\\V1\342\002%Ai\\Stigmer\\Agenti" +
+      "c\\Run\\V1\\GPBMetadata\352\002\035Ai::Stigmer::Agen" +
+      "tic::Run::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -224,7 +226,7 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_run_v1_RunValueDeclarer_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_RunValueDeclarer_descriptor,
-        new java.lang.String[] { "Kind", "Name", "RepositoryUrl", "PluginId", "Server", "PluginDigest", });
+        new java.lang.String[] { "Kind", "Name", "RepositoryUrl", "PluginId", "Server", "PluginDigest", "AgentId", "AgentVersion", });
     internal_static_ai_stigmer_agentic_run_v1_SetupProgress_descriptor =
       getDescriptor().getMessageType(6);
     internal_static_ai_stigmer_agentic_run_v1_SetupProgress_fieldAccessorTable = new

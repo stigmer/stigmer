@@ -141,6 +141,44 @@ A request that names a different `managed-agents-*` version in its
 `anthropic-beta` header is refused, so a client written for a later version
 learns at once that this server does not serve it.
 
+## Where Stigmer's events differ
+
+Every event keeps Managed Agents' shape, but a few mean something slightly
+different:
+
+- **`processed_at` on a `user.message`** is when Stigmer accepted the message,
+  not when the agent finished with it. It is set from the start.
+- **`retries_exhausted`** stops any turn that failed. Stigmer doesn't retry a
+  failed turn, so one failure already ends it. The `session.error` before it
+  says what went wrong.
+- **`budget_reached`** stops a turn that hit its cost cap or its limit on tool
+  calls, not only a budget on the session's list cost.
+- **A subagent's tool call that waits for an answer** is an `agent.tool_use` on
+  the subagent's own thread, carrying that thread's `session_thread_id`. It is
+  not repeated on the main thread. Answer it with its `id`, as any other.
+- **A subagent's MCP tool call** is an `agent.tool_use` under the name the
+  engine gives the tool, not an `agent.mcp_tool_use`
+  ([stigmer/stigmer#1133](https://github.com/stigmer/stigmer/issues/1133)).
+- **Several text blocks in one message** are stored as one text block, the
+  blocks joined by a blank line.
+
+Stigmer never writes these Managed Agents events, so don't wait for one:
+
+- **`agent.custom_tool_use`, `user.custom_tool_result` and `user.tool_result`.**
+  Stigmer runs every tool itself; a call's result is its `agent.tool_result` or
+  `agent.mcp_tool_result`.
+- **`user.define_outcome`, `system.message` and the `span.outcome_evaluation_start`,
+  `span.outcome_evaluation_ongoing` and `span.outcome_evaluation_end` events.**
+  A session has no outcome to grade against a rubric; how good a finished run
+  was is its [Scores](/docs/concepts/scores), on Stigmer's API.
+- **`session.status_rescheduled`, `session.status_terminated`,
+  `session.thread_status_rescheduled`, `session.thread_status_terminated`,
+  `session.updated` and `session.deleted`.** A Session has no terminated state:
+  it stays idle until it is deleted, and its events are deleted with it. A
+  subagent's thread ends with `session.thread_status_idle`.
+- **`session.usage`, `span.model_request_start` and `span.model_request_end`.**
+  A run's usage, per model, is on the Run.
+
 ## What Stigmer does not serve here
 
 - **Creating, reading, listing or deleting Sessions.** Use Stigmer's own API
@@ -149,11 +187,9 @@ learns at once that this server does not serve it.
   `system.message`.** Sending one is refused with `invalid_request_error`.
 - **Image and document blocks.** Give a run its files through Stigmer's own API.
 - **Stigmer's own events**, such as file review and permission grants. They are
-  in the same log, but only
-  [Stigmer's API returns them](/docs/sdk/streaming). These calls never show
-  them, and nothing here waits on them.
-- **Several text blocks in one message.** Stigmer stores them as one text block,
-  the blocks joined by a blank line.
+  in the same log, but only Stigmer's API returns them, and
+  [Stigmer's own events](/docs/sdk/streaming#stigmers-own-events) lists each
+  with its reason. These calls never show them, and nothing here waits on them.
 
 Anthropic's SDKs in other languages speak the same wire, but only the TypeScript
 SDK is tested against Stigmer.

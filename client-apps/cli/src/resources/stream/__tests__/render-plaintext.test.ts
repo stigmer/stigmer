@@ -2,7 +2,7 @@
 // and every status line go to the status sink, the agent's primary-thread
 // messages to the data sink; a tool use gets a line each time its state
 // changes (running, waiting, completed, failed with the head of its output,
-// denied, interrupted), titled by a shell call's intent; a sub-agent's start,
+// denied, interrupted), titled by a shell call's intent; a subagent's start,
 // its tool uses indented beneath, and its end, its messages left out; notes,
 // compactions and the turn's errors once each; how an ask was answered; a
 // turn the fold did not touch is not written again; thinking is silent.
@@ -83,7 +83,7 @@ describe("PlaintextRenderer", () => {
     expect(status()).toContain("  ⠋ write\n  ⊘ write (interrupted)\n");
   });
 
-  it("writes a sub-agent's start, its tool uses indented, and its end, without its messages", () => {
+  it("writes a subagent's start, its tool uses indented, and its end, without its messages", () => {
     const thread = `${R}.t1`;
     const { data, status } = stream([
       user(R, "go"),
@@ -95,11 +95,11 @@ describe("PlaintextRenderer", () => {
       threadIdle(R, thread, "end_turn"),
       result(R, "t1", "found it"),
     ]);
-    expect(status()).toContain("  ⠋ task\n  ↳ Sub-agent: researcher\n    ⠋ read\n    ✓ read\n  ✓ Sub-agent completed: researcher\n  ✓ task\n");
+    expect(status()).toContain("  ⠋ task\n  ↳ Subagent: researcher\n    ⠋ read\n    ✓ read\n  ✓ Subagent completed: researcher\n  ✓ task\n");
     expect(data()).toBe("");
   });
 
-  it("names a sub-agent by its call when it has no name, and writes how it failed or stopped", () => {
+  it("names a subagent by its call when it has no name, and writes how it failed or stopped", () => {
     const failed = `${R}.t1`;
     const stopped = `${R}.t2`;
     const { status } = stream([
@@ -110,9 +110,9 @@ describe("PlaintextRenderer", () => {
       threadRunning(R, stopped, "writer"),
       phase(R, "terminated"),
     ]);
-    expect(status()).toContain("  ↳ Sub-agent: task\n  ✗ Sub-agent failed: task\n");
-    expect(status()).toContain("  ↳ Sub-agent: writer\n");
-    expect(status()).toContain("  ⊘ Sub-agent stopped: writer\n");
+    expect(status()).toContain("  ↳ Subagent: task\n  ✗ Subagent failed: task\n");
+    expect(status()).toContain("  ↳ Subagent: writer\n");
+    expect(status()).toContain("  ⊘ Subagent stopped: writer\n");
   });
 
   it("writes notes, compactions and the turn's errors once each", () => {
@@ -140,9 +140,9 @@ describe("PlaintextRenderer", () => {
     const ask = {} as ToolUse;
     const ctx = renderer();
     ctx.r.answering(ask, "", answerFor(""));
-    ctx.r.answering(ask, "approve-all", answerFor("approve-all"));
+    ctx.r.answering(ask, "allow-all", answerFor("allow-all"));
     expect(ctx.status()).toBe(
-      "    → skipped (no --approve-default)\n    → allowed for the rest of the turn (--approve-default approve-all)\n",
+      "    → denied (no --approve-default)\n    → allowed for the rest of the turn (--approve-default allow-all)\n",
     );
   });
 });

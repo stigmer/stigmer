@@ -122,7 +122,7 @@ Defined in `ai/stigmer/agentic/run/v1/invocation.proto`. The same message is a m
 |---|---|---|
 | `model_name` | `string` | The model, by its Model Registry id on the engine that runs it. Example: `"claude-sonnet-4.5"` (native), `"claude-sonnet-4-6"` (Cursor). |
 | `max_cost_usd` | `double` | Stop the message once its estimated cost reaches this many US dollars; the work done so far is kept and the turn ends `TERMINATED`. Per message: a follow-up or a resume after an approval starts a fresh count. |
-| `max_tool_rounds` | `int32` | Stop after this many model-to-tools rounds (clamped to 10–1000). Native harness only; sub-agent rounds are not counted. |
+| `max_tool_rounds` | `int32` | Stop after this many model-to-tools rounds (clamped to 10–1000). Native harness only; subagent rounds are not counted. |
 | `service_tier` | `ServiceTier` | `SERVICE_TIER_STANDARD` (the default when no layer sets it) or `SERVICE_TIER_FAST`, valid only for a model with a fast pricing tier on its engine. |
 | `thinking_mode` | `ThinkingMode` | `THINKING_MODE_DISABLED` (the default when no layer sets it) or `THINKING_MODE_ENABLED`, valid only for a model the registry marks thinking-capable on its engine. |
 | `max_tool_result_chars` | `int32` | Truncate a single tool result longer than this many characters, with a marker asking the agent to request specific sections. 30,000 when no layer sets it. |
@@ -160,7 +160,7 @@ Defined in `ai/stigmer/agentic/run/v1/api.proto`. All fields are system-managed.
 
 ### The Conversation
 
-A run's status carries no transcript. The agent's messages and thinking, its tool calls and their results, the approvals it waited on and their answers, its todos, its sub-agents' threads, its structured output, the memories it recalled and every file-review decision are events in the session's log. Each event names the run it belongs to (`run_id`) and the thread that produced it; read them with the session's `listEvents` (filtered by run) or follow them with `streamEvents`. See the [Session docs](../../session/docs/README.md).
+A run's status carries no transcript. The agent's messages and thinking, its tool calls and their results, the approvals it waited on and their answers, its todos, its subagents' threads, its structured output, the memories it recalled and every file-review decision are events in the session's log. Each event names the run it belongs to (`run_id`) and the thread that produced it; read them with the session's `listEvents` (filtered by run) or follow them with `streamEvents`. See the [Session docs](../../session/docs/README.md).
 
 ### File Record
 
@@ -260,7 +260,7 @@ stigmer runs approve run_abc123 --tool-call <tool-use-id>
 stigmer runs approve run_abc123 --tool-call <tool-use-id> --action deny --comment "Not this one"
 
 # Allow it and every waiting call of its class for the rest of the turn
-stigmer runs approve run_abc123 --tool-call <tool-use-id> --action approve-all
+stigmer runs approve run_abc123 --tool-call <tool-use-id> --action allow-all
 ```
 
 ### Artifacts

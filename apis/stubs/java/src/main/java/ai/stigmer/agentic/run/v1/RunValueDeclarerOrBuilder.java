@@ -31,8 +31,9 @@ public interface RunValueDeclarerOrBuilder extends
 
   /**
    * <pre>
-   * The agent's name; a tool's name as plugin:&lt;plugin&gt;:&lt;server&gt;; the
-   * plugin's name; or the repository entry's name.
+   * The agent's name; a tool's name, as plugin:&lt;plugin&gt;:&lt;server&gt; for a
+   * plugin's server or the server's own name for one written in an agent;
+   * the plugin's name; or the repository entry's name.
    * </pre>
    *
    * <code>string name = 2 [json_name = "name"];</code>
@@ -41,8 +42,9 @@ public interface RunValueDeclarerOrBuilder extends
   java.lang.String getName();
   /**
    * <pre>
-   * The agent's name; a tool's name as plugin:&lt;plugin&gt;:&lt;server&gt;; the
-   * plugin's name; or the repository entry's name.
+   * The agent's name; a tool's name, as plugin:&lt;plugin&gt;:&lt;server&gt; for a
+   * plugin's server or the server's own name for one written in an agent;
+   * the plugin's name; or the repository entry's name.
    * </pre>
    *
    * <code>string name = 2 [json_name = "name"];</code>
@@ -73,8 +75,8 @@ public interface RunValueDeclarerOrBuilder extends
 
   /**
    * <pre>
-   * The plugin that declared it: a tool's plugin, or the plugin whose hooks
-   * read it; empty for an agent or a repository.
+   * The plugin that declared it: a plugin's tool's plugin, or the plugin
+   * whose hooks read it; empty for everything else.
    * </pre>
    *
    * <code>string plugin_id = 5 [json_name = "pluginId"];</code>
@@ -83,8 +85,8 @@ public interface RunValueDeclarerOrBuilder extends
   java.lang.String getPluginId();
   /**
    * <pre>
-   * The plugin that declared it: a tool's plugin, or the plugin whose hooks
-   * read it; empty for an agent or a repository.
+   * The plugin that declared it: a plugin's tool's plugin, or the plugin
+   * whose hooks read it; empty for everything else.
    * </pre>
    *
    * <code>string plugin_id = 5 [json_name = "pluginId"];</code>
@@ -95,7 +97,8 @@ public interface RunValueDeclarerOrBuilder extends
 
   /**
    * <pre>
-   * The tool's server name in its plugin; empty for everything else.
+   * The tool's server name in its plugin or its agent; empty for everything
+   * else.
    * </pre>
    *
    * <code>string server = 6 [json_name = "server"];</code>
@@ -104,7 +107,8 @@ public interface RunValueDeclarerOrBuilder extends
   java.lang.String getServer();
   /**
    * <pre>
-   * The tool's server name in its plugin; empty for everything else.
+   * The tool's server name in its plugin or its agent; empty for everything
+   * else.
    * </pre>
    *
    * <code>string server = 6 [json_name = "server"];</code>
@@ -138,4 +142,50 @@ public interface RunValueDeclarerOrBuilder extends
    */
   com.google.protobuf.ByteString
       getPluginDigestBytes();
+
+  /**
+   * <pre>
+   * The agent whose own server the tool is; empty for everything else.
+   * </pre>
+   *
+   * <code>string agent_id = 8 [json_name = "agentId"];</code>
+   * @return The agentId.
+   */
+  java.lang.String getAgentId();
+  /**
+   * <pre>
+   * The agent whose own server the tool is; empty for everything else.
+   * </pre>
+   *
+   * <code>string agent_id = 8 [json_name = "agentId"];</code>
+   * @return The bytes for agentId.
+   */
+  com.google.protobuf.ByteString
+      getAgentIdBytes();
+
+  /**
+   * <pre>
+   * The version of that agent this run planned (its version hash); empty
+   * for everything else. The values fetch reads the server at that version,
+   * so a run of a pinned version keeps the address it planned when the
+   * agent is edited.
+   * </pre>
+   *
+   * <code>string agent_version = 9 [json_name = "agentVersion"];</code>
+   * @return The agentVersion.
+   */
+  java.lang.String getAgentVersion();
+  /**
+   * <pre>
+   * The version of that agent this run planned (its version hash); empty
+   * for everything else. The values fetch reads the server at that version,
+   * so a run of a pinned version keeps the address it planned when the
+   * agent is edited.
+   * </pre>
+   *
+   * <code>string agent_version = 9 [json_name = "agentVersion"];</code>
+   * @return The bytes for agentVersion.
+   */
+  com.google.protobuf.ByteString
+      getAgentVersionBytes();
 }

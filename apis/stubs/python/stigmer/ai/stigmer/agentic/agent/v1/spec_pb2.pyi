@@ -14,7 +14,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentSpec(_message.Message):
-    __slots__ = ("description", "icon_url", "instructions", "skill_refs", "env", "tools", "disallowed_tools", "hooks", "run_config", "harness", "plugins", "subagents")
+    __slots__ = ("description", "icon_url", "instructions", "skill_refs", "env", "tools", "disallowed_tools", "hooks", "run_config", "harness", "plugins", "subagents", "mcp_servers")
     class EnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -34,6 +34,7 @@ class AgentSpec(_message.Message):
     HARNESS_FIELD_NUMBER: _ClassVar[int]
     PLUGINS_FIELD_NUMBER: _ClassVar[int]
     SUBAGENTS_FIELD_NUMBER: _ClassVar[int]
+    MCP_SERVERS_FIELD_NUMBER: _ClassVar[int]
     description: str
     icon_url: str
     instructions: str
@@ -46,7 +47,25 @@ class AgentSpec(_message.Message):
     harness: _enum_pb2.Harness
     plugins: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
     subagents: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
-    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., instructions: _Optional[str] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., env: _Optional[_Mapping[str, _declaration_pb2.EnvVarDeclaration]] = ..., tools: _Optional[_Iterable[str]] = ..., disallowed_tools: _Optional[_Iterable[str]] = ..., hooks: _Optional[_Iterable[_Union[HookSource, _Mapping]]] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ..., harness: _Optional[_Union[_enum_pb2.Harness, str]] = ..., plugins: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., subagents: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ...) -> None: ...
+    mcp_servers: _containers.RepeatedCompositeFieldContainer[AgentMcpServer]
+    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., instructions: _Optional[str] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., env: _Optional[_Mapping[str, _declaration_pb2.EnvVarDeclaration]] = ..., tools: _Optional[_Iterable[str]] = ..., disallowed_tools: _Optional[_Iterable[str]] = ..., hooks: _Optional[_Iterable[_Union[HookSource, _Mapping]]] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ..., harness: _Optional[_Union[_enum_pb2.Harness, str]] = ..., plugins: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., subagents: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., mcp_servers: _Optional[_Iterable[_Union[AgentMcpServer, _Mapping]]] = ...) -> None: ...
+
+class AgentMcpServer(_message.Message):
+    __slots__ = ("name", "url", "headers")
+    class HeadersEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    URL_FIELD_NUMBER: _ClassVar[int]
+    HEADERS_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    url: str
+    headers: _containers.ScalarMap[str, str]
+    def __init__(self, name: _Optional[str] = ..., url: _Optional[str] = ..., headers: _Optional[_Mapping[str, str]] = ...) -> None: ...
 
 class HookSource(_message.Message):
     __slots__ = ("inline",)

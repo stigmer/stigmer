@@ -1,7 +1,7 @@
 /**
  * buildThreadItems keys, the set-up indicator, internal-tool filtering and
  * the to-dos card. Keys come from the session's own event ids (a message's
- * id, a group's first tool use, a sub-agent's `task` call, a turn's run), so
+ * id, a group's first tool use, a subagent's `task` call, a turn's run), so
  * an item keeps its key as its turn goes from live to ended and the fold
  * grows; the pending bubble and the live turn's matching message share one
  * key so the bubble updates in place; no key repeats. The set-up indicator
@@ -22,7 +22,7 @@ import {
   runOf,
   said,
   status,
-  subAgent,
+  subagent,
   thought,
   toolId,
   turnsOf,
@@ -53,7 +53,7 @@ describe("buildThreadItems key generation", () => {
     expect(keys(items)).toEqual([`${R}-spec`, m(R, 0), m(R, 1)]);
   });
 
-  it("keys a tool group by its first tool use and a sub-agent by its task call", () => {
+  it("keys a tool group by its first tool use and a subagent by its task call", () => {
     const items = buildThreadItems(
       turnsOf(
         user(R, "go"),
@@ -61,7 +61,7 @@ describe("buildThreadItems key generation", () => {
         call(R, "c1", "shell", { command: "ls" }),
         call(R, "c2", "read_file", { path: "a" }),
         use(R, "task1", "task", { description: "dig" }),
-        subAgent(R, "task1", { finished: "completed" }),
+        subagent(R, "task1", { finished: "completed" }),
         result(R, "task1", "found"),
         status(R, "completed"),
       ),
@@ -73,13 +73,13 @@ describe("buildThreadItems key generation", () => {
     expect(group?.kind === "tool-group" && group.toolUses.map((tu) => tu.id)).toEqual([toolId(R, "c1"), toolId(R, "c2")]);
   });
 
-  it("splits a run of calls at a sub-agent, keeping their order", () => {
+  it("splits a run of calls at a subagent, keeping their order", () => {
     const items = buildThreadItems(
       turnsOf(
         user(R, "go"),
         call(R, "c1", "shell"),
         use(R, "task1", "task"),
-        subAgent(R, "task1"),
+        subagent(R, "task1"),
         call(R, "c2", "shell"),
         status(R, "running"),
       ),
@@ -144,7 +144,7 @@ describe("buildThreadItems key generation", () => {
         said(R, 0, "Working on it"),
         call(R, "c1", "shell"),
         use(R, "task1", "task"),
-        subAgent(R, "task1", { items: [said(R, 0, "nested", toolId(R, "task1"))], finished: "completed" }),
+        subagent(R, "task1", { items: [said(R, 0, "nested", toolId(R, "task1"))], finished: "completed" }),
         result(R, "task1", "done"),
         said(R, 1, "Done"),
         status(R, "completed"),
@@ -272,8 +272,8 @@ describe("buildThreadItems todos card", () => {
     expect(keys(items).slice(1)).toEqual([`${R}-todos`, `${toolId(R, "c1")}-tc`]);
   });
 
-  it("anchors before a sub-agent when one is the first work", () => {
-    const items = buildThreadItems(turnsOf(user(R, "go"), todos(R, "t", TODOS), use(R, "task1", "task"), subAgent(R, "task1"), status(R, "running")), []);
+  it("anchors before a subagent when one is the first work", () => {
+    const items = buildThreadItems(turnsOf(user(R, "go"), todos(R, "t", TODOS), use(R, "task1", "task"), subagent(R, "task1"), status(R, "running")), []);
     expect(keys(items).slice(1)).toEqual([`${R}-todos`, `sa-${toolId(R, "task1")}`]);
   });
 

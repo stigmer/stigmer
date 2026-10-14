@@ -21,8 +21,8 @@ export function registerRunsApprove(runs: Command): void {
     .option("--tool-call <id>", "the tool use to answer, as runs logs shows it; optional when the run waits on one")
     .option(
       "--action <action>",
-      "approve, deny, or approve-all (allow it and every waiting call of its kind for the rest of the turn)",
-      "approve",
+      "allow, deny, or allow-all (allow it and every waiting call of its kind for the rest of the turn)",
+      "allow",
     )
     .action((runId: string, options: ApproveFlags) => runApprove(runId, options));
 }
@@ -47,7 +47,7 @@ async function runApprove(runId: string, options: ApproveFlags): Promise<void> {
   const result = await approve.approveAgentToolCall(client.stigmer, {
     runId,
     toolCallId: options.toolCall ?? "",
-    action: options.action ?? "approve",
+    action: options.action ?? "allow",
     comment: options.comment ?? "",
   });
   renderResult(

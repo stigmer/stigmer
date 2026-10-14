@@ -98,13 +98,12 @@ message PluginEvalSpec {
   // A specifier in parentheses, as in Bash(npm test *), is accepted and
   // grants the whole tool: every Stigmer tool list reads a specifier that
   // way. Each try runs in a fresh workspace of its own. A plugin's MCP tools
-  // are named either way: Claude Code's mcp__plugin_<plugin>_<server>__<tool>
-  // or Stigmer's mcp__<server>__<tool>.
+  // are named as Claude Code names them,
+  // mcp__plugin_<plugin>_<server>__<tool>.
   //
   // @internal
-  // Create rewrites Claude Code's form of the eval's own plugin to the
-  // server's Stigmer name (the slug install gives it), so the stored list
-  // holds Stigmer names only.
+  // Stored as written; create refuses an entry naming a server of another
+  // plugin, since it could never grant anything.
   repeated string allow_tools = 12 [(buf.validate.field).repeated = {
     max_items: 64
     items: {

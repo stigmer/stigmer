@@ -137,7 +137,7 @@ stigmer run my-agent --detach -m "Generate weekly report"
 | `--model` | Override the LLM model (e.g., `claude-sonnet-4-6`) |
 | `--harness` | Choose the execution engine for the new session (`native` or `cursor`) |
 | `--auto-approve` | Approve all tool executions without prompting (bypasses approval policies) |
-| `--approve-default` | Auto-resolve approval prompts in non-interactive mode (`approve`, `skip`, `reject`, `approve-all`); unset skips each one |
+| `--approve-default` | Answer every tool call that asks, in non-interactive mode: `allow`, `deny`, or `allow-all` (allow it and every waiting call of its kind for the rest of the turn); unset denies each one, and the agent carries on without it |
 | `--verbose`, `-v` | Show run IDs and phase transitions in the TUI transcript |
 
 ```bash

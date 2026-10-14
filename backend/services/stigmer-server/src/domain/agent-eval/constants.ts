@@ -32,6 +32,11 @@ export function agentEvalOtherPluginToolMessage(entry: string, server: string): 
   return `allow_tools entry '${entry}' names MCP server '${server}', which is none of the agent's plugins'`;
 }
 
+/** The refusal of an allow_tools entry naming an MCP server the agent and its subagents do not write. */
+export function agentEvalUnknownServerToolMessage(entry: string, server: string): string {
+  return `allow_tools entry '${entry}' names MCP server '${server}', which is none of the servers the agent or its subagents write`;
+}
+
 /** The not-run reason of a plugin spec.plugins leaves out. */
 export const PLUGIN_NOT_SELECTED_REASON = "not selected";
 

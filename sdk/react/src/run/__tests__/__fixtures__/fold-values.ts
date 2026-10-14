@@ -1,4 +1,4 @@
-// Test fixtures for the component suites: a folded tool use, sub-agent
+// Test fixtures for the component suites: a folded tool use, subagent
 // thread and file review, built as plain values in the shapes the session
 // fold produces (`ToolUse`, `Thread`, `FileReviewSet`, `FileReviewFile`),
 // so a component test states only the fields it is about. A tool use that
@@ -118,7 +118,7 @@ function confirmationOf(id: string, result: "allow" | "deny"): ToolConfirmation 
   return { id: `${id}.confirm`, result, denyMessage: "", processedAt: TOOL_STARTED_AT };
 }
 
-/** A sub-agent's thread. */
+/** A subagent's thread. */
 export function thread(init: Partial<Thread> & { readonly items?: ReadonlyArray<TurnItem> }): Thread {
   return {
     id: "run_1.task",

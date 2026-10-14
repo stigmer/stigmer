@@ -64,6 +64,7 @@ definitions, API names, and examples follow below.
 | **Marketplace**       | marketplace      | Marketplace ("where you install from") | Marketplace            | Marketplace; source, `stigmer install`          | marketplace       |
 | **MCP server**        | tools            | MCP server ("tool connection")         | MCP server             | `PluginStatus.mcp_servers`, `plugins`           | MCP server        |
 | **Session**           | conversation     | Session ("conversation")               | Session                | Session, `kind: Session`                        | Session           |
+| **Session event**     | ---              | ---                                    | event                  | `SessionEvent`, `agent.message`, `stigmer.*`    | event             |
 | **Runner**            | compute          | runner ("where your Agent runs")       | Runner                 | Runner                                          | runner            |
 | **Harness**           | execution engine | harness ("execution engine")           | Harness                | Harness, `SessionSpec.harness`                  | harness           |
 | **Approval flow**     | approval flow    | approval flow                          | approval flow, HITL    | `destructiveHint`, `confirmToolUse`             | HITL, approval    |
@@ -363,11 +364,12 @@ An ongoing conversation with an Agent across multiple messages.
   `session/v1/spec.proto`.
 - **Key fields**: `agent_ref` (the Agent the conversation runs; empty for the
   built-in assistant), `status.agent_version_hash` (the Agent version the
-  conversation runs until someone updates it), `thread_id` (persists across
-  runs), `subject` (display title), `workspace_entries`, `sandbox_id`, `vaults`
-  (the vaults the conversation uses, in order) and `include_my_vault` (use each
-  sender's own My vault first). Sessions can add `plugins` and `skill_refs` to
-  the Agent's; the Agent's tool lists still govern every tool.
+  conversation runs until someone updates it), `status.harness_state_id` (the
+  harness's own id for the conversation, kept across runs), `subject` (display
+  title), `workspace_entries`, `sandbox_id`, `vaults` (the vaults the
+  conversation uses, in order) and `include_my_vault` (use each sender's own My
+  vault first). Sessions can add `plugins` and `skill_refs` to the Agent's; the
+  Agent's tool lists still govern every tool.
 - **Related terms**: A Session contains multiple runs. Each message exchange
   within a Session is one run. What happens in a Session is its event log
   (`session/v1/event.proto`): the person's messages, the Agent's messages and
@@ -379,19 +381,59 @@ An ongoing conversation with an Agent across multiple messages.
 
 **Good examples**:
 
-| Context    | Copy                                                                                                                                                          |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sales site | "Your Agent remembers the conversation. Ask a follow-up question tomorrow---it picks up where you left off."                                                  |
-| Quickstart | "Start a Session---an ongoing conversation where your Agent remembers what was said."                                                                         |
-| Concepts   | "A Session is a container for a multi-turn conversation. It holds the message history, attached Skills, and tool connections for that conversation."          |
-| Reference  | "`Session`---a multi-turn conversation container. Persists message history via `thread_id`. Merges Agent-level and Session-level `skill_refs` and `plugins`." |
+| Context    | Copy                                                                                                                                                                                |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sales site | "Your Agent remembers the conversation. Ask a follow-up question tomorrow---it picks up where you left off."                                                                        |
+| Quickstart | "Start a Session---an ongoing conversation where your Agent remembers what was said."                                                                                               |
+| Concepts   | "A Session is a container for a multi-turn conversation. It holds the message history, attached Skills, and tool connections for that conversation."                                |
+| Reference  | "`Session`---a multi-turn conversation container. Keeps the conversation across runs (`status.harness_state_id`). Merges Agent-level and Session-level `skill_refs` and `plugins`." |
 
 **Bad examples**:
 
 | Context    | Copy                                                          | Problem                                                                       |
 | ---------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | Sales site | "Create a Session resource to enable multi-turn interaction." | Resource-model language in a business context.                                |
-| Quickstart | "Configure the `thread_id` for Session persistence."          | Implementation detail. The quickstart should just say "start a conversation." |
+| Quickstart | "Configure the `harness_state_id` for Session persistence."   | Implementation detail. The quickstart should just say "start a conversation." |
+
+---
+
+#### Session event
+
+One entry in a Session's event log: a message, a tool call or its result, an
+answer, or a change in what the Session is doing.
+
+- **User-facing alternative**: "what the Agent did" on the sales site and in
+  introductory copy; "event" once the reader reads or streams them.
+- **Capitalize**: No.
+- **API surface**: `SessionEvent` in `session/v1/event.proto`, read with
+  `listEvents` or `streamEvents`. Each event is a Claude Managed Agents event,
+  named and shaped as Anthropic's SDK types it
+  ([Use Anthropic's SDK](/docs/sdk/managed-agents)): `user.message`,
+  `agent.message`, `agent.tool_use`, `session.status_idle` and the rest. A type
+  that starts with `stigmer.` is Stigmer's own, listed with its reason in
+  [Stigmer's own events](/docs/sdk/streaming#stigmers-own-events).
+- **Related terms**: A [Session](#session) holds the log, and each [run](#run)
+  is one turn in it. A [subagent](#subagent)'s events are a thread of their own
+  (`session.thread_created`). A call that waits for an answer is an
+  `agent.tool_use`, answered by a `user.tool_confirmation`
+  ([Approval flow](#approval-flow-human-in-the-loop)).
+- **Context rule**: Reference and SDK docs use Managed Agents' event names
+  exactly; never invent a name for an event. Concepts say "the Session's events"
+  or "the conversation".
+
+**Good examples**:
+
+| Context   | Copy                                                                                                                                    |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Concepts  | "Everything that happens in a Session is one ordered list of events: your messages, the Agent's messages and tool calls, every answer." |
+| Reference | "An `agent.tool_use` with `evaluated_permission` `ask` waits for an answer; answer it with `confirmToolUse`."                           |
+
+**Bad examples**:
+
+| Context   | Copy                                       | Problem                                                                                                              |
+| --------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| Any       | "The run's transcript holds its messages." | A run holds no transcript; the conversation is the Session's events.                                                 |
+| Reference | "The `stigmer.agent.message` event."       | There is no such type: the Agent's text is `agent.message`. A Managed Agents type never takes the `stigmer.` prefix. |
 
 ---
 
@@ -503,7 +545,10 @@ action before proceeding.
   from the Session's log, and answered on the Session:
   `SessionCommandController.confirmToolUse` (`allow` or `deny`, recorded as
   `user.tool_confirmation`) or `grantPermission` (the call's class for the rest
-  of the run).
+  of the run). `interrupt` stops the Session's unfinished work, recorded as
+  `user.interrupt`. The CLI answers with the same words: `allow`, `deny` or
+  `allow-all` (`stigmer runs approve --action`, and `--approve-default` for a
+  run that nobody watches).
 
 **Good examples**:
 
@@ -1539,7 +1584,8 @@ plugins, Skills, hooks and values; a plugin subagent comes from a plugin's
 - **API surface**: `AgentSpec.subagents` in `agent/v1/spec.proto`, a list of
   saved Agents by reference (`kind: agent`), each pinned to a version when the
   listing Agent is saved. A plugin's agents are named `<plugin>:<agent>`
-  (`PluginStatus.agents`). Run tracking: `run/v1/subagent.proto`.
+  (`PluginStatus.agents`). A run's subagents are threads in the Session's events
+  (`session.thread_created`).
 - **Retired shape**: subagents written inside an Agent (`sub_agents`) are gone;
   a reader meets the field only in the sentence `stigmer apply -f` and
   `stigmer validate -f` print for a manifest that still writes it, which says to
