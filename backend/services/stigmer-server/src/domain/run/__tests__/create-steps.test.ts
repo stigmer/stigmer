@@ -1598,9 +1598,8 @@ describe("newGuardExcludedPluginsStep", () => {
   });
 
   it("refuses it as permission denied", async () => {
-    const failure = await step.execute(excluding(testCallerIdentity(), ["plg_1"])).catch((e: unknown) => e);
-    expect(failure).toBeInstanceOf(ConnectError);
-    expect((failure as ConnectError).code).toBe(Code.PermissionDenied);
+    await expect(step.execute(excluding(testCallerIdentity(), ["plg_1"]))).rejects.toBeInstanceOf(ConnectError);
+    await expect(step.execute(excluding(testCallerIdentity(), ["plg_1"]))).rejects.toMatchObject({ code: Code.PermissionDenied });
   });
 
   it("passes the server's own request, and any request without one", async () => {
