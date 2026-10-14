@@ -18,7 +18,10 @@
 //     request with none; rename moves the slug and keeps the id;
 //   - joining a team is an IamPolicy grant of `member` on it, and sharing a
 //     private agent with the team reaches its members and nobody else in the
-//     organization; deleting the team takes the share back;
+//     organization; deleting the team takes the share back, and the deleted
+//     team reads as any team the caller may not see (PERMISSION_DENIED: a
+//     team id's existence is never told, authorization/authorizer.ts
+//     NOT_FOUND_EXEMPT_KINDS);
 //   - a person outside the organization cannot be added to a team
 //     (FAILED_PRECONDITION, the grant gate's copy naming the organization's
 //     slug), and a plain member cannot create one (PERMISSION_DENIED).
@@ -235,7 +238,8 @@ describe.skipIf(!teamsServed)("Team conformance — the team lane (teams served)
 
     const deleted = await cast.admin.teamCommand.delete({ resourceId: teamId });
     expect(deleted.metadata?.id).toBe(teamId);
-    await expectGrpcCode(() => clients.teamQuery.get({ value: teamId }), Code.NotFound, "the deleted team");
+    const gone = await expectGrpcCode(() => clients.teamQuery.get({ value: teamId }), Code.PermissionDenied, "the deleted team");
+    expect(gone.rawMessage).toBe(TEAM_DENIED.view);
     await expectGrpcCodeWithin(
       () => cast.member.agentQuery.get({ value: agentId }),
       Code.PermissionDenied,

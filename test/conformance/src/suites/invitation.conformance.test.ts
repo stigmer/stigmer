@@ -17,7 +17,9 @@
 //     organization, the role and whether it is still valid, never the
 //     token; an unknown token is NOT_FOUND;
 //   - the organization's admins read a link, token included, by id and in
-//     the list; a viewer is refused both;
+//     the list; a viewer of the organization is refused the link and lists
+//     none (a link is its admins' alone, and the list holds only the rows
+//     its caller could read);
 //   - a fresh person redeems the link and holds its role on the
 //     organization; redeeming again is ALREADY_EXISTS; a link of one use
 //     refuses a second person; a revoked link refuses everyone, and its
@@ -40,6 +42,8 @@ import { InvitationCommandController } from "@stigmer/protos/ai/stigmer/iam/invi
 import { InvitationState } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/enum_pb";
 import { InvitationQueryController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/query_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { toJsonString } from "@bufbuild/protobuf";
+import { InvitationPreviewSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/io_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { expectGrpcCode } from "../contract/errors";
@@ -81,7 +85,6 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const COPY = {
   createDenied: "unauthorized to create invitation in this organization",
   viewDenied: "unauthorized to view invitation",
-  listDenied: "unauthorized to list invitations in this organization",
   expiryTooFar: "Invitation expiration cannot exceed 30 days from now",
   notFound: "Invitation not found",
   alreadyMember: "You are already a member of this organization",
@@ -199,7 +202,7 @@ describe.skipIf(!capabilities.invitations)("Invitation conformance — the invit
     expect(preview.isValid).toBe(true);
     expect(preview.invalidReason).toBe("");
     expect(preview.orgSlug, "the organization by the name people know it by").not.toBe("");
-    expect(JSON.stringify(preview), "the preview never carries the token").not.toContain(token);
+    expect(toJsonString(InvitationPreviewSchema, preview), "the preview never carries the token").not.toContain(token);
 
     const unknown = await expectGrpcCode(
       () => target.anonymousClients().invitationQuery.getByToken({ token: uniqueName("no-such-token") }),
@@ -209,7 +212,7 @@ describe.skipIf(!capabilities.invitations)("Invitation conformance — the invit
     expect(unknown.rawMessage).toBe(COPY.notFound);
   });
 
-  it("[rpc:InvitationQueryController.get] [rpc:InvitationQueryController.list] the organization's admins read a link, token included, by id and in the list; a viewer is refused both", async () => {
+  it("[rpc:InvitationQueryController.get] [rpc:InvitationQueryController.list] the organization's admins read a link, token included, by id and in the list; a viewer is refused the link and lists none", async () => {
     const invitation = await invite();
     const id = invitation.metadata?.id ?? "";
 
@@ -220,8 +223,8 @@ describe.skipIf(!capabilities.invitations)("Invitation conformance — the invit
 
     const get = await expectGrpcCode(() => viewer.invitationQuery.get({ value: id }), Code.PermissionDenied, "a viewer's get");
     expect(get.rawMessage).toBe(COPY.viewDenied);
-    const list = await expectGrpcCode(() => viewer.invitationQuery.list({ org }), Code.PermissionDenied, "a viewer's list");
-    expect(list.rawMessage).toBe(COPY.listDenied);
+    const listed = await viewer.invitationQuery.list({ org });
+    expect(listed.entries, "a viewer lists no link, and so no token").toEqual([]);
   });
 
   it("[rpc:InvitationCommandController.redeem] a fresh person who redeems the link holds its role on the organization; redeeming again is ALREADY_EXISTS, and an unknown token is NOT_FOUND", async () => {

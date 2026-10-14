@@ -12,8 +12,11 @@
 // issuer that names no allowed issuer and no key set dials nothing:
 //   - an admin creates one, reads it by id, by slug and in the list, updates
 //     its display name under a mask (refused without one), renames it,
-//     applies it (create, then update) and deletes it; an outsider reads
-//     nothing and a plain member creates nothing;
+//     applies it (create, then update) and deletes it, after which it reads
+//     as any issuer the caller may not see (PERMISSION_DENIED: an issuer
+//     id's existence is never told, authorization/authorizer.ts
+//     NOT_FOUND_EXEMPT_KINDS); an outsider reads nothing and a plain member
+//     creates nothing;
 //   - the refusals decided before any dial: an `http:` issuer, an owner
 //     sign-in role, and the server's own sign-in issuer
 //     (TargetProfile.signInIssuer), each INVALID_ARGUMENT with its copy.
@@ -272,13 +275,14 @@ describe.skipIf(!issuersServed)("FederationIssuer conformance — the issuer lan
     expect(updated.spec?.displayName).toBe("Second");
   });
 
-  it("[rpc:FederationIssuerCommandController.delete] delete answers the issuer, and it is gone", async () => {
+  it("[rpc:FederationIssuerCommandController.delete] delete answers the issuer, and it then reads as one the admin may not see", async () => {
     const issuer = await admin.federationIssuerCommand.create(makeIssuer({ org }));
     const id = issuer.metadata?.id ?? "";
 
     const deleted = await admin.federationIssuerCommand.delete({ resourceId: id });
     expect(deleted.metadata?.id).toBe(id);
-    await expectGrpcCode(() => admin.federationIssuerQuery.get({ value: id }), Code.NotFound, "the deleted issuer");
+    const gone = await expectGrpcCode(() => admin.federationIssuerQuery.get({ value: id }), Code.PermissionDenied, "the deleted issuer");
+    expect(gone.rawMessage).toBe(COPY.viewDenied);
   });
 
   it("[rpc:FederationIssuerCommandController.create] refuses, before dialing anything, an http issuer, an owner sign-in role, and the server's own sign-in issuer", async () => {
