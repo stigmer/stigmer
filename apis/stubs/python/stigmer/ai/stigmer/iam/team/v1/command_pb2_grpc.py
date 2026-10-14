@@ -11,7 +11,7 @@ class TeamCommandControllerStub(object):
     """TeamCommandController provides write operations for teams.
 
     Membership is not written here: a person joins a team when they are granted
-    the member role on it, through the IAM policy service, like any other grant.
+    the member role on it, through the Grant service, like any other grant.
     """
 
     def __init__(self, channel):
@@ -46,7 +46,7 @@ class TeamCommandControllerServicer(object):
     """TeamCommandController provides write operations for teams.
 
     Membership is not written here: a person joins a team when they are granted
-    the member role on it, through the IAM policy service, like any other grant.
+    the member role on it, through the Grant service, like any other grant.
     """
 
     def create(self, request, context):
@@ -163,7 +163,7 @@ class TeamCommandController(object):
     """TeamCommandController provides write operations for teams.
 
     Membership is not written here: a person joins a team when they are granted
-    the member role on it, through the IAM policy service, like any other grant.
+    the member role on it, through the Grant service, like any other grant.
     """
 
     @staticmethod

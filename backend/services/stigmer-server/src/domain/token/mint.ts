@@ -106,8 +106,8 @@ import {
 import { signPlatformToken } from "../../platformtoken/envelope.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
-import type { IamPolicyGrantPath } from "../iampolicy/grant-path.js";
-import { organizationRole } from "../iampolicy/specs.js";
+import type { GrantPath } from "../grant/grant-path.js";
+import { organizationRole } from "../grant/specs.js";
 import {
   APP_USER_SUBJECT_PREFIX,
   accountIdFor,
@@ -145,7 +145,7 @@ export interface UserTokenMintDeps {
   readonly accounts: Pick<IdentityAccountStore, "findByIdpId">;
   /** The identity-account domain's one create path (identityaccount/controller.ts). */
   readonly createAccount: CreateAccount;
-  readonly grantPath: Pick<IamPolicyGrantPath, "grant">;
+  readonly grantPath: Pick<GrantPath, "grant">;
   /** The composed ring; undefined when the server trusts every request. */
   readonly keys: PlatformTokenKeyRing | undefined;
   readonly logger: Logger;

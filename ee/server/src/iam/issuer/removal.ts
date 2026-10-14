@@ -22,12 +22,12 @@
  * Then what answers for the provider, the row last, and a failure
  * stops before the row: Team's order (team/removal.ts), for the same
  * reason. First the provider's federated accounts, each through the
- * account service's delete (its policies in both directions, then its
+ * account service's delete (its grants in both directions, then its
  * row). They are keyed by the provider's id, so a provider re-created
  * under the same slug never inherits them; left in place they would still
  * be accounts nobody's provider vouches for, with their roles. A retry
  * resumes, since an account already deleted is no longer listed. Then the grants: the grant path's
- * `cleanupResourcePolicies` revokes the provider's rows as resource (its
+ * `cleanupResourceGrants` revokes the provider's rows as resource (its
  * organization link, viewer grants, and any owner row an older server
  * wrote) and as principal. A deleted row with a failed cleanup would leave
  * a provider nobody can manage still granting; here the row stays and the
@@ -62,11 +62,11 @@ import { create } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import type { IdentityAccountStore, Logger, NameTable } from "@stigmer/server";
 
 import type { IdentityAccountService } from "../account/port.js";
-import type { IamPolicyGrantPathClient } from "../policy/grant-path-client.js";
+import type { GrantPathClient } from "../grant/grant-path-client.js";
 import type { FederationIssuerStore } from "./store.js";
 
 /** The provider's kind as an `ApiResourceRef.kind` spells it. */
@@ -96,11 +96,11 @@ export interface IssuerRemovalDeps {
   >;
   /** The server's one name table: a removed provider's slug is let go after its last sweep. */
   readonly names: NameTable;
-  /** The provider's federated accounts: listed by its id, each deleted with its policies. */
+  /** The provider's federated accounts: listed by its id, each deleted with its grants. */
   readonly accounts: Pick<IdentityAccountService, "deleteAccount"> & {
     readonly store: Pick<IdentityAccountStore, "findByIssuer">;
   };
-  readonly policies: Pick<IamPolicyGrantPathClient, "cleanupResourcePolicies">;
+  readonly grants: Pick<GrantPathClient, "cleanupResourceGrants">;
   /** The federated verifier's issuer-cache invalidation. */
   readonly invalidate: () => void;
   readonly logger: Logger;
@@ -148,7 +148,7 @@ export function newIssuerRemoval(deps: IssuerRemovalDeps): IssuerRemoval {
         await deps.accounts.deleteAccount(account, actingFor);
       }
     }
-    await deps.policies.cleanupResourcePolicies(
+    await deps.grants.cleanupResourceGrants(
       create(ApiResourceRefSchema, { kind: FEDERATION_ISSUER_KIND_NAME, id }),
       actingFor,
     );
@@ -186,7 +186,7 @@ export function newIssuerRemoval(deps: IssuerRemovalDeps): IssuerRemoval {
         } catch (error) {
           failed += 1;
           deps.logger.error(
-            "federation issuer removal failed with its organization; the provider row and its policies remain",
+            "federation issuer removal failed with its organization; the provider row and its grants remain",
             {
               provider: id,
               org: orgId,

@@ -25,7 +25,7 @@
  *                  update RPC: its chain keeps the stored email by design,
  *                  so a person whose email changed at their provider would
  *                  keep the old one forever.
- *   deleteAccount  the grant path's cleanup of every policy row naming the
+ *   deleteAccount  the grant path's cleanup of every grant row naming the
  *                  account, acting for `actingFor`, so the permission
  *                  history names who caused it; then the library's delete
  *                  RPC over the in-process transport, which runs the
@@ -42,7 +42,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import type { ComposedServices, IdentityAccountStore } from "@stigmer/server";
 import {
   changeThroughGuardedPort,
@@ -54,7 +54,7 @@ import {
 } from "@stigmer/server";
 
 import type { IdentityAccountService, NewAccountRequest } from "../iam/account/port.js";
-import { newIamPolicyGrantPathClient } from "../iam/policy/grant-path-client.js";
+import { newGrantPathClient } from "../iam/grant/grant-path-client.js";
 import type { TransportRef } from "../rpc/transport-ref.js";
 
 /** The service, and the hand-over that fills it. */
@@ -69,7 +69,7 @@ const NOT_FILLED = "the Enterprise account service was called before the composi
 export function newEnterpriseAccounts(): EnterpriseAccounts {
   let accounts: ComposedServices["identityAccounts"] | undefined;
   const transportRef: TransportRef = {};
-  const policies = newIamPolicyGrantPathClient(transportRef);
+  const grants = newGrantPathClient(transportRef);
 
   function domain(): ComposedServices["identityAccounts"] {
     if (accounts === undefined) {
@@ -153,7 +153,7 @@ export function newEnterpriseAccounts(): EnterpriseAccounts {
       if (transport === undefined) {
         throw new Error(NOT_FILLED);
       }
-      await policies.cleanupResourcePolicies(
+      await grants.cleanupResourceGrants(
         create(ApiResourceRefSchema, { kind: "identity_account", id: accountId }),
         actingFor,
       );

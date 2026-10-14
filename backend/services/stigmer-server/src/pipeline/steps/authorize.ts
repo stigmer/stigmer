@@ -33,7 +33,7 @@
  * kind — the check still reaches the Authorizer, which owns the decision.
  * A `resource_kind_path` may point at an `ApiResourceKind` field or at a
  * string carrying a kind's enum member name (an `ApiResourceRef.kind`, the
- * IamPolicy RPCs' spec-named target); a string that is
+ * Grant RPCs' spec-named target); a string that is
  * not exactly a member name is the unknown kind, which an enforcing
  * authorizer denies. A thrown resolution would be a NEW wire behavior on
  * requests that are legal today (byte-identity forbids it); an
@@ -51,7 +51,7 @@
  * a server-side ID under the annotation's static kind (getByEmail and
  * getByIdpId authorize the account they looked up: a caller-supplied id
  * would be a confused-deputy hole),
- * and a server-side kind AND id (the IamPolicy `get`, whose annotation
+ * and a server-side kind AND id (the Grant `get`, whose annotation
  * names no kind because the target is the loaded row's resource). The
  * annotation keeps owning the permission, the copy and the skip arms in
  * both shapes; only the target is the handler's.

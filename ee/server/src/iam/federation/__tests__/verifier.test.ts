@@ -68,10 +68,10 @@ import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organizat
 import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
-import type { IamPolicyGrantPathClient } from "../../policy/grant-path-client.js";
+import type { GrantPathClient } from "../../grant/grant-path-client.js";
 import type {
   IdentityAccountService,
   NewAccountRequest,
@@ -164,7 +164,7 @@ interface Fakes {
   accountsByNaturalKey: Map<string, IdentityAccount>;
   created: NewAccountRequest[];
   deleted: string[];
-  grants: IamPolicySpec[];
+  grants: GrantSpec[];
   /** The grant refuses: with an Error, or (`"non-error"`) with a bare value. */
   grantFails: boolean | "non-error";
   /** The rollback's account delete refuses. */
@@ -198,7 +198,7 @@ interface Fakes {
   /** Every account the account service deleted, with whom it acted for. */
   accountDeletes: Array<{ readonly id: string; readonly actingFor: string | undefined }>;
   /** Every grant revoked one at a time, with whom it acted for. */
-  revoked: Array<{ readonly spec: IamPolicySpec; readonly actingFor: string | undefined }>;
+  revoked: Array<{ readonly spec: GrantSpec; readonly actingFor: string | undefined }>;
 }
 
 function newFakes(providers: FederationIssuer[]): Fakes {
@@ -292,8 +292,8 @@ function verifierOf(
   } as unknown as IdentityAccountService;
   // The JIT grant is a ROLE grant to a person: the user lane (`create`),
   // where ValidateGrantableRole runs; the fake offers that method only.
-  const policies = {
-    create: (spec: IamPolicySpec) => {
+  const grants = {
+    create: (spec: GrantSpec) => {
       if (fakes.grantFails === "non-error") {
         return Promise.reject("fga unavailable");
       }
@@ -303,11 +303,11 @@ function verifierOf(
       fakes.grants.push(spec);
       return Promise.resolve(undefined as never);
     },
-    delete: (spec: IamPolicySpec, actingFor?: string) => {
+    delete: (spec: GrantSpec, actingFor?: string) => {
       fakes.revoked.push({ spec, actingFor });
       return Promise.resolve(undefined as never);
     },
-  } as unknown as IamPolicyGrantPathClient;
+  } as unknown as GrantPathClient;
   const childOrganizations = {
     findByExternalId: (parentId: string, externalId: string) => {
       const child = fakes.childByExternalId.get(externalId);
@@ -322,7 +322,7 @@ function verifierOf(
   return newStoreBackedFederatedVerifier({
     providers: providerStore,
     accounts,
-    policies,
+    grants,
     childOrganizations,
     signInGrants: fakes.signInGrants,
     fetchUserProfile: (endpoint: string) => {
@@ -718,7 +718,7 @@ describe("a sign-in whose provider's delete has begun", () => {
     expect(refused.rawMessage).toBe("IdP 'acme/acme-sso' is being deleted and signs no one in");
     expect(
       fakes.accountDeletes,
-      "the account it created goes through the account service, policies and all, acting for the provider",
+      "the account it created goes through the account service, grants and all, acting for the provider",
     ).toEqual([{ id: "ida_new", actingFor: "fis_1" }]);
     expect(fakes.deleted, "never the row-only rollback, which would leave the grant").toEqual([]);
     expect(fakes.signInGrants.rows.size).toBe(0);
@@ -1027,7 +1027,7 @@ describe("store-backed federated verifier: the profile and the token's shape", (
     const verifier = newStoreBackedFederatedVerifier({
       providers: providerStore,
       accounts: { store: {} } as never,
-      policies: {} as never,
+      grants: {} as never,
       childOrganizations: {} as never,
       signInGrants: inMemorySignInGrants(),
       fetchUserProfile: () => Promise.reject(new Error("unused")),

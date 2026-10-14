@@ -63,7 +63,7 @@ export const PROVISION_GRANT_CODE = [
   "  lastName: user.lastName,",
   "});",
   "",
-  "await stigmer.iamPolicy.create({",
+  "await stigmer.grant.create({",
   '  principal: { kind: "identity_account", id: account.metadata.id },',
   '  resource: { kind: "organization", id: tenantOrg.metadata.id },',
   '  relation: "viewer",',

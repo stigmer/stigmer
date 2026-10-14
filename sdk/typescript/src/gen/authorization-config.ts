@@ -4,7 +4,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 /**
- * Roles that can be granted on each resource kind via IAM policies.
+ * Roles that can be granted on each resource kind by a Grant.
  *
  * Source of truth: api_resource_kind.proto — each ApiResourceKind enum
  * value carries an AuthorizationConfig with grantable_roles in its

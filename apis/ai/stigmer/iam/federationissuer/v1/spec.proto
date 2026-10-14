@@ -27,7 +27,7 @@ import "buf/validate/validate.proto";
 //
 //   2. sign_in_role: the role an account receives the first time it signs in
 //      to an organization through this issuer. Unspecified means none: the
-//      platform grants roles itself through IAM policies.
+//      platform grants roles itself through Grants.
 //
 // A federation issuer is trust in another platform's tokens, never a way
 // to sign in to the Stigmer console: a company that wants its people to sign

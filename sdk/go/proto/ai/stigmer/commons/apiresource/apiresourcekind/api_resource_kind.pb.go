@@ -201,8 +201,9 @@ const (
 	ApiResourceKind_api_resource_kind_unknown ApiResourceKind = 0
 	// Immutable version record tracking changes to an API resource.
 	ApiResourceKind_api_resource_version ApiResourceKind = 1
-	// Role-based access control policy for granting permissions on resources.
-	ApiResourceKind_iam_policy ApiResourceKind = 10
+	// One role given to one principal on one resource. Who holds what on a
+	// resource is the set of its grants.
+	ApiResourceKind_grant ApiResourceKind = 10
 	// User account in the identity system.
 	ApiResourceKind_identity_account ApiResourceKind = 11
 	// Credential for programmatic API access.
@@ -287,7 +288,7 @@ var (
 	ApiResourceKind_name = map[int32]string{
 		0:  "api_resource_kind_unknown",
 		1:  "api_resource_version",
-		10: "iam_policy",
+		10: "grant",
 		11: "identity_account",
 		12: "api_key",
 		20: "invitation",
@@ -317,7 +318,7 @@ var (
 	ApiResourceKind_value = map[string]int32{
 		"api_resource_kind_unknown": 0,
 		"api_resource_version":      1,
-		"iam_policy":                10,
+		"grant":                     10,
 		"identity_account":          11,
 		"api_key":                   12,
 		"invitation":                20,
@@ -397,7 +398,10 @@ type ApiResourceKindMeta struct {
 	// Prefixes this kind's ids were minted with before `id_prefix`. Ids are
 	// identities and are never rewritten, so a store keeps the ids it minted
 	// under an earlier prefix: readers that tell a kind from an id read these
-	// too. Never minted.
+	// too. Never minted. A kind whose ids are derived from their content (a
+	// Grant's from its triple) moves its stored ids to the new prefix when it
+	// is renamed, and lists the old prefix here so the prefix stays reserved
+	// and an id held outside the store still names its kind.
 	RetiredIdPrefixes []string `protobuf:"bytes,10,rep,name=retired_id_prefixes,json=retiredIdPrefixes,proto3" json:"retired_id_prefixes,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
@@ -549,14 +553,12 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"enterprise\x10\x03*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\xe8\x1f\n" +
+	"\astigmer\x10\x01*\xdf\x1f\n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
-	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x12?\n" +
-	"\n" +
-	"iam_policy\x10\n" +
-	"\x1a/\xaa\xff++\b\x02\x10\x01\x1a\tIamPolicy\"\n" +
-	"IAM Policy*\x04iamp8\x01@\x01J\x04\b\x02\x10\x01\x12P\n" +
+	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x126\n" +
+	"\x05grant\x10\n" +
+	"\x1a+\xaa\xff+'\b\x02\x10\x01\x1a\x05Grant\"\x05Grant*\x03grt8\x01@\x01J\x04\b\x02\x10\x01R\x04iamp\x12P\n" +
 	"\x10identity_account\x10\v\x1a:\xaa\xff+6\b\x02\x10\x01\x1a\x0fIdentityAccount\"\x10Identity Account*\x03ida8\x01@\x01J\x04\b\x04\x10\x03\x125\n" +
 	"\aapi_key\x10\f\x1a(\xaa\xff+$\b\x02\x10\x01\x1a\x06ApiKey\"\aAPI Key*\x03key8\x01@\x01J\x04\b\x04\x10\x01\x12?\n" +
 	"\n" +

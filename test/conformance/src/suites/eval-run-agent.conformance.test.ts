@@ -97,7 +97,7 @@ import {
   skillFiredGrader,
   skillPluginWithEvals,
 } from "../support/eval-runs";
-import { organizationRole, policyTriple } from "../support/iampolicies";
+import { organizationRole, grantTriple } from "../support/grants";
 import { uniqueName, uniqueOrg } from "../support/naming";
 import { claudePlugin } from "../support/plugins";
 import { createTarget, enforcingLaneOf, type EnforcingLane, type TargetProfile } from "../targets";
@@ -659,7 +659,7 @@ describe("EvalRun about an agent — who may run and read an eval run", () => {
   // A fresh person holding exactly `role` in `org`, granted by the founder.
   async function personWith(lane: EnforcingLane, org: string, role: string): Promise<ConformanceClients> {
     const person = await lane.provisionIdentity();
-    await lane.clients.iamPolicyCommand.create(organizationRole(await lane.accountIdOf(person), role, org));
+    await lane.clients.grantCommand.create(organizationRole(await lane.accountIdOf(person), role, org));
     return person;
   }
 
@@ -713,8 +713,8 @@ describe("EvalRun about an agent — who may run and read an eval run", () => {
     const org = (await laneTenancy(lane)).org;
     const agent = await laneAgent(lane, org, ApiResourceVisibility.visibility_private);
     const editor = await lane.provisionMember({ org });
-    await lane.clients.iamPolicyCommand.create(
-      policyTriple({ kind: "identity_account", id: await lane.accountIdOf(editor) }, "editor", {
+    await lane.clients.grantCommand.create(
+      grantTriple({ kind: "identity_account", id: await lane.accountIdOf(editor) }, "editor", {
         kind: "agent",
         id: agent.metadata!.id,
       }),

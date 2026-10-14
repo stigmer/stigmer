@@ -37,7 +37,7 @@ import { VaultEntriesEditor } from "../VaultEntriesEditor";
 import { VaultListPanel } from "../VaultListPanel";
 
 const permission = vi.hoisted(() => ({ allowed: true }));
-vi.mock("../../iam-policy/useCheckPermission", () => ({
+vi.mock("../../grant/useCheckPermission", () => ({
   useCheckPermission: () => ({ allowed: permission.allowed, isLoading: false, error: null }),
 }));
 vi.mock("../../access/ManageAccessButton", () => ({

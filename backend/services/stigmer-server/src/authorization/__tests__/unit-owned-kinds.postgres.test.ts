@@ -12,11 +12,12 @@
  *     provider, invitation or team, and the rowless platform, are
  *     denials with the annotation's copy, never not-found, the cloud's
  *     answer for the same kinds (NOT_FOUND_EXEMPT_KINDS).
- *   - The built-in policy check (policy-check.ts) answers the unit's
+ *   - The built-in grant check (grant-check.ts) answers the unit's
  *     three structural questions: whether a resource is an
  *     organization's, whether a person views an organization, and
  *     whether an account id could still grant access on it; contextual
- *     policies and userset principals are refused.
+ *     grants, a grant missing either end and userset principals are
+ *     refused.
  *   - `kindsWithoutRows` names each served kind the built-in posture could
  *     not read, which is what refuses such a boot (compose.ts).
  */
@@ -26,19 +27,20 @@ import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import { GrantSpecSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
 import { createLogger } from "../../boot/logger.js";
 import {
-  IAM_POLICY_API_VERSION,
-  IAM_POLICY_KIND,
-  policyIdFor,
-} from "../../domain/iampolicy/constants.js";
-import { newResourceIamPolicyStore } from "../../domain/iampolicy/resource-store.js";
-import type { IamPolicyStore } from "../../domain/iampolicy/store.js";
-import { orgRole, triple } from "../../domain/iampolicy/__tests__/support.js";
+  GRANT_API_VERSION,
+  GRANT_KIND,
+  grantIdFor,
+} from "../../domain/grant/constants.js";
+import { newResourceGrantStore } from "../../domain/grant/resource-store.js";
+import type { GrantStore } from "../../domain/grant/store.js";
+import { orgRole, triple } from "../../domain/grant/__tests__/support.js";
 import { newResourceIdentityAccountStore } from "../../domain/identityaccount/resource-store.js";
 import type { IdentityAccountStore } from "../../domain/identityaccount/store.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
@@ -47,7 +49,7 @@ import { newBuiltInAuthorizer } from "../authorizer.js";
 import { newDerivedTupleSource } from "../derived-tuples.js";
 import { checkRelation } from "../evaluator.js";
 import { builtInModel } from "../model/index.js";
-import { newBuiltInPolicyCheck } from "../policy-check.js";
+import { newBuiltInGrantCheck } from "../grant-check.js";
 import { kindsWithoutRows } from "../posture.js";
 import type { Person } from "../tuples.js";
 import { parseObjectRef } from "../tuples.js";
@@ -98,21 +100,21 @@ function memoryReader(rows: ReadonlyArray<[string, Message]>): {
 }
 
 async function grant(
-  policies: IamPolicyStore,
+  grants: GrantStore,
   spec: ReturnType<typeof orgRole>,
 ): Promise<void> {
-  await policies.save(
-    create(IamPolicySchema, {
-      apiVersion: IAM_POLICY_API_VERSION,
-      kind: IAM_POLICY_KIND,
-      metadata: { id: policyIdFor(spec) },
+  await grants.save(
+    create(GrantSchema, {
+      apiVersion: GRANT_API_VERSION,
+      kind: GRANT_KIND,
+      metadata: { id: grantIdFor(spec) },
       spec,
     }),
   );
 }
 
 const SEEDED_KINDS: ReadonlyArray<ApiResourceKind> = [
-  ApiResourceKind.iam_policy,
+  ApiResourceKind.grant,
   ApiResourceKind.identity_account,
   ApiResourceKind.organization,
   ApiResourceKind.agent,
@@ -125,7 +127,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
   (fixture) => {
     describe.skipIf(fixture.skip)("through their row readers", () => {
       let opened: OpenedStore;
-      let policies: IamPolicyStore;
+      let grantStore: GrantStore;
       let accounts: IdentityAccountStore;
       let teams: ReturnType<typeof memoryReader>;
       let providers: ReturnType<typeof memoryReader>;
@@ -133,7 +135,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
 
       beforeEach(async () => {
         opened = await fixture.open();
-        policies = newResourceIamPolicyStore(opened.store, { keepsHistory: false });
+        grantStore = newResourceGrantStore(opened.store, { keepsHistory: false });
         accounts = newResourceIdentityAccountStore(opened.store);
         const organization = storedDeclaration("organization");
         for (const id of ["acme", "globex"]) {
@@ -190,12 +192,12 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           [ApiResourceKind.federation_issuer, providers.reader],
           [ApiResourceKind.invitation, memoryReader([]).reader],
         ]);
-        await grant(policies, orgRole(ROOT, "owner", "acme"));
-        await grant(policies, orgRole(ADMIN, "admin", "acme"));
-        await grant(policies, orgRole(DAVE, "member", "acme"));
+        await grant(grantStore, orgRole(ROOT, "owner", "acme"));
+        await grant(grantStore, orgRole(ADMIN, "admin", "acme"));
+        await grant(grantStore, orgRole(DAVE, "member", "acme"));
         for (const member of [DAVE, ERIN]) {
           await grant(
-            policies,
+            grantStore,
             triple({ kind: "identity_account", id: member }, "member", {
               kind: "team",
               id: "tm_core",
@@ -203,7 +205,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           );
         }
         await grant(
-          policies,
+          grantStore,
           triple(
             { kind: "team", id: "tm_core", relation: "member" },
             "viewer",
@@ -228,7 +230,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         const source = newDerivedTupleSource(
           {
             store: opened.store,
-            policies,
+            grants: grantStore,
             accounts,
             rowReaders: readers,
             model: builtInModel,
@@ -258,7 +260,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         function authorizer() {
           return newBuiltInAuthorizer({
             store: opened.store,
-            policies,
+            grants: grantStore,
             accounts,
             rowReaders: readers,
             edition: ServerEdition.enterprise,
@@ -316,11 +318,11 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         );
       });
 
-      describe("the built-in policy check", () => {
+      describe("the built-in grant check", () => {
         function queries() {
-          return newBuiltInPolicyCheck({
+          return newBuiltInGrantCheck({
             store: opened.store,
-            policies,
+            grants: grantStore,
             accounts,
             rowReaders: readers,
           });
@@ -357,11 +359,14 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           expect(await queries().check(grants(DAVE), [])).toBe(false);
         });
 
-        it("refuses contextual policies and a userset principal as programming errors", async () => {
+        it("refuses contextual grants, a grant missing either end and a userset principal as programming errors", async () => {
           const held = orgRole(DAVE, "viewer", "acme");
           await expect(queries().check(held, [held])).rejects.toThrowError(
-            /contextual policies are not supported/,
+            /contextual grants are not supported/,
           );
+          await expect(
+            queries().check(create(GrantSpecSchema, { principal: held.principal, relation: "viewer" }), []),
+          ).rejects.toThrowError("the built-in grant check needs a principal and a resource");
           await expect(
             queries().check(
               triple(

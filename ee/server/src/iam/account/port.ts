@@ -25,7 +25,7 @@
  *     it through the store's guarded write, so a write that lands between
  *     its read and its write is never undone, email included: a person's
  *     changed email at their provider reaches Stigmer;
- *   - `deleteAccount` removes the account's keys, every policy row naming
+ *   - `deleteAccount` removes the account's keys, every grant row naming
  *     it (acting for `actingFor`, so the permission history names who
  *     caused it) and its row, failing closed, so an account provisioned
  *     again under the same id finds nothing of the old one alive.
@@ -74,7 +74,7 @@ export interface IdentityAccountService {
     change: (account: IdentityAccount) => void,
   ): Promise<IdentityAccount | undefined>;
   /**
-   * The delete pipeline: the account's keys, the policy cleanup
+   * The delete pipeline: the account's keys, the grant cleanup
    * (bidirectional: the account as principal AND as resource), then the
    * row, acting for `actingFor` when a principal is behind the delete.
    */

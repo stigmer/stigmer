@@ -58,7 +58,7 @@ import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/a
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { SubscriptionSchema } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/api_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { InvitationSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
@@ -88,7 +88,7 @@ export interface OrganizationScopedKind {
  */
 export const ORGANIZATION_SCOPED_KINDS_AT_LEDGER: ReadonlyArray<OrganizationScopedKind> =
   [
-    { kind: "iam_policy", schema: IamPolicySchema },
+    { kind: "iam_policy", schema: GrantSchema },
     { kind: "invitation", schema: InvitationSchema },
     { kind: "identity_provider", schema: FederationIssuerSchema },
     { kind: "oauth_app", schema: OAuthAppSchema },

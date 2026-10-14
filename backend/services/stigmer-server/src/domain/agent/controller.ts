@@ -122,7 +122,7 @@ import {
   newValidateReferencesStep,
 } from "../../pipeline/steps/references.js";
 import {
-  newCleanupIamPoliciesStep,
+  newCleanupGrantsStep,
   newCreateAuthorizationTuplesStep,
   newRecordVisibilityBeforeUpdateStep,
   newUpdateVisibilityTuplesStep,
@@ -464,7 +464,7 @@ async function deleteAgent(
     .addStep(newDeleteResourceStep(deps.store))
     .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.agent))
     .addStep(
-      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+      newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger),
     )
     .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))
     .build()

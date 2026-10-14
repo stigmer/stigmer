@@ -86,7 +86,7 @@ import {
   newValidateReferencesStep,
 } from "../../pipeline/steps/references.js";
 import {
-  newCleanupIamPoliciesStep,
+  newCleanupGrantsStep,
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
@@ -603,7 +603,7 @@ async function deleteExecution(
     // its session's turn when nothing else in the session works.
     .addStep(newDeleteResourceStep(deps.store, runRemover(deps)))
     .addStep(
-      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+      newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger),
     )
     .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))
     .build()

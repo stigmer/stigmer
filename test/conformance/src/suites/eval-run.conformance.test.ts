@@ -64,7 +64,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { organizationRole } from "../support/iampolicies";
+import { organizationRole } from "../support/grants";
 import { uniqueName, uniqueOrg } from "../support/naming";
 import {
   EVAL_RUN_API_VERSION,
@@ -535,7 +535,7 @@ describe("EvalRun about a plugin — who may run and read an eval run", () => {
   // A fresh person holding exactly `role` in `org`, granted by the founder.
   async function personWith(lane: EnforcingLane, org: string, role: string): Promise<ConformanceClients> {
     const person = await lane.provisionIdentity();
-    await lane.clients.iamPolicyCommand.create(organizationRole(await lane.accountIdOf(person), role, org));
+    await lane.clients.grantCommand.create(organizationRole(await lane.accountIdOf(person), role, org));
     return person;
   }
 

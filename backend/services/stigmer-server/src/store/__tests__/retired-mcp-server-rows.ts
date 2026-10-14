@@ -40,7 +40,7 @@ import { canonicalSpecHash } from "../../pipeline/steps/spec-hash.js";
 import type { StoreLogger } from "../logger.js";
 import { readSubAgents } from "../frozen-sub-agent.js";
 import { RETIREMENT_VERSION_MESSAGE } from "../mcp-server-retired.js";
-import { policyRow } from "./retired-instance-rows.js";
+import { grantRow } from "./retired-instance-rows.js";
 
 type ReferenceInit = MessageInitShape<typeof ApiResourceReferenceSchema>;
 type MetadataInit = MessageInitShape<typeof ApiResourceMetadataSchema>;
@@ -465,7 +465,7 @@ export const RETIREMENT_ESTATE: {
     {
       kind: "iam_policy",
       id: "pol_server",
-      data: policyRow({
+      data: grantRow({
         id: "pol_server",
         principal: "identity_account:acc_1",
         relation: "owner",
@@ -475,7 +475,7 @@ export const RETIREMENT_ESTATE: {
     {
       kind: "iam_policy",
       id: "pol_hand",
-      data: policyRow({
+      data: grantRow({
         id: "pol_hand",
         principal: "mcp_server:mcp_notes",
         relation: "viewer",
@@ -485,7 +485,7 @@ export const RETIREMENT_ESTATE: {
     {
       kind: "iam_policy",
       id: "pol_member",
-      data: policyRow({
+      data: grantRow({
         id: "pol_member",
         principal: "identity_account:acc_1",
         relation: "owner",
@@ -495,7 +495,7 @@ export const RETIREMENT_ESTATE: {
     {
       kind: "iam_policy",
       id: "pol_own",
-      data: policyRow({
+      data: grantRow({
         id: "pol_own",
         principal: "identity_account:acc_1",
         relation: "owner",
@@ -505,7 +505,7 @@ export const RETIREMENT_ESTATE: {
     {
       kind: "iam_policy",
       id: "pol_agent",
-      data: policyRow({
+      data: grantRow({
         id: "pol_agent",
         principal: "identity_account:acc_1",
         relation: "owner",

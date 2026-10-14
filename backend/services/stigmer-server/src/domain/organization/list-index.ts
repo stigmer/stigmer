@@ -13,7 +13,7 @@
  *     `ComposedServices.childOrganizations` (children.ts).
  *
  * An organization belongs to no organization (its `metadata.org` is
- * empty), so every read names the key alone, as the IamPolicy index's
+ * empty), so every read names the key alone, as the Grant index's
  * principal reads do; the key table's lookup index leads with the key.
  * An organization with no parent derives an empty key, which no read
  * asks for.

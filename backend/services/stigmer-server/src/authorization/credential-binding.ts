@@ -75,7 +75,7 @@
  * per request), so the Authorizer's signature carries nothing new.
  *
  * Rows are read where the built-in authorizer reads them: a unit's
- * registered reader for the kinds a unit keeps itself, the IamPolicy and
+ * registered reader for the kinds a unit keeps itself, the Grant and
  * identity-account ports a composition may substitute (their rows are not
  * the generic store's when it does), and the generic store with the model's
  * schema for every other kind.
@@ -99,7 +99,7 @@ import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
-import type { IamPolicyStore } from "../domain/iampolicy/store.js";
+import type { GrantStore } from "../domain/grant/store.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
 import type {
   Authorizer,
@@ -186,8 +186,8 @@ export interface CredentialBindingDeps {
   readonly store: Pick<Store, "getResource">;
   /** The readers of the kinds units keep themselves (`drivers.resourceRowReaders`). */
   readonly rowReaders?: ReadonlyMap<ApiResourceKind, ResourceRowReader>;
-  /** The IamPolicy port the composition bound (a composition may keep the rows in its own table). */
-  readonly policies: Pick<IamPolicyStore, "findById">;
+  /** The Grant port the composition bound (a composition may keep the rows in its own table). */
+  readonly grants: Pick<GrantStore, "findById">;
   /**
    * The identity-account port the composition bound, for the same reason:
    * a service account belongs to an organization, so a bound credential
@@ -242,8 +242,8 @@ export function newCredentialBinding(
     if (reader !== undefined) {
       return reader.findById(id);
     }
-    if (kind === ApiResourceKind.iam_policy) {
-      return deps.policies.findById(id);
+    if (kind === ApiResourceKind.grant) {
+      return deps.grants.findById(id);
     }
     if (kind === ApiResourceKind.identity_account && deps.identityAccounts !== undefined) {
       return deps.identityAccounts.findById(id);

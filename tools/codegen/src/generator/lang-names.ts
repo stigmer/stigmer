@@ -11,7 +11,6 @@ const PY_CLIENT_FIELD_NAMES = new Map<string, string>([
   ["agentshare", "agent_shares"],
   ["apikey", "api_keys"],
   ["federationissuer", "federation_issuers"],
-  ["iampolicy", "iam_policies"],
   ["identityaccount", "identity_accounts"],
   ["organization", "organizations"],
   ["session", "sessions"],

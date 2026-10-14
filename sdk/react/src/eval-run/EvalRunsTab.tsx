@@ -47,7 +47,7 @@ import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb
 import type { PluginEvalSuite } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { cn } from "@stigmer/theme";
 import { ErrorMessage } from "../error/ErrorMessage.js";
-import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
 import { usePluginList } from "../plugin/usePluginList.js";

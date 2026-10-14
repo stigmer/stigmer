@@ -11,16 +11,16 @@
       "concurrency": 4
     },
     "server-iam-policy": {
-      "title": "the server's IAM policy rules",
+      "title": "the server's grant rules",
       "package": "backend/services/stigmer-server",
       "mutate": [
-        "src/domain/iampolicy/roles.ts",
-        "src/domain/iampolicy/permissions.ts",
-        "src/domain/iampolicy/grant-path.ts",
-        "src/domain/iampolicy/grant-scope.ts",
-        "src/domain/iampolicy/membership.ts",
-        "src/domain/iampolicy/role-lifecycle.ts",
-        "src/domain/iampolicy/access-lists.ts",
+        "src/domain/grant/roles.ts",
+        "src/domain/grant/permissions.ts",
+        "src/domain/grant/grant-path.ts",
+        "src/domain/grant/grant-scope.ts",
+        "src/domain/grant/membership.ts",
+        "src/domain/grant/role-lifecycle.ts",
+        "src/domain/grant/access-lists.ts",
         "!src/**/__tests__/**",
         "!src/**/*.test.ts"
       ],

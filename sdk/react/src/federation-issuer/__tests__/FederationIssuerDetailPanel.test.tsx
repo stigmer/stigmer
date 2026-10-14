@@ -5,7 +5,7 @@ import {
   FederationIssuerSchema,
   type FederationIssuer,
 } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
-import type { CheckMyPermissionInput } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import type { CheckMyPermissionInput } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { StigmerContext } from "../../context";
@@ -51,7 +51,7 @@ function renderPanel(
 ) {
   const client = {
     federationIssuer: { update },
-    iamPolicy: { checkMyPermission },
+    grant: { checkMyPermission },
   } as never;
   return render(
     <StigmerContext.Provider value={client}>
@@ -140,7 +140,7 @@ describe("FederationIssuerDetailPanel sign-in settings", () => {
   function renderPlain(update: ReturnType<typeof vi.fn>) {
     const client = {
       federationIssuer: { update },
-      iamPolicy: { checkMyPermission: vi.fn(async () => ({ isAuthorized: true })) },
+      grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: true })) },
     } as never;
     return render(
       <StigmerContext.Provider value={client}>
@@ -189,7 +189,7 @@ describe("FederationIssuerDetailPanel rename", () => {
     const onUpdated = vi.fn();
     const client = {
       federationIssuer: { rename },
-      iamPolicy: { checkMyPermission: async () => ({ isAuthorized: true }) },
+      grant: { checkMyPermission: async () => ({ isAuthorized: true }) },
     } as never;
     render(
       <StigmerContext.Provider value={client}>

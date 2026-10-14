@@ -13,7 +13,7 @@
  *   - an organization update that loaded the row before the mark and
  *     writes it after cannot erase the mark (it is not on the row);
  *   - every fault is INTERNAL with fixed copy, never a pass: a step reached
- *     without its loaded row, a deletion table that cannot mark, accept or
+ *     without its loaded row (RevokeOrganizationGrants too), a deletion table that cannot mark, accept or
  *     read a parent's mark; an unmark that fails is logged and the delete's
  *     own answer stands;
  *   - the child create that persists before the delete's mark is seen by
@@ -37,6 +37,8 @@ import { OrganizationIdSchema } from "@stigmer/protos/ai/stigmer/tenancy/organiz
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 
 import { LIST_INDEXES } from "../../../boot/list-indexes.js";
+import type { GrantPath } from "../../grant/grant-path.js";
+import { newRevokeOrganizationGrantsStep } from "../steps.js";
 import { createLogger } from "../../../boot/logger.js";
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
@@ -201,6 +203,12 @@ describe("the delete's own steps, when the deletion table faults", () => {
     for (const step of [newMarkDeletingStep(store), newAcceptPurgeStep(store, purge)]) {
       expect((await refusal(() => step.execute(unloaded))).code).toBe(Code.Internal);
     }
+    // The revoke step reads the row before the grant path, which it never reaches here.
+    const revoke = await refusal(() =>
+      newRevokeOrganizationGrantsStep<typeof OrganizationIdSchema>({} as unknown as GrantPath).execute(unloaded),
+    );
+    expect(revoke.code).toBe(Code.Internal);
+    expect(revoke.rawMessage).toBe("failed to remove the organization's grants");
   });
 
   it("answers INTERNAL when the mark or the accept cannot be written", async () => {

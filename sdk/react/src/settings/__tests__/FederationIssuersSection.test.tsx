@@ -87,7 +87,7 @@ vi.mock("../../resource-detail/useRenameResource.js", () => ({
     clearError: () => {},
   }),
 }));
-vi.mock("../../iam-policy/useCheckPermission.js", () => ({
+vi.mock("../../grant/useCheckPermission.js", () => ({
   useCheckPermission: (
     resource: { kind: string; id: string } | null,
     relation: string,
@@ -97,7 +97,7 @@ vi.mock("../../iam-policy/useCheckPermission.js", () => ({
     error: null,
   }),
 }));
-vi.mock("../../iam-policy/PermissionGate.js", () => ({
+vi.mock("../../grant/PermissionGate.js", () => ({
   PermissionGate: ({
     resource,
     relation,

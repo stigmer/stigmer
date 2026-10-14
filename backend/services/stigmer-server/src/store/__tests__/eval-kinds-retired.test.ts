@@ -17,16 +17,16 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import {
   EVAL_RUN_LABEL_AT_RETIREMENT,
   RETIRED_EVAL_LABEL,
-  policyNamesRetiredEvalKind,
+  grantNamesRetiredEvalKind,
   relabelEvalTryRow,
   unreadableEvalKindRowError,
 } from "../eval-kinds-retired.js";
-import { policyRow } from "./retired-instance-rows.js";
+import { grantRow } from "./retired-instance-rows.js";
 
 const session = (labels: Record<string, string>) =>
   toBinary(SessionSchema, create(SessionSchema, { metadata: { id: "ses_1", org: "org_1", labels } }));
 
-describe("policyNamesRetiredEvalKind", () => {
+describe("grantNamesRetiredEvalKind", () => {
   it.each([
     { principal: "identity_account:ida_1", resource: "plugin_eval:pev_1", named: true },
     { principal: "identity_account:ida_1", resource: "agent_eval:aev_1", named: true },
@@ -34,11 +34,11 @@ describe("policyNamesRetiredEvalKind", () => {
     { principal: "identity_account:ida_1", resource: "organization:org_1", named: false },
     { principal: "identity_account:ida_1", resource: "eval_run:evr_1", named: false },
   ])("$principal -> $resource: $named", ({ principal, resource, named }) => {
-    expect(policyNamesRetiredEvalKind(policyRow({ id: "iam_1", principal, relation: "viewer", resource }))).toBe(named);
+    expect(grantNamesRetiredEvalKind(grantRow({ id: "iam_1", principal, relation: "viewer", resource }))).toBe(named);
   });
 
   it("throws on bytes that do not decode", () => {
-    expect(() => policyNamesRetiredEvalKind(new Uint8Array([0x22, 0xff]))).toThrow();
+    expect(() => grantNamesRetiredEvalKind(new Uint8Array([0x22, 0xff]))).toThrow();
   });
 });
 

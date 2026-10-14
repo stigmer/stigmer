@@ -1,6 +1,6 @@
 // Conformance suite for the Plugin domain.
-// Domain: agentic / plugin — the unit of install, and the only home of an
-// MCP server. A plugin is pushed as the archive of a plugin folder (Agent
+// Domain: agentic / plugin — the unit of install, and how an MCP server is
+// packaged and shared (an agent's own servers are in its mcp_servers). A plugin is pushed as the archive of a plugin folder (Agent
 // Plugins, Cursor, Claude Code or Codex layout); the server reads what the
 // archive holds into the plugin's own status and stores the plugin as ONE
 // row. A turn that lists the plugin gets every part of it, named under the

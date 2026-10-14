@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { OrgMembersPanel } from "../iam-policy/OrgMembersPanel.js";
+import { OrgMembersPanel } from "../grant/OrgMembersPanel.js";
 import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
 import { useOrg } from "../organization/OrgProvider.js";
 import { useFederationIssuerList } from "../federation-issuer/useFederationIssuerList.js";
@@ -19,7 +19,7 @@ export interface MembersSectionProps {
 /**
  * Settings section for organization membership and role management.
  *
- * Rendered in every edition: the IamPolicy row half — who holds which
+ * Rendered in every edition: the Grant row half — who holds which
  * role on the organization — is served by open source as well as the
  * Enterprise and Cloud editions. What differs is how people ARRIVE: where
  * the edition serves invitations, the Invitations section beside this one

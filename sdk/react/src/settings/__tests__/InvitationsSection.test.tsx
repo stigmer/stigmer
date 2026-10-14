@@ -35,8 +35,8 @@ import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/ap
 import {
   CheckAuthorizationResultSchema,
   type CheckMyPermissionInput,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
-import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
 import {
   InvitationSchema,
   InvitationStatusSchema,
@@ -121,7 +121,7 @@ function renderSection(mode: DeploymentMode, server: Server) {
       router.service(OrganizationQueryController, {
         listMine: () => create(OrganizationsSchema, { entries: [...server.orgs], nextPageToken: "" }),
       });
-      router.service(IamPolicyQueryController, {
+      router.service(GrantQueryController, {
         checkMyPermission: async (input) => {
           server.checks.push(input);
           return create(CheckAuthorizationResultSchema, {

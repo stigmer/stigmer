@@ -76,7 +76,7 @@ function renderView(agent: Agent, viewer: Viewer) {
       {
         agent: { getByReference: vi.fn(async () => agent), update },
         platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
-        iamPolicy: { checkMyPermission },
+        grant: { checkMyPermission },
         vault: { getMine: vi.fn(async () => ({ metadata: { org: ACME_ID, slug: "mine" }, spec: { connections: {} } })) },
       },
       undefined,

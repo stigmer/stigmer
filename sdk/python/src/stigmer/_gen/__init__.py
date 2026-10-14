@@ -10,7 +10,7 @@ from ._channelapp import ChannelAppClient, ChannelAppInput, SlackChannelAppConfi
 from ._evalrun import EvalRunClient, EvalRunInput, EvalRunCaseSourceInput, EvalRunTargetInput
 from ._evaluator import EvaluatorClient, EvaluatorInput
 from ._federationissuer import FederationIssuerClient, FederationIssuerInput
-from ._iampolicy import IamPolicyClient, IamPolicyInput, ApiResourceRefInput
+from ._grant import GrantClient, GrantInput, ApiResourceRefInput
 from ._identityaccount import IdentityAccountClient, IdentityAccountInput, IdentityAccountPreferencesInput
 from ._invitation import InvitationClient, InvitationInput
 from ._license import LicenseClient, LicenseInput, LicenseCustomerInput, EntitlementsInput, EntitlementLimitsInput
@@ -75,8 +75,8 @@ __all__ = [
     "EvaluatorInput",
     "FederationIssuerClient",
     "FederationIssuerInput",
-    "IamPolicyClient",
-    "IamPolicyInput",
+    "GrantClient",
+    "GrantInput",
     "ApiResourceRefInput",
     "IdentityAccountClient",
     "IdentityAccountInput",

@@ -17,18 +17,18 @@ import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 
 import {
-  IAM_POLICY_API_VERSION,
-  IAM_POLICY_KIND,
-  policyIdFor,
-} from "../../domain/iampolicy/constants.js";
-import { newResourceIamPolicyStore } from "../../domain/iampolicy/resource-store.js";
-import type { IamPolicyStore } from "../../domain/iampolicy/store.js";
-import { orgRole, triple } from "../../domain/iampolicy/__tests__/support.js";
+  GRANT_API_VERSION,
+  GRANT_KIND,
+  grantIdFor,
+} from "../../domain/grant/constants.js";
+import { newResourceGrantStore } from "../../domain/grant/resource-store.js";
+import type { GrantStore } from "../../domain/grant/store.js";
+import { orgRole, triple } from "../../domain/grant/__tests__/support.js";
 import { accountIdFor } from "../../domain/identityaccount/constants.js";
 import { newResourceIdentityAccountStore } from "../../domain/identityaccount/resource-store.js";
 import type { IdentityAccountStore } from "../../domain/identityaccount/store.js";
@@ -68,7 +68,7 @@ afterAll(dropPostgresFixture);
 
 describe.each(
   driverFixtures([
-    ApiResourceKind.iam_policy,
+    ApiResourceKind.grant,
     ApiResourceKind.identity_account,
     ApiResourceKind.organization,
     ApiResourceKind.agent,
@@ -76,7 +76,7 @@ describe.each(
 )("the built-in organization directory on $name", (fixture) => {
   describe.skipIf(fixture.skip)("listMyOrganizationIds", () => {
     let opened: OpenedStore;
-    let policies: IamPolicyStore;
+    let grants: GrantStore;
     let accounts: IdentityAccountStore;
     let principalReads: number;
 
@@ -96,11 +96,11 @@ describe.each(
     }
 
     async function grant(spec: ReturnType<typeof orgRole>) {
-      await policies.save(
-        create(IamPolicySchema, {
-          apiVersion: IAM_POLICY_API_VERSION,
-          kind: IAM_POLICY_KIND,
-          metadata: { id: policyIdFor(spec) },
+      await grants.save(
+        create(GrantSchema, {
+          apiVersion: GRANT_API_VERSION,
+          kind: GRANT_KIND,
+          metadata: { id: grantIdFor(spec) },
           spec,
         }),
       );
@@ -109,11 +109,11 @@ describe.each(
     function directory() {
       return newBuiltInOrganizationDirectory({
         store: opened.store,
-        policies: {
-          ...policies,
+        grants: {
+          ...grants,
           findByPrincipal(principalKind, principalId) {
             principalReads += 1;
-            return policies.findByPrincipal(principalKind, principalId);
+            return grants.findByPrincipal(principalKind, principalId);
           },
         },
         accounts,
@@ -123,7 +123,7 @@ describe.each(
     beforeEach(async () => {
       opened = await fixture.open();
       principalReads = 0;
-      policies = newResourceIamPolicyStore(opened.store, { keepsHistory: false });
+      grants = newResourceGrantStore(opened.store, { keepsHistory: false });
       accounts = newResourceIdentityAccountStore(opened.store);
       for (const [id, subject] of [
         [FOUNDER, "auth0|founder"],
@@ -154,7 +154,7 @@ describe.each(
       let accountReads = 0;
       const dir = newBuiltInOrganizationDirectory({
         store: opened.store,
-        policies,
+        grants,
         accounts: {
           findById: (id) => {
             accountReads += 1;
@@ -221,7 +221,7 @@ describe.each(
       const fault = new Error("connection reset");
       const dir = newBuiltInOrganizationDirectory({
         store: opened.store,
-        policies: { ...policies, findByPrincipal: () => Promise.reject(fault) },
+        grants: { ...grants, findByPrincipal: () => Promise.reject(fault) },
         accounts,
       });
       await expect(dir.listMyOrganizationIds(resolved(FOUNDER))).rejects.toBe(

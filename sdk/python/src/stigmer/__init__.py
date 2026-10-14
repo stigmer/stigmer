@@ -32,7 +32,7 @@ from ._gen._agent import (
 )
 from ._gen._apikey import ApiKeyClient, ApiKeyInput
 from ._gen._federationissuer import FederationIssuerClient, FederationIssuerInput
-from ._gen._iampolicy import ApiResourceRefInput, IamPolicyClient, IamPolicyInput
+from ._gen._grant import ApiResourceRefInput, GrantClient, GrantInput
 from ._gen._identityaccount import IdentityAccountClient, IdentityAccountInput
 from ._gen._oauthapp import OAuthAppClient, OAuthAppInput
 from ._gen._organization import OrganizationClient, OrganizationInput
@@ -105,7 +105,7 @@ __all__ = [
     "AgentClient",
     "ApiKeyClient",
     "FederationIssuerClient",
-    "IamPolicyClient",
+    "GrantClient",
     "IdentityAccountClient",
     "OAuthAppClient",
     "OrganizationClient",
@@ -125,7 +125,7 @@ __all__ = [
     "DeleteResourceInput",
     "FederationIssuerInput",
     "GitRepoSourceInput",
-    "IamPolicyInput",
+    "GrantInput",
     "IdentityAccountInput",
     "LocalPathSourceInput",
     "OAuthAppInput",

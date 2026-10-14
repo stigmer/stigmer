@@ -10,7 +10,7 @@
  * therefore never changes observable behavior — the conformance rosters
  * pin that.
  *
- * Failure semantics (Java parity; the CleanupIamPolicies discipline):
+ * Failure semantics (Java parity; the CleanupGrants discipline):
  * best-effort, AFTER the store write. The row is already gone or
  * updated, so a destroy failure must never fail the request — each
  * failure logs ERROR with the resource identity and the pass continues.

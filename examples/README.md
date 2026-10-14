@@ -13,7 +13,7 @@ A customer support agent that can:
 - Run hookify's hooks around its tool calls
 
 It lists the `github`, `slack` and `hookify` plugins, so those are installed in
-your organization first. An MCP server on its own is installed as a one-server
+your organization first. An MCP server to share is installed as a one-server
 plugin with `stigmer mcp add <name> <url>`, and hookify installs from Claude
 Code's official marketplace:
 
@@ -28,6 +28,23 @@ stigmer install claude-plugins-official/hookify
 ```bash
 stigmer apply -f examples/agents/support-bot.yaml
 stigmer run support-bot -m "How do I reset my password?"
+```
+
+### Issue Triage (`agents/issue-triage.yaml`)
+
+An agent that carries an MCP server of its own instead of listing a plugin:
+Linear's hosted server, written in its `mcp_servers`. Its tools are named
+`mcp__linear__<tool>`, and `mcp__linear` in `tools` allows them all.
+
+Only an organization admin may apply an agent with a server of its own. Linear's
+server asks you to sign in, so before the first run open the agent's page in
+the console and choose **Sign in** on the `linear` row of its **MCP servers**
+section; the sign-in is saved in your vault at the server's address.
+
+**Usage**:
+```bash
+stigmer apply -f examples/agents/issue-triage.yaml
+stigmer run issue-triage -m "Triage the issues created in the last day"
 ```
 
 ### PR Bot and its release-notes subagent (`agents/pr-bot.yaml`, `agents/release-notes.yaml`)

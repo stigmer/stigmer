@@ -12,7 +12,7 @@ import type { AccessResource } from "../types";
 const checkPermission = vi.fn<() => { allowed: boolean; isLoading: boolean; error: null }>(
   () => ({ allowed: true, isLoading: false, error: null }),
 );
-vi.mock("../../iam-policy/useCheckPermission", () => ({
+vi.mock("../../grant/useCheckPermission", () => ({
   useCheckPermission: () => checkPermission(),
 }));
 

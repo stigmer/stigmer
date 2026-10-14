@@ -5,7 +5,7 @@
 // the contract, so the zipper pins its mtime exactly as the skill fixtures
 // do (see skills.ts).
 //
-// A plugin is the only home of an MCP server: a tool-using arm pushes a
+// A plugin is how an MCP server is shared: a tool-using arm pushes a
 // plugin whose one server is the harness's fixture (`oneServerPlugin`,
 // `pushPlugin`), lists it on the agent or the conversation (`plugins`), and
 // reads the names a turn gives the server's parts: the server segment
@@ -161,7 +161,7 @@ export function claudeLike(name: string): PluginFixture {
   });
 }
 
-// ─── one-server plugins: the only home of an MCP server ─────────────────
+// ─── one-server plugins: an MCP server shared in a plugin ───────────────
 
 /** The server name every one-server fixture plugin gives its MCP server. */
 export const FIXTURE_SERVER = "tools";

@@ -24,7 +24,7 @@ message RpcAuthorizationConfig {
   // @internal
   // The field may be an ApiResourceKind, or a string carrying a kind's enum
   // member name — an `ApiResourceRef.kind` such as "organization" (the
-  // IamPolicy RPCs, whose target is the spec's `resource`). A string that is
+  // Grant RPCs, whose target is the spec's `resource`). A string that is
   // not exactly a member name resolves to the unknown kind; resolution never
   // fails the request, and an enforcing authorizer denies the unknown kind.
   string resource_kind_path = 3;

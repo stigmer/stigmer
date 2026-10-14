@@ -16,7 +16,7 @@ import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
-import { newCleanupIamPoliciesStep } from "../../pipeline/steps/authorization-tuples.js";
+import { newCleanupGrantsStep } from "../../pipeline/steps/authorization-tuples.js";
 import { newDeleteResourceStep } from "../../pipeline/steps/delete.js";
 import { newDeleteSearchIndexStep } from "../../pipeline/steps/index-search.js";
 import { newKindPurge } from "../organization/purge/kind-purge.js";
@@ -40,7 +40,7 @@ export function newAgentExecutionPurge(
     listIndex: agentExecutionListIndex,
     steps: [
       newDeleteResourceStep(deps.store),
-      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+      newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger),
       newDeleteSearchIndexStep(deps.store, deps.logger),
     ],
   });

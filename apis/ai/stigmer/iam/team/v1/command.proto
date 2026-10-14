@@ -11,7 +11,7 @@ import "ai/stigmer/iam/team/v1/io.proto";
 // TeamCommandController provides write operations for teams.
 //
 // Membership is not written here: a person joins a team when they are granted
-// the member role on it, through the IAM policy service, like any other grant.
+// the member role on it, through the Grant service, like any other grant.
 //
 // @internal
 // Served by the Enterprise and Cloud editions; the open-source server

@@ -12,7 +12,7 @@ export interface UseRedeemInvitationReturn {
   /**
    * Redeem an invitation by its token.
    *
-   * Creates an IAM policy granting the invitation's configured role
+   * Creates a grant of the invitation's configured role
    * to the authenticated user on the invitation's organization.
    * Resolves with the updated {@link Invitation} so callers can
    * access the organization and role information for post-redemption
@@ -33,7 +33,7 @@ export interface UseRedeemInvitationReturn {
  *
  * Redeems an invitation by its shareable token. The server validates
  * that the invitation is active, not expired, and not at its
- * redemption limit, then creates an IAM policy granting the
+ * redemption limit, then creates a grant of the
  * configured role to the authenticated user.
  *
  * The redeemer's identity is resolved from the authentication header

@@ -65,8 +65,8 @@ import { Health } from "@stigmer/protos/grpc/health/v1/health_pb";
 import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
-import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
+import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
 import { rpcRecorder } from "./rpc-recorder";
 
@@ -105,8 +105,8 @@ export interface ConformanceClients {
   search: Client<typeof SearchService>;
   identityAccountCommand: Client<typeof IdentityAccountCommandController>;
   identityAccountQuery: Client<typeof IdentityAccountQueryController>;
-  iamPolicyCommand: Client<typeof IamPolicyCommandController>;
-  iamPolicyQuery: Client<typeof IamPolicyQueryController>;
+  grantCommand: Client<typeof GrantCommandController>;
+  grantQuery: Client<typeof GrantQueryController>;
   organizationCommand: Client<typeof OrganizationCommandController>;
   organizationQuery: Client<typeof OrganizationQueryController>;
   agentExecutionCommand: Client<typeof RunCommandController>;
@@ -232,8 +232,8 @@ export function makeClients(transport: Transport): ConformanceClients {
       IdentityAccountQueryController,
       transport,
     ),
-    iamPolicyCommand: createClient(IamPolicyCommandController, transport),
-    iamPolicyQuery: createClient(IamPolicyQueryController, transport),
+    grantCommand: createClient(GrantCommandController, transport),
+    grantQuery: createClient(GrantQueryController, transport),
     organizationCommand: createClient(OrganizationCommandController, transport),
     organizationQuery: createClient(OrganizationQueryController, transport),
     agentExecutionCommand: createClient(

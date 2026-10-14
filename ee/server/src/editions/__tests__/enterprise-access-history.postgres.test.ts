@@ -1,7 +1,7 @@
 /**
  * The access history read back on the self-hosted Enterprise server,
  * composed and driven end to end over real Postgres: the library's own
- * policy store keeps the history (enterprise-permission-history.postgres
+ * grant store keeps the history (enterprise-permission-history.postgres
  * .test.ts proves what it writes), and the edition the license unit
  * declares is what opens the reader too, with no Enterprise source of its
  * own. Everything here goes through `listAccessHistory` on the wire.
@@ -37,10 +37,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
-import type { AccessHistoryEntry } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
-import { AccessChange, AccessChangeCause } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
-import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
+import type { AccessHistoryEntry } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+import { AccessChange, AccessChangeCause } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
 import { InvitationCommandController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/command_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
@@ -70,7 +70,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** The history as `reader` reads it, newest first, every page. */
 async function newestFirst(reader: Transport, org: string): Promise<AccessHistoryEntry[]> {
-  const query = createClient(IamPolicyQueryController, reader);
+  const query = createClient(GrantQueryController, reader);
   const entries: AccessHistoryEntry[] = [];
   let pageToken = "";
   do {
@@ -83,7 +83,7 @@ async function newestFirst(reader: Transport, org: string): Promise<AccessHistor
 
 /** What a tool holding everything up to `after` reads next, oldest first, every page. */
 async function follow(reader: Transport, org: string, after: bigint): Promise<AccessHistoryEntry[]> {
-  const query = createClient(IamPolicyQueryController, reader);
+  const query = createClient(GrantQueryController, reader);
   const entries: AccessHistoryEntry[] = [];
   let pageToken = "";
   do {
@@ -135,7 +135,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history on a licens
     });
     alice = await signIn(booted, issuer, "operator|alice");
     acme = await createOrganization(alice, "acme");
-    const policies = createClient(IamPolicyCommandController, alice.transport);
+    const grants = createClient(GrantCommandController, alice.transport);
 
     bob = await signIn(booted, issuer, "operator|bob");
     const invitation = await createClient(InvitationCommandController, alice.transport).create({
@@ -147,7 +147,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history on a licens
     await createClient(InvitationCommandController, bob.transport).redeem({ token: invitation.status?.token ?? "" });
 
     raj = await signIn(booted, issuer, "operator|raj");
-    await policies.create(grant(ref("identity_account", raj.accountId), "member", ref("organization", acme)));
+    await grants.create(grant(ref("identity_account", raj.accountId), "member", ref("organization", acme)));
     const agent = await createClient(AgentCommandController, alice.transport).create({
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Agent",
@@ -155,11 +155,11 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history on a licens
       spec: { description: "billing", instructions: "You help with billing." },
     });
     agentId = agent.metadata?.id ?? "";
-    await policies.create(grant(ref("identity_account", raj.accountId), "editor", ref("agent", agentId)));
-    await policies.revokeOrgAccess({ identityAccountId: raj.accountId, org: acme });
+    await grants.create(grant(ref("identity_account", raj.accountId), "editor", ref("agent", agentId)));
+    await grants.revokeOrgAccess({ identityAccountId: raj.accountId, org: acme });
 
     mia = await signIn(booted, issuer, "operator|mia");
-    await policies.create(grant(ref("identity_account", mia.accountId), "member", ref("organization", acme)));
+    await grants.create(grant(ref("identity_account", mia.accountId), "member", ref("organization", acme)));
 
     const child = await createClient(OrganizationCommandController, alice.transport).create({
       apiVersion: "tenancy.stigmer.ai/v1",
@@ -170,9 +170,9 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history on a licens
     acmeEu = child.metadata?.id ?? "";
     kim = await signIn(booted, issuer, "operator|kim");
     // Kim administers the child; Lee is a member of it.
-    await policies.create(grant(ref("identity_account", kim.accountId), "admin", ref("organization", acmeEu)));
+    await grants.create(grant(ref("identity_account", kim.accountId), "admin", ref("organization", acmeEu)));
     lee = await signIn(booted, issuer, "operator|lee");
-    await policies.create(grant(ref("identity_account", lee.accountId), "member", ref("organization", acmeEu)));
+    await grants.create(grant(ref("identity_account", lee.accountId), "member", ref("organization", acmeEu)));
     // Something the child holds that its parent's admins do not see: a
     // private agent, and Lee's role on it.
     const secret = await createClient(AgentCommandController, kim.transport).create({
@@ -182,7 +182,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history on a licens
       spec: { description: "eu", instructions: "You are private." },
     });
     euSecretId = secret.metadata?.id ?? "";
-    await createClient(IamPolicyCommandController, kim.transport).create(
+    await createClient(GrantCommandController, kim.transport).create(
       grant(ref("identity_account", lee.accountId), "editor", ref("agent", euSecretId)),
     );
   }, 120_000);
@@ -252,7 +252,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history on a licens
 
     const last = held.at(-1)?.sequence ?? 0n;
     expect(await follow(alice.transport, acme, last)).toEqual([]);
-    await createClient(IamPolicyCommandController, alice.transport).create(
+    await createClient(GrantCommandController, alice.transport).create(
       grant(ref("identity_account", raj.accountId), "viewer", ref("organization", acme)),
     );
     const since = await follow(alice.transport, acme, last);
@@ -267,7 +267,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history on a licens
 
   it("a member may see who has access, but not read how it changed", async () => {
     const error = await refusal(
-      createClient(IamPolicyQueryController, mia.transport).listAccessHistory({ org: acme }),
+      createClient(GrantQueryController, mia.transport).listAccessHistory({ org: acme }),
     );
     expect(error.code).toBe(Code.PermissionDenied);
   });
@@ -298,11 +298,11 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history on a licens
     expect(insider.length).toBe(entries.length + 1);
 
     const member = await refusal(
-      createClient(IamPolicyQueryController, lee.transport).listAccessHistory({ org: acmeEu }),
+      createClient(GrantQueryController, lee.transport).listAccessHistory({ org: acmeEu }),
     );
     expect(member.code).toBe(Code.PermissionDenied);
     const upward = await refusal(
-      createClient(IamPolicyQueryController, kim.transport).listAccessHistory({ org: acme }),
+      createClient(GrantQueryController, kim.transport).listAccessHistory({ org: acme }),
     );
     expect(upward.code).toBe(Code.PermissionDenied);
   });
@@ -347,7 +347,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("a server with no key serves no
     // The server holds one organization, and its first person administers it.
     const olga = await signIn(booted, issuer, "operator|olga");
     const error = await refusal(
-      createClient(IamPolicyQueryController, olga.transport).listAccessHistory({ org: "stigmer" }),
+      createClient(GrantQueryController, olga.transport).listAccessHistory({ org: "stigmer" }),
     );
     expect(error.code).toBe(Code.Unimplemented);
     expect(error.rawMessage).toBe("the access history is served by the Enterprise and Cloud editions");

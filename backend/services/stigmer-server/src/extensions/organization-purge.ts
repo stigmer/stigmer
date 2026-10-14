@@ -13,7 +13,7 @@
  *   shred    → every secret codec's per-organization keys destroyed
  *   children → wait until no child organization names it
  *   final    → quiesce, the units' stages and content again; its
- *              policies, its search entry, its row, its names, and last
+ *              grants, its search entry, its row, its names, and last
  *              its deletion mark
  *
  * A unit's stages run after quiesce and before content, while the
@@ -94,7 +94,7 @@ export interface OrganizationRows {
    * `schema` (the kind's resource message). `after` is "" for the first
    * page, then the previous page's `next`. Rows are matched on
    * `metadata.org`; a kind that names its organization elsewhere or lives
-   * behind a port (API keys, policy rows, identity accounts, platform
+   * behind a port (API keys, grant rows, identity accounts, platform
    * clients) is refused, as is a limit that is not a positive integer.
    */
   ids(

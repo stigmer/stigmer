@@ -32,9 +32,17 @@ Run through this list before applying an Agent YAML with `stigmer apply -f`.
 - [ ] Each plugin is listed once in `plugins` (apply refuses a plugin listed twice)
 - [ ] A plugin with a local program (stdio) MCP server is meant for conversations on a person's own runner (desktop app, CLI): a conversation hosted in a cloud sandbox is refused at create
 
+### MCP Servers
+
+- [ ] An agent with `mcp_servers` is applied by an organization admin: a member's write that adds a server or changes one's address or headers is refused
+- [ ] Each server's `url` is `https`, or `http` on a loopback host, with no credentials or fragment; at most 20 servers
+- [ ] Each `name` is 2 to 63 lowercase letters, digits and hyphens, starts with a letter, does not end with a hyphen, is listed once, does not start with `stigmer` and is not `plugin`
+- [ ] No header value holds a secret: name it as `${NAME}` and keep the value in a vault (header values are stored in the agent and shown to anyone who can read it)
+- [ ] No server shares a name with a server of a subagent this agent lists: the turn is refused
+
 ### Tool Lists
 
-- [ ] `tools` and `disallowed_tools` entries use Claude Code's names: `Read`, `Grep`, `Bash(git push *)`, `Agent(explore)`, `mcp__plugin_<plugin>_<server>`, `mcp__plugin_<plugin>_<server>__<tool>`, `mcp__*`. The shape is checked at apply; a malformed entry is rejected
+- [ ] `tools` and `disallowed_tools` entries use Claude Code's names: `Read`, `Grep`, `Bash(git push *)`, `Agent(explore)`, `mcp__plugin_<plugin>_<server>`, `mcp__plugin_<plugin>_<server>__<tool>`, `mcp__<server>`, `mcp__<server>__<tool>`, `mcp__*`. The shape is checked at apply; a malformed entry is rejected
 - [ ] Each `mcp__plugin_<plugin>_<server>` names a plugin from `plugins` and a server from its `status.mcp_servers`, and each tool part an exact, case-sensitive name the server lists (`stigmer connect plugin <plugin>`). Names are resolved only at run time: a misspelled entry is ignored there, and a `tools` list in which nothing resolves refuses the run
 - [ ] A `tools` list names everything the agent needs, `Agent` included when it hands work to subagents: "only these" is exact
 
@@ -227,7 +235,7 @@ tools: [Read, mcp__plugin_github_github__serach_code]
 tools: [Read, mcp__plugin_github_github__search_code]
 ```
 
-Always verify tool names against the MCP server before writing a list (`stigmer connect plugin <plugin>`).
+Always verify tool names against the MCP server before writing a list (`stigmer connect plugin <plugin>`). An agent's own server cannot be listed this way yet ([#2325](https://github.com/stigmer/stigmer/issues/2325)): name it whole as `mcp__<server>`, or take the tool names from the server's own documentation.
 
 ### Missing `metadata.org`
 

@@ -14,8 +14,8 @@
  * artifact, whose only producer was a workflow step's output) leaves every
  * table that keys a row by kind (kind-rename.ts `KIND_TABLES`): the live
  * rows, their history, their list keys and the names they held. No data of
- * those kinds is kept. Every IamPolicy row whose resource or principal is
- * one of those kinds leaves too (`policyNamesRetiredWorkflowKind`): a grant
+ * those kinds is kept. Every grant row whose resource or principal is
+ * one of those kinds leaves too (`grantNamesRetiredWorkflowKind`): a grant
  * on an object that no longer exists would only linger in grant listings.
  * Such a row leaves the way the store deletes a policy, with its list keys
  * and with its history kept. The workflow run event log
@@ -55,7 +55,7 @@ import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 
 import { RunSchema, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 
 /**
  * The `kind` column values of the rows the step deletes: the workflow kind,
@@ -71,8 +71,8 @@ export const RETIRED_WORKFLOW_KINDS: ReadonlyArray<string> = [
 
 /** The `kind` column value of the agent run rows the step rewrites. */
 export const AGENT_RUN_KIND = "agent_run";
-/** The `kind` column value of the grant rows the step reads. */
-export const WORKFLOW_RETIRED_POLICY_KIND = "iam_policy";
+/** The `kind` column value of the grant rows the step reads: their stored kind at its time, before Postgres v34 and SQLite v38 renamed it `grant`. */
+export const WORKFLOW_RETIRED_GRANT_KIND = "iam_policy";
 
 /** The tables the step drops. */
 export const RETIRED_WORKFLOW_TABLES: ReadonlyArray<string> = [
@@ -178,14 +178,14 @@ export function migrateAgentRunRow(data: Uint8Array, endedAt: string): Uint8Arra
 }
 
 /**
- * Whether a stored IamPolicy row names a retired kind as its resource or
+ * Whether a stored grant row names a retired kind as its resource or
  * its principal (an `ApiResourceRef.kind` is the enum member name, the
  * string the kind's rows were stored under). Read through the live schema:
  * the policy's own fields are unchanged. Throws when the bytes do not
  * decode.
  */
-export function policyNamesRetiredWorkflowKind(data: Uint8Array): boolean {
-  const spec = fromBinary(IamPolicySchema, data).spec;
+export function grantNamesRetiredWorkflowKind(data: Uint8Array): boolean {
+  const spec = fromBinary(GrantSchema, data).spec;
   return (
     RETIRED_WORKFLOW_KINDS.includes(spec?.resource?.kind ?? "") ||
     RETIRED_WORKFLOW_KINDS.includes(spec?.principal?.kind ?? "")

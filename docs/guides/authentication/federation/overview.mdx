@@ -52,7 +52,7 @@ credentials needed.
 |                      | JIT (automatic)                               | Manual (explicit)                                              |
 | -------------------- | --------------------------------------------- | -------------------------------------------------------------- |
 | **Account creation** | Automatic on first JWT                        | Your backend calls `createFederatedAccount`                    |
-| **Role assignment**  | Automatic (`signInRole`)                      | Your backend creates IAM Policies                              |
+| **Role assignment**  | Automatic (`signInRole`)                      | Your backend creates Grants                                    |
 | **Setup steps**      | Register a Federation Issuer with JIT enabled | Register a Federation Issuer, provision accounts, grant access |
 | **Use when**         | All authenticated users should access Stigmer | You need gated, explicit access control                        |
 
@@ -72,16 +72,16 @@ flowchart LR
   subgraph stigmer ["Stigmer"]
     SIdP["FederationIssuer"]
     SAcct["IdentityAccount<br/>(federated)"]
-    SPolicy["IamPolicy"]
+    SGrant["Grant"]
     SAPI["Stigmer API"]
   end
   Backend -->|"1. Register"| SIdP
   Backend -->|"2. Provision"| SAcct
-  Backend -->|"3. Grant role"| SPolicy
+  Backend -->|"3. Grant role"| SGrant
   App -->|"4. Call with JWT"| SAPI
   SAPI -->|"Validate via JWKS"| SIdP
   SAPI -->|"Resolve identity"| SAcct
-  SAPI -->|"Check access"| SPolicy
+  SAPI -->|"Check access"| SGrant
 `}
 />
 
@@ -94,7 +94,7 @@ provisioning**, your backend only registers the Federation Issuer (step
 1. — Stigmer handles steps 2 and 3 automatically when a user first
    authenticates. Step 4 is the same regardless of mode: present a JWT, Stigmer
    validates it against your Federation Issuer's JWKS endpoint, resolves the
-   caller to a federated account, and checks IAM Policies.
+   caller to a federated account, and checks Grants.
 
 ## Prerequisites
 

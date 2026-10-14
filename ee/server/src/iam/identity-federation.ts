@@ -51,7 +51,7 @@
  *     the retry is idempotent and completes once the window has passed. A
  *     child missed by all three reads would need its whole delete, mark
  *     to refusal, to fall between two consecutive reads. One that deletes the account goes through: the account's
- *     removal deletes its policies by account, naming no organization;
+ *     removal deletes its grants by account, naming no organization;
  *   - a missing federated account is NOT_FOUND with the pinned copy.
  *
  * The caller each arm receives is unused today; the capability's
@@ -69,13 +69,13 @@ import { abortedError, failedPreconditionError } from "@stigmer/server";
 
 import type { IdentityAccountService } from "./account/port.js";
 import { resolveCreateRace } from "./account/port.js";
-import type { IamPolicyGrantPathClient } from "./policy/grant-path-client.js";
+import type { GrantPathClient } from "./grant/grant-path-client.js";
 import { ISSUER_BEING_DELETED_MESSAGE } from "./issuer/steps.js";
 import type { FederationIssuerStore } from "./issuer/store.js";
 
 export interface CloudIdentityFederationDeps {
   readonly accounts: IdentityAccountService;
-  readonly policies: IamPolicyGrantPathClient;
+  readonly grants: GrantPathClient;
   /** The FederationIssuer rows — the controller's IdP-exists precondition, create's delete check and deprovision's provider read them. */
   readonly providers: Pick<FederationIssuerStore, "findById" | "isLive">;
   /**
@@ -89,7 +89,7 @@ export interface CloudIdentityFederationDeps {
 export function newIdentityFederation(
   deps: CloudIdentityFederationDeps,
 ): IdentityFederation {
-  const { accounts, policies, providers, childOrganizations, logger } = deps;
+  const { accounts, grants, providers, childOrganizations, logger } = deps;
   /** The provider a resolved reference holds, by its id, in the organization it names. */
   const providerOf = async (org: string, id: string) => {
     if (id === "") {
@@ -242,7 +242,7 @@ export function newIdentityFederation(
       // and offboarding must leave nothing behind there.
       const provider = await providerOf(ref.org, ref.id);
       const actingFor = provider?.metadata?.id;
-      await policies.bootstrapRevokeOrgAccess(accountId, input.org, actingFor);
+      await grants.bootstrapRevokeOrgAccess(accountId, input.org, actingFor);
       // The children to reach: the live ones, and the ones mid-delete read
       // on both sides of that list, so a child marked as the live list is
       // read and refused just after is still in one of the two reads. Each
@@ -254,7 +254,7 @@ export function newIdentityFederation(
       const unreachable: string[] = [];
       for (const child of new Set([...live, ...pendingBefore, ...pendingAfter])) {
         try {
-          await policies.bootstrapRevokeOrgAccess(accountId, child, actingFor);
+          await grants.bootstrapRevokeOrgAccess(accountId, child, actingFor);
         } catch (error) {
           if (ConnectError.from(error).code !== Code.NotFound) {
             throw error;

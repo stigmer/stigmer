@@ -1,0 +1,140 @@
+/**
+ * Pins wire-refusals.ts: the one place a
+ * kind string that came off the wire, or a whole triple, is turned into
+ * INVALID_ARGUMENT with the domain's byte-pinned copy. Three callers share
+ * it — the grant path, the ValidateGrantableRole step and the fourteen
+ * RPCs' controller — so the table is proven once here; grant-path.test.ts
+ * keeps its own arms and passes through the moved functions unchanged.
+ *
+ * `refsOf` hands back both refs of a spec the boundary validated, and
+ * throws a plain error for one without them: such a caller bypassed the
+ * boundary, which is a bug, not wire input.
+ *
+ * Exactness is contract: the derived grant id hashes the spec's
+ * text, so a lenient match would let two spellings of one kind mint two
+ * rows for one grant.
+ */
+import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
+import { describe, expect, it } from "vitest";
+
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+
+import {
+  malformedTripleMessage,
+  unknownPrincipalKindMessage,
+  unknownResourceKindMessage,
+} from "../constants.js";
+import { GrantSpecSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+
+import {
+  refsOf,
+  requireKnownPrincipalKind,
+  requireKnownResourceKind,
+  requireWellFormedTriple,
+} from "../wire-refusals.js";
+import { orgRole, triple } from "./support.js";
+
+function refusal(run: () => unknown): ConnectError {
+  try {
+    run();
+  } catch (error) {
+    if (error instanceof ConnectError) return error;
+    throw error;
+  }
+  throw new Error("expected a refusal");
+}
+
+describe("requireKnownResourceKind / requireKnownPrincipalKind", () => {
+  it("resolve exact enum member names", () => {
+    expect(requireKnownResourceKind("organization")).toBe(
+      ApiResourceKind.organization,
+    );
+    expect(requireKnownPrincipalKind("identity_account")).toBe(
+      ApiResourceKind.identity_account,
+    );
+  });
+
+  for (const garbage of [
+    "Organization",
+    "ORGANIZATION",
+    "",
+    "api_resource_kind_unknown",
+    "constructor",
+    "15",
+  ]) {
+    it(`refuse ${JSON.stringify(garbage)} as a resource kind with the cloud's copy`, () => {
+      const error = refusal(() => requireKnownResourceKind(garbage));
+      expect(error.code).toBe(Code.InvalidArgument);
+      expect(error.rawMessage).toBe(unknownResourceKindMessage(garbage));
+    });
+  }
+
+  it("refuse an unknown principal kind with the principal sentence", () => {
+    const error = refusal(() => requireKnownPrincipalKind("team-ish"));
+    expect(error.code).toBe(Code.InvalidArgument);
+    expect(error.rawMessage).toBe(unknownPrincipalKindMessage("team-ish"));
+  });
+});
+
+describe("requireWellFormedTriple", () => {
+  it("answers both refs and both resolved kinds for a well-formed triple", () => {
+    const admitted = requireWellFormedTriple(orgRole("ida_a", "admin", "acme"));
+    expect(admitted.resourceKind).toBe(ApiResourceKind.organization);
+    expect(admitted.principalKind).toBe(ApiResourceKind.identity_account);
+    expect(admitted.resource.id).toBe("acme");
+    expect(admitted.principal.id).toBe("ida_a");
+  });
+
+  it("refuses a delimiter in any field BEFORE either kind is resolved", () => {
+    const error = refusal(() =>
+      requireWellFormedTriple(
+        triple({ kind: "garbage", id: "a#b" }, "viewer", {
+          kind: "garbage",
+          id: "x",
+        }),
+      ),
+    );
+    expect(error.code).toBe(Code.InvalidArgument);
+    expect(error.rawMessage).toBe(malformedTripleMessage("principal.id"));
+  });
+
+  it("refuses the resource kind before the principal kind — the cloud's order", () => {
+    const error = refusal(() =>
+      requireWellFormedTriple(
+        triple({ kind: "nope", id: "a" }, "viewer", {
+          kind: "also-nope",
+          id: "x",
+        }),
+      ),
+    );
+    expect(error.rawMessage).toBe(unknownResourceKindMessage("also-nope"));
+  });
+
+  it("refuses an unknown principal kind once the resource kind is known", () => {
+    const error = refusal(() =>
+      requireWellFormedTriple(
+        triple({ kind: "nope", id: "a" }, "viewer", {
+          kind: "organization",
+          id: "acme",
+        }),
+      ),
+    );
+    expect(error.rawMessage).toBe(unknownPrincipalKindMessage("nope"));
+  });
+});
+
+describe("refsOf", () => {
+  it("hands back both refs of a validated spec", () => {
+    const spec = orgRole("ida_ana", "viewer", "acme");
+    expect(refsOf(spec)).toEqual({ principal: spec.principal, resource: spec.resource });
+  });
+
+  it("throws a plain error for a spec missing either ref: the caller bypassed the boundary", () => {
+    const noResource = create(GrantSpecSchema, { principal: { kind: "identity_account", id: "ida_ana" }, relation: "viewer" });
+    expect(() => refsOf(noResource)).toThrow("grant spec must carry principal and resource");
+    expect(() => refsOf(create(GrantSpecSchema, { relation: "viewer" }))).toThrow(
+      "grant spec must carry principal and resource",
+    );
+  });
+});

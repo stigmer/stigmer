@@ -33,7 +33,7 @@ const (
 // TeamCommandController provides write operations for teams.
 //
 // Membership is not written here: a person joins a team when they are granted
-// the member role on it, through the IAM policy service, like any other grant.
+// the member role on it, through the Grant service, like any other grant.
 type TeamCommandControllerClient interface {
 	// Create a team in an organization.
 	//
@@ -151,7 +151,7 @@ func (c *teamCommandControllerClient) Delete(ctx context.Context, in *apiresourc
 // TeamCommandController provides write operations for teams.
 //
 // Membership is not written here: a person joins a team when they are granted
-// the member role on it, through the IAM policy service, like any other grant.
+// the member role on it, through the Grant service, like any other grant.
 type TeamCommandControllerServer interface {
 	// Create a team in an organization.
 	//

@@ -110,7 +110,7 @@ describe("takeAdminIn", () => {
     const granted: unknown[] = [];
     const clients = {
       identityAccountQuery: { whoAmI: async () => ({ metadata: id === undefined ? undefined : { id } }) },
-      iamPolicyCommand: { create: async (input: unknown) => (granted.push(input), {}) },
+      grantCommand: { create: async (input: unknown) => (granted.push(input), {}) },
     } as unknown as ConformanceClients;
     return { clients, granted };
   }

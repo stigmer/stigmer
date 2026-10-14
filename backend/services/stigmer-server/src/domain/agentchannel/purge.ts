@@ -10,7 +10,7 @@ import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agenti
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
-import { newCleanupIamPoliciesStep } from "../../pipeline/steps/authorization-tuples.js";
+import { newCleanupGrantsStep } from "../../pipeline/steps/authorization-tuples.js";
 import { newDeleteResourceStep } from "../../pipeline/steps/delete.js";
 import { newReleaseNamesStep } from "../../pipeline/steps/names.js";
 import type { ChannelRuntime } from "./channel-runtime.js";
@@ -40,7 +40,7 @@ export function newAgentChannelPurge(deps: AgentChannelPurgeDeps): KindPurge {
         : [newTeardownChannelRuntimeStep<DeleteInput>(deps.channelRuntime)]),
       newDeleteResourceStep(deps.store),
       newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.agent_channel),
-      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+      newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger),
     ],
   });
 }

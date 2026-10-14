@@ -1,6 +1,6 @@
 /**
  * Pins the tuple vocabulary's contract: the string notation the cloud's
- * store tests and the IamPolicy proto share round-trips through parse and
+ * store tests and the Grant proto share round-trips through parse and
  * format. The person's construction is person.test.ts's.
  */
 import { describe, expect, it } from "vitest";

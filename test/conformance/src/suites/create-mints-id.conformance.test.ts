@@ -40,7 +40,7 @@
 // Deliberately out of scope: an update's id (an update addresses an existing
 // row by its id), an apply that updates (it keeps the stored id, pinned by each
 // kind's own suite), ids derived from a natural key (IdentityAccount,
-// IamPolicy; the server's unit suites pin the derivation), and what each create
+// Grant; the server's unit suites pin the derivation), and what each create
 // does beyond the id (each kind's own suite).
 import { getOption, hasOption } from "@bufbuild/protobuf";
 import {

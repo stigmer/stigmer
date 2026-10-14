@@ -53,8 +53,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
-import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import {
   OrganizationSchema,
   OrganizationStatusSchema,
@@ -86,9 +86,9 @@ export const CONTRACT_SESSION_INDEX = declareListIndex({
 });
 
 /** The kit's access-row declaration, so the history arms prove the list keys ride the door. */
-export const CONTRACT_POLICY_INDEX = declareListIndex({
-  kind: ApiResourceKind.iam_policy,
-  schema: IamPolicySchema,
+export const CONTRACT_GRANT_INDEX = declareListIndex({
+  kind: ApiResourceKind.grant,
+  schema: GrantSchema,
   revision: 1,
   keys: {
     principal: field("spec.principal.id"),
@@ -97,7 +97,7 @@ export const CONTRACT_POLICY_INDEX = declareListIndex({
 
 /** What every contract store opens with. */
 export const CONTRACT_STORE_OPTIONS: StoreOpenOptions = {
-  listIndexes: [CONTRACT_SESSION_INDEX, CONTRACT_POLICY_INDEX],
+  listIndexes: [CONTRACT_SESSION_INDEX, CONTRACT_GRANT_INDEX],
 };
 
 /** One permission-history entry as the driver stored it, read raw by the fixture. */
@@ -109,7 +109,7 @@ export interface PermissionHistoryRow {
   readonly cause: string;
   readonly actorId: string;
   readonly actorClass: string;
-  readonly policyId: string;
+  readonly grantId: string;
   readonly principalKind: string;
   readonly principalId: string;
   readonly principalRelation: string;
@@ -149,12 +149,12 @@ export interface StoreContractFixture {
    */
   countPendingOAuthStates(): Promise<number>;
   /**
-   * Every iam_policy_history row, by organization then number, read raw,
+   * Every grant_history row, by organization then number, read raw,
    * so the write arms prove what was written without the Store's own read.
    */
   permissionHistory(): Promise<PermissionHistoryRow[]>;
   /**
-   * Re-stamps one iam_policy_history entry's time, written raw: the only
+   * Re-stamps one grant_history entry's time, written raw: the only
    * way a test holds entries older than now, and entries that share a
    * millisecond, without waiting on the clock.
    */
@@ -164,7 +164,7 @@ export interface StoreContractFixture {
 
 const KIND = ApiResourceKind.organization;
 
-/** A raw iam_policy_history row, as either driver's client returns it, in the kit's shape. */
+/** A raw grant_history row, as either driver's client returns it, in the kit's shape. */
 export function permissionHistoryRowOf(
   row: Record<string, string | number | Uint8Array>,
 ): PermissionHistoryRow {
@@ -177,7 +177,7 @@ export function permissionHistoryRowOf(
     cause: text("cause"),
     actorId: text("actor_id"),
     actorClass: text("actor_class"),
-    policyId: text("policy_id"),
+    grantId: text("grant_id"),
     principalKind: text("principal_kind"),
     principalId: text("principal_id"),
     principalRelation: text("principal_relation"),
@@ -2621,17 +2621,17 @@ export function describeStoreContract(
   });
 
   describe("create-only insert, reporting delete and the permission history", () => {
-    const POLICY = ApiResourceKind.iam_policy;
+    const POLICY = ApiResourceKind.grant;
     const FIXED_WIDTH_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
-    function policy(
+    function grant(
       id: string,
       principalId: string,
       org: string,
       relation = "member",
       principalRelation = "",
-    ): IamPolicy {
-      return create(IamPolicySchema, {
+    ): Grant {
+      return create(GrantSchema, {
         metadata: { id },
         spec: {
           principal: {
@@ -2650,7 +2650,7 @@ export function describeStoreContract(
     }
 
     async function principalRows(principalId: string): Promise<string[]> {
-      const rows = await fx.store.queryResources(CONTRACT_POLICY_INDEX, {
+      const rows = await fx.store.queryResources(CONTRACT_GRANT_INDEX, {
         anyKey: [{ name: "principal", value: principalId }],
       });
       return rows.map((row) => row.id);
@@ -2673,18 +2673,18 @@ export function describeStoreContract(
       expect(await fx.store.listResources(KIND)).toHaveLength(1);
 
       await expect(
-        fx.store.insertResource(POLICY, "iamp_1", IamPolicySchema, policy("iamp_1", "ida_ana", "acme")),
+        fx.store.insertResource(POLICY, "grt_1", GrantSchema, grant("grt_1", "ida_ana", "acme")),
       ).resolves.toBe(true);
       await expect(
         fx.store.insertResource(
           POLICY,
-          "iamp_1",
-          IamPolicySchema,
-          policy("iamp_1", "ida_raj", "acme"),
+          "grt_1",
+          GrantSchema,
+          grant("grt_1", "ida_raj", "acme"),
           change("acme"),
         ),
       ).resolves.toBe(false);
-      const kept = await fx.store.getResource(POLICY, "iamp_1", IamPolicySchema);
+      const kept = await fx.store.getResource(POLICY, "grt_1", GrantSchema);
       expect(kept.spec?.principal?.id).toBe("ida_ana");
       expect(await principalRows("ida_raj")).toEqual([]);
       expect(await fx.permissionHistory()).toEqual([]);
@@ -2710,9 +2710,9 @@ export function describeStoreContract(
         Array.from({ length: 8 }, () =>
           fx.store.insertResource(
             POLICY,
-            "iamp_1",
-            IamPolicySchema,
-            policy("iamp_1", "ida_ana", "acme"),
+            "grt_1",
+            GrantSchema,
+            grant("grt_1", "ida_ana", "acme"),
             change("acme"),
           ),
         ),
@@ -2727,10 +2727,10 @@ export function describeStoreContract(
       await expect(fx.store.deleteResource(KIND, "acme")).resolves.toBe(true);
       await expect(fx.store.deleteResource(KIND, "acme")).resolves.toBe(false);
 
-      await fx.store.insertResource(POLICY, "iamp_1", IamPolicySchema, policy("iamp_1", "ida_ana", "acme"));
-      await expect(fx.store.deleteResource(POLICY, "iamp_1", change("acme", "revoke"))).resolves.toBe(true);
-      await expect(fx.store.deleteResource(POLICY, "iamp_1", change("acme", "revoke"))).resolves.toBe(false);
-      await expect(fx.store.getResource(POLICY, "iamp_1", IamPolicySchema)).rejects.toThrow(
+      await fx.store.insertResource(POLICY, "grt_1", GrantSchema, grant("grt_1", "ida_ana", "acme"));
+      await expect(fx.store.deleteResource(POLICY, "grt_1", change("acme", "revoke"))).resolves.toBe(true);
+      await expect(fx.store.deleteResource(POLICY, "grt_1", change("acme", "revoke"))).resolves.toBe(false);
+      await expect(fx.store.getResource(POLICY, "grt_1", GrantSchema)).rejects.toThrow(
         ResourceNotFoundError,
       );
     });
@@ -2738,28 +2738,28 @@ export function describeStoreContract(
     it("writes a row's list keys with the insert and removes them with the delete", async () => {
       await fx.store.insertResource(
         POLICY,
-        "iamp_1",
-        IamPolicySchema,
-        policy("iamp_1", "ida_ana", "acme"),
+        "grt_1",
+        GrantSchema,
+        grant("grt_1", "ida_ana", "acme"),
         change("acme"),
       );
-      await fx.store.insertResource(POLICY, "iamp_2", IamPolicySchema, policy("iamp_2", "ida_ana", "beta"));
-      expect((await principalRows("ida_ana")).sort()).toEqual(["iamp_1", "iamp_2"]);
+      await fx.store.insertResource(POLICY, "grt_2", GrantSchema, grant("grt_2", "ida_ana", "beta"));
+      expect((await principalRows("ida_ana")).sort()).toEqual(["grt_1", "grt_2"]);
 
-      await fx.store.deleteResource(POLICY, "iamp_1", change("acme", "revoke"));
-      await fx.store.deleteResource(POLICY, "iamp_2");
+      await fx.store.deleteResource(POLICY, "grt_1", change("acme", "revoke"));
+      await fx.store.deleteResource(POLICY, "grt_2");
       expect(await principalRows("ida_ana")).toEqual([]);
     });
 
     it("appends one entry per row change, its triple and bytes read from the row", async () => {
-      const granted = policy("iamp_1", "tm_core", "acme", "viewer", "member");
-      await fx.store.insertResource(POLICY, "iamp_1", IamPolicySchema, granted, {
+      const granted = grant("grt_1", "tm_core", "acme", "viewer", "member");
+      await fx.store.insertResource(POLICY, "grt_1", GrantSchema, granted, {
         cause: "grant",
         actorId: "ida_ana",
         actorClass: "user",
         org: "acme",
       });
-      await fx.store.deleteResource(POLICY, "iamp_1", {
+      await fx.store.deleteResource(POLICY, "grt_1", {
         cause: "left_organization",
         actorId: "ida_ana",
         actorClass: "internal",
@@ -2769,7 +2769,7 @@ export function describeStoreContract(
       const entries = await fx.permissionHistory();
       const row = {
         org: "acme",
-        policyId: "iamp_1",
+        grantId: "grt_1",
         principalKind: "identity_account",
         principalId: "tm_core",
         principalRelation: "member",
@@ -2783,7 +2783,7 @@ export function describeStoreContract(
         { ...row, sequence: 2, change: "revoked", cause: "left_organization", actorClass: "internal" },
       ]);
       for (const entry of entries) {
-        expect(fromBinary(IamPolicySchema, entry.data)).toEqual(granted);
+        expect(fromBinary(GrantSchema, entry.data)).toEqual(granted);
         expect(entry.occurredAt).toMatch(FIXED_WIDTH_UTC);
       }
     });
@@ -2791,19 +2791,19 @@ export function describeStoreContract(
     it("records nothing for a refused insert or an empty delete, and refuses a change on another kind", async () => {
       await fx.store.insertResource(
         POLICY,
-        "iamp_1",
-        IamPolicySchema,
-        policy("iamp_1", "ida_ana", "acme"),
+        "grt_1",
+        GrantSchema,
+        grant("grt_1", "ida_ana", "acme"),
         change("acme"),
       );
       await fx.store.insertResource(
         POLICY,
-        "iamp_1",
-        IamPolicySchema,
-        policy("iamp_1", "ida_ana", "acme"),
+        "grt_1",
+        GrantSchema,
+        grant("grt_1", "ida_ana", "acme"),
         change("acme"),
       );
-      await fx.store.deleteResource(POLICY, "iamp_ghost", change("acme", "revoke"));
+      await fx.store.deleteResource(POLICY, "grt_ghost", change("acme", "revoke"));
       expect((await fx.permissionHistory()).map((entry) => entry.change)).toEqual(["granted"]);
 
       await expect(
@@ -2814,11 +2814,11 @@ export function describeStoreContract(
           makeOrganization({ id: "acme" }),
           change("acme"),
         ),
-      ).rejects.toThrow("a permission change is recorded only with an iam_policy row, not organization");
+      ).rejects.toThrow("a permission change is recorded only with a grant row, not organization");
       expect(await fx.store.listResources(KIND)).toEqual([]);
       await fx.store.insertResource(KIND, "acme", OrganizationSchema, makeOrganization({ id: "acme" }));
       await expect(fx.store.deleteResource(KIND, "acme", change("acme"))).rejects.toThrow(
-        "a permission change is recorded only with an iam_policy row, not organization",
+        "a permission change is recorded only with a grant row, not organization",
       );
       expect(await fx.store.listResources(KIND)).toHaveLength(1);
       expect(await fx.permissionHistory()).toHaveLength(1);
@@ -2826,25 +2826,25 @@ export function describeStoreContract(
 
     it("numbers each organization's entries from one in commit order, with times that never go back", async () => {
       const writes: Array<readonly [string, string]> = [
-        ["iamp_a1", "acme"],
-        ["iamp_b1", "beta"],
-        ["iamp_a2", "acme"],
-        ["iamp_n1", ""],
-        ["iamp_a3", "acme"],
+        ["grt_a1", "acme"],
+        ["grt_b1", "beta"],
+        ["grt_a2", "acme"],
+        ["grt_n1", ""],
+        ["grt_a3", "acme"],
       ];
       for (const [id, org] of writes) {
-        await fx.store.insertResource(POLICY, id, IamPolicySchema, policy(id, "ida_ana", org || "acme"), change(org));
+        await fx.store.insertResource(POLICY, id, GrantSchema, grant(id, "ida_ana", org || "acme"), change(org));
       }
-      await fx.store.deleteResource(POLICY, "iamp_a1", change("acme", "revoke"));
+      await fx.store.deleteResource(POLICY, "grt_a1", change("acme", "revoke"));
 
       const entries = await fx.permissionHistory();
-      expect(entries.map((entry) => [entry.org, entry.sequence, entry.policyId])).toEqual([
-        ["", 1, "iamp_n1"],
-        ["acme", 1, "iamp_a1"],
-        ["acme", 2, "iamp_a2"],
-        ["acme", 3, "iamp_a3"],
-        ["acme", 4, "iamp_a1"],
-        ["beta", 1, "iamp_b1"],
+      expect(entries.map((entry) => [entry.org, entry.sequence, entry.grantId])).toEqual([
+        ["", 1, "grt_n1"],
+        ["acme", 1, "grt_a1"],
+        ["acme", 2, "grt_a2"],
+        ["acme", 3, "grt_a3"],
+        ["acme", 4, "grt_a1"],
+        ["beta", 1, "grt_b1"],
       ]);
       const acme = entries.filter((entry) => entry.org === "acme").map((entry) => entry.occurredAt);
       expect([...acme].sort()).toEqual(acme);
@@ -2854,14 +2854,14 @@ export function describeStoreContract(
       for (const n of [1, 2, 3, 4, 5]) {
         await fx.store.insertResource(
           POLICY,
-          `iamp_a${n}`,
-          IamPolicySchema,
-          policy(`iamp_a${n}`, `ida_${n}`, "acme"),
+          `grt_a${n}`,
+          GrantSchema,
+          grant(`grt_a${n}`, `ida_${n}`, "acme"),
           change("acme"),
         );
       }
-      await fx.store.insertResource(POLICY, "iamp_b1", IamPolicySchema, policy("iamp_b1", "ida_1", "beta"), change("beta"));
-      await fx.store.deleteResource(POLICY, "iamp_a2", change("acme", "revoke"));
+      await fx.store.insertResource(POLICY, "grt_b1", GrantSchema, grant("grt_b1", "ida_1", "beta"), change("beta"));
+      await fx.store.deleteResource(POLICY, "grt_a2", change("acme", "revoke"));
 
       const sequences = (records: ReadonlyArray<{ sequence: bigint }>) =>
         records.map((record) => Number(record.sequence));
@@ -2884,7 +2884,7 @@ export function describeStoreContract(
         cause: "revoke",
         actorId: "ida_actor",
         actorClass: "user",
-        policyId: "iamp_a2",
+        grantId: "grt_a2",
         principalKind: "identity_account",
         principalId: "ida_2",
         principalRelation: "",
@@ -2894,13 +2894,13 @@ export function describeStoreContract(
       });
       expect(revoked?.occurredAt).toMatch(FIXED_WIDTH_UTC);
       // The row as it stood: its id and triple (the store stamped its etag).
-      const stood = fromBinary(IamPolicySchema, revoked?.data ?? new Uint8Array());
-      expect(stood.metadata?.id).toBe("iamp_a2");
-      expect(stood.spec).toEqual(policy("iamp_a2", "ida_2", "acme").spec);
+      const stood = fromBinary(GrantSchema, revoked?.data ?? new Uint8Array());
+      expect(stood.metadata?.id).toBe("grt_a2");
+      expect(stood.spec).toEqual(grant("grt_a2", "ida_2", "acme").spec);
       const raw = (await fx.permissionHistory()).filter((entry) => entry.org === "acme");
       const read = await fx.store.listPermissionHistory("acme", { limit: 100, after: 0n });
-      expect(read.map((record) => [record.occurredAt, record.policyId, record.change])).toEqual(
-        raw.map((entry) => [entry.occurredAt, entry.policyId, entry.change]),
+      expect(read.map((record) => [record.occurredAt, record.grantId, record.change])).toEqual(
+        raw.map((entry) => [entry.occurredAt, entry.grantId, entry.change]),
       );
     });
 
@@ -2915,7 +2915,7 @@ export function describeStoreContract(
     describe("retention's removal", () => {
       async function grantAll(writes: ReadonlyArray<readonly [string, string]>): Promise<void> {
         for (const [id, org] of writes) {
-          await fx.store.insertResource(POLICY, id, IamPolicySchema, policy(id, "ida_ana", org), change(org));
+          await fx.store.insertResource(POLICY, id, GrantSchema, grant(id, "ida_ana", org), change(org));
         }
       }
 
@@ -2924,11 +2924,11 @@ export function describeStoreContract(
 
       it("removes only the entries recorded before the cutoff, in every organization, and keeps the heads", async () => {
         await grantAll([
-          ["iamp_a1", "acme"],
-          ["iamp_b1", "beta"],
-          ["iamp_a2", "acme"],
-          ["iamp_b2", "beta"],
-          ["iamp_a3", "acme"],
+          ["grt_a1", "acme"],
+          ["grt_b1", "beta"],
+          ["grt_a2", "acme"],
+          ["grt_b2", "beta"],
+          ["grt_a3", "acme"],
         ]);
         await fx.stampPermissionHistory("acme", 1, "2026-01-01T00:00:00.000Z");
         await fx.stampPermissionHistory("beta", 1, "2026-01-01T00:00:00.500Z");
@@ -2946,8 +2946,8 @@ export function describeStoreContract(
         const [oldest] = await fx.store.listPermissionHistory("acme", { limit: 1, after: 0n });
         expect(oldest?.sequence).toBe(3n);
         await grantAll([
-          ["iamp_a4", "acme"],
-          ["iamp_b3", "beta"],
+          ["grt_a4", "acme"],
+          ["grt_b3", "beta"],
         ]);
         expect(await kept()).toEqual([
           ["acme", 3],
@@ -2959,11 +2959,11 @@ export function describeStoreContract(
 
       it("removes oldest first a batch at a time, entries sharing a millisecond in number order, each organization a prefix", async () => {
         await grantAll([
-          ["iamp_a1", "acme"],
-          ["iamp_a2", "acme"],
-          ["iamp_b1", "beta"],
-          ["iamp_a3", "acme"],
-          ["iamp_a4", "acme"],
+          ["grt_a1", "acme"],
+          ["grt_a2", "acme"],
+          ["grt_b1", "beta"],
+          ["grt_a3", "acme"],
+          ["grt_a4", "acme"],
         ]);
         const instant = "2026-01-01T00:00:00.000Z";
         for (const [org, sequence] of [
@@ -2993,13 +2993,13 @@ export function describeStoreContract(
         await expect(fx.store.permissionHistoryHead("beta")).resolves.toBe(1n);
         await expect(fx.store.permissionHistoryHead("gamma")).resolves.toBe(0n);
 
-        await grantAll([["iamp_a5", "acme"]]);
+        await grantAll([["grt_a5", "acme"]]);
         expect(await kept()).toEqual([["acme", 5]]);
       });
 
       it("removes nothing from a history with nothing older, and refuses a limit that is not a positive integer", async () => {
         await expect(fx.store.prunePermissionHistory(new Date(), 10)).resolves.toBe(0);
-        await grantAll([["iamp_a1", "acme"]]);
+        await grantAll([["grt_a1", "acme"]]);
         await expect(
           fx.store.prunePermissionHistory(new Date("2000-01-01T00:00:00.000Z"), 10),
         ).resolves.toBe(0);
@@ -3017,9 +3017,9 @@ export function describeStoreContract(
       await expect(
         fx.store.insertResource(
           POLICY,
-          "iamp_1",
-          IamPolicySchema,
-          policy("iamp_1", "ida_ana", "acme"),
+          "grt_1",
+          GrantSchema,
+          grant("grt_1", "ida_ana", "acme"),
           change("acme", ""),
         ),
       ).rejects.toThrow();
@@ -3028,14 +3028,14 @@ export function describeStoreContract(
 
       await fx.store.insertResource(
         POLICY,
-        "iamp_1",
-        IamPolicySchema,
-        policy("iamp_1", "ida_ana", "acme"),
+        "grt_1",
+        GrantSchema,
+        grant("grt_1", "ida_ana", "acme"),
         change("acme"),
       );
-      await expect(fx.store.deleteResource(POLICY, "iamp_1", change("acme", ""))).rejects.toThrow();
+      await expect(fx.store.deleteResource(POLICY, "grt_1", change("acme", ""))).rejects.toThrow();
       expect(await fx.store.listResources(POLICY)).toHaveLength(1);
-      expect(await principalRows("ida_ana")).toEqual(["iamp_1"]);
+      expect(await principalRows("ida_ana")).toEqual(["grt_1"]);
       expect((await fx.permissionHistory()).map((entry) => entry.change)).toEqual(["granted"]);
     });
   });

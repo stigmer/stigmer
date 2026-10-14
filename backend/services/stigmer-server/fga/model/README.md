@@ -129,9 +129,9 @@ define affiliated: [identity_account]
 define owner: ([identity_account] and affiliated from organization) or admin from organization
 ```
 
-The bound is what makes leaving an organization mean what it says. A person who loses their last role in the organization reaches nothing it holds on the next check, whichever way the grant was made: shared with them directly, recorded as its author (open source derives an author's `owner` tuple from the row's creator stamp; the hosted edition stores it), or through a team. No cleanup has to run first and none can be missed. Rejoining gives back what the person authored, because authorship is a fact about the row; the IamPolicy grant path deletes the shares and team memberships the person held when they left, so those do not come back.
+The bound is what makes leaving an organization mean what it says. A person who loses their last role in the organization reaches nothing it holds on the next check, whichever way the grant was made: shared with them directly, recorded as its author (open source derives an author's `owner` tuple from the row's creator stamp; the hosted edition stores it), or through a team. No cleanup has to run first and none can be missed. Rejoining gives back what the person authored, because authorship is a fact about the row; the grant path deletes the shares and team memberships the person held when they left, so those do not come back.
 
-`affiliated` is stored so the bound costs one read: a computed `viewer or guest` would walk the role chain again for every object a list checks. It is derived, never granted. The tuple stands exactly while the person holds at least one role row on the organization, a guest included. The IamPolicy grant path refuses it as a grant, and announces every change of a person's organization rows through the resource-authorization lifecycle (`onOrganizationAffiliationChanging` before a row goes, `onOrganizationAffiliationChanged` after any write or delete). The hosted edition re-derives the tuple from those announcements; open source derives it from the rows at check time, so it needs no migration.
+`affiliated` is stored so the bound costs one read: a computed `viewer or guest` would walk the role chain again for every object a list checks. It is derived, never granted. The tuple stands exactly while the person holds at least one role row on the organization, a guest included. The grant path refuses it as a grant, and announces every change of a person's organization rows through the resource-authorization lifecycle (`onOrganizationAffiliationChanging` before a row goes, `onOrganizationAffiliationChanged` after any write or delete). The hosted edition re-derives the tuple from those announcements; open source derives it from the rows at check time, so it needs no migration.
 
 `affiliated` includes `guest` because the organization's system accounts (the guest, channel and schedule sessions) hold only `guest` and own the sessions they create. The usersets on the same direct list (`organization#viewer`, `team#member`) are already inside the organization, so bounding them changes nothing. Child-organization visibility (`child_org_viewer`) sits outside the bound: it is the one arm that crosses organizations by design, from a parent to its children. A relation that is the kind's structural parent link stays a direct relation, and the bound goes on the permissions that read it instead (`memory.subject_in_organization`).
 
@@ -194,7 +194,7 @@ The model defines every type, whichever edition serves it. Which kinds an editio
 
 A change edits a `.fga` file and the suite under `../tests/` that pins it (a new relation, a new type or a new path gets its assertions), runs `make test-authorization-model` (it regenerates the JSON, runs every suite on the engine at the pinned `fga` CLI version, then through the built-in evaluator), and commits the regenerated JSON with the source. The engine version is pinned to the one production runs, and moves with it.
 
-A permission is added when something asks it and deleted when nothing does. Every `can_*` relation is an `IamPermission` value (so an RPC, a pipeline step or the self-check can ask it) or is named by the rewrite of a relation that is itself reachable, and every `IamPermission` value is defined by some type; `src/authorization/__tests__/wire-permissions.test.ts` fails otherwise. A role, a structural link or a type stays while code writes or reads it, and the model declares every open-source kind whether or not anything is granted on it. Removing a relation must change no answer anywhere: every edition answers a permission a kind's type does not define as a denial, never an engine error, and the IamPolicy conformance suite holds each edition to that by asking such a permission on a run.
+A permission is added when something asks it and deleted when nothing does. Every `can_*` relation is an `IamPermission` value (so an RPC, a pipeline step or the self-check can ask it) or is named by the rewrite of a relation that is itself reachable, and every `IamPermission` value is defined by some type; `src/authorization/__tests__/wire-permissions.test.ts` fails otherwise. A role, a structural link or a type stays while code writes or reads it, and the model declares every open-source kind whether or not anything is granted on it. Removing a relation must change no answer anywhere: every edition answers a permission a kind's type does not define as a denial, never an engine error, and the Grant conformance suite holds each edition to that by asking such a permission on a run.
 
 A model change's note is its pull request and its commit: what changed, why, and the suite that pins it. The release that carries it names it in its notes. The model's history is `git log` of this folder; it moved here from the hosted edition's private repository on 2026-09-26, and its history before that is not public.
 
@@ -250,7 +250,7 @@ can_view → can_view from session:chat-123 → owner (bob), a viewer grant, or 
 
 ```
 team:tm-sre#organization@organization:acme
-team:tm-sre#member@identity_account:vic         ← membership, an IamPolicy row
+team:tm-sre#member@identity_account:vic         ← membership, a Grant row
 agent:pr-reviewer#viewer@team:tm-sre#member     ← a share with the team
 ```
 
@@ -262,7 +262,7 @@ can_view → viewer → team:tm-sre#member → [identity_account:vic] and viewer
 ### Editor (Edits, Never Decides Who Reaches It)
 
 ```
-agent:pr-reviewer#editor@identity_account:dan   ← an IamPolicy row
+agent:pr-reviewer#editor@identity_account:dan   ← a Grant row
 agent:pr-reviewer#editor@team:tm-sre#member     ← or a team
 ```
 
@@ -284,7 +284,7 @@ fga/
 │   ├── iam/
 │   │   ├── identity_account.fga    # User accounts
 │   │   ├── federation_issuer.fga   # The outside issuers an organization trusts
-│   │   ├── iam_policy.fga          # Access policies
+│   │   ├── grant.fga               # Grants (access rows)
 │   │   ├── api_key.fga             # User API keys
 │   │   ├── oauth_app.fga           # OAuth client registrations
 │   │   ├── invitation.fga          # Org membership invitations

@@ -1,7 +1,7 @@
 "use client";
 
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 
 /** Return value of {@link useCanCreateAgentShare}. */
 export interface UseCanCreateAgentShareReturn {

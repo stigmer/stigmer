@@ -14,7 +14,7 @@ type Client struct {
 	EvalRun          *EvalRunClient
 	Evaluator        *EvaluatorClient
 	FederationIssuer *FederationIssuerClient
-	IamPolicy        *IamPolicyClient
+	Grant            *GrantClient
 	IdentityAccount  *IdentityAccountClient
 	Invitation       *InvitationClient
 	License          *LicenseClient
@@ -45,7 +45,7 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		EvalRun:          NewEvalRunClient(conn),
 		Evaluator:        NewEvaluatorClient(conn),
 		FederationIssuer: NewFederationIssuerClient(conn),
-		IamPolicy:        NewIamPolicyClient(conn),
+		Grant:            NewGrantClient(conn),
 		IdentityAccount:  NewIdentityAccountClient(conn),
 		Invitation:       NewInvitationClient(conn),
 		License:          NewLicenseClient(conn),

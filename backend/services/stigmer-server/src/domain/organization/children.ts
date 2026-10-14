@@ -24,7 +24,7 @@
  *     nor a tuple driver makes the creator its owner. The parent's admins
  *     manage it (`parent_admin`, fga/model/tenancy/organization.fga) and
  *     grant its people; the membership rules skip it
- *     (domain/iampolicy/membership.ts).
+ *     (domain/grant/membership.ts).
  *   - LinkChildOrganization (create, after the claims and just before
  *     Persist): the lifecycle's `onChildOrganizationLinked`, so an edition
  *     that stores tuples writes both edges before the row exists. A link

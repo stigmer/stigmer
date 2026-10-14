@@ -43,7 +43,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -190,9 +190,9 @@ describe("API keys and service accounts (composed server, built-in Authorizer)",
   });
 
   it("the founder owns the organization and the second person is its member (the roles every case below stands on)", async () => {
-    const rows = await server.store.listResources(ApiResourceKind.iam_policy);
+    const rows = await server.store.listResources(ApiResourceKind.grant);
     const roles = rows
-      .map((row) => fromBinary(IamPolicySchema, row).spec)
+      .map((row) => fromBinary(GrantSchema, row).spec)
       .filter((spec) => spec?.resource?.id === orgId)
       .map((spec) => `${spec?.principal?.id}:${spec?.relation}`);
     expect(roles).toContain(`${founderId}:owner`);

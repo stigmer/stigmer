@@ -5,7 +5,7 @@ import { cn } from "@stigmer/theme";
 import { DialogShell } from "../internal/DialogShell.js";
 import { ApiResourceKind, hasGrantableRoles, hasTeamGrantableRoles } from "@stigmer/sdk";
 import { useResourceAvailable } from "../deployment-mode.js";
-import { PeopleWithAccess } from "../iam-policy/PeopleWithAccess.js";
+import { PeopleWithAccess } from "../grant/PeopleWithAccess.js";
 import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl.js";
 import type {
   AccessResource,

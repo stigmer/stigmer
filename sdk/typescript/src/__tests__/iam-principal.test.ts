@@ -24,7 +24,7 @@ import { create } from "@bufbuild/protobuf";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import { IdentityOriginSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import { IdentityOriginSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
 
 import {
   getGrantableRoles,

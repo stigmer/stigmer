@@ -9,7 +9,7 @@
  *
  * Why the composition hands these over instead of the host passing them
  * in: under open source's own authorization the Authorizer, the list read
- * scope and the policy check are built inside `composeServer`, after every
+ * scope and the grant check are built inside `composeServer`, after every
  * unit exists, so no host could pass them; and where a host could (its own
  * Authorizer), handing the unit anything but the instance the Authorize
  * step calls would let the unit's gates ask a different question than the
@@ -30,7 +30,7 @@
  *     identity accounts are the store binding every lane reads and the
  *     domain's one create path, so an account a unit creates runs the same
  *     chain, gets the same derived id and fires the same tuple lifecycle
- *     as one a person's sign-in creates. The policy store is the same
+ *     as one a person's sign-in creates. The grant store is the same
  *     binding the grant path writes through, handed over for reads. The
  *     Authorizer and the list read scope are handed over bound by the
  *     credential binding (authorization/credential-binding.ts), so a unit
@@ -38,11 +38,11 @@
  *     must hand THIS one, never its own instance, to its consumers.
  */
 import type { Transport } from "@connectrpc/connect";
-import type { ApiResourceRef } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import type { ApiResourceRef } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 
 import type { CreateAccount } from "../domain/identityaccount/provisioning.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
-import type { IamPolicyStore } from "../domain/iampolicy/store.js";
+import type { GrantStore } from "../domain/grant/store.js";
 
 import type { AuthorizationQueryEngine } from "./authorization-queries.js";
 import type { Authorizer } from "./authorizer.js";
@@ -67,21 +67,21 @@ export interface ComposedIdentityAccounts {
 }
 
 /**
- * The policy store as a unit's own lanes read it: the composition's one
+ * The grant store as a unit's own lanes read it: the composition's one
  * binding (a unit's registered driver, or open source's adapter), reads
  * only. A unit's repair finds a resource's rows or every row granting a
  * relation on a kind; its grant gate finds a resource's structural link.
  * A write goes through the domain's grant path (an RPC over the in-process
  * transport), never through this store, so no second write path exists.
  */
-export type ComposedIamPolicies = Pick<
-  IamPolicyStore,
+export type ComposedGrants = Pick<
+  GrantStore,
   "findByResource" | "findScopeTuple" | "findByResourceKindAndRelation"
 >;
 
 /**
- * Which organization a resource belongs to, answered as the IamPolicy
- * domain answers it for its change records (domain/iampolicy/grant-path.ts
+ * Which organization a resource belongs to, answered as the Grant
+ * domain answers it for its change records (domain/grant/grant-path.ts
  * `organizationOf`): through the resource's scope links, else its stored
  * row's `metadata.org`; "" when neither names one. A unit's grant gate
  * asks it where a scope link may be absent: open source's own
@@ -110,9 +110,9 @@ export interface ComposedServices {
    */
   readonly childOrganizations: ChildOrganizations;
   /**
-   * "Is this policy effectively held": the registered engine's `check`, or
+   * "Is this grant effectively held": the registered engine's `check`, or
    * under open source's own authorization the evaluator's
-   * (authorization/policy-check.ts); undefined where neither exists (a
+   * (authorization/grant-check.ts); undefined where neither exists (a
    * unit Authorizer with no engine, or open source signed-out). Unlike the
    * Authorizer above it is NOT bound: it takes no caller, so a unit that
    * asks it on a caller's behalf first asks `credentialBinding.verdict`
@@ -133,7 +133,7 @@ export interface ComposedServices {
   /** The identity-account store binding and the domain's one create path. */
   readonly identityAccounts: ComposedIdentityAccounts;
   /** The policy store binding's reads. */
-  readonly iamPolicies: ComposedIamPolicies;
+  readonly grants: ComposedGrants;
   /** The organization a resource belongs to, on every posture. */
   readonly resourceOrganizations: ResourceOrganizations;
   /**

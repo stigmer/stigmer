@@ -15,7 +15,7 @@
 # state its members are left in when the link is gone: nobody is a member.
 # Team partners belongs to organization other and holds a grant on an acme
 # agent. It reaches nothing: the agent's direct grants are bounded by the
-# agent's own organization, and ext holds no role in acme. The IAM policy
+# agent's own organization, and ext holds no role in acme. The grant
 # grant gate also refuses such a grant before it is written.
 # Team sre is also granted editor on MCP server runbook: the editor role
 # reaches the same bounded members a team's viewer grant does.

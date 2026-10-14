@@ -7,7 +7,7 @@ import { saveErrorMessage } from "../internal/maskedEdit.js";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { useOrganization } from "./useOrganization.js";
 import { useUpdateOrganization } from "./useUpdateOrganization.js";
-import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { useServerInfo } from "../server-info.js";
 import { MemoryEnabledRow } from "../internal/MemoryEnabledRow.js";
 import { StandingContextField } from "../internal/StandingContextField.js";

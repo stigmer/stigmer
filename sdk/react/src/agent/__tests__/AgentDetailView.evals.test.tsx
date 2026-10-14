@@ -38,7 +38,7 @@ function renderView(plugins: readonly string[], onNavigateToRun = vi.fn()) {
         },
         plugin: { getByReference: vi.fn(async () => undefined) },
         platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
-        iamPolicy: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
+        grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
       },
       undefined,
       true,

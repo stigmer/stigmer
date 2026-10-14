@@ -85,7 +85,7 @@ import {
   type OidcDiscoveryDocument,
 } from "../../verifiers/oidc-discovery.js";
 import type { OrganizationLookup } from "../organization-links.js";
-import { grantableRolesFor } from "../policy/roles.js";
+import { grantableRolesFor } from "../grant/roles.js";
 import { normalizeIssuerUrl } from "./issuer-url.js";
 import { routesOf, type IssuerRoute } from "./routes.js";
 import type { FederationIssuerStore } from "./store.js";

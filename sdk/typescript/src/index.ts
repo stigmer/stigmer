@@ -247,10 +247,10 @@ export {
   type SlackChannelAppConfigInput,
 } from "./gen/channelapp.js";
 export {
-  IamPolicyClient,
-  type IamPolicyInput,
+  GrantClient,
+  type GrantInput,
   type ApiResourceRefInput,
-} from "./gen/iampolicy.js";
+} from "./gen/grant.js";
 export {
   IdentityAccountClient,
   buildIdentityAccountProto,

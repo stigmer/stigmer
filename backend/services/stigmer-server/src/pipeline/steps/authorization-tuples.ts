@@ -340,7 +340,7 @@ export function newCreateAuthorizationTuplesStep<Desc extends DescMessage>(
  * and no sweep revisits them: a cleanup that fails here stays undone until
  * another cleanup reaches the row from its other side. No driver = no-op.
  *
- * Two callers, one contract: every delete chain's CleanupIamPolicies step
+ * Two callers, one contract: every delete chain's CleanupGrants step
  * for the chain's own resource, and every cascade step for each child it
  * deletes, right after the child's row (the agent's shares, the session's
  * runs). The child is cleaned
@@ -360,7 +360,7 @@ export async function cleanUpDeletedResource(
     await lifecycle.onResourceDeleted(event);
   } catch (error) {
     logger.warn(
-      "authorization cleanup failed — orphaned IAM policies may remain",
+      "authorization cleanup failed — orphaned grants may remain",
       {
         kind: getKindName(event.kind),
         resourceId: event.resourceId,
@@ -371,19 +371,19 @@ export async function cleanUpDeletedResource(
 }
 
 /**
- * CleanupIamPolicies — after the store delete in every delete chain: the
+ * CleanupGrants — after the store delete in every delete chain: the
  * chain's own resource through `cleanUpDeletedResource`. The organization
  * is the one kind whose id another caller can take next, so its chain
  * revokes the organization's rows before the row, failing closed
- * (RevokeOrganizationPolicies, domain/organization/steps.ts), and this
+ * (RevokeOrganizationGrants, domain/organization/steps.ts), and this
  * step is only its backstop there.
  */
-export function newCleanupIamPoliciesStep<Desc extends DescMessage>(
+export function newCleanupGrantsStep<Desc extends DescMessage>(
   lifecycle: ResourceAuthorizationLifecycle | undefined,
   logger: Logger,
 ): PipelineStep<Desc> {
   return {
-    name: "CleanupIamPolicies",
+    name: "CleanupGrants",
     async execute(ctx: RequestContext<Desc>): Promise<void> {
       const deleted = ctx.get(EXISTING_RESOURCE_KEY) as
         | HasMetadataShape

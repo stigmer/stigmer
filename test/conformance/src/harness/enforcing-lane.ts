@@ -14,7 +14,7 @@
 //     the founder is the target's primary caller.
 //   - newSiblingEnforcingLane: an open-source sibling booted in the OIDC
 //     posture against the harness's local issuer (the shape the
-//     identityaccount and iampolicy suites already use), with a founder the
+//     identityaccount and grant suites already use), with a founder the
 //     issuer mints and the server provisions.
 //
 // What the two hide from the arms:
@@ -42,11 +42,11 @@
 // The lane deliberately has no teardown: the target owns its lifetime
 // (LocalTarget memoizes the sibling lane and stops it with the primary).
 import { create } from "@bufbuild/protobuf";
-import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import {
   ApiResourceRefSchema,
-  IamPolicySpecSchema,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+  GrantSpecSchema,
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 
 import type {
   EnforcingLane,
@@ -67,20 +67,20 @@ const ORGANIZATION_API_VERSION = "tenancy.stigmer.ai/v1";
 const ORGANIZATION_KIND = "Organization";
 
 // `identity_account:<accountId>` holds `<role>` on `organization:<orgId>` —
-// the Members-page grant, as IamPolicyCommandController.create and .delete
+// the Members-page grant, as GrantCommandController.create and .delete
 // both take it. The resource id is the organization's ID (its FGA object),
 // which for this one kind equals its slug.
 export function organizationRoleGrant(
   organizationId: string,
   accountId: string,
   role: OrganizationRole,
-): IamPolicySpec {
+): GrantSpec {
   if (organizationId === "" || accountId === "") {
     throw new Error(
       "organizationRoleGrant needs a non-empty organization id and account id",
     );
   }
-  return create(IamPolicySpecSchema, {
+  return create(GrantSpecSchema, {
     principal: create(ApiResourceRefSchema, {
       kind: "identity_account",
       id: accountId,
@@ -148,9 +148,9 @@ async function applyExactRole(
   for (const step of exactRoleSteps(role)) {
     const grant = organizationRoleGrant(organizationId, accountId, step.role);
     if (step.op === "grant") {
-      await founder.iamPolicyCommand.create(grant);
+      await founder.grantCommand.create(grant);
     } else {
-      await founder.iamPolicyCommand.delete(grant);
+      await founder.grantCommand.delete(grant);
     }
   }
 }
@@ -247,7 +247,7 @@ export async function newSiblingEnforcingLane(
         // Deliberately NO STIGMER_OPERATOR_EMAIL: the operator-email rule
         // would make one person an admin of every organization, and this
         // lane's people hold exactly what the arms gave them. The
-        // membership-rules block of the iampolicy suite keeps its own
+        // membership-rules block of the grant suite keeps its own
         // sibling for that rule.
       },
       // The readiness gate presents a subject nobody else uses; under the
@@ -305,7 +305,7 @@ export async function newSiblingEnforcingLane(
       await founderOrganizationIds(),
       spare,
     )) {
-      await founder.clients.iamPolicyCommand.revokeOrgAccess({
+      await founder.clients.grantCommand.revokeOrgAccess({
         identityAccountId: accountId,
         org: organizationId,
       });

@@ -1,6 +1,6 @@
 /**
  * The organization grant gate: the step on
- * `iam-policy-create:pre-side-effect-gate`, the IAM policy `create` chain
+ * `grant-create:pre-side-effect-gate`, the grant `create` chain
  * after ValidateGrantableRole and before the write. A grant stays inside
  * the organization of the resource it is made on. The model agrees: it
  * admits a direct grant only while its holder is in the object's
@@ -70,16 +70,16 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ApiResourceRef } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import type { ApiResourceRef } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import {
   ApiResourceRefSchema,
-  IamPolicySpecSchema,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+  GrantSpecSchema,
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import type {
   AuthorizationQueryEngine,
-  IamPolicyStore,
+  GrantStore,
   IdentityAccountStore,
   PipelineStep,
   RequestContext,
@@ -105,7 +105,7 @@ export interface OrganizationGrantGateDeps {
   readonly teams: Pick<TeamStore, "findById">;
   readonly queries: Pick<AuthorizationQueryEngine, "check">;
   /** The resource's scope link: which organization a shared resource belongs to, where the posture stores one. */
-  readonly scopes: Pick<IamPolicyStore, "findScopeTuple">;
+  readonly scopes: Pick<GrantStore, "findScopeTuple">;
   /** The resource's organization from its row, where no scope link is stored. */
   readonly resources: ResourceOrganizations;
   /** The organization's slug, for a refusal's copy. */
@@ -123,11 +123,11 @@ export function serviceAccountNotATeamMemberMessage(accountId: string): string {
 
 export function newOrganizationGrantGateStep(
   deps: OrganizationGrantGateDeps,
-): PipelineStep<typeof IamPolicySpecSchema> {
+): PipelineStep<typeof GrantSpecSchema> {
   return {
     name: "OrganizationGrantGate",
     async execute(
-      ctx: RequestContext<typeof IamPolicySpecSchema>,
+      ctx: RequestContext<typeof GrantSpecSchema>,
     ): Promise<void> {
       const { principal, resource } = ctx.input;
       if (principal === undefined || resource === undefined) {
@@ -188,7 +188,7 @@ async function sameOrganization(
   resource: ApiResourceRef,
 ): Promise<boolean> {
   return deps.queries.check(
-    create(IamPolicySpecSchema, {
+    create(GrantSpecSchema, {
       principal: ref(ORGANIZATION_KIND_NAME, team.metadata?.org ?? ""),
       relation: ORGANIZATION_RELATION,
       resource,
@@ -274,7 +274,7 @@ function isOrganizationViewer(
   organizationId: string,
 ): Promise<boolean> {
   return deps.queries.check(
-    create(IamPolicySpecSchema, {
+    create(GrantSpecSchema, {
       principal: ref(ACCOUNT_KIND_NAME, person.id),
       relation: ORGANIZATION_VIEWER_RELATION,
       resource: ref(ORGANIZATION_KIND_NAME, organizationId),

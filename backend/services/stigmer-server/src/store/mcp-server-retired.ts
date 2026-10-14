@@ -67,7 +67,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataVersionSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 
 import { canonicalSpecHash } from "../pipeline/steps/spec-hash.js";
 import { FrozenMcpServerEnvelopeSchema } from "./frozen-envelopes.js";
@@ -80,7 +80,8 @@ export const PLUGIN_KIND = "plugin";
 export const SKILL_KIND = "skill";
 export const AGENT_KIND = "agent";
 export const SESSION_KIND = "session";
-export const POLICY_KIND = "iam_policy";
+/** The `kind` column value of the grant rows the step reads: their stored kind at its time, before Postgres v34 and SQLite v38 renamed it `grant`. */
+export const GRANT_KIND_AT_STEP = "iam_policy";
 
 /** How many rows the step decodes per page. */
 export const RETIREMENT_PAGE_SIZE = 500;
@@ -493,17 +494,17 @@ export function migrateSessionRow(
 }
 
 /**
- * Whether a stored IamPolicy row names a server or a plugin's skill the
+ * Whether a stored grant row names a server or a plugin's skill the
  * step removes, as its resource or its principal: a grant on a row that no
  * longer exists would only linger in grant listings. Throws when the bytes
  * do not decode.
  */
-export function policyNamesRetired(
+export function grantNamesRetired(
   data: Uint8Array,
   serverIds: ReadonlySet<string>,
   memberSkillIds: ReadonlySet<string>,
 ): boolean {
-  const spec = fromBinary(IamPolicySchema, data).spec;
+  const spec = fromBinary(GrantSchema, data).spec;
   const names = (ref: { kind: string; id: string } | undefined): boolean =>
     ref !== undefined &&
     ((ref.kind === RETIRED_MCP_SERVER_KIND && serverIds.has(ref.id)) ||

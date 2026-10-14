@@ -50,7 +50,7 @@ import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 
@@ -68,7 +68,7 @@ import {
   sqliteCensusReader,
 } from "../../../store/__tests__/organization-census.js";
 import type { CensusReader } from "../../../store/__tests__/organization-census.js";
-import { triple } from "../../iampolicy/__tests__/support.js";
+import { triple } from "../../grant/__tests__/support.js";
 import { oauthAppAddressKey } from "../../vault/login-app.js";
 import { kindClaimsNames } from "../../../pipeline/steps/names.js";
 import { namingSaves } from "../../../store/__tests__/named-saves.js";
@@ -113,10 +113,10 @@ async function grpcError(run: () => Promise<unknown>): Promise<ConnectError> {
   throw new Error("expected the call to fail");
 }
 
-/** The kinds the core purges that the seed stores directly (the rest are made by their RPCs or are policies). */
+/** The kinds the core purges that the seed stores directly (the rest are made by their RPCs or are grants). */
 const STORED_KINDS = [...CORE_PURGED_KINDS].filter(
   (kind) =>
-    kind !== ApiResourceKind.iam_policy &&
+    kind !== ApiResourceKind.grant &&
     kind !== ApiResourceKind.agent &&
     kind !== ApiResourceKind.agent_share &&
     kind !== ApiResourceKind.vault &&
@@ -137,7 +137,7 @@ export function describeOrganizationPurge(
     let vaults: Client<typeof VaultCommandController>;
     let sessions: Client<typeof SessionCommandController>;
     let internalSessions: Client<typeof SessionCommandController>;
-    let platform: Client<typeof IamPolicyCommandController>;
+    let platform: Client<typeof GrantCommandController>;
 
     /** Organizations the purge holds until the test lets go. */
     const held = new Set<string>();
@@ -202,7 +202,7 @@ export function describeOrganizationPurge(
         server.inProcessTransport,
       );
       platform = createClient(
-        IamPolicyCommandController,
+        GrantCommandController,
         server.inProcessTransport,
       );
     });
@@ -274,7 +274,7 @@ export function describeOrganizationPurge(
       const sessionId = session.metadata?.id ?? "";
       ids.add(sessionId);
       sessionIds.set(org, sessionId);
-      await platform.bootstrapPolicy(
+      await platform.bootstrapGrant(
         triple({ kind: "identity_account", id: "ida_purge_reader" }, "viewer", {
           kind: "agent",
           id: agentId,

@@ -620,12 +620,12 @@ describe("resolveExtensions — loud-fail throws", () => {
       "agent-execution-create:pre-side-effect-gate",
       "agent-execution-recover:pre-side-effect-gate",
       "agent-execution-submit-approval:gate",
-      // The seventh: the IamPolicy create chain before the write, where an
+      // The seventh: the Grant create chain before the write, where an
       // edition that serves teams refuses a team it cannot admit.
-      "iam-policy-create:pre-side-effect-gate",
+      "grant-create:pre-side-effect-gate",
       // The tenth: the access history's read before anything is read, where
       // a host refuses a read its own rules forbid.
-      "iam-policy-list-access-history:pre-read",
+      "grant-list-access-history:pre-read",
       // The sixth slot — after the account
       // persists inside provisionMyAccount, before the reply (the cloud's
       // first-organization step rides it).

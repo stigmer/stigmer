@@ -18,9 +18,9 @@ import { LIST_INDEXES } from "../list-indexes.js";
 const PINNED: Readonly<
   Record<string, { revision: number; fingerprint: string }>
 > = {
-  iam_policy: {
+  grant: {
     revision: 1,
-    fingerprint: "iam_policy{principal=field:spec.principal.id}",
+    fingerprint: "grant{principal=field:spec.principal.id}",
   },
   api_key: {
     revision: 1,

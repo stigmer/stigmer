@@ -46,7 +46,7 @@ import {
 } from "./cadence.js";
 import { CadenceField } from "./CadenceField.js";
 import { VaultPicker } from "../vault/VaultPicker.js";
-import { useWhoAmI } from "../iam-policy/useWhoAmI.js";
+import { useWhoAmI } from "../grant/useWhoAmI.js";
 import { ModelSelector } from "../models/ModelSelector.js";
 import {
   HARNESS_META,

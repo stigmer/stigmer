@@ -321,7 +321,7 @@
           "viewer": {}
         },
         "source_info": {
-          "file": "iam/iam_policy.fga"
+          "file": "iam/grant.fga"
         }
       },
       "relations": {
@@ -383,7 +383,7 @@
           }
         }
       },
-      "type": "iam_policy"
+      "type": "grant"
     },
     {
       "metadata": {

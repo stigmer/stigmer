@@ -34,7 +34,7 @@ function renderView(agent: Agent, props: { editable?: boolean } = {}) {
         {
           agent: { getByReference: vi.fn(async () => agent), update },
           platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
-          iamPolicy: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
+          grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
         },
         undefined,
         true,

@@ -94,12 +94,12 @@ export type {
 } from "./extensions/registry.js";
 // What the composition hands a unit (ServerExtension.onComposed): its one
 // Authorizer and list read scope (bound by the credential binding), the
-// binding itself, the policy check, tuple lifecycle, in-process transport
+// binding itself, the grant check, tuple lifecycle, in-process transport
 // and the identity accounts' store binding and create path, whichever
 // posture built them, the policy store's reads, and which organization a
 // resource belongs to.
 export type {
-  ComposedIamPolicies,
+  ComposedGrants,
   ComposedIdentityAccounts,
   ComposedServices,
   ResourceOrganizations,
@@ -184,8 +184,8 @@ export type {
   ServiceAccountLinkedEvent,
   OrganizationAffiliationEvent,
   OrganizationPoliciesChangedEvent,
-  PolicyGrantedEvent,
-  PolicyRevokedEvent,
+  GrantedEvent,
+  RevokedEvent,
   ResourceAuthorizationLifecycle,
   ResourceCreatedEvent,
   ResourceDeletedEvent,
@@ -297,40 +297,40 @@ export type {
   SessionEventStoreContractFixture,
 } from "./store/session-events-contract.js";
 export { sessionEventStoreContract } from "./store/session-events-contract.js";
-// The IamPolicy seams: the store PORT a
-// composition drives the domain's grant path through (drivers.iamPolicyStore;
-// a driver throws DuplicatePolicyError for a held id) and its vitest-free
-// contract kit; the grant scope (drivers.policyGrantScope — which kinds an
+// The Grant seams: the store PORT a
+// composition drives the domain's grant path through (drivers.grantStore;
+// a driver throws DuplicateGrantError for a held id) and its vitest-free
+// contract kit; the grant scope (drivers.grantScope — which kinds an
 // edition grants on, with which roles; open source's default is the
 // organization alone); and the tuple-half query engine
 // (drivers.authorizationQueries — the three graph questions only an
 // authorization backend answers). The grant path itself is NOT exported: a
 // composition reaches it as in-process RPCs, the doctrine.
-export type { IamPolicyStore } from "./domain/iampolicy/store.js";
-export { DuplicatePolicyError } from "./domain/iampolicy/store.js";
+export type { GrantStore } from "./domain/grant/store.js";
+export { DuplicateGrantError } from "./domain/grant/store.js";
 // What the grant path hands the store beside every access row it writes or
 // deletes (who, through which door, in which organization), so an edition
 // that keeps a permission history writes it atomically with the row; and
 // what the store's `listChanges` reads back.
 export type {
-  PolicyActor,
-  PolicyChange,
-  PolicyChangeCause,
-  PolicyChangePage,
-  PolicyChangeRecord,
-} from "./domain/iampolicy/change.js";
+  GrantActor,
+  GrantChange,
+  GrantChangeCause,
+  GrantChangePage,
+  GrantChangeRecord,
+} from "./domain/grant/change.js";
 export type {
-  IamPolicyStoreContractCase,
-  IamPolicyStoreContractFixture,
-  IamPolicyStoreContractOptions,
-} from "./domain/iampolicy/store-contract.js";
-export { iamPolicyStoreContract } from "./domain/iampolicy/store-contract.js";
+  GrantStoreContractCase,
+  GrantStoreContractFixture,
+  GrantStoreContractOptions,
+} from "./domain/grant/store-contract.js";
+export { grantStoreContract } from "./domain/grant/store-contract.js";
 // The owner rule's refusal, the one sentence every door that grants the
-// owner role answers when its caller is no owner: the IamPolicy lanes here,
+// owner role answers when its caller is no owner: the Grant lanes here,
 // and an edition's own lanes that grant a role on a person's behalf (an
 // owner invitation).
-export { OWNER_ASSIGNMENT_DENIED_MESSAGE } from "./domain/iampolicy/constants.js";
-export type { PolicyGrantScope } from "./extensions/policy-grant-scope.js";
+export { OWNER_ASSIGNMENT_DENIED_MESSAGE } from "./domain/grant/constants.js";
+export type { GrantScope } from "./extensions/grant-scope.js";
 export type { AuthorizationQueryEngine } from "./extensions/authorization-queries.js";
 // How an access list names a grantee that is not a person
 // (drivers.principalDisplay): a team, in the editions that serve teams.

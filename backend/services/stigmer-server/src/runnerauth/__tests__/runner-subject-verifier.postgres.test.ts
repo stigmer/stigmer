@@ -58,7 +58,7 @@ import { accountIdFor } from "../../domain/identityaccount/constants.js";
 import { newResourceIdentityAccountStore } from "../../domain/identityaccount/resource-store.js";
 import { newConnectExecutionId } from "../../domain/plugin/tools/execution-id.js";
 import type { IdentityAccountStore } from "../../domain/identityaccount/store.js";
-import { newOrganizationOnlyGrantScope } from "../../domain/iampolicy/grant-scope.js";
+import { newOrganizationOnlyGrantScope } from "../../domain/grant/grant-scope.js";
 import {
   RUN_CREDENTIAL_GRACE_AFTER_TERMINAL_MS,
   RUNNER_CREDENTIAL_INVALID_MESSAGE,

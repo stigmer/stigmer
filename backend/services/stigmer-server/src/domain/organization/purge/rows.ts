@@ -14,7 +14,7 @@
  *
  * It matches `metadata.org` only. The kinds whose rows name their
  * organization elsewhere or live behind a port a composition substitutes
- * (an API key's bound organization; identity accounts and policy rows, which the kind purges read through their ports) are
+ * (an API key's bound organization; identity accounts and grant rows, which the kind purges read through their ports) are
  * refused rather than answered wrong, as is a limit that is not a
  * positive integer. A `next` names the kind and the read it came from, so
  * a token from another kind's or another read's page is refused too,
@@ -47,7 +47,7 @@ const SCAN_PAGE = 500;
 /** Kinds whose rows `metadata.org` does not place (kind-purge.ts's `belongsTo` and `rows`). */
 const REFUSED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.api_key,
-  ApiResourceKind.iam_policy,
+  ApiResourceKind.grant,
   ApiResourceKind.identity_account,
 ]);
 

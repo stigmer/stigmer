@@ -11,7 +11,7 @@
  *     organization delete stops with the organization in place, and
  *     another organization's invitations are untouched.
  */
-import type { ApiResourceRef } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import type { ApiResourceRef } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import { createLogger } from "@stigmer/server";
 import { describe, expect, it } from "vitest";
 
@@ -41,8 +41,8 @@ function rig(failFor: ReadonlySet<string> = new Set()) {
         await invitations.deleteById(id);
       },
     },
-    policies: {
-      cleanupResourcePolicies: (ref: ApiResourceRef, actingFor?: string) => {
+    grants: {
+      cleanupResourceGrants: (ref: ApiResourceRef, actingFor?: string) => {
         actors.push(actingFor);
         order.push(`grants:${ref.kind}:${ref.id}`);
         return failFor.has(ref.id)

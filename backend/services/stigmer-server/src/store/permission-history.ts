@@ -3,7 +3,7 @@
  * written by the store in the same transaction as the row
  * (`Store.insertResource` and `Store.deleteResource` with a change). An
  * edition that keeps a history hands the change; open source hands none
- * and the table stays empty (domain/iampolicy/resource-store.ts).
+ * and the table stays empty (domain/grant/resource-store.ts).
  *
  * What a writer hands is who, why and where: the cause, the actor and the
  * organization. Everything the entry says about the row itself (its id,
@@ -14,7 +14,7 @@
  * bytes for the history; the drivers own the SQL.
  *
  * Numbering. Entries are numbered per organization from a head row that
- * never goes back (`iam_policy_history_heads`), one writer per
+ * never goes back (`grant_history_heads`), one writer per
  * organization at a time: Postgres takes a transaction-scoped advisory lock
  * on the organization before the row, SQLite runs under BEGIN IMMEDIATE.
  * An organization's entries are therefore numbered in commit order with no
@@ -41,7 +41,7 @@
 import { fromBinary } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 
 import { apiResourceKindName } from "./proto-fields.js";
 
@@ -67,7 +67,7 @@ export interface PermissionHistoryEntry {
   readonly cause: string;
   readonly actorId: string;
   readonly actorClass: string;
-  readonly policyId: string;
+  readonly grantId: string;
   readonly principalKind: string;
   readonly principalId: string;
   readonly principalRelation: string;
@@ -140,7 +140,7 @@ export function permissionHistoryRecordOf(
     cause: text("cause"),
     actorId: text("actor_id"),
     actorClass: text("actor_class"),
-    policyId: text("policy_id"),
+    grantId: text("grant_id"),
     principalKind: text("principal_kind"),
     principalId: text("principal_id"),
     principalRelation: text("principal_relation"),
@@ -153,7 +153,7 @@ export function permissionHistoryRecordOf(
 
 /** The columns a read selects, in one place for both drivers. */
 export const PERMISSION_HISTORY_COLUMNS =
-  "org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id, " +
+  "org, sequence, occurred_at, change, cause, actor_id, actor_class, grant_id, " +
   "principal_kind, principal_id, principal_relation, relation, resource_kind, resource_id, data";
 
 /** Refuses a change for a kind other than the access row's, before anything is written. */
@@ -161,9 +161,9 @@ export function assertPermissionChangeKind(
   kind: ApiResourceKind,
   change: PermissionChange | undefined,
 ): void {
-  if (change !== undefined && kind !== ApiResourceKind.iam_policy) {
+  if (change !== undefined && kind !== ApiResourceKind.grant) {
     throw new Error(
-      `a permission change is recorded only with an iam_policy row, not ${apiResourceKindName(kind)}`,
+      `a permission change is recorded only with a grant row, not ${apiResourceKindName(kind)}`,
     );
   }
 }
@@ -172,17 +172,17 @@ export function assertPermissionChangeKind(
 export function permissionHistoryEntryOf(
   change: PermissionChange,
   what: PermissionHistoryChange,
-  policyId: string,
+  grantId: string,
   data: Uint8Array,
 ): PermissionHistoryEntry {
-  const spec = fromBinary(IamPolicySchema, data).spec;
+  const spec = fromBinary(GrantSchema, data).spec;
   return {
     org: change.org,
     change: what,
     cause: change.cause,
     actorId: change.actorId,
     actorClass: change.actorClass,
-    policyId,
+    grantId,
     principalKind: spec?.principal?.kind ?? "",
     principalId: spec?.principal?.id ?? "",
     principalRelation: spec?.principal?.relation ?? "",

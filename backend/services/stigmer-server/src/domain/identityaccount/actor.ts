@@ -10,7 +10,7 @@
  * `accountAsCaller(account)` — the IN-PROCESS lane: no issuer, no token,
  * class `user`. Two consumers: the trusted-local boot ensure, which
  * grants the operator ownership AS their account
- * (domain/iampolicy/membership.ts), and the built-in schedule fire
+ * (domain/grant/membership.ts), and the built-in schedule fire
  * caller, which makes a fire act as the schedule's creator
  * (authorization/schedule-fire-caller.ts). Both ride the in-process
  * transport, whose interceptor stamps `origin: "in-process"` on top —
@@ -62,7 +62,7 @@
  * names from the provider's userinfo (provisioning.ts), so on a hosted
  * install the name arm and the email arm answer the same string. Every
  * audit actor built from a row, getActorInfo's answer and the access
- * listings (domain/iampolicy/display-resolver.ts) share it, so a person
+ * listings (domain/grant/display-resolver.ts) share it, so a person
  * reads the same on a stamp, in the actor lookup a console renders the
  * stamp with, and in a member list.
  */

@@ -72,7 +72,7 @@ import type {
   ListServiceAccountsInput,
 } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
-import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import type { UpdateIdentityAccountInput } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
@@ -90,7 +90,7 @@ import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import {
-  newCleanupIamPoliciesStep,
+  newCleanupGrantsStep,
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import {
@@ -115,7 +115,7 @@ import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { resolveReferencesIn } from "../../pipeline/steps/references.js";
 import type { Store } from "../../store/interface.js";
 import { ownerNamesOf } from "../apikey/queries.js";
-import type { IamPolicyGrantPath } from "../iampolicy/grant-path.js";
+import type { GrantPath } from "../grant/grant-path.js";
 import { accountDisplayName } from "./actor.js";
 import {
   ACCOUNT_NOT_FOUND_FOR_CALLER_MESSAGE,
@@ -212,7 +212,7 @@ export interface IdentityAccountControllerDeps extends CreateAccountPathDeps {
    * before its row goes (`cleanupResource`), and a service account's create
    * grants its role through it.
    */
-  readonly grantPath: Pick<IamPolicyGrantPath, "grant" | "cleanupResource">;
+  readonly grantPath: Pick<GrantPath, "grant" | "cleanupResource">;
   /** The domain's one create path, which createServiceAccount runs as the admin. */
   readonly createAccount: CreateAccount;
   /** Whether sign-in is on: a service account is refused without it (service-accounts.ts). */
@@ -422,7 +422,7 @@ function createRpc(
 
 function guardInternalRpc(caller: CallerIdentity): void {
   // The one definition of "the platform's own pipelines"
-  // (extensions/identity.ts), shared with the IamPolicy system RPCs.
+  // (extensions/identity.ts), shared with the Grant system RPCs.
   if (isPlatformPipelineCaller(caller)) {
     return;
   }
@@ -532,7 +532,7 @@ async function deleteAccount(
       },
     })
     .addStep({
-      name: "RevokeAccountPolicies",
+      name: "RevokeAccountGrants",
       async execute(ctx) {
         try {
           await deps.grantPath.cleanupResource(
@@ -545,7 +545,7 @@ async function deleteAccount(
         } catch (error) {
           throw internalError(
             error,
-            "failed to remove the account's access policies",
+            "failed to remove the account's grants",
           );
         }
       },
@@ -561,7 +561,7 @@ async function deleteAccount(
     // The backstop the organization's delete keeps too: whatever a
     // concurrent write named the account with in between.
     .addStep(
-      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+      newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger),
     )
     .build()
     .execute(reqCtx);

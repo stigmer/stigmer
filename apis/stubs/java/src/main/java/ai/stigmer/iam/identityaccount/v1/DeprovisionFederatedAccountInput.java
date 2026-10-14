@@ -15,7 +15,7 @@ package ai.stigmer.iam.identityaccount.v1;
  * (federation issuer reference + external subject) for lookup.
  *
  * Two modes:
- * - Revoke only (delete_account = false): removes all IAM policies for the
+ * - Revoke only (delete_account = false): removes all grants for the
  * account in the organization and in every organization the federation
  * issuer manages, where its sign-in grants roles too. The identity
  * account is preserved for audit trail. The user can still sign in but
@@ -23,7 +23,7 @@ package ai.stigmer.iam.identityaccount.v1;
  * granted one at sign-in, so this is the mode that keeps a user of a
  * just-in-time federation issuer out.
  * - Revoke and delete (delete_account = true): revokes access AND deletes
- * the identity account. All IAM policies across all organizations are
+ * the identity account. All grants across all organizations are
  * cleaned up. Under a just-in-time provider, the user's next
  * sign-in creates the account again with any role the provider grants
  * automatically; use it when the user can no longer sign in to the
@@ -432,7 +432,7 @@ private static final long serialVersionUID = 0L;
    * (federation issuer reference + external subject) for lookup.
    *
    * Two modes:
-   * - Revoke only (delete_account = false): removes all IAM policies for the
+   * - Revoke only (delete_account = false): removes all grants for the
    * account in the organization and in every organization the federation
    * issuer manages, where its sign-in grants roles too. The identity
    * account is preserved for audit trail. The user can still sign in but
@@ -440,7 +440,7 @@ private static final long serialVersionUID = 0L;
    * granted one at sign-in, so this is the mode that keeps a user of a
    * just-in-time federation issuer out.
    * - Revoke and delete (delete_account = true): revokes access AND deletes
-   * the identity account. All IAM policies across all organizations are
+   * the identity account. All grants across all organizations are
    * cleaned up. Under a just-in-time provider, the user's next
    * sign-in creates the account again with any role the provider grants
    * automatically; use it when the user can no longer sign in to the

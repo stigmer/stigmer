@@ -32,8 +32,8 @@ import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityacc
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
-import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import { MintUserTokenRequestSchema } from "@stigmer/protos/ai/stigmer/iam/token/v1/token_pb";
 import { IamPermission, IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -47,7 +47,7 @@ import { platformTokenKeyRingFromPem } from "../../../platformtoken/key-ring.js"
 import type { PlatformTokenKeyRing } from "../../../platformtoken/key-ring.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
 import type { Store } from "../../../store/interface.js";
-import type { IamPolicyGrantPath } from "../../iampolicy/grant-path.js";
+import type { GrantPath } from "../../grant/grant-path.js";
 import { accountIdFor } from "../../identityaccount/constants.js";
 import type { CreateAccountInput } from "../../identityaccount/provisioning.js";
 import {
@@ -91,7 +91,7 @@ interface Harness {
   readonly events: string[];
   readonly checks: AuthzCheck[];
   readonly created: Array<{ input: CreateAccountInput; caller: CallerIdentity }>;
-  readonly granted: Array<{ spec: IamPolicySpec; caller: CallerIdentity; cause: string }>;
+  readonly granted: Array<{ spec: GrantSpec; caller: CallerIdentity; cause: string }>;
   readonly accounts: Map<string, IdentityAccount>;
 }
 
@@ -130,12 +130,12 @@ function harness(
         : { kind: "allow" };
     },
   };
-  const grantPath: Pick<IamPolicyGrantPath, "grant"> = {
+  const grantPath: Pick<GrantPath, "grant"> = {
     async grant(spec, caller, cause) {
       events.push("grant");
-      if (options.failGrant === true) throw new Error("policy store down");
+      if (options.failGrant === true) throw new Error("grant store down");
       granted.push({ spec, caller, cause });
-      return { policy: create(IamPolicySchema), duplicate: false };
+      return { grant: create(GrantSchema), duplicate: false };
     },
   };
   const deps: UserTokenMintDeps = {

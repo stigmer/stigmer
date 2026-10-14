@@ -7,7 +7,7 @@
  * subject: `ida_` + the top 130 bits of sha256(idp_id) as 26 lowercase
  * Crockford-base32 characters, through `derivedId` in
  * pipeline/steps/defaults.ts (the one encoder every derived kind shares;
- * the IamPolicy id is the other). The shape is
+ * the Grant id is the other). The shape is
  * indistinguishable from a minted `{prefix}_{ulid}`, so nothing downstream
  * learns a second id grammar, and the PRIMARY KEY becomes the one home of
  * "one account per subject": the generic store has no secondary uniqueness
@@ -175,7 +175,7 @@ const FEDERATED_KEY_SEPARATOR = "|";
  * The derived id of the federated account the federation issuer
  * `providerId` vouches for under `idpId`. Pure; refuses an empty part (no
  * provider or no subject is no address) and a provider id holding the
- * separator (the text would be ambiguous), the way `policyIdFor` refuses
+ * separator (the text would be ambiguous), the way `grantIdFor` refuses
  * an ambiguous triple. The golden vector in __tests__/constants.test.ts is
  * wire-adjacent: a change here re-addresses every federated account. It
  * last changed when references came to hold ids, when no database held a

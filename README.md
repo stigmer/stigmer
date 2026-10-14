@@ -65,7 +65,7 @@ Every capability is exposed via gRPC with public protobuf contracts. Generate ty
 
 ### Agents
 
-An Agent has instructions, optional plugins for skills and tools (a plugin is the only home of an MCP server), and optional model configuration.
+An Agent has instructions, optional plugins for skills and tools, optional MCP servers of its own (`mcp_servers`), and optional model configuration.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -113,7 +113,7 @@ stigmer push plugin ./my-plugin       # from a folder
 stigmer mcp add orders https://orders.example.com/mcp   # one MCP server, as a plugin of its own
 ```
 
-Stigmer uses the [Model Context Protocol](https://modelcontextprotocol.io) to give agents tool access, and an MCP server lives only in a plugin. Remote (HTTP) MCP servers work everywhere, including the marketplace catalog and cloud-hosted sessions. STDIO-based servers — npm packages (npx), Python packages (uvx), Go modules (go run) — run on local runners only, where the machine executing the subprocess is your own.
+Stigmer uses the [Model Context Protocol](https://modelcontextprotocol.io) to give agents tool access. An MCP server reaches an agent two ways: in a plugin it lists, shared by every agent and chat that lists it, or written in the agent itself under `mcp_servers`, reached over HTTP and added only by an organization's admins. Remote (HTTP) MCP servers work everywhere, including the marketplace catalog and cloud-hosted sessions. STDIO-based servers — npm packages (npx), Python packages (uvx), Go modules (go run) — run on local runners only, where the machine executing the subprocess is your own.
 
 ### Stigmer's own MCP server
 

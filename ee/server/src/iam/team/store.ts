@@ -5,7 +5,7 @@
  *
  * A slug collision is the store's own typed outcome, so the handler maps it
  * to ALREADY_EXISTS without reading a driver's error. Membership is not
- * here: it is IamPolicy rows on the team, so a team row is only what
+ * here: it is Grant rows on the team, so a team row is only what
  * describes the team.
  *
  * A team's slug is rename's alone (`@stigmer/server`'s rename chain over

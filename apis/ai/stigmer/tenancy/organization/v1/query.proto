@@ -28,7 +28,7 @@ service OrganizationQueryController {
   // Returns only organizations the caller has access to.
   //
   // @internal
-  // Authorization handled in handler via IAM Policy listAuthorizedResourceIds.
+  // Authorization handled in handler via the Grant service's listAuthorizedResourceIds.
   rpc listMine(ListMyOrganizationsInput) returns (Organizations) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }

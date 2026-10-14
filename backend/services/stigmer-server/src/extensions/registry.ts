@@ -33,10 +33,10 @@
  * points at the identity-accounts stage (the store driver,
  * ahead of the boot-time operator ensure) and the routes stage (the
  * federation capability and the provision slot's steps, into the
- * identity-account controller); the IamPolicy points at
+ * identity-account controller); the Grant points at
  * the same two stages — the store driver where the grant path is built,
  * beside the identity-account store, and the grant scope and the query
- * engine into the IamPolicy controller at the routes stage.
+ * engine into the Grant controller at the routes stage.
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -48,7 +48,7 @@ import type { ArtifactStorageDriverFactory } from "../artifactstorage/artifact-s
 import { BUILT_IN_STORAGE_TYPES } from "../artifactstorage/artifact-storage.js";
 import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
-import type { IamPolicyStore } from "../domain/iampolicy/store.js";
+import type { GrantStore } from "../domain/grant/store.js";
 import type { SecretCodec } from "../encryption/codec.js";
 import { V1_VERSION } from "../encryption/v1-codec.js";
 import type { PlatformTokenKeyRing } from "../platformtoken/key-ring.js";
@@ -58,7 +58,7 @@ import type { IdentityFederation } from "./identity-federation.js";
 import type { LicenseStatusProvider } from "./license-status.js";
 import type { OutboundEgressPolicy } from "./outbound-egress.js";
 import type { ListReadScope } from "./list-read-scope.js";
-import type { PolicyGrantScope } from "./policy-grant-scope.js";
+import type { GrantScope } from "./grant-scope.js";
 import type { PrincipalDisplay } from "./principal-display.js";
 import type { ModelCatalogProvider } from "../modelcatalog/model-catalog-provider.js";
 import {
@@ -153,8 +153,8 @@ export interface ServerExtension {
    * the organization limit's shape). Exactly one unit may declare it, a
    * positive integer; undeclared compositions keep every entry. When one
    * is declared the library's retention runner removes, every hour, the
-   * entries older than the window from the composed policy store
-   * (domain/iampolicy/history-retention.ts), and every page of the history
+   * entries older than the window from the composed grant store
+   * (domain/grant/history-retention.ts), and every page of the history
    * says how long it is kept. Declared on an open-source composition it
    * refuses the boot: open source keeps no history. The library reads no
    * setting for it; each host reads its own and its unit declares it.
@@ -220,7 +220,7 @@ export interface ServerExtension {
   readonly orgPurge?: OrganizationPurgeContribution;
   /**
    * Receives the composition's own instances — the Authorizer, the list
-   * read scope, the policy check, the tuple lifecycle and the in-process
+   * read scope, the grant check, the tuple lifecycle and the in-process
    * transport — once, in unit order, at the end of `composeServer`
    * (extensions/composed-services.ts carries the contract).
    */
@@ -365,16 +365,16 @@ export interface ResolvedExtensionDrivers {
    */
   readonly identityFederation: IdentityFederation | undefined;
   /**
-   * The IamPolicy store driver — undefined = the compose.ts
+   * The Grant store driver — undefined = the compose.ts
    * stage that builds the grant path installs the OSS adapter over the
    * generic Store, OSS behavior byte-identical.
    */
-  readonly iamPolicyStore: IamPolicyStore | undefined;
+  readonly grantStore: GrantStore | undefined;
   /**
-   * The policy grant scope — undefined = compose.ts installs
+   * The grant scope — undefined = compose.ts installs
    * open source's organization-only default.
    */
-  readonly policyGrantScope: PolicyGrantScope | undefined;
+  readonly grantScope: GrantScope | undefined;
   /**
    * The authorization-query engine — undefined = the
    * tuple-half RPC arms refuse UNIMPLEMENTED with the edition reason.
@@ -486,10 +486,10 @@ export function resolveExtensions(
   let identityAccountStoreDeclaredBy: string | undefined;
   let identityFederation: IdentityFederation | undefined;
   let identityFederationDeclaredBy: string | undefined;
-  let iamPolicyStore: IamPolicyStore | undefined;
-  let iamPolicyStoreDeclaredBy: string | undefined;
-  let policyGrantScope: PolicyGrantScope | undefined;
-  let policyGrantScopeDeclaredBy: string | undefined;
+  let grantStore: GrantStore | undefined;
+  let grantStoreDeclaredBy: string | undefined;
+  let grantScope: GrantScope | undefined;
+  let grantScopeDeclaredBy: string | undefined;
   let authorizationQueries: AuthorizationQueryEngine | undefined;
   let authorizationQueriesDeclaredBy: string | undefined;
   let principalDisplay: PrincipalDisplay | undefined;
@@ -732,24 +732,24 @@ export function resolveExtensions(
       identityFederationDeclaredBy = unit.name;
     }
 
-    if (unit.drivers?.iamPolicyStore !== undefined) {
-      if (iamPolicyStoreDeclaredBy !== undefined) {
+    if (unit.drivers?.grantStore !== undefined) {
+      if (grantStoreDeclaredBy !== undefined) {
         throw new Error(
-          `extension '${unit.name}' registers an IamPolicyStore, but '${iamPolicyStoreDeclaredBy}' already did — exactly one may be composed`,
+          `extension '${unit.name}' registers an GrantStore, but '${grantStoreDeclaredBy}' already did — exactly one may be composed`,
         );
       }
-      iamPolicyStore = unit.drivers.iamPolicyStore;
-      iamPolicyStoreDeclaredBy = unit.name;
+      grantStore = unit.drivers.grantStore;
+      grantStoreDeclaredBy = unit.name;
     }
 
-    if (unit.drivers?.policyGrantScope !== undefined) {
-      if (policyGrantScopeDeclaredBy !== undefined) {
+    if (unit.drivers?.grantScope !== undefined) {
+      if (grantScopeDeclaredBy !== undefined) {
         throw new Error(
-          `extension '${unit.name}' registers a PolicyGrantScope, but '${policyGrantScopeDeclaredBy}' already did — exactly one may be composed`,
+          `extension '${unit.name}' registers a GrantScope, but '${grantScopeDeclaredBy}' already did — exactly one may be composed`,
         );
       }
-      policyGrantScope = unit.drivers.policyGrantScope;
-      policyGrantScopeDeclaredBy = unit.name;
+      grantScope = unit.drivers.grantScope;
+      grantScopeDeclaredBy = unit.name;
     }
 
     if (unit.drivers?.authorizationQueries !== undefined) {
@@ -1040,8 +1040,8 @@ export function resolveExtensions(
       evalRunCaller,
       identityAccountStore,
       identityFederation,
-      iamPolicyStore,
-      policyGrantScope,
+      grantStore,
+      grantScope,
       authorizationQueries,
       principalDisplay,
       licenseStatus,

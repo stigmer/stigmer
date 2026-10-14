@@ -970,7 +970,7 @@
             "enumType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
             "enumValues": [
               "api_resource_version",
-              "iam_policy",
+              "grant",
               "identity_account",
               "api_key",
               "invitation",
@@ -1354,9 +1354,9 @@
           "description": "Immutable version record tracking changes to an API resource."
         },
         {
-          "name": "iam_policy",
+          "name": "grant",
           "number": 10,
-          "description": "Role-based access control policy for granting permissions on resources."
+          "description": "One role given to one principal on one resource. Who holds what on a\n resource is the set of its grants."
         },
         {
           "name": "identity_account",

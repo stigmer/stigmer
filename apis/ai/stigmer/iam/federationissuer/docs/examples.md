@@ -66,7 +66,7 @@ spec:
 
 ## Child Organization Binding
 
-Bind each token to the child organization it names. Stigmer reads `org_id` from every token and resolves it to the child of `saas-co` whose `external_id` equals the value; the token works in that organization only. A token without the claim, or naming an unknown child, is refused as unauthenticated. With no `sign_in_role`, Stigmer grants nothing and the platform grants roles itself through IAM policies.
+Bind each token to the child organization it names. Stigmer reads `org_id` from every token and resolves it to the child of `saas-co` whose `external_id` equals the value; the token works in that organization only. A token without the claim, or naming an unknown child, is refused as unauthenticated. With no `sign_in_role`, Stigmer grants nothing and the platform grants roles itself through Grants.
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1

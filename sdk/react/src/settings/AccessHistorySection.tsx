@@ -37,7 +37,7 @@ import {
   AccessChangeCause,
   type AccessHistoryEntry,
   type ApiResourceRefView,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
 import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 import {
   accessHistoryJsonLine,
@@ -52,8 +52,8 @@ import { useEntitlements } from "../billing/useEntitlements.js";
 import { usePlans } from "../billing/usePlans.js";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { useStigmer } from "../hooks.js";
-import { PermissionGate } from "../iam-policy/PermissionGate.js";
-import { useAccessHistory } from "../iam-policy/useAccessHistory.js";
+import { PermissionGate } from "../grant/PermissionGate.js";
+import { useAccessHistory } from "../grant/useAccessHistory.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { downloadTextFile } from "../internal/download.js";
@@ -285,7 +285,7 @@ function useDownloadAccessHistory(org: string) {
     setError(null);
     try {
       const lines: string[] = [];
-      for await (const entry of exportAccessHistory(stigmer.iamPolicy, org)) {
+      for await (const entry of exportAccessHistory(stigmer.grant, org)) {
         lines.push(accessHistoryJsonLine(entry));
       }
       downloadTextFile(`${lines.join("\n")}\n`, `access-history-${org}.jsonl`, "application/jsonl");

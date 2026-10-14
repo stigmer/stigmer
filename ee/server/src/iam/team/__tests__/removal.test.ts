@@ -12,7 +12,7 @@
  *     throws, so the organization delete stops with the organization in
  *     place; another organization's teams are untouched.
  */
-import type { ApiResourceRef } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import type { ApiResourceRef } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import { createLogger } from "@stigmer/server";
 import { describe, expect, it } from "vitest";
 
@@ -45,8 +45,8 @@ function rig(failFor: ReadonlySet<string> = new Set()) {
         await teams.deleteById(id);
       },
     },
-    policies: {
-      cleanupResourcePolicies: (ref: ApiResourceRef, actingFor?: string) => {
+    grants: {
+      cleanupResourceGrants: (ref: ApiResourceRef, actingFor?: string) => {
         actors.push(actingFor);
         order.push(`grants:${ref.kind}:${ref.id}`);
         return failFor.has(ref.id)
@@ -119,7 +119,7 @@ describe("the team's name release", () => {
           release: () => Promise.reject(new Error("name table down")),
         },
       } as unknown as Parameters<typeof newTeamRemoval>[0]["names"],
-      policies: { cleanupResourcePolicies: () => Promise.resolve() },
+      grants: { cleanupResourceGrants: () => Promise.resolve() },
       logger: createLogger({
         level: "error",
         pretty: false,

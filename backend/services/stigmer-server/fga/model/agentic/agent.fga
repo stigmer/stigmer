@@ -93,7 +93,7 @@ type agent
     # who else reaches it (its audience asks can_manage_audience and grants
     # ask can_grant_access, both the owner's). Implies viewer. Bounded by the
     # organization like every direct grant. Only an edition that widens the
-    # policy grant scope past the organization writes the row.
+    # grant scope past the organization writes the row.
     # FGA tuple: agent:<id>#editor@identity_account:<user> (or team:<id>#member)
     define editor: [identity_account, team#member] and affiliated from organization
     
@@ -139,7 +139,7 @@ type agent
     define can_execute: viewer
     
     # ========================================
-    # IAM POLICY MANAGEMENT
+    # ACCESS MANAGEMENT
     # ========================================
     define can_grant_access: owner
     

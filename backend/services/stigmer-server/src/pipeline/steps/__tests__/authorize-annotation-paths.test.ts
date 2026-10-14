@@ -34,7 +34,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { ApiResourceKindSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { config as rpcAuthorizationConfig } from "@stigmer/protos/ai/stigmer/commons/rpc/method_options_pb";
 import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
 
 import { everyService } from "../../../authorization/__tests__/contract-support.js";
 
@@ -131,8 +131,8 @@ describe("every authorization annotation's path names a real field of its input"
 });
 
 describe("the check bites (mutation proofs over the same function)", () => {
-  const create = IamPolicyCommandController.method.create;
-  const name = "ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/create";
+  const create = GrantCommandController.method.create;
+  const name = "ai.stigmer.iam.grant.v1.GrantCommandController/create";
 
   it("the real annotation resolves", () => {
     expect(unresolvedPaths(create, { fieldPath: "resource.id", resourceKindPath: "resource.kind" })).toEqual([]);
@@ -140,7 +140,7 @@ describe("the check bites (mutation proofs over the same function)", () => {
 
   it("a field_path naming no field is reported, by method and path", () => {
     expect(unresolvedPaths(create, { fieldPath: "resource.missing", resourceKindPath: "" })).toEqual([
-      `${name} field_path "resource.missing" names no field "missing" of ai.stigmer.iam.iampolicy.v1.ApiResourceRef`,
+      `${name} field_path "resource.missing" names no field "missing" of ai.stigmer.iam.grant.v1.ApiResourceRef`,
     ]);
   });
 
@@ -152,7 +152,7 @@ describe("the check bites (mutation proofs over the same function)", () => {
 
   it("a path that walks through a scalar is reported", () => {
     expect(unresolvedPaths(create, { fieldPath: "resource.id.value", resourceKindPath: "" })).toEqual([
-      `${name} field_path "resource.id.value" walks through "id" of ai.stigmer.iam.iampolicy.v1.ApiResourceRef, which is not a message`,
+      `${name} field_path "resource.id.value" walks through "id" of ai.stigmer.iam.grant.v1.ApiResourceRef, which is not a message`,
     ]);
   });
 

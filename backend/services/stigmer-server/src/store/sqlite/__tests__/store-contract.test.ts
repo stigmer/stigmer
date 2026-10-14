@@ -52,10 +52,10 @@ describe("sqlite store contract", () => {
           (
             db
               .prepare(
-                `SELECT org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id,
+                `SELECT org, sequence, occurred_at, change, cause, actor_id, actor_class, grant_id,
                     principal_kind, principal_id, principal_relation, relation, resource_kind,
                     resource_id, data
-             FROM iam_policy_history ORDER BY org, sequence`,
+             FROM grant_history ORDER BY org, sequence`,
               )
               .all() as Array<Record<string, string | number | Uint8Array>>
           ).map(permissionHistoryRowOf),
@@ -64,7 +64,7 @@ describe("sqlite store contract", () => {
       async stampPermissionHistory(org, sequence, occurredAt) {
         withConnection((db) =>
           db
-            .prepare(`UPDATE iam_policy_history SET occurred_at = ? WHERE org = ? AND sequence = ?`)
+            .prepare(`UPDATE grant_history SET occurred_at = ? WHERE org = ? AND sequence = ?`)
             .run(occurredAt, org, sequence),
         );
       },

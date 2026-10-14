@@ -162,14 +162,14 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | VaultQueryController.getMine | org |
 | VaultQueryController.list | org |
 
-## `ai.stigmer.iam.iampolicy.v1`
+## `ai.stigmer.iam.grant.v1`
 
 | Method | Fills |
 |---|---|
-| IamPolicyCommandController.bootstrapRevokeOrgAccess | org |
-| IamPolicyCommandController.revokeOrgAccess | org |
-| IamPolicyQueryController.getPrincipalsCount | org |
-| IamPolicyQueryController.listAccessHistory | org |
+| GrantCommandController.bootstrapRevokeOrgAccess | org |
+| GrantCommandController.revokeOrgAccess | org |
+| GrantQueryController.getPrincipalsCount | org |
+| GrantQueryController.listAccessHistory | org |
 
 ## `ai.stigmer.iam.oauthapp.v1`
 

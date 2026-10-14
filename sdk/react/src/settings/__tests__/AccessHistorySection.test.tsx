@@ -39,8 +39,8 @@ import {
   CheckAuthorizationResultSchema,
   type CheckMyPermissionInput,
   type ListAccessHistoryInput,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
-import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationsSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
@@ -152,7 +152,7 @@ function renderSection(mode: DeploymentMode, verdict = true, read: ReadMode = "p
       router.service(OrganizationQueryController, {
         listMine: () => create(OrganizationsSchema, { entries: [ACME] }),
       });
-      router.service(IamPolicyQueryController, {
+      router.service(GrantQueryController, {
         checkMyPermission: (input) => {
           server.checks.push(input);
           return create(CheckAuthorizationResultSchema, { isAuthorized: server.verdict });

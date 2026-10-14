@@ -43,7 +43,7 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { InvitationSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
@@ -81,7 +81,7 @@ export const KIND_BINDINGS: ReadonlyMap<ApiResourceKind, KindBinding> = new Map<
     },
   ],
   [ApiResourceKind.federation_issuer, { schema: FederationIssuerSchema }],
-  [ApiResourceKind.iam_policy, { schema: IamPolicySchema }],
+  [ApiResourceKind.grant, { schema: GrantSchema }],
   [ApiResourceKind.api_key, { schema: ApiKeySchema }],
   [ApiResourceKind.oauth_app, { schema: OAuthAppSchema }],
   [ApiResourceKind.invitation, { schema: InvitationSchema }],

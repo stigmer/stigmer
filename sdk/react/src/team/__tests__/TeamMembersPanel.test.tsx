@@ -19,7 +19,7 @@ const picked = vi.hoisted(
     }[],
 );
 
-vi.mock("../../iam-policy/useShareFlow.js", () => ({
+vi.mock("../../grant/useShareFlow.js", () => ({
   useShareFlow: () => ({
     accessList: [],
     isLoading: false,
@@ -33,11 +33,11 @@ vi.mock("../../iam-policy/useShareFlow.js", () => ({
   }),
 }));
 
-vi.mock("../../iam-policy/PermissionGate.js", () => ({
+vi.mock("../../grant/PermissionGate.js", () => ({
   PermissionGate: ({ children }: { children: ReactNode }) => children,
 }));
 
-vi.mock("../../iam-policy/PrincipalPicker.js", () => ({
+vi.mock("../../grant/PrincipalPicker.js", () => ({
   PrincipalPicker: ({
     org,
     includeAppUsers,

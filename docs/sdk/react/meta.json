@@ -30,7 +30,7 @@
     "---Identity & Access---",
     "organization",
     "team",
-    "iam-policy",
+    "grant",
     "access",
     "federation-issuer",
     "identity-account",

@@ -1,0 +1,290 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.grant.v1;
+
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+import "ai/stigmer/iam/grant/v1/api.proto";
+import "ai/stigmer/iam/grant/v1/io.proto";
+import "ai/stigmer/iam/grant/v1/spec.proto";
+import "google/protobuf/empty.proto";
+
+// Grant Command Controller
+//
+// This service manages the lifecycle of grants in Stigmer. One grant is one
+// role given to one principal on one resource; who holds what on a resource
+// is the set of its grants. Each grant connects three elements:
+// - Principal: WHO gets access (user, team, etc.)
+// - Resource: WHAT is being accessed (any API resource)
+// - Relation: HOW they can access it (viewer, admin, user, etc.)
+//
+// A grant is the record; the edition's authorizer enforces
+// it. The Enterprise and Cloud editions also mirror each grant to an
+// OpenFGA tuple for fine-grained checks.
+//
+// Common Use Cases:
+// - Granting users access to organizations
+// - Setting up team-based access control
+// - Managing fine-grained permissions on any resource
+service GrantCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = grant;
+
+  // Create a new grant
+  //
+  // Creates a single grant that gives a principal access to a resource with a specific relation.
+  // This is the fundamental operation for establishing permissions.
+  //
+  // @internal
+  // The operation:
+  // 1. Validates the input (principal, resource, relation are all valid)
+  // 2. Checks for duplicates (skips if the exact grant already exists, idempotent)
+  // 3. Creates the grant in the database with auto-generated ID and metadata
+  // 4. Writes the corresponding tuple to OpenFGA (where authorization is enforced)
+  //
+  // Authorization:
+  // - Caller must have 'can_grant_access' permission on the RESOURCE being shared
+  // - This ensures only resource owners/admins can grant access to their resources
+  // - The target is the spec's `resource` (`resource_kind_path` reads its kind by
+  //   enum name, `field_path` its id); the annotation drives the check in every edition
+  // - Granting `owner` on an organization also requires 'can_assign_roles' on it
+  //   (its owners): an admin grants every role up to admin, and only an owner
+  //   makes an owner. PERMISSION_DENIED otherwise
+  //
+  // Example:
+  // Input:
+  //   principal: {kind: "identity_account", id: "ia_alice-123"}
+  //   resource: {kind: "organization", id: "org_demo-456"}
+  //   relation: "viewer"
+  // Result:
+  //   Created Grant with auto-generated ID (e.g., "grt_01HQ...")
+  //   Alice can view (but not modify) the organization
+  //
+  // Input: GrantSpec containing principal, resource, and relation
+  // Output: The created Grant with generated ID and metadata
+  //
+  // On Stigmer Cloud, adding a member to a team (a `member` grant on a
+  // team) is a plan feature. An organization whose plan lacks teams is
+  // refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+  // (domain "stigmer.ai"):
+  //
+  //   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
+  //     the feature. Metadata: feature ("teams"), org.
+  rpc create(GrantSpec) returns (Grant) {
+    option (ai.stigmer.commons.rpc.config).permission = can_grant_access;
+    option (ai.stigmer.commons.rpc.config).resource_kind_path = "resource.kind";
+    option (ai.stigmer.commons.rpc.config).field_path = "resource.id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to grant access";
+  }
+
+  // Delete a single grant by spec
+  //
+  // Removes an existing grant by matching the principal, resource, and relation.
+  // This is a surgical operation — it removes one specific grant without affecting others.
+  //
+  // @internal
+  // The operation:
+  // 1. Finds the grant by matching principal+resource+relation
+  // 2. Removes it from the database
+  // 3. Deletes the corresponding tuple from OpenFGA
+  // 4. If no matching grant exists, the operation is idempotent (no error)
+  //
+  // Authorization:
+  // - Caller must have 'can_grant_access' permission on the RESOURCE referenced in the grant
+  // - The check runs against the spec-named resource BEFORE the grant is looked up
+  //   (the annotation-driven order), so a caller without the permission is refused
+  //   even when no matching grant exists
+  // - Revoking `owner` on an organization also requires 'can_assign_roles' on it
+  //   (PERMISSION_DENIED otherwise), and never leaves the organization without an
+  //   owner: revoking its last owner's role is FAILED_PRECONDITION
+  //
+  // Use Cases:
+  // - Revoking a specific permission from a user
+  // - Removing access after a team member leaves
+  // - Cleaning up individual grants
+  //
+  // Example:
+  // Input:
+  //   principal: {kind: "identity_account", id: "ia_alice-123"}
+  //   resource: {kind: "organization", id: "org_demo-456"}
+  //   relation: "viewer"
+  // Result: The grant giving Alice viewer access to the organization is deleted
+  //
+  // Input: GrantSpec identifying the grant to delete (principal, resource, relation)
+  // Output: The deleted Grant object (for audit/confirmation purposes)
+  rpc delete(GrantSpec) returns (Grant) {
+    option (ai.stigmer.commons.rpc.config).permission = can_grant_access;
+    option (ai.stigmer.commons.rpc.config).resource_kind_path = "resource.kind";
+    option (ai.stigmer.commons.rpc.config).field_path = "resource.id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to revoke access";
+  }
+
+  // Bootstrap grant during resource creation
+  //
+  // Creates grants during resource creation when standard authorization cannot work yet
+  // because no tuples exist.
+  //
+  // @internal
+  // Solves the chicken-and-egg problem where creating the first grant for a resource
+  // requires authorization, but authorization requires that first grant.
+  //
+  // The operation:
+  // 1. Validates that caller has can_bootstrap_iam permission on platform:stigmer
+  // 2. Validates the input (principal, resource, relation are all valid)
+  // 3. Checks for duplicates (skips if the exact grant already exists, idempotent)
+  // 4. Creates the grant in the database with auto-generated ID and metadata
+  // 5. Writes the corresponding tuple to OpenFGA (where authorization is enforced)
+  //
+  // Authorization:
+  // - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
+  // - This is typically only called by resource creation handlers running as machine accounts
+  //
+  // Use Cases:
+  // - Creating scope links (agent#organization@organization:acme) during agent creation
+  // - Creating owner relations (agent#owner@identity_account:alice) during agent creation
+  // - Establishing initial authorization tuples for any newly created resource
+  //
+  // Example:
+  // Input:
+  //   principal: {kind: "organization", id: "org_demo-123"}
+  //   resource: {kind: "agent", id: "agt_abc-456"}
+  //   relation: "organization"
+  // Result:
+  //   Created Grant establishing agent's organization scope
+  //   Subsequent grant operations can now use standard authorization
+  //
+  // Note: After the bootstrap grants are created, subsequent grant modifications
+  // must use the standard 'create' RPC which requires 'can_grant_access' permission.
+  //
+  // Input: GrantSpec containing principal, resource, and relation
+  // Output: The created Grant with generated ID and metadata
+  rpc bootstrapGrant(GrantSpec) returns (Grant) {
+    option (ai.stigmer.commons.rpc.config).permission = can_bootstrap_iam;
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to bootstrap a grant - can_bootstrap_iam permission required";
+  }
+
+  // Clean up every grant naming a deleted resource.
+  //
+  // Removes all grants associated with a deleted resource.
+  //
+  // @internal
+  // Performs bidirectional cleanup:
+  // 1. Grants where resource is the TARGET (grants giving access TO this resource)
+  // 2. Grants where resource is the PRINCIPAL (grants where this resource HAS access)
+  //
+  // The operation:
+  // 1. Validates can_bootstrap_iam permission on platform:stigmer
+  // 2. Finds all grants where resource_id appears (as principal OR resource)
+  // 3. Deletes every matching grant from the store
+  // 4. Removes all corresponding tuples from OpenFGA
+  // 5. Returns Empty (idempotent if no grants exist)
+  //
+  // Authorization:
+  // - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
+  // - This is typically only granted to platform services
+  //
+  // Use Cases:
+  // - Resource deletion cleanup
+  // - Preventing orphaned FGA tuples
+  // - Maintaining authorization system integrity
+  //
+  // Example:
+  // Input: {kind: "organization", id: "org_demo-123"}
+  // Result: All grants referencing org_demo-123 are deleted
+  //
+  // Input: ApiResourceRef with resource kind and ID
+  // Output: Empty (google.protobuf.Empty)
+  rpc cleanupResourceGrants(ApiResourceRef) returns (google.protobuf.Empty) {
+    option (ai.stigmer.commons.rpc.config).permission = can_bootstrap_iam;
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to clean up a resource's grants - can_bootstrap_iam permission required";
+  }
+
+  // Remove a person from an organization.
+  //
+  // Removes every role the identity account holds on the organization, then
+  // every grant it holds on the organization's resources: what was
+  // shared with it (agents, vaults, sessions and the rest) and its
+  // team memberships. From that moment it reaches nothing in the
+  // organization. What it created stays with the organization and is still
+  // recorded as its work; the authorization model admits a person to their
+  // own work only while they hold a role in the organization, so it becomes
+  // theirs again only if they are invited back. What was shared with them
+  // does not come back.
+  //
+  // @internal
+  // The operation:
+  // 1. Validates the input (identity_account_id and org are present)
+  // 2. Authorizes caller (can_grant_access on the organization)
+  // 3. Revokes the account's grants on the organization itself
+  // 4. Revokes the account's grants on resources the organization holds,
+  //    except the owner and creator grants naming it as a resource's
+  //    recorded creator; each grant's tuple goes before its row
+  // 5. Runs step 4 even when step 3 found nothing, so a retry after a
+  //    partial failure completes the removal
+  //
+  // Authorization:
+  // - Caller must have 'can_grant_access' permission on the organization
+  // - System flows running as the platform machine account cannot satisfy this
+  //   check (the machine account holds no org-scoped grants by design) and must
+  //   use bootstrapRevokeOrgAccess instead
+  // - Removing an account that holds `owner` on the organization also requires
+  //   'can_assign_roles' on it (PERMISSION_DENIED otherwise), and removing its
+  //   last owner is FAILED_PRECONDITION: an organization always keeps an owner
+  //
+  // Use Cases:
+  // - Removing a member from an organization
+  // - Offboarding a user from all org resources in one operation
+  //
+  // Input: RevokeOrgAccessInput with identity_account_id and org
+  // Output: Empty (google.protobuf.Empty)
+  rpc revokeOrgAccess(RevokeOrgAccessInput) returns (google.protobuf.Empty) {
+    option (ai.stigmer.commons.rpc.config).permission = can_grant_access;
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to revoke organization access";
+  }
+
+  // Remove a person from an organization via the system (bootstrap) path.
+  //
+  // The system-flow twin of revokeOrgAccess: identical revocation behavior, but
+  // authorized by can_bootstrap_iam on platform:stigmer instead of
+  // can_grant_access on the organization.
+  //
+  // @internal
+  // Exists because system flows execute the revoke as the platform machine
+  // account, which by design holds no org-scoped grants. The system channel does
+  // NOT bypass authorization — it authenticates as the machine account, which
+  // can only satisfy platform-scoped permissions. revokeOrgAccess therefore
+  // always fails with PERMISSION_DENIED on the system channel; this RPC is the
+  // sanctioned path, mirroring how bootstrapGrant is the system-path twin of
+  // create (see https://github.com/stigmer/stigmer/issues/332).
+  //
+  // The operation (identical to revokeOrgAccess after authorization):
+  // 1. Validates can_bootstrap_iam permission on platform:stigmer
+  // 2. Revokes the account's grants on the organization itself, then its
+  //    grants on the organization's resources, keeping its authorship, as
+  //    revokeOrgAccess does
+  //
+  // Authorization:
+  // - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
+  // - This is typically only granted to platform services (machine accounts)
+  //
+  // Use Cases:
+  // - Federated account deprovisioning (deprovisionFederatedAccount's revoke step)
+  // - Any platform-driven offboarding that runs under system credentials
+  //
+  // End-user member removal must use revokeOrgAccess, which checks
+  // can_grant_access on the organization.
+  //
+  // Input: RevokeOrgAccessInput with identity_account_id and org
+  // Output: Empty (google.protobuf.Empty)
+  rpc bootstrapRevokeOrgAccess(RevokeOrgAccessInput) returns (google.protobuf.Empty) {
+    option (ai.stigmer.commons.rpc.config).permission = can_bootstrap_iam;
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to revoke organization access - can_bootstrap_iam permission required";
+  }
+}

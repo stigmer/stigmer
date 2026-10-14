@@ -42,7 +42,7 @@ vi.mock("../../server-info.js", () => ({
 vi.mock("../../organization/OrgProvider.js", () => ({
   useActiveOrgId: () => "org_acme",
 }));
-vi.mock("../../iam-policy/useCheckPermission.js", () => ({
+vi.mock("../../grant/useCheckPermission.js", () => ({
   useCheckPermission: (resource: { kind: string; id: string } | null, relation: string) => {
     if (resource !== null) permission.checked.push([resource.kind, resource.id, relation]);
     return { allowed: permission.allowed, isLoading: permission.isLoading, error: null };

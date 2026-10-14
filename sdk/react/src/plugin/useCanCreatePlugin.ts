@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 
 /** Return value of {@link useCanCreatePlugin}. */
 export interface UseCanCreatePluginReturn {

@@ -21,6 +21,7 @@
 // organization they hold a role in, which is what the suites' founder,
 // member and outsider are. Minted user tokens appear only in the suites
 // that test them.
+
 import type { DirectLoginTenant } from "../targets/target";
 import type { ConformanceClients } from "./clients";
 import { newDirectLoginTenant, readDirectLoginTenantMaterial } from "./direct-login-tenant";

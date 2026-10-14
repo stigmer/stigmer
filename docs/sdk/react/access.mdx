@@ -114,7 +114,7 @@ Each section renders only when it applies:
   level selection and the `can_manage_audience` gate.
 - **People with access** — only when the resource kind has grantable roles
   (`hasGrantableRoles`, proto-generated single source of truth). Delegates
-  to [`PeopleWithAccess`](/docs/sdk/react/iam-policy#peoplewithaccess), which gates grant/revoke on `can_grant_access`.
+  to [`PeopleWithAccess`](/docs/sdk/react/grant#peoplewithaccess), which gates grant/revoke on `can_grant_access`.
   Titled *People and teams with access* where the edition serves teams and
   the kind accepts a team grant.
 - **Extra section** — only when provided.

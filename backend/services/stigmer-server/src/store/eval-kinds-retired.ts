@@ -11,8 +11,8 @@
  * their history, their list keys and the names they held. They are not
  * converted into eval runs: their status shapes differ, no store held one
  * a person relied on before the change, and a conversion would keep the
- * old shapes alive in code. Every IamPolicy row whose resource or
- * principal is one of them leaves too (`policyNamesRetiredEvalKind`); the
+ * old shapes alive in code. Every grant whose resource or principal is
+ * one of them leaves too (`grantNamesRetiredEvalKind`); the
  * kinds granted no roles, so none is expected, and the rule is the one
  * every retirement keeps. Search entries are boot's rebuild's to drop; the
  * kinds were never search-indexed.
@@ -37,7 +37,7 @@ import type { DescMessage } from "@bufbuild/protobuf";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 
 import { stampEtag, storedEtagOf } from "./etag.js";
 
@@ -45,7 +45,7 @@ import { stampEtag, storedEtagOf } from "./etag.js";
 export const RETIRED_EVAL_KINDS: ReadonlyArray<string> = ["plugin_eval", "agent_eval"];
 
 /** The `kind` column value of the grant rows the step reads. */
-export const EVAL_KINDS_RETIRED_POLICY_KIND = "iam_policy";
+export const EVAL_KINDS_RETIRED_GRANT_KIND = "grant";
 
 /** The label the retired kinds' workflows stamped on a try's rows. */
 export const RETIRED_EVAL_LABEL = "stigmer.ai/plugin-eval";
@@ -71,12 +71,12 @@ const TRY_SCHEMAS: ReadonlyMap<string, DescMessage> = new Map<string, DescMessag
 export const EVAL_TRY_KIND_NAMES: ReadonlyArray<string> = [...TRY_SCHEMAS.keys()];
 
 /**
- * Whether a stored IamPolicy row names a retired eval kind as its resource
+ * Whether a stored grant row names a retired eval kind as its resource
  * or its principal (an `ApiResourceRef.kind` is the enum member name).
  * Throws when the bytes do not decode.
  */
-export function policyNamesRetiredEvalKind(data: Uint8Array): boolean {
-  const spec = fromBinary(IamPolicySchema, data).spec;
+export function grantNamesRetiredEvalKind(data: Uint8Array): boolean {
+  const spec = fromBinary(GrantSchema, data).spec;
   return (
     RETIRED_EVAL_KINDS.includes(spec?.resource?.kind ?? "") ||
     RETIRED_EVAL_KINDS.includes(spec?.principal?.kind ?? "")

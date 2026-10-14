@@ -23,7 +23,7 @@ import {
   useUpdateOrganizationEmbedding,
   type OrganizationEmbeddingValue,
 } from "./useUpdateOrganizationEmbedding.js";
-import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { Switch } from "../switch/Switch.js";
 import { VaultPicker } from "../vault/VaultPicker.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";

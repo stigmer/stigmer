@@ -23,7 +23,7 @@ type PermissionInput = {
 
 function createMockStigmer(answer: () => Promise<{ isAuthorized: boolean }>) {
   return {
-    iamPolicy: {
+    grant: {
       checkMyPermission: vi.fn(async (_input: PermissionInput) => answer()),
     },
   };
@@ -49,7 +49,7 @@ describe("useCanCreatePlugin", () => {
     const { result } = renderHook(() => useCanCreatePlugin(null), { wrapper: wrapper(client) });
 
     expect(result.current).toEqual({ allowed: false, isLoading: false });
-    expect(client.iamPolicy.checkMyPermission).not.toHaveBeenCalled();
+    expect(client.grant.checkMyPermission).not.toHaveBeenCalled();
   });
 
   it("allows nothing while the answer is in flight", () => {
@@ -74,7 +74,7 @@ describe("useCanCreatePlugin", () => {
     const { result } = renderHook(() => useCanCreatePlugin("org_acme"), { wrapper: wrapper(client) });
 
     await waitFor(() => expect(result.current.allowed).toBe(true));
-    const asked = client.iamPolicy.checkMyPermission.mock.calls[0]![0];
+    const asked = client.grant.checkMyPermission.mock.calls[0]![0];
     expect(asked.relation).toBe("can_create_plugin");
     expect(asked.resource).toMatchObject({ kind: "organization", id: "org_acme" });
   });

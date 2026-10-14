@@ -19,7 +19,7 @@ import {
   whatsappChannelAppWebhookUrl,
 } from "./whatsappAppSetup.js";
 import { CopyBlock, CopyRow, FormField, UnknownAddressRow } from "./internal.js";
-import { PermissionGate } from "../iam-policy/PermissionGate.js";
+import { PermissionGate } from "../grant/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 

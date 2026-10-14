@@ -26,7 +26,7 @@ import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import type { Transport } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
@@ -172,7 +172,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("who may create an organization
   });
 
   it("lets an unlisted admin of an organization create a child of it", async () => {
-    await createClient(IamPolicyCommandController, lena.transport).create(
+    await createClient(GrantCommandController, lena.transport).create(
       grant(ref("identity_account", ugo.accountId), "admin", ref("organization", lenaOrg)),
     );
     const child = await createClient(OrganizationCommandController, ugo.transport).create(

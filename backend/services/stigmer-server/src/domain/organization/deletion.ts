@@ -18,7 +18,7 @@
  *      and the mark is seen now (the create re-reads its parent after its
  *      own write, `newRefuseParentDeletingStep`, so at least one side sees
  *      the other);
- *   4. the `org-delete:pre-delete` slot and RevokeOrganizationPolicies;
+ *   4. the `org-delete:pre-delete` slot and RevokeOrganizationGrants;
  *   5. AcceptPurge: pending becomes accepted, conditional on the mark still
  *      being pending, and the purge is kicked.
  *
@@ -34,7 +34,7 @@
  * its read, at least one sees the other: the delete refuses
  * ORGANIZATION_HAS_CHILDREN and unmarks, or the create finds its parent
  * deleting, marks and accepts its own deletion, kicks the purge, and
- * answers ORGANIZATION_PARENT_DELETING. A child just made holds no policy
+ * answers ORGANIZATION_PARENT_DELETING. A child just made holds no grant
  * row (nobody owns a child) and nothing an edition's slot removes, so its
  * own mark needs neither.
  *

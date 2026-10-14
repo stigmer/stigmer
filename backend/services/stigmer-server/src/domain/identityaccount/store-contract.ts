@@ -9,7 +9,7 @@
  * statement proven per driver, never restated per repository.
  *
  * Shape. The kit is a list of declarations over the port-contract runner
- * (store/port-contract.ts, lifted from this file when the IamPolicy kit
+ * (store/port-contract.ts, lifted from this file when the Grant kit
  * became the second): the runner owns the fresh
  * fixture per case, the cleanup, the rule that a failing assertion wins
  * over a failing cleanup, and the reason the kit returns cases instead of

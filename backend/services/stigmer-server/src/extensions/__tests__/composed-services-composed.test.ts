@@ -8,10 +8,10 @@
  *     reaches the registered driver; a caller bound elsewhere is denied
  *     before it), the binding itself, its engine's check and its
  *     lifecycle, and the one in-process transport; under open source's own
- *     authorization, the built-in Authorizer, list scope and policy check;
+ *     authorization, the built-in Authorizer, list scope and grant check;
  *     in every posture, the identity accounts' store binding and the one
  *     create path, through which a unit provisions a federated account at
- *     its provider-and-subject address; and the policy store binding's
+ *     its provider-and-subject address; and the grant store binding's
  *     reads, the registered driver where a unit registered one and open
  *     source's adapter over the composition's store otherwise; which
  *     organization a resource belongs to, from the row where no scope link
@@ -41,15 +41,15 @@ import { composeServer } from "../../boot/compose.js";
 import type { ComposedServer } from "../../boot/compose.js";
 import { createLogger } from "../../boot/logger.js";
 import { federatedAccountIdFor } from "../../domain/identityaccount/constants.js";
-import { policyIdFor } from "../../domain/iampolicy/constants.js";
-import { newResourceIamPolicyStore } from "../../domain/iampolicy/resource-store.js";
-import type { IamPolicyStore } from "../../domain/iampolicy/store.js";
+import { grantIdFor } from "../../domain/grant/constants.js";
+import { newResourceGrantStore } from "../../domain/grant/resource-store.js";
+import type { GrantStore } from "../../domain/grant/store.js";
 import { serverActingFor } from "../../pipeline/interceptors/auth.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../pipeline/steps/authorize.js";
 import { platformTokenKeyRingFromPem } from "../../platformtoken/key-ring.js";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
-import { ApiResourceRefSchema, IamPolicySpecSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import { ApiResourceRefSchema, GrantSpecSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 
 import { BOUND_ELSEWHERE_DENY_REASON } from "../../authorization/credential-binding.js";
@@ -170,7 +170,7 @@ describe("onComposed: a unit receives the composition's own instances", () => {
       onResourceDeleted: () => Promise.resolve(),
       onVisibilityChanged: () => Promise.resolve(),
     };
-    const policies: IamPolicyStore = {
+    const grants: GrantStore = {
       save: () => Promise.resolve(),
       deleteById: () => Promise.resolve(),
       findById: () => Promise.resolve(undefined),
@@ -199,7 +199,7 @@ describe("onComposed: a unit receives the composition's own instances", () => {
           listReadScope,
           authorizationQueries: queries,
           resourceAuthorizationLifecycle: lifecycle,
-          iamPolicyStore: policies,
+          grantStore: grants,
           resourceRowReaders: new Map([
             [ApiResourceKind.federation_issuer, noRows],
             [ApiResourceKind.invitation, noRows],
@@ -249,10 +249,10 @@ describe("onComposed: a unit receives the composition's own instances", () => {
     expect(received?.authorizationQueries).toBe(queries);
     expect(received?.resourceAuthorizationLifecycle).toBe(lifecycle);
     expect(received?.inProcessTransport).toBe(server.inProcessTransport);
-    expect(received?.iamPolicies).toBe(policies);
+    expect(received?.grants).toBe(grants);
   });
 
-  it("under open source's own authorization hands the built-in Authorizer, list scope and policy check, and no lifecycle", async () => {
+  it("under open source's own authorization hands the built-in Authorizer, list scope and grant check, and no lifecycle", async () => {
     let received: ComposedServices | undefined;
     await compose([
       enterpriseUnit({
@@ -313,7 +313,7 @@ describe("onComposed: a unit receives the composition's own instances", () => {
   });
 });
 
-describe("onComposed: the policy store binding under open source's own authorization", () => {
+describe("onComposed: the grant store binding under open source's own authorization", () => {
   it("hands open source's adapter over the composition's own store, so a row the grant path writes is the row the unit reads", async () => {
     let received: ComposedServices | undefined;
     const server = await compose([
@@ -323,31 +323,31 @@ describe("onComposed: the policy store binding under open source's own authoriza
         },
       }),
     ]);
-    const policies = received?.iamPolicies;
-    if (policies === undefined) {
-      throw new Error("the unit received no policy store");
+    const grants = received?.grants;
+    if (grants === undefined) {
+      throw new Error("the unit received no grant store");
     }
-    const spec = create(IamPolicySpecSchema, {
+    const spec = create(GrantSpecSchema, {
       principal: { kind: "organization", id: "org_acme" },
       resource: { kind: "team", id: "tem_acme" },
       relation: "organization",
     });
-    const id = policyIdFor(spec);
-    await newResourceIamPolicyStore(server.store, { keepsHistory: false }).save(
-      create(IamPolicySchema, { metadata: { id }, spec }),
+    const id = grantIdFor(spec);
+    await newResourceGrantStore(server.store, { keepsHistory: false }).save(
+      create(GrantSchema, { metadata: { id }, spec }),
     );
 
     expect(
-      (await policies.findByResource("team", "tem_acme")).map(
-        (policy) => policy.metadata?.id,
+      (await grants.findByResource("team", "tem_acme")).map(
+        (grant) => grant.metadata?.id,
       ),
     ).toEqual([id]);
-    expect((await policies.findScopeTuple("team", "tem_acme"))?.metadata?.id).toBe(
+    expect((await grants.findScopeTuple("team", "tem_acme"))?.metadata?.id).toBe(
       id,
     );
     expect(
-      (await policies.findByResourceKindAndRelation("team", "organization")).map(
-        (policy) => policy.metadata?.id,
+      (await grants.findByResourceKindAndRelation("team", "organization")).map(
+        (grant) => grant.metadata?.id,
       ),
     ).toEqual([id]);
   });

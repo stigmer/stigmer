@@ -33,7 +33,7 @@ type PermissionInput = {
 
 function createMockStigmer(allowed: boolean) {
   return {
-    iamPolicy: {
+    grant: {
       checkMyPermission: vi.fn(async (_input: PermissionInput) => ({ isAuthorized: allowed })),
     },
   };
@@ -59,7 +59,7 @@ describe("useCanCreateAgent", () => {
     const { result } = renderHook(() => useCanCreateAgent(null), { wrapper: wrapper(client) });
 
     expect(result.current.allowed).toBe(false);
-    expect(client.iamPolicy.checkMyPermission).not.toHaveBeenCalled();
+    expect(client.grant.checkMyPermission).not.toHaveBeenCalled();
   });
 
   it("asks can_create_agent on the organization and follows the answer", async () => {
@@ -68,7 +68,7 @@ describe("useCanCreateAgent", () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.allowed).toBe(false);
-    const asked = client.iamPolicy.checkMyPermission.mock.calls[0]![0];
+    const asked = client.grant.checkMyPermission.mock.calls[0]![0];
     expect(asked.relation).toBe("can_create_agent");
     expect(asked.resource).toMatchObject({ kind: "organization", id: "org_acme" });
   });
@@ -97,7 +97,7 @@ describe("AgentCreationWizard — someone who may not create agents", () => {
 
   it("shows neither the form nor the refusal while the answer is pending", () => {
     const client = {
-      iamPolicy: { checkMyPermission: vi.fn(() => new Promise<never>(() => {})) },
+      grant: { checkMyPermission: vi.fn(() => new Promise<never>(() => {})) },
     };
     const Wrapper = wrapper(client);
     const { container } = render(
@@ -107,7 +107,7 @@ describe("AgentCreationWizard — someone who may not create agents", () => {
     );
 
     expect(container.innerHTML).toBe("");
-    expect(client.iamPolicy.checkMyPermission).toHaveBeenCalledTimes(1);
+    expect(client.grant.checkMyPermission).toHaveBeenCalledTimes(1);
   });
 
   it("opens the wizard for someone the server lets create an agent", async () => {

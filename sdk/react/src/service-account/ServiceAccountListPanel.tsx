@@ -13,7 +13,7 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { cn } from "@stigmer/theme";
 import { getUserMessage, iamRoleDisplayName } from "@stigmer/sdk";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { useResourceAccess } from "../iam-policy/useResourceAccess.js";
+import { useResourceAccess } from "../grant/useResourceAccess.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { orgRoleOf } from "./org-role.js";
 import { useServiceAccountList } from "./useServiceAccountList.js";

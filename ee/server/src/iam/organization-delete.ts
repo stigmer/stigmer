@@ -19,7 +19,7 @@
  * A child's external id is the library's name-table claim, released by the
  * library after the row.
  *
- * The library then revokes every policy row naming the organization and
+ * The library then revokes every grant row naming the organization and
  * accepts its deletion, and from then on every request naming the
  * organization answers not-found, so nothing new is written into it. A
  * provider, team or invitation written in the moment between this step

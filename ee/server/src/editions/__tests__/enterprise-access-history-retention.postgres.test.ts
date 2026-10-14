@@ -24,8 +24,8 @@
 import { createClient } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
-import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
+import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import type { Transport } from "@connectrpc/connect";
 
@@ -85,7 +85,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history's retention
 
   async function sequencesOf(org: string): Promise<number[]> {
     const rows = await db.pool.query<{ sequence: string }>(
-      `SELECT sequence FROM iam_policy_history WHERE org = $1 ORDER BY sequence`,
+      `SELECT sequence FROM grant_history WHERE org = $1 ORDER BY sequence`,
       [org],
     );
     return rows.rows.map((row) => Number(row.sequence));
@@ -93,7 +93,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history's retention
 
   async function headOf(org: string): Promise<number | undefined> {
     const rows = await db.pool.query<{ last_sequence: string }>(
-      `SELECT last_sequence FROM iam_policy_history_heads WHERE org = $1`,
+      `SELECT last_sequence FROM grant_history_heads WHERE org = $1`,
       [org],
     );
     const head = rows.rows[0];
@@ -108,9 +108,9 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history's retention
     acme = await createOrganization(alice, "acme");
     const raj = await signIn(booted, issuer, "operator|raj");
     const mia = await signIn(booted, issuer, "operator|mia");
-    const policies = createClient(IamPolicyCommandController, alice.transport);
-    await policies.create(grant(ref("identity_account", raj.accountId), "member", ref("organization", acme)));
-    await policies.create(grant(ref("identity_account", mia.accountId), "member", ref("organization", acme)));
+    const grants = createClient(GrantCommandController, alice.transport);
+    await grants.create(grant(ref("identity_account", raj.accountId), "member", ref("organization", acme)));
+    await grants.create(grant(ref("identity_account", mia.accountId), "member", ref("organization", acme)));
 
     doomed = await createOrganization(alice, "doomed");
     await createClient(OrganizationCommandController, alice.transport).delete({ value: doomed });
@@ -138,7 +138,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history's retention
     expect(acmeBefore.length).toBeGreaterThanOrEqual(3);
     expect(doomedBefore.length).toBeGreaterThan(0);
     await db.pool.query(
-      `UPDATE iam_policy_history SET occurred_at = $1
+      `UPDATE grant_history SET occurred_at = $1
        WHERE (org = $2 AND sequence <= 2) OR org = $3`,
       [LONG_AGO, acme, doomed],
     );
@@ -157,7 +157,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history's retention
   }, BOOTS);
 
   it("says on every page how long the history is kept and where the kept history starts", async () => {
-    const query = createClient(IamPolicyQueryController, asAlice());
+    const query = createClient(GrantQueryController, asAlice());
     const follow = await query.listAccessHistory({ org: acme, afterSequence: 0n });
     expect(follow.entries[0]?.sequence).toBe(3n);
     expect(follow.oldestSequence).toBe(3n);
@@ -176,10 +176,10 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history's retention
   it("continues the numbering after the removal", async () => {
     const head = (await headOf(acme)) ?? 0;
     const lee = await signIn(booted as BootedServer, issuer, "operator|lee");
-    await createClient(IamPolicyCommandController, asAlice()).create(
+    await createClient(GrantCommandController, asAlice()).create(
       grant(ref("identity_account", lee.accountId), "member", ref("organization", acme)),
     );
-    const newest = await createClient(IamPolicyQueryController, asAlice()).listAccessHistory({
+    const newest = await createClient(GrantQueryController, asAlice()).listAccessHistory({
       org: acme,
       pageSize: 1,
     });
@@ -190,11 +190,11 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history's retention
     await booted?.close();
     booted = undefined;
     const kept = await sequencesOf(acme);
-    await db.pool.query(`UPDATE iam_policy_history SET occurred_at = $1 WHERE org = $2`, [LONG_AGO, acme]);
+    await db.pool.query(`UPDATE grant_history SET occurred_at = $1 WHERE org = $2`, [LONG_AGO, acme]);
 
     booted = await boot(undefined);
 
-    const page = await createClient(IamPolicyQueryController, asAlice()).listAccessHistory({
+    const page = await createClient(GrantQueryController, asAlice()).listAccessHistory({
       org: acme,
       afterSequence: 0n,
     });

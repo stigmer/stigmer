@@ -79,7 +79,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
-import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
+import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
@@ -407,7 +407,7 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
 
   it("checkMyPermission tells the truth through the built-in authorizer", async () => {
     const ask = (transport: ReturnType<typeof asMember>) =>
-      createClient(IamPolicyQueryController, transport).checkMyPermission({
+      createClient(GrantQueryController, transport).checkMyPermission({
         relation: "can_edit",
         resource: { kind: "agent", id: orgAgent.metadata!.id },
       });

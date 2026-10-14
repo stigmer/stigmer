@@ -3,7 +3,7 @@
 import { useId } from "react";
 import { InvitationManager } from "../invitation/InvitationManager.js";
 import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
-import { PermissionGate } from "../iam-policy/PermissionGate.js";
+import { PermissionGate } from "../grant/PermissionGate.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { useOrg } from "../organization/OrgProvider.js";
 

@@ -41,7 +41,7 @@ import { FILE_REF_MIME } from "../internal/file-tree/index.js";
 import { VaultPicker } from "../vault/VaultPicker.js";
 import type { ConversationVaults } from "../vault/conversationVaults.js";
 import { SYSTEM_ENV_VAR_KEYS } from "../vault/systemEnvVars.js";
-import { useWhoAmI } from "../iam-policy/useWhoAmI.js";
+import { useWhoAmI } from "../grant/useWhoAmI.js";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import {

@@ -103,10 +103,10 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "Hooks and components for organization creation and management.",
   },
-  "iam-policy": {
-    title: "IAM Policy",
+  grant: {
+    title: "Grants",
     description:
-      "Hooks and components for access control bindings, role assignment, and org membership.",
+      "Who has which role on what, and the gates that read it.",
   },
   access: {
     title: "Manage Access",
@@ -281,7 +281,7 @@ const PROTO_TYPE_TO_SLUG: Record<string, string> = {
   ApiKey: "api-key",
   Organization: "organization",
   Project: "project",
-  IamPolicy: "iam-policy",
+  Grant: "grant",
   IdentityAccount: "identity-account",
   FederationIssuer: "federation-issuer",
 };

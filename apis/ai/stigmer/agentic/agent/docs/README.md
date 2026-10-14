@@ -28,7 +28,7 @@ The Agent resource is the only one users author directly in YAML. Sessions and R
 |---|---|
 | [agent-resource-guide.md](agent-resource-guide.md) | Core YAML schema reference — metadata, spec fields, env spec, run defaults (`run_config`, `harness`), status, CLI commands |
 | [resource-references.md](resource-references.md) | `ApiResourceReference` format — how to reference plugins, skills, and other resources |
-| [plugin-integration.md](plugin-integration.md) | Plugins and their MCP servers, tool names, the `tools` and `disallowed_tools` lists, which tools ask for approval, and runtime resolution |
+| [plugin-integration.md](plugin-integration.md) | Plugins and their MCP servers, an agent's own MCP servers (`mcp_servers`), tool names, the `tools` and `disallowed_tools` lists, which tools ask for approval, and runtime resolution |
 | [skill-integration.md](skill-integration.md) | Skill references, versioning, and how skills are injected at runtime |
 | [subagents.md](subagents.md) | Saved agents an agent lists as subagents, plugin subagents, which version runs and what each one runs with |
 | [examples.md](examples.md) | Complete YAML examples from minimal to full-featured |

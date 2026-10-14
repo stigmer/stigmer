@@ -28,14 +28,14 @@ import { describe, expect, it } from "vitest";
 
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import type { ApiResourceRef, IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import type { ApiResourceRef, GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import { SILENT_LOGGER } from "../../../__test-utils__/refusing-doubles.js";
 import { newJwksKeyCache } from "../../../verifiers/jwks.js";
 import type { IdentityAccountService, NewAccountRequest } from "../../account/port.js";
 import type { OrganizationLookup } from "../../organization-links.js";
-import type { IamPolicyGrantPathClient } from "../../policy/grant-path-client.js";
+import type { GrantPathClient } from "../../grant/grant-path-client.js";
 import { newIssuerRemoval } from "../../issuer/removal.js";
 import { InMemoryIssuerStore, storedIssuer } from "../../issuer/__tests__/in-memory-issuer-store.js";
 import { newStoreBackedFederatedVerifier } from "../verifier.js";
@@ -91,7 +91,7 @@ function world(holds: Holds = {}) {
   const providers = new InMemoryIssuerStore();
   const names = inMemoryNames();
   const accounts = new Map<string, { readonly key: string; readonly account: IdentityAccount }>();
-  const grants: IamPolicySpec[] = [];
+  const grants: GrantSpec[] = [];
   const signInGrants = inMemorySignInGrants();
   let minted = 0;
 
@@ -140,12 +140,12 @@ function world(holds: Holds = {}) {
     },
   } as unknown as IdentityAccountService;
 
-  const policies = {
-    create: (spec: IamPolicySpec) => {
+  const grantPath = {
+    create: (spec: GrantSpec) => {
       grants.push(spec);
       return Promise.resolve(undefined as never);
     },
-    delete: (spec: IamPolicySpec) => {
+    delete: (spec: GrantSpec) => {
       const at = grants.findIndex(
         (held) => held.principal?.id === spec.principal?.id && held.resource?.id === spec.resource?.id,
       );
@@ -154,11 +154,11 @@ function world(holds: Holds = {}) {
       }
       return Promise.resolve(undefined as never);
     },
-    cleanupResourcePolicies: (ref: ApiResourceRef) => {
+    cleanupResourceGrants: (ref: ApiResourceRef) => {
       dropGrantsOf(ref.id);
       return Promise.resolve();
     },
-  } as unknown as IamPolicyGrantPathClient;
+  } as unknown as GrantPathClient;
 
   const organizations: OrganizationLookup = {
     find: () =>
@@ -175,7 +175,7 @@ function world(holds: Holds = {}) {
   const verifier = newStoreBackedFederatedVerifier({
     providers,
     accounts: accountService,
-    policies,
+    grants: grantPath,
     childOrganizations: { findByExternalId: () => Promise.resolve(undefined) },
     signInGrants,
     fetchUserProfile: () => Promise.reject(new Error("no userinfo in this suite")),
@@ -191,7 +191,7 @@ function world(holds: Holds = {}) {
     providers,
     names,
     accounts: accountService,
-    policies,
+    grants: grantPath,
     invalidate: () => verifier.invalidate(),
     logger: SILENT_LOGGER,
   });

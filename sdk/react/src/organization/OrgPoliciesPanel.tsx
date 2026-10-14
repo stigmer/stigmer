@@ -15,7 +15,7 @@ import {
   organizationPoliciesOf,
   useUpdateOrganizationPolicies,
 } from "./useUpdateOrganizationPolicies.js";
-import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { Switch } from "../switch/Switch.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";

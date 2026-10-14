@@ -38,7 +38,7 @@ function renderView(props: { editable?: boolean; onSkillClick?: (ref: { org: str
         {
           agent: { getByReference: vi.fn(async () => agent), update: vi.fn(async () => agent) },
           platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
-          iamPolicy: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
+          grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
         },
         undefined,
         true,

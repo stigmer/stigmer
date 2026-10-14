@@ -10,11 +10,12 @@
 //
 // Tenancy is real here, unlike the local targets: each provisioned scope is an
 // organization created via the production RPC, whose creation grants the
-// primary user ownership (IAM policies) and provisions its billing account —
+// primary user ownership (grants) and provisions its billing account —
 // sufficient for the Class A (CRUD) domains. A run needs the
 // organization's own key for its provider (keyTenancy): the fixture Anthropic
 // and OpenAI keys always, and a Cursor key only when the invoking shell
 // supplies a real one in CURSOR_API_KEY.
+
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { CLOUD_ENV, requireDirectLoginTenant } from "../harness/cloud-env";
 import {
@@ -394,7 +395,7 @@ export class CloudTarget implements TargetProfile {
   }
 
   // A brand-new console person granted exactly `member` on the tenancy, as
-  // the primary (the org's owner, through the ordinary IamPolicy create).
+  // the primary (the org's owner, through the ordinary Grant create).
   // The colleague for within-organization authorization assertions: past the
   // organization-level checks, subject to every resource-level rule.
   provisionMember(tenancy: TenancyContext): Promise<ConformanceClients> {

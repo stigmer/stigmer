@@ -1,6 +1,6 @@
 /**
  * The owner-row reconcile: at every boot, every kind that records no owner
- * loses any direct `owner` policy row it still holds. Four kinds, in the
+ * loses any direct `owner` grant row it still holds. Four kinds, in the
  * model `@stigmer/server` ships, are managed by their organization's
  * current admins alone (`owner: admin from organization`, kind_meta
  * `owner_type` NONE): federation issuers and invitations since
@@ -9,7 +9,7 @@
  * since stigmer/stigmer#1329 and stigmer/stigmer#1426, the host's.
  *
  * Why the rows exist at all: until those models, the creation event wrote
- * `<kind>:<id>#owner@identity_account:<creator>`, and an IamPolicy grant
+ * `<kind>:<id>#owner@identity_account:<creator>`, and a grant
  * could write the same shape. A creator demoted below admin, or removed,
  * kept full control of the row through it: for a provider enough to mint
  * an owner of the organization, for an app enough to change its
@@ -18,7 +18,7 @@
  * then it still grants, and after it every access listing would still
  * show it. So the row goes.
  *
- * One read per kind: every `owner` row on the kind, from the policy table
+ * One read per kind: every `owner` row on the kind, from the grant table
  * (`OwnerRowReads`, the adapter's `findByResourceKindAndRelation`).
  * The question is which owner rows exist, not which resources exist, so
  * the reconcile never enumerates a kind's rows, and a row left on a
@@ -37,20 +37,20 @@
  * runs; the caller logs and boot proceeds.
  */
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import type { Logger } from "@stigmer/server";
 
-import type { IamPolicyGrantPathClient } from "./policy/grant-path-client.js";
+import type { GrantPathClient } from "./grant/grant-path-client.js";
 
 /** The relation no row of a no-owner kind may hold directly. */
 const OWNER = "owner";
 
-/** The one read the reconcile makes: every policy row granting `relation` on a kind. */
+/** The one read the reconcile makes: every grant row granting `relation` on a kind. */
 export interface OwnerRowReads {
   findByResourceKindAndRelation(
     resourceKind: string,
     relation: string,
-  ): Promise<ReadonlyArray<IamPolicy>>;
+  ): Promise<ReadonlyArray<Grant>>;
 }
 
 export interface OwnerRowReport {
@@ -61,8 +61,8 @@ export interface OwnerRowReport {
 }
 
 export interface OwnerRowDeps {
-  readonly policyStore: OwnerRowReads;
-  readonly policies: Pick<IamPolicyGrantPathClient, "delete">;
+  readonly grantStore: OwnerRowReads;
+  readonly grants: Pick<GrantPathClient, "delete">;
 }
 
 /** A kind the reconcile covers, and how its log lines name it. */
@@ -79,7 +79,7 @@ export async function revokeOwnerRows(
   kind: ApiResourceKind,
   deps: OwnerRowDeps,
 ): Promise<OwnerRowReport> {
-  const rows = await deps.policyStore.findByResourceKindAndRelation(
+  const rows = await deps.grantStore.findByResourceKindAndRelation(
     ApiResourceKind[kind],
     OWNER,
   );
@@ -92,7 +92,7 @@ export async function revokeOwnerRows(
     }
     const id = spec.resource?.id ?? "";
     try {
-      await deps.policies.delete(spec);
+      await deps.grants.delete(spec);
       revoked.push({ id, accountId: spec.principal?.id ?? "" });
     } catch (error) {
       failures.push({ id, error: error instanceof Error ? error.message : String(error) });

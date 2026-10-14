@@ -191,12 +191,12 @@ Rows read `| \`Message.field\` | class |`.
 |---|---|
 | `ai.stigmer.commons.apiresource.ApiResourceMetadata.slug` | not a resource: the resource's own name |
 
-## `ai.stigmer.iam.iampolicy.v1`
+## `ai.stigmer.iam.grant.v1`
 
 | Field | Class |
 |---|---|
-| `ai.stigmer.iam.iampolicy.v1.AccessHistoryEntry.resource` | stamped reference |
-| `ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput.identity_account_id` | stamped id |
+| `ai.stigmer.iam.grant.v1.AccessHistoryEntry.resource` | stamped reference |
+| `ai.stigmer.iam.grant.v1.RevokeOrgAccessInput.identity_account_id` | stamped id |
 
 ## `ai.stigmer.iam.identityaccount.v1`
 

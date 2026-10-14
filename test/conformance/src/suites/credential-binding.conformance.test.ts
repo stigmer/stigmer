@@ -46,7 +46,7 @@ import { makeAgentExecution } from "../support/runs";
 import { makeSharedVault, myVaultTarget, setSecretsInput } from "../support/vaults";
 import { oneServerPlugin, pushPlugin } from "../support/plugins";
 import { makeSession } from "../support/sessions";
-import { organizationRole, policyTriple, ref } from "../support/iampolicies";
+import { organizationRole, grantTriple, ref } from "../support/grants";
 import { uniqueName } from "../support/naming";
 import {
   createMinter,
@@ -141,7 +141,7 @@ async function personIn(
   role: string,
 ): Promise<ConformanceClients> {
   const person = await on.provisionIdentity();
-  await on.clients.iamPolicyCommand.create(
+  await on.clients.grantCommand.create(
     organizationRole(await on.accountIdOf(person), role, tenancy.org),
   );
   return person;
@@ -242,7 +242,7 @@ async function expectBoundTo(
     "a bound credential sees its own organization alone",
   ).toEqual([a.org]);
 
-  const permission = await asBound.iamPolicyQuery.checkMyPermission({
+  const permission = await asBound.grantQuery.checkMyPermission({
     resource: ref("vault", elsewhere),
     relation: "can_view",
   });
@@ -276,13 +276,13 @@ describe("credential binding — a credential that names an organization works t
       ),
     );
     const accountId = await on.accountIdOf(asUser);
-    await on.clients.iamPolicyCommand.create(
+    await on.clients.grantCommand.create(
       organizationRole(accountId, "member", b.org),
     );
     // The control: the user does hold a role in B, so every refusal below is
     // the binding's and not a missing grant.
     const accessToB =
-      await on.clients.iamPolicyQuery.listResourceAccessByPrincipal({
+      await on.clients.grantQuery.listResourceAccessByPrincipal({
         resource: { kind: "organization", id: b.org },
       });
     expect(
@@ -299,7 +299,7 @@ describe("credential binding — a credential that names an organization works t
     const a = await tenancy(on);
     const b = await tenancy(on);
     const person = await on.provisionMember(a);
-    await on.clients.iamPolicyCommand.create(
+    await on.clients.grantCommand.create(
       organizationRole(await on.accountIdOf(person), "member", b.org),
     );
     const key = await keyOf(on, person, a.org);
@@ -319,7 +319,7 @@ describe("credential binding — a credential that names an organization works t
     expect(read.metadata?.id).toBe(elsewhere);
   });
 
-  it("[rpc:IamPolicyQueryController.checkAuthorization] a key limited to A gets false when it asks about a resource of B", async (ctx) => {
+  it("[rpc:GrantQueryController.checkAuthorization] a key limited to A gets false when it asks about a resource of B", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
     if (!target.capabilities.authorizationQueries) {
@@ -329,12 +329,12 @@ describe("credential binding — a credential that names an organization works t
     const b = await tenancy(on);
     const person = await on.provisionMember(a);
     const personId = await on.accountIdOf(person);
-    await on.clients.iamPolicyCommand.create(
+    await on.clients.grantCommand.create(
       organizationRole(personId, "member", b.org),
     );
     const elsewhere = await founderVault(on, b.org);
     const question = {
-      policy: policyTriple(
+      grant: grantTriple(
         { kind: "identity_account", id: personId },
         "can_view",
         {
@@ -344,14 +344,14 @@ describe("credential binding — a credential that names an organization works t
       ),
     };
 
-    const unbound = await person.iamPolicyQuery.checkAuthorization(question);
+    const unbound = await person.grantQuery.checkAuthorization(question);
     expect(unbound.isAuthorized, "the person may view B's row").toBe(true);
     const key = await keyOf(on, person, a.org);
-    const bound = await key.clients.iamPolicyQuery.checkAuthorization(question);
+    const bound = await key.clients.grantQuery.checkAuthorization(question);
     expect(bound.isAuthorized, "the key limited to A may not").toBe(false);
   });
 
-  it("[rpc:IamPolicyQueryController.checkMyPermission] a key limited to A gets false when it asks, with contextual policies, about a resource of B", async (ctx) => {
+  it("[rpc:GrantQueryController.checkMyPermission] a key limited to A gets false when it asks, with contextual grants, about a resource of B", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
     if (!target.capabilities.authorizationQueries) {
@@ -361,27 +361,27 @@ describe("credential binding — a credential that names an organization works t
     const b = await tenancy(on);
     const person = await on.provisionMember(a);
     const personId = await on.accountIdOf(person);
-    await on.clients.iamPolicyCommand.create(
+    await on.clients.grantCommand.create(
       organizationRole(personId, "member", b.org),
     );
     const elsewhere = await founderVault(on, b.org);
-    // Any contextual policy routes the question to the query engine (the
+    // Any contextual grant routes the question to the query engine (the
     // lane the binding must also cover); this one changes no answer.
     const question = {
       resource: ref("vault", elsewhere),
       relation: "can_view",
-      contextualPolicies: [
-        policyTriple({ kind: "identity_account", id: personId }, "member", {
+      contextualGrants: [
+        grantTriple({ kind: "identity_account", id: personId }, "member", {
           kind: "organization",
           id: a.org,
         }),
       ],
     };
 
-    const unbound = await person.iamPolicyQuery.checkMyPermission(question);
+    const unbound = await person.grantQuery.checkMyPermission(question);
     expect(unbound.isAuthorized, "the person may view B's row").toBe(true);
     const key = await keyOf(on, person, a.org);
-    const bound = await key.clients.iamPolicyQuery.checkMyPermission(question);
+    const bound = await key.clients.grantQuery.checkMyPermission(question);
     expect(bound.isAuthorized, "the key limited to A may not").toBe(false);
   });
 
@@ -438,7 +438,7 @@ describe("credential binding — a credential that names an organization works t
     expect(listed.entries.map((org) => org.metadata?.id)).toEqual([childOrg]);
     const customer = await on.provisionIdentity();
     const customerId = await on.accountIdOf(customer);
-    await key.clients.iamPolicyCommand.create(
+    await key.clients.grantCommand.create(
       organizationRole(customerId, "admin", childOrg),
     );
     // The child's own admin writes an org-visible row there: the founder,
@@ -471,7 +471,7 @@ describe("credential binding — a credential that names an organization works t
     const a = await tenancy(on);
     const b = await tenancy(on);
     const person = await on.provisionMember(a);
-    await on.clients.iamPolicyCommand.create(
+    await on.clients.grantCommand.create(
       organizationRole(await on.accountIdOf(person), "member", b.org),
     );
     const key = await keyOf(on, person, a.org);
@@ -518,7 +518,7 @@ describe("credential binding — a credential that names an organization works t
     const a = await tenancy(on);
     const b = await tenancy(on);
     const person = await on.provisionMember(a);
-    await on.clients.iamPolicyCommand.create(
+    await on.clients.grantCommand.create(
       organizationRole(await on.accountIdOf(person), "member", b.org),
     );
     const key = await keyOf(on, person, a.org);
@@ -615,7 +615,7 @@ describe("credential binding — a credential that names an organization works t
     const b = await tenancy(on);
     const a = await childTenancy(on, b);
     const person = await personIn(on, a, "member");
-    await on.clients.iamPolicyCommand.create(
+    await on.clients.grantCommand.create(
       organizationRole(await on.accountIdOf(person), "member", b.org),
     );
     const agentInput = makeAgent({

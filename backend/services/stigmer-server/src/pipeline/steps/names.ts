@@ -99,7 +99,7 @@ export const NAMED_KINDS: Readonly<Record<ApiResourceKind, NamedKind>> = {
     claims: false,
     reason: "no slug: a version is named by its resource and number",
   },
-  [ApiResourceKind.iam_policy]: {
+  [ApiResourceKind.grant]: {
     claims: false,
     reason: "its id is its natural key (subject, relation, object)",
   },

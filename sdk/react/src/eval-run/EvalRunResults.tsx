@@ -39,7 +39,7 @@ import {
 import { cn } from "@stigmer/theme";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
-import { useWhoAmI } from "../iam-policy/useWhoAmI.js";
+import { useWhoAmI } from "../grant/useWhoAmI.js";
 import { downloadTextFile } from "../internal/download.js";
 import { Section } from "../resource-detail/Section.js";
 import { DANGER_BUTTON_CLASS, QUIET_BUTTON_CLASS } from "../vault/styles.js";

@@ -33,12 +33,13 @@ public enum ApiResourceKind
   api_resource_version(1),
   /**
    * <pre>
-   * Role-based access control policy for granting permissions on resources.
+   * One role given to one principal on one resource. Who holds what on a
+   * resource is the set of its grants.
    * </pre>
    *
-   * <code>iam_policy = 10 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   * <code>grant = 10 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
-  iam_policy(10),
+  grant(10),
   /**
    * <pre>
    * User account in the identity system.
@@ -296,12 +297,13 @@ public enum ApiResourceKind
   public static final int api_resource_version_VALUE = 1;
   /**
    * <pre>
-   * Role-based access control policy for granting permissions on resources.
+   * One role given to one principal on one resource. Who holds what on a
+   * resource is the set of its grants.
    * </pre>
    *
-   * <code>iam_policy = 10 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   * <code>grant = 10 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
-  public static final int iam_policy_VALUE = 10;
+  public static final int grant_VALUE = 10;
   /**
    * <pre>
    * User account in the identity system.
@@ -557,7 +559,7 @@ public enum ApiResourceKind
     switch (value) {
       case 0: return api_resource_kind_unknown;
       case 1: return api_resource_version;
-      case 10: return iam_policy;
+      case 10: return grant;
       case 11: return identity_account;
       case 12: return api_key;
       case 20: return invitation;

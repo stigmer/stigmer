@@ -8,12 +8,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  policyNamesRetiredWorkflowInstance,
+  grantNamesRetiredWorkflowInstance,
   unreadableWorkflowRowError,
 } from "../workflow-instance-retired.js";
-import { policyRow } from "./retired-instance-rows.js";
+import { grantRow } from "./retired-instance-rows.js";
 
-describe("policyNamesRetiredWorkflowInstance", () => {
+describe("grantNamesRetiredWorkflowInstance", () => {
   it.each([
     {
       principal: "identity_account:ida_1",
@@ -37,15 +37,15 @@ describe("policyNamesRetiredWorkflowInstance", () => {
     },
   ])("$principal -> $resource: $named", ({ principal, resource, named }) => {
     expect(
-      policyNamesRetiredWorkflowInstance(
-        policyRow({ id: "iam_1", principal, relation: "viewer", resource }),
+      grantNamesRetiredWorkflowInstance(
+        grantRow({ id: "iam_1", principal, relation: "viewer", resource }),
       ),
     ).toBe(named);
   });
 
   it("throws on bytes that do not decode", () => {
     expect(() =>
-      policyNamesRetiredWorkflowInstance(new Uint8Array([0x22, 0xff])),
+      grantNamesRetiredWorkflowInstance(new Uint8Array([0x22, 0xff])),
     ).toThrow();
   });
 });

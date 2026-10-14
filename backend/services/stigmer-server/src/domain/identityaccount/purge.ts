@@ -21,7 +21,7 @@ import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
-import { newCleanupIamPoliciesStep } from "../../pipeline/steps/authorization-tuples.js";
+import { newCleanupGrantsStep } from "../../pipeline/steps/authorization-tuples.js";
 import { newKindPurge } from "../organization/purge/kind-purge.js";
 import type {
   KindPurge,
@@ -54,7 +54,7 @@ export function newIdentityAccountPurge(
         deps.logger,
         ApiResourceKind.identity_account,
       ),
-      newCleanupIamPoliciesStep(deps.accountLifecycle, deps.logger),
+      newCleanupGrantsStep(deps.accountLifecycle, deps.logger),
     ],
   });
 }

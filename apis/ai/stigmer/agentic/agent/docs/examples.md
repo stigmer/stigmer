@@ -67,6 +67,27 @@ spec:
   disallowed_tools: [mcp__plugin_github_github__delete_repository]
 ```
 
+## Agent with Its Own MCP Server
+
+An agent that carries an MCP server of its own instead of a plugin, as an integrator creates it from code in one call. Only an organization admin may apply it with the server. The header names the key as `${TICKETS_API_KEY}`, so the value is read from the conversation's vaults and never stored in the agent.
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: support-agent
+spec:
+  description: "Answers support tickets"
+  instructions: |
+    Answer support tickets. Look a ticket up before you reply.
+  mcp_servers:
+    - name: tickets
+      url: https://tickets.acme-helpdesk.example/mcp
+      headers:
+        Authorization: Bearer ${TICKETS_API_KEY}
+  tools: [Read, mcp__tickets]
+```
+
 ## Agent with Subagents
 
 A parent agent that hands work to two saved agents. Each subagent is an agent of its own, with its own plugins and tool lists; save them before the agent that lists them. See [subagents.md](subagents.md).
