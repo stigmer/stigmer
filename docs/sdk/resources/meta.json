@@ -10,7 +10,7 @@
     "commons",
     "evaluator",
     "federation-issuer",
-    "iam-policy",
+    "grant",
     "identity-account",
     "invitation",
     "license",

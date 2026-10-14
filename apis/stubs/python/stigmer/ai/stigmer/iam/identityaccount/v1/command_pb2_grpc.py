@@ -108,7 +108,7 @@ class IdentityAccountCommandControllerServicer(object):
         can authenticate; a just-in-time provider creates it on first sign-in.
 
         Returns the full identity account including its ID, which the platform uses
-        to grant roles via IAM policies.
+        to grant roles through Grants.
 
         Served by the Enterprise and Cloud editions; the open-source server
         answers UNIMPLEMENTED.
@@ -142,7 +142,7 @@ class IdentityAccountCommandControllerServicer(object):
         """Deprovision a federated identity account by revoking access or deleting it.
 
         Looks up the account by natural key (federation_issuer_ref + external_sub).
-        When delete_account is false, revokes all IAM policies in the organization.
+        When delete_account is false, revokes all its grants in the organization.
         When delete_account is true, revokes policies and deletes the account.
         Under a just-in-time provider, a deleted account is created again at
         the user's next sign-in, with any role the provider grants automatically; a
@@ -171,7 +171,7 @@ class IdentityAccountCommandControllerServicer(object):
         use answers ALREADY_EXISTS. A server running without sign-in answers
         FAILED_PRECONDITION, since no key could authenticate there.
 
-        Rename it with update, change its role through IAM policies, and delete
+        Rename it with update, change its role through Grants, and delete
         it with delete, which ends every key it has.
 
         Authorization: Requires can_create_identity_account on the organization.

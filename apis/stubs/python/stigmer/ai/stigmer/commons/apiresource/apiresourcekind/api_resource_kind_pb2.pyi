@@ -31,7 +31,7 @@ class ApiResourceKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     api_resource_kind_unknown: _ClassVar[ApiResourceKind]
     api_resource_version: _ClassVar[ApiResourceKind]
-    iam_policy: _ClassVar[ApiResourceKind]
+    grant: _ClassVar[ApiResourceKind]
     identity_account: _ClassVar[ApiResourceKind]
     api_key: _ClassVar[ApiResourceKind]
     invitation: _ClassVar[ApiResourceKind]
@@ -68,7 +68,7 @@ platform_id_value_unspecified: PlatformIdValue
 stigmer: PlatformIdValue
 api_resource_kind_unknown: ApiResourceKind
 api_resource_version: ApiResourceKind
-iam_policy: ApiResourceKind
+grant: ApiResourceKind
 identity_account: ApiResourceKind
 api_key: ApiResourceKind
 invitation: ApiResourceKind

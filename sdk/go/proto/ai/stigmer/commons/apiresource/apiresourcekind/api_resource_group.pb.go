@@ -29,7 +29,7 @@ const (
 	ApiResourceGroup_api_resource_group_unspecified ApiResourceGroup = 0
 	// Agentic - AI agents, runs, sessions, skills, and orchestration
 	ApiResourceGroup_agentic ApiResourceGroup = 1
-	// Identity and Access Management - IAM policies, identity accounts, and credentials
+	// Identity and Access Management - grants, identity accounts, and credentials
 	ApiResourceGroup_iam ApiResourceGroup = 2
 	// Tenancy - Resource hierarchy: platform and organizations
 	ApiResourceGroup_tenancy ApiResourceGroup = 3

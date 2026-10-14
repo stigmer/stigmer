@@ -29,7 +29,7 @@ public enum ApiResourceGroup
   agentic(1),
   /**
    * <pre>
-   * Identity and Access Management - IAM policies, identity accounts, and credentials
+   * Identity and Access Management - grants, identity accounts, and credentials
    * </pre>
    *
    * <code>iam = 2 [(.ai.stigmer.commons.apiresource.apiresourcekind.group_meta) = { ... }</code>
@@ -82,7 +82,7 @@ public enum ApiResourceGroup
   public static final int agentic_VALUE = 1;
   /**
    * <pre>
-   * Identity and Access Management - IAM policies, identity accounts, and credentials
+   * Identity and Access Management - grants, identity accounts, and credentials
    * </pre>
    *
    * <code>iam = 2 [(.ai.stigmer.commons.apiresource.apiresourcekind.group_meta) = { ... }</code>

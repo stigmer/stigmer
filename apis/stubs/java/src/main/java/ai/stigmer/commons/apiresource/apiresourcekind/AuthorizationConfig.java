@@ -360,8 +360,8 @@ private static final long serialVersionUID = 0L;
           };
   /**
    * <pre>
-   * Roles that can be granted on this resource kind via IAM policies.
-   * Drives the web app role selector and SDK validation for IAM policy creation.
+   * Roles that can be granted on this resource kind by a Grant.
+   * Drives the web app role selector and SDK validation for grant creation.
    *
    * Each value must correspond to a directly-assignable FGA relation
    * (defined with [identity_account] in the FGA model). Computed roles
@@ -383,8 +383,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Roles that can be granted on this resource kind via IAM policies.
-   * Drives the web app role selector and SDK validation for IAM policy creation.
+   * Roles that can be granted on this resource kind by a Grant.
+   * Drives the web app role selector and SDK validation for grant creation.
    *
    * Each value must correspond to a directly-assignable FGA relation
    * (defined with [identity_account] in the FGA model). Computed roles
@@ -405,8 +405,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Roles that can be granted on this resource kind via IAM policies.
-   * Drives the web app role selector and SDK validation for IAM policy creation.
+   * Roles that can be granted on this resource kind by a Grant.
+   * Drives the web app role selector and SDK validation for grant creation.
    *
    * Each value must correspond to a directly-assignable FGA relation
    * (defined with [identity_account] in the FGA model). Computed roles
@@ -428,8 +428,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Roles that can be granted on this resource kind via IAM policies.
-   * Drives the web app role selector and SDK validation for IAM policy creation.
+   * Roles that can be granted on this resource kind by a Grant.
+   * Drives the web app role selector and SDK validation for grant creation.
    *
    * Each value must correspond to a directly-assignable FGA relation
    * (defined with [identity_account] in the FGA model). Computed roles
@@ -451,8 +451,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Roles that can be granted on this resource kind via IAM policies.
-   * Drives the web app role selector and SDK validation for IAM policy creation.
+   * Roles that can be granted on this resource kind by a Grant.
+   * Drives the web app role selector and SDK validation for grant creation.
    *
    * Each value must correspond to a directly-assignable FGA relation
    * (defined with [identity_account] in the FGA model). Computed roles
@@ -2338,8 +2338,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Roles that can be granted on this resource kind via IAM policies.
-     * Drives the web app role selector and SDK validation for IAM policy creation.
+     * Roles that can be granted on this resource kind by a Grant.
+     * Drives the web app role selector and SDK validation for grant creation.
      *
      * Each value must correspond to a directly-assignable FGA relation
      * (defined with [identity_account] in the FGA model). Computed roles
@@ -2360,8 +2360,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Roles that can be granted on this resource kind via IAM policies.
-     * Drives the web app role selector and SDK validation for IAM policy creation.
+     * Roles that can be granted on this resource kind by a Grant.
+     * Drives the web app role selector and SDK validation for grant creation.
      *
      * Each value must correspond to a directly-assignable FGA relation
      * (defined with [identity_account] in the FGA model). Computed roles
@@ -2381,8 +2381,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Roles that can be granted on this resource kind via IAM policies.
-     * Drives the web app role selector and SDK validation for IAM policy creation.
+     * Roles that can be granted on this resource kind by a Grant.
+     * Drives the web app role selector and SDK validation for grant creation.
      *
      * Each value must correspond to a directly-assignable FGA relation
      * (defined with [identity_account] in the FGA model). Computed roles
@@ -2403,8 +2403,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Roles that can be granted on this resource kind via IAM policies.
-     * Drives the web app role selector and SDK validation for IAM policy creation.
+     * Roles that can be granted on this resource kind by a Grant.
+     * Drives the web app role selector and SDK validation for grant creation.
      *
      * Each value must correspond to a directly-assignable FGA relation
      * (defined with [identity_account] in the FGA model). Computed roles
@@ -2431,8 +2431,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Roles that can be granted on this resource kind via IAM policies.
-     * Drives the web app role selector and SDK validation for IAM policy creation.
+     * Roles that can be granted on this resource kind by a Grant.
+     * Drives the web app role selector and SDK validation for grant creation.
      *
      * Each value must correspond to a directly-assignable FGA relation
      * (defined with [identity_account] in the FGA model). Computed roles
@@ -2457,8 +2457,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Roles that can be granted on this resource kind via IAM policies.
-     * Drives the web app role selector and SDK validation for IAM policy creation.
+     * Roles that can be granted on this resource kind by a Grant.
+     * Drives the web app role selector and SDK validation for grant creation.
      *
      * Each value must correspond to a directly-assignable FGA relation
      * (defined with [identity_account] in the FGA model). Computed roles
@@ -2485,8 +2485,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Roles that can be granted on this resource kind via IAM policies.
-     * Drives the web app role selector and SDK validation for IAM policy creation.
+     * Roles that can be granted on this resource kind by a Grant.
+     * Drives the web app role selector and SDK validation for grant creation.
      *
      * Each value must correspond to a directly-assignable FGA relation
      * (defined with [identity_account] in the FGA model). Computed roles
@@ -2509,8 +2509,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Roles that can be granted on this resource kind via IAM policies.
-     * Drives the web app role selector and SDK validation for IAM policy creation.
+     * Roles that can be granted on this resource kind by a Grant.
+     * Drives the web app role selector and SDK validation for grant creation.
      *
      * Each value must correspond to a directly-assignable FGA relation
      * (defined with [identity_account] in the FGA model). Computed roles
@@ -2532,8 +2532,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Roles that can be granted on this resource kind via IAM policies.
-     * Drives the web app role selector and SDK validation for IAM policy creation.
+     * Roles that can be granted on this resource kind by a Grant.
+     * Drives the web app role selector and SDK validation for grant creation.
      *
      * Each value must correspond to a directly-assignable FGA relation
      * (defined with [identity_account] in the FGA model). Computed roles
@@ -2554,8 +2554,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Roles that can be granted on this resource kind via IAM policies.
-     * Drives the web app role selector and SDK validation for IAM policy creation.
+     * Roles that can be granted on this resource kind by a Grant.
+     * Drives the web app role selector and SDK validation for grant creation.
      *
      * Each value must correspond to a directly-assignable FGA relation
      * (defined with [identity_account] in the FGA model). Computed roles
@@ -2581,8 +2581,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Roles that can be granted on this resource kind via IAM policies.
-     * Drives the web app role selector and SDK validation for IAM policy creation.
+     * Roles that can be granted on this resource kind by a Grant.
+     * Drives the web app role selector and SDK validation for grant creation.
      *
      * Each value must correspond to a directly-assignable FGA relation
      * (defined with [identity_account] in the FGA model). Computed roles
@@ -2607,8 +2607,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Roles that can be granted on this resource kind via IAM policies.
-     * Drives the web app role selector and SDK validation for IAM policy creation.
+     * Roles that can be granted on this resource kind by a Grant.
+     * Drives the web app role selector and SDK validation for grant creation.
      *
      * Each value must correspond to a directly-assignable FGA relation
      * (defined with [identity_account] in the FGA model). Computed roles

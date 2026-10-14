@@ -94,7 +94,7 @@ public interface ApiResourceMetadataOrBuilder extends
    * Two kinds derive it from their natural key instead: a direct
    * IdentityAccount's id is derived from its issuer subject (`ida_` followed by 26 Crockford-base32 characters of
    * sha256(spec.idp_id)), so one subject can only ever be one account; and
-   * an IamPolicy's id is derived from its triple (`iamp_` followed by 26
+   * a Grant's id is derived from its triple (`grt_` followed by 26
    * Crockford-base32 characters of sha256 over
    * `principal.kind:principal.id#principal.relation&#64;resource.kind:resource.id#relation`),
    * so one grant can only ever be one row.
@@ -114,7 +114,7 @@ public interface ApiResourceMetadataOrBuilder extends
    * Two kinds derive it from their natural key instead: a direct
    * IdentityAccount's id is derived from its issuer subject (`ida_` followed by 26 Crockford-base32 characters of
    * sha256(spec.idp_id)), so one subject can only ever be one account; and
-   * an IamPolicy's id is derived from its triple (`iamp_` followed by 26
+   * a Grant's id is derived from its triple (`grt_` followed by 26
    * Crockford-base32 characters of sha256 over
    * `principal.kind:principal.id#principal.relation&#64;resource.kind:resource.id#relation`),
    * so one grant can only ever be one row.

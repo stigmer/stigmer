@@ -6,7 +6,7 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * <pre>
  * TeamCommandController provides write operations for teams.
  * Membership is not written here: a person joins a team when they are granted
- * the member role on it, through the IAM policy service, like any other grant.
+ * the member role on it, through the Grant service, like any other grant.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -204,7 +204,7 @@ public final class TeamCommandControllerGrpc {
    * <pre>
    * TeamCommandController provides write operations for teams.
    * Membership is not written here: a person joins a team when they are granted
-   * the member role on it, through the IAM policy service, like any other grant.
+   * the member role on it, through the Grant service, like any other grant.
    * </pre>
    */
   public interface AsyncService {
@@ -293,7 +293,7 @@ public final class TeamCommandControllerGrpc {
    * <pre>
    * TeamCommandController provides write operations for teams.
    * Membership is not written here: a person joins a team when they are granted
-   * the member role on it, through the IAM policy service, like any other grant.
+   * the member role on it, through the Grant service, like any other grant.
    * </pre>
    */
   public static abstract class TeamCommandControllerImplBase
@@ -309,7 +309,7 @@ public final class TeamCommandControllerGrpc {
    * <pre>
    * TeamCommandController provides write operations for teams.
    * Membership is not written here: a person joins a team when they are granted
-   * the member role on it, through the IAM policy service, like any other grant.
+   * the member role on it, through the Grant service, like any other grant.
    * </pre>
    */
   public static final class TeamCommandControllerStub
@@ -413,7 +413,7 @@ public final class TeamCommandControllerGrpc {
    * <pre>
    * TeamCommandController provides write operations for teams.
    * Membership is not written here: a person joins a team when they are granted
-   * the member role on it, through the IAM policy service, like any other grant.
+   * the member role on it, through the Grant service, like any other grant.
    * </pre>
    */
   public static final class TeamCommandControllerBlockingV2Stub
@@ -513,7 +513,7 @@ public final class TeamCommandControllerGrpc {
    * <pre>
    * TeamCommandController provides write operations for teams.
    * Membership is not written here: a person joins a team when they are granted
-   * the member role on it, through the IAM policy service, like any other grant.
+   * the member role on it, through the Grant service, like any other grant.
    * </pre>
    */
   public static final class TeamCommandControllerBlockingStub
@@ -613,7 +613,7 @@ public final class TeamCommandControllerGrpc {
    * <pre>
    * TeamCommandController provides write operations for teams.
    * Membership is not written here: a person joins a team when they are granted
-   * the member role on it, through the IAM policy service, like any other grant.
+   * the member role on it, through the Grant service, like any other grant.
    * </pre>
    */
   public static final class TeamCommandControllerFutureStub

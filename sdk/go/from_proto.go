@@ -24,7 +24,7 @@ import (
 	subscriptionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/subscription/v1"
 	apikeyv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/apikey/v1"
 	federationissuerv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/federationissuer/v1"
-	iampolicyv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/iampolicy/v1"
+	grantv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/grant/v1"
 	identityaccountv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityaccount/v1"
 	invitationv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/invitation/v1"
 	oauthappv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/oauthapp/v1"
@@ -72,9 +72,9 @@ func FederationIssuerInputFromProto(p *federationissuerv1.FederationIssuer) *Fed
 	return gen.FederationIssuerInputFromProto(p)
 }
 
-// IamPolicyInputFromProto creates a IamPolicyInput from a proto IamPolicy resource.
-func IamPolicyInputFromProto(p *iampolicyv1.IamPolicy) *IamPolicyInput {
-	return gen.IamPolicyInputFromProto(p)
+// GrantInputFromProto creates a GrantInput from a proto Grant resource.
+func GrantInputFromProto(p *grantv1.Grant) *GrantInput {
+	return gen.GrantInputFromProto(p)
 }
 
 // IdentityAccountInputFromProto creates a IdentityAccountInput from a proto IdentityAccount resource.

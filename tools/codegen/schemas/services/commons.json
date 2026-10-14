@@ -41,7 +41,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "System-generated unique identifier.\n\n For every kind this is a generated, prefixed id (e.g. agt_\u003culid\u003e,\n org_\u003culid\u003e). An organization made by a release before organization ids\n were minted keeps the id it was given then, which equals its first slug.\n Two kinds derive it from their natural key instead: a direct\n IdentityAccount's id is derived from its issuer subject (`ida_` followed by 26 Crockford-base32 characters of\n sha256(spec.idp_id)), so one subject can only ever be one account; and\n an IamPolicy's id is derived from its triple (`iamp_` followed by 26\n Crockford-base32 characters of sha256 over\n `principal.kind:principal.id#principal.relation@resource.kind:resource.id#relation`),\n so one grant can only ever be one row.",
+          "description": "System-generated unique identifier.\n\n For every kind this is a generated, prefixed id (e.g. agt_\u003culid\u003e,\n org_\u003culid\u003e). An organization made by a release before organization ids\n were minted keeps the id it was given then, which equals its first slug.\n Two kinds derive it from their natural key instead: a direct\n IdentityAccount's id is derived from its issuer subject (`ida_` followed by 26 Crockford-base32 characters of\n sha256(spec.idp_id)), so one subject can only ever be one account; and\n a Grant's id is derived from its triple (`grt_` followed by 26\n Crockford-base32 characters of sha256 over\n `principal.kind:principal.id#principal.relation@resource.kind:resource.id#relation`),\n so one grant can only ever be one row.",
           "required": false
         },
         {
@@ -338,9 +338,9 @@
           "description": "Immutable version record tracking changes to an API resource."
         },
         {
-          "name": "iam_policy",
+          "name": "grant",
           "number": 10,
-          "description": "Role-based access control policy for granting permissions on resources."
+          "description": "One role given to one principal on one resource. Who holds what on a\n resource is the set of its grants."
         },
         {
           "name": "identity_account",
