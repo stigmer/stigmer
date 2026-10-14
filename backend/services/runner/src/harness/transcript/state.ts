@@ -1,18 +1,20 @@
 /**
- * TranscriptState — the RunStatus proto `TranscriptBuilder` is
- * building into, held as one {@link Transcript} per scope: the root's over
- * `status.messages`, and one per sub-agent over its row's `messages`.
+ * TranscriptState — the turn's rows (`TurnRows`, the runner's own proto)
+ * `TranscriptBuilder` is building into, held as one {@link Transcript} per
+ * scope: the root's over `rows.messages`, and one per sub-agent over its
+ * row's `messages`. Beside them the run's status, where the builder
+ * registers the turn's artifacts and write-backs.
  *
  * Indexes, not copies: every map value is the live proto object (a ToolCall
  * inside a message's repeated field, an AgentMessage inside a `messages`
  * array), so a mutation through the index IS the mutation of the proto, and
- * nothing here can drift from what is persisted. The arrays themselves are
- * the status's own, pushed into and never replaced, so every wrapper of the
- * status (the runtime's persist chokepoint, the settle modules that amend
- * rows by identity) keeps seeing every row. A reinvocation's prior rows
- * arrive through {@link TranscriptState.seed} — the turn runtime's
- * `seedFromPersistedStatus` hands them here — so they are indexed by the
- * same routine that indexes a status handed to the constructor.
+ * nothing here can drift from what the emitter reads. The arrays themselves
+ * are the rows' own, pushed into and never replaced, so every holder of the
+ * rows (the runtime's persist chokepoint, the settle modules that amend
+ * rows by identity) keeps seeing every row. A reinvocation's asks arrive
+ * through {@link TranscriptState.seed} — the turn runtime's seed from the
+ * session's log (`harness/transcript/resume-seed.ts`) hands them here — so they are
+ * indexed by the same routine that indexes rows handed to the constructor.
  *
  * One shape for every scope (since #1097): until then the root's indexes
  * lived here keyed by LangGraph namespace and the
@@ -28,9 +30,8 @@
  */
 
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
+import type { AgentMessage, ToolCall, SubAgentRun, TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { MessageType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
  * One scope's transcript: the `messages[]` it folds into (by reference) and
@@ -84,8 +85,8 @@ export class Transcript {
   }
 }
 
-/** The transcript half of a persisted status: what a reinvocation seeds through the builder. */
-export type TranscriptSeed = Pick<RunStatus, "messages" | "subAgentRuns" | "artifacts" | "workspaceWriteBacks" | "todos">;
+/** What a reinvocation seeds through the builder: the asks its engine resumes onto, by scope. */
+export type TranscriptSeed = Pick<TurnRows, "messages" | "subAgentRuns">;
 
 /** A sub-agent's row and the transcript folded into it. */
 export interface SubAgentScope {
@@ -94,23 +95,26 @@ export interface SubAgentScope {
 }
 
 export class TranscriptState {
-  /** The protobuf projection being built. */
-  readonly proto: RunStatus;
+  /** The rows being built. */
+  readonly rows: TurnRows;
 
-  /** The root transcript, over `proto.messages`. */
+  /** The run's status: the builder registers artifacts and write-backs on it. */
+  readonly status: RunStatus;
+
+  /** The root transcript, over `rows.messages`. */
   readonly root: Transcript;
 
   private readonly subAgentsById = new Map<string, SubAgentScope>();
 
   /**
-   * Indexes the status as handed: the root's messages and every seeded
-   * sub-agent row (a reinvocation's seed carries prior turns' rows, whose
-   * events may be re-driven).
+   * Indexes the rows as handed: the root's messages and every sub-agent
+   * row already on them.
    */
-  constructor(proto: RunStatus) {
-    this.proto = proto;
-    this.root = new Transcript(proto.messages);
-    for (const row of proto.subAgentRuns) {
+  constructor(rows: TurnRows, status: RunStatus) {
+    this.rows = rows;
+    this.status = status;
+    this.root = new Transcript(rows.messages);
+    for (const row of rows.subAgentRuns) {
       this.subAgentsById.set(row.id, { row, transcript: new Transcript(row.messages) });
     }
   }
@@ -125,38 +129,34 @@ export class TranscriptState {
     return this.subAgentsById.get(subAgentId);
   }
 
-  /** Push a new sub-agent row onto the status and open its transcript. The caller checks the id is new. */
+  /** Push a new sub-agent row onto the rows and open its transcript. The caller checks the id is new. */
   openSubAgent(row: SubAgentRun): SubAgentScope {
-    this.proto.subAgentRuns.push(row);
+    this.rows.subAgentRuns.push(row);
     const scope = { row, transcript: new Transcript(row.messages) };
     this.subAgentsById.set(row.id, scope);
     return scope;
   }
 
   /**
-   * Append a persisted transcript's rows to the status AND index them — the
-   * runtime's seed of a reinvocation (`harness/turn-context.ts`
-   * `seedFromPersistedStatus` says why every collection is seeded: the
-   * server replaces each list wholesale, so a resumed turn's write must be a
-   * superset). Every collection is pushed into, never reassigned, so the
-   * status's arrays stay the ones every wrapper of the status holds. A
-   * sub-agent row already known by id is skipped (a seed is applied once).
-   * The rows arrive through the same {@link Transcript.index} the
-   * constructor uses, so a builder that seeds after it is born indexes
-   * exactly as one born over the seeded status would.
+   * Append a reinvocation's seeded asks to the rows AND index them — the
+   * runtime's seed from the session's log (`harness/transcript/resume-seed.ts`), the
+   * calls a resumed engine re-issues and the threads that hold them. Every
+   * collection is pushed into, never reassigned, so the rows' arrays stay
+   * the ones every holder of the rows holds. A sub-agent row already known
+   * by id is skipped (a seed is applied once). The rows arrive through the
+   * same {@link Transcript.index} the constructor uses, so a builder that
+   * seeds after it is born indexes exactly as one born over the seeded rows
+   * would.
    */
-  seed(persisted: TranscriptSeed): void {
-    for (const message of persisted.messages) {
-      this.proto.messages.push(message);
+  seed(seeded: TranscriptSeed): void {
+    for (const message of seeded.messages) {
+      this.rows.messages.push(message);
       this.root.index(message);
     }
-    for (const row of persisted.subAgentRuns) {
+    for (const row of seeded.subAgentRuns) {
       if (this.subAgentsById.has(row.id)) continue;
       this.openSubAgent(row);
     }
-    this.proto.artifacts.push(...persisted.artifacts);
-    this.proto.workspaceWriteBacks.push(...persisted.workspaceWriteBacks);
-    for (const [id, todo] of Object.entries(persisted.todos)) this.proto.todos[id] = todo;
   }
 
   /** Every transcript, the root's first — for the rules that sweep them all (`finalize`). */

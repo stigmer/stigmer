@@ -1,0 +1,23 @@
+# The runner's private turn rows (proto/ai/stigmer/runner/turn/v1), generated
+# for the runner and its in-process agent host. Runner-private: never part of
+# @stigmer/protos, which carries the public contract only. The rows import
+# public types (FileContent, ToolCallOutputRef, FileChangeSet and the run's
+# enums), so the generated files take those from @stigmer/protos, the way the
+# rest of the runner does.
+#
+# The rows compile against the public apis/ tree, which lives outside this
+# directory, so scripts/gen-turn-stubs.mjs runs buf on a temporary workspace
+# that holds both (apis/ and proto/) and generates only the runner's own
+# files:
+#
+#   make gen-runner-turn-stubs        regenerate src/gen/turn
+#   make gen-runner-turn-stubs-check  fail when the committed output is stale
+version: v2
+plugins:
+  # The protobuf-es version apis/buf.gen.ts.yaml pins, with its options.
+  - remote: buf.build/bufbuild/es:v2.2.2
+    out: turn
+    opt:
+      - target=ts
+      - import_extension=js
+      - rewrite_imports=./ai/stigmer/agentic/**/*_pb.js:@stigmer/protos

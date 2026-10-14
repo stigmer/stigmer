@@ -1,5 +1,5 @@
 // Pure derivation of net file changes across a chronological list of agent
-// runs, plus the FileChange → FileDiffEntry projection for file lists.
+// runs, plus the DisplayFileChange → FileDiffEntry projection for file lists.
 // Domain: run (the session's Changes surface collapses per-execution
 // captures into one net change per path; the non-trivial net-diff semantics
 // below live in this one core).
@@ -7,58 +7,51 @@
 // Not a hook: callers memoize on their runs reference
 // (`useSessionFileChanges`).
 
-import { create } from "@bufbuild/protobuf";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { FileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
-  FileChangeCaptureLevel,
-  FileChangeType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { displayFileChangeSets, toDisplayFileChange } from "@stigmer/sdk";
+  displayFileChangeSets,
+  toDisplayFileChange,
+  type DisplayFileChange,
+  type DisplayFileChangeType,
+} from "@stigmer/sdk";
 import { computeDiff } from "../version-history/computeDiff.js";
 import type { DiffHunk, FileDiffEntry } from "../version-history/types.js";
 
 /**
  * Collapses the file changes captured across `executions` into one *net*
- * {@link FileChange} per path, ordered for a file list (modified, then
- * created/renamed, then deleted; alphabetical within each group).
+ * {@link DisplayFileChange} per path, ordered for a file list (modified, then
+ * added/renamed, then deleted; alphabetical within each group).
  *
- * **Source (ledger-first).** Under apply-then-review the changes live in the
- * file-review ledger; {@link displayFileChangeSets} reads the server's live
- * projection or folds the durable ledger for a terminal run (whose
- * projection is nil), and each captured change is projected onto the display
- * {@link FileChange} via {@link toDisplayFileChange}. The execution-scoped
- * ledger already includes sub-agent captures, so one pass per
- * run suffices.
+ * **Source.** Each run's file record ({@link displayFileChangeSets}: the
+ * change sets it captured, `RunStatus.file_changes`), each captured change
+ * projected via {@link toDisplayFileChange}. A run's record already includes
+ * sub-agent captures, so one pass per run suffices. What was decided about a
+ * file is the session's events, not this list.
  *
- * **Net-diff (not latest-wins).** A {@link FileChange} is a *delta* — an
- * agent often rewrites the same file several times, and showing only the last
- * edit's diff would misrepresent what changed. So changes to the same path
- * are reduced to a single net change: `before` from the first change, `after`
- * from the last. Because a WHOLE_FILE `after` is a complete file snapshot,
- * `first.before → last.after` is exactly the net change. A group with one
- * change (the common case) is passed through untouched; multi-edit groups
- * synthesize a net {@link FileChange} so every consumer speaks one proto
- * type.
+ * **Net-diff (not latest-wins).** A change is a *delta*: an agent often
+ * rewrites the same file several times, and showing only the last edit's diff
+ * would misrepresent what changed. So changes to the same path are reduced to
+ * a single net change: `before` from the first change, `after` from the last.
+ * Every capture is a complete file snapshot, so `first.before -> last.after`
+ * is exactly the net change. A group with one change (the common case) is
+ * passed through untouched.
  *
  * **Ordering is a correctness input.** `executions` MUST be chronological:
  * the net collapse anchors on each path's first and last change, so two
  * runs touching the same path (a session's follow-up turns) produce a
  * wrong net diff if visited out of order.
  *
- * Counts and unified diffs for whole-file captures stay derivable by the
- * presentation layer (the runner emits 0/"" sentinels), matching the
- * contract the SDK `tool-view` established.
+ * Counts for captures stay derivable by the presentation layer, matching
+ * the contract the SDK `tool-view` established.
  */
 export function deriveRunFileChanges(
   executions: readonly Run[],
-): readonly FileChange[] {
+): readonly DisplayFileChange[] {
   // Path -> chronological list of raw changes to that path.
-  const groups = new Map<string, FileChange[]>();
+  const groups = new Map<string, DisplayFileChange[]>();
   // Preserve first-seen path order as a stable tiebreaker before sorting.
-  const collect = (change: FileChange) => {
-    const key = change.path || change.absolutePath;
+  const collect = (change: DisplayFileChange) => {
+    const key = change.path;
     if (!key) return;
     const list = groups.get(key);
     if (list) list.push(change);
@@ -66,10 +59,9 @@ export function deriveRunFileChanges(
   };
 
   for (const execution of executions) {
-    const capturedChanges = displayFileChangeSets(execution.status).flatMap(
-      (set) => set.changes,
-    );
-    for (const captured of capturedChanges) collect(toDisplayFileChange(captured));
+    for (const set of displayFileChangeSets(execution.status)) {
+      for (const captured of set.changes) collect(toDisplayFileChange(captured));
+    }
   }
 
   const fileChanges = Array.from(groups.values(), netChange);
@@ -79,121 +71,92 @@ export function deriveRunFileChanges(
 
 /**
  * Reduces a path's chronological change list to a single net change.
- * A one-change group is returned as-is (the common path, no allocation);
- * multi-edit groups synthesize a net {@link FileChange}.
+ * A one-change group is returned as-is (the common path, no allocation).
  */
-function netChange(changes: FileChange[]): FileChange {
+function netChange(changes: DisplayFileChange[]): DisplayFileChange {
   if (changes.length === 1) return changes[0];
 
   const first = changes[0];
   const last = changes[changes.length - 1];
   const changeType = netChangeType(first, last);
 
-  // Whole-file only when both chosen sides come from whole-file captures;
-  // otherwise fall back to the last change's hunk diff. A path edited by a
-  // single harness won't mix levels — this just stays honest if it ever does.
-  const wholeFile =
-    first.captureLevel === FileChangeCaptureLevel.WHOLE_FILE &&
-    last.captureLevel === FileChangeCaptureLevel.WHOLE_FILE;
-
-  if (wholeFile) {
-    return create(FileChangeSchema, {
-      path: last.path,
-      absolutePath: last.absolutePath,
-      changeType,
-      captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-      before: first.before,
-      after: last.after,
-      renameFrom: changeType === FileChangeType.RENAME ? first.renameFrom : "",
-    });
-  }
-
-  return create(FileChangeSchema, {
+  return {
     path: last.path,
-    absolutePath: last.absolutePath,
     changeType,
-    captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
-    unifiedDiff: last.unifiedDiff,
-    linesAdded: last.linesAdded,
-    linesRemoved: last.linesRemoved,
-    renameFrom: changeType === FileChangeType.RENAME ? first.renameFrom : "",
-  });
+    before: first.before,
+    after: last.after,
+    // Counts belong to one capture; the net diff's are derived from its sides.
+    linesAdded: 0,
+    linesRemoved: 0,
+    renameFrom: changeType === "renamed" ? first.renameFrom : "",
+  };
 }
 
 /**
- * Reconciles the net `change_type` of a path from its first and last change.
+ * Reconciles the net change of a path from its first and last change.
  *
  * Intent: the badge should describe the file's journey across the *whole*
  * span of runs, anchored on its two endpoints, in this precedence:
  *
- * 1. Ends deleted (`last` is DELETE) → DELETE. The file is gone, regardless of
- *    how it got there — this includes create-then-delete, which we deliberately
- *    surface as DELETE rather than hiding the path. (`before` then comes from
- *    the first change, which for a created-then-deleted file is empty, so the
+ * 1. Ends deleted (`last` is deleted) -> deleted. The file is gone, regardless
+ *    of how it got there; this includes add-then-delete, which we deliberately
+ *    surface as deleted rather than hiding the path. (`before` then comes from
+ *    the first change, which for an added-then-deleted file is empty, so the
  *    diff reads as the removal of whatever briefly existed.)
- * 2. Started created (`first` is CREATE) and still exists → CREATE. A file born
+ * 2. Started added (`first` is added) and still exists -> added. A file born
  *    in this span and later modified is, on net, a new file.
- * 3. Started renamed (`first` is RENAME) and still exists → RENAME, carrying the
- *    original `rename_from` so the move is preserved across later edits.
- * 4. Otherwise → MODIFY (the common multi-edit case).
+ * 3. Started renamed (`first` is renamed) and still exists -> renamed,
+ *    carrying the original `renameFrom` so the move is preserved across later
+ *    edits.
+ * 4. Otherwise -> modified (the common multi-edit case).
  */
-function netChangeType(first: FileChange, last: FileChange): FileChangeType {
-  if (last.changeType === FileChangeType.DELETE) return FileChangeType.DELETE;
-  if (first.changeType === FileChangeType.CREATE) return FileChangeType.CREATE;
-  if (first.changeType === FileChangeType.RENAME) return FileChangeType.RENAME;
-  return FileChangeType.MODIFY;
+function netChangeType(
+  first: DisplayFileChange,
+  last: DisplayFileChange,
+): DisplayFileChangeType {
+  if (last.changeType === "deleted") return "deleted";
+  if (first.changeType === "added") return "added";
+  if (first.changeType === "renamed") return "renamed";
+  return "modified";
 }
 
-// Most-actionable first (modified), then additions (create/rename), then
-// deletions — mirroring GitHub's file-list convention — alphabetical within
+// Most-actionable first (modified), then additions (added/renamed), then
+// deletions, mirroring GitHub's file-list convention; alphabetical within
 // each group so the list is stable and scannable.
-const CHANGE_TYPE_ORDER: Readonly<Record<FileChangeType, number>> = {
-  [FileChangeType.MODIFY]: 0,
-  [FileChangeType.CREATE]: 1,
-  [FileChangeType.RENAME]: 1,
-  [FileChangeType.DELETE]: 2,
-  [FileChangeType.UNSPECIFIED]: 3,
+const CHANGE_TYPE_ORDER: Readonly<Record<DisplayFileChangeType, number>> = {
+  modified: 0,
+  added: 1,
+  renamed: 1,
+  deleted: 2,
 };
 
-function fileChangeComparator(a: FileChange, b: FileChange): number {
-  const order =
-    (CHANGE_TYPE_ORDER[a.changeType] ?? 3) -
-    (CHANGE_TYPE_ORDER[b.changeType] ?? 3);
+function fileChangeComparator(a: DisplayFileChange, b: DisplayFileChange): number {
+  const order = CHANGE_TYPE_ORDER[a.changeType] - CHANGE_TYPE_ORDER[b.changeType];
   if (order !== 0) return order;
   return a.path.localeCompare(b.path, undefined, { sensitivity: "base" });
 }
 
 // ---------------------------------------------------------------------------
-// FileChange → FileDiffEntry projection (file lists)
+// DisplayFileChange → FileDiffEntry projection (file lists)
 // ---------------------------------------------------------------------------
 
 /**
- * Projects a {@link FileChange} into a {@link FileDiffEntry} for a file list
- * (`DiffFileList`).
+ * Projects a {@link DisplayFileChange} into a {@link FileDiffEntry} for a file
+ * list (`DiffFileList`).
  *
- * Counts: hunk-only uses the runner's authoritative numbers; whole-file inline
- * is derived from the content (identical to the runner's capture-time counts by
+ * Counts: inline content is derived from the content (identical to the runner's capture-time counts by
  * construction — same diff algorithm). A whole-file side with no synchronous
  * content (offloaded / binary) falls back to the runner's capture-time
  * `linesAdded`/`linesRemoved` — zero when no count exists, which the list
  * renders as no stat.
  */
-export function toFileDiffEntry(change: FileChange): FileDiffEntry {
+export function toFileDiffEntry(change: DisplayFileChange): FileDiffEntry {
   const changeType =
-    change.changeType === FileChangeType.CREATE
+    change.changeType === "added"
       ? "added"
-      : change.changeType === FileChangeType.DELETE
+      : change.changeType === "deleted"
         ? "removed"
         : "modified";
-
-  if (change.captureLevel === FileChangeCaptureLevel.HUNK_ONLY) {
-    return {
-      path: change.path,
-      changeType,
-      additions: change.linesAdded,
-      deletions: change.linesRemoved,
-    };
-  }
 
   const before = inlineSide(change.before);
   const after = inlineSide(change.after);
@@ -227,7 +190,7 @@ export function countHunks(hunks: readonly DiffHunk[]): {
 }
 
 /** Inline text of a side, or null when absent/offloaded/binary. */
-function inlineSide(side: FileChange["before"]): string | null {
+function inlineSide(side: DisplayFileChange["before"]): string | null {
   if (!side) return "";
   if (side.isBinary) return null;
   return side.body.case === "inline" ? side.body.value : null;

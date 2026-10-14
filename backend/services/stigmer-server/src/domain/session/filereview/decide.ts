@@ -1,9 +1,7 @@
 /**
  * The one writer of a person's file-review decision: keep or undo a turn's
  * change set, or one of its files. SessionCommandController
- * .reviewFileChanges and its older twin RunCommandController
- * .submitFileDecision (domain/run/submit-file-decision.ts) both decide
- * here.
+ * .reviewFileChanges decides here.
  *
  * A turn's edits are already applied when it ends (apply-then-review), and
  * no turn waits on review (stigmer#1471): a decision records what the
@@ -11,27 +9,27 @@
  *
  *   1. The change set's run. A change set id is `<runId>:<turnSeq>` and a
  *      run id holds no `:`, so the run is the text before the first `:`.
- *      Asked in a session, the run must be one of that session's, else
- *      NOT_FOUND.
- *   2. The target, against the run's projection: the set (and the file,
- *      for FILE scope) exists, a keep passes the completeness gate, and
- *      the expected digest is what the person reviewed. The same checks
- *      run again under the lock.
+ *      The run must be one of the session's the decision was asked in,
+ *      else NOT_FOUND: a decision lives in its session's log, so a run in
+ *      no session has none.
+ *   2. The target, against the run's file record (run/filereview/
+ *      record.ts): the set (and the file, for a file decision) exists, a
+ *      keep passes the completeness gate, and the expected digest is what
+ *      the person reviewed. The same checks run again under the lock.
  *   3. One write on the run (session/events/run-writes.ts
  *      updateRunAppendingEvents), under the session's lock: the window
  *      (a set is decidable while its run's user.message is the
  *      conversation's newest; a reconcile turn writes none, so it never
  *      closes it) refuses a late decision with FAILED_PRECONDITION; the
- *      FILE_DECIDED ledger event is recorded and file_change_sets
- *      re-projected. The write appends its stigmer.file_review.decided
- *      event with it. A decision the session's log already holds on the
+ *      write appends the decision's stigmer.file_review.decided event
+ *      (run/filereview/decided.ts), naming the person who decided in
+ *      decided_by. A decision the session's log already holds on the
  *      target (its decided events, read under the lock,
  *      run/filereview/logged.ts) is final: the same decision again
  *      answers success and writes nothing, even after the window closes;
  *      a different one on a target already decided is refused
  *      (CONFLICTING_DECISION_MESSAGE), so an Undo is never answered as if
- *      it were recorded when it was not. The ledger's FILE_DECIDED is the
- *      decision's mirror, written, never read for it.
+ *      it were recorded when it was not.
  *   4. An undo on a run that has ended starts the reconcile turn: a run
  *      with `reconcile_file_review` and no message, created through the
  *      run create chain as the person who decided (server-composed, so
@@ -51,9 +49,6 @@
  * A file decision signals no workflow: the turn's gate is its open asks
  * alone (run/filereview/gate.ts).
  *
- * A run in no session has no conversation to move on, so it has no
- * window and no reconcile turn.
- *
  * Proven by __tests__/decide.test.ts and the run-file-review conformance
  * suite.
  */
@@ -62,14 +57,7 @@ import { ConnectError } from "@connectrpc/connect";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  FileDecisionAction,
-  FileDecisionActionSchema,
-  FileDecisionScope,
-  FileDecisionScopeSchema,
-  RunPhase,
-  RunPhaseSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase, RunPhaseSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -83,14 +71,7 @@ import {
   notFoundError,
 } from "../../../pipeline/errors.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
-import {
-  approveBlockedReason,
-  buildFileDecision,
-  findChange,
-  findChangeSet,
-  recordFileDecisionEvent,
-  targetDigest,
-} from "../../run/filereview/author.js";
+import { decidedEvent } from "../../run/filereview/decided.js";
 import {
   FILE_REVIEW_DECIDED_TYPE,
   PERSON_ORIGIN,
@@ -98,13 +79,18 @@ import {
   runReviewLogOf,
 } from "../../run/filereview/logged.js";
 import type { LoggedDecision } from "../../run/filereview/logged.js";
-import { projectFileChangeSets } from "../../run/filereview/project.js";
+import {
+  findChange,
+  findChangeSet,
+  keepBlockedReason,
+  targetDigest,
+} from "../../run/filereview/record.js";
 import { isTerminalExecutionPhase } from "../../run/phases.js";
-import type { StreamBroker } from "../../run/stream-broker.js";
 import { eventOf } from "../events/codec.js";
 import { updateRunAppendingEvents } from "../events/run-writes.js";
 import type { RunEventWriteDeps } from "../events/run-writes.js";
 import { sessionIdOfRun } from "../events/transitions.js";
+import type { ActionWord, ScopeWord } from "./words.js";
 
 /**
  * The in-process edge that creates a reconcile turn: the run create chain,
@@ -121,24 +107,22 @@ export type ReconcileTurnCreatorProvider = () => ReconcileTurnCreator;
 
 export interface FileDecisionDeps extends RunEventWriteDeps {
   readonly logger: Logger;
-  /** The run's live subscribers see the decision (stream-broker.ts). */
-  readonly broker: StreamBroker;
   readonly reconcileTurns: ReconcileTurnCreatorProvider;
 }
 
-/** Where the decision lands: the change set's run, and the session it was asked in, if any. */
+/** Where the decision lands: the change set's run, and the session it was asked in. */
 export interface FileDecisionTarget {
   readonly runId: string;
-  /** Set when asked in a session: the run must be one of its runs. */
-  readonly sessionId?: string;
+  /** The run must be one of this session's runs. */
+  readonly sessionId: string;
 }
 
-/** What the person decided, in the ledger's terms. */
+/** What the person decided, in the decision's words (words.ts). */
 export interface FileDecisionAsked {
   readonly changeSetId: string;
-  readonly scope: FileDecisionScope;
+  readonly scope: ScopeWord;
   readonly fileChangeId: string;
-  readonly action: FileDecisionAction;
+  readonly action: ActionWord;
   readonly expectedDigest: string;
   readonly reason: string;
   readonly acknowledgeUnreviewable: boolean;
@@ -147,7 +131,7 @@ export interface FileDecisionAsked {
 export interface FileDecisionOutcome {
   /** The change set's run as committed. */
   readonly run: Run;
-  /** False when the ledger already held the decision and nothing was written. */
+  /** False when the log already held the decision and nothing was written. */
   readonly recorded: boolean;
   /** The reconcile turn this undo started; "" when none was. */
   readonly reconcileRunId: string;
@@ -181,7 +165,7 @@ function changeSetNotFound(
   );
 }
 
-/** Thrown inside the write to leave the row as it is: the ledger already holds this decision. */
+/** Thrown inside the write to leave the row as it is: the log already holds this decision. */
 class DecisionAlreadyRecorded extends Error {
   constructor(readonly run: Run) {
     super("file decision already recorded");
@@ -199,10 +183,9 @@ export async function decideFileChanges(
   const loaded = await loadRun(deps, target, asked.changeSetId);
   validateFileDecisionTarget(loaded, asked);
 
-  const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
-  // The reviewer is the principal the caller's chain authorized, recorded
-  // as the approval writer records its decider (stigmer/stigmer#1385).
-  const reviewerId = identity.identityId;
+  // The decider is the principal the caller's chain authorized, recorded
+  // as the answer core records its decider (stigmer/stigmer#1385).
+  const decidedBy = identity.identityId;
 
   let committed: Run;
   try {
@@ -213,7 +196,6 @@ export async function decideFileChanges(
         // Again under the lock, against the committed row: a capture or a
         // decision may have landed since the load.
         validateFileDecisionTarget(run, asked);
-        const status = run.status!;
         const recorded = decisionOnTarget(
           runReviewLogOf(session.runEvents.map(eventOf)),
           asked.changeSetId,
@@ -223,29 +205,26 @@ export async function decideFileChanges(
         if (recorded !== undefined && isSameDecision(recorded, asked)) {
           throw new DecisionAlreadyRecorded(run);
         }
-        if (sessionIdOfRun(run) !== "" && session.runOfNewestType !== runId) {
+        if (session.runOfNewestType !== runId) {
           throw failedPreconditionError(CONVERSATION_MOVED_ON_MESSAGE);
         }
         if (recorded !== undefined) {
           throw failedPreconditionError(CONFLICTING_DECISION_MESSAGE);
         }
-        const decision = buildFileDecision(
-          asked.changeSetId,
-          asked.fileChangeId,
-          asked.scope,
-          asked.action,
-          asked.expectedDigest,
-          reviewerId,
-          now,
-          asked.reason,
-          asked.acknowledgeUnreviewable,
-        );
-        recordFileDecisionEvent(status, runId, decision);
-        // The single projection seam, so the decision reads back at once
-        // and agrees with the ledger.
-        status.fileChangeSets = projectFileChangeSets(
-          status.fileReviewEventStream,
-        );
+        return {
+          last: [
+            decidedEvent(runId, {
+              changeSetId: asked.changeSetId,
+              scope: asked.scope,
+              fileChangeId: asked.fileChangeId,
+              action: asked.action,
+              expectedDigest: asked.expectedDigest,
+              origin: PERSON_ORIGIN,
+              reason: asked.reason,
+              decidedBy,
+            }),
+          ],
+        };
       },
       { runOfNewestType: TURN_EVENT_TYPE, runEventTypes: [FILE_REVIEW_DECIDED_TYPE] },
     );
@@ -260,9 +239,7 @@ export async function decideFileChanges(
       return { run: error.run, recorded: false, reconcileRunId: "" };
     }
     if (error instanceof ResourceNotFoundError) {
-      throw target.sessionId === undefined
-        ? notFoundError("Run", runId)
-        : changeSetNotFound(asked.changeSetId, target.sessionId);
+      throw changeSetNotFound(asked.changeSetId, target.sessionId);
     }
     // A refusal re-detected under the lock is the client's, verbatim.
     if (error instanceof ConnectError) {
@@ -271,19 +248,18 @@ export async function decideFileChanges(
     throw internalError(error, "failed to persist file decision");
   }
 
-  deps.broker.broadcast(committed);
   deps.logger.info("AUDIT: File decision submitted", {
     executionId: runId,
     org: committed.metadata?.org ?? "",
     changeSetId: asked.changeSetId,
     fileChangeId: asked.fileChangeId,
-    scope: enumToJson(FileDecisionScopeSchema, asked.scope),
-    action: enumToJson(FileDecisionActionSchema, asked.action),
-    reviewerId,
+    scope: asked.scope,
+    action: asked.action,
+    decidedBy,
   });
 
   const reconcileRunId =
-    asked.action === FileDecisionAction.REJECT &&
+    asked.action === "undo" &&
     isTerminalExecutionPhase(
       committed.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED,
     )
@@ -299,9 +275,7 @@ async function loadRun(
 ): Promise<Run> {
   const sessionId = target.sessionId;
   if (target.runId === "") {
-    // Only a session's change set id can name no run; a run id is
-    // required on the run's own method.
-    throw changeSetNotFound(changeSetId, sessionId ?? "");
+    throw changeSetNotFound(changeSetId, sessionId);
   }
   let run: Run;
   try {
@@ -312,21 +286,19 @@ async function loadRun(
     );
   } catch (error) {
     if (error instanceof ResourceNotFoundError) {
-      throw sessionId === undefined
-        ? notFoundError("Run", target.runId)
-        : changeSetNotFound(changeSetId, sessionId);
+      throw changeSetNotFound(changeSetId, sessionId);
     }
     throw internalError(error, "failed to load agent execution");
   }
-  if (sessionId !== undefined && sessionIdOfRun(run) !== sessionId) {
+  if (sessionIdOfRun(run) !== sessionId) {
     throw changeSetNotFound(changeSetId, sessionId);
   }
   return run;
 }
 
 /**
- * The preconditions, against the run's projection: change set (and file)
- * existence, the FILE-scope file_change_id requirement, the keep
+ * The preconditions, against the run's file record: change set (and file)
+ * existence, the file decision's file_change_id requirement, the keep
  * completeness gate and the expected_digest gate. Run before the write
  * and again under its lock.
  */
@@ -337,7 +309,7 @@ export function validateFileDecisionTarget(
   const runId = run.metadata?.id ?? "";
   const phase = run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
 
-  const changeSets = projectFileChangeSets(run.status?.fileReviewEventStream);
+  const changeSets = run.status?.fileChanges ?? [];
   if (changeSets.length === 0) {
     throw failedPreconditionError(
       `execution ${runId} has no actionable file change sets (phase ${enumToJson(RunPhaseSchema, phase) as string})`,
@@ -351,7 +323,7 @@ export function validateFileDecisionTarget(
     );
   }
 
-  if (asked.scope === FileDecisionScope.FILE) {
+  if (asked.scope === "file") {
     if (asked.fileChangeId === "") {
       throw invalidArgumentError("file_change_id is required for FILE scope");
     }
@@ -364,8 +336,8 @@ export function validateFileDecisionTarget(
 
   // A change that cannot be shown whole is never kept as if it could;
   // only a keep is gated, so any change can still be undone.
-  if (asked.action === FileDecisionAction.APPROVE) {
-    const reason = approveBlockedReason(
+  if (asked.action === "keep") {
+    const reason = keepBlockedReason(
       cs,
       asked.scope,
       asked.fileChangeId,

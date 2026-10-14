@@ -157,8 +157,8 @@ message RunSpec {
   // - Native harness: uses deepagents responseFormat/ToolStrategy
   // - Cursor harness: prompt instruction + extraction fallback
   //
-  // The validated structured data lands on the run's
-  // status.structured_output.
+  // The validated structured data is the turn's
+  // stigmer.agent.structured_output session event.
   google.protobuf.Struct structured_output_schema = 21;
 
   // Tools this turn may use, in the same names as an agent's tools; empty
@@ -512,8 +512,8 @@ message DeclaredPreferences {
 //
 // @internal
 // See the RunStatus.recalled_memories field comment for the full
-// ownership and composition contract, and status.recalled_memories_report
-// for which candidates the runner actually injected. enabled=true with
+// ownership and composition contract, and the turn's
+// stigmer.memory.recalled session event for which candidates the runner actually injected. enabled=true with
 // zero facts is a meaningful state: memory is on for this caller, nothing
 // is stored yet — the runner still offers the remember tool.
 message RecalledMemories {
@@ -528,8 +528,8 @@ message RecalledMemories {
   // truncation: this is the auditable
   // CANDIDATE set, not necessarily the injected set. Above the
   // retriever's activation threshold the runner selects the most
-  // relevant subset at prompt build and records it in
-  // status.recalled_memories_report; at or below the
+  // relevant subset at prompt build and records it in the turn's
+  // stigmer.memory.recalled session event; at or below the
   // threshold, or with no embeddings-capable provider, injection is
   // wholesale and the report (when present) says so. Selection is
   // recorded, never silent: what the model saw always equals what the

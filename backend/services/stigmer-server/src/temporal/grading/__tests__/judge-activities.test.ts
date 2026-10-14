@@ -489,7 +489,6 @@ describe("record-judge", () => {
     await seedRun("run_1");
     const long = "r".repeat(600);
     const judge = await seedRun("run_judge", { sessionId: "ses_judge" });
-    expect(judge.status?.structuredOutput, "the run's row holds no answer").toBeUndefined();
     await appendRunEvents(
       temp.store,
       "ses_judge",

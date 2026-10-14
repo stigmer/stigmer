@@ -28,7 +28,7 @@ function mockGet(impl: () => Promise<Run>) {
 
 function runWithSet(changeSetId: string): Run {
   const run = samples.run({ id: "r1" });
-  run.status!.fileChangeSets = [create(FileChangeSetSchema, { id: changeSetId })];
+  run.status!.fileChanges = [create(FileChangeSetSchema, { id: changeSetId })];
   return run;
 }
 

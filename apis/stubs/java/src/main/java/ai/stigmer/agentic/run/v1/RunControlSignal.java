@@ -145,7 +145,7 @@ public enum RunControlSignal
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.run.v1.EnumProto.getDescriptor().getEnumType(9);
+    return ai.stigmer.agentic.run.v1.EnumProto.getDescriptor().getEnumType(2);
   }
 
   private static final RunControlSignal[] VALUES = values();

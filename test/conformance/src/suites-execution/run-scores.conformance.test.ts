@@ -48,6 +48,7 @@ import type { McpToolFixture } from "../harness/mcp-server";
 import { ECHO_TOOL_NAME } from "../harness/mcp-server";
 import { agentRefOf, makeAgent } from "../support/agents";
 import { uniqueName } from "../support/naming";
+import { turnOfRun } from "../support/turn";
 import {
   awaitTerminal,
   makeAgentExecution,
@@ -194,7 +195,7 @@ describe("Run scores", () => {
       script: [anthropicText("Here is my answer in words."), anthropicText("Still no structure.")],
     });
     expectCompleted(run);
-    expect(run.status?.structuredOutput).toBeUndefined();
+    expect((await turnOfRun(clients, run)).structuredOutput, "no stigmer.agent.structured_output in the log").toBeUndefined();
 
     const health = await awaitRunHealth(clients, run.metadata!.id);
     expect(health.spec?.value).toEqual({ case: "passed", value: false });

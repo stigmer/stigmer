@@ -70,6 +70,7 @@ import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { NO_RUN_VALUES, toolValuesKey, type RunValues, type ToolValueGroup } from "../../shared/run-values.js";
 import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
 import type { McpToolListing } from "../../shared/mcp-tool-listing.js";
+import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 const listTurnTools = vi.hoisted(() =>
   vi.fn<(servers: readonly ResolvedMcpServer[]) => Promise<McpToolListing>>(),
@@ -93,6 +94,7 @@ const EXECUTION_ID = "aex_mcp_1";
 
 function deps(options: { readonly channels: boolean }): ResolutionDeps {
   const status = create(RunStatusSchema, {});
+  const rows = create(TurnRowsSchema);
   return {
     input: { executionId: EXECUTION_ID, threadId: "", turnSeq: 0 },
     client: mockStigmerClient({
@@ -102,7 +104,8 @@ function deps(options: { readonly channels: boolean }): ResolutionDeps {
     }),
     config: testConfig({ mcpBridgeEndpoint: "https://mcp.example.com" }),
     status,
-    transcript: new TranscriptBuilder(EXECUTION_ID, status),
+    rows,
+    transcript: new TranscriptBuilder(EXECUTION_ID, rows, status),
     artifactStorage: undefined,
     timing: new TimingRecorder(),
     signal: new AbortController().signal,
@@ -403,6 +406,7 @@ describe("startEvalMocks — a plugin-eval try's stand-ins take their servers' p
     evalMocks: undefined,
     evalReadFiles: undefined,
     runWroteEvents: false,
+    priorAnswer: undefined,
   });
 
   /**

@@ -12,14 +12,14 @@
  * two questions (AuthorizeRunTarget on the conversation, AuthorizeRunAgent
  * on the agent the turn runs); create and delete run the shared
  * tuple-lifecycle steps against the composed lifecycle. The direct
- * handlers — subscribe and the two artifact reads — evaluate their
- * annotation through authorizeDirect; uploadAttachment is authorized at
+ * handlers — the two artifact reads — evaluate their annotation through
+ * authorizeDirect; uploadAttachment is authorized at
  * the create its storage key feeds. list, listBySession, getRunSummary
  * and the session, agent and organization usage reports narrow through the
  * composed list read scope; the usage reports count metered runs through
- * the composed meter (usage.ts).
- * Subscribe streams ride the in-memory stream broker; there is
- * no Redis. Per-RPC posture: docs/authorization-coverage.md §16.
+ * the composed meter (usage.ts). What a turn says is read from its
+ * session's events (domain/session/events). Per-RPC posture:
+ * docs/authorization-coverage.md §16.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 
@@ -134,7 +134,6 @@ import type { AgentExecutionTemporalConfig } from "./temporal/config.js";
 import type { ExecutionEngineStateProvider } from "./engine.js";
 import { newEnsureEngineAvailableStep } from "./engine.js";
 import {
-  cancelExecution,
   pauseExecution,
   recoverExecution,
   resumeExecution,
@@ -149,13 +148,8 @@ import {
   newValidateSessionImmutabilityStep,
   newValidateSessionOrganizationStep,
 } from "./session-binding.js";
-import type { StreamBroker } from "./stream-broker.js";
 import type { SessionEventBroker } from "../session/events/broker.js";
 import { runCreateWriter, runRemover } from "../session/events/run-writes.js";
-import { submitApproval } from "./submit-approval.js";
-import { submitFileDecision } from "./submit-file-decision.js";
-import type { ReconcileTurnCreatorProvider } from "../session/filereview/decide.js";
-import { subscribeExecution } from "./subscribe.js";
 import { updateStatus } from "./update-status.js";
 import { newResolveRunConfigStep } from "./resolve-run-config.js";
 import { newValidateServiceTierStep } from "./validate-service-tier.js";
@@ -222,13 +216,6 @@ export interface AgentExecutionControllerDeps {
    */
   readonly scheduleRunProfile: RunConfig | undefined;
   /**
-   * The shared broadcast fabric for subscribe streams. ONE instance spans
-   * both routers (serving + in-process) — see stream-broker.ts; the
-   * composition root owns it (Go: NewStreamBroker in the controller
-   * constructor + GetStreamBroker for the Temporal activities).
-   */
-  readonly broker: StreamBroker;
-  /**
    * The fan-out of each session's event log. Every run write that can
    * change whether a run is working appends its session's events in the
    * same transaction and publishes them here after the commit
@@ -237,8 +224,8 @@ export interface AgentExecutionControllerDeps {
   readonly sessionEventBroker: SessionEventBroker;
   /**
    * Recover's per-execution turn (pipeline/keyed-serializer.ts). ONE
-   * instance spans both routers, as the broker does; the composition root
-   * owns it, so a recover over either router waits for the other.
+   * instance spans both routers; the composition root owns it, so a
+   * recover over either router waits for the other.
    */
   readonly recoverSerializer: KeyedSerializer;
   /**
@@ -261,16 +248,11 @@ export interface AgentExecutionControllerDeps {
    * the routes↔clients cycle resolves at request time).
    */
   readonly sessionCreator: SessionCreatorProvider;
-  /**
-   * The in-process edge submitFileDecision's undo on an ended turn
-   * starts its reconcile turn through (domain/session/filereview/decide.ts).
-   */
-  readonly reconcileTurns: ReconcileTurnCreatorProvider;
   /** The shared value-planner deps (create's plan step + recover's re-plan). */
   readonly runValuePlanner: RunValuePlannerDeps;
   /**
-   * The composed slot registrations — this domain
-   * splices the create, recover, and submit-approval slots.
+   * The composed slot registrations — this domain splices the create
+   * and recover slots (the session's answers splice the approval slot).
    */
   readonly gateSteps: ResolvedGateSteps;
   /**
@@ -301,7 +283,6 @@ export function registerAgentExecutionServices(
     logger: deps.logger,
     authorizer: deps.authorizer,
     recoverSerializer: deps.recoverSerializer,
-    broker: deps.broker,
     sessionEventBroker: deps.sessionEventBroker,
     engineState: deps.engineState,
     runValuePlanner: deps.runValuePlanner,
@@ -322,12 +303,6 @@ export function registerAgentExecutionServices(
     update: (input, ctx) => update(deps, input, ctx),
     updateStatus: (input, ctx) =>
       updateStatus(deps, input, callerIdentityOf(ctx)),
-    submitApproval: (input, ctx) =>
-      submitApproval(deps, input, callerIdentityOf(ctx)),
-    submitFileDecision: (input, ctx) =>
-      submitFileDecision(deps, input, callerIdentityOf(ctx)),
-    cancel: (input, ctx) =>
-      cancelExecution(lifecycleDeps, input, callerIdentityOf(ctx)),
     terminate: (input, ctx) =>
       terminateExecution(lifecycleDeps, input, callerIdentityOf(ctx)),
     recover: (input, ctx) =>
@@ -343,7 +318,6 @@ export function registerAgentExecutionServices(
     get: (id, ctx) => get(deps, id, ctx),
     list: (req, ctx) => list(deps, req, ctx),
     listBySession: (req, ctx) => listBySession(deps, req, ctx),
-    subscribe: (id, ctx) => subscribeExecution(deps, id, ctx),
     getArtifactDownloadUrl: (req, ctx) =>
       getArtifactDownloadUrl(artifactDeps, req, callerIdentityOf(ctx)),
     getArtifactContent: (req, ctx) =>

@@ -10,8 +10,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { describe, it, expect } from "vitest";
-import { ToolKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { classifyTool, toolApprovalCategory } from "../tool-kind.js";
+import { ToolKind } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 // runner/src/shared/__tests__ -> repo root is five levels up.

@@ -10,13 +10,11 @@ package ai.stigmer.agentic.run.v1;
  * The set of file deltas produced by one agent turn, reviewed and reconciled
  * as a unit.
  *
- * A FileChangeSet has no identity or lifecycle independent of the turn that
- * produced it: it is born when the turn captures its baseline and dies when its
- * decisions are reconciled into the workspace. It is therefore a computed
- * projection on RunStatus (field file_change_sets), mirroring
- * pending_approvals — recomputed on every status write from the file_review
- * event ledger, never merged, so it is always consistent with the authoritative
- * stream.
+ * A record of what the turn changed: the files' contents before and after,
+ * the snapshots they were read from and the consent the turn's commands ran
+ * under. It carries no state and no decisions; the session's
+ * stigmer.file_review.* events say what was kept, what was undone and what is
+ * still open.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.run.v1.FileChangeSet}
@@ -44,11 +42,9 @@ private static final long serialVersionUID = 0L;
     id_ = "";
     turnId_ = "";
     harnessId_ = "";
-    status_ = 0;
     changes_ = java.util.Collections.emptyList();
     aggregateDigest_ = "";
     diffCompleteness_ = 0;
-    decisions_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -75,8 +71,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object id_ = "";
   /**
    * <pre>
-   * Stable id of this change set, unique per turn. The correlation key a
-   * FileDecision and every ledger event reference. Never a content hash.
+   * Stable id of this change set, unique per turn. The id the session's
+   * stigmer.file_review.* events name. Never a content hash.
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -97,8 +93,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Stable id of this change set, unique per turn. The correlation key a
-   * FileDecision and every ledger event reference. Never a content hash.
+   * Stable id of this change set, unique per turn. The id the session's
+   * stigmer.file_review.* events name. Never a content hash.
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -215,34 +211,6 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int STATUS_FIELD_NUMBER = 4;
-  private int status_ = 0;
-  /**
-   * <pre>
-   * Current state of the change set, DERIVED from the file_review ledger (a fold
-   * over the events for this change set). See FileChangeSetStatus.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.FileChangeSetStatus status = 4 [json_name = "status", (.buf.validate.field) = { ... }</code>
-   * @return The enum numeric value on the wire for status.
-   */
-  @java.lang.Override public int getStatusValue() {
-    return status_;
-  }
-  /**
-   * <pre>
-   * Current state of the change set, DERIVED from the file_review ledger (a fold
-   * over the events for this change set). See FileChangeSetStatus.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.FileChangeSetStatus status = 4 [json_name = "status", (.buf.validate.field) = { ... }</code>
-   * @return The status.
-   */
-  @java.lang.Override public ai.stigmer.agentic.run.v1.FileChangeSetStatus getStatus() {
-    ai.stigmer.agentic.run.v1.FileChangeSetStatus result = ai.stigmer.agentic.run.v1.FileChangeSetStatus.forNumber(status_);
-    return result == null ? ai.stigmer.agentic.run.v1.FileChangeSetStatus.UNRECOGNIZED : result;
-  }
-
   public static final int BASELINE_SNAPSHOT_FIELD_NUMBER = 5;
   private ai.stigmer.agentic.run.v1.SnapshotRef baselineSnapshot_;
   /**
@@ -326,50 +294,6 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public ai.stigmer.agentic.run.v1.SnapshotRefOrBuilder getCandidateSnapshotOrBuilder() {
     return candidateSnapshot_ == null ? ai.stigmer.agentic.run.v1.SnapshotRef.getDefaultInstance() : candidateSnapshot_;
-  }
-
-  public static final int APPROVED_SNAPSHOT_FIELD_NUMBER = 7;
-  private ai.stigmer.agentic.run.v1.SnapshotRef approvedSnapshot_;
-  /**
-   * <pre>
-   * Workspace state derived after decisions (the exact bytes to reconcile to).
-   * Empty until the change set is decided. Reconcile verifies the filesystem
-   * hashes against this snapshot.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-   * @return Whether the approvedSnapshot field is set.
-   */
-  @java.lang.Override
-  public boolean hasApprovedSnapshot() {
-    return ((bitField0_ & 0x00000004) != 0);
-  }
-  /**
-   * <pre>
-   * Workspace state derived after decisions (the exact bytes to reconcile to).
-   * Empty until the change set is decided. Reconcile verifies the filesystem
-   * hashes against this snapshot.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-   * @return The approvedSnapshot.
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.SnapshotRef getApprovedSnapshot() {
-    return approvedSnapshot_ == null ? ai.stigmer.agentic.run.v1.SnapshotRef.getDefaultInstance() : approvedSnapshot_;
-  }
-  /**
-   * <pre>
-   * Workspace state derived after decisions (the exact bytes to reconcile to).
-   * Empty until the change set is decided. Reconcile verifies the filesystem
-   * hashes against this snapshot.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.SnapshotRefOrBuilder getApprovedSnapshotOrBuilder() {
-    return approvedSnapshot_ == null ? ai.stigmer.agentic.run.v1.SnapshotRef.getDefaultInstance() : approvedSnapshot_;
   }
 
   public static final int CHANGES_FIELD_NUMBER = 8;
@@ -520,70 +444,45 @@ private static final long serialVersionUID = 0L;
     return result == null ? ai.stigmer.agentic.run.v1.DiffCompleteness.UNRECOGNIZED : result;
   }
 
-  public static final int DECISIONS_FIELD_NUMBER = 11;
-  @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.run.v1.FileDecision> decisions_;
+  public static final int COMMAND_PROVENANCE_FIELD_NUMBER = 12;
+  private ai.stigmer.agentic.run.v1.TurnCommandProvenance commandProvenance_;
   /**
    * <pre>
-   * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-   * events in the ledger (never stored-mutable). Ordered by decision time.
+   * The consent the turn's commands ran under, when every change in the set
+   * came from a command a person had allowed. Absent otherwise.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.TurnCommandProvenance command_provenance = 12 [json_name = "commandProvenance"];</code>
+   * @return Whether the commandProvenance field is set.
    */
   @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.run.v1.FileDecision> getDecisionsList() {
-    return decisions_;
+  public boolean hasCommandProvenance() {
+    return ((bitField0_ & 0x00000004) != 0);
   }
   /**
    * <pre>
-   * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-   * events in the ledger (never stored-mutable). Ordered by decision time.
+   * The consent the turn's commands ran under, when every change in the set
+   * came from a command a person had allowed. Absent otherwise.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.TurnCommandProvenance command_provenance = 12 [json_name = "commandProvenance"];</code>
+   * @return The commandProvenance.
    */
   @java.lang.Override
-  public java.util.List<? extends ai.stigmer.agentic.run.v1.FileDecisionOrBuilder> 
-      getDecisionsOrBuilderList() {
-    return decisions_;
+  public ai.stigmer.agentic.run.v1.TurnCommandProvenance getCommandProvenance() {
+    return commandProvenance_ == null ? ai.stigmer.agentic.run.v1.TurnCommandProvenance.getDefaultInstance() : commandProvenance_;
   }
   /**
    * <pre>
-   * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-   * events in the ledger (never stored-mutable). Ordered by decision time.
+   * The consent the turn's commands ran under, when every change in the set
+   * came from a command a person had allowed. Absent otherwise.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.TurnCommandProvenance command_provenance = 12 [json_name = "commandProvenance"];</code>
    */
   @java.lang.Override
-  public int getDecisionsCount() {
-    return decisions_.size();
-  }
-  /**
-   * <pre>
-   * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-   * events in the ledger (never stored-mutable). Ordered by decision time.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.FileDecision getDecisions(int index) {
-    return decisions_.get(index);
-  }
-  /**
-   * <pre>
-   * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-   * events in the ledger (never stored-mutable). Ordered by decision time.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.FileDecisionOrBuilder getDecisionsOrBuilder(
-      int index) {
-    return decisions_.get(index);
+  public ai.stigmer.agentic.run.v1.TurnCommandProvenanceOrBuilder getCommandProvenanceOrBuilder() {
+    return commandProvenance_ == null ? ai.stigmer.agentic.run.v1.TurnCommandProvenance.getDefaultInstance() : commandProvenance_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -609,17 +508,11 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(harnessId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, harnessId_);
     }
-    if (status_ != ai.stigmer.agentic.run.v1.FileChangeSetStatus.FILE_CHANGE_SET_STATUS_UNSPECIFIED.getNumber()) {
-      output.writeEnum(4, status_);
-    }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(5, getBaselineSnapshot());
     }
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(6, getCandidateSnapshot());
-    }
-    if (((bitField0_ & 0x00000004) != 0)) {
-      output.writeMessage(7, getApprovedSnapshot());
     }
     for (int i = 0; i < changes_.size(); i++) {
       output.writeMessage(8, changes_.get(i));
@@ -630,8 +523,8 @@ private static final long serialVersionUID = 0L;
     if (diffCompleteness_ != ai.stigmer.agentic.run.v1.DiffCompleteness.DIFF_COMPLETENESS_UNSPECIFIED.getNumber()) {
       output.writeEnum(10, diffCompleteness_);
     }
-    for (int i = 0; i < decisions_.size(); i++) {
-      output.writeMessage(11, decisions_.get(i));
+    if (((bitField0_ & 0x00000004) != 0)) {
+      output.writeMessage(12, getCommandProvenance());
     }
     getUnknownFields().writeTo(output);
   }
@@ -651,10 +544,6 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(harnessId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, harnessId_);
     }
-    if (status_ != ai.stigmer.agentic.run.v1.FileChangeSetStatus.FILE_CHANGE_SET_STATUS_UNSPECIFIED.getNumber()) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeEnumSize(4, status_);
-    }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(5, getBaselineSnapshot());
@@ -662,10 +551,6 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(6, getCandidateSnapshot());
-    }
-    if (((bitField0_ & 0x00000004) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(7, getApprovedSnapshot());
     }
 
         {
@@ -683,15 +568,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(10, diffCompleteness_);
     }
-
-        {
-          final int count = decisions_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(decisions_.get(i));
-          }
-          size += 1 * count;
-        }
+    if (((bitField0_ & 0x00000004) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(12, getCommandProvenance());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -713,7 +593,6 @@ private static final long serialVersionUID = 0L;
         .equals(other.getTurnId())) return false;
     if (!getHarnessId()
         .equals(other.getHarnessId())) return false;
-    if (status_ != other.status_) return false;
     if (hasBaselineSnapshot() != other.hasBaselineSnapshot()) return false;
     if (hasBaselineSnapshot()) {
       if (!getBaselineSnapshot()
@@ -724,18 +603,16 @@ private static final long serialVersionUID = 0L;
       if (!getCandidateSnapshot()
           .equals(other.getCandidateSnapshot())) return false;
     }
-    if (hasApprovedSnapshot() != other.hasApprovedSnapshot()) return false;
-    if (hasApprovedSnapshot()) {
-      if (!getApprovedSnapshot()
-          .equals(other.getApprovedSnapshot())) return false;
-    }
     if (!getChangesList()
         .equals(other.getChangesList())) return false;
     if (!getAggregateDigest()
         .equals(other.getAggregateDigest())) return false;
     if (diffCompleteness_ != other.diffCompleteness_) return false;
-    if (!getDecisionsList()
-        .equals(other.getDecisionsList())) return false;
+    if (hasCommandProvenance() != other.hasCommandProvenance()) return false;
+    if (hasCommandProvenance()) {
+      if (!getCommandProvenance()
+          .equals(other.getCommandProvenance())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -753,8 +630,6 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getTurnId().hashCode();
     hash = (37 * hash) + HARNESS_ID_FIELD_NUMBER;
     hash = (53 * hash) + getHarnessId().hashCode();
-    hash = (37 * hash) + STATUS_FIELD_NUMBER;
-    hash = (53 * hash) + status_;
     if (hasBaselineSnapshot()) {
       hash = (37 * hash) + BASELINE_SNAPSHOT_FIELD_NUMBER;
       hash = (53 * hash) + getBaselineSnapshot().hashCode();
@@ -762,10 +637,6 @@ private static final long serialVersionUID = 0L;
     if (hasCandidateSnapshot()) {
       hash = (37 * hash) + CANDIDATE_SNAPSHOT_FIELD_NUMBER;
       hash = (53 * hash) + getCandidateSnapshot().hashCode();
-    }
-    if (hasApprovedSnapshot()) {
-      hash = (37 * hash) + APPROVED_SNAPSHOT_FIELD_NUMBER;
-      hash = (53 * hash) + getApprovedSnapshot().hashCode();
     }
     if (getChangesCount() > 0) {
       hash = (37 * hash) + CHANGES_FIELD_NUMBER;
@@ -775,9 +646,9 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getAggregateDigest().hashCode();
     hash = (37 * hash) + DIFF_COMPLETENESS_FIELD_NUMBER;
     hash = (53 * hash) + diffCompleteness_;
-    if (getDecisionsCount() > 0) {
-      hash = (37 * hash) + DECISIONS_FIELD_NUMBER;
-      hash = (53 * hash) + getDecisionsList().hashCode();
+    if (hasCommandProvenance()) {
+      hash = (37 * hash) + COMMAND_PROVENANCE_FIELD_NUMBER;
+      hash = (53 * hash) + getCommandProvenance().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -881,13 +752,11 @@ private static final long serialVersionUID = 0L;
    * The set of file deltas produced by one agent turn, reviewed and reconciled
    * as a unit.
    *
-   * A FileChangeSet has no identity or lifecycle independent of the turn that
-   * produced it: it is born when the turn captures its baseline and dies when its
-   * decisions are reconciled into the workspace. It is therefore a computed
-   * projection on RunStatus (field file_change_sets), mirroring
-   * pending_approvals — recomputed on every status write from the file_review
-   * event ledger, never merged, so it is always consistent with the authoritative
-   * stream.
+   * A record of what the turn changed: the files' contents before and after,
+   * the snapshots they were read from and the consent the turn's commands ran
+   * under. It carries no state and no decisions; the session's
+   * stigmer.file_review.* events say what was kept, what was undone and what is
+   * still open.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.run.v1.FileChangeSet}
@@ -924,9 +793,8 @@ private static final long serialVersionUID = 0L;
               .alwaysUseFieldBuilders) {
         internalGetBaselineSnapshotFieldBuilder();
         internalGetCandidateSnapshotFieldBuilder();
-        internalGetApprovedSnapshotFieldBuilder();
         internalGetChangesFieldBuilder();
-        internalGetDecisionsFieldBuilder();
+        internalGetCommandProvenanceFieldBuilder();
       }
     }
     @java.lang.Override
@@ -936,7 +804,6 @@ private static final long serialVersionUID = 0L;
       id_ = "";
       turnId_ = "";
       harnessId_ = "";
-      status_ = 0;
       baselineSnapshot_ = null;
       if (baselineSnapshotBuilder_ != null) {
         baselineSnapshotBuilder_.dispose();
@@ -947,27 +814,20 @@ private static final long serialVersionUID = 0L;
         candidateSnapshotBuilder_.dispose();
         candidateSnapshotBuilder_ = null;
       }
-      approvedSnapshot_ = null;
-      if (approvedSnapshotBuilder_ != null) {
-        approvedSnapshotBuilder_.dispose();
-        approvedSnapshotBuilder_ = null;
-      }
       if (changesBuilder_ == null) {
         changes_ = java.util.Collections.emptyList();
       } else {
         changes_ = null;
         changesBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000020);
       aggregateDigest_ = "";
       diffCompleteness_ = 0;
-      if (decisionsBuilder_ == null) {
-        decisions_ = java.util.Collections.emptyList();
-      } else {
-        decisions_ = null;
-        decisionsBuilder_.clear();
+      commandProvenance_ = null;
+      if (commandProvenanceBuilder_ != null) {
+        commandProvenanceBuilder_.dispose();
+        commandProvenanceBuilder_ = null;
       }
-      bitField0_ = (bitField0_ & ~0x00000400);
       return this;
     }
 
@@ -1002,22 +862,13 @@ private static final long serialVersionUID = 0L;
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.run.v1.FileChangeSet result) {
       if (changesBuilder_ == null) {
-        if (((bitField0_ & 0x00000080) != 0)) {
+        if (((bitField0_ & 0x00000020) != 0)) {
           changes_ = java.util.Collections.unmodifiableList(changes_);
-          bitField0_ = (bitField0_ & ~0x00000080);
+          bitField0_ = (bitField0_ & ~0x00000020);
         }
         result.changes_ = changes_;
       } else {
         result.changes_ = changesBuilder_.build();
-      }
-      if (decisionsBuilder_ == null) {
-        if (((bitField0_ & 0x00000400) != 0)) {
-          decisions_ = java.util.Collections.unmodifiableList(decisions_);
-          bitField0_ = (bitField0_ & ~0x00000400);
-        }
-        result.decisions_ = decisions_;
-      } else {
-        result.decisions_ = decisionsBuilder_.build();
       }
     }
 
@@ -1032,33 +883,30 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.harnessId_ = harnessId_;
       }
-      if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.status_ = status_;
-      }
       int to_bitField0_ = 0;
-      if (((from_bitField0_ & 0x00000010) != 0)) {
+      if (((from_bitField0_ & 0x00000008) != 0)) {
         result.baselineSnapshot_ = baselineSnapshotBuilder_ == null
             ? baselineSnapshot_
             : baselineSnapshotBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
+      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.candidateSnapshot_ = candidateSnapshotBuilder_ == null
             ? candidateSnapshot_
             : candidateSnapshotBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
       if (((from_bitField0_ & 0x00000040) != 0)) {
-        result.approvedSnapshot_ = approvedSnapshotBuilder_ == null
-            ? approvedSnapshot_
-            : approvedSnapshotBuilder_.build();
-        to_bitField0_ |= 0x00000004;
-      }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.aggregateDigest_ = aggregateDigest_;
       }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
+      if (((from_bitField0_ & 0x00000080) != 0)) {
         result.diffCompleteness_ = diffCompleteness_;
+      }
+      if (((from_bitField0_ & 0x00000100) != 0)) {
+        result.commandProvenance_ = commandProvenanceBuilder_ == null
+            ? commandProvenance_
+            : commandProvenanceBuilder_.build();
+        to_bitField0_ |= 0x00000004;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1090,23 +938,17 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000004;
         onChanged();
       }
-      if (other.status_ != 0) {
-        setStatusValue(other.getStatusValue());
-      }
       if (other.hasBaselineSnapshot()) {
         mergeBaselineSnapshot(other.getBaselineSnapshot());
       }
       if (other.hasCandidateSnapshot()) {
         mergeCandidateSnapshot(other.getCandidateSnapshot());
       }
-      if (other.hasApprovedSnapshot()) {
-        mergeApprovedSnapshot(other.getApprovedSnapshot());
-      }
       if (changesBuilder_ == null) {
         if (!other.changes_.isEmpty()) {
           if (changes_.isEmpty()) {
             changes_ = other.changes_;
-            bitField0_ = (bitField0_ & ~0x00000080);
+            bitField0_ = (bitField0_ & ~0x00000020);
           } else {
             ensureChangesIsMutable();
             changes_.addAll(other.changes_);
@@ -1119,7 +961,7 @@ private static final long serialVersionUID = 0L;
             changesBuilder_.dispose();
             changesBuilder_ = null;
             changes_ = other.changes_;
-            bitField0_ = (bitField0_ & ~0x00000080);
+            bitField0_ = (bitField0_ & ~0x00000020);
             changesBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetChangesFieldBuilder() : null;
@@ -1130,37 +972,14 @@ private static final long serialVersionUID = 0L;
       }
       if (!other.getAggregateDigest().isEmpty()) {
         aggregateDigest_ = other.aggregateDigest_;
-        bitField0_ |= 0x00000100;
+        bitField0_ |= 0x00000040;
         onChanged();
       }
       if (other.diffCompleteness_ != 0) {
         setDiffCompletenessValue(other.getDiffCompletenessValue());
       }
-      if (decisionsBuilder_ == null) {
-        if (!other.decisions_.isEmpty()) {
-          if (decisions_.isEmpty()) {
-            decisions_ = other.decisions_;
-            bitField0_ = (bitField0_ & ~0x00000400);
-          } else {
-            ensureDecisionsIsMutable();
-            decisions_.addAll(other.decisions_);
-          }
-          onChanged();
-        }
-      } else {
-        if (!other.decisions_.isEmpty()) {
-          if (decisionsBuilder_.isEmpty()) {
-            decisionsBuilder_.dispose();
-            decisionsBuilder_ = null;
-            decisions_ = other.decisions_;
-            bitField0_ = (bitField0_ & ~0x00000400);
-            decisionsBuilder_ = 
-              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetDecisionsFieldBuilder() : null;
-          } else {
-            decisionsBuilder_.addAllMessages(other.decisions_);
-          }
-        }
+      if (other.hasCommandProvenance()) {
+        mergeCommandProvenance(other.getCommandProvenance());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1203,32 +1022,20 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 26
-            case 32: {
-              status_ = input.readEnum();
-              bitField0_ |= 0x00000008;
-              break;
-            } // case 32
             case 42: {
               input.readMessage(
                   internalGetBaselineSnapshotFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000010;
+              bitField0_ |= 0x00000008;
               break;
             } // case 42
             case 50: {
               input.readMessage(
                   internalGetCandidateSnapshotFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000010;
               break;
             } // case 50
-            case 58: {
-              input.readMessage(
-                  internalGetApprovedSnapshotFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00000040;
-              break;
-            } // case 58
             case 66: {
               ai.stigmer.agentic.run.v1.CapturedFileChange m =
                   input.readMessage(
@@ -1244,27 +1051,21 @@ private static final long serialVersionUID = 0L;
             } // case 66
             case 74: {
               aggregateDigest_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000040;
               break;
             } // case 74
             case 80: {
               diffCompleteness_ = input.readEnum();
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000080;
               break;
             } // case 80
-            case 90: {
-              ai.stigmer.agentic.run.v1.FileDecision m =
-                  input.readMessage(
-                      ai.stigmer.agentic.run.v1.FileDecision.parser(),
-                      extensionRegistry);
-              if (decisionsBuilder_ == null) {
-                ensureDecisionsIsMutable();
-                decisions_.add(m);
-              } else {
-                decisionsBuilder_.addMessage(m);
-              }
+            case 98: {
+              input.readMessage(
+                  internalGetCommandProvenanceFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000100;
               break;
-            } // case 90
+            } // case 98
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1285,8 +1086,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object id_ = "";
     /**
      * <pre>
-     * Stable id of this change set, unique per turn. The correlation key a
-     * FileDecision and every ledger event reference. Never a content hash.
+     * Stable id of this change set, unique per turn. The id the session's
+     * stigmer.file_review.* events name. Never a content hash.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -1306,8 +1107,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stable id of this change set, unique per turn. The correlation key a
-     * FileDecision and every ledger event reference. Never a content hash.
+     * Stable id of this change set, unique per turn. The id the session's
+     * stigmer.file_review.* events name. Never a content hash.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -1328,8 +1129,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stable id of this change set, unique per turn. The correlation key a
-     * FileDecision and every ledger event reference. Never a content hash.
+     * Stable id of this change set, unique per turn. The id the session's
+     * stigmer.file_review.* events name. Never a content hash.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -1346,8 +1147,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stable id of this change set, unique per turn. The correlation key a
-     * FileDecision and every ledger event reference. Never a content hash.
+     * Stable id of this change set, unique per turn. The id the session's
+     * stigmer.file_review.* events name. Never a content hash.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -1361,8 +1162,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stable id of this change set, unique per turn. The correlation key a
-     * FileDecision and every ledger event reference. Never a content hash.
+     * Stable id of this change set, unique per turn. The id the session's
+     * stigmer.file_review.* events name. Never a content hash.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -1568,83 +1369,6 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private int status_ = 0;
-    /**
-     * <pre>
-     * Current state of the change set, DERIVED from the file_review ledger (a fold
-     * over the events for this change set). See FileChangeSetStatus.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.FileChangeSetStatus status = 4 [json_name = "status", (.buf.validate.field) = { ... }</code>
-     * @return The enum numeric value on the wire for status.
-     */
-    @java.lang.Override public int getStatusValue() {
-      return status_;
-    }
-    /**
-     * <pre>
-     * Current state of the change set, DERIVED from the file_review ledger (a fold
-     * over the events for this change set). See FileChangeSetStatus.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.FileChangeSetStatus status = 4 [json_name = "status", (.buf.validate.field) = { ... }</code>
-     * @param value The enum numeric value on the wire for status to set.
-     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
-     * @return This builder for chaining.
-     */
-    public Builder setStatusValue(int value) {
-      status_ = value;
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Current state of the change set, DERIVED from the file_review ledger (a fold
-     * over the events for this change set). See FileChangeSetStatus.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.FileChangeSetStatus status = 4 [json_name = "status", (.buf.validate.field) = { ... }</code>
-     * @return The status.
-     */
-    @java.lang.Override
-    public ai.stigmer.agentic.run.v1.FileChangeSetStatus getStatus() {
-      ai.stigmer.agentic.run.v1.FileChangeSetStatus result = ai.stigmer.agentic.run.v1.FileChangeSetStatus.forNumber(status_);
-      return result == null ? ai.stigmer.agentic.run.v1.FileChangeSetStatus.UNRECOGNIZED : result;
-    }
-    /**
-     * <pre>
-     * Current state of the change set, DERIVED from the file_review ledger (a fold
-     * over the events for this change set). See FileChangeSetStatus.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.FileChangeSetStatus status = 4 [json_name = "status", (.buf.validate.field) = { ... }</code>
-     * @param value The status to set.
-     * @return This builder for chaining.
-     */
-    public Builder setStatus(ai.stigmer.agentic.run.v1.FileChangeSetStatus value) {
-      if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000008;
-      status_ = value.getNumber();
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Current state of the change set, DERIVED from the file_review ledger (a fold
-     * over the events for this change set). See FileChangeSetStatus.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.FileChangeSetStatus status = 4 [json_name = "status", (.buf.validate.field) = { ... }</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearStatus() {
-      bitField0_ = (bitField0_ & ~0x00000008);
-      status_ = 0;
-      onChanged();
-      return this;
-    }
-
     private ai.stigmer.agentic.run.v1.SnapshotRef baselineSnapshot_;
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.agentic.run.v1.SnapshotRef, ai.stigmer.agentic.run.v1.SnapshotRef.Builder, ai.stigmer.agentic.run.v1.SnapshotRefOrBuilder> baselineSnapshotBuilder_;
@@ -1658,7 +1382,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the baselineSnapshot field is set.
      */
     public boolean hasBaselineSnapshot() {
-      return ((bitField0_ & 0x00000010) != 0);
+      return ((bitField0_ & 0x00000008) != 0);
     }
     /**
      * <pre>
@@ -1693,7 +1417,7 @@ private static final long serialVersionUID = 0L;
       } else {
         baselineSnapshotBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1712,7 +1436,7 @@ private static final long serialVersionUID = 0L;
       } else {
         baselineSnapshotBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1726,7 +1450,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeBaselineSnapshot(ai.stigmer.agentic.run.v1.SnapshotRef value) {
       if (baselineSnapshotBuilder_ == null) {
-        if (((bitField0_ & 0x00000010) != 0) &&
+        if (((bitField0_ & 0x00000008) != 0) &&
           baselineSnapshot_ != null &&
           baselineSnapshot_ != ai.stigmer.agentic.run.v1.SnapshotRef.getDefaultInstance()) {
           getBaselineSnapshotBuilder().mergeFrom(value);
@@ -1737,7 +1461,7 @@ private static final long serialVersionUID = 0L;
         baselineSnapshotBuilder_.mergeFrom(value);
       }
       if (baselineSnapshot_ != null) {
-        bitField0_ |= 0x00000010;
+        bitField0_ |= 0x00000008;
         onChanged();
       }
       return this;
@@ -1751,7 +1475,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.SnapshotRef baseline_snapshot = 5 [json_name = "baselineSnapshot"];</code>
      */
     public Builder clearBaselineSnapshot() {
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000008);
       baselineSnapshot_ = null;
       if (baselineSnapshotBuilder_ != null) {
         baselineSnapshotBuilder_.dispose();
@@ -1769,7 +1493,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.SnapshotRef baseline_snapshot = 5 [json_name = "baselineSnapshot"];</code>
      */
     public ai.stigmer.agentic.run.v1.SnapshotRef.Builder getBaselineSnapshotBuilder() {
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return internalGetBaselineSnapshotFieldBuilder().getBuilder();
     }
@@ -1825,7 +1549,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the candidateSnapshot field is set.
      */
     public boolean hasCandidateSnapshot() {
-      return ((bitField0_ & 0x00000020) != 0);
+      return ((bitField0_ & 0x00000010) != 0);
     }
     /**
      * <pre>
@@ -1862,7 +1586,7 @@ private static final long serialVersionUID = 0L;
       } else {
         candidateSnapshotBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -1882,7 +1606,7 @@ private static final long serialVersionUID = 0L;
       } else {
         candidateSnapshotBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -1897,7 +1621,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeCandidateSnapshot(ai.stigmer.agentic.run.v1.SnapshotRef value) {
       if (candidateSnapshotBuilder_ == null) {
-        if (((bitField0_ & 0x00000020) != 0) &&
+        if (((bitField0_ & 0x00000010) != 0) &&
           candidateSnapshot_ != null &&
           candidateSnapshot_ != ai.stigmer.agentic.run.v1.SnapshotRef.getDefaultInstance()) {
           getCandidateSnapshotBuilder().mergeFrom(value);
@@ -1908,7 +1632,7 @@ private static final long serialVersionUID = 0L;
         candidateSnapshotBuilder_.mergeFrom(value);
       }
       if (candidateSnapshot_ != null) {
-        bitField0_ |= 0x00000020;
+        bitField0_ |= 0x00000010;
         onChanged();
       }
       return this;
@@ -1923,7 +1647,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.SnapshotRef candidate_snapshot = 6 [json_name = "candidateSnapshot"];</code>
      */
     public Builder clearCandidateSnapshot() {
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000010);
       candidateSnapshot_ = null;
       if (candidateSnapshotBuilder_ != null) {
         candidateSnapshotBuilder_.dispose();
@@ -1942,7 +1666,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.SnapshotRef candidate_snapshot = 6 [json_name = "candidateSnapshot"];</code>
      */
     public ai.stigmer.agentic.run.v1.SnapshotRef.Builder getCandidateSnapshotBuilder() {
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return internalGetCandidateSnapshotFieldBuilder().getBuilder();
     }
@@ -1986,187 +1710,12 @@ private static final long serialVersionUID = 0L;
       return candidateSnapshotBuilder_;
     }
 
-    private ai.stigmer.agentic.run.v1.SnapshotRef approvedSnapshot_;
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.run.v1.SnapshotRef, ai.stigmer.agentic.run.v1.SnapshotRef.Builder, ai.stigmer.agentic.run.v1.SnapshotRefOrBuilder> approvedSnapshotBuilder_;
-    /**
-     * <pre>
-     * Workspace state derived after decisions (the exact bytes to reconcile to).
-     * Empty until the change set is decided. Reconcile verifies the filesystem
-     * hashes against this snapshot.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-     * @return Whether the approvedSnapshot field is set.
-     */
-    public boolean hasApprovedSnapshot() {
-      return ((bitField0_ & 0x00000040) != 0);
-    }
-    /**
-     * <pre>
-     * Workspace state derived after decisions (the exact bytes to reconcile to).
-     * Empty until the change set is decided. Reconcile verifies the filesystem
-     * hashes against this snapshot.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-     * @return The approvedSnapshot.
-     */
-    public ai.stigmer.agentic.run.v1.SnapshotRef getApprovedSnapshot() {
-      if (approvedSnapshotBuilder_ == null) {
-        return approvedSnapshot_ == null ? ai.stigmer.agentic.run.v1.SnapshotRef.getDefaultInstance() : approvedSnapshot_;
-      } else {
-        return approvedSnapshotBuilder_.getMessage();
-      }
-    }
-    /**
-     * <pre>
-     * Workspace state derived after decisions (the exact bytes to reconcile to).
-     * Empty until the change set is decided. Reconcile verifies the filesystem
-     * hashes against this snapshot.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-     */
-    public Builder setApprovedSnapshot(ai.stigmer.agentic.run.v1.SnapshotRef value) {
-      if (approvedSnapshotBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        approvedSnapshot_ = value;
-      } else {
-        approvedSnapshotBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00000040;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace state derived after decisions (the exact bytes to reconcile to).
-     * Empty until the change set is decided. Reconcile verifies the filesystem
-     * hashes against this snapshot.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-     */
-    public Builder setApprovedSnapshot(
-        ai.stigmer.agentic.run.v1.SnapshotRef.Builder builderForValue) {
-      if (approvedSnapshotBuilder_ == null) {
-        approvedSnapshot_ = builderForValue.build();
-      } else {
-        approvedSnapshotBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00000040;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace state derived after decisions (the exact bytes to reconcile to).
-     * Empty until the change set is decided. Reconcile verifies the filesystem
-     * hashes against this snapshot.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-     */
-    public Builder mergeApprovedSnapshot(ai.stigmer.agentic.run.v1.SnapshotRef value) {
-      if (approvedSnapshotBuilder_ == null) {
-        if (((bitField0_ & 0x00000040) != 0) &&
-          approvedSnapshot_ != null &&
-          approvedSnapshot_ != ai.stigmer.agentic.run.v1.SnapshotRef.getDefaultInstance()) {
-          getApprovedSnapshotBuilder().mergeFrom(value);
-        } else {
-          approvedSnapshot_ = value;
-        }
-      } else {
-        approvedSnapshotBuilder_.mergeFrom(value);
-      }
-      if (approvedSnapshot_ != null) {
-        bitField0_ |= 0x00000040;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace state derived after decisions (the exact bytes to reconcile to).
-     * Empty until the change set is decided. Reconcile verifies the filesystem
-     * hashes against this snapshot.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-     */
-    public Builder clearApprovedSnapshot() {
-      bitField0_ = (bitField0_ & ~0x00000040);
-      approvedSnapshot_ = null;
-      if (approvedSnapshotBuilder_ != null) {
-        approvedSnapshotBuilder_.dispose();
-        approvedSnapshotBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace state derived after decisions (the exact bytes to reconcile to).
-     * Empty until the change set is decided. Reconcile verifies the filesystem
-     * hashes against this snapshot.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.SnapshotRef.Builder getApprovedSnapshotBuilder() {
-      bitField0_ |= 0x00000040;
-      onChanged();
-      return internalGetApprovedSnapshotFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * Workspace state derived after decisions (the exact bytes to reconcile to).
-     * Empty until the change set is decided. Reconcile verifies the filesystem
-     * hashes against this snapshot.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.SnapshotRefOrBuilder getApprovedSnapshotOrBuilder() {
-      if (approvedSnapshotBuilder_ != null) {
-        return approvedSnapshotBuilder_.getMessageOrBuilder();
-      } else {
-        return approvedSnapshot_ == null ?
-            ai.stigmer.agentic.run.v1.SnapshotRef.getDefaultInstance() : approvedSnapshot_;
-      }
-    }
-    /**
-     * <pre>
-     * Workspace state derived after decisions (the exact bytes to reconcile to).
-     * Empty until the change set is decided. Reconcile verifies the filesystem
-     * hashes against this snapshot.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.run.v1.SnapshotRef, ai.stigmer.agentic.run.v1.SnapshotRef.Builder, ai.stigmer.agentic.run.v1.SnapshotRefOrBuilder> 
-        internalGetApprovedSnapshotFieldBuilder() {
-      if (approvedSnapshotBuilder_ == null) {
-        approvedSnapshotBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.run.v1.SnapshotRef, ai.stigmer.agentic.run.v1.SnapshotRef.Builder, ai.stigmer.agentic.run.v1.SnapshotRefOrBuilder>(
-                getApprovedSnapshot(),
-                getParentForChildren(),
-                isClean());
-        approvedSnapshot_ = null;
-      }
-      return approvedSnapshotBuilder_;
-    }
-
     private java.util.List<ai.stigmer.agentic.run.v1.CapturedFileChange> changes_ =
       java.util.Collections.emptyList();
     private void ensureChangesIsMutable() {
-      if (!((bitField0_ & 0x00000080) != 0)) {
+      if (!((bitField0_ & 0x00000020) != 0)) {
         changes_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.CapturedFileChange>(changes_);
-        bitField0_ |= 0x00000080;
+        bitField0_ |= 0x00000020;
        }
     }
 
@@ -2360,7 +1909,7 @@ private static final long serialVersionUID = 0L;
     public Builder clearChanges() {
       if (changesBuilder_ == null) {
         changes_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000080);
+        bitField0_ = (bitField0_ & ~0x00000020);
         onChanged();
       } else {
         changesBuilder_.clear();
@@ -2465,7 +2014,7 @@ private static final long serialVersionUID = 0L;
         changesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.run.v1.CapturedFileChange, ai.stigmer.agentic.run.v1.CapturedFileChange.Builder, ai.stigmer.agentic.run.v1.CapturedFileChangeOrBuilder>(
                 changes_,
-                ((bitField0_ & 0x00000080) != 0),
+                ((bitField0_ & 0x00000020) != 0),
                 getParentForChildren(),
                 isClean());
         changes_ = null;
@@ -2534,7 +2083,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       aggregateDigest_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -2550,7 +2099,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearAggregateDigest() {
       aggregateDigest_ = getDefaultInstance().getAggregateDigest();
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000040);
       onChanged();
       return this;
     }
@@ -2570,7 +2119,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       aggregateDigest_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -2609,7 +2158,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder setDiffCompletenessValue(int value) {
       diffCompleteness_ = value;
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -2647,7 +2196,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder setDiffCompleteness(ai.stigmer.agentic.run.v1.DiffCompleteness value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000080;
       diffCompleteness_ = value.getNumber();
       onChanged();
       return this;
@@ -2666,340 +2215,176 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearDiffCompleteness() {
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000080);
       diffCompleteness_ = 0;
       onChanged();
       return this;
     }
 
-    private java.util.List<ai.stigmer.agentic.run.v1.FileDecision> decisions_ =
-      java.util.Collections.emptyList();
-    private void ensureDecisionsIsMutable() {
-      if (!((bitField0_ & 0x00000400) != 0)) {
-        decisions_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.FileDecision>(decisions_);
-        bitField0_ |= 0x00000400;
-       }
-    }
-
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.run.v1.FileDecision, ai.stigmer.agentic.run.v1.FileDecision.Builder, ai.stigmer.agentic.run.v1.FileDecisionOrBuilder> decisionsBuilder_;
-
+    private ai.stigmer.agentic.run.v1.TurnCommandProvenance commandProvenance_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.run.v1.TurnCommandProvenance, ai.stigmer.agentic.run.v1.TurnCommandProvenance.Builder, ai.stigmer.agentic.run.v1.TurnCommandProvenanceOrBuilder> commandProvenanceBuilder_;
     /**
      * <pre>
-     * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-     * events in the ledger (never stored-mutable). Ordered by decision time.
+     * The consent the turn's commands ran under, when every change in the set
+     * came from a command a person had allowed. Absent otherwise.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.TurnCommandProvenance command_provenance = 12 [json_name = "commandProvenance"];</code>
+     * @return Whether the commandProvenance field is set.
      */
-    public java.util.List<ai.stigmer.agentic.run.v1.FileDecision> getDecisionsList() {
-      if (decisionsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(decisions_);
+    public boolean hasCommandProvenance() {
+      return ((bitField0_ & 0x00000100) != 0);
+    }
+    /**
+     * <pre>
+     * The consent the turn's commands ran under, when every change in the set
+     * came from a command a person had allowed. Absent otherwise.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.TurnCommandProvenance command_provenance = 12 [json_name = "commandProvenance"];</code>
+     * @return The commandProvenance.
+     */
+    public ai.stigmer.agentic.run.v1.TurnCommandProvenance getCommandProvenance() {
+      if (commandProvenanceBuilder_ == null) {
+        return commandProvenance_ == null ? ai.stigmer.agentic.run.v1.TurnCommandProvenance.getDefaultInstance() : commandProvenance_;
       } else {
-        return decisionsBuilder_.getMessageList();
+        return commandProvenanceBuilder_.getMessage();
       }
     }
     /**
      * <pre>
-     * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-     * events in the ledger (never stored-mutable). Ordered by decision time.
+     * The consent the turn's commands ran under, when every change in the set
+     * came from a command a person had allowed. Absent otherwise.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.TurnCommandProvenance command_provenance = 12 [json_name = "commandProvenance"];</code>
      */
-    public int getDecisionsCount() {
-      if (decisionsBuilder_ == null) {
-        return decisions_.size();
-      } else {
-        return decisionsBuilder_.getCount();
-      }
-    }
-    /**
-     * <pre>
-     * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-     * events in the ledger (never stored-mutable). Ordered by decision time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.FileDecision getDecisions(int index) {
-      if (decisionsBuilder_ == null) {
-        return decisions_.get(index);
-      } else {
-        return decisionsBuilder_.getMessage(index);
-      }
-    }
-    /**
-     * <pre>
-     * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-     * events in the ledger (never stored-mutable). Ordered by decision time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
-     */
-    public Builder setDecisions(
-        int index, ai.stigmer.agentic.run.v1.FileDecision value) {
-      if (decisionsBuilder_ == null) {
+    public Builder setCommandProvenance(ai.stigmer.agentic.run.v1.TurnCommandProvenance value) {
+      if (commandProvenanceBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureDecisionsIsMutable();
-        decisions_.set(index, value);
-        onChanged();
+        commandProvenance_ = value;
       } else {
-        decisionsBuilder_.setMessage(index, value);
+        commandProvenanceBuilder_.setMessage(value);
       }
+      bitField0_ |= 0x00000100;
+      onChanged();
       return this;
     }
     /**
      * <pre>
-     * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-     * events in the ledger (never stored-mutable). Ordered by decision time.
+     * The consent the turn's commands ran under, when every change in the set
+     * came from a command a person had allowed. Absent otherwise.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.TurnCommandProvenance command_provenance = 12 [json_name = "commandProvenance"];</code>
      */
-    public Builder setDecisions(
-        int index, ai.stigmer.agentic.run.v1.FileDecision.Builder builderForValue) {
-      if (decisionsBuilder_ == null) {
-        ensureDecisionsIsMutable();
-        decisions_.set(index, builderForValue.build());
-        onChanged();
+    public Builder setCommandProvenance(
+        ai.stigmer.agentic.run.v1.TurnCommandProvenance.Builder builderForValue) {
+      if (commandProvenanceBuilder_ == null) {
+        commandProvenance_ = builderForValue.build();
       } else {
-        decisionsBuilder_.setMessage(index, builderForValue.build());
+        commandProvenanceBuilder_.setMessage(builderForValue.build());
       }
+      bitField0_ |= 0x00000100;
+      onChanged();
       return this;
     }
     /**
      * <pre>
-     * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-     * events in the ledger (never stored-mutable). Ordered by decision time.
+     * The consent the turn's commands ran under, when every change in the set
+     * came from a command a person had allowed. Absent otherwise.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.TurnCommandProvenance command_provenance = 12 [json_name = "commandProvenance"];</code>
      */
-    public Builder addDecisions(ai.stigmer.agentic.run.v1.FileDecision value) {
-      if (decisionsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
+    public Builder mergeCommandProvenance(ai.stigmer.agentic.run.v1.TurnCommandProvenance value) {
+      if (commandProvenanceBuilder_ == null) {
+        if (((bitField0_ & 0x00000100) != 0) &&
+          commandProvenance_ != null &&
+          commandProvenance_ != ai.stigmer.agentic.run.v1.TurnCommandProvenance.getDefaultInstance()) {
+          getCommandProvenanceBuilder().mergeFrom(value);
+        } else {
+          commandProvenance_ = value;
         }
-        ensureDecisionsIsMutable();
-        decisions_.add(value);
-        onChanged();
       } else {
-        decisionsBuilder_.addMessage(value);
+        commandProvenanceBuilder_.mergeFrom(value);
+      }
+      if (commandProvenance_ != null) {
+        bitField0_ |= 0x00000100;
+        onChanged();
       }
       return this;
     }
     /**
      * <pre>
-     * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-     * events in the ledger (never stored-mutable). Ordered by decision time.
+     * The consent the turn's commands ran under, when every change in the set
+     * came from a command a person had allowed. Absent otherwise.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.TurnCommandProvenance command_provenance = 12 [json_name = "commandProvenance"];</code>
      */
-    public Builder addDecisions(
-        int index, ai.stigmer.agentic.run.v1.FileDecision value) {
-      if (decisionsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureDecisionsIsMutable();
-        decisions_.add(index, value);
-        onChanged();
-      } else {
-        decisionsBuilder_.addMessage(index, value);
+    public Builder clearCommandProvenance() {
+      bitField0_ = (bitField0_ & ~0x00000100);
+      commandProvenance_ = null;
+      if (commandProvenanceBuilder_ != null) {
+        commandProvenanceBuilder_.dispose();
+        commandProvenanceBuilder_ = null;
       }
+      onChanged();
       return this;
     }
     /**
      * <pre>
-     * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-     * events in the ledger (never stored-mutable). Ordered by decision time.
+     * The consent the turn's commands ran under, when every change in the set
+     * came from a command a person had allowed. Absent otherwise.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.TurnCommandProvenance command_provenance = 12 [json_name = "commandProvenance"];</code>
      */
-    public Builder addDecisions(
-        ai.stigmer.agentic.run.v1.FileDecision.Builder builderForValue) {
-      if (decisionsBuilder_ == null) {
-        ensureDecisionsIsMutable();
-        decisions_.add(builderForValue.build());
-        onChanged();
+    public ai.stigmer.agentic.run.v1.TurnCommandProvenance.Builder getCommandProvenanceBuilder() {
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return internalGetCommandProvenanceFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * The consent the turn's commands ran under, when every change in the set
+     * came from a command a person had allowed. Absent otherwise.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.TurnCommandProvenance command_provenance = 12 [json_name = "commandProvenance"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.TurnCommandProvenanceOrBuilder getCommandProvenanceOrBuilder() {
+      if (commandProvenanceBuilder_ != null) {
+        return commandProvenanceBuilder_.getMessageOrBuilder();
       } else {
-        decisionsBuilder_.addMessage(builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-     * events in the ledger (never stored-mutable). Ordered by decision time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
-     */
-    public Builder addDecisions(
-        int index, ai.stigmer.agentic.run.v1.FileDecision.Builder builderForValue) {
-      if (decisionsBuilder_ == null) {
-        ensureDecisionsIsMutable();
-        decisions_.add(index, builderForValue.build());
-        onChanged();
-      } else {
-        decisionsBuilder_.addMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-     * events in the ledger (never stored-mutable). Ordered by decision time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
-     */
-    public Builder addAllDecisions(
-        java.lang.Iterable<? extends ai.stigmer.agentic.run.v1.FileDecision> values) {
-      if (decisionsBuilder_ == null) {
-        ensureDecisionsIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, decisions_);
-        onChanged();
-      } else {
-        decisionsBuilder_.addAllMessages(values);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-     * events in the ledger (never stored-mutable). Ordered by decision time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
-     */
-    public Builder clearDecisions() {
-      if (decisionsBuilder_ == null) {
-        decisions_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000400);
-        onChanged();
-      } else {
-        decisionsBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-     * events in the ledger (never stored-mutable). Ordered by decision time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
-     */
-    public Builder removeDecisions(int index) {
-      if (decisionsBuilder_ == null) {
-        ensureDecisionsIsMutable();
-        decisions_.remove(index);
-        onChanged();
-      } else {
-        decisionsBuilder_.remove(index);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-     * events in the ledger (never stored-mutable). Ordered by decision time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.FileDecision.Builder getDecisionsBuilder(
-        int index) {
-      return internalGetDecisionsFieldBuilder().getBuilder(index);
-    }
-    /**
-     * <pre>
-     * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-     * events in the ledger (never stored-mutable). Ordered by decision time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.FileDecisionOrBuilder getDecisionsOrBuilder(
-        int index) {
-      if (decisionsBuilder_ == null) {
-        return decisions_.get(index);  } else {
-        return decisionsBuilder_.getMessageOrBuilder(index);
+        return commandProvenance_ == null ?
+            ai.stigmer.agentic.run.v1.TurnCommandProvenance.getDefaultInstance() : commandProvenance_;
       }
     }
     /**
      * <pre>
-     * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-     * events in the ledger (never stored-mutable). Ordered by decision time.
+     * The consent the turn's commands ran under, when every change in the set
+     * came from a command a person had allowed. Absent otherwise.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.TurnCommandProvenance command_provenance = 12 [json_name = "commandProvenance"];</code>
      */
-    public java.util.List<? extends ai.stigmer.agentic.run.v1.FileDecisionOrBuilder> 
-         getDecisionsOrBuilderList() {
-      if (decisionsBuilder_ != null) {
-        return decisionsBuilder_.getMessageOrBuilderList();
-      } else {
-        return java.util.Collections.unmodifiableList(decisions_);
-      }
-    }
-    /**
-     * <pre>
-     * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-     * events in the ledger (never stored-mutable). Ordered by decision time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.FileDecision.Builder addDecisionsBuilder() {
-      return internalGetDecisionsFieldBuilder().addBuilder(
-          ai.stigmer.agentic.run.v1.FileDecision.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-     * events in the ledger (never stored-mutable). Ordered by decision time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.FileDecision.Builder addDecisionsBuilder(
-        int index) {
-      return internalGetDecisionsFieldBuilder().addBuilder(
-          index, ai.stigmer.agentic.run.v1.FileDecision.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-     * events in the ledger (never stored-mutable). Ordered by decision time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.run.v1.FileDecision.Builder> 
-         getDecisionsBuilderList() {
-      return internalGetDecisionsFieldBuilder().getBuilderList();
-    }
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.run.v1.FileDecision, ai.stigmer.agentic.run.v1.FileDecision.Builder, ai.stigmer.agentic.run.v1.FileDecisionOrBuilder> 
-        internalGetDecisionsFieldBuilder() {
-      if (decisionsBuilder_ == null) {
-        decisionsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.agentic.run.v1.FileDecision, ai.stigmer.agentic.run.v1.FileDecision.Builder, ai.stigmer.agentic.run.v1.FileDecisionOrBuilder>(
-                decisions_,
-                ((bitField0_ & 0x00000400) != 0),
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.run.v1.TurnCommandProvenance, ai.stigmer.agentic.run.v1.TurnCommandProvenance.Builder, ai.stigmer.agentic.run.v1.TurnCommandProvenanceOrBuilder> 
+        internalGetCommandProvenanceFieldBuilder() {
+      if (commandProvenanceBuilder_ == null) {
+        commandProvenanceBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.run.v1.TurnCommandProvenance, ai.stigmer.agentic.run.v1.TurnCommandProvenance.Builder, ai.stigmer.agentic.run.v1.TurnCommandProvenanceOrBuilder>(
+                getCommandProvenance(),
                 getParentForChildren(),
                 isClean());
-        decisions_ = null;
+        commandProvenance_ = null;
       }
-      return decisionsBuilder_;
+      return commandProvenanceBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.run.v1.FileChangeSet)

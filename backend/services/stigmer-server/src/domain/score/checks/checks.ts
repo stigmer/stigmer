@@ -13,7 +13,6 @@
  */
 import { createHash } from "node:crypto";
 
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { CriterionResult } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 
 import type { RunAction, RunActions } from "./actions.js";
@@ -90,10 +89,7 @@ export const lastActionSucceeded: Check = ({ actions }) => {
   if (last === undefined) {
     return notApplicable(LAST_ACTION_SUCCEEDED, "the run made no tool calls");
   }
-  if (
-    last.status === ToolCallStatus.TOOL_CALL_FAILED ||
-    last.status === ToolCallStatus.TOOL_CALL_INTERRUPTED
-  ) {
+  if (last.status === "failed" || last.status === "stopped") {
     return failed(
       LAST_ACTION_SUCCEEDED,
       `ended on a failed action: ${last.name} (step ${last.step})`,

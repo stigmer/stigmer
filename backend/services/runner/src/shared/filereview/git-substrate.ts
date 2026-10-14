@@ -62,11 +62,11 @@
  */
 
 import { dirname, join } from "node:path";
-import { FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { agentFs } from "../agent-fs.js";
 import { bytesLookBinary } from "../file-change.js";
 import { sha256Bytes } from "./digest.js";
 import type { CapturedContent } from "./events.js";
+import { FileChangeType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 
 /** Build `:(exclude)` pathspecs for the runner-owned files a harness passes in. */

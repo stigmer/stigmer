@@ -33,8 +33,8 @@ export const SIGNAL_PAUSE = "pause";
 export const SIGNAL_RESUME = "resume";
 
 /**
- * Go temporal.SignalApprovalGateResolved — sent by SubmitApproval when the
- * unified HITL gate fully clears (all tool calls decided, or a REJECT).
+ * Go temporal.SignalApprovalGateResolved — sent by the answer core
+ * (domain/session/hitl/answer.ts) when the turn has no open ask left.
  */
 export const SIGNAL_APPROVAL_GATE_RESOLVED = "approvalGateResolved";
 

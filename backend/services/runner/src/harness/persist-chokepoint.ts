@@ -8,8 +8,9 @@
  * What one write does, in order:
  *  1. The never-persist-secret backstop: content is withheld from
  *     any built-in write row targeting a secret-like path, top-level and
- *     sub-agent. The single airtight choke point for a deny-gate harness and
- *     the only guarantee under `auto_approve_all`. Idempotent.
+ *     sub-agent, before the rows reach the session's log. The single
+ *     airtight choke point for a deny-gate harness and the only guarantee
+ *     under `auto_approve_all`. Idempotent.
  *  2. `file_change_progress` is refreshed from the turn's capture (the "N
  *     files changed so far" strip) when the turn is in capture mode:
  *     the tree is read at most once per floor interval and only re-attached
@@ -22,16 +23,21 @@
  *     and `request()` keeps its promise to the adapters.
  *  3. `streaming_usage` is refreshed from the accumulator when it has turns,
  *     so the summary the UI shows is the one the write carries.
- *  4. `persistStatus` (`shared/status.ts`): tool-output offload, then the
+ *  4. The run's file record: the change sets of the rows' ledger the server
+ *     has not seen as they stand (`shared/filereview/record.ts`
+ *     `FileRecordSender`), on this write only; marked sent once it lands.
+ *  5. `persistStatus` (`shared/status.ts`): tool-output offload over the
+ *     rows, then the
  *     session event flush (`events/emitter.ts`: what the agent did, read from
  *     the rows as offloaded and appended to the session's log before the
- *     status that describes it), then the aggregate size cap, transient
+ *     status that follows it), then the aggregate size cap, transient
  *     retry, oversize recovery. Never rejects. The flush is a second RPC
  *     under the same single flight: an adapter's coalesced follow-up covers
- *     both.
- *  5. A Temporal heartbeat, so a long streaming turn's liveness is proven by
+ *     both. The status sent carries lifecycle, stamps and files, never the
+ *     rows.
+ *  6. A Temporal heartbeat, so a long streaming turn's liveness is proven by
  *     the writes it makes.
- *  6. The control plane's answer: STOP becomes the runtime's platform-stop
+ *  7. The control plane's answer: STOP becomes the runtime's platform-stop
  *     cause on the stop controller, which aborts the adapter's signal.
  *
  * Single-flight with coalescing: an adapter's `requestPersist()` while a
@@ -55,17 +61,21 @@ import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/
 
 import type { StigmerClient } from "../client/stigmer-client.js";
 import { captureFileChangeProgress } from "../shared/filereview/progress.js";
+import { FileRecordSender } from "../shared/filereview/record.js";
 import { persistStatus } from "../shared/status.js";
 import type { ToolOutputOffloadContext } from "../shared/status-offload.js";
 import type { SessionEventEmitter } from "./events/emitter.js";
 import { withholdSecretContentFromMessages } from "../shared/tool-row.js";
 import type { TurnProgress } from "./capture.js";
 import type { UsageAccumulator } from "./usage-accumulator.js";
+import type { TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 export interface PersistChokepointDeps {
   readonly client: StigmerClient;
   readonly executionId: string;
   readonly status: RunStatus;
+  /** The turn's rows: bounded and read into the session's log on every write, never sent with the status. */
+  readonly rows: TurnRows;
   /** Present when artifact storage resolved; enables tool-output offload on every write. */
   readonly offload: ToolOutputOffloadContext | undefined;
   /**
@@ -91,6 +101,7 @@ export interface PersistChokepointDeps {
 export class PersistChokepoint {
   private inFlight: Promise<void> | undefined;
   private followUp: Promise<void> | undefined;
+  private readonly fileRecord = new FileRecordSender();
 
   constructor(private readonly deps: PersistChokepointDeps) {}
 
@@ -125,8 +136,8 @@ export class PersistChokepoint {
    * session event emitter writes every row that is left.
    */
   async write(opts: { readonly final?: boolean } = {}): Promise<void> {
-    const { client, executionId, status, offload, heartbeat } = this.deps;
-    withholdSecretContentFromMessages(status.messages, status.subAgentRuns);
+    const { client, executionId, status, rows, offload, heartbeat } = this.deps;
+    withholdSecretContentFromMessages(rows.messages, rows.subAgentRuns);
     const progress = this.deps.progress();
     if (progress) {
       await captureFileChangeProgress({ status, changeSetId: progress.changeSetId, substrate: progress.substrate, state: progress.state });
@@ -136,9 +147,13 @@ export class PersistChokepoint {
       status.streamingUsage = create(StreamingUsageSummarySchema, usage.snapshot());
     }
     const events = this.deps.events;
+    const record = this.fileRecord.pending(rows);
+    status.fileChanges = record;
     const signal = await persistStatus(client, executionId, status, {
+      rows,
       offload,
-      ...(events ? { afterOffload: () => events.flush(status, { final: opts.final === true }) } : {}),
+      onWritten: () => this.fileRecord.written(record),
+      ...(events ? { afterOffload: () => events.flush(rows, { final: opts.final === true }) } : {}),
     });
     heartbeat();
     if (signal === RunControlSignal.STOP) {

@@ -109,9 +109,6 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.run.v1.AgentInvocation.agent_ref` | manifest reference |
 | `ai.stigmer.agentic.run.v1.AgentInvocation.vaults` | manifest reference |
 | `ai.stigmer.agentic.run.v1.AgentUsageSummary.agent_id` | stamped id |
-| `ai.stigmer.agentic.run.v1.ApprovalEventStream.run_id` | stamped id |
-| `ai.stigmer.agentic.run.v1.ApprovalRequest.mcp_server_slug` | not a resource: an MCP server's tool-name segment, plugin_<plugin>_<server> |
-| `ai.stigmer.agentic.run.v1.FileReviewEventStream.run_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.GetAgentUsageReportInput.agent_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.GetAgentUsageReportOutput.agent_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.GetArtifactContentRequest.run_id` | stamped id |
@@ -122,7 +119,6 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.session_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.LoadedVersions.plugins` | stamped reference |
 | `ai.stigmer.agentic.run.v1.LoadedVersions.skills` | stamped reference |
-| `ai.stigmer.agentic.run.v1.PendingApproval.mcp_server_slug` | not a resource: an MCP server's tool-name segment, plugin_<plugin>_<server> |
 | `ai.stigmer.agentic.run.v1.PluginEvalCaseContext.plugin_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.RecalledMemoryFact.memory_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.RunSpec.session_id` | stamped id |
@@ -132,9 +128,6 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.run.v1.RunValueDeclarer.plugin_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.RunValueSource.vault_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.SessionUsageSummary.session_id` | stamped id |
-| `ai.stigmer.agentic.run.v1.SubmitApprovalInput.run_id` | stamped id |
-| `ai.stigmer.agentic.run.v1.SubmitFileDecisionInput.run_id` | stamped id |
-| `ai.stigmer.agentic.run.v1.ToolCall.mcp_server_slug` | not a resource: an MCP server's tool-name segment, plugin_<plugin>_<server> |
 
 ## `ai.stigmer.agentic.schedule.v1`
 

@@ -210,6 +210,12 @@ export const LANES = {
       // config (make gen-substrate-stubs-check).
       "backend/services/stigmer-server/buf.gen.substrate.yaml",
       "backend/services/stigmer-server/src/sandbox/substrate/gen/**",
+      // The runner's private turn rows, their generator config and their
+      // committed stubs (make gen-runner-turn-stubs-check).
+      "backend/services/runner/proto/**",
+      "backend/services/runner/buf.gen.turn.yaml",
+      "backend/services/runner/scripts/gen-turn-stubs.mjs",
+      "backend/services/runner/src/gen/turn/**",
       // The Makefile its steps' targets come from (ci.all-in-one says why).
       "Makefile",
       // What the lane sets up and installs from (ci.all-in-one says why).

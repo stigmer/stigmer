@@ -50,7 +50,6 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -73,6 +72,8 @@ import { findToolCallRow } from "../../../../__test-utils__/proto-helpers.js";
 import { createCursorContractSubject } from "../../__test-utils__/contract-subject.js";
 import { hasBash } from "../../__test-utils__/cursor-hook-harness.js";
 import { resetCursorModuleState } from "../../__test-utils__/hermetic-cursor.js";
+import { ApprovalAction, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { toolUseEventId } from "../../../../harness/events/ids.js";
 
 const env = createHermeticEnvironment();
 const clock = new ScriptedClock();
@@ -162,13 +163,17 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — the harness contract kit a
 
       expect(again.outcome.kind, "a new act of the same identity is gated afresh").toBe("awaiting_approval");
       expect(subject.executionCount(later), "and did not run under the earlier approval").toBe(0);
-      const firstRow = findToolCallRow(again.sink.status, first)!;
-      expect(firstRow.status, "the executed row is never rewritten").toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
-      expect(firstRow.approvalAction).toBe(ApprovalAction.APPROVE);
-      const laterRow = findToolCallRow(again.sink.status, later);
+      // The executed call is the log's now: its result was written once, and
+      // the later turn's rows (its own, and the asks it resumes onto) hold
+      // no copy of it to rewrite.
+      const firstUse = toolUseEventId(driver.executionId, first);
+      const firstResults = driver.log.flatMap((e) => (e.event.case === "agentToolResult" && e.event.value.toolUseId === firstUse ? [e.event.value] : []));
+      expect(firstResults.map((r) => r.isError), "the executed call's result stands, written once").toEqual([false]);
+      expect(findToolCallRow(again.sink.rows, first), "the later turn carries no copy of the executed row").toBeUndefined();
+      const laterRow = findToolCallRow(again.sink.rows, later);
       expect(laterRow?.status, "the new act has its own WAITING row").toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
       expect(laterRow?.approvalAction, "undecided").toBe(ApprovalAction.UNSPECIFIED);
-      expect(approvalAnswersOf(driver.executionId, again.sink.status, driver.log).decisions.size, "the runtime would read no decision for it").toBe(0);
+      expect(approvalAnswersOf(driver.executionId, again.sink.rows, driver.log).decisions.size, "the runtime would read no decision for it").toBe(0);
     });
 
     it("leaves an APPROVED action unexecuted when the resumed turn is stopped before the agent re-reaches it (deny-and-retry order)", async () => {

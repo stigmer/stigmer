@@ -408,7 +408,7 @@ describe("FileReviewCard", () => {
       expandCard();
       expect(runGet).toHaveBeenCalledWith("run_1");
       expect(screen.getByText("Loading the diff…")).toBeTruthy();
-      resolve(create(RunSchema, { status: { fileChangeSets: [capture([{ id: "fc1", path: "src/a.ts" }])] } }));
+      resolve(create(RunSchema, { status: { fileChanges: [capture([{ id: "fc1", path: "src/a.ts" }])] } }));
       await waitFor(() => expect(document.querySelector('[data-cursor-target="file-diff"]')).toBeTruthy());
     });
 

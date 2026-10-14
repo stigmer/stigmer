@@ -37,6 +37,7 @@ import { GRADES_RUN_LABEL } from "../../support/evaluators";
 import { uniqueName } from "../../support/naming";
 import { createUniqueOrganization } from "../../support/organizations";
 import { awaitTerminal, makeAgentExecution, sessionIdOf } from "../../support/runs";
+import { turnById } from "../../support/turn";
 import { tallyCalibration, type CalibrationMiss, type CalibrationTry, type JudgeCalibration } from "./calibration-tally";
 import { examplesDigest, type JudgeExample } from "./example";
 
@@ -171,7 +172,7 @@ async function gradeOnce(
     costUsd = ended.status?.streamingUsage?.estimatedCostUsd ?? 0;
     model = ended.status?.streamingUsage?.model ?? "";
     if (ended.status?.phase === RunPhase.RUN_COMPLETED) {
-      const reading = readVerdict(ended.status.structuredOutput);
+      const reading = readVerdict((await turnById(clients, sessionId, ended.metadata?.id ?? "")).structuredOutput);
       if (reading.kind === "read") {
         verdicts = reading.verdicts;
       } else {

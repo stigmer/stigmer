@@ -11,9 +11,10 @@
  * re-verified whenever a new phase write appears:
  *   1. update-status.ts       — the runner's merge chokepoint;
  *   2. lifecycle.ts           — the phase-transition persist step
- *                               (cancel/terminate/pause/resume/recover);
+ *                               (cancel, run by the session's interrupt;
+ *                               terminate/pause/resume/recover);
  *   3. create-steps.ts        — the StartWorkflow failure arm (FAILED);
- *   4. submit-approval.ts     — reconcileStaleExecution (FAILED).
+ *   4. session/hitl/answer.ts — reconcileStaleExecution (FAILED).
  * A file decision changes no phase: it signals no workflow, so it has no
  * workflow-gone reconcile (domain/session/filereview/decide.ts).
  * Initial-phase stamping at creation (SetInitialPhase → PENDING) is by
@@ -30,8 +31,7 @@
  *     progress reports repeat the phase many times per execution; the
  *     terminal-vs-not filter stays with the observer);
  *   - observers run in registration order and are awaited, so every
- *     observer completes before the caller proceeds to broadcast —
- *     "StreamBroker.broadcast stays last" holds for async observers too;
+ *     observer completes before the caller replies;
  *   - a throwing/rejecting observer is an extension bug logged here,
  *     NEVER a failed transition (the cloud's expiry sweep remains the
  *     reconciliation backstop).
@@ -57,8 +57,8 @@ export interface StatusObserverDeps {
 
 /**
  * Notifies the composed observers of one persisted phase transition.
- * Call AFTER the store write commits and BEFORE any broadcast, with the
- * persisted snapshot and the phase read from the pre-merge state.
+ * Call AFTER the store write commits, with the persisted snapshot and the
+ * phase read from the pre-merge state.
  */
 export async function notifyStatusObservers(
   deps: StatusObserverDeps,

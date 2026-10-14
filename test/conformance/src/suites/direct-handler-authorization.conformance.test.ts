@@ -47,7 +47,6 @@ import {
 } from "../targets";
 import { FixtureTracker } from "../harness/fixtures";
 import { expectGrpcCode, grpcCodeOf } from "../contract/errors";
-import { collectStream } from "../support/collect-stream";
 import { makeAgent, agentRefOf } from "../support/agents";
 import { makeSlackAgentChannel } from "../support/agentchannels";
 import { oneServerPlugin, pushPlugin } from "../support/plugins";
@@ -255,23 +254,13 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
     );
   });
 
-  it("[rpc:RunQueryController.getArtifactContent] [rpc:RunQueryController.getArtifactDownloadUrl] [rpc:RunQueryController.subscribe] the authorize-first read lanes answer an outsider's unknown id with the uniform NOT_FOUND", async (ctx) => {
+  it("[rpc:RunQueryController.getArtifactContent] [rpc:RunQueryController.getArtifactDownloadUrl] the authorize-first read lanes answer an outsider's unknown id with the uniform NOT_FOUND", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const outsider = await lane.provisionIdentity();
     const missingAgentExecution = "aexec_01conformancemissing";
     const missingArtifactKey = `artifacts/${missingAgentExecution}/f.txt`;
 
     const lanes: ReadonlyArray<[string, () => Promise<unknown>]> = [
-      [
-        "agentExecution.subscribe",
-        () =>
-          collectStream((signal) =>
-            outsider.agentExecutionQuery.subscribe(
-              { value: missingAgentExecution },
-              { signal },
-            ),
-          ),
-      ],
       [
         "agentExecution.getArtifactDownloadUrl",
         () =>

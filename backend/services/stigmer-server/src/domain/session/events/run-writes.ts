@@ -8,9 +8,9 @@
  *
  *   create ............ the run chain's Persist step (createRunAppendingEvents)
  *   update ............ a row-locked change: updateStatus' merge, the
- *                       lifecycle transition, a file decision, the next
- *                       turn's close of the previous turn's file review
- *                       (updateRunAppendingEvents)
+ *                       lifecycle transition, an answer, a file decision,
+ *                       the next turn's close of the previous turn's file
+ *                       review (updateRunAppendingEvents)
  *   overwrite ......... the two writes that save a copy held in memory:
  *                       the start failure, and the stale reconcile
  *                       (overwriteRunAppendingEvents). Their overwrite is
@@ -28,36 +28,24 @@
  * `working_session` and `waiting_session` keys (run/list-index.ts), read
  * under the session's lock without decoding a run; the open asks of the
  * waiting runs and of the written run come from the log's gate columns
- * (gates.ts). An update may append events of its own (an answer to an
- * ask, interrupt.ts and ../hitl/answer.ts): they come first, and the asks
- * they close are closed before the status is computed. An update that must know the conversation's newest turn asks for
- * the run of the session's newest `user.message` (`runOfNewestType`), and
- * an update that decides from what the run's log says (a file-review
- * decision, a policy keep) asks for the run's events of the types it
- * reads (`runEventTypes`); only an update that asks pays either read.
- *
- * The decided mirror. A file decision has one home on its run's
- * file-review ledger (FILE_DECIDED) and one in the session's log
- * (`stigmer.file_review.decided`), written in the same update: for every
- * FILE_DECIDED the update's `modify` added, one `decided` event, after
- * the transition's events. Whoever decides (a person, the approved-command
- * and eval-try keeps, the next turn's close) gets the event without code
- * of its own. Its id is derived from the ledger event's deterministic id,
- * so a repeated decision, which adds no ledger event, appends nothing, and
- * a decided event the store already holds is never appended twice.
+ * (gates.ts). An update may append events of its own: those that answer
+ * an ask (../hitl/answer.ts) come first, and the asks they close are
+ * closed before the status is computed; the file-review decisions it
+ * records (`stigmer.file_review.decided`, run/filereview/decided.ts) come
+ * last, after the transition's events. An update that must know the
+ * conversation's newest turn asks for the run of the session's newest
+ * `user.message` (`runOfNewestType`), and an update that decides from
+ * what the run's log says (a file-review decision, a policy keep) asks
+ * for the run's events of the types it reads (`runEventTypes`); only an
+ * update that asks pays either read.
  *
  * Proven by __tests__/run-writes.test.ts on both drivers, and end to end by
  * the session-events conformance suite.
  */
-import { createHash } from "node:crypto";
-
-import { create } from "@bufbuild/protobuf";
-
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { FileReviewEventType, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { FileDecision } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { ResourceNotFoundError } from "../../../store/interface.js";
@@ -72,8 +60,7 @@ import type {
 } from "../../../store/session-events.js";
 import { agentExecutionListIndex } from "../../run/list-index.js";
 import type { SessionEventBroker } from "./broker.js";
-import { SESSION_EVENT_ID_PREFIX, SESSION_STATUS_TYPES } from "./catalog.js";
-import { actionWordOf, originWordOf, scopeWordOf } from "../filereview/words.js";
+import { SESSION_STATUS_TYPES } from "./catalog.js";
 import { draftOf, eventOf } from "./codec.js";
 import { gatesOfEvent } from "./gates.js";
 import { sessionEventsForTransition, sessionIdOfRun, sessionStatusOf } from "./transitions.js";
@@ -199,19 +186,29 @@ export async function createRunAppendingEvents(deps: RunEventWriteDeps, run: Run
 }
 
 /**
+ * The events a row-locked change appends of its own (module header):
+ * `first` before the transition's events (an answer, whose asks are closed
+ * before the status is computed), `last` after them (the decisions it
+ * records).
+ */
+export interface RunUpdateEvents {
+  readonly first?: ReadonlyArray<SessionEvent>;
+  readonly last?: ReadonlyArray<SessionEvent>;
+}
+
+/**
  * A row-locked change: `modify` mutates the committed run in place, as
  * Store.updateResource's does, and must be synchronous; it is handed the
  * session as committed (with the run of `options.runOfNewestType` when
- * asked), and throwing writes nothing. It may return events of its own,
- * appended first (module header). The transition's events commit with the
- * run, then one `stigmer.file_review.decided` per FILE_DECIDED the change
- * added (module header). Throws ResourceNotFoundError when the run is
+ * asked), and throwing writes nothing. It may return events of its own
+ * (`RunUpdateEvents`; a bare list is `first`). The transition's events
+ * commit with the run. Throws ResourceNotFoundError when the run is
  * absent.
  */
 export async function updateRunAppendingEvents(
   deps: RunEventWriteDeps,
   runId: string,
-  modify: (run: Run, session: SessionEventContext) => ReadonlyArray<SessionEvent> | void,
+  modify: (run: Run, session: SessionEventContext) => ReadonlyArray<SessionEvent> | RunUpdateEvents | void,
   options: RunUpdateOptions = {},
 ): Promise<{
   readonly run: Run;
@@ -227,14 +224,13 @@ export async function updateRunAppendingEvents(
         throw new ResourceNotFoundError(`run/${runId}`);
       }
       previousPhase = phaseOf(previous);
-      const decidedBefore = fileDecidedEventIds(previous);
-      const own = modify(previous, others) ?? [];
+      const own = ownEventsOf(modify(previous, others));
       const transition: RunTransition = { kind: "update", previousPhase, run: previous };
       return {
         put: previous,
         events: [
-          ...draftsFor(transition, others, previous, own),
-          ...decidedDraftsFor(previous, decidedBefore),
+          ...draftsFor(transition, others, previous, own.first ?? []),
+          ...(sessionIdOfRun(previous) === "" ? [] : (own.last ?? []).map(draftOf)),
         ],
       };
     },
@@ -294,78 +290,16 @@ export async function removeRunAppendingEvents(deps: RunEventWriteDeps, runId: s
   }
 }
 
-/** The id prefix of a `stigmer.file_review.decided` event: server-minted, so `sevt_`. */
-const DECIDED_EVENT_ID_PREFIX = `${SESSION_EVENT_ID_PREFIX}_fd_`;
-
-/**
- * The `stigmer.file_review.decided` event id of a ledger FILE_DECIDED
- * event: the prefix and the first 40 hex characters of the sha256 of the
- * ledger event's id (filereview/author.ts `eventId`), which is
- * deterministic per decision target.
- */
-export function fileReviewDecidedEventId(ledgerEventId: string): string {
-  return `${DECIDED_EVENT_ID_PREFIX}${createHash("sha256").update(ledgerEventId).digest("hex").slice(0, 40)}`;
+/** A change's own events, as `RunUpdateEvents`. */
+function ownEventsOf(own: ReadonlyArray<SessionEvent> | RunUpdateEvents | void): RunUpdateEvents {
+  if (own === undefined) {
+    return {};
+  }
+  return isEventList(own) ? { first: own } : own;
 }
 
-function fileDecidedEventIds(run: Run): ReadonlySet<string> {
-  const ids = new Set<string>();
-  for (const ev of run.status?.fileReviewEventStream?.events ?? []) {
-    if (ev.eventType === FileReviewEventType.FILE_DECIDED) {
-      ids.add(ev.eventId);
-    }
-  }
-  return ids;
-}
-
-/** The decided events for the FILE_DECIDED ledger events `run` holds beyond `before`, in ledger order; none outside a session. */
-function decidedDraftsFor(run: Run, before: ReadonlySet<string>): SessionEventDraft[] {
-  if (sessionIdOfRun(run) === "") {
-    return [];
-  }
-  const runId = run.metadata?.id ?? "";
-  const drafts: SessionEventDraft[] = [];
-  for (const ev of run.status?.fileReviewEventStream?.events ?? []) {
-    if (ev.eventType !== FileReviewEventType.FILE_DECIDED || ev.payload.case !== "fileDecided" || before.has(ev.eventId)) {
-      continue;
-    }
-    const event = decidedEventOf(runId, ev.eventId, ev.payload.value);
-    if (event !== undefined) {
-      drafts.push(draftOf(event));
-    }
-  }
-  return drafts;
-}
-
-/**
- * A ledger decision as its `stigmer.file_review.decided` event, in the
- * event's words (../filereview/words.ts, the one table). A decision with
- * no scope or no action names nothing the event can say (the decision
- * writers refuse one), and a value this binary does not know (a newer
- * one's write, during a roll) has no word, so neither has an event.
- */
-function decidedEventOf(runId: string, ledgerEventId: string, decision: FileDecision): SessionEvent | undefined {
-  const scope = scopeWordOf(decision.scope);
-  const action = actionWordOf(decision.action);
-  const origin = originWordOf(decision.origin);
-  if (scope === undefined || action === undefined || origin === undefined) {
-    return undefined;
-  }
-  return create(SessionEventSchema, {
-    runId,
-    event: {
-      case: "stigmerFileReviewDecided",
-      value: {
-        id: fileReviewDecidedEventId(ledgerEventId),
-        changeSetId: decision.changeSetId,
-        scope,
-        fileChangeId: scope === "file" ? decision.fileChangeId : "",
-        action,
-        expectedDigest: decision.expectedDigest,
-        origin,
-        reason: decision.reason,
-      },
-    },
-  });
+function isEventList(own: ReadonlyArray<SessionEvent> | RunUpdateEvents): own is ReadonlyArray<SessionEvent> {
+  return Array.isArray(own);
 }
 
 async function write(

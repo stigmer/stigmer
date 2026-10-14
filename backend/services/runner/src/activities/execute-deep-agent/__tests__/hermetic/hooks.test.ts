@@ -53,16 +53,11 @@
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { create, toJson } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import { ConnectError, Code } from "@connectrpc/connect";
-import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
-  ApprovalAction,
-  ApprovalPolicySource,
   RunPhase,
-  MessageType,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { HookConfigSchema, HookFormat, HookGroupSchema, HookHandlerSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
@@ -77,7 +72,15 @@ vi.mock("../../../../client/stigmer-client.js", async () =>
   (await import("../../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
 );
 
-import { ScriptedClock, createHermeticEnvironment, type ExecutionRecord, type HermeticEnvironment } from "../../../../__test-utils__/hermetic-activity.js";
+import {
+  ScriptedClock,
+  createHermeticEnvironment,
+  type ExecutionRecord,
+  type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
+} from "../../../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import { savedAgentFixture } from "../../../../__test-utils__/execution-record-fixture.js";
 import { beginDeepAgentScenario, deepAgentExecutionRecord, runDeepAgentTurn } from "../../__test-utils__/hermetic-deep-agent.js";
@@ -85,6 +88,14 @@ import type { ScriptedToolCall } from "../../__test-utils__/scripted-model.js";
 import { CLOSING_TURN } from "../../__test-utils__/hitl-script.js";
 import { deriveActiveLeases, hookLeaseKey } from "../../../../shared/approval-policy.js";
 import { approvalAnswersOf } from "../../../../harness/approval-answers.js";
+import {
+  ApprovalAction,
+  ApprovalPolicySource,
+  MessageType,
+  ToolCallStatus,
+} from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { type AgentMessage } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { toolUseEventId } from "../../../../harness/events/ids.js";
 
 const GUARD = `#!/usr/bin/env bash
 input=$(cat)
@@ -132,9 +143,6 @@ function usePlugin(record: ExecutionRecord, where: "agent" | "session", slug: st
   else record.session.spec!.plugins.push(ref);
 }
 
-function statusJson(status: RunStatus): string {
-  return JSON.stringify(toJson(RunStatusSchema, status), null, 2) + "\n";
-}
 
 describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks", () => {
   let env: HermeticEnvironment;
@@ -187,23 +195,24 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
 
     const run1 = record.lastFullStatus!;
-    const row = (status: RunStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
+    const row = (rows: { readonly messages: readonly AgentMessage[] }, id: string) => rows.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
 
-    const deleted = row(run1, DELETE.id);
+    const deleted = row(record.rowsOf(run1), DELETE.id);
     expect(deleted.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
     expect(deleted.error).toBe("The safety plugin's hook refused this call: recursive deletes are not allowed");
     expect([deleted.approvalPolicySource, deleted.approvalPolicyHook]).toEqual([ApprovalPolicySource.HOOK, "safety"]);
 
-    const listed = row(run1, LIST.id);
+    const listed = row(record.rowsOf(run1), LIST.id);
     expect(listed.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
     expect(listed.requiresApproval, "the hook's allow skips the shell default's card").toBe(false);
     expect([listed.approvalPolicySource, listed.approvalPolicyHook]).toEqual([ApprovalPolicySource.HOOK, "safety"]);
 
-    const held = row(run1, PUBLISH.id);
+    const held = row(record.rowsOf(run1), PUBLISH.id);
     expect(held.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
     expect(held.approvalMessage).toBe("publishing needs a person");
     expect([held.approvalPolicySource, held.approvalPolicyHook]).toEqual([ApprovalPolicySource.HOOK, "safety"]);
-    await expect(statusJson(run1)).toMatchFileSnapshot("./goldens/hooks.turn1.status.json");
+    await expect(statusGolden(run1)).toMatchFileSnapshot("./goldens/hooks.turn1.status.json");
+    await expect(rowsGolden(record.rowsOf(run1))).toMatchFileSnapshot(rowsGoldenPath("./goldens/hooks.turn1.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/hooks.turn1.events.json");
 
     // ── Between turns: approve the publish ───────────────────────────────────
@@ -215,17 +224,25 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
 
     const final = record.lastFullStatus!;
-    const published = row(final, PUBLISH.id);
+    const published = row(record.rowsOf(final), PUBLISH.id);
     expect(published.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
     expect(published.result).toContain("publish");
     expect([published.approvalPolicySource, published.approvalPolicyHook]).toEqual([ApprovalPolicySource.HOOK, "safety"]);
     expect(published.approvalAction).toBe(ApprovalAction.APPROVE);
-    expect(row(final, DELETE.id).status, "the refusal stays refused").toBe(ToolCallStatus.TOOL_CALL_FAILED);
+    // The refusal is the log's: its result was written once, in turn 1, and
+    // the resumed turn's rows carry no copy of the refused call.
+    const deleteUse = toolUseEventId(record.executionId, DELETE.id);
+    expect(
+      record.sessionEvents.flatMap((e) => (e.event.case === "agentToolResult" && e.event.value.toolUseId === deleteUse ? [e.event.value.isError] : [])),
+      "the refusal stays refused",
+    ).toEqual([true]);
+    expect(record.rowsOf(final).messages.flatMap((m) => m.toolCalls).some((tc) => tc.id === DELETE.id), "the resumed turn carries no copy of it").toBe(false);
 
     // The second turn mounts from the session's verified cache.
     expect(getPluginArtifact).toHaveBeenCalledTimes(1);
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
-    await expect(statusJson(final)).toMatchFileSnapshot("./goldens/hooks.turn2.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/hooks.turn2.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/hooks.turn2.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/hooks.turn2.events.json");
   });
 
@@ -258,7 +275,7 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
         ],
       }),
     });
-    const row = (status: RunStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
+    const row = (rows: { readonly messages: readonly AgentMessage[] }, id: string) => rows.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
 
     await runDeepAgentTurn(scenario, { turnSeq: 0 });
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
@@ -267,23 +284,24 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
     await runDeepAgentTurn(scenario, { turnSeq: 1 });
     expect(record.persistedPhases.at(-1), "the shell default still asks before pwd").toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
     const status = record.lastFullStatus!;
+    const statusRows = record.rowsOf(status);
 
-    const approved = row(status, PUBLISH.id);
+    const approved = row(record.rowsOf(status), PUBLISH.id);
     expect(approved.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
     expect([approved.approvalPolicySource, approved.approvalPolicyHook, approved.approvalAction]).toEqual([
       ApprovalPolicySource.HOOK, "safety", ApprovalAction.APPROVE_ALL,
     ]);
 
-    const leased = row(status, again.id);
+    const leased = row(record.rowsOf(status), again.id);
     expect(leased.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
     expect(leased.requiresApproval).toBe(false);
     expect([leased.approvalPolicySource, leased.approvalPolicyHook]).toEqual([ApprovalPolicySource.APPROVAL_LEASE, "safety"]);
 
-    const held = row(status, where.id);
+    const held = row(record.rowsOf(status), where.id);
     expect(held.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
     expect(held.approvalPolicySource).toBe(ApprovalPolicySource.BUILTIN_CATEGORY);
 
-    const leases = deriveActiveLeases(approvalAnswersOf(record.executionId, status, record.sessionEvents).grants.values(), false);
+    const leases = deriveActiveLeases(approvalAnswersOf(record.executionId, statusRows, record.sessionEvents).grants.values(), false);
     expect([...leases.categories]).toEqual([]);
     expect([...leases.servers]).toEqual([]);
     expect([...leases.hooks]).toEqual([hookLeaseKey("safety", "", "execute")]);
@@ -346,7 +364,7 @@ fi
         ],
       }),
     });
-    const row = (status: RunStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
+    const row = (rows: { readonly messages: readonly AgentMessage[] }, id: string) => rows.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
 
     await runDeepAgentTurn(scenario, { turnSeq: 0 });
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
@@ -355,7 +373,7 @@ fi
     await runDeepAgentTurn(scenario, { turnSeq: 1 });
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
     expect(existsSync(marker), "the rejected command never ran").toBe(false);
-    const rejected = row(record.lastFullStatus!, touch.id);
+    const rejected = row(record.lastFullRows!, touch.id);
     expect(rejected.approvalAction).toBe(ApprovalAction.REJECT);
     expect(rejected.status).not.toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
   });
@@ -387,7 +405,7 @@ fi
     await runDeepAgentTurn(scenario, { turnSeq: 0 });
 
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
-    const deleted = record.lastFullStatus!.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === DELETE.id)!;
+    const deleted = record.lastFullRows!.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === DELETE.id)!;
     expect(deleted.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
     expect(deleted.error).toBe("The safety plugin's hook refused this call: recursive deletes are not allowed");
     expect([deleted.approvalPolicySource, deleted.approvalPolicyHook]).toEqual([ApprovalPolicySource.HOOK, "safety"]);
@@ -487,12 +505,13 @@ fi
 
     expect(turn.outcome.kind, "a deterministic refusal RETURNS").toBe("returned");
     const final = record.lastFullStatus!;
+    const finalRows = record.rowsOf(final);
     const message =
       "A hook in the agent's own hooks block reads the variable API_TOKEN, which this run does not give the agent. " +
       "Declare API_TOKEN in the agent's env and set its value, then run again.";
     expect(final.phase).toBe(RunPhase.RUN_FAILED);
     expect(final.error).toBe(message);
-    expect(final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
+    expect(finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
       `Execution failed: ${message}`,
     ]);
   });

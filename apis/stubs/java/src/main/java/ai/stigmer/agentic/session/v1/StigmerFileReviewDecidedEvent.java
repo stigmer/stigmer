@@ -44,6 +44,7 @@ private static final long serialVersionUID = 0L;
     expectedDigest_ = "";
     origin_ = "";
     reason_ = "";
+    decidedBy_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -499,6 +500,57 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int DECIDED_BY_FIELD_NUMBER = 10;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object decidedBy_ = "";
+  /**
+   * <pre>
+   * The identity account id of the person who decided; empty for a
+   * decision no person made (an approved_command, eval_try or next_turn
+   * keep).
+   * </pre>
+   *
+   * <code>string decided_by = 10 [json_name = "decidedBy"];</code>
+   * @return The decidedBy.
+   */
+  @java.lang.Override
+  public java.lang.String getDecidedBy() {
+    java.lang.Object ref = decidedBy_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      decidedBy_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The identity account id of the person who decided; empty for a
+   * decision no person made (an approved_command, eval_try or next_turn
+   * keep).
+   * </pre>
+   *
+   * <code>string decided_by = 10 [json_name = "decidedBy"];</code>
+   * @return The bytes for decidedBy.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getDecidedByBytes() {
+    java.lang.Object ref = decidedBy_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      decidedBy_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -540,6 +592,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(reason_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 9, reason_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(decidedBy_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 10, decidedBy_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -576,6 +631,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(reason_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(9, reason_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(decidedBy_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(10, decidedBy_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -609,6 +667,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getOrigin())) return false;
     if (!getReason()
         .equals(other.getReason())) return false;
+    if (!getDecidedBy()
+        .equals(other.getDecidedBy())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -638,6 +698,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getOrigin().hashCode();
     hash = (37 * hash) + REASON_FIELD_NUMBER;
     hash = (53 * hash) + getReason().hashCode();
+    hash = (37 * hash) + DECIDED_BY_FIELD_NUMBER;
+    hash = (53 * hash) + getDecidedBy().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -785,6 +847,7 @@ private static final long serialVersionUID = 0L;
       expectedDigest_ = "";
       origin_ = "";
       reason_ = "";
+      decidedBy_ = "";
       return this;
     }
 
@@ -845,6 +908,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000100) != 0)) {
         result.reason_ = reason_;
       }
+      if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.decidedBy_ = decidedBy_;
+      }
     }
 
     @java.lang.Override
@@ -902,6 +968,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getReason().isEmpty()) {
         reason_ = other.reason_;
         bitField0_ |= 0x00000100;
+        onChanged();
+      }
+      if (!other.getDecidedBy().isEmpty()) {
+        decidedBy_ = other.decidedBy_;
+        bitField0_ |= 0x00000200;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -975,6 +1046,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000100;
               break;
             } // case 74
+            case 82: {
+              decidedBy_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000200;
+              break;
+            } // case 82
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1846,6 +1922,108 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       reason_ = value;
       bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object decidedBy_ = "";
+    /**
+     * <pre>
+     * The identity account id of the person who decided; empty for a
+     * decision no person made (an approved_command, eval_try or next_turn
+     * keep).
+     * </pre>
+     *
+     * <code>string decided_by = 10 [json_name = "decidedBy"];</code>
+     * @return The decidedBy.
+     */
+    public java.lang.String getDecidedBy() {
+      java.lang.Object ref = decidedBy_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        decidedBy_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The identity account id of the person who decided; empty for a
+     * decision no person made (an approved_command, eval_try or next_turn
+     * keep).
+     * </pre>
+     *
+     * <code>string decided_by = 10 [json_name = "decidedBy"];</code>
+     * @return The bytes for decidedBy.
+     */
+    public com.google.protobuf.ByteString
+        getDecidedByBytes() {
+      java.lang.Object ref = decidedBy_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        decidedBy_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The identity account id of the person who decided; empty for a
+     * decision no person made (an approved_command, eval_try or next_turn
+     * keep).
+     * </pre>
+     *
+     * <code>string decided_by = 10 [json_name = "decidedBy"];</code>
+     * @param value The decidedBy to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDecidedBy(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      decidedBy_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The identity account id of the person who decided; empty for a
+     * decision no person made (an approved_command, eval_try or next_turn
+     * keep).
+     * </pre>
+     *
+     * <code>string decided_by = 10 [json_name = "decidedBy"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearDecidedBy() {
+      decidedBy_ = getDefaultInstance().getDecidedBy();
+      bitField0_ = (bitField0_ & ~0x00000200);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The identity account id of the person who decided; empty for a
+     * decision no person made (an approved_command, eval_try or next_turn
+     * keep).
+     * </pre>
+     *
+     * <code>string decided_by = 10 [json_name = "decidedBy"];</code>
+     * @param value The bytes for decidedBy to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDecidedByBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      decidedBy_ = value;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }

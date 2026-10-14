@@ -20,9 +20,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -38,6 +36,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { ScriptedCursorAgent, sdkEvents, step } from "../../__test-utils__/scripted-agent.js";
 import {
@@ -48,6 +49,7 @@ import {
   runCursorTurn,
 } from "../../__test-utils__/hermetic-cursor.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
+import { MessageType } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const AGENT_ID = "agent-hermetic-tasknote-0001";
 const RUN_ID = "run-hermetic-tasknote-0001";
@@ -104,7 +106,7 @@ describe("ExecuteCursor hermetic — the SDK's task event as a system note", () 
     expect(invocation.outcome.kind).toBe("returned");
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
 
-    const messages = record.lastFullStatus!.messages;
+    const messages = record.lastFullRows!.messages;
     expect(messages.map((m) => m.type), "AI, the note, AI").toEqual([
       MessageType.MESSAGE_AI,
       MessageType.MESSAGE_SYSTEM,
@@ -116,8 +118,8 @@ describe("ExecuteCursor hermetic — the SDK's task event as a system note", () 
     expect(messages[2].content).toBe(TEXT_AFTER);
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
-    const json = JSON.stringify(toJson(RunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/sdk-task-note.status.json");
+    await expect(statusGolden(record.lastFullStatus!)).toMatchFileSnapshot("./goldens/sdk-task-note.status.json");
+    await expect(rowsGolden(record.rowsOf(record.lastFullStatus!))).toMatchFileSnapshot(rowsGoldenPath("./goldens/sdk-task-note.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/sdk-task-note.events.json");
   });
 });

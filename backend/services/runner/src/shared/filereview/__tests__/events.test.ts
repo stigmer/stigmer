@@ -6,13 +6,11 @@
 
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   DiffCompleteness,
   FileCaptureClass,
   FileChangeKind,
   FileReviewBlockReason,
-  FileReviewEventType,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   appendFileReviewEvents,
@@ -24,6 +22,8 @@ import {
   type ChangeSetContext,
 } from "../events.js";
 import { sha256Bytes } from "../digest.js";
+import { FileReviewEventType } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { TurnRowsSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 const ctx: ChangeSetContext = {
   changeSetId: "exec-1:0",
@@ -335,7 +335,7 @@ describe("deriveDiffCompleteness", () => {
 
 describe("appendFileReviewEvents", () => {
   it("seeds the stream and appends append-only by event_id", () => {
-    const status = create(RunStatusSchema, {});
+    const status = create(TurnRowsSchema, {});
     const baseline = buildBaselineCapturedEvent(ctx, undefined);
     const candidate = buildCandidateCapturedEvent(ctx, undefined, []);
 

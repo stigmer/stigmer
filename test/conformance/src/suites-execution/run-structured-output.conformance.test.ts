@@ -1,6 +1,6 @@
 // Conformance suite for Run structured output: with a
-// spec.structured_output_schema, what the agent's final text
-// becomes on status.structured_output.
+// spec.structured_output_schema, what the agent's final text becomes as the
+// turn's stigmer.agent.structured_output in the session's log.
 // Domain: agentic / agentexecution — the typed result an SDK consumer reads
 // instead of prose.
 //
@@ -14,8 +14,8 @@
 // finds nothing, tier 2, ONE more LLM call that asks a model to extract the
 // value through function calling (shared/extract-structured-output.ts) —
 // on both harnesses, since the turn runtime owns the epilogue. What this suite
-// pins is the extraction contract a consumer can rely on, read through
-// status:
+// pins is the extraction contract a consumer can rely on, read through the
+// session's log (support/turn.ts):
 // - pure JSON, fenced JSON, and JSON inside prose all populate the field
 //   (tier 1; the mock is asked exactly one turn);
 // - when several fences appear the LAST one wins (the runner's prompt asks for
@@ -45,6 +45,7 @@ import { anthropicText, anthropicToolUse, type AnthropicMessageBody } from "@sti
 import { agentRefOf, makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
 import { uniqueName } from "../support/naming";
+import { messagesOf, turnOfRun } from "../support/turn";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -151,16 +152,17 @@ async function runWithSchema(
   return final;
 }
 
-// protobuf-es carries a google.protobuf.Struct field as a plain JsonObject, so
-// status.structured_output compares as values with no unwrapping.
-function structuredOutputOf(final: Run): JsonObject | undefined {
-  return final.status?.structuredOutput;
+// The turn's structured output, folded from its stigmer.agent.structured_output
+// event. protobuf-es carries a google.protobuf.Struct field as a plain
+// JsonObject, so it compares as values with no unwrapping.
+async function structuredOutputOf(final: Run): Promise<JsonObject | undefined> {
+  return (await turnOfRun(clients, final)).structuredOutput;
 }
 
 describe("Run structured output — extraction from the final message", () => {
   it("a pure JSON final message populates structured_output with the schema's keys", async () => {
     const final = await runWithSchema(`{"summary": "Test analysis of hello", "score": 8}`, SUMMARY_SCORE_SCHEMA);
-    expect(structuredOutputOf(final)).toEqual({ summary: "Test analysis of hello", score: 8 });
+    expect(await structuredOutputOf(final)).toEqual({ summary: "Test analysis of hello", score: 8 });
   });
 
   it("JSON inside a code fence is extracted", async () => {
@@ -168,7 +170,7 @@ describe("Run structured output — extraction from the final message", () => {
       'Here is my analysis:\n\n```json\n{"summary": "Analysis of world", "score": 7}\n```\n\nHope that helps!',
       SUMMARY_SCORE_SCHEMA,
     );
-    expect(structuredOutputOf(final)).toEqual({ summary: "Analysis of world", score: 7 });
+    expect(await structuredOutputOf(final)).toEqual({ summary: "Analysis of world", score: 7 });
   });
 
   it("fenced JSON inside prose is extracted with its values intact", async () => {
@@ -176,7 +178,7 @@ describe("Run structured output — extraction from the final message", () => {
       'Based on my analysis, here is the result:\n\n```json\n{"summary": "v2 baseline test", "score": 10}\n```\n\nThis output was extracted from text.',
       SUMMARY_SCORE_SCHEMA,
     );
-    expect(structuredOutputOf(final)).toEqual({ summary: "v2 baseline test", score: 10 });
+    expect(await structuredOutputOf(final)).toEqual({ summary: "v2 baseline test", score: 10 });
   });
 
   it("with several fences the LAST parseable one wins (debug output first, result last)", async () => {
@@ -184,14 +186,14 @@ describe("Run structured output — extraction from the final message", () => {
       "Here are two results:\n\n```json\n{\"debug\": true, \"version\": \"1.0\"}\n```\n\nAnd the actual result:\n\n```json\n{\"summary\": \"actual result\", \"score\": 8}\n```",
       SUMMARY_SCORE_SCHEMA,
     );
-    const output = structuredOutputOf(final);
+    const output = await structuredOutputOf(final);
     expect(output).toEqual({ summary: "actual result", score: 8 });
     expect(output, "the debug fence was not the one picked").not.toHaveProperty("debug");
   });
 
   it("a trailing comma is repaired before parsing", async () => {
     const final = await runWithSchema(`{"summary": "test result", "score": 5, }`, SUMMARY_SCORE_SCHEMA);
-    expect(structuredOutputOf(final)).toEqual({ summary: "test result", score: 5 });
+    expect(await structuredOutputOf(final)).toEqual({ summary: "test result", score: 5 });
   });
 
   it("a nested array of objects round-trips as a list of objects", async () => {
@@ -199,7 +201,7 @@ describe("Run structured output — extraction from the final message", () => {
       `{"items": [{"name": "Go", "count": 85}, {"name": "Python", "count": 92}, {"name": "Rust", "count": 75}]}`,
       NESTED_ARRAY_SCHEMA,
     );
-    expect(structuredOutputOf(final)).toEqual({
+    expect(await structuredOutputOf(final)).toEqual({
       items: [
         { name: "Go", count: 85 },
         { name: "Python", count: 92 },
@@ -219,7 +221,7 @@ describe("Run structured output — extraction from the final message", () => {
       SUMMARY_SCORE_SCHEMA,
       anthropicToolUse("toolu_extract_1", "extract", { summary: "Blue: calm, serene, corporate", score: 8 }),
     );
-    expect(structuredOutputOf(final)).toEqual({ summary: "Blue: calm, serene, corporate", score: 8 });
+    expect(await structuredOutputOf(final)).toEqual({ summary: "Blue: calm, serene, corporate", score: 8 });
     expect(mock.consumed(), "the agent's turn, then exactly one extraction call").toBe(2);
 
     // The second call is the extractor's, not another agent turn: it binds the
@@ -230,7 +232,10 @@ describe("Run structured output — extraction from the final message", () => {
     const extractorSystem = JSON.stringify(extraction?.system ?? "");
     expect(extractorSystem).toContain("Extract the structured data");
     expect(extractorSystem, "the extractor is not the agent").not.toContain("Answer the question");
-    expect(final.status?.messages, "the extraction call is not a turn of the transcript").toHaveLength(1);
+    expect(
+      messagesOf(await turnOfRun(clients, final)),
+      "the extraction call is not a message of the transcript",
+    ).toHaveLength(1);
   });
 
   it("an extraction miss never fails a run: an extractor that answers in prose leaves structured_output absent and the run COMPLETED", async () => {
@@ -239,13 +244,13 @@ describe("Run structured output — extraction from the final message", () => {
       SUMMARY_SCORE_SCHEMA,
       anthropicText("I cannot express that as the requested structure."),
     );
-    expect(final.status?.structuredOutput, "an extraction miss is not a failure and not a guess").toBeUndefined();
+    expect(await structuredOutputOf(final), "an extraction miss is not a failure and not a guess").toBeUndefined();
     expect(mock.consumed(), "tier 2 was asked once and not retried").toBe(2);
   });
 
   it("without a schema, structured_output is absent even when the final message is JSON, and tier 2 is never asked", async () => {
     const final = await runWithSchema(`{"summary": "hello", "score": 5}`, undefined);
-    expect(final.status?.structuredOutput).toBeUndefined();
+    expect(await structuredOutputOf(final)).toBeUndefined();
     expect(mock.consumed()).toBe(1);
   });
 });

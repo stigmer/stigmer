@@ -11,8 +11,8 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { ApprovalPolicySource, ApprovalPolicySourceSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { deriveLeaseScope } from "../approval-policy.js";
+import { ApprovalPolicySource, ApprovalPolicySourceSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 type ExpectedScope =
   | { category: string }

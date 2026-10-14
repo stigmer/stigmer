@@ -1,11 +1,4 @@
 {
-  "messages": [
-    {
-      "type": "MESSAGE_AI",
-      "content": "Checking the repository.",
-      "timestamp": "2026-01-01T00:00:02.000Z"
-    }
-  ],
   "phase": "RUN_FAILED",
   "error": "UNAUTHENTICATED: invalid api key [category=auth, source=sdk, retryable=false]",
   "startedAt": "2026-01-01T00:00:00.000Z",

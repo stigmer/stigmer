@@ -48,20 +48,13 @@
  */
 
 import { isAbsolute, relative, resolve } from "node:path";
-import {
-  ApprovalAction,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type {
-  AgentMessage,
-  ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
 import { ELISION_MARKER } from "./status-offload.js";
 import { extractFilePath, extractWriteContent } from "./file-tools.js";
 import { resolveWorkspacePath } from "./file-change.js";
 import type { WorkspaceBackend } from "./workspace/types.js";
 import { utcTimestamp } from "./status.js";
+import type { AgentMessage, ToolCall, PendingApproval } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction, ToolCallStatus } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** Options for {@link applyApprovedWholeFileWrites}. */
 export interface ExactApplyOptions {
@@ -140,9 +133,8 @@ export async function applyApprovedWholeFileWrites(
       // The tool is now genuinely done: the runner applied exactly what the user
       // approved (the same `args` bytes the gate showed). Mark COMPLETED in place
       // (same id — the backend's append-only-at-identity guard accepts a status
-      // change). The approval_action (the log's answer) stays on the row; the status
-      // flip removes it from the server's pending_approvals projection (which
-      // keys on WAITING_APPROVAL).
+      // change). The approval_action (the log's answer) stays on the row; the
+      // emitter writes the row's result, which closes the ask in the log.
       tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
       if (!tc.completedAt) tc.completedAt = utcTimestamp();
       tc.error = "";

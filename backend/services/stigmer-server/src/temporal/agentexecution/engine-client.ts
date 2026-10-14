@@ -194,7 +194,7 @@ export class TemporalExecutionEngine implements ConnectedExecutionEngine {
 /**
  * Maps the TS SDK's workflow-not-found onto the seam's sentinel (Go
  * serviceerror.NotFound → ErrWorkflowNotFound): lifecycle steps treat it
- * as warn-and-proceed, SubmitApproval reconciles the stale execution.
+ * as warn-and-proceed, the answer core reconciles the stale execution.
  */
 function mapNotFound(error: unknown, executionId: string): unknown {
   if (error instanceof WorkflowNotFoundError) {

@@ -11,13 +11,12 @@
 // the same log. These helpers read that log the way a client does: the ids
 // to answer come from the newest idle, never from a run's rows.
 //
-// `confirmPerContract` is the answer-side twin of submitApprovalPerContract
-// (runs.ts): an answer recomputes the run's pending_approvals in the same
-// write that records it, so the run read right after the answer must carry
-// what remains, and a decision the server failed to record is red at the
-// answer that made it. `expect` is imported at the call for the reason
-// runs.ts gives.
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+// `confirmPerContract` holds an answer to what it leaves waiting: an answer
+// is in the log when the method returns, so the turn folded right after it
+// names exactly the calls still waiting (`Turn.asks`), and a decision the
+// server failed to record is red at the answer that made it. `expect` is
+// imported at the call for the reason runs.ts gives.
+import { foldSession, turnOf } from "@stigmer/session-log";
 import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import type { ConformanceClients } from "../harness/clients";
 import { type PollCoreOptions, pollUntil } from "./run-poll";
@@ -107,22 +106,23 @@ export async function answersOf(clients: ConformanceClients, sessionId: string, 
 
 export interface ConfirmPerContractOptions {
   clients: ConformanceClients;
-  // The run whose pending_approvals the contract is asserted on.
+  // The session the turn belongs to.
+  sessionId: string;
+  // The turn whose waiting calls the contract is asserted on.
   runId: string;
   // Gives the answer (confirmToolUse or grantPermission).
   answer: () => Promise<unknown>;
-  // pending_approvals the run must carry right after the answer.
+  // How many of the turn's calls still wait right after the answer.
   expectedRemaining: number;
   label: string;
 }
 
-// Answers per the contract and returns the run the contract held on.
-export async function confirmPerContract(opts: ConfirmPerContractOptions): Promise<Run> {
+// Answers per the contract and returns the tool use ids still waiting.
+export async function confirmPerContract(opts: ConfirmPerContractOptions): Promise<string[]> {
   const { expect } = await import("vitest");
   await opts.answer();
-  const run = await opts.clients.agentExecutionQuery.get({ value: opts.runId });
-  // The turn may already have resumed past the gate once nothing waits; a
-  // remainder is only stable while something still does.
-  expect(run.status?.pendingApprovals.length, opts.label).toBe(opts.expectedRemaining);
-  return run;
+  const turn = turnOf(foldSession(await sessionLog(opts.clients, opts.sessionId)), opts.runId);
+  const waiting = (turn?.asks ?? []).map((ask) => ask.id);
+  expect(waiting, opts.label).toHaveLength(opts.expectedRemaining);
+  return waiting;
 }

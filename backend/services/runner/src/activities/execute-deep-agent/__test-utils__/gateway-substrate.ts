@@ -30,7 +30,6 @@
  * drive hands the gate the identity `buildSubAgentMiddleware` does.
  */
 
-import { ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -67,6 +66,7 @@ import type {
   ListsOutcome,
   ProposedAction,
 } from "../../../__test-utils__/approval-contract/types.js";
+import { ApprovalPolicySource } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
  * Translate an abstract action into a deep-agent tool name + args + MCP server.

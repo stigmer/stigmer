@@ -23,7 +23,6 @@
 import type { ChildProcess } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { DEEP_AGENT_CAPABILITIES } from "../../activities/execute-deep-agent/deep-agent-capabilities.js";
 import { RecordingTurnSink } from "../../__test-utils__/harness-contract/recording-sink.js";
@@ -32,6 +31,7 @@ import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
 import type { HarnessAdapter, TurnOutcome } from "../../harness/types.js";
 import { createRemoteAdapter } from "../remote-adapter.js";
 import { AgentHostSupervisor, spawnHostProcess, type HostStarter } from "../supervisor.js";
+import { MessageType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const CHILD = fileURLToPath(new URL("../../__test-utils__/agent-host-probe-child.ts", import.meta.url));
 
@@ -97,7 +97,7 @@ describe("the agent host as a child process", () => {
     const { sink, settled } = startTurn(adapter, "say");
 
     expect(await settled).toEqual({ kind: "completed" });
-    const ai = sink.status.messages.filter((m) => m.type === MessageType.MESSAGE_AI);
+    const ai = sink.rows.messages.filter((m) => m.type === MessageType.MESSAGE_AI);
     expect(ai.map((m) => m.content), "the engine's row is on the runtime's status").toEqual(["probe says hello"]);
     expect(sink.persistRequests, "the engine's awaited persist reached the runtime's chokepoint").toBeGreaterThanOrEqual(1);
     expect(sink.usageDeltas).toEqual([
@@ -153,7 +153,7 @@ describe("the agent host as a child process", () => {
     const { sink, settled } = startTurn(adapter, "throw");
 
     await expect(settled).rejects.toThrow("probe broke its contract");
-    expect(sink.status.messages.map((m) => m.content), "the runtime settles over the rows the engine produced").toEqual(["before the break"]);
+    expect(sink.rows.messages.map((m) => m.content), "the runtime settles over the rows the engine produced").toEqual(["before the break"]);
     await adapter.shutdown();
   });
 

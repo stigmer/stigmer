@@ -13,7 +13,6 @@ import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
 import { RunEventsBuilder } from "../../session/events/__tests__/run-events-fixture.js";
@@ -77,21 +76,21 @@ describe("the scoring readers, from a turn's events", () => {
           name: "read_file",
           argsKey: sha256('{"file_path":"src/a.ts"}'),
           resultKey: `sha256:${sha256("contents")}`,
-          status: ToolCallStatus.TOOL_CALL_COMPLETED,
+          status: "completed",
           step: 1,
         },
         {
           name: "execute",
           argsKey: sha256('{"command":"npm test"}'),
           resultKey: `sha256:${sha256("")}`,
-          status: ToolCallStatus.TOOL_CALL_FAILED,
+          status: "failed",
           step: 2,
         },
         {
           name: "search_issues",
           argsKey: sha256('{"q":"flaky"}'),
           resultKey: "ref:h1",
-          status: ToolCallStatus.TOOL_CALL_COMPLETED,
+          status: "completed",
           step: 3,
         },
       ],

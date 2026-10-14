@@ -170,7 +170,7 @@ public enum FileCaptureClass
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.run.v1.EnumProto.getDescriptor().getEnumType(22);
+    return ai.stigmer.agentic.run.v1.EnumProto.getDescriptor().getEnumType(8);
   }
 
   private static final FileCaptureClass[] VALUES = values();

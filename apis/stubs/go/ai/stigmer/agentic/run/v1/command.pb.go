@@ -26,15 +26,12 @@ var File_ai_stigmer_agentic_run_v1_command_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"'ai/stigmer/agentic/run/v1/command.proto\x12\x19ai.stigmer.agentic.run.v1\x1a#ai/stigmer/agentic/run/v1/api.proto\x1a\"ai/stigmer/agentic/run/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x80\r\n" +
+	"'ai/stigmer/agentic/run/v1/command.proto\x12\x19ai.stigmer.agentic.run.v1\x1a#ai/stigmer/agentic/run/v1/api.proto\x1a\"ai/stigmer/agentic/run/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xb8\t\n" +
 	"\x14RunCommandController\x12N\n" +
 	"\x06create\x12\x1e.ai.stigmer.agentic.run.v1.Run\x1a\x1e.ai.stigmer.agentic.run.v1.Run\"\x04и\x18\x01\x12\x8f\x01\n" +
 	"\x06update\x12).ai.stigmer.agentic.run.v1.UpdateRunInput\x1a\x1e.ai.stigmer.agentic.run.v1.Run\":¸\x186\b\x02\x10)\"\x14resource.metadata.id*\x1aunauthorized to update run\x12\xa5\x01\n" +
 	"\fupdateStatus\x12/.ai.stigmer.agentic.run.v1.RunUpdateStatusInput\x1a/.ai.stigmer.agentic.run.v1.UpdateStatusResponse\"3¸\x18/\b\x02\x10)\"\x06run_id*!unauthorized to update run status\x12\x84\x01\n" +
-	"\x06delete\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a\x1e.ai.stigmer.agentic.run.v1.Run\"+¸\x18'\b\x02\x10)\"\x05value*\x1aunauthorized to delete run\x12\x9b\x01\n" +
-	"\x0esubmitApproval\x12..ai.stigmer.agentic.run.v1.SubmitApprovalInput\x1a\x1e.ai.stigmer.agentic.run.v1.Run\"9¸\x185\b\x02\x10)\"\x06run_id*'unauthorized to submit approval for run\x12\xa8\x01\n" +
-	"\x12submitFileDecision\x122.ai.stigmer.agentic.run.v1.SubmitFileDecisionInput\x1a\x1e.ai.stigmer.agentic.run.v1.Run\">¸\x18:\b\x02\x10)\"\x06run_id*,unauthorized to submit file decision for run\x12}\n" +
-	"\x06cancel\x12).ai.stigmer.agentic.run.v1.CancelRunInput\x1a\x1e.ai.stigmer.agentic.run.v1.Run\"(¸\x18$\b\x02\x10)\"\x02id*\x1aunauthorized to cancel run\x12\x86\x01\n" +
+	"\x06delete\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a\x1e.ai.stigmer.agentic.run.v1.Run\"+¸\x18'\b\x02\x10)\"\x05value*\x1aunauthorized to delete run\x12\x86\x01\n" +
 	"\tterminate\x12,.ai.stigmer.agentic.run.v1.TerminateRunInput\x1a\x1e.ai.stigmer.agentic.run.v1.Run\"+¸\x18'\b\x02\x10)\"\x02id*\x1dunauthorized to terminate run\x12\x80\x01\n" +
 	"\arecover\x12*.ai.stigmer.agentic.run.v1.RecoverRunInput\x1a\x1e.ai.stigmer.agentic.run.v1.Run\")¸\x18%\b\x02\x10)\"\x02id*\x1bunauthorized to recover run\x12z\n" +
 	"\x05pause\x12(.ai.stigmer.agentic.run.v1.PauseRunInput\x1a\x1e.ai.stigmer.agentic.run.v1.Run\"'¸\x18#\b\x02\x10)\"\x02id*\x19unauthorized to pause run\x12}\n" +
@@ -47,44 +44,35 @@ var file_ai_stigmer_agentic_run_v1_command_proto_goTypes = []any{
 	(*UpdateRunInput)(nil),            // 1: ai.stigmer.agentic.run.v1.UpdateRunInput
 	(*RunUpdateStatusInput)(nil),      // 2: ai.stigmer.agentic.run.v1.RunUpdateStatusInput
 	(*apiresource.ApiResourceId)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceId
-	(*SubmitApprovalInput)(nil),       // 4: ai.stigmer.agentic.run.v1.SubmitApprovalInput
-	(*SubmitFileDecisionInput)(nil),   // 5: ai.stigmer.agentic.run.v1.SubmitFileDecisionInput
-	(*CancelRunInput)(nil),            // 6: ai.stigmer.agentic.run.v1.CancelRunInput
-	(*TerminateRunInput)(nil),         // 7: ai.stigmer.agentic.run.v1.TerminateRunInput
-	(*RecoverRunInput)(nil),           // 8: ai.stigmer.agentic.run.v1.RecoverRunInput
-	(*PauseRunInput)(nil),             // 9: ai.stigmer.agentic.run.v1.PauseRunInput
-	(*ResumeRunInput)(nil),            // 10: ai.stigmer.agentic.run.v1.ResumeRunInput
-	(*UploadAttachmentRequest)(nil),   // 11: ai.stigmer.agentic.run.v1.UploadAttachmentRequest
-	(*UpdateStatusResponse)(nil),      // 12: ai.stigmer.agentic.run.v1.UpdateStatusResponse
-	(*UploadAttachmentResponse)(nil),  // 13: ai.stigmer.agentic.run.v1.UploadAttachmentResponse
+	(*TerminateRunInput)(nil),         // 4: ai.stigmer.agentic.run.v1.TerminateRunInput
+	(*RecoverRunInput)(nil),           // 5: ai.stigmer.agentic.run.v1.RecoverRunInput
+	(*PauseRunInput)(nil),             // 6: ai.stigmer.agentic.run.v1.PauseRunInput
+	(*ResumeRunInput)(nil),            // 7: ai.stigmer.agentic.run.v1.ResumeRunInput
+	(*UploadAttachmentRequest)(nil),   // 8: ai.stigmer.agentic.run.v1.UploadAttachmentRequest
+	(*UpdateStatusResponse)(nil),      // 9: ai.stigmer.agentic.run.v1.UpdateStatusResponse
+	(*UploadAttachmentResponse)(nil),  // 10: ai.stigmer.agentic.run.v1.UploadAttachmentResponse
 }
 var file_ai_stigmer_agentic_run_v1_command_proto_depIdxs = []int32{
 	0,  // 0: ai.stigmer.agentic.run.v1.RunCommandController.create:input_type -> ai.stigmer.agentic.run.v1.Run
 	1,  // 1: ai.stigmer.agentic.run.v1.RunCommandController.update:input_type -> ai.stigmer.agentic.run.v1.UpdateRunInput
 	2,  // 2: ai.stigmer.agentic.run.v1.RunCommandController.updateStatus:input_type -> ai.stigmer.agentic.run.v1.RunUpdateStatusInput
 	3,  // 3: ai.stigmer.agentic.run.v1.RunCommandController.delete:input_type -> ai.stigmer.commons.apiresource.ApiResourceId
-	4,  // 4: ai.stigmer.agentic.run.v1.RunCommandController.submitApproval:input_type -> ai.stigmer.agentic.run.v1.SubmitApprovalInput
-	5,  // 5: ai.stigmer.agentic.run.v1.RunCommandController.submitFileDecision:input_type -> ai.stigmer.agentic.run.v1.SubmitFileDecisionInput
-	6,  // 6: ai.stigmer.agentic.run.v1.RunCommandController.cancel:input_type -> ai.stigmer.agentic.run.v1.CancelRunInput
-	7,  // 7: ai.stigmer.agentic.run.v1.RunCommandController.terminate:input_type -> ai.stigmer.agentic.run.v1.TerminateRunInput
-	8,  // 8: ai.stigmer.agentic.run.v1.RunCommandController.recover:input_type -> ai.stigmer.agentic.run.v1.RecoverRunInput
-	9,  // 9: ai.stigmer.agentic.run.v1.RunCommandController.pause:input_type -> ai.stigmer.agentic.run.v1.PauseRunInput
-	10, // 10: ai.stigmer.agentic.run.v1.RunCommandController.resume:input_type -> ai.stigmer.agentic.run.v1.ResumeRunInput
-	11, // 11: ai.stigmer.agentic.run.v1.RunCommandController.uploadAttachment:input_type -> ai.stigmer.agentic.run.v1.UploadAttachmentRequest
-	0,  // 12: ai.stigmer.agentic.run.v1.RunCommandController.create:output_type -> ai.stigmer.agentic.run.v1.Run
-	0,  // 13: ai.stigmer.agentic.run.v1.RunCommandController.update:output_type -> ai.stigmer.agentic.run.v1.Run
-	12, // 14: ai.stigmer.agentic.run.v1.RunCommandController.updateStatus:output_type -> ai.stigmer.agentic.run.v1.UpdateStatusResponse
-	0,  // 15: ai.stigmer.agentic.run.v1.RunCommandController.delete:output_type -> ai.stigmer.agentic.run.v1.Run
-	0,  // 16: ai.stigmer.agentic.run.v1.RunCommandController.submitApproval:output_type -> ai.stigmer.agentic.run.v1.Run
-	0,  // 17: ai.stigmer.agentic.run.v1.RunCommandController.submitFileDecision:output_type -> ai.stigmer.agentic.run.v1.Run
-	0,  // 18: ai.stigmer.agentic.run.v1.RunCommandController.cancel:output_type -> ai.stigmer.agentic.run.v1.Run
-	0,  // 19: ai.stigmer.agentic.run.v1.RunCommandController.terminate:output_type -> ai.stigmer.agentic.run.v1.Run
-	0,  // 20: ai.stigmer.agentic.run.v1.RunCommandController.recover:output_type -> ai.stigmer.agentic.run.v1.Run
-	0,  // 21: ai.stigmer.agentic.run.v1.RunCommandController.pause:output_type -> ai.stigmer.agentic.run.v1.Run
-	0,  // 22: ai.stigmer.agentic.run.v1.RunCommandController.resume:output_type -> ai.stigmer.agentic.run.v1.Run
-	13, // 23: ai.stigmer.agentic.run.v1.RunCommandController.uploadAttachment:output_type -> ai.stigmer.agentic.run.v1.UploadAttachmentResponse
-	12, // [12:24] is the sub-list for method output_type
-	0,  // [0:12] is the sub-list for method input_type
+	4,  // 4: ai.stigmer.agentic.run.v1.RunCommandController.terminate:input_type -> ai.stigmer.agentic.run.v1.TerminateRunInput
+	5,  // 5: ai.stigmer.agentic.run.v1.RunCommandController.recover:input_type -> ai.stigmer.agentic.run.v1.RecoverRunInput
+	6,  // 6: ai.stigmer.agentic.run.v1.RunCommandController.pause:input_type -> ai.stigmer.agentic.run.v1.PauseRunInput
+	7,  // 7: ai.stigmer.agentic.run.v1.RunCommandController.resume:input_type -> ai.stigmer.agentic.run.v1.ResumeRunInput
+	8,  // 8: ai.stigmer.agentic.run.v1.RunCommandController.uploadAttachment:input_type -> ai.stigmer.agentic.run.v1.UploadAttachmentRequest
+	0,  // 9: ai.stigmer.agentic.run.v1.RunCommandController.create:output_type -> ai.stigmer.agentic.run.v1.Run
+	0,  // 10: ai.stigmer.agentic.run.v1.RunCommandController.update:output_type -> ai.stigmer.agentic.run.v1.Run
+	9,  // 11: ai.stigmer.agentic.run.v1.RunCommandController.updateStatus:output_type -> ai.stigmer.agentic.run.v1.UpdateStatusResponse
+	0,  // 12: ai.stigmer.agentic.run.v1.RunCommandController.delete:output_type -> ai.stigmer.agentic.run.v1.Run
+	0,  // 13: ai.stigmer.agentic.run.v1.RunCommandController.terminate:output_type -> ai.stigmer.agentic.run.v1.Run
+	0,  // 14: ai.stigmer.agentic.run.v1.RunCommandController.recover:output_type -> ai.stigmer.agentic.run.v1.Run
+	0,  // 15: ai.stigmer.agentic.run.v1.RunCommandController.pause:output_type -> ai.stigmer.agentic.run.v1.Run
+	0,  // 16: ai.stigmer.agentic.run.v1.RunCommandController.resume:output_type -> ai.stigmer.agentic.run.v1.Run
+	10, // 17: ai.stigmer.agentic.run.v1.RunCommandController.uploadAttachment:output_type -> ai.stigmer.agentic.run.v1.UploadAttachmentResponse
+	9,  // [9:18] is the sub-list for method output_type
+	0,  // [0:9] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name

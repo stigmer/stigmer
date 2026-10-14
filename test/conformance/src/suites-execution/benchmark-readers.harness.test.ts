@@ -3,8 +3,8 @@
 // - One scripted bare-agent turn on the mock. Each reader returns a value for
 //   it: the runner's `turn_phases` and `execution_setup` lines by execution id
 //   in the tee'd log, the execute activity's start and the EnsureThread hop in
-//   the Temporal history, the first visible token and the terminal phase on
-//   the subscribe stream, the usage aggregate on the terminal status.
+//   the Temporal history, the first visible token and the turn's end on the
+//   session's event stream, the usage aggregate on the terminal status.
 // - The working agent (support/working-agent.ts), provisioned as the live run
 //   provisions it: the target's MCP fixture, memory through a real
 //   Organization, eight skills, a sub-agent, a seeded non-git workspace
@@ -49,7 +49,7 @@ import { renderQuality, runQualityEval } from "../benchmark/quality-eval";
 import { measureSession, type SessionStack } from "../benchmark/session";
 import { changedFiles } from "../benchmark/workspace-facts";
 import { statusFacts, visibleRows } from "../benchmark/status-facts";
-import { subscribeTo, watchExecution } from "../benchmark/stream-watch";
+import { streamSessionEvents, watchTurn } from "../benchmark/stream-watch";
 import { executeActivityNameFor, historyAxes, invokeWorkflowIdFor, showWorkflow } from "../benchmark/temporal-history";
 import { awaitTimingLines, axesFromTiming } from "../benchmark/timing-lines";
 import type { ConformanceClients } from "../harness/clients";
@@ -60,7 +60,7 @@ import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm"
 import { readAnthropicRequest, type AnthropicRequestBody } from "@stigmer/test-support/llm-wire";
 import { TEMPORAL_DEV_NAMESPACE } from "@stigmer/test-support/temporal";
 import { BARE_AGENT_INSTRUCTIONS, agentRefOf, makeAgent } from "../support/agents";
-import { makeAgentExecution, requireLlmProxy, requireMcpFixture } from "../support/runs";
+import { makeAgentExecution, requireLlmProxy, requireMcpFixture, sessionIdOf } from "../support/runs";
 import { uniqueName } from "../support/naming";
 import { renderSystemPrompt, renderToolSurface } from "../support/request-shape";
 import {
@@ -125,14 +125,19 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
     const executionId = created.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
 
-    const watched = await watchExecution(subscribeTo(clients, executionId), { startedAtMs, timeoutMs: 60_000 });
-    expect(watched.outcome, "the subscribe stream reached the terminal phase").toBe("until");
-    expect(watched.final?.status?.phase).toBe(RunPhase.RUN_COMPLETED);
+    const watched = await watchTurn(streamSessionEvents(clients, sessionIdOf(created)), executionId, {
+      startedAtMs,
+      timeoutMs: 60_000,
+    });
+    expect(watched.outcome, "the session's stream reached the turn's end").toBe("until");
+    expect(watched.turn?.status?.phase).toBe("completed");
     expect(watched.client_first_visible_token_ms, "the watcher saw the assistant's text arrive").not.toBeNull();
-    expect(watched.end_to_end_ms, "the watcher stamped the terminal message").not.toBeNull();
-    expect(visibleRows(watched.final!).text, "the terminal snapshot carries the AI row").toBe(true);
+    expect(watched.end_to_end_ms, "the watcher stamped the turn's end").not.toBeNull();
+    expect(visibleRows(watched.turn).text, "the ended turn carries the agent's message").toBe(true);
 
-    const facts = statusFacts(watched.final!);
+    const ended = await clients.agentExecutionQuery.get({ value: executionId });
+    expect(ended.status?.phase).toBe(RunPhase.RUN_COMPLETED);
+    const facts = statusFacts(ended);
     expect(facts.execution_id).toBe(executionId);
     expect(facts.outcome).toBe("completed");
     expect(facts.tokens.total, "the runner's usage aggregate reached the status").toBeGreaterThan(0);

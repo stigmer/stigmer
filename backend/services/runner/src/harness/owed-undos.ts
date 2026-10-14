@@ -28,9 +28,13 @@
  * `user.message` that is not this run's: a change set is decidable only
  * while its turn's message is the newest, so no undo older than that slice
  * can still be owed. An `undo` decided in the slice with no `reconciled`
- * answering it is owed. The change set itself (its files, its
- * decisions) is read from its run (`getExecution`, `status.file_change_sets`),
- * which the run's credential may view as the person who created this run.
+ * answering it is owed. The change set's files are read from its run's
+ * file record (`getExecution`, `status.file_changes`), which the run's
+ * credential may view as the person who created this run. Its decisions are
+ * the slice's own `decided` events for the set, every `keep` and `undo`: a
+ * set is decidable only while its turn's message is the newest, so the
+ * slice, which reaches back to that message, holds every decision on any
+ * set with an undo owed.
  *
  * The work is `shared/filereview/capture.ts` `undoChangeSet`, once per
  * change set with an undo owed, with its hash guard: it restores every file
@@ -52,7 +56,7 @@ import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1
 
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
-import { undoChangeSet, type UndoOutcome } from "../shared/filereview/capture.js";
+import { undoChangeSet, type LoggedFileDecision, type UndoOutcome } from "../shared/filereview/capture.js";
 import { casBlobReader } from "../shared/filereview/cas-substrate.js";
 import { changeSetIdParts } from "../shared/filereview/events.js";
 import { dropCaptureRefs } from "../shared/filereview/git-substrate.js";
@@ -84,9 +88,11 @@ export interface ReconciledUndo extends UndoOutcome {
   readonly decidedEventId: string;
 }
 
-/** What the owed read found: the undos owed, oldest first, and the previous message turn's run. */
+/** What the owed read found: the undos owed, oldest first, each set's decisions, and the previous message turn's run. */
 export interface OwedUndos {
   readonly undos: readonly OwedUndo[];
+  /** Every decision the slice holds, by change set id, oldest first: what an undo of the set reads. */
+  readonly decisions: ReadonlyMap<string, readonly LoggedFileDecision[]>;
   /** The run of the newest `user.message` that is not this run's; `undefined` when there is none. */
   readonly previousMessageRunId: string | undefined;
 }
@@ -120,7 +126,26 @@ export async function readOwedUndos(
     }
     pageToken = page.nextPageToken;
   } while (pageToken !== "");
-  return { undos: owedUndos(slice), previousMessageRunId };
+  return { undos: owedUndos(slice), decisions: decisionsBySet(slice), previousMessageRunId };
+}
+
+/**
+ * The `decided` events in `slice` (newest first, as read), by change set,
+ * oldest first. A decision on a set is written under the set's own run (the
+ * set id's `<run id>:` part); one written under any other run decides
+ * nothing here.
+ */
+export function decisionsBySet(slice: readonly SessionEvent[]): Map<string, LoggedFileDecision[]> {
+  const out = new Map<string, LoggedFileDecision[]>();
+  for (const event of [...slice].reverse()) {
+    if (event.event.case !== "stigmerFileReviewDecided") continue;
+    const { changeSetId, scope, fileChangeId, action } = event.event.value;
+    if (event.runId !== changeSetIdParts(changeSetId).runId) continue;
+    const list = out.get(changeSetId) ?? [];
+    list.push({ scope, fileChangeId, action });
+    out.set(changeSetId, list);
+  }
+  return out;
 }
 
 /**
@@ -172,7 +197,7 @@ export async function reconcileOwedUndos(deps: OwedUndoDeps): Promise<readonly U
   const outcomes: UndoOutcome[] = [];
   const answers: ReconciledUndo[] = [];
   for (const changeSetId of [...new Set(owed.undos.map((undo) => undo.changeSetId))]) {
-    const outcome = await undoOne(deps, gitRoot, changeSetId);
+    const outcome = await undoOne(deps, gitRoot, changeSetId, owed.decisions.get(changeSetId) ?? []);
     outcomes.push(outcome);
     for (const undo of owed.undos.filter((owedUndo) => owedUndo.changeSetId === changeSetId)) {
       answers.push(answerFor(undo, outcome));
@@ -207,8 +232,13 @@ function answerFor(undo: OwedUndo, outcome: UndoOutcome): ReconciledUndo {
   return { ...outcome, undonePaths, decidedEventId: undo.decidedEventId };
 }
 
-/** One owed change set: read it from its run, then undo it. */
-async function undoOne(deps: OwedUndoDeps, gitRoot: string, changeSetId: string): Promise<UndoOutcome> {
+/** One owed change set: read its files from its run's file record, then undo it under the decisions the log holds. */
+async function undoOne(
+  deps: OwedUndoDeps,
+  gitRoot: string,
+  changeSetId: string,
+  decisions: readonly LoggedFileDecision[],
+): Promise<UndoOutcome> {
   const failed = (failureDetail: string): UndoOutcome => ({ changeSetId, undonePaths: [], failure: "reconcile_failed", failureDetail });
   let run: Run;
   try {
@@ -216,11 +246,12 @@ async function undoOne(deps: OwedUndoDeps, gitRoot: string, changeSetId: string)
   } catch (err) {
     return failed(`the turn's changes could not be read: ${err instanceof Error ? err.message : String(err)}`);
   }
-  const changeSet = run.status?.fileChangeSets.find((set) => set.id === changeSetId);
+  const changeSet = run.status?.fileChanges.find((set) => set.id === changeSetId);
   if (changeSet === undefined) return failed("the turn holds no such change set");
   return undoChangeSet({
     gitRoot,
     changeSet,
+    decisions,
     gitWorkspace: deps.workspace.gitWorkspace,
     readBlob: deps.artifactStorage ? casBlobReader(deps.artifactStorage) : undefined,
   });

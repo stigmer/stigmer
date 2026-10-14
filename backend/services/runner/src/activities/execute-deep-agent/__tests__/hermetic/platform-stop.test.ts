@@ -27,12 +27,9 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunControlSignal,
   RunPhase,
-  MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -46,6 +43,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import {
@@ -53,6 +53,7 @@ import {
   deepAgentExecutionRecord,
   runDeepAgentTurn,
 } from "../../__test-utils__/hermetic-deep-agent.js";
+import { MessageType } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const READ_CALL = { id: "call-hermetic-read-0001", name: "read_file", args: { file_path: "/notes.md" } };
 const WRAP_UP = "Stopping here as asked.";
@@ -79,8 +80,8 @@ describe("ExecuteDeepAgent hermetic — platform STOP", () => {
     let stopsAnswered = 0;
     const record = deepAgentExecutionRecord({
       message: "Look at my notes.",
-      controlSignal: (status) => {
-        if (status.messages.some((m) => m.toolCalls.length > 0)) {
+      controlSignal: (_status, rows) => {
+        if (rows.messages.some((m) => m.toolCalls.length > 0)) {
           stopsAnswered += 1;
           return RunControlSignal.STOP;
         }
@@ -108,21 +109,22 @@ describe("ExecuteDeepAgent hermetic — platform STOP", () => {
     expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
     expect(record.persistedPhases).toEqual([RunPhase.RUN_IN_PROGRESS, RunPhase.RUN_COMPLETED]);
     const final = record.lastFullStatus!;
+    const finalRows = record.rowsOf(final);
     expect(final.error).toBe("");
-    expect(final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
+    expect(finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
       "Execution stopped by the platform.",
     ]);
-    const ai = final.messages.filter((m) => m.type === MessageType.MESSAGE_AI).map((m) => m.content);
+    const ai = finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_AI).map((m) => m.content);
     expect(ai, "no wrap-up round and no injected notice: the run stopped at the STOP").toEqual(["Let me look."]);
-    expect(final.messages[0].toolCalls.map((tc) => tc.name), "the row sits on the text that proposed it").toEqual(["read_file"]);
+    expect(finalRows.messages[0].toolCalls.map((tc) => tc.name), "the row sits on the text that proposed it").toEqual(["read_file"]);
     expect(ai).not.toContain(WRAP_UP);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/platform-stop.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/platform-stop.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/platform-stop.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/platform-stop.events.json");
   });
 });

@@ -5,8 +5,8 @@
  * (../judge/subject.ts, what the judge is shown), all three reading the
  * turn's session events through the fold every client uses (../turn.ts);
  * no grader depends on where the turn is stored. The files are the
- * exception: their bytes stay on the run (the file-review ledger and the
- * files the runner returned), and are read from there.
+ * exception: their bytes stay on the run (its file record and the files
+ * the runner returned), and are read from there.
  *
  * The view (`EvalTrace`):
  *
@@ -37,14 +37,15 @@
  *     the server), one JSON line each, `{"server", "tool", "input",
  *     "answer"}`, the server by its key in the plugin and the answer the
  *     mock gave, an error's text included;
- *   - the files: the paths created in the run (`kind` ADD in the
- *     file-review ledger's captured change sets) and the contents, after
+ *   - the files: the paths created in the run (`kind` ADD in the change
+ *     sets of the run's file record, RunStatus.file_changes) and the
+ *     contents, after
  *     the run, of the paths the graders name, inline or read back through
  *     the run's artifact store when the runner offloaded them. A path no
  *     change set touched (a file a case's scaffold wrote and the try left
  *     alone) is read from the files the runner returned for the graders
  *     (`status.plugin_eval_files`); without them it is absent. A try with
- *     no scaffold starts in an empty non-git directory, so the ledger holds
+ *     no scaffold starts in an empty non-git directory, so the record holds
  *     a change set only where the install has artifact storage; with none,
  *     the files are `not-recorded` and a file grader leaves the try not
  *     graded.
@@ -73,10 +74,7 @@ import type { JsonObject, JsonValue } from "@bufbuild/protobuf";
 import { claudeNameOf } from "@stigmer/tool-vocabulary";
 import type { ToolEngine } from "@stigmer/tool-vocabulary";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  FileChangeKind,
-  FileReviewEventType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import type { PluginEvalFile } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -330,27 +328,16 @@ function normalise(path: string): string {
 }
 
 /**
- * The created paths and wanted contents from the file-review ledger: each
- * change set's last captured candidate. A ledger with no capture event is
- * an install that records no files (the module header).
+ * The created paths and wanted contents from the run's file record: each
+ * change set's captured files. A record with no change set is an install
+ * that records no files (the module header).
  */
 async function filesOf(run: Run, deps: EvalTraceDeps): Promise<EvalFiles> {
-  const events = run.status?.fileReviewEventStream?.events ?? [];
-  const captured = events.some(
-    (event) =>
-      event.eventType === FileReviewEventType.BASELINE_CAPTURED ||
-      event.eventType === FileReviewEventType.CANDIDATE_CAPTURED,
-  );
-  if (!captured) {
+  const sets = run.status?.fileChanges ?? [];
+  if (sets.length === 0) {
     return { kind: "not-recorded" };
   }
-  const bySet = new Map<string, ReadonlyArray<CapturedFileChange>>();
-  for (const event of events) {
-    if (event.payload.case === "candidateCaptured") {
-      bySet.set(event.changeSetId, event.payload.value.changes);
-    }
-  }
-  const changes = [...bySet.values()].flat();
+  const changes: CapturedFileChange[] = sets.flatMap((cs) => cs.changes);
   const created = new Set<string>();
   for (const change of changes) {
     const path = normalise(change.pathAfter);

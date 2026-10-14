@@ -18,11 +18,31 @@
 // is test/fixtures/tool-view/. Engine result formats are version-fragile, so
 // every assumption here is fixture-backed and degrades gracefully to json/text.
 
-import { ToolKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { FileChangeCaptureLevel } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ToolUse } from "@stigmer/session-log";
 
-export { ToolKind, FileChangeCaptureLevel };
+/**
+ * What a tool does, whatever its engine calls it: one word, in the style of
+ * the session's events (`shell`, `file_edit`, `mcp`). `unknown` is a tool
+ * no rule names. A client's own classification, read from the tool's name
+ * and its MCP server ({@link resolveToolKind}); the events carry the name,
+ * not the kind.
+ */
+export type ToolKind =
+  | "unknown"
+  | "file_read"
+  | "file_write"
+  | "file_edit"
+  | "file_delete"
+  | "shell"
+  | "search"
+  | "list"
+  | "fetch"
+  | "web_search"
+  | "think"
+  | "todo"
+  | "subagent"
+  | "mcp"
+  | "memory";
 
 /** A single match in a search/grep result. */
 export interface ToolSearchMatch {
@@ -56,12 +76,7 @@ export type ToolResultView =
   // presentation layer computes the visual diff (and its line counts) from
   // oldText/newText; linesAdded/linesRemoved/unifiedDiff are populated only when
   // the source provides them directly (e.g. the Cursor hunk-only envelope).
-  //
-  // captureLevel reports the fidelity of oldText/newText so the renderer can be
-  // honest about it: WHOLE_FILE (full-file before/after), HUNK_ONLY (Cursor's
-  // hunk diff, no whole-file content), or undefined (reconstructed from args, the
-  // legacy path). It is the one fact field presence alone cannot convey, since a
-  // whole-file capture and an args fragment both populate oldText/newText.
+
   | {
       readonly type: "diff";
       readonly path: string;
@@ -70,7 +85,6 @@ export type ToolResultView =
       readonly linesAdded?: number;
       readonly linesRemoved?: number;
       readonly unifiedDiff?: string;
-      readonly captureLevel?: FileChangeCaptureLevel;
     }
   // File read or full-file write. `content` is the file body (from result for
   // read, from args for write).
@@ -148,63 +162,62 @@ export type ToolResultView =
 // Identity: resolveToolKind
 // ---------------------------------------------------------------------------
 
-// Fallback name -> ToolKind map for legacy runs (tool_kind == UNSPECIFIED)
-// and any consumer that only has a name. Mirrors the runner classifier and the
-// Go CLI; kept honest by test/fixtures/tool-view/classification.json.
-const NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map([
-  ["read", ToolKind.FILE_READ],
-  ["read_file", ToolKind.FILE_READ],
-  ["Read", ToolKind.FILE_READ],
+// Tool name -> ToolKind. Mirrors the runner's classifier; kept honest by
+// test/fixtures/tool-view/classification.json.
+const NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map<string, ToolKind>([
+  ["read", "file_read"],
+  ["read_file", "file_read"],
+  ["Read", "file_read"],
 
-  ["write", ToolKind.FILE_WRITE],
-  ["write_file", ToolKind.FILE_WRITE],
-  ["create_file", ToolKind.FILE_WRITE],
-  ["overwrite_file", ToolKind.FILE_WRITE],
-  ["Write", ToolKind.FILE_WRITE],
+  ["write", "file_write"],
+  ["write_file", "file_write"],
+  ["create_file", "file_write"],
+  ["overwrite_file", "file_write"],
+  ["Write", "file_write"],
 
-  ["edit", ToolKind.FILE_EDIT],
-  ["edit_file", ToolKind.FILE_EDIT],
-  ["str_replace_editor", ToolKind.FILE_EDIT],
-  ["StrReplace", ToolKind.FILE_EDIT],
-  ["EditNotebook", ToolKind.FILE_EDIT],
+  ["edit", "file_edit"],
+  ["edit_file", "file_edit"],
+  ["str_replace_editor", "file_edit"],
+  ["StrReplace", "file_edit"],
+  ["EditNotebook", "file_edit"],
 
-  ["delete", ToolKind.FILE_DELETE],
-  ["delete_file", ToolKind.FILE_DELETE],
-  ["remove_file", ToolKind.FILE_DELETE],
-  ["Delete", ToolKind.FILE_DELETE],
+  ["delete", "file_delete"],
+  ["delete_file", "file_delete"],
+  ["remove_file", "file_delete"],
+  ["Delete", "file_delete"],
 
-  ["shell", ToolKind.SHELL],
-  ["bash", ToolKind.SHELL],
-  ["execute", ToolKind.SHELL],
-  ["execute_command", ToolKind.SHELL],
-  ["run_command", ToolKind.SHELL],
-  ["terminal", ToolKind.SHELL],
-  ["Shell", ToolKind.SHELL],
+  ["shell", "shell"],
+  ["bash", "shell"],
+  ["execute", "shell"],
+  ["execute_command", "shell"],
+  ["run_command", "shell"],
+  ["terminal", "shell"],
+  ["Shell", "shell"],
 
-  ["grep", ToolKind.SEARCH],
-  ["glob", ToolKind.SEARCH],
-  ["search", ToolKind.SEARCH],
-  ["ripgrep", ToolKind.SEARCH],
-  ["find_files", ToolKind.SEARCH],
-  ["Grep", ToolKind.SEARCH],
-  ["Glob", ToolKind.SEARCH],
-  ["SemanticSearch", ToolKind.SEARCH],
+  ["grep", "search"],
+  ["glob", "search"],
+  ["search", "search"],
+  ["ripgrep", "search"],
+  ["find_files", "search"],
+  ["Grep", "search"],
+  ["Glob", "search"],
+  ["SemanticSearch", "search"],
 
-  ["ls", ToolKind.LIST],
-  ["list_directory", ToolKind.LIST],
+  ["ls", "list"],
+  ["list_directory", "list"],
 
-  ["web_fetch", ToolKind.FETCH],
-  ["WebFetch", ToolKind.FETCH],
-  ["WebSearch", ToolKind.WEB_SEARCH],
+  ["web_fetch", "fetch"],
+  ["WebFetch", "fetch"],
+  ["WebSearch", "web_search"],
 
-  ["think", ToolKind.THINK],
+  ["think", "think"],
 
-  ["write_todos", ToolKind.TODO],
-  ["updateTodos", ToolKind.TODO],
-  ["TodoWrite", ToolKind.TODO],
+  ["write_todos", "todo"],
+  ["updateTodos", "todo"],
+  ["TodoWrite", "todo"],
 
-  ["task", ToolKind.SUBAGENT],
-  ["Task", ToolKind.SUBAGENT],
+  ["task", "subagent"],
+  ["Task", "subagent"],
 ]);
 
 /**
@@ -230,16 +243,16 @@ export function resolveToolKindByName(name: string, mcpServerSlug?: string): Too
   // kind (and its consent-chip rendering) — a third-party MCP server's
   // coincidental `remember` stays a plain MCP tool.
   if (name === "remember" && mcpServerSlug === MEMORY_ATTACHMENT_SLUG) {
-    return ToolKind.MEMORY;
+    return "memory";
   }
   const builtin = NAME_TO_KIND.get(name);
   if (builtin !== undefined) {
     return builtin;
   }
   if (mcpServerSlug && mcpServerSlug.length > 0) {
-    return ToolKind.MCP;
+    return "mcp";
   }
-  return ToolKind.UNSPECIFIED;
+  return "unknown";
 }
 
 // ---------------------------------------------------------------------------
@@ -276,7 +289,7 @@ export function shellIntentFromArgs(
   kind: ToolKind,
   args: Record<string, unknown> | undefined,
 ): string | null {
-  if (kind !== ToolKind.SHELL || !args) return null;
+  if (kind !== "shell" || !args) return null;
   const value = args[SHELL_INTENT_ARG_FIELD];
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
@@ -405,25 +418,25 @@ export function normalizeToolResult(tool: ToolViewInput): ToolResultView {
   const kind = resolveToolKind(tool);
 
   switch (kind) {
-    case ToolKind.FILE_EDIT:
+    case "file_edit":
       return normalizeEdit(args, result);
-    case ToolKind.FILE_WRITE:
+    case "file_write":
       return normalizeWrite(args);
-    case ToolKind.FILE_READ:
+    case "file_read":
       return normalizeRead(args, result);
-    case ToolKind.FILE_DELETE:
+    case "file_delete":
       return result ? { type: "text", text: result } : { type: "empty" };
-    case ToolKind.SHELL:
+    case "shell":
       return normalizeShell(result, args);
-    case ToolKind.SEARCH:
+    case "search":
       return normalizeSearch(result);
-    case ToolKind.LIST:
+    case "list":
       return normalizeList(result);
-    case ToolKind.THINK:
+    case "think":
       return normalizeThink(args, result);
-    case ToolKind.MCP:
+    case "mcp":
       return normalizeMcp(result, tool.mcpServerName);
-    case ToolKind.MEMORY:
+    case "memory":
       return normalizeMemory(result);
     default:
       return genericView(result);

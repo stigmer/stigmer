@@ -35,7 +35,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText } from "@stigmer/test-support/mock-llm";
 import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
-import { awaitPhase, makeAgentExecution, requireLlmProxy } from "../support/runs";
+import { awaitPhase, makeAgentExecution, requireLlmProxy, sessionIdOf } from "../support/runs";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -140,8 +140,8 @@ describe("Run recover — idempotency", () => {
       RunPhase.RUN_IN_PROGRESS,
     );
 
-    // Settle the run.
-    await clients.agentExecutionCommand.cancel({ id: executionId });
+    // Settle the run: stop the session's unfinished turn.
+    await clients.sessionCommand.interrupt({ sessionId: sessionIdOf(recovered) });
     await awaitPhase(clients, executionId, RunPhase.RUN_CANCELLED);
   });
 });

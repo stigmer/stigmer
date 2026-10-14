@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Iterator
+from typing import Any
 
 import grpc
 
@@ -56,24 +56,6 @@ class RunClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def submit_approval(self, input: io_pb2.SubmitApprovalInput) -> api_pb2.Run:
-        try:
-            return self._command.submitApproval(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
-    def submit_file_decision(self, input: io_pb2.SubmitFileDecisionInput) -> api_pb2.Run:
-        try:
-            return self._command.submitFileDecision(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
-    def cancel(self, input: io_pb2.CancelRunInput) -> api_pb2.Run:
-        try:
-            return self._command.cancel(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
     def terminate(self, input: io_pb2.TerminateRunInput) -> api_pb2.Run:
         try:
             return self._command.terminate(input)
@@ -119,13 +101,6 @@ class RunClient:
     def list_by_session(self, input: io_pb2.ListRunsBySessionRequest) -> io_pb2.RunList:
         try:
             return self._query.listBySession(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
-    def subscribe(self, id: str) -> Iterator[api_pb2.Run]:
-        try:
-            for msg in self._query.subscribe(io_pb2.RunId(value=id)):
-                yield msg
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

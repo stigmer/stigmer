@@ -7,21 +7,25 @@
 // Progress is the file-review analogue of setup_progress: a runner-owned,
 // latest-snapshot-wins DISPLAY field (paths, kinds, line counts — no bytes, no
 // digests, never decidable), attached to the runner's streaming persists while
-// the turn's change set is CAPTURING and cleared by the server once that set
-// leaves CAPTURING (filereview.proto FileChangeProgress). The turn-boundary
-// CANDIDATE_CAPTURED stays the one reviewable diff.
+// the turn works and its change set is not yet captured, and cleared once the
+// turn boundary captures the set on the run's file record (status.file_changes;
+// filereview.proto FileChangeProgress). The record names the set mid-turn too,
+// right after its baseline is pinned, but with no candidate snapshot: it is
+// captured, with its files, only at the boundary (`isCapturedSet`). The recorded set stays the one
+// reviewable diff.
 //
-// THE CONTRACT THIS FILE PINS, and the one it deliberately does not. While the
-// set is CAPTURING, the strip CONVERGES to the edits made so far, each with its
-// kind and line counts; once the set leaves CAPTURING, the strip is gone and
-// every edit is in the reviewable set. What any ONE snapshot shows is not a
+// THE CONTRACT THIS FILE PINS, and the one it deliberately does not. Before
+// the set is captured, the strip CONVERGES to the edits made so far, each with
+// its kind and line counts, previewing the set by the id it will be recorded
+// under; once the set is captured, the strip is gone and every edit is in the
+// recorded set. What any ONE snapshot shows is not a
 // contract: the runner captures on its persist cadence, at most once per
 // PROGRESS_CAPTURE_MIN_INTERVAL_MS (2 s by default), and a capture runs while
 // the tool whose start triggered the persist may still be writing — so a
 // snapshot can be a turn behind, half-written, or already carry the next tool's
 // file (the runner's shared/filereview/progress.ts header, "What a capture may
 // see"). An arm therefore states the entries it expects and waits until a
-// CAPTURING snapshot carries all of them with their counts
+// mid-run snapshot carries all of them with their counts
 // (`awaitProgressEntries`); it never waits for "the first snapshot with two
 // files", which is the shape that flaked on a slow runner for a week.
 //
@@ -160,24 +164,28 @@ async function startEditTurn(workspace: GitWorkspace, edits: [Edit, Edit]): Prom
 }
 
 // Waits for the mid-run snapshot to carry the first two edits with their
-// counts (the converged shape, header) and checks it previews the CAPTURING
-// set by id — the one fact the wait's predicate does not already assert.
-async function observeFirstTwoEdits(executionId: string, expected: [ExpectedProgressEntry, ExpectedProgressEntry]): Promise<void> {
+// counts (the converged shape, header) and returns the id of the set it
+// previews, which the boundary checks against the set it records.
+async function observeFirstTwoEdits(
+  executionId: string,
+  expected: [ExpectedProgressEntry, ExpectedProgressEntry],
+): Promise<string> {
   const midRun = await awaitProgressEntries(clients, executionId, expected);
-  const progress = midRun.status!.fileChangeProgress!;
-  const capturing = midRun.status!.fileChangeSets.find((s) => s.id === progress.changeSetId);
-  expect(capturing, "the snapshot previews the CAPTURING set by id").toBeDefined();
+  const previewed = midRun.status!.fileChangeProgress!.changeSetId;
+  expect(previewed, "the snapshot names the set it previews").not.toBe("");
+  return previewed;
 }
 
 // Releases the held final turn, awaits the turn's end, and asserts it
-// completed with the progress snapshot gone and every write in the set
-// offered for review.
-async function expectClearedAtBoundary(executionId: string, paths: string[]): Promise<void> {
+// completed with the progress snapshot gone and every write in the set the
+// snapshot previewed, now on the run's file record.
+async function expectClearedAtBoundary(executionId: string, previewed: string, paths: string[]): Promise<void> {
   mock.releaseHolds();
   const ended = await awaitFileReview(clients, executionId);
   expect(ended.status?.phase, "the turn ends; review never holds it").toBe(RunPhase.RUN_COMPLETED);
-  expect(ended.status?.fileChangeProgress, "progress is cleared once the set leaves CAPTURING").toBeUndefined();
+  expect(ended.status?.fileChangeProgress, "progress is cleared once the set is captured").toBeUndefined();
   const set = requireReviewSet(ended);
+  expect(set.id, "the recorded set is the one the snapshot previewed").toBe(previewed);
   for (const path of paths) requireChangeByPath(set, path);
 }
 
@@ -192,13 +200,13 @@ describe("Run file review — mid-run progress", () => {
       { tool: "edit_file", path: "existing.txt", oldString: "beta", newString: "BETA" },
     ]);
 
-    await observeFirstTwoEdits(executionId, [
+    const previewed = await observeFirstTwoEdits(executionId, [
       { path: "created.txt", kind: FileChangeKind.ADD, linesAdded: 3, linesRemoved: 0 },
       // One line replaced: one added, one removed.
       { path: "existing.txt", kind: FileChangeKind.MODIFY, linesAdded: 1, linesRemoved: 1 },
     ]);
 
-    await expectClearedAtBoundary(executionId, ["created.txt", "existing.txt", PUBLISHER_EDIT.path]);
+    await expectClearedAtBoundary(executionId, previewed, ["created.txt", "existing.txt", PUBLISHER_EDIT.path]);
   });
 
   it("a gitignored file appears in the same progress snapshot as a tracked one", async () => {
@@ -211,12 +219,12 @@ describe("Run file review — mid-run progress", () => {
       { tool: "write_file", path: "cache/data.txt", content: "two\nlines\n" },
     ]);
 
-    await observeFirstTwoEdits(executionId, [
+    const previewed = await observeFirstTwoEdits(executionId, [
       { path: "tracked.txt", kind: FileChangeKind.ADD, linesAdded: 1, linesRemoved: 0 },
       // The ignored path rides the same snapshot through the content-addressed side.
       { path: "cache/data.txt", kind: FileChangeKind.ADD, linesAdded: 2, linesRemoved: 0 },
     ]);
 
-    await expectClearedAtBoundary(executionId, ["tracked.txt", "cache/data.txt", PUBLISHER_EDIT.path]);
+    await expectClearedAtBoundary(executionId, previewed, ["tracked.txt", "cache/data.txt", PUBLISHER_EDIT.path]);
   });
 });

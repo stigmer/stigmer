@@ -19,6 +19,7 @@ import {
   RunPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
+import type { TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import {
   offloadOversizedToolOutputs,
   offloadCandidateChangesToFit,
@@ -52,6 +53,16 @@ function isPayloadTooLarge(err: unknown): boolean {
 /** Options controlling how a status payload is bounded and persisted. */
 export interface PersistStatusOptions {
   /**
+   * The turn's rows, when the write is a turn's: their oversized tool
+   * outputs and captured file bodies are offloaded (the emitter reads them
+   * as offloaded, and the file record holds the same change objects). The
+   * rows themselves are never sent: the session's log is where they go.
+   * Absent for a write that carries no turn (a setup-progress report).
+   */
+  readonly rows?: TurnRows;
+  /** Told once the status was written, with no failure: the persist chokepoint marks the file record it carried as sent. */
+  readonly onWritten?: () => void;
+  /**
    * When supplied, oversized tool outputs (a screenshot's base64, a multi-MB
    * dump) are spilled to artifact storage before persisting — the only path
    * that populates a renderable `ToolCallOutputRef`. When omitted, the
@@ -66,7 +77,7 @@ export interface PersistStatusOptions {
   /**
    * Runs once per call after the offload and before the aggregate cap and
    * the write: the persist chokepoint's session event flush, which must read
-   * the rows as offloaded and land before the status it describes. Never
+   * the rows as offloaded and land before the status that follows it. Never
    * rejects (the emitter's own contract).
    */
   readonly afterOffload?: () => Promise<void>;
@@ -96,10 +107,11 @@ function defaultDelay(ms: number): Promise<void> {
  * persistence through here guarantees three invariants that must never be
  * skipped by an individual call site:
  *
- *   1. Size bounding — when `offload` is supplied, oversized tool outputs are
- *      spilled to artifact storage first (the path that makes screenshots
- *      render); an aggregate backstop then runs unconditionally so callers
- *      without storage are still protected from the 4 MiB gRPC cap.
+ *   1. Size bounding — when `offload` is supplied, oversized tool outputs and
+ *      captured file bodies are spilled to artifact storage first (the path
+ *      that makes screenshots render); an aggregate backstop over the file
+ *      record then runs unconditionally so callers without storage are still
+ *      protected from the 4 MiB gRPC cap.
  *   2. Transient resilience — `Unavailable`/`DeadlineExceeded` back off and
  *      retry (default three attempts); terminal errors never retry.
  *   3. Oversize recovery — a `resource_exhausted` rejection is never silently
@@ -112,20 +124,20 @@ export async function persistStatus(
   status: RunStatus,
   options: PersistStatusOptions = {},
 ): Promise<RunControlSignal> {
-  const { offload, retry } = options;
+  const { rows, offload, retry } = options;
 
   if (offload) {
     try {
-      await offloadOversizedToolOutputs(status, offload);
+      if (rows) await offloadOversizedToolOutputs(rows, offload);
     } catch (err) {
       console.warn(`[persistStatus] ${executionId}: tool-output offload failed (non-fatal): ${err}`);
     }
-    // File-review ledger: if the status still exceeds the soft cap after per-item
+    // File record: if the status still exceeds the soft cap after per-item
     // offload, offload the largest still-inline captured bodies to retrievable
     // refs so those files stay REVIEWABLE (lazily fetched) instead of being
-    // dropped by the backstop below. Guarded on the presence of file-review
-    // events so an ordinary (non-review) turn pays nothing. Non-fatal.
-    if (status.fileReviewEventStream?.events?.length) {
+    // dropped by the backstop below. Guarded on the record so an ordinary
+    // (non-review) turn pays nothing. Non-fatal.
+    if (status.fileChanges.length > 0) {
       try {
         await offloadCandidateChangesToFit(status, offload);
       } catch (err) {
@@ -133,9 +145,9 @@ export async function persistStatus(
       }
     }
   }
-  // The status as offloaded, before the aggregate cap elides it: the session
-  // event emitter reads it here (`harness/events/emitter.ts`), so the log
-  // carries the offloaded previews and full-fidelity text.
+  // The rows as offloaded: the session event emitter reads them here
+  // (`harness/events/emitter.ts`), so the log carries the offloaded previews
+  // and full-fidelity text, before the status that follows them.
   if (options.afterOffload) {
     await options.afterOffload();
   }
@@ -154,6 +166,7 @@ export async function persistStatus(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const response = await client.updateStatus(executionId, status);
+      options.onWritten?.();
       return response.signal;
     } catch (err) {
       // Oversize rejection is recoverable exactly once and out-of-band from the
@@ -166,6 +179,7 @@ export async function persistStatus(
         enforceStatusSizeLimit(status, STATUS_PAYLOAD_HARD_LIMIT_BYTES);
         try {
           const response = await client.updateStatus(executionId, status);
+          options.onWritten?.();
           return response.signal;
         } catch (retryErr) {
           console.error(`[persistStatus] ${executionId}: still failing after hard elide:`, retryErr);
@@ -231,9 +245,11 @@ export async function reportSetupProgress(
 
 /**
  * Strip heavy fields from a full status, keeping only workflow-critical
- * data for the Temporal return value. Messages and tool calls are already
- * persisted via gRPC — including them in the Temporal payload would
- * exceed size limits and cause serialization issues with protobuf bytes.
+ * data for the Temporal return value: the phase, the error and the turn's
+ * two instants. What the agent said and did is in the session's log, and
+ * the file record and the rest were persisted via gRPC — including them in
+ * the Temporal payload would exceed size limits and cause serialization
+ * issues with protobuf bytes.
  *
  * Uses toJson() to produce canonical protobuf JSON (base64 bytes, string
  * enums, omitted defaults) instead of returning a raw @bufbuild/protobuf
@@ -247,18 +263,6 @@ export function slimStatus(full: RunStatus): unknown {
     error: full.error,
     startedAt: full.startedAt,
     completedAt: full.completedAt,
-    pendingApprovals: full.pendingApprovals,
-    structuredOutput: full.structuredOutput,
   });
-  const json = toJson(RunStatusSchema, slim);
-  if (full.structuredOutput) {
-    const jsonObj = json as Record<string, unknown>;
-    const hasField = "structuredOutput" in jsonObj;
-    console.log(
-      `[slimStatus] structuredOutput serialization: ` +
-      `inputPresent=true, outputFieldPresent=${hasField}, ` +
-      `outputKeys=${Object.keys(jsonObj).join(",")}`,
-    );
-  }
-  return json;
+  return toJson(RunStatusSchema, slim);
 }

@@ -2,7 +2,6 @@
 
 package ai.stigmer.sdk.gen;
 
-import ai.stigmer.agentic.run.v1.CancelRunInput;
 import ai.stigmer.agentic.run.v1.GetAgentUsageReportInput;
 import ai.stigmer.agentic.run.v1.GetAgentUsageReportOutput;
 import ai.stigmer.agentic.run.v1.GetArtifactContentRequest;
@@ -28,8 +27,6 @@ import ai.stigmer.agentic.run.v1.RunList;
 import ai.stigmer.agentic.run.v1.RunQueryControllerGrpc;
 import ai.stigmer.agentic.run.v1.RunSummary;
 import ai.stigmer.agentic.run.v1.RunUpdateStatusInput;
-import ai.stigmer.agentic.run.v1.SubmitApprovalInput;
-import ai.stigmer.agentic.run.v1.SubmitFileDecisionInput;
 import ai.stigmer.agentic.run.v1.TerminateRunInput;
 import ai.stigmer.agentic.run.v1.UpdateRunInput;
 import ai.stigmer.agentic.run.v1.UpdateStatusResponse;
@@ -74,24 +71,6 @@ public final class RunClient {
     public Run delete(String id) {
         try {
             return command.delete(ApiResourceId.newBuilder().setValue(id).build());
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
-    }
-
-    public Run submitApproval(SubmitApprovalInput input) {
-        try {
-            return command.submitApproval(input);
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
-    }
-
-    public Run submitFileDecision(SubmitFileDecisionInput input) {
-        try {
-            return command.submitFileDecision(input);
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
-    }
-
-    public Run cancel(CancelRunInput input) {
-        try {
-            return command.cancel(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
@@ -140,14 +119,6 @@ public final class RunClient {
     public RunList listBySession(ListRunsBySessionRequest input) {
         try {
             return query.listBySession(input);
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
-    }
-
-    public StigmerStream<Run> subscribe(String id) {
-        try {
-            java.util.Iterator<Run> iter = query.subscribe(
-                RunId.newBuilder().setValue(id).build());
-            return new StigmerStream<>(iter);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

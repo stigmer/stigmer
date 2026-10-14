@@ -20,16 +20,19 @@
 
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { ApprovalAction, ApprovalPolicySource, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
 import { approvalAnswersOf } from "../../../harness/approval-answers.js";
 import { toolUseEventId } from "../../../harness/events/ids.js";
 import { answerEventsFor } from "../../../__test-utils__/approval-log.js";
 import { reconstructAdjudicatedApprovals } from "../approval-state.js";
+import { AgentMessageSchema, ToolCallSchema, type ToolCall, TurnRowsSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import {
+  ApprovalAction,
+  ApprovalPolicySource,
+  MessageType,
+  ToolCallStatus,
+} from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const RUN = "run_agree";
 
@@ -52,7 +55,7 @@ describe("the runtime's approvalAnswersOf and the adapter's reconstructAdjudicat
     type Stale = { approvalContentDigest?: string; approvalPolicySource?: ApprovalPolicySource; approvalAction?: ApprovalAction };
     const waiting = (id: string, name: string, extra: Stale = {}): ToolCall =>
       create(ToolCallSchema, { id, name, status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL, ...extra });
-    const status = create(RunStatusSchema, {
+    const status = create(TurnRowsSchema, {
       messages: [
         create(AgentMessageSchema, {
           type: MessageType.MESSAGE_AI,
@@ -130,7 +133,7 @@ describe("the runtime's approvalAnswersOf and the adapter's reconstructAdjudicat
   });
 
   it("both read nothing from a fresh transcript", () => {
-    const status = create(RunStatusSchema, {});
+    const status = create(TurnRowsSchema, {});
     const runtime = approvalAnswersOf(RUN, status, []);
     expect(runtime.decisions.size).toBe(0);
     expect(reconstructAdjudicatedApprovals(status.messages, { runId: RUN, decisions: runtime.decisions, asks: runtime.asks }).decisions.size).toBe(0);

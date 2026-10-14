@@ -1,10 +1,10 @@
 /**
  * The agent host's `TurnSink`: what an adapter running in the host sees as
- * the runtime, built over the host's own copy of the turn's status and
- * answered by the runner over the pipe (`protocol.ts`).
+ * the runtime, built over the host's own copy of the turn's rows and status
+ * and answered by the runner over the pipe (`protocol.ts`).
  *
  * The adapter folds its engine into this copy synchronously, exactly as it
- * folds into the runtime's status when it runs in the runner's process:
+ * folds into the runtime's rows when it runs in the runner's process:
  * the copy, its transcript builder (`harness/transcript/builder.ts`) and
  * the setup timeline are all local, so the adapter's code path is the one
  * it always had. What leaves the host:
@@ -35,6 +35,7 @@
  */
 
 import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { TurnRowsSchema, type TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 
 import { CostCapWatch } from "../harness/cost-cap-watch.js";
@@ -54,6 +55,7 @@ export type HostPeer = Peer<RunnerCalls, HostCalls, HostNotices, RunnerNotices>;
 export class HostTurn {
   readonly sink: TurnSink;
   readonly status: RunStatus;
+  readonly rows: TurnRows;
   private readonly stopController = new AbortController();
   private casReader: CasTouchedReader | undefined;
   private persistInFlight: Promise<void> | undefined;
@@ -64,10 +66,12 @@ export class HostTurn {
     readonly turnId: string,
     input: TurnInput,
     status: string,
+    rows: string,
     timing: TimingRecorderWire,
   ) {
     this.status = decodeMessage(RunStatusSchema, status);
-    const transcript = new TranscriptBuilder(input.executionId, this.status, (event, _atMs, place) =>
+    this.rows = decodeMessage(TurnRowsSchema, rows);
+    const transcript = new TranscriptBuilder(input.executionId, this.rows, this.status, (event, _atMs, place) =>
       peer.notify("event", {
         turnId,
         event,
@@ -79,6 +83,7 @@ export class HostTurn {
     const costCap = new CostCapWatch(input.execution.status?.runConfig?.maxCostUsd ?? 0, input.model.serviceTier, input.model.thinkingMode);
     this.sink = {
       status: this.status,
+      rows: this.rows,
       transcript,
       stopSignal: this.stopController.signal,
       setupTiming,
@@ -134,9 +139,9 @@ export class HostTurn {
 
   private async persistNow(): Promise<void> {
     try {
-      const { runtime, offloads } = await this.peer.call("persist", { turnId: this.turnId, projection: encodeAdapterProjection(this.status) });
+      const { runtime, offloads } = await this.peer.call("persist", { turnId: this.turnId, projection: encodeAdapterProjection(this) });
       applyRuntimeFields(this.status, runtime);
-      adoptOffloadedOutputs(this.status, decodeOffloads(offloads));
+      adoptOffloadedOutputs(this.rows, decodeOffloads(offloads));
     } catch (err) {
       console.warn(`[agent-host] persist request failed: turn=${this.turnId}, ${describe(err)}`);
     }

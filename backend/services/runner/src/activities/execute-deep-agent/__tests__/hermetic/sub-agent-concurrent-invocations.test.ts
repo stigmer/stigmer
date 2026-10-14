@@ -224,7 +224,7 @@ describe("ExecuteDeepAgent hermetic — concurrent invocations of one sub-agent"
       RunPhase.RUN_IN_PROGRESS,
       RunPhase.RUN_COMPLETED,
     ]);
-    expect(record.lastFullStatus!.subAgentRuns, "one row per invocation").toHaveLength(2);
+    expect(record.lastFullRows!.subAgentRuns, "one row per invocation").toHaveLength(2);
     return { root, helpers, record };
   }
 

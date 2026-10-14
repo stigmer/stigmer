@@ -5,6 +5,7 @@ import { create } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunControlSignal, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../status.js";
+import { AgentMessageSchema, ToolCallSchema, TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 describe("utcTimestamp", () => {
   it("returns an ISO 8601 string ending in Z", () => {
@@ -23,7 +24,7 @@ describe("utcTimestamp", () => {
 });
 
 describe("slimStatus", () => {
-  it("preserves phase, error, timestamps, and pendingApprovals", () => {
+  it("preserves phase, error and timestamps", () => {
     const full = create(RunStatusSchema, {
       phase: RunPhase.RUN_COMPLETED,
       error: "test error",
@@ -56,44 +57,16 @@ describe("slimStatus", () => {
     expect(JSON.parse(json)).toEqual(result);
   });
 
-  it("preserves structuredOutput when present on the full status", () => {
+  it("carries the phase, the error and the turn's two instants, and nothing else of the status", () => {
     const full = create(RunStatusSchema, {
       phase: RunPhase.RUN_COMPLETED,
-      structuredOutput: {
-        executive_summary: "DAU stable at 7175",
-        dau: 7175,
-        cohorts: [
-          { name: "D1 New Players", size: 10, action_needed: true },
-          { name: "D3 Drop-offs", size: 3589, action_needed: true },
-        ],
-      },
+      error: "",
+      startedAt: "t0",
+      completedAt: "t1",
+      artifacts: [{ name: "report.md" }],
+      fileChanges: [{ id: "run_1:0" }],
     });
-    const result = slimStatus(full) as Record<string, unknown>;
-    expect(result).toHaveProperty("structuredOutput");
-    const output = (result as any).structuredOutput;
-    expect(output.executive_summary).toBe("DAU stable at 7175");
-    expect(output.dau).toBe(7175);
-    expect(output.cohorts).toHaveLength(2);
-  });
-
-  it("omits structuredOutput when not present on full status", () => {
-    const full = create(RunStatusSchema, {
-      phase: RunPhase.RUN_COMPLETED,
-    });
-    const result = slimStatus(full) as Record<string, unknown>;
-    expect(result).not.toHaveProperty("structuredOutput");
-  });
-
-  it("activity return contains structuredOutput accessible by Go buildCallbackResult", () => {
-    const full = create(RunStatusSchema, {
-      phase: RunPhase.RUN_COMPLETED,
-      structuredOutput: {
-        cohorts: [{ name: "D1", size: 500 }],
-      },
-    });
-    const slim = slimStatus(full) as Record<string, unknown>;
-    expect(slim["structuredOutput"]).toBeDefined();
-    expect((slim["structuredOutput"] as any).cohorts).toHaveLength(1);
+    expect(slimStatus(full)).toEqual({ phase: "RUN_COMPLETED", startedAt: "t0", completedAt: "t1" });
   });
 });
 
@@ -174,24 +147,28 @@ describe("persistStatus", () => {
     const mockClient = {
       updateStatus: vi.fn().mockResolvedValue({ signal: RunControlSignal.UNSPECIFIED }),
     } as any;
-    const { AgentMessageSchema, ToolCallSchema } = await import(
-      "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb"
-    );
-    const status = create(RunStatusSchema, {
-      phase: RunPhase.RUN_IN_PROGRESS,
+    const status = create(RunStatusSchema, { phase: RunPhase.RUN_IN_PROGRESS });
+    const rows = create(TurnRowsSchema, {
       messages: [
         create(AgentMessageSchema, {
           toolCalls: [create(ToolCallSchema, { id: "t", name: "Shell", result: "X".repeat(5000) })],
         }),
       ],
     });
-
-    await persistStatus(mockClient, "exec-off", status, { offload });
+    let readAfterOffload = "";
+    await persistStatus(mockClient, "exec-off", status, {
+      rows,
+      offload,
+      afterOffload: async () => {
+        readAfterOffload = rows.messages[0]!.toolCalls[0]!.result;
+      },
+    });
 
     expect(uploaded).toHaveLength(1);
+    expect(rows.messages[0]!.toolCalls[0]!.outputRef, "the rows' output is lifted to a ref").toBeDefined();
+    expect(readAfterOffload.length, "the emitter reads the rows as offloaded").toBeLessThan(5000);
     const [, persisted] = mockClient.updateStatus.mock.calls[0];
-    expect(persisted.messages[0].toolCalls[0].outputRef).toBeDefined();
-    expect(persisted.messages[0].toolCalls[0].result.length).toBeLessThan(5000);
+    expect(Object.keys(persisted), "the status carries no rows").not.toContain("messages");
   });
 });
 

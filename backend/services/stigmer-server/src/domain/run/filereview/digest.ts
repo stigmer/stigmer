@@ -1,10 +1,9 @@
 /**
  * The canonical file-change digests — ports filereview/digest.go. The
  * filereview module is the backend half of the apply-then-review
- * file-change subsystem: it owns the canonical change digests, authors
- * FILE_DECIDED events on the append-only file_review ledger, and projects
- * FileChangeSet from that ledger — the approval package's append-only
- * discipline instantiated for a second lifecycle.
+ * file-change subsystem: it owns the canonical change digests, reads the
+ * run's file record (record.ts) and records decisions as the session's
+ * `stigmer.file_review.decided` events (decided.ts).
  *
  * FileDigest is the enforcement key the runner's reconcile checks before
  * applying a decision ("what you approve is what gets applied"); NEVER a

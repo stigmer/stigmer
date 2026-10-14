@@ -3,8 +3,8 @@
 // This is the change-side peer of `resolveWorkspaceFileSelection`.
 //
 // The hard part is again PATH FORM, and — critically — ENTRY IDENTITY. A
-// `FileChange` carries a capture-side path (`path` is workspace-root-relative,
-// falling back to `absolutePath`), while the selection is the reader's
+// `DisplayFileChange` carries a capture-side path (`path`, workspace-root-relative),
+// while the selection is the reader's
 // `{ entryId, path }`. Matching by a bare `/`-boundary suffix (as the
 // presentation-only `changeForRowPath` does) is deliberately NOT used here: in
 // a multi-repo session it would happily match `repoA/src/a.ts` to a change in
@@ -18,13 +18,13 @@
 // multi-entry / absolute paths degrade to "no match" (never a wrong match),
 // the same honesty as `resolveWorkspaceFileSelection`. One resolver, one truth.
 
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { DisplayFileChange } from "@stigmer/sdk";
 import type { SelectedWorkspaceFile } from "../internal/store/workspace-file-selection-store.js";
 import { resolveWorkspaceFileSelection } from "./resolveWorkspaceFileSelection.js";
 import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
 
 /**
- * The session {@link FileChange} that touched the currently-open file, or
+ * The session {@link DisplayFileChange} that touched the currently-open file, or
  * `null` when the open file was not changed this session (or cannot be
  * correlated with certainty).
  *
@@ -39,13 +39,13 @@ import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
  */
 export function findChangeForSelection(
   selection: SelectedWorkspaceFile,
-  fileChanges: readonly FileChange[],
+  fileChanges: readonly DisplayFileChange[],
   entries: readonly WorkspaceEntry[],
   sandboxWorkspaceRoot?: string,
-): FileChange | null {
+): DisplayFileChange | null {
   for (const change of fileChanges) {
     const resolved = resolveWorkspaceFileSelection(
-      change.path || change.absolutePath,
+      change.path,
       entries,
       sandboxWorkspaceRoot,
     );

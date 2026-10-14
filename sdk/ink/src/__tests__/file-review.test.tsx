@@ -458,7 +458,7 @@ describe("MessageThread — file-review integration", () => {
   it("renders the diff of a write from its run's captured bytes", async () => {
     const turn = turnWithEdit("running", false);
     const run = samples.run({ phase: undefined });
-    run.status!.fileChangeSets = [
+    run.status!.fileChanges = [
       create(FileChangeSetSchema, {
         id: "cs-1",
         changes: [
@@ -477,7 +477,7 @@ describe("MessageThread — file-review integration", () => {
     const prompt = renderWithClient(
       <FileReviewPrompt
         fileReviewSet={turn.fileReview[0]!}
-        capture={run.status!.fileChangeSets[0]!}
+        capture={run.status!.fileChanges[0]!}
         onSubmit={() => {}}
       />,
     );

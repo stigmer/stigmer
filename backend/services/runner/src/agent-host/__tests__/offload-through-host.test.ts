@@ -18,8 +18,6 @@
 
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { DEEP_AGENT_CAPABILITIES } from "../../activities/execute-deep-agent/deep-agent-capabilities.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
@@ -29,6 +27,8 @@ import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
 import type { HarnessAdapter, TurnInput, TurnSink } from "../../harness/types.js";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
 import { offloadOversizedToolOutputs } from "../../shared/status-offload.js";
+import { AgentMessageSchema, ToolCallSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { MessageType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const BIG_TEXT = "x".repeat(300 * 1024);
 const IMAGE = JSON.stringify({ type: "image", data: Buffer.alloc(2048, 7).toString("base64"), mimeType: "image/png" });
@@ -50,7 +50,7 @@ class OffloadingSink extends RecordingTurnSink {
   }
 
   override async requestPersist(): Promise<void> {
-    await offloadOversizedToolOutputs(this.status, { executionId: this.executionId, artifactStorage: this.storage });
+    await offloadOversizedToolOutputs(this.rows, { executionId: this.executionId, artifactStorage: this.storage });
     await super.requestPersist();
   }
 }
@@ -75,7 +75,7 @@ describe("the runtime's offload through the agent host", () => {
     const row = loopbackHostedRow({
       harness: "deep-agent",
       adapter: adapterThat(async (_input, sink) => {
-        sink.status.messages.push(
+        sink.rows.messages.push(
           create(AgentMessageSchema, {
             type: MessageType.MESSAGE_AI,
             toolCalls: [create(ToolCallSchema, { id: "tc-big", name: "shell", result: BIG_TEXT }), create(ToolCallSchema, { id: "tc-image", name: "screenshot", result: IMAGE })],
@@ -83,7 +83,7 @@ describe("the runtime's offload through the agent host", () => {
         );
         for (let i = 0; i < 3; i++) {
           await sink.requestPersist();
-          const big = sink.status.messages[0]!.toolCalls[0]!;
+          const big = sink.rows.messages[0]!.toolCalls[0]!;
           seen.push({ text: big.result ?? "", hasRef: big.outputRef !== undefined });
         }
       }),
@@ -106,9 +106,9 @@ describe("the runtime's offload through the agent host", () => {
     const row = loopbackHostedRow({
       harness: "deep-agent",
       adapter: adapterThat(async (_input, sink) => {
-        sink.status.messages.push(create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, toolCalls: [create(ToolCallSchema, { id: "tc-big", name: "shell", result: BIG_TEXT })] }));
+        sink.rows.messages.push(create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, toolCalls: [create(ToolCallSchema, { id: "tc-big", name: "shell", result: BIG_TEXT })] }));
         await sink.requestPersist();
-        sink.status.messages[0]!.toolCalls[0]!.result = "y".repeat(300 * 1024);
+        sink.rows.messages[0]!.toolCalls[0]!.result = "y".repeat(300 * 1024);
         await sink.requestPersist();
       }),
     });

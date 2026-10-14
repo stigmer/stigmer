@@ -24,7 +24,6 @@ import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { SDKMessage } from "@cursor/sdk";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RecordingTurnSink } from "../../../__test-utils__/harness-contract/recording-sink.js";
 import type { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import { sdkEvents } from "../__test-utils__/scripted-agent.js";
@@ -37,6 +36,7 @@ import {
   type StreamableRun,
   type TurnStreamState,
 } from "../turn-stream.js";
+import { ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** The SDK's real event shapes, bound to one run, so the translator folds them as production would. */
 const sdk = sdkEvents("agent-test", "run-test");
@@ -62,7 +62,7 @@ function mockRun(events: SDKMessage[]): MockRun {
 }
 
 function translatorFor(sink: RecordingTurnSink): CursorTranslator {
-  return new CursorTranslator({ mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, leases: { global: false, categories: new Set() }, seeded: sink.status.messages });
+  return new CursorTranslator({ mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, leases: { global: false, categories: new Set() }, seeded: sink.rows.messages });
 }
 
 /** Prices nothing: hands the counts back as a delta with a stated cost, so the sink sees a priced delta. */
@@ -105,7 +105,7 @@ function buildDeps(overrides: Partial<CursorTurnStreamDeps> = {}): BuiltDeps {
 
 /** Every root row the loop folded into the sink's status. */
 function rows(sink: RecordingTurnSink) {
-  return sink.status.messages.flatMap((m) => m.toolCalls);
+  return sink.rows.messages.flatMap((m) => m.toolCalls);
 }
 
 describe("consumeCursorTurnStream", () => {
@@ -118,7 +118,7 @@ describe("consumeCursorTurnStream", () => {
     );
 
     expect(reason).toBe("completed");
-    expect(sink.status.messages.map((m) => [m.content, m.toolCalls.map((tc) => tc.id)])).toEqual([["Reading.", ["c1"]]]);
+    expect(sink.rows.messages.map((m) => [m.content, m.toolCalls.map((tc) => tc.id)])).toEqual([["Reading.", ["c1"]]]);
     expect(rows(sink)[0].result).toBe("text");
     // The #1 retry gap: the bare loop never persisted mid-stream. This proves the
     // shared loop persists live — through the runtime's chokepoint — on the
@@ -164,7 +164,7 @@ describe("consumeCursorTurnStream", () => {
 
     await consumeCursorTurnStream(mockRun([sdk.toolCall("t1", "task", "running", { subagentType: "helper", description: "Look", prompt: "Look at it" })]), deps);
 
-    expect(sink.status.subAgentRuns.map((s) => [s.id, s.name])).toEqual([["t1", "helper"]]);
+    expect(sink.rows.subAgentRuns.map((s) => [s.id, s.name])).toEqual([["t1", "helper"]]);
     expect(rows(sink).map((tc) => tc.id)).toEqual(["t1"]);
   });
 
@@ -230,7 +230,7 @@ describe("consumeCursorTurnStream", () => {
 
       expect(reason).toBe("interrupted");
       expect(run.cancel).toHaveBeenCalledTimes(1);
-      expect(sink.status.messages).toHaveLength(0);
+      expect(sink.rows.messages).toHaveLength(0);
     });
 
     it("an abort between events: the run is cancelled at once and the next event is never processed", async () => {
@@ -250,7 +250,7 @@ describe("consumeCursorTurnStream", () => {
       expect(reason).toBe("interrupted");
       expect(run.cancel).toHaveBeenCalledTimes(1);
       // Event 1 was folded; event 2 hit the boundary check.
-      expect(sink.status.messages.map((m) => m.content)).toEqual(["first"]);
+      expect(sink.rows.messages.map((m) => m.content)).toEqual(["first"]);
     });
 
     it("an abort while the pull is blocked (a wedged stream): the cancel is what unblocks it", async () => {

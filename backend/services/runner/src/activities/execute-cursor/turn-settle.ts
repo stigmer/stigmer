@@ -86,9 +86,9 @@ export interface CursorTurnFrame {
 export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutcome> {
   const { input, sink, engine, gate, prompt, rows, streamState, telemetry } = frame;
   const { executionId, sessionId, blueprint, workspace, mcp } = input;
-  const { status } = sink;
+  const turnRows = sink.rows;
 
-  // The runtime's one transcript builder over the turn's status, and this
+  // The runtime's one transcript builder over the turn's rows, and this
   // harness's translator over the run's approval posture and the seeded
   // transcript (a resumed agent's re-issued call is matched onto its seeded
   // WAITING row by identity). Both live for the whole turn — the
@@ -97,7 +97,7 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   const translator = new CursorTranslator({
     mcpDefault: mcp.mcpDefault,
     leases: { global: mcp.leases.global, categories: mcp.leases.categories },
-    seeded: status.messages,
+    seeded: turnRows.messages,
     ...(gate.hookDecisions !== undefined ? { hookDecisions: gate.hookDecisions } : {}),
   });
   // The raw recording of both SDK channels, on only when the env names a dir
@@ -163,7 +163,7 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   // Everything at an index >= this was produced by THIS turn's stream — the
   // positional scope the boundary's #205 attribution and #965 settle read.
   // Snapshotted before the builder can append.
-  const turnStartMessageIndex = status.messages.length;
+  const turnStartMessageIndex = turnRows.messages.length;
 
   // Shared cadence with the native harness: discrete state changes force a
   // flush; high-frequency token deltas ride this scheduler's time cadence
@@ -196,11 +196,11 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
     // IN_PROGRESS "zombie" in the final snapshot, through the one shared act
     // (parity with the native settle).
     if (sink.stopSignal.aborted) {
-      cancelInProgressSubAgentProtos(status.subAgentRuns);
+      cancelInProgressSubAgentProtos(turnRows.subAgentRuns);
     }
     await eventRecorder?.flush();
     console.log(
-      `ExecuteCursor stream ended: execution=${executionId}, events=${streamState.eventCount}, messages=${status.messages.length}, subAgents=${status.subAgentRuns.length}`,
+      `ExecuteCursor stream ended: execution=${executionId}, events=${streamState.eventCount}, messages=${turnRows.messages.length}, subAgents=${turnRows.subAgentRuns.length}`,
     );
     // Persist immediately after finalize so the UI sees correct tool-call
     // statuses before the boundary / run.wait() / the runtime's epilogue.
@@ -218,7 +218,7 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   const hookRefusedToolCallIds = new Set<string>();
   const runBoundary = async (denialSettled?: Promise<void>): Promise<TurnBoundaryResult> => {
     const result = await runTurnBoundary({
-      status,
+      rows: turnRows,
       transcript,
       executionId,
       hitlDir: gate.hitlDir,
@@ -389,7 +389,7 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
         isResumedHandle: engine.resolution.reason === "resumed_successfully",
         fallbackContext: { model: engine.validatedModel, mode: engine.agentMode, agentId: engine.resolution.agentId },
         durationMs: (result as unknown as Record<string, unknown>).durationMs as number | undefined,
-        messageCount: status.messages.length,
+        messageCount: turnRows.messages.length,
       });
 
       console.error(
@@ -520,7 +520,7 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   // routine keeps the diff/output carrier and blanks the rest to hidden SKIPPED
   // rows in place, preserving each committed id so the finalize stays append-only.
   // A row the boundary settled from a refusal is a decision, never a twin (#1967).
-  const collapsedTwins = collapseRedundantToolCallTwins(status.messages, hookRefusedToolCallIds);
+  const collapsedTwins = collapseRedundantToolCallTwins(sink.rows.messages, hookRefusedToolCallIds);
   if (collapsedTwins > 0) {
     console.log(
       `ExecuteCursor collapsed ${collapsedTwins} redundant tool-call twin(s) at ` +

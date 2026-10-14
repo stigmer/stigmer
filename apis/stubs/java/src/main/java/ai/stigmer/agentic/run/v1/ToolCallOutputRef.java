@@ -7,9 +7,9 @@ package ai.stigmer.agentic.run.v1;
 
 /**
  * <pre>
- * ToolCallOutputRef points to a tool call's full output after the runner
- * offloaded it to artifact storage to keep RunStatus under the gRPC
- * message-size limit.
+ * ToolCallOutputRef points to content the runner offloaded to artifact
+ * storage: a tool call's full output, or one side of a captured file change
+ * too large to keep inline.
  *
  * This is deliberately distinct from RunArtifact (a file the agent
  * publishes for the user to download via publish_artifact): an output ref is
@@ -515,9 +515,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ToolCallOutputRef points to a tool call's full output after the runner
-   * offloaded it to artifact storage to keep RunStatus under the gRPC
-   * message-size limit.
+   * ToolCallOutputRef points to content the runner offloaded to artifact
+   * storage: a tool call's full output, or one side of a captured file change
+   * too large to keep inline.
    *
    * This is deliberately distinct from RunArtifact (a file the agent
    * publishes for the user to download via publish_artifact): an output ref is

@@ -58,6 +58,7 @@ import { NO_RUN_VALUES, toolValuesKey, type RunValues } from "../../shared/run-v
 import { ToolScope } from "../../shared/tool-lists.js";
 import { TranscriptBuilder } from "../transcript/builder.js";
 import { mountSkills, resolveSubagents, type ResolutionDeps } from "../turn-context.js";
+import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 const env = createHermeticEnvironment();
 afterAll(() => env.dispose());
@@ -133,6 +134,7 @@ function client(available: readonly string[] = []) {
 function depsWith(c: ResolutionDeps["client"]): { deps: ResolutionDeps; labels: string[] } {
   const labels: string[] = [];
   const status = create(RunStatusSchema, {});
+  const rows = create(TurnRowsSchema);
   return {
     labels,
     deps: {
@@ -140,7 +142,8 @@ function depsWith(c: ResolutionDeps["client"]): { deps: ResolutionDeps; labels: 
       client: c,
       config: testConfig({ workspaceRootDir: env.workspaceRootDir, mcpBridgeEndpoint: "https://mcp.example.com" }),
       status,
-      transcript: new TranscriptBuilder("aex-subagents", status),
+      rows,
+      transcript: new TranscriptBuilder("aex-subagents", rows, status),
       artifactStorage: undefined,
       timing: new TimingRecorder(),
       signal: new AbortController().signal,

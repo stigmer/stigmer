@@ -9,8 +9,7 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
+import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { appendStructuredOutputDirective, buildPrompt, isHitlReinvocation, primarySendCarriesImages, promptCarriesStandingContext } from "../prompt-builder.js";
 import type { BuildPromptInput } from "../prompt-builder.js";
@@ -18,6 +17,8 @@ import { buildReinvocationPrompt, formatInteractionModePrefix, formatImplementPl
 import { PLAN_MODE_DIRECTIVE } from "../../../shared/plan-mode-prompt.js";
 import type { AgentResolution, AgentResolutionReason } from "../session-lifecycle.js";
 import type { ResolvedAttachment } from "../../../shared/attachment-resolver.js";
+import { PendingApprovalSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const USER_MESSAGE = "What was the secret token I told you?";
 

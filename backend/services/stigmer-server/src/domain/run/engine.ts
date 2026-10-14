@@ -16,8 +16,8 @@
  * byte-identical to the Go server running without Temporal:
  * create refuses Unavailable at the gate (create.go
  * ensureEngineAvailableStep), lifecycle RPCs refuse FailedPrecondition,
- * and submitApproval records the decision but skips the resolved-gate
- * signal with a WARN (submit_approval.go signalWorkflowStep).
+ * and an answer to a waiting tool use is recorded but skips the
+ * resolved-gate signal with a WARN (domain/session/hitl/answer.ts).
  *
  * The connected variant's surface carries exactly the operations THIS
  * controller consumes (the seam Go defines through
@@ -41,7 +41,7 @@ export interface ConnectedExecutionEngine {
    * Sends the approvalGateResolved signal to the execution's running
    * workflow (Go InvokeAgentExecutionWorkflowCreator.
    * SignalApprovalGateResolved). Throws EngineWorkflowNotFoundError when
-   * the backing workflow no longer runs — SubmitApproval's signal step
+   * the backing workflow no longer runs — the answer core's signal step
    * then reconciles the stale execution to FAILED.
    */
   signalApprovalGateResolved(executionId: string): Promise<void>;

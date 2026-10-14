@@ -583,7 +583,7 @@ async function startAgentConversation(baseUrl, { orgId, agentId, agentSlug }, ap
 
 /**
  * One run of an existing agent, to RUN_COMPLETED with the model's reply
- * as its last message. The upgrade rehearsal runs the agent an older release
+ * as its last message ({@link runReply}). The upgrade rehearsal runs the agent an older release
  * stored this way, which is what shows the stored agent still works. Resolves
  * `{ executionId, reply }`.
  */
@@ -602,7 +602,7 @@ export async function runAgentExecution(baseUrl, agent, timeoutMs, { expectText,
     }
     return runPhaseWord(phase, api) === "COMPLETED" ? current : false;
   });
-  const reply = lastAiReply(completed);
+  const reply = await runReply(baseUrl, completed);
   if (!reply.includes(expectText)) {
     throw new Error(
       `agent execution completed, but its last reply is not the model's: expected it to contain ` +
@@ -630,9 +630,49 @@ export async function readAgentExecution(baseUrl, executionId, api = RUN_APIS.cu
   });
 }
 
-/** The content of an execution's last AI message, or "" when it has none. */
-export function lastAiReply(execution) {
-  const messages = execution.status?.messages ?? [];
+const LIST_SESSION_EVENTS = "ai.stigmer.agentic.session.v1.SessionQueryController/listEvents";
+
+/**
+ * Whether `baseUrl` keeps a session event log ({@link LIST_SESSION_EVENTS}
+ * routed). Every build since the log does; a release before it kept a run's
+ * transcript on the run's status instead.
+ */
+export async function servesSessionEvents(baseUrl) {
+  return routes(baseUrl, LIST_SESSION_EVENTS, { sessionId: "session_events_probe" });
+}
+
+/**
+ * The model's reply in one run, or "" when it has none: the text of the
+ * run's newest `agent.message` on the session's primary thread, read from
+ * the session's event log. On a release from before the log ({@link
+ * servesSessionEvents} false), the run's last AI message on its status,
+ * where that release kept it, so the upgrade rehearsal reads its base's
+ * reply too.
+ */
+export async function runReply(baseUrl, run) {
+  if (!(await servesSessionEvents(baseUrl))) return statusReply(run);
+  const sessionId = run.spec?.sessionId ?? "";
+  const runId = run.metadata?.id ?? "";
+  if (sessionId === "" || runId === "") {
+    throw new Error(`the run names no session to read its reply from: ${JSON.stringify(run.metadata)}`);
+  }
+  const page = await connectJson(baseUrl, LIST_SESSION_EVENTS, {
+    sessionId,
+    runId,
+    types: ["agent.message"],
+    order: "desc",
+    pageSize: 100,
+  });
+  const newest = (page.events ?? []).find((event) => !event.threadId);
+  return (newest?.agentMessage?.content ?? [])
+    .filter((block) => block.type === "text")
+    .map((block) => block.text ?? "")
+    .join("");
+}
+
+/** A pre-log release's run: the content of its status's last AI message. */
+function statusReply(run) {
+  const messages = run.status?.messages ?? [];
   const ai = messages.filter((message) => message.type === "MESSAGE_AI" && !message.isStreaming);
   return ai.at(-1)?.content ?? "";
 }
@@ -684,8 +724,9 @@ const READS = Object.freeze({
  * the smoke's organization ({@link smokeOrganization}: one of its own on a
  * server that holds several, the server's one where it holds one), and every
  * resource as the server reads it back right after. Resolves
- * `{ ids, snapshot, workflowRun? }`: the ids to read again later, the
- * snapshot {@link compareState} holds the later read to, and, on a base that
+ * `{ ids, snapshot, reply, workflowRun? }`: the ids to read again later, the
+ * snapshot {@link compareState} holds the later read to, the run's reply as
+ * the base answered it ({@link runReply}), and, on a base that
  * still serves workflows, the completed workflow run recorded beside them
  * (`{ orgId, workflowId, executionId }`), whose organization joins the ids
  * so the read after the upgrade proves it survived the workflows it held.
@@ -708,7 +749,7 @@ export async function recordState(baseUrl, timeoutMs, { expectText, log = () => 
     .filter(([, value]) => value.error !== undefined)
     .map(([key, value]) => `${key}: ${value.error}`);
   if (problems.length > 0) throw new Error(`the state just created does not read back: ${problems.join("; ")}`);
-  return { ids, snapshot, ...(workflowRun !== undefined ? { workflowRun } : {}) };
+  return { ids, snapshot, reply: agent.reply, ...(workflowRun !== undefined ? { workflowRun } : {}) };
 }
 
 /**
@@ -722,7 +763,7 @@ export async function readState(baseUrl, ids) {
   const api = await runApiOf(baseUrl);
   const read = async (procedure, body, pick) => {
     try {
-      return pick(await connectJson(baseUrl, procedure, body));
+      return await pick(await connectJson(baseUrl, procedure, body));
     } catch (error) {
       return { error: error instanceof Error ? error.message : String(error) };
     }
@@ -735,6 +776,12 @@ export async function readState(baseUrl, ids) {
   // The phase without its API's prefix: a run recorded as EXECUTION_COMPLETED
   // reads back as RUN_COMPLETED after the rename, the same phase.
   const execution = (resource) => ({ ...identity(resource), phase: runPhaseWord(resource.status?.phase ?? "", api) });
+  // The reply is part of the state only where the session event log keeps
+  // it. A release before the log kept a run's transcript on its status, and
+  // that transcript left the contract with the log: it is not carried into
+  // the log, so a base from before it records no reply to compare (its run
+  // proved its reply when recorded, {@link runAgentToReply}).
+  const logged = await servesSessionEvents(baseUrl);
   const agentOrg = await read(READS.organization, { value: ids.agentOrgId }, identity);
   const agent = await read(READS.agent, { value: ids.agentId }, identity);
   const agentByReference =
@@ -746,9 +793,9 @@ export async function readState(baseUrl, ids) {
     ...(ids.workflowOrgId !== undefined ? { workflowOrg: await read(READS.organization, { value: ids.workflowOrgId }, identity) } : {}),
     agent,
     agentByReference,
-    agentExecution: await read(`${api.agentService}QueryController/get`, { value: ids.agentExecutionId }, (resource) => ({
+    agentExecution: await read(`${api.agentService}QueryController/get`, { value: ids.agentExecutionId }, async (resource) => ({
       ...execution(resource),
-      reply: lastAiReply(resource),
+      ...(logged ? { reply: await runReply(baseUrl, resource) } : {}),
     })),
   };
 }

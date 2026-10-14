@@ -5,18 +5,19 @@
 //
 // Per turn, in order: the clock is read, and the execution is created, on the
 // session's first turn with the one-call session bootstrap and on later turns
-// with the session's id. The subscribe stream is watched to review or to the
-// end. A turn that offers its edits for review is approved whole, at once
-// (the benchmark measures the agent, not a reviewer), and the watch follows
-// the reconcile to the terminal phase. Then the status facts, the runner's
-// timing lines (re-read from the log until present) and the Temporal history
-// are joined by execution id, and each root tool call is placed on its round
-// (`tool-call-facts.ts`).
+// with the session's id. The session's event stream is watched to the turn's
+// end (`stream-watch.ts`). A turn that offered its edits for review has them
+// kept whole once it ends (the benchmark measures the agent, not a
+// reviewer). Then the status facts, the turn as the session's log folds it,
+// the runner's timing lines (re-read from the log until present) and the
+// Temporal history are joined by execution id, and each primary-thread tool
+// call is placed on its round (`tool-call-facts.ts`).
 //
-// The next turn is sent only after the previous one is terminal. That is a
-// correctness rule, not a convenience: the platform accepts a follow-up while
-// a review is still open, and the later decision rewrites the files from the
-// capture whatever the follow-up has written since (stigmer#1290).
+// The next turn is sent only after the previous one has ended and its review
+// is kept. That is a correctness rule, not a convenience: the platform
+// accepts a follow-up while a review is still open, and a later undo would
+// rewrite the files from the capture whatever the follow-up has written
+// since (stigmer#1290).
 //
 // Nothing is retried. A refused create, a provider fault or a stall is a fact
 // about the harness under measurement and stays on the sample as its outcome,
@@ -25,17 +26,17 @@
 // the rest: they are recorded as failed at create, never skipped silently.
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { FileDecisionAction, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import type { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { ConformanceClients } from "../harness/clients";
 import { makeAgentExecution, sessionIdOf } from "../support/runs";
 import type { AgentRefInit } from "../support/agents";
-import { requireReviewSet, submitChangeSetDecision } from "../support/file-review";
+import { recordedSet, reviewChangeSet } from "../support/file-review";
 import { uniqueName } from "../support/naming";
 import type { BenchmarkHarness, BenchmarkSample, SampleFailure, SampleOutcome } from "./report";
 import { finalReply, nullAxes, statusFacts } from "./status-facts";
-import { subscribeTo, watchExecution, type WatchedExecution } from "./stream-watch";
+import { streamSessionEvents, watchTurn } from "./stream-watch";
 import { executeActivityNameFor, historyAxes, invokeWorkflowIdFor, showWorkflow } from "./temporal-history";
 import { awaitTimingLines, axesFromTiming, type ExecutionTiming } from "./timing-lines";
 import { todoCounts, toolCallFacts } from "./tool-call-facts";
@@ -43,8 +44,8 @@ import { todoCounts, toolCallFacts } from "./tool-call-facts";
 /** How long one turn may take before the sample is a `timeout`: a live edit turn outlives the poll core's default. */
 export const EXECUTION_BUDGET_MS = 10 * 60_000;
 
-/** The reason every approval the benchmark submits carries, so a reader of the ledger knows who decided. */
-export const BENCHMARK_APPROVAL_REASON = "harness benchmark: approved whole at review-ready";
+/** The reason every keep the benchmark decides carries, so a reader of the log knows who decided. */
+export const BENCHMARK_APPROVAL_REASON = "harness benchmark: kept whole at review-ready";
 
 /** What a session needs from the stack: the clients, the runner's tee'd log and Temporal. */
 export interface SessionStack {
@@ -133,46 +134,44 @@ async function measureTurn(stack: SessionStack, plan: SessionPlan, turn: TurnReq
     return { sample: failedAtCreate(plan.modelRequested, errorMessage(error)), reply: "" };
   }
   const executionId = created.metadata!.id;
+  const sessionId =
+    turn.sessionId ??
+    (sessionIdOf(created) || sessionIdOf(await clients.agentExecutionQuery.get({ value: executionId }).catch(() => created)));
 
-  const watch = (stopAtReview: boolean, timeoutMs: number): Promise<WatchedExecution> =>
-    watchExecution(subscribeTo(clients, executionId), { startedAtMs, timeoutMs, stopAtReview });
-
-  let watched = await watch(true, EXECUTION_BUDGET_MS);
+  const watched = await watchTurn(streamSessionEvents(clients, sessionId), executionId, {
+    startedAtMs,
+    timeoutMs: EXECUTION_BUDGET_MS,
+  });
   const reviewReadyMs = watched.review_ready_ms;
-  let approvalFailure: string | undefined;
-  if (watched.awaiting_review && watched.final !== undefined) {
+  const timedOut = watched.outcome !== "until";
+  if (timedOut) {
+    // The budget passed or the server closed early: stop what is still
+    // running and record the attempt as what it was, never as a sample.
     try {
-      await submitChangeSetDecision(clients, executionId, requireReviewSet(watched.final), FileDecisionAction.APPROVE, {
-        reason: BENCHMARK_APPROVAL_REASON,
-      });
-      const spent = Date.now() - startedAtMs;
-      const resumed = await watch(false, Math.max(EXECUTION_BUDGET_MS - spent, 1));
-      // The first-token stamps belong to the first watch, which saw the turn
-      // start; the second only follows the reconcile to the end.
-      watched = {
-        ...resumed,
-        client_first_visible_token_ms: watched.client_first_visible_token_ms ?? resumed.client_first_visible_token_ms,
-        client_first_text_ms: watched.client_first_text_ms ?? resumed.client_first_text_ms,
-      };
-    } catch (error) {
-      approvalFailure = `approve at review-ready: ${errorMessage(error)}`;
-      io.log(`${turn.label}: ${executionId} ${approvalFailure}`);
+      await clients.sessionCommand.interrupt({ sessionId });
+    } catch {
+      // Already finished, or gone: the run we read next is what there is.
     }
+    io.log(`${turn.label}: ${executionId} did not end within ${EXECUTION_BUDGET_MS}ms; recorded as timeout`);
   }
 
-  let terminal = watched.final ?? created;
-  let timedOut = false;
-  if (watched.outcome !== "until" || watched.awaiting_review) {
-    // The budget passed, the server closed early, or the approval never
-    // landed: cancel what is still running and record the attempt as what
-    // it was, never as a sample.
-    timedOut = approvalFailure === undefined;
-    try {
-      terminal = await clients.agentExecutionCommand.cancel({ id: executionId, reason: "benchmark budget exceeded" });
-    } catch {
-      // Already terminal, or gone: the snapshot we hold is what there is.
+  let terminal = await clients.agentExecutionQuery.get({ value: executionId }).catch(() => created);
+  let approvalFailure: string | undefined;
+  if (!timedOut) {
+    for (const offered of watched.turn?.fileReview ?? []) {
+      if (!offered.undecided) continue;
+      try {
+        await reviewChangeSet(clients, sessionId, recordedSet(terminal, offered.changeSetId), "keep", {
+          reason: BENCHMARK_APPROVAL_REASON,
+        });
+      } catch (error) {
+        approvalFailure = `keep at review-ready: ${errorMessage(error)}`;
+        io.log(`${turn.label}: ${executionId} ${approvalFailure}`);
+      }
     }
-    if (timedOut) io.log(`${turn.label}: ${executionId} did not reach a terminal phase within ${EXECUTION_BUDGET_MS}ms; recorded as timeout`);
+    if (approvalFailure === undefined && (watched.turn?.fileReview.length ?? 0) > 0) {
+      terminal = await clients.agentExecutionQuery.get({ value: executionId }).catch(() => terminal);
+    }
   }
 
   const facts = statusFacts(terminal);
@@ -195,7 +194,7 @@ async function measureTurn(stack: SessionStack, plan: SessionPlan, turn: TurnReq
 
   const sample: BenchmarkSample = {
     execution_id: executionId,
-    session_id: facts.session_id || sessionIdOf(created),
+    session_id: facts.session_id || sessionId,
     model_requested: plan.modelRequested ?? "default",
     model_reported: facts.model_reported,
     measures: {
@@ -214,12 +213,12 @@ async function measureTurn(stack: SessionStack, plan: SessionPlan, turn: TurnReq
     cost_source: "runner-rate-card-estimate",
     server: facts.server,
     timing,
-    tool_calls: toolCallFacts(terminal, timing.turn_phases),
-    todos: todoCounts(terminal),
+    tool_calls: toolCallFacts(watched.turn, timing.turn_phases),
+    todos: todoCounts(watched.turn),
     outcome,
     ...(failure !== undefined ? { failure } : {}),
   };
-  return { sample, reply: finalReply(terminal) };
+  return { sample, reply: finalReply(watched.turn) };
 }
 
 /** An attempt that never became an execution: every axis unobserved, the refusal kept. */

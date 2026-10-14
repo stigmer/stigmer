@@ -27,15 +27,14 @@
 import { createHash } from "node:crypto";
 
 import { create } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
 import { approvalAnswersOf, type ApprovalAsk } from "../harness/approval-answers.js";
 import { POLICY_SOURCE_WORDS } from "../harness/events/emitter.js";
 import { permissionAskedEventId, toolUseEventId } from "../harness/events/ids.js";
 import { deriveLeaseScope } from "../shared/approval-policy.js";
+import type { AgentMessage, ToolCall } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction, ToolCallStatus } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 function hashed(prefix: string, toolUseId: string): string {
   return `${prefix}${createHash("sha256").update(toolUseId).digest("hex").slice(0, 40)}`;
@@ -138,6 +137,6 @@ export function loggedApprovalsFor(
       log.push(askedEventFor(ids, row), ...answerEventsFor(ids, row, row.approvalAction));
     }
   }
-  const answers = approvalAnswersOf(runId, create(RunStatusSchema, { messages: [...messages] }), log);
+  const answers = approvalAnswersOf(runId, { messages }, log);
   return { runId, decisions: answers.decisions, asks: answers.asks, denyMessages: answers.denyMessages };
 }

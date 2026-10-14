@@ -8,7 +8,6 @@ import type { JsonObject } from "@bufbuild/protobuf";
 import type { ToolUse } from "@stigmer/sdk";
 import { segmentToolCalls } from "../segment-tool-calls";
 import { registerToolPresenter } from "../tool-presenter";
-import { ToolKind } from "@stigmer/sdk";
 import { toolUse } from "./__fixtures__/fold-values";
 
 function tc(name: string, id: string, input?: JsonObject): ToolUse {
@@ -104,7 +103,7 @@ describe("segmentToolCalls", () => {
 
   it("honours a registry runGroupable override", () => {
     // Force shell to fold; two adjacent shells then become one run chip.
-    const dispose = registerToolPresenter(ToolKind.SHELL, {
+    const dispose = registerToolPresenter("shell", {
       runGroupable: () => true,
     });
     try {

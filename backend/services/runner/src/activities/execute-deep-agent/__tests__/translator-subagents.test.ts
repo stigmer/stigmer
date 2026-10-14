@@ -15,9 +15,6 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { type RunStatus, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
-import { SubAgentStatus, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { cancelInProgressSubAgentProtos } from "../../../shared/subagent-rows.js";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import { DeepAgentTranslator } from "../translator.js";
@@ -34,11 +31,14 @@ import {
   makeToolOutputDelta,
   makeProtocolEvent,
 } from "../__test-utils__/v3-event-fixtures.js";
+import { SubAgentRunSchema, TurnRowsSchema, type TurnRows } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { SubAgentStatus, MessageType, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 
 /** A builder and the status it builds into: the test writes through `sb` and reads `status`, as production reads `TurnSink.status`. */
-function makeBuilder(): { sb: TranscriptBuilder; status: RunStatus } {
-  const status = create(RunStatusSchema, {});
-  return { sb: new TranscriptBuilder("exec-test", status), status };
+function makeBuilder(): { sb: TranscriptBuilder; status: TurnRows } {
+  const status = create(TurnRowsSchema, {});
+  return { sb: new TranscriptBuilder("exec-test", status, create(RunStatusSchema)), status };
 }
 
 /** The loop's path: one translator for the turn (it holds the task prefixes), every canonical event into the builder. */
@@ -193,9 +193,9 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
 
   describe("the status's array is built into by reference", () => {
     it("new rows are pushed onto the array the builder was handed, never a replacement", () => {
-      const status = create(RunStatusSchema, {});
+      const status = create(TurnRowsSchema, {});
       const rows = status.subAgentRuns;
-      const sb = new TranscriptBuilder("exec-test", status);
+      const sb = new TranscriptBuilder("exec-test", status, create(RunStatusSchema));
       feedAll(sb, [makeTaskToolStarted("call_sub_1", "researcher", "Task 1")]);
       expect(status.subAgentRuns, "the same array object").toBe(rows);
       expect(rows).toHaveLength(1);
@@ -207,8 +207,8 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
         name: "researcher",
         status: SubAgentStatus.SUB_AGENT_IN_PROGRESS,
       });
-      const status = create(RunStatusSchema, { subAgentRuns: [seeded] });
-      const sb = new TranscriptBuilder("exec-test", status);
+      const status = create(TurnRowsSchema, { subAgentRuns: [seeded] });
+      const sb = new TranscriptBuilder("exec-test", status, create(RunStatusSchema));
       feedAll(sb, [
         makeTaskToolStarted("call_sub_1", "researcher", "Task 1"),
         makeSubAgentEvent("call_sub_1", "messages", { event: "message-start", id: "msg_sub_1", run_id: "sub-run-1" }),

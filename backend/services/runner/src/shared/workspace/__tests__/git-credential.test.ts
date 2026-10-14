@@ -37,6 +37,7 @@ import { agentHostEnvironment } from "../../../agent-host/environment.js";
 import { LocalWorkspaceBackend } from "../local-backend.js";
 import { provisionGit } from "../sources/git.js";
 import { WriteBackCoordinator } from "../writeback-coordinator.js";
+import { TurnRowsSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 const TOKEN = "ghp_realtoken_0123456789";
 const BASIC = Buffer.from(`x-access-token:${TOKEN}`).toString("base64");
@@ -387,7 +388,7 @@ env >> ${loot}
     } as unknown as WorkspaceEntry;
 
     await new WriteBackCoordinator({
-      writeBacks: new TranscriptBuilder("exec-hook", create(RunStatusSchema, {})),
+      writeBacks: new TranscriptBuilder("exec-hook", create(TurnRowsSchema), create(RunStatusSchema, {})),
       executionId: "exec-hook",
       sessionId: "ses-hook",
       repositories: [{ name: "app", url: REPO_URL, token: TOKEN }],
@@ -454,7 +455,7 @@ env >> ${loot}
     } as unknown as WorkspaceEntry;
 
     await new WriteBackCoordinator({
-      writeBacks: new TranscriptBuilder("exec-cred", create(RunStatusSchema, {})),
+      writeBacks: new TranscriptBuilder("exec-cred", create(TurnRowsSchema), create(RunStatusSchema, {})),
       executionId: "exec-cred",
       sessionId: "ses-cred",
       repositories: [{ name: "app", url: REPO_URL, token: TOKEN }],

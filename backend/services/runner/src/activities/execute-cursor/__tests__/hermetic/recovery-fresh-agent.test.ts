@@ -26,9 +26,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { MessageType, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -44,6 +42,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { ScriptedCursorAgent, sdkEvents, step } from "../../__test-utils__/scripted-agent.js";
 import {
@@ -54,6 +55,7 @@ import {
   runCursorTurn,
 } from "../../__test-utils__/hermetic-cursor.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
+import { MessageType } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const STALE_AGENT_ID = "agent-hermetic-stale-0001";
 const FRESH_AGENT_ID = "agent-hermetic-fresh-0002";
@@ -129,7 +131,7 @@ describe("ExecuteCursor hermetic — poisoned-handle recovery on a fresh agent",
     expect(invocation.outcome.kind, "a recovered turn RETURNS like any completion").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
     expect(slim.phase).toBe("RUN_COMPLETED");
-    expect(record.status?.messages.filter((m) => m.type === MessageType.MESSAGE_AI).at(-1)?.content, "the persisted transcript ends with the answer").toBe(FINAL_TEXT);
+    expect(record.rows?.messages.filter((m) => m.type === MessageType.MESSAGE_AI).at(-1)?.content, "the persisted transcript ends with the answer").toBe(FINAL_TEXT);
     expect(record.persistedPhases).toEqual([
       RunPhase.RUN_IN_PROGRESS,
       RunPhase.RUN_COMPLETED,
@@ -153,8 +155,8 @@ describe("ExecuteCursor hermetic — poisoned-handle recovery on a fresh agent",
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(RunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/recovery-fresh-agent.status.json");
+    await expect(statusGolden(record.lastFullStatus!)).toMatchFileSnapshot("./goldens/recovery-fresh-agent.status.json");
+    await expect(rowsGolden(record.rowsOf(record.lastFullStatus!))).toMatchFileSnapshot(rowsGoldenPath("./goldens/recovery-fresh-agent.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/recovery-fresh-agent.events.json");
   });
 });

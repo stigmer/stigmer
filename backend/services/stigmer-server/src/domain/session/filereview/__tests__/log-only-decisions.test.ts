@@ -1,12 +1,11 @@
 /**
  * Pins that file review decides from the session's log alone: the run's
- * ledger holds only its capture (the files' bytes) and no decision, and
- * its transcript rows are empty, while the decisions and the answers are
- * in the log. A person's decision the log holds is final (the same one
- * again writes nothing, another on its target is refused); a captured set
- * whose cited command the log shows allowed is kept by the approved-command
- * policy as its candidate lands; and the next turn's close keeps nothing
- * of a set the log shows decided.
+ * file record holds only its capture (the files' bytes) and no decision,
+ * while the decisions and the answers are in the log. A person's decision
+ * the log holds is final (the same one again writes nothing, another on
+ * its target is refused); a captured set whose cited command the log shows
+ * allowed is kept by the approved-command rule as its capture lands; and
+ * the next turn's close keeps nothing of a set the log shows decided.
  */
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
@@ -14,12 +13,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { RunSchema, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  FileDecisionAction,
-  FileDecisionScope,
-  FileReviewEventType,
-  RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { TurnCommandProvenanceSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import { RunUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
@@ -33,15 +27,15 @@ import type { TempStore } from "../../../../store/sqlite/__tests__/support.js";
 import { createAgentExecutionActivities } from "../../../../temporal/agentexecution/activities.js";
 import { CLOSE_FILE_REVIEW_ACTIVITY_NAME } from "../../../../temporal/agentexecution/names.js";
 import { fileReviewSeed } from "../../../run/__tests__/file-review-seed.js";
-import { eventId } from "../../../run/filereview/author.js";
-import { StreamBroker } from "../../../run/stream-broker.js";
+import { fileReviewDecidedEventId } from "../../../run/filereview/decided.js";
 import { updateStatus } from "../../../run/update-status.js";
 import { SessionEventBroker } from "../../events/broker.js";
 import { draftOf, eventOf } from "../../events/codec.js";
-import { createRunAppendingEvents, fileReviewDecidedEventId } from "../../events/run-writes.js";
+import { createRunAppendingEvents } from "../../events/run-writes.js";
 import { toolConfirmationEventId } from "../../hitl/answer.js";
 import { CONFLICTING_DECISION_MESSAGE, decideFileChanges } from "../decide.js";
 import type { FileDecisionAsked, FileDecisionDeps } from "../decide.js";
+import type { ActionWord } from "../words.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 const SESSION = "ses_review";
@@ -80,14 +74,14 @@ async function appendToLog(runId: string, events: ReadonlyArray<SessionEvent>): 
   });
 }
 
-/** A decision the log holds on a whole set, with the id the decided mirror gives it; the ledger has none. */
+/** A decision the log holds on a whole set, with the id its target gives it; the record has none. */
 function decidedInLog(runId: string, changeSetId: string, action: "keep" | "undo", digest: string): SessionEvent {
   return create(SessionEventSchema, {
     runId,
     event: {
       case: "stigmerFileReviewDecided",
       value: {
-        id: fileReviewDecidedEventId(eventId(changeSetId, changeSetId, FileReviewEventType.FILE_DECIDED)),
+        id: fileReviewDecidedEventId(changeSetId, "change_set", ""),
         changeSetId,
         scope: "change_set",
         action,
@@ -115,17 +109,16 @@ function decisionDeps(): FileDecisionDeps {
   return {
     ...writeDeps(),
     logger: silentLogger,
-    broker: new StreamBroker(silentLogger),
     reconcileTurns: () => ({
       create: () => Promise.reject(new Error("no reconcile turn in this test")),
     }),
   };
 }
 
-function setDecision(changeSetId: string, action: FileDecisionAction, digest: string): FileDecisionAsked {
+function setDecision(changeSetId: string, action: ActionWord, digest: string): FileDecisionAsked {
   return {
     changeSetId,
-    scope: FileDecisionScope.CHANGE_SET,
+    scope: "change_set",
     fileChangeId: "",
     action,
     expectedDigest: digest,
@@ -144,7 +137,7 @@ describe("file review decided from the session's log alone", () => {
     const again = await decideFileChanges(
       decisionDeps(),
       { runId: "run_a", sessionId: SESSION },
-      setDecision("run_a:1", FileDecisionAction.APPROVE, seed.aggregate),
+      setDecision("run_a:1", "keep", seed.aggregate),
       person,
     );
     expect(again.recorded).toBe(false);
@@ -154,7 +147,7 @@ describe("file review decided from the session's log alone", () => {
       await decideFileChanges(
         decisionDeps(),
         { runId: "run_a", sessionId: SESSION },
-        setDecision("run_a:1", FileDecisionAction.REJECT, seed.aggregate),
+        setDecision("run_a:1", "undo", seed.aggregate),
         person,
       );
     } catch (error) {
@@ -183,18 +176,13 @@ describe("file review decided from the session's log alone", () => {
       }),
     ]);
     const capture = create(RunStatusSchema, { ...fileReviewSeed("run_b", "run_b:0").status, phase: RunPhase.RUN_COMPLETED });
-    const candidate = capture.fileReviewEventStream!.events[1]!;
-    if (candidate.payload.case !== "candidateCaptured") {
-      throw new Error("the seed's second event is the candidate");
-    }
-    candidate.payload.value.commandProvenance = create(TurnCommandProvenanceSchema, { consentToolCallIds: ["tc-shell"] });
+    capture.fileChanges[0]!.commandProvenance = create(TurnCommandProvenanceSchema, { consentToolCallIds: ["tc-shell"] });
 
     await updateStatus(
       {
         ...writeDeps(),
         logger: silentLogger,
         authorizer: newPermissiveSingleTeamAuthorizer(),
-        broker: new StreamBroker(silentLogger),
         statusObservers: [],
         responseDecorators: [],
       },
@@ -203,7 +191,7 @@ describe("file review decided from the session's log alone", () => {
     );
 
     const run = await temp.store.getResource(ApiResourceKind.run, "run_b", RunSchema);
-    expect(run.status?.messages).toEqual([]);
+    expect(run.status?.fileChanges.map((cs) => [cs.id, cs.changes.length])).toEqual([["run_b:0", 1]]);
     expect(await decidedEvents()).toEqual([["run_b:0", "keep", "approved_command"]]);
   });
 

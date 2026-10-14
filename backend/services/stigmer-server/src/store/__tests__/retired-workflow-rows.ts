@@ -207,7 +207,7 @@ export function agentRunRow(options: {
     },
     status: {
       phase: options.phase ?? RunPhase.RUN_COMPLETED,
-      todos: { t1: { content: "read the ticket" } },
+      startedAt: "2026-09-23T10:00:00Z",
       ...(options.error !== undefined ? { error: options.error } : {}),
       ...(options.completedAt !== undefined ? { completedAt: options.completedAt } : {}),
     },

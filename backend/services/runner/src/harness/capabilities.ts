@@ -45,10 +45,10 @@
  * id before its first persist; a `deterministic` one must never bind).
  */
 
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { VisionProfile } from "../shared/attachment-vision.js";
+import type { ToolCall } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 /**
  * How the engine can be made to stop before a gated side effect.

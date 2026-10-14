@@ -6,17 +6,18 @@
  * that tells a client the execution does not exist (stigmer/stigmer#859,
  * stigmer/stigmer#1337).
  *
- * The surfaces: the five lifecycle verbs (their shared LoadExecutionById
- * step), subscribe's snapshot read, the two artifact reads' existence
- * checks, the usage report's LoadExecution, and the two decision verbs'
- * LoadExisting. The composed suites reach only a real store, which cannot
+ * The surfaces: the four lifecycle verbs (their shared LoadExecutionById
+ * step), the two artifact reads' existence checks, the usage report's
+ * LoadExecution, and the file-decision core's load of the change set's
+ * run. The composed suites reach only a real store, which cannot
  * fail selectively, so each surface runs here against a store whose one read
  * throws. Every other dependency is untouchable: a load that fails must stop
  * the call before any of them.
  *
  * The locked writes get the same contract for a run deleted between the load
- * and the write: the lifecycle persist and the two decision writes answer
- * NotFound naming the run, never a resurrected row or an Internal. Those run
+ * and the write: the lifecycle persist and an answer's write answer NotFound
+ * naming the run, and a file decision's write NotFound naming the change
+ * set, never a resurrected row or an Internal. Those run
  * against a store whose read answers a run parked where the verb accepts it
  * and whose locked update finds the row gone.
  *
@@ -24,36 +25,25 @@
  * surface is otherwise tested) and loads outside this domain.
  */
 import { create } from "@bufbuild/protobuf";
-import type { HandlerContext } from "@connectrpc/connect";
-import { Code, ConnectError, createContextValues } from "@connectrpc/connect";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
-  ApprovalAction,
-  FileDecisionAction,
-  FileDecisionScope,
-  RunPhase,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import {
-  RunIdSchema,
-  CancelRunInputSchema,
   GetArtifactContentRequestSchema,
   GetArtifactDownloadUrlRequestSchema,
   PauseRunInputSchema,
   RecoverRunInputSchema,
   ResumeRunInputSchema,
-  SubmitApprovalInputSchema,
-  SubmitFileDecisionInputSchema,
   TerminateRunInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { ConfirmToolUseInputSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
 
 import type { ArtifactStorage } from "../../../artifactstorage/artifact-storage.js";
 import { createLogger } from "../../../boot/logger.js";
-import { callerIdentityKey } from "../../../pipeline/interceptors/auth.js";
 import { KeyedSerializer } from "../../../pipeline/keyed-serializer.js";
 import {
   errorOf,
@@ -68,19 +58,16 @@ import type { Store } from "../../../store/interface.js";
 import { getArtifactContent, getArtifactDownloadUrl } from "../artifacts.js";
 import type { LifecycleDeps } from "../lifecycle.js";
 import {
-  cancelExecution,
   pauseExecution,
   recoverExecution,
   resumeExecution,
   terminateExecution,
 } from "../lifecycle.js";
-import { StreamBroker } from "../stream-broker.js";
-import type { SubmitApprovalDeps } from "../submit-approval.js";
-import { submitApproval } from "../submit-approval.js";
-import type { SubmitFileDecisionDeps } from "../submit-file-decision.js";
-import { submitFileDecision } from "../submit-file-decision.js";
-import { subscribeExecution } from "../subscribe.js";
 import { getRunUsageReport } from "../usage.js";
+import { confirmToolUse } from "../../session/hitl/confirm-tool-use.js";
+import type { SessionAnswerDeps } from "../../session/hitl/confirm-tool-use.js";
+import { decideFileChanges } from "../../session/filereview/decide.js";
+import type { FileDecisionDeps } from "../../session/filereview/decide.js";
 
 import { stubConnectedEngine } from "./engine-stub.js";
 import { fileReviewSeed } from "./file-review-seed.js";
@@ -109,7 +96,6 @@ function lifecycleDeps(store: Store): LifecycleDeps {
     logger: silentLogger,
     authorizer: newPermissiveSingleTeamAuthorizer(),
     recoverSerializer: new KeyedSerializer(),
-    broker: untouchable("broker"),
     sessionEventBroker: new SessionEventBroker(silentLogger),
     engineState: untouchable("engineState"),
     runValuePlanner: untouchable("runValuePlanner"),
@@ -124,15 +110,6 @@ function lifecycleDeps(store: Store): LifecycleDeps {
 const LIFECYCLE_VERBS: ReadonlyArray<
   readonly [string, (deps: LifecycleDeps) => Promise<unknown>]
 > = [
-  [
-    "cancel",
-    (deps) =>
-      cancelExecution(
-        deps,
-        create(CancelRunInputSchema, { id: EXECUTION_ID }),
-        testCallerIdentity(),
-      ),
-  ],
   [
     "terminate",
     (deps) =>
@@ -188,50 +165,6 @@ describe.each(LIFECYCLE_VERBS)("%s — LoadExecutionById", (_verb, run) => {
 
     expect(error.code).toBe(Code.Internal);
     expect(error.rawMessage).toBe(LOAD_FAULT_COPY);
-  });
-});
-
-describe("subscribe — the snapshot read", () => {
-  function handlerContext(): HandlerContext {
-    const values = createContextValues();
-    values.set(callerIdentityKey, testCallerIdentity());
-    return { signal: new AbortController().signal, values } as HandlerContext;
-  }
-
-  async function subscribeError(
-    store: Store,
-    broker: StreamBroker,
-  ): Promise<ConnectError> {
-    return errorOf(() =>
-      subscribeExecution(
-        {
-          store,
-          logger: silentLogger,
-          broker,
-          authorizer: newPermissiveSingleTeamAuthorizer(),
-        },
-        create(RunIdSchema, { value: EXECUTION_ID }),
-        handlerContext(),
-      ).next(),
-    );
-  }
-
-  it("a missing execution answers NotFound with the subscribe copy", async () => {
-    const broker = new StreamBroker(silentLogger);
-    const error = await subscribeError(failingStore(MISSING()), broker);
-
-    expect(error.code).toBe(Code.NotFound);
-    expect(error.rawMessage).toBe(`Run not found: ${EXECUTION_ID}`);
-    expect(broker.getSubscriberCount(EXECUTION_ID)).toBe(0);
-  });
-
-  it("any other store failure answers a sanitized Internal and releases the subscription", async () => {
-    const broker = new StreamBroker(silentLogger);
-    const error = await subscribeError(failingStore(LOCKED()), broker);
-
-    expect(error.code).toBe(Code.Internal);
-    expect(error.rawMessage).toBe(LOAD_FAULT_COPY);
-    expect(broker.getSubscriberCount(EXECUTION_ID)).toBe(0);
   });
 });
 
@@ -328,12 +261,14 @@ describe("getRunUsageReport — LoadExecution", () => {
   });
 });
 
-function approvalDeps(store: Store): SubmitApprovalDeps {
+const SESSION_ID = "ses_storefault";
+const CHANGE_SET_ID = `${EXECUTION_ID}:0`;
+
+function answerDeps(store: Store): SessionAnswerDeps {
   return {
     store,
     logger: silentLogger,
     authorizer: newPermissiveSingleTeamAuthorizer(),
-    broker: untouchable("broker"),
     sessionEventBroker: new SessionEventBroker(silentLogger),
     engineState: untouchable("engineState"),
     gateSteps: new Map(),
@@ -341,66 +276,54 @@ function approvalDeps(store: Store): SubmitApprovalDeps {
   };
 }
 
-function fileDecisionDeps(store: Store): SubmitFileDecisionDeps {
+function fileDecisionDeps(store: Store): FileDecisionDeps {
   return {
     store,
     logger: silentLogger,
-    authorizer: newPermissiveSingleTeamAuthorizer(),
-    broker: untouchable("broker"),
     sessionEventBroker: new SessionEventBroker(silentLogger),
     reconcileTurns: untouchable("reconcileTurns"),
   };
 }
 
-const CHANGE_SET_ID = "cs_storefault";
-
-function approveToolCall(deps: SubmitApprovalDeps): Promise<unknown> {
-  return submitApproval(
+function allowToolUse(deps: SessionAnswerDeps): Promise<unknown> {
+  return confirmToolUse(
     deps,
-    create(SubmitApprovalInputSchema, {
-      runId: EXECUTION_ID,
-      toolCallId: "tc-1",
-      action: ApprovalAction.APPROVE,
+    create(ConfirmToolUseInputSchema, {
+      sessionId: SESSION_ID,
+      toolUseId: `${EXECUTION_ID}.tc-1`,
+      result: "allow",
     }),
     testCallerIdentity(),
   );
 }
 
-function keepChangeSet(
-  deps: SubmitFileDecisionDeps,
-  expectedDigest: string,
-): Promise<unknown> {
-  return submitFileDecision(
+function keepChangeSet(deps: FileDecisionDeps, expectedDigest: string): Promise<unknown> {
+  return decideFileChanges(
     deps,
-    create(SubmitFileDecisionInputSchema, {
-      runId: EXECUTION_ID,
+    { runId: EXECUTION_ID, sessionId: SESSION_ID },
+    {
       changeSetId: CHANGE_SET_ID,
-      scope: FileDecisionScope.CHANGE_SET,
-      action: FileDecisionAction.APPROVE,
+      scope: "change_set",
+      fileChangeId: "",
+      action: "keep",
       expectedDigest,
-    }),
+      reason: "",
+      acknowledgeUnreviewable: false,
+    },
     testCallerIdentity(),
   );
 }
 
-describe.each([
-  ["submitApproval", () => approveToolCall(approvalDeps(failingStore(MISSING())))],
-  ["submitFileDecision", () => keepChangeSet(fileDecisionDeps(failingStore(MISSING())), "sha256:any")],
-] as const)("%s — LoadExisting, a missing run", (_verb, call) => {
-  it("answers NotFound naming the run", async () => {
-    const error = await errorOf(call);
+describe("the file-decision core — the change set's run", () => {
+  it("a missing run answers NotFound naming the change set", async () => {
+    const error = await errorOf(() => keepChangeSet(fileDecisionDeps(failingStore(MISSING())), "sha256:any"));
 
     expect(error.code).toBe(Code.NotFound);
-    expect(error.rawMessage).toBe(`Run not found: ${EXECUTION_ID}`);
+    expect(error.rawMessage).toContain(CHANGE_SET_ID);
   });
-});
 
-describe.each([
-  ["submitApproval", () => approveToolCall(approvalDeps(failingStore(LOCKED())))],
-  ["submitFileDecision", () => keepChangeSet(fileDecisionDeps(failingStore(LOCKED())), "sha256:any")],
-] as const)("%s — LoadExisting, any other store failure", (_verb, call) => {
-  it("answers a sanitized Internal", async () => {
-    const error = await errorOf(call);
+  it("any other store failure answers a sanitized Internal", async () => {
+    const error = await errorOf(() => keepChangeSet(fileDecisionDeps(failingStore(LOCKED())), "sha256:any"));
 
     expect(error.code).toBe(Code.Internal);
     expect(error.rawMessage).toBe(LOAD_FAULT_COPY);
@@ -450,12 +373,12 @@ describe("a run deleted between the load and the locked write", () => {
       status: { phase: RunPhase.RUN_IN_PROGRESS },
     });
     const error = await errorOf(() =>
-      cancelExecution(
+      terminateExecution(
         {
           ...lifecycleDeps(store),
           engineState: () => ({ connected: true, engine: stubConnectedEngine() }),
         },
-        create(CancelRunInputSchema, { id: EXECUTION_ID }),
+        create(TerminateRunInputSchema, { id: EXECUTION_ID }),
         testCallerIdentity(),
       ),
     );
@@ -464,35 +387,23 @@ describe("a run deleted between the load and the locked write", () => {
     expect(error.rawMessage).toBe(`Run not found: ${EXECUTION_ID}`);
   });
 
-  it("an approval write answers NotFound naming the run", async () => {
+  it("an answer's write answers NotFound naming the run", async () => {
     const store = deletedBeforeWriteStore({
       metadata: { id: EXECUTION_ID },
-      status: {
-        phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
-        messages: [
-          {
-            toolCalls: [
-              {
-                id: "tc-1",
-                name: "Write",
-                status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-                requiresApproval: true,
-              },
-            ],
-          },
-        ],
-      },
+      spec: { target: { case: "sessionId", value: SESSION_ID } },
+      status: { phase: RunPhase.RUN_WAITING_FOR_APPROVAL },
     }, [`${EXECUTION_ID}.tc-1`]);
-    const error = await errorOf(() => approveToolCall(approvalDeps(store)));
+    const error = await errorOf(() => allowToolUse(answerDeps(store)));
 
     expect(error.code).toBe(Code.NotFound);
     expect(error.rawMessage).toBe(`Run not found: ${EXECUTION_ID}`);
   });
 
-  it("a file-decision write answers NotFound naming the run", async () => {
+  it("a file-decision write answers NotFound naming the change set", async () => {
     const { status, aggregate } = fileReviewSeed(EXECUTION_ID, CHANGE_SET_ID);
     const store = deletedBeforeWriteStore({
       metadata: { id: EXECUTION_ID },
+      spec: { target: { case: "sessionId", value: SESSION_ID } },
       status,
     });
     const error = await errorOf(() =>
@@ -500,6 +411,6 @@ describe("a run deleted between the load and the locked write", () => {
     );
 
     expect(error.code).toBe(Code.NotFound);
-    expect(error.rawMessage).toBe(`Run not found: ${EXECUTION_ID}`);
+    expect(error.rawMessage).toContain(CHANGE_SET_ID);
   });
 });

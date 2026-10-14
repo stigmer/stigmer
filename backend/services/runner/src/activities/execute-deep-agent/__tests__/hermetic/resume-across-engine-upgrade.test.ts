@@ -46,13 +46,8 @@ import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from 
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { fromJson, toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
-  ApprovalAction,
   RunPhase,
-  TodoStatus,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -88,7 +83,10 @@ import {
   type CheckpointRow,
   type PausedSessionFixture,
   type StoredBlob,
+  pausedTurnJson,
+  pausedTurnOf,
 } from "../../__test-utils__/paused-session-fixture.js";
+import { ApprovalAction, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const USER_MESSAGE = "Plan it, then run the command for me.";
 const DECIDED_AT = "2026-01-01T00:00:30.000Z";
@@ -186,13 +184,13 @@ describe("ExecuteDeepAgent hermetic — a paused session resumes across an engin
     const turn = await runDeepAgentTurn(scenario, { turnSeq: 0 });
     expect(turn.outcome.kind).toBe("returned");
     expect(record.lastFullStatus?.phase).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
-    expect(record.lastFullStatus?.todos).not.toEqual({});
+    expect(record.lastFullRows?.todos).not.toEqual({});
 
     const fixture: PausedSessionFixture = {
       recordedWith: engineVersions(),
       threadId: FIXTURE.threadId,
       ...readRows(getCheckpointDbPath(FIXTURE.sessionId)),
-      status: toJson(RunStatusSchema, record.lastFullStatus!),
+      status: pausedTurnJson(record.rowsOf(record.lastFullStatus!), record.lastFullStatus!),
     };
     mkdirSync(FIXTURE_DIR, { recursive: true });
     writeFileSync(target, JSON.stringify(fixture, null, 2) + "\n");
@@ -207,7 +205,8 @@ describe("ExecuteDeepAgent hermetic — a paused session resumes across an engin
       const record = deepAgentExecutionRecord({ message: USER_MESSAGE });
       const scenario = beginDeepAgentScenario({ env, clock, record, checkpointer: "sqlite", script: SCRIPT });
       await loadRows(getCheckpointDbPath(FIXTURE.sessionId), fixture);
-      await record.restorePausedTurn(fromJson(RunStatusSchema, fixture.status));
+      const paused = pausedTurnOf(fixture.status);
+      await record.restorePausedTurn(paused.rows, paused.status);
       // The approval arrives after the pause, as it does live. Checkpoint ids
       // are time-ordered, and the recorded turn ran on this same scripted
       // clock from its epoch, so the resumed turn starts a minute on: its new
@@ -225,18 +224,23 @@ describe("ExecuteDeepAgent hermetic — a paused session resumes across an engin
       expect(turn.outcome.kind).toBe("returned");
       expect((turn.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
       const final = record.lastFullStatus!;
-      const rows = final.messages.flatMap((m) => m.toolCalls).filter((tc) => tc.id === EXECUTE_CALL_A.id);
+      const finalRows = record.rowsOf(final);
+      const rows = finalRows.messages.flatMap((m) => m.toolCalls).filter((tc) => tc.id === EXECUTE_CALL_A.id);
       expect(rows, "exactly one copy of the gated call — a resume, not a replay").toHaveLength(1);
       expect(rows[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
       expect(rows[0].result, "the command ran on this engine").toContain("hermetic-a");
-      expect(
-        Object.values(final.todos).map((t) => [t.content, t.status]),
-        "the to-do list the old engine wrote",
-      ).toEqual([
-        ["Run the command", TodoStatus.TODO_IN_PROGRESS],
-        ["Report the result", TodoStatus.TODO_PENDING],
+      // The to-do list the old engine wrote survives in the log, as the
+      // write_todos call that set it; the resumed rows are their own.
+      const todoWrites = record.sessionEvents.flatMap((e) =>
+        e.event.case === "agentToolUse" && e.event.value.name === "write_todos" ? [e.event.value.input?.["todos"]] : [],
+      );
+      expect(todoWrites, "the to-do list the old engine wrote").toEqual([
+        [
+          { content: "Run the command", status: "in_progress" },
+          { content: "Report the result", status: "pending" },
+        ],
       ]);
-      expect(final.messages.at(-1)?.content).toBe(CLOSING_TURN.text);
+      expect(finalRows.messages.at(-1)?.content).toBe(CLOSING_TURN.text);
       expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
     });
 

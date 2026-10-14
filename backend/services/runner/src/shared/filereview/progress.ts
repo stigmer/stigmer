@@ -8,8 +8,8 @@
  * This is category 2 of the two status patterns: a runner-owned, latest-snapshot
  * DISPLAY field, NOT the event-sourced file-review ledger. It is deliberately NOT
  * a `FileChangeSet` — progress is never in the ledger, carries NO file bytes or
- * digests, and is NEVER decidable. The turn-boundary CANDIDATE_CAPTURED (in
- * `file_change_sets`) remains the single authoritative, reviewable diff; a mid-run
+ * digests, and is NEVER decidable. The turn-boundary CANDIDATE_CAPTURED (on the
+ * run's file record, `file_changes`) remains the single authoritative, reviewable diff; a mid-run
  * snapshot is no more authoritative than a streamed tool-call arg.
  *
  * THE SUBSTRATE ABSTRACTION

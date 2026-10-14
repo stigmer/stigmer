@@ -31,7 +31,7 @@
 import { createServer, connect, type AddressInfo } from "node:net";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { ApprovalAction, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../client/stigmer-client.js", async () =>
   (await import("../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
@@ -65,6 +65,7 @@ import { captureTimingLines } from "../../__test-utils__/timing-lines.js";
 import { TERMINAL_COPY } from "../terminal-table.js";
 import { TURN_PHASES_EVENT } from "../turn-timeline.js";
 import type { HarnessAdapter } from "../types.js";
+import { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const TASK_QUEUE = "runtime-test-queue";
 
@@ -135,14 +136,14 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       const { driver, final } = await assertFailedSurfaceWritesItsCopy(harness, surface, FAILURE_MESSAGES[surface], `fake-failed-${surface}`);
       expect(driver.record.persistedPhases).toEqual([RunPhase.RUN_IN_PROGRESS, RunPhase.RUN_FAILED]);
       expect(final.error).toBe(FAILURE_MESSAGES[surface]);
-      expect(systemMessages(final)).toEqual(rows);
+      expect(systemMessages(driver.record.rowsOf(final))).toEqual(rows);
     });
 
     it("a rejected bind: the fake names the failure and nothing of the scenario was folded in", async () => {
       clock.reset();
-      const { final } = await assertRejectedBindFails(harness, "fake-bind-rejects");
+      const { driver, final } = await assertRejectedBindFails(harness, "fake-bind-rejects");
       expect(final.error).toContain("could not bind engine state");
-      expect(aiMessages(final)).toEqual([]);
+      expect(aiMessages(driver.record.rowsOf(final))).toEqual([]);
     });
 
     it("REJECT continues the run without the tool and the row settles SKIPPED with its reason (stigmer#197)", async () => {
@@ -159,8 +160,33 @@ describe("run-turn: the fake adapter through the real runtime", () => {
         RunPhase.RUN_IN_PROGRESS,
         RunPhase.RUN_COMPLETED,
       ]);
-      expect(aiMessages(final)).toContain("Moving on.");
-      expect(systemMessages(final), "no terminal copy: the run ended normally").toEqual([]);
+      expect(aiMessages(driver.record.rowsOf(final))).toContain("Moving on.");
+      expect(systemMessages(driver.record.rowsOf(final)), "no terminal copy: the run ended normally").toEqual([]);
+    });
+
+    it("a resumed invocation that writes no message still reports the run's answer: its newest answer in the log", async () => {
+      // Turn 1 answers and asks; the approved resume only runs the call and
+      // writes no message of its own. The run's answer is turn 1's, read
+      // from the session's log, and the structured output the execution
+      // asked for is extracted from it at the completion.
+      clock.reset();
+      const driver = new RuntimeExecutionDriver(harness, "fake-resumed-answer", {
+        structuredOutputSchema: { type: "object", properties: { answer: { type: "number" } }, required: ["answer"] },
+      });
+      const propose = scenario.propose("fake-resumed-answer-shell", { kind: "shell", resource: "make report" });
+      const first = await driver.turn([scenario.say('{"answer": 42}'), propose]);
+      expect(slimOf(subject, first).phase).toBe("RUN_WAITING_FOR_APPROVAL");
+      expect(driver.decide(ApprovalAction.APPROVE)).toBe(1);
+
+      // The read's awaited persist lands the approved call's write before the
+      // turn completes, so the completion is the turn's one write in flight.
+      const second = await driver.turn([propose, scenario.read("fake-resumed-answer-read", "notes.md")]);
+      expect(slimOf(subject, second).phase).toBe("RUN_COMPLETED");
+      expect(aiMessages(driver.record.lastFullRows!), "the resumed invocation wrote no message").toEqual([]);
+      expect(driver.record.lastFullRows?.structuredOutput, "the run's answer is reported").toEqual({ answer: 42 });
+      const outputs = driver.record.sessionEvents.flatMap((e) => (e.event.case === "stigmerAgentStructuredOutput" ? [e.event.value.output] : []));
+      expect(outputs, "and written to the log").toEqual([{ answer: 42 }]);
+      expect(driver.record.refusedAppends).toEqual([]);
     });
 
     it("structured output on a turn with captured edits is resolved at its completion: review never holds the answer back", async () => {
@@ -175,8 +201,8 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       // LLM is asked); the edit is captured and the turn completes with it.
       const first = await driver.turn([scenario.flowingWrite("fake-review-structured-w", "answer.md"), scenario.say('{"answer": 42}')]);
       expect(slimOf(subject, first).phase).toBe("RUN_COMPLETED");
-      expect(driver.record.lastFullStatus?.structuredOutput, "resolved on the completion write").toEqual({ answer: 42 });
-      expect(driver.record.lastFullStatus?.fileReviewEventStream?.events.map((e) => e.payload.case)).toEqual(["baselineCaptured", "candidateCaptured"]);
+      expect(driver.record.lastFullRows?.structuredOutput, "resolved on the completion write").toEqual({ answer: 42 });
+      expect(driver.record.lastFullRows?.fileReviewEventStream?.events.map((e) => e.payload.case)).toEqual(["baselineCaptured", "candidateCaptured"]);
     });
   });
 
@@ -210,7 +236,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       const invocation = await driver.turn([]);
 
       expect(slimOf(leaving.subject, invocation).phase).toBe("RUN_COMPLETED");
-      const final = driver.record.lastFullStatus!;
+      const final = driver.record.lastFullRows!;
       expect(final.messages.map((m) => [m.content, m.isStreaming]), "the message the adapter left open is closed").toEqual([["half a thou", false]]);
       const row = final.messages[0]!.toolCalls[0]!;
       expect([row.id, row.isStreaming, row.result], "the row the adapter left streaming output is closed, its output kept").toEqual(["t1", false, "building"]);
@@ -393,12 +419,12 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       // its transcript — and nothing may be pushed from the tree.
       clock.tick();
       driver.record.decideCapturedFileChanges({ reject: ["answer.md"] }, new Date().toISOString());
-      const decided = driver.record.status!.fileChangeSets.at(-1)!.changes.find((c) => c.pathAfter === "answer.md")!;
+      const decided = driver.record.status!.fileChanges.at(-1)!.changes.find((c) => c.pathAfter === "answer.md")!;
       decided.afterSha256 = "deadbeef".repeat(8);
       const { invocation: second } = await driver.reconcileTurn();
 
       expect(slimOf(subject, second).phase).toBe("RUN_COMPLETED");
-      const final = driver.record.reconcileFinalStatus!;
+      const final = driver.record.rowsOf(driver.record.reconcileFinalStatus!);
       expect(
         final.messages.some((m) => m.content.startsWith(TERMINAL_COPY.fileReview.applyFailedPrefix)),
         "the reconcile turn reported its refusal",

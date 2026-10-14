@@ -12,7 +12,6 @@
 // If this is green, the deep-pass design holds: the runner reaches the tool
 // fixture and runs a tool without any discovery step. If it is red, stop and
 // confer before building the approval suite on top of it.
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
@@ -31,6 +30,7 @@ import {
 } from "../support/runs";
 import { toolServerSegment } from "../support/plugins";
 import { uniqueName } from "../support/naming";
+import { toolUsesOf, turnOfRun } from "../support/turn";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -97,11 +97,10 @@ describe("Execution harness smoke — MCP tool dispatch", () => {
     ).toBe(RunPhase.RUN_COMPLETED);
 
     // The echo tool actually ran: a completed tool call named `echo` is recorded.
-    const toolCalls = (final.status?.messages ?? []).flatMap((m) => m.toolCalls);
-    const echo = toolCalls.find((tc) => tc.name === ECHO_TOOL_NAME);
-    expect(echo, "an echo tool call should be recorded in status.messages").toBeTruthy();
-    expect(echo?.status, "the echo tool call should be COMPLETED").toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
-    expect(echo?.mcpServerSlug, "the call names the plugin's server").toBe(
+    const echo = toolUsesOf(await turnOfRun(clients, final)).find((use) => use.name === ECHO_TOOL_NAME);
+    expect(echo, "an echo tool use should be in the session's log").toBeTruthy();
+    expect(echo?.state, "the echo tool use should be completed").toBe("completed");
+    expect(echo?.mcpServerName, "the call names the plugin's server").toBe(
       toolServerSegment(plugin.metadata!.name),
     );
 

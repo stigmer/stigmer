@@ -1,0 +1,29 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Let me read it.",
+      "timestamp": "2026-01-01T00:00:02.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-toolerror-read-0001",
+          "name": "read",
+          "args": {
+            "path": "MISSING.md"
+          },
+          "status": "TOOL_CALL_FAILED",
+          "startedAt": "2026-01-01T00:00:03.000Z",
+          "completedAt": "2026-01-01T00:00:04.000Z",
+          "error": "ENOENT: no such file or directory, open 'MISSING.md'",
+          "argsPreview": "{\"path\":\"MISSING.md\"}",
+          "toolKind": "TOOL_KIND_FILE_READ"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "There is no MISSING.md in this workspace.",
+      "timestamp": "2026-01-01T00:00:05.000Z"
+    }
+  ]
+}

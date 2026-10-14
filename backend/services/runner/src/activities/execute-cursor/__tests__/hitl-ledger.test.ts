@@ -33,22 +33,6 @@ import { writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import {
-  AgentMessageSchema,
-  ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
-import type {
-  AgentMessage,
-  ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  MessageType,
-  ToolCallStatus,
-  ApprovalAction,
-  ApprovalPolicySource,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 
 import {
   resetDenialLedger,
@@ -81,6 +65,20 @@ import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
 import { generateHookScript } from "../hook-script.js";
 import type { McpApprovalDefault } from "../approval-policy.js";
 import { loggedApprovalsFor } from "../../../__test-utils__/approval-log.js";
+import {
+  AgentMessageSchema,
+  ToolCallSchema,
+  PendingApprovalSchema,
+  type AgentMessage,
+  type ToolCall,
+  SubAgentRunSchema,
+} from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import {
+  MessageType,
+  ToolCallStatus,
+  ApprovalAction,
+  ApprovalPolicySource,
+} from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** The run the logged answers belong to. */
 const RUN_ID = "run_hitl_ledger";

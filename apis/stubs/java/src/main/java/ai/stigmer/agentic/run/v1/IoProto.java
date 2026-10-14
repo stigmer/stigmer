@@ -62,26 +62,6 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_run_v1_UpdateStatusResponse_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_run_v1_SubmitApprovalInput_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_run_v1_SubmitApprovalInput_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_run_v1_ApprovalDecisionList_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_run_v1_ApprovalDecisionList_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_run_v1_SubmitFileDecisionInput_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_run_v1_SubmitFileDecisionInput_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_run_v1_CancelRunInput_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_run_v1_CancelRunInput_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_run_v1_TerminateRunInput_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -256,177 +236,156 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "RunStatusB\006\272H\003\310\001\001R\006status\"\200\001\n\024UpdateStat" +
       "usResponse\022C\n\006signal\030\001 \001(\0162+.ai.stigmer." +
       "agentic.run.v1.RunControlSignalR\006signal\022" +
-      "#\n\rsignal_reason\030\002 \001(\tR\014signalReason\"\311\001\n" +
-      "\023SubmitApprovalInput\022\036\n\006run_id\030\001 \001(\tB\007\272H" +
-      "\004r\002\020\001R\005runId\022)\n\014tool_call_id\030\002 \001(\tB\007\272H\004r" +
-      "\002\020\001R\ntoolCallId\022M\n\006action\030\003 \001(\0162).ai.sti" +
-      "gmer.agentic.run.v1.ApprovalActionB\n\272H\007\202" +
-      "\001\004\020\001 \000R\006action\022\030\n\007comment\030\004 \001(\tR\007comment" +
-      "\"d\n\024ApprovalDecisionList\022L\n\tdecisions\030\001 " +
-      "\003(\0132..ai.stigmer.agentic.run.v1.SubmitAp" +
-      "provalInputR\tdecisions\"\264\003\n\027SubmitFileDec" +
-      "isionInput\022\036\n\006run_id\030\001 \001(\tB\007\272H\004r\002\020\001R\005run" +
-      "Id\022+\n\rchange_set_id\030\002 \001(\tB\007\272H\004r\002\020\001R\013chan" +
-      "geSetId\022N\n\005scope\030\003 \001(\0162,.ai.stigmer.agen" +
-      "tic.run.v1.FileDecisionScopeB\n\272H\007\202\001\004\020\001 \000" +
-      "R\005scope\022$\n\016file_change_id\030\004 \001(\tR\014fileCha" +
-      "ngeId\022Q\n\006action\030\005 \001(\0162-.ai.stigmer.agent" +
-      "ic.run.v1.FileDecisionActionB\n\272H\007\202\001\004\020\001 \000" +
-      "R\006action\0220\n\017expected_digest\030\006 \001(\tB\007\272H\004r\002" +
-      "\020\001R\016expectedDigest\022\026\n\006reason\030\007 \001(\tR\006reas" +
-      "on\0229\n\030acknowledge_unreviewable\030\010 \001(\010R\027ac" +
-      "knowledgeUnreviewable\"A\n\016CancelRunInput\022" +
-      "\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002id\022\026\n\006reason\030\002 \001(\t" +
-      "R\006reason\"D\n\021TerminateRunInput\022\027\n\002id\030\001 \001(" +
-      "\tB\007\272H\004r\002\020\001R\002id\022\026\n\006reason\030\002 \001(\tR\006reason\"*" +
-      "\n\017RecoverRunInput\022\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002" +
-      "id\"@\n\rPauseRunInput\022\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001" +
-      "R\002id\022\026\n\006reason\030\002 \001(\tR\006reason\")\n\016ResumeRu" +
-      "nInput\022\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002id\"\312\002\n\027Uplo" +
-      "adAttachmentRequest\022\351\001\n\010filename\030\001 \001(\tB\314" +
-      "\001\272H\310\001r\002\020\001\272\001\300\001\n\"upload_attachment.filenam" +
-      "e.no_path\022Nfilename must be a bare filen" +
-      "ame without path separators or traversal" +
-      " segments\032J!this.contains(\'/\') && !this." +
-      "contains(\'\\\\\') && this != \'.\' && this !=" +
-      " \'..\'R\010filename\022 \n\007content\030\002 \001(\014B\006\272H\003\310\001\001" +
-      "R\007content\022!\n\014content_type\030\003 \001(\tR\013content" +
-      "Type\";\n\030UploadAttachmentResponse\022\037\n\013stor" +
-      "age_key\030\001 \001(\tR\nstorageKey\"\216\001\n\035GetArtifac" +
-      "tDownloadUrlRequest\022\036\n\006run_id\030\001 \001(\tB\007\272H\004" +
-      "r\002\020\001R\005runId\022(\n\013storage_key\030\002 \001(\tB\007\272H\004r\002\020" +
-      "\001R\nstorageKey\022#\n\ras_attachment\030\003 \001(\010R\014as" +
-      "Attachment\"b\n\036GetArtifactDownloadUrlResp" +
-      "onse\022!\n\014download_url\030\001 \001(\tR\013downloadUrl\022" +
-      "\035\n\nexpires_at\030\002 \001(\tR\texpiresAt\"\241\001\n\031GetAr" +
-      "tifactContentRequest\022\036\n\006run_id\030\001 \001(\tB\007\272H" +
-      "\004r\002\020\001R\005runId\022(\n\013storage_key\030\002 \001(\tB\007\272H\004r\002" +
-      "\020\001R\nstorageKey\022\033\n\tmax_bytes\030\003 \001(\003R\010maxBy" +
-      "tes\022\035\n\nentry_path\030\004 \001(\tR\tentryPath\"\241\001\n\032G" +
-      "etArtifactContentResponse\022\030\n\007content\030\001 \001" +
-      "(\014R\007content\022!\n\014content_type\030\002 \001(\tR\013conte" +
-      "ntType\022(\n\020total_size_bytes\030\003 \001(\003R\016totalS" +
-      "izeBytes\022\034\n\ttruncated\030\004 \001(\010R\ttruncated\"8" +
-      "\n\026GetRunUsageReportInput\022\036\n\006run_id\030\001 \001(\t" +
-      "B\007\272H\004r\002\020\001R\005runId\"\270\001\n\027GetRunUsageReportOu" +
-      "tput\022M\n\taggregate\030\001 \001(\0132/.ai.stigmer.age" +
-      "ntic.run.v1.UsageReportAggregateR\taggreg" +
-      "ate\022N\n\017model_breakdown\030\002 \003(\0132%.ai.stigme" +
-      "r.agentic.run.v1.ModelUsageR\016modelBreakd" +
-      "own\"D\n\032GetSessionUsageReportInput\022&\n\nses" +
-      "sion_id\030\001 \001(\tB\007\272H\004r\002\020\001R\tsessionId\"\240\003\n\033Ge" +
-      "tSessionUsageReportOutput\022\035\n\nsession_id\030" +
-      "\001 \001(\tR\tsessionId\022\033\n\trun_count\030\002 \001(\005R\010run" +
-      "Count\022P\n\013total_usage\030\003 \001(\0132/.ai.stigmer." +
-      "agentic.run.v1.UsageReportAggregateR\ntot" +
-      "alUsage\022>\n\004runs\030\004 \003(\0132*.ai.stigmer.agent" +
-      "ic.run.v1.RunUsageSummaryR\004runs\022N\n\017model" +
-      "_breakdown\030\005 \003(\0132%.ai.stigmer.agentic.ru" +
-      "n.v1.ModelUsageR\016modelBreakdown\022 \n\014first" +
-      "_run_at\030\006 \001(\tR\nfirstRunAt\022\036\n\013last_run_at" +
-      "\030\007 \001(\tR\tlastRunAt\022!\n\014is_estimated\030\010 \001(\010R" +
-      "\013isEstimated\"\313\001\n\030GetAgentUsageReportInpu" +
-      "t\022\"\n\010agent_id\030\001 \001(\tB\007\272H\004r\002\020\001R\007agentId\022\033\n" +
-      "\tfrom_date\030\002 \001(\tR\010fromDate\022\027\n\007to_date\030\003 " +
-      "\001(\tR\006toDate\022\033\n\tpage_size\030\004 \001(\005R\010pageSize" +
-      "\022\035\n\npage_token\030\005 \001(\tR\tpageToken\022\031\n\003org\030\006" +
-      " \001(\tB\007\272H\004r\002\020\001R\003org\"\323\003\n\031GetAgentUsageRepo" +
-      "rtOutput\022\031\n\010agent_id\030\001 \001(\tR\007agentId\022\035\n\na" +
-      "gent_name\030\002 \001(\tR\tagentName\022P\n\013total_usag" +
-      "e\030\003 \001(\0132/.ai.stigmer.agentic.run.v1.Usag" +
-      "eReportAggregateR\ntotalUsage\022N\n\017model_br" +
-      "eakdown\030\004 \003(\0132%.ai.stigmer.agentic.run.v" +
-      "1.ModelUsageR\016modelBreakdown\022J\n\010sessions" +
-      "\030\005 \003(\0132..ai.stigmer.agentic.run.v1.Sessi" +
-      "onUsageSummaryR\010sessions\022%\n\016total_sessio" +
-      "ns\030\006 \001(\005R\rtotalSessions\022\035\n\ntotal_runs\030\007 " +
-      "\001(\005R\ttotalRuns\022&\n\017next_page_token\030\t \001(\tR" +
-      "\rnextPageTokenJ\004\010\010\020\tR\032total_billable_cos" +
-      "t_micros\"{\n\026GetOrgUsageReportInput\022\031\n\003or" +
-      "g\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022$\n\tfrom_date\030\002 \001(\t" +
-      "B\007\272H\004r\002\020\001R\010fromDate\022 \n\007to_date\030\003 \001(\tB\007\272H" +
-      "\004r\002\020\001R\006toDate\"\201\005\n\027GetOrgUsageReportOutpu" +
-      "t\022\020\n\003org\030\001 \001(\tR\003org\022!\n\014total_agents\030\002 \001(" +
-      "\005R\013totalAgents\022%\n\016total_sessions\030\003 \001(\005R\r" +
-      "totalSessions\022\035\n\ntotal_runs\030\004 \001(\005R\ttotal" +
-      "Runs\022N\n\017model_breakdown\030\006 \003(\0132%.ai.stigm" +
-      "er.agentic.run.v1.ModelUsageR\016modelBreak" +
-      "down\022K\n\ntop_agents\030\n \003(\0132,.ai.stigmer.ag" +
-      "entic.run.v1.AgentUsageSummaryR\ttopAgent" +
-      "s\022F\n\013daily_usage\030\013 \003(\0132%.ai.stigmer.agen" +
-      "tic.run.v1.DailyUsageR\ndailyUsage\022L\n\rhar" +
-      "ness_usage\030\014 \003(\0132\'.ai.stigmer.agentic.ru" +
-      "n.v1.HarnessUsageR\014harnessUsage\022P\n\013total" +
-      "_usage\030\r \001(\0132/.ai.stigmer.agentic.run.v1" +
-      ".UsageReportAggregateR\ntotalUsageJ\004\010\005\020\006J" +
-      "\004\010\007\020\010J\004\010\010\020\tJ\004\010\t\020\nR\032total_billable_cost_m" +
-      "icrosR\022top_agents_by_costR\013daily_costsR\021" +
-      "harness_breakdown\"\374\003\n\017RunUsageSummary\022\025\n" +
-      "\006run_id\030\001 \001(\tR\005runId\022\035\n\nstarted_at\030\002 \001(\t" +
-      "R\tstartedAt\022!\n\014completed_at\030\003 \001(\tR\013compl" +
-      "etedAt\022!\n\014input_tokens\030\004 \001(\003R\013inputToken" +
-      "s\022#\n\routput_tokens\030\005 \001(\003R\014outputTokens\0225" +
-      "\n\027cache_read_input_tokens\030\006 \001(\003R\024cacheRe" +
-      "adInputTokens\022#\n\rprimary_model\030\010 \001(\tR\014pr" +
-      "imaryModel\022&\n\017sub_agent_count\030\t \001(\005R\rsub" +
-      "AgentCount\0229\n\005phase\030\n \001(\0162#.ai.stigmer.a" +
-      "gentic.run.v1.RunPhaseR\005phase\022!\n\014is_esti" +
-      "mated\030\013 \001(\010R\013isEstimated\022!\n\014total_tokens" +
-      "\030\014 \001(\003R\013totalTokens\022\'\n\017working_seconds\030\r" +
-      " \001(\003R\016workingSecondsJ\004\010\007\020\010R\024billable_cos" +
-      "t_micros\"\373\001\n\023SessionUsageSummary\022\035\n\nsess" +
-      "ion_id\030\001 \001(\tR\tsessionId\022\033\n\trun_count\030\002 \001" +
-      "(\005R\010runCount\022!\n\014total_tokens\030\003 \001(\003R\013tota" +
-      "lTokens\022 \n\014first_run_at\030\005 \001(\tR\nfirstRunA" +
-      "t\022\036\n\013last_run_at\030\006 \001(\tR\tlastRunAt\022\'\n\017wor" +
-      "king_seconds\030\007 \001(\003R\016workingSecondsJ\004\010\004\020\005" +
-      "R\024billable_cost_micros\"\322\001\n\021AgentUsageSum" +
-      "mary\022\031\n\010agent_id\030\001 \001(\tR\007agentId\022\035\n\nagent" +
-      "_name\030\002 \001(\tR\tagentName\022\033\n\trun_count\030\003 \001(" +
-      "\005R\010runCount\022!\n\014total_tokens\030\004 \001(\003R\013total" +
-      "Tokens\022\'\n\017working_seconds\030\006 \001(\003R\016working" +
-      "SecondsJ\004\010\005\020\006R\024billable_cost_micros\"\206\001\n\n" +
-      "DailyUsage\022\022\n\004date\030\001 \001(\tR\004date\022\033\n\trun_co" +
-      "unt\030\002 \001(\005R\010runCount\022!\n\014total_tokens\030\003 \001(" +
-      "\003R\013totalTokens\022$\n\016llm_call_count\030\004 \001(\005R\014" +
-      "llmCallCount\"\207\001\n\014HarnessUsage\022\030\n\007harness" +
-      "\030\001 \001(\tR\007harness\022!\n\014total_tokens\030\002 \001(\003R\013t" +
-      "otalTokens\022\035\n\ncall_count\030\003 \001(\005R\tcallCoun" +
-      "t\022\033\n\trun_count\030\004 \001(\005R\010runCount\"\203\001\n\024GetRu" +
-      "nSummaryRequest\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003o" +
-      "rg\022P\n\013time_window\030\002 \001(\0162/.ai.stigmer.age" +
-      "ntic.run.v1.RunSummaryTimeWindowR\ntimeWi" +
-      "ndow\"\343\002\n\nRunSummary\022!\n\014active_count\030\001 \001(" +
-      "\005R\013activeCount\022Y\n\014phase_counts\030\002 \003(\01326.a" +
-      "i.stigmer.agentic.run.v1.RunSummary.Phas" +
-      "eCountsEntryR\013phaseCounts\022<\n\014avg_duratio" +
-      "n\030\003 \001(\0132\031.google.protobuf.DurationR\013avgD" +
-      "uration\022Y\n\022top_failing_agents\030\004 \003(\0132+.ai" +
-      ".stigmer.agentic.run.v1.AgentFailureRank" +
-      "R\020topFailingAgents\032>\n\020PhaseCountsEntry\022\020" +
-      "\n\003key\030\001 \001(\005R\003key\022\024\n\005value\030\002 \001(\005R\005value:\002" +
-      "8\001\"u\n\020AgentFailureRank\022\035\n\nagent_slug\030\001 \001" +
-      "(\tR\tagentSlug\022\035\n\nagent_name\030\002 \001(\tR\tagent" +
-      "Name\022#\n\rfailure_count\030\003 \001(\005R\014failureCoun" +
-      "t\"\327\002\n\016UpdateRunInput\022B\n\010resource\030\001 \001(\0132\036" +
-      ".ai.stigmer.agentic.run.v1.RunB\006\272H\003\330\001\003R\010" +
-      "resource\022C\n\013update_mask\030\002 \001(\0132\032.google.p" +
-      "rotobuf.FieldMaskB\006\272H\003\310\001\001R\nupdateMask:\273\001" +
-      "\272H\267\001\032\264\001\n\027update_names_its_target\022Cresour" +
-      "ce.metadata.id is required: an update na" +
-      "mes the run by its id\032Thas(this.resource" +
-      ") && has(this.resource.metadata) && this" +
-      ".resource.metadata.id != \'\'*\326\001\n\024RunSumma" +
-      "ryTimeWindow\022\'\n#RUN_SUMMARY_TIME_WINDOW_" +
-      "UNSPECIFIED\020\000\022$\n RUN_SUMMARY_TIME_WINDOW" +
-      "_LAST_24H\020\001\022#\n\037RUN_SUMMARY_TIME_WINDOW_L" +
-      "AST_7D\020\002\022$\n RUN_SUMMARY_TIME_WINDOW_LAST" +
-      "_30D\020\003\022$\n RUN_SUMMARY_TIME_WINDOW_ALL_TI" +
-      "ME\020\004B\222\001B\007IoProtoP\001\242\002\004ASAR\252\002\031Ai.Stigmer.A" +
-      "gentic.Run.V1\312\002\031Ai\\Stigmer\\Agentic\\Run\\V" +
-      "1\342\002%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadat" +
-      "a\352\002\035Ai::Stigmer::Agentic::Run::V1b\006proto" +
-      "3"
+      "#\n\rsignal_reason\030\002 \001(\tR\014signalReason\"D\n\021" +
+      "TerminateRunInput\022\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002" +
+      "id\022\026\n\006reason\030\002 \001(\tR\006reason\"*\n\017RecoverRun" +
+      "Input\022\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002id\"@\n\rPauseR" +
+      "unInput\022\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002id\022\026\n\006reas" +
+      "on\030\002 \001(\tR\006reason\")\n\016ResumeRunInput\022\027\n\002id" +
+      "\030\001 \001(\tB\007\272H\004r\002\020\001R\002id\"\312\002\n\027UploadAttachment" +
+      "Request\022\351\001\n\010filename\030\001 \001(\tB\314\001\272H\310\001r\002\020\001\272\001\300" +
+      "\001\n\"upload_attachment.filename.no_path\022Nf" +
+      "ilename must be a bare filename without " +
+      "path separators or traversal segments\032J!" +
+      "this.contains(\'/\') && !this.contains(\'\\\\" +
+      "\') && this != \'.\' && this != \'..\'R\010filen" +
+      "ame\022 \n\007content\030\002 \001(\014B\006\272H\003\310\001\001R\007content\022!\n" +
+      "\014content_type\030\003 \001(\tR\013contentType\";\n\030Uplo" +
+      "adAttachmentResponse\022\037\n\013storage_key\030\001 \001(" +
+      "\tR\nstorageKey\"\216\001\n\035GetArtifactDownloadUrl" +
+      "Request\022\036\n\006run_id\030\001 \001(\tB\007\272H\004r\002\020\001R\005runId\022" +
+      "(\n\013storage_key\030\002 \001(\tB\007\272H\004r\002\020\001R\nstorageKe" +
+      "y\022#\n\ras_attachment\030\003 \001(\010R\014asAttachment\"b" +
+      "\n\036GetArtifactDownloadUrlResponse\022!\n\014down" +
+      "load_url\030\001 \001(\tR\013downloadUrl\022\035\n\nexpires_a" +
+      "t\030\002 \001(\tR\texpiresAt\"\241\001\n\031GetArtifactConten" +
+      "tRequest\022\036\n\006run_id\030\001 \001(\tB\007\272H\004r\002\020\001R\005runId" +
+      "\022(\n\013storage_key\030\002 \001(\tB\007\272H\004r\002\020\001R\nstorageK" +
+      "ey\022\033\n\tmax_bytes\030\003 \001(\003R\010maxBytes\022\035\n\nentry" +
+      "_path\030\004 \001(\tR\tentryPath\"\241\001\n\032GetArtifactCo" +
+      "ntentResponse\022\030\n\007content\030\001 \001(\014R\007content\022" +
+      "!\n\014content_type\030\002 \001(\tR\013contentType\022(\n\020to" +
+      "tal_size_bytes\030\003 \001(\003R\016totalSizeBytes\022\034\n\t" +
+      "truncated\030\004 \001(\010R\ttruncated\"8\n\026GetRunUsag" +
+      "eReportInput\022\036\n\006run_id\030\001 \001(\tB\007\272H\004r\002\020\001R\005r" +
+      "unId\"\270\001\n\027GetRunUsageReportOutput\022M\n\taggr" +
+      "egate\030\001 \001(\0132/.ai.stigmer.agentic.run.v1." +
+      "UsageReportAggregateR\taggregate\022N\n\017model" +
+      "_breakdown\030\002 \003(\0132%.ai.stigmer.agentic.ru" +
+      "n.v1.ModelUsageR\016modelBreakdown\"D\n\032GetSe" +
+      "ssionUsageReportInput\022&\n\nsession_id\030\001 \001(" +
+      "\tB\007\272H\004r\002\020\001R\tsessionId\"\240\003\n\033GetSessionUsag" +
+      "eReportOutput\022\035\n\nsession_id\030\001 \001(\tR\tsessi" +
+      "onId\022\033\n\trun_count\030\002 \001(\005R\010runCount\022P\n\013tot" +
+      "al_usage\030\003 \001(\0132/.ai.stigmer.agentic.run." +
+      "v1.UsageReportAggregateR\ntotalUsage\022>\n\004r" +
+      "uns\030\004 \003(\0132*.ai.stigmer.agentic.run.v1.Ru" +
+      "nUsageSummaryR\004runs\022N\n\017model_breakdown\030\005" +
+      " \003(\0132%.ai.stigmer.agentic.run.v1.ModelUs" +
+      "ageR\016modelBreakdown\022 \n\014first_run_at\030\006 \001(" +
+      "\tR\nfirstRunAt\022\036\n\013last_run_at\030\007 \001(\tR\tlast" +
+      "RunAt\022!\n\014is_estimated\030\010 \001(\010R\013isEstimated" +
+      "\"\313\001\n\030GetAgentUsageReportInput\022\"\n\010agent_i" +
+      "d\030\001 \001(\tB\007\272H\004r\002\020\001R\007agentId\022\033\n\tfrom_date\030\002" +
+      " \001(\tR\010fromDate\022\027\n\007to_date\030\003 \001(\tR\006toDate\022" +
+      "\033\n\tpage_size\030\004 \001(\005R\010pageSize\022\035\n\npage_tok" +
+      "en\030\005 \001(\tR\tpageToken\022\031\n\003org\030\006 \001(\tB\007\272H\004r\002\020" +
+      "\001R\003org\"\323\003\n\031GetAgentUsageReportOutput\022\031\n\010" +
+      "agent_id\030\001 \001(\tR\007agentId\022\035\n\nagent_name\030\002 " +
+      "\001(\tR\tagentName\022P\n\013total_usage\030\003 \001(\0132/.ai" +
+      ".stigmer.agentic.run.v1.UsageReportAggre" +
+      "gateR\ntotalUsage\022N\n\017model_breakdown\030\004 \003(" +
+      "\0132%.ai.stigmer.agentic.run.v1.ModelUsage" +
+      "R\016modelBreakdown\022J\n\010sessions\030\005 \003(\0132..ai." +
+      "stigmer.agentic.run.v1.SessionUsageSumma" +
+      "ryR\010sessions\022%\n\016total_sessions\030\006 \001(\005R\rto" +
+      "talSessions\022\035\n\ntotal_runs\030\007 \001(\005R\ttotalRu" +
+      "ns\022&\n\017next_page_token\030\t \001(\tR\rnextPageTok" +
+      "enJ\004\010\010\020\tR\032total_billable_cost_micros\"{\n\026" +
+      "GetOrgUsageReportInput\022\031\n\003org\030\001 \001(\tB\007\272H\004" +
+      "r\002\020\001R\003org\022$\n\tfrom_date\030\002 \001(\tB\007\272H\004r\002\020\001R\010f" +
+      "romDate\022 \n\007to_date\030\003 \001(\tB\007\272H\004r\002\020\001R\006toDat" +
+      "e\"\201\005\n\027GetOrgUsageReportOutput\022\020\n\003org\030\001 \001" +
+      "(\tR\003org\022!\n\014total_agents\030\002 \001(\005R\013totalAgen" +
+      "ts\022%\n\016total_sessions\030\003 \001(\005R\rtotalSession" +
+      "s\022\035\n\ntotal_runs\030\004 \001(\005R\ttotalRuns\022N\n\017mode" +
+      "l_breakdown\030\006 \003(\0132%.ai.stigmer.agentic.r" +
+      "un.v1.ModelUsageR\016modelBreakdown\022K\n\ntop_" +
+      "agents\030\n \003(\0132,.ai.stigmer.agentic.run.v1" +
+      ".AgentUsageSummaryR\ttopAgents\022F\n\013daily_u" +
+      "sage\030\013 \003(\0132%.ai.stigmer.agentic.run.v1.D" +
+      "ailyUsageR\ndailyUsage\022L\n\rharness_usage\030\014" +
+      " \003(\0132\'.ai.stigmer.agentic.run.v1.Harness" +
+      "UsageR\014harnessUsage\022P\n\013total_usage\030\r \001(\013" +
+      "2/.ai.stigmer.agentic.run.v1.UsageReport" +
+      "AggregateR\ntotalUsageJ\004\010\005\020\006J\004\010\007\020\010J\004\010\010\020\tJ" +
+      "\004\010\t\020\nR\032total_billable_cost_microsR\022top_a" +
+      "gents_by_costR\013daily_costsR\021harness_brea" +
+      "kdown\"\374\003\n\017RunUsageSummary\022\025\n\006run_id\030\001 \001(" +
+      "\tR\005runId\022\035\n\nstarted_at\030\002 \001(\tR\tstartedAt\022" +
+      "!\n\014completed_at\030\003 \001(\tR\013completedAt\022!\n\014in" +
+      "put_tokens\030\004 \001(\003R\013inputTokens\022#\n\routput_" +
+      "tokens\030\005 \001(\003R\014outputTokens\0225\n\027cache_read" +
+      "_input_tokens\030\006 \001(\003R\024cacheReadInputToken" +
+      "s\022#\n\rprimary_model\030\010 \001(\tR\014primaryModel\022&" +
+      "\n\017sub_agent_count\030\t \001(\005R\rsubAgentCount\0229" +
+      "\n\005phase\030\n \001(\0162#.ai.stigmer.agentic.run.v" +
+      "1.RunPhaseR\005phase\022!\n\014is_estimated\030\013 \001(\010R" +
+      "\013isEstimated\022!\n\014total_tokens\030\014 \001(\003R\013tota" +
+      "lTokens\022\'\n\017working_seconds\030\r \001(\003R\016workin" +
+      "gSecondsJ\004\010\007\020\010R\024billable_cost_micros\"\373\001\n" +
+      "\023SessionUsageSummary\022\035\n\nsession_id\030\001 \001(\t" +
+      "R\tsessionId\022\033\n\trun_count\030\002 \001(\005R\010runCount" +
+      "\022!\n\014total_tokens\030\003 \001(\003R\013totalTokens\022 \n\014f" +
+      "irst_run_at\030\005 \001(\tR\nfirstRunAt\022\036\n\013last_ru" +
+      "n_at\030\006 \001(\tR\tlastRunAt\022\'\n\017working_seconds" +
+      "\030\007 \001(\003R\016workingSecondsJ\004\010\004\020\005R\024billable_c" +
+      "ost_micros\"\322\001\n\021AgentUsageSummary\022\031\n\010agen" +
+      "t_id\030\001 \001(\tR\007agentId\022\035\n\nagent_name\030\002 \001(\tR" +
+      "\tagentName\022\033\n\trun_count\030\003 \001(\005R\010runCount\022" +
+      "!\n\014total_tokens\030\004 \001(\003R\013totalTokens\022\'\n\017wo" +
+      "rking_seconds\030\006 \001(\003R\016workingSecondsJ\004\010\005\020" +
+      "\006R\024billable_cost_micros\"\206\001\n\nDailyUsage\022\022" +
+      "\n\004date\030\001 \001(\tR\004date\022\033\n\trun_count\030\002 \001(\005R\010r" +
+      "unCount\022!\n\014total_tokens\030\003 \001(\003R\013totalToke" +
+      "ns\022$\n\016llm_call_count\030\004 \001(\005R\014llmCallCount" +
+      "\"\207\001\n\014HarnessUsage\022\030\n\007harness\030\001 \001(\tR\007harn" +
+      "ess\022!\n\014total_tokens\030\002 \001(\003R\013totalTokens\022\035" +
+      "\n\ncall_count\030\003 \001(\005R\tcallCount\022\033\n\trun_cou" +
+      "nt\030\004 \001(\005R\010runCount\"\203\001\n\024GetRunSummaryRequ" +
+      "est\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022P\n\013time_w" +
+      "indow\030\002 \001(\0162/.ai.stigmer.agentic.run.v1." +
+      "RunSummaryTimeWindowR\ntimeWindow\"\343\002\n\nRun" +
+      "Summary\022!\n\014active_count\030\001 \001(\005R\013activeCou" +
+      "nt\022Y\n\014phase_counts\030\002 \003(\01326.ai.stigmer.ag" +
+      "entic.run.v1.RunSummary.PhaseCountsEntry" +
+      "R\013phaseCounts\022<\n\014avg_duration\030\003 \001(\0132\031.go" +
+      "ogle.protobuf.DurationR\013avgDuration\022Y\n\022t" +
+      "op_failing_agents\030\004 \003(\0132+.ai.stigmer.age" +
+      "ntic.run.v1.AgentFailureRankR\020topFailing" +
+      "Agents\032>\n\020PhaseCountsEntry\022\020\n\003key\030\001 \001(\005R" +
+      "\003key\022\024\n\005value\030\002 \001(\005R\005value:\0028\001\"u\n\020AgentF" +
+      "ailureRank\022\035\n\nagent_slug\030\001 \001(\tR\tagentSlu" +
+      "g\022\035\n\nagent_name\030\002 \001(\tR\tagentName\022#\n\rfail" +
+      "ure_count\030\003 \001(\005R\014failureCount\"\327\002\n\016Update" +
+      "RunInput\022B\n\010resource\030\001 \001(\0132\036.ai.stigmer." +
+      "agentic.run.v1.RunB\006\272H\003\330\001\003R\010resource\022C\n\013" +
+      "update_mask\030\002 \001(\0132\032.google.protobuf.Fiel" +
+      "dMaskB\006\272H\003\310\001\001R\nupdateMask:\273\001\272H\267\001\032\264\001\n\027upd" +
+      "ate_names_its_target\022Cresource.metadata." +
+      "id is required: an update names the run " +
+      "by its id\032Thas(this.resource) && has(thi" +
+      "s.resource.metadata) && this.resource.me" +
+      "tadata.id != \'\'*\326\001\n\024RunSummaryTimeWindow" +
+      "\022\'\n#RUN_SUMMARY_TIME_WINDOW_UNSPECIFIED\020" +
+      "\000\022$\n RUN_SUMMARY_TIME_WINDOW_LAST_24H\020\001\022" +
+      "#\n\037RUN_SUMMARY_TIME_WINDOW_LAST_7D\020\002\022$\n " +
+      "RUN_SUMMARY_TIME_WINDOW_LAST_30D\020\003\022$\n RU" +
+      "N_SUMMARY_TIME_WINDOW_ALL_TIME\020\004B\222\001B\007IoP" +
+      "rotoP\001\242\002\004ASAR\252\002\031Ai.Stigmer.Agentic.Run.V" +
+      "1\312\002\031Ai\\Stigmer\\Agentic\\Run\\V1\342\002%Ai\\Stigm" +
+      "er\\Agentic\\Run\\V1\\GPBMetadata\352\002\035Ai::Stig" +
+      "mer::Agentic::Run::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -480,176 +439,152 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_UpdateStatusResponse_descriptor,
         new java.lang.String[] { "Signal", "SignalReason", });
-    internal_static_ai_stigmer_agentic_run_v1_SubmitApprovalInput_descriptor =
-      getDescriptor().getMessageType(7);
-    internal_static_ai_stigmer_agentic_run_v1_SubmitApprovalInput_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_run_v1_SubmitApprovalInput_descriptor,
-        new java.lang.String[] { "RunId", "ToolCallId", "Action", "Comment", });
-    internal_static_ai_stigmer_agentic_run_v1_ApprovalDecisionList_descriptor =
-      getDescriptor().getMessageType(8);
-    internal_static_ai_stigmer_agentic_run_v1_ApprovalDecisionList_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_run_v1_ApprovalDecisionList_descriptor,
-        new java.lang.String[] { "Decisions", });
-    internal_static_ai_stigmer_agentic_run_v1_SubmitFileDecisionInput_descriptor =
-      getDescriptor().getMessageType(9);
-    internal_static_ai_stigmer_agentic_run_v1_SubmitFileDecisionInput_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_run_v1_SubmitFileDecisionInput_descriptor,
-        new java.lang.String[] { "RunId", "ChangeSetId", "Scope", "FileChangeId", "Action", "ExpectedDigest", "Reason", "AcknowledgeUnreviewable", });
-    internal_static_ai_stigmer_agentic_run_v1_CancelRunInput_descriptor =
-      getDescriptor().getMessageType(10);
-    internal_static_ai_stigmer_agentic_run_v1_CancelRunInput_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_run_v1_CancelRunInput_descriptor,
-        new java.lang.String[] { "Id", "Reason", });
     internal_static_ai_stigmer_agentic_run_v1_TerminateRunInput_descriptor =
-      getDescriptor().getMessageType(11);
+      getDescriptor().getMessageType(7);
     internal_static_ai_stigmer_agentic_run_v1_TerminateRunInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_TerminateRunInput_descriptor,
         new java.lang.String[] { "Id", "Reason", });
     internal_static_ai_stigmer_agentic_run_v1_RecoverRunInput_descriptor =
-      getDescriptor().getMessageType(12);
+      getDescriptor().getMessageType(8);
     internal_static_ai_stigmer_agentic_run_v1_RecoverRunInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_RecoverRunInput_descriptor,
         new java.lang.String[] { "Id", });
     internal_static_ai_stigmer_agentic_run_v1_PauseRunInput_descriptor =
-      getDescriptor().getMessageType(13);
+      getDescriptor().getMessageType(9);
     internal_static_ai_stigmer_agentic_run_v1_PauseRunInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_PauseRunInput_descriptor,
         new java.lang.String[] { "Id", "Reason", });
     internal_static_ai_stigmer_agentic_run_v1_ResumeRunInput_descriptor =
-      getDescriptor().getMessageType(14);
+      getDescriptor().getMessageType(10);
     internal_static_ai_stigmer_agentic_run_v1_ResumeRunInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_ResumeRunInput_descriptor,
         new java.lang.String[] { "Id", });
     internal_static_ai_stigmer_agentic_run_v1_UploadAttachmentRequest_descriptor =
-      getDescriptor().getMessageType(15);
+      getDescriptor().getMessageType(11);
     internal_static_ai_stigmer_agentic_run_v1_UploadAttachmentRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_UploadAttachmentRequest_descriptor,
         new java.lang.String[] { "Filename", "Content", "ContentType", });
     internal_static_ai_stigmer_agentic_run_v1_UploadAttachmentResponse_descriptor =
-      getDescriptor().getMessageType(16);
+      getDescriptor().getMessageType(12);
     internal_static_ai_stigmer_agentic_run_v1_UploadAttachmentResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_UploadAttachmentResponse_descriptor,
         new java.lang.String[] { "StorageKey", });
     internal_static_ai_stigmer_agentic_run_v1_GetArtifactDownloadUrlRequest_descriptor =
-      getDescriptor().getMessageType(17);
+      getDescriptor().getMessageType(13);
     internal_static_ai_stigmer_agentic_run_v1_GetArtifactDownloadUrlRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_GetArtifactDownloadUrlRequest_descriptor,
         new java.lang.String[] { "RunId", "StorageKey", "AsAttachment", });
     internal_static_ai_stigmer_agentic_run_v1_GetArtifactDownloadUrlResponse_descriptor =
-      getDescriptor().getMessageType(18);
+      getDescriptor().getMessageType(14);
     internal_static_ai_stigmer_agentic_run_v1_GetArtifactDownloadUrlResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_GetArtifactDownloadUrlResponse_descriptor,
         new java.lang.String[] { "DownloadUrl", "ExpiresAt", });
     internal_static_ai_stigmer_agentic_run_v1_GetArtifactContentRequest_descriptor =
-      getDescriptor().getMessageType(19);
+      getDescriptor().getMessageType(15);
     internal_static_ai_stigmer_agentic_run_v1_GetArtifactContentRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_GetArtifactContentRequest_descriptor,
         new java.lang.String[] { "RunId", "StorageKey", "MaxBytes", "EntryPath", });
     internal_static_ai_stigmer_agentic_run_v1_GetArtifactContentResponse_descriptor =
-      getDescriptor().getMessageType(20);
+      getDescriptor().getMessageType(16);
     internal_static_ai_stigmer_agentic_run_v1_GetArtifactContentResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_GetArtifactContentResponse_descriptor,
         new java.lang.String[] { "Content", "ContentType", "TotalSizeBytes", "Truncated", });
     internal_static_ai_stigmer_agentic_run_v1_GetRunUsageReportInput_descriptor =
-      getDescriptor().getMessageType(21);
+      getDescriptor().getMessageType(17);
     internal_static_ai_stigmer_agentic_run_v1_GetRunUsageReportInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_GetRunUsageReportInput_descriptor,
         new java.lang.String[] { "RunId", });
     internal_static_ai_stigmer_agentic_run_v1_GetRunUsageReportOutput_descriptor =
-      getDescriptor().getMessageType(22);
+      getDescriptor().getMessageType(18);
     internal_static_ai_stigmer_agentic_run_v1_GetRunUsageReportOutput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_GetRunUsageReportOutput_descriptor,
         new java.lang.String[] { "Aggregate", "ModelBreakdown", });
     internal_static_ai_stigmer_agentic_run_v1_GetSessionUsageReportInput_descriptor =
-      getDescriptor().getMessageType(23);
+      getDescriptor().getMessageType(19);
     internal_static_ai_stigmer_agentic_run_v1_GetSessionUsageReportInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_GetSessionUsageReportInput_descriptor,
         new java.lang.String[] { "SessionId", });
     internal_static_ai_stigmer_agentic_run_v1_GetSessionUsageReportOutput_descriptor =
-      getDescriptor().getMessageType(24);
+      getDescriptor().getMessageType(20);
     internal_static_ai_stigmer_agentic_run_v1_GetSessionUsageReportOutput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_GetSessionUsageReportOutput_descriptor,
         new java.lang.String[] { "SessionId", "RunCount", "TotalUsage", "Runs", "ModelBreakdown", "FirstRunAt", "LastRunAt", "IsEstimated", });
     internal_static_ai_stigmer_agentic_run_v1_GetAgentUsageReportInput_descriptor =
-      getDescriptor().getMessageType(25);
+      getDescriptor().getMessageType(21);
     internal_static_ai_stigmer_agentic_run_v1_GetAgentUsageReportInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_GetAgentUsageReportInput_descriptor,
         new java.lang.String[] { "AgentId", "FromDate", "ToDate", "PageSize", "PageToken", "Org", });
     internal_static_ai_stigmer_agentic_run_v1_GetAgentUsageReportOutput_descriptor =
-      getDescriptor().getMessageType(26);
+      getDescriptor().getMessageType(22);
     internal_static_ai_stigmer_agentic_run_v1_GetAgentUsageReportOutput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_GetAgentUsageReportOutput_descriptor,
         new java.lang.String[] { "AgentId", "AgentName", "TotalUsage", "ModelBreakdown", "Sessions", "TotalSessions", "TotalRuns", "NextPageToken", });
     internal_static_ai_stigmer_agentic_run_v1_GetOrgUsageReportInput_descriptor =
-      getDescriptor().getMessageType(27);
+      getDescriptor().getMessageType(23);
     internal_static_ai_stigmer_agentic_run_v1_GetOrgUsageReportInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_GetOrgUsageReportInput_descriptor,
         new java.lang.String[] { "Org", "FromDate", "ToDate", });
     internal_static_ai_stigmer_agentic_run_v1_GetOrgUsageReportOutput_descriptor =
-      getDescriptor().getMessageType(28);
+      getDescriptor().getMessageType(24);
     internal_static_ai_stigmer_agentic_run_v1_GetOrgUsageReportOutput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_GetOrgUsageReportOutput_descriptor,
         new java.lang.String[] { "Org", "TotalAgents", "TotalSessions", "TotalRuns", "ModelBreakdown", "TopAgents", "DailyUsage", "HarnessUsage", "TotalUsage", });
     internal_static_ai_stigmer_agentic_run_v1_RunUsageSummary_descriptor =
-      getDescriptor().getMessageType(29);
+      getDescriptor().getMessageType(25);
     internal_static_ai_stigmer_agentic_run_v1_RunUsageSummary_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_RunUsageSummary_descriptor,
         new java.lang.String[] { "RunId", "StartedAt", "CompletedAt", "InputTokens", "OutputTokens", "CacheReadInputTokens", "PrimaryModel", "SubAgentCount", "Phase", "IsEstimated", "TotalTokens", "WorkingSeconds", });
     internal_static_ai_stigmer_agentic_run_v1_SessionUsageSummary_descriptor =
-      getDescriptor().getMessageType(30);
+      getDescriptor().getMessageType(26);
     internal_static_ai_stigmer_agentic_run_v1_SessionUsageSummary_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_SessionUsageSummary_descriptor,
         new java.lang.String[] { "SessionId", "RunCount", "TotalTokens", "FirstRunAt", "LastRunAt", "WorkingSeconds", });
     internal_static_ai_stigmer_agentic_run_v1_AgentUsageSummary_descriptor =
-      getDescriptor().getMessageType(31);
+      getDescriptor().getMessageType(27);
     internal_static_ai_stigmer_agentic_run_v1_AgentUsageSummary_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_AgentUsageSummary_descriptor,
         new java.lang.String[] { "AgentId", "AgentName", "RunCount", "TotalTokens", "WorkingSeconds", });
     internal_static_ai_stigmer_agentic_run_v1_DailyUsage_descriptor =
-      getDescriptor().getMessageType(32);
+      getDescriptor().getMessageType(28);
     internal_static_ai_stigmer_agentic_run_v1_DailyUsage_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_DailyUsage_descriptor,
         new java.lang.String[] { "Date", "RunCount", "TotalTokens", "LlmCallCount", });
     internal_static_ai_stigmer_agentic_run_v1_HarnessUsage_descriptor =
-      getDescriptor().getMessageType(33);
+      getDescriptor().getMessageType(29);
     internal_static_ai_stigmer_agentic_run_v1_HarnessUsage_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_HarnessUsage_descriptor,
         new java.lang.String[] { "Harness", "TotalTokens", "CallCount", "RunCount", });
     internal_static_ai_stigmer_agentic_run_v1_GetRunSummaryRequest_descriptor =
-      getDescriptor().getMessageType(34);
+      getDescriptor().getMessageType(30);
     internal_static_ai_stigmer_agentic_run_v1_GetRunSummaryRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_GetRunSummaryRequest_descriptor,
         new java.lang.String[] { "Org", "TimeWindow", });
     internal_static_ai_stigmer_agentic_run_v1_RunSummary_descriptor =
-      getDescriptor().getMessageType(35);
+      getDescriptor().getMessageType(31);
     internal_static_ai_stigmer_agentic_run_v1_RunSummary_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_RunSummary_descriptor,
@@ -661,13 +596,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
         internal_static_ai_stigmer_agentic_run_v1_RunSummary_PhaseCountsEntry_descriptor,
         new java.lang.String[] { "Key", "Value", });
     internal_static_ai_stigmer_agentic_run_v1_AgentFailureRank_descriptor =
-      getDescriptor().getMessageType(36);
+      getDescriptor().getMessageType(32);
     internal_static_ai_stigmer_agentic_run_v1_AgentFailureRank_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_AgentFailureRank_descriptor,
         new java.lang.String[] { "AgentSlug", "AgentName", "FailureCount", });
     internal_static_ai_stigmer_agentic_run_v1_UpdateRunInput_descriptor =
-      getDescriptor().getMessageType(37);
+      getDescriptor().getMessageType(33);
     internal_static_ai_stigmer_agentic_run_v1_UpdateRunInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_UpdateRunInput_descriptor,

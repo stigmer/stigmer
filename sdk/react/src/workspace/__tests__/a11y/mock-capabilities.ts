@@ -8,15 +8,8 @@
 // every class in the audited DOM.
 
 import { create } from "@bufbuild/protobuf";
-import {
-  FileChangeSchema,
-  FileContentSchema,
-  type FileChange,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  FileChangeCaptureLevel,
-  FileChangeType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { DisplayFileChange } from "@stigmer/sdk";
 import type { WorkspaceEntry } from "../../useWorkspaceEntries.js";
 import type {
   WorkspaceFileEntry,
@@ -119,20 +112,22 @@ export const mockSearcher: WorkspaceContentSearcher = async (entry, query) => {
 };
 
 /**
- * An inline (non-offloaded) MODIFY change for the open file, so the diff pane
+ * An inline (non-offloaded) modification of the open file, so the diff pane
  * resolves its before/after text synchronously — `useFileChangeContent` issues
  * no artifact fetch for inline sides, so the audit needs no live backend.
  */
-export function fileChangeForOpenFile(): FileChange {
-  return create(FileChangeSchema, {
+export function fileChangeForOpenFile(): DisplayFileChange {
+  return {
     path: OPEN_FILE_PATH,
-    changeType: FileChangeType.MODIFY,
-    captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+    changeType: "modified",
+    linesAdded: 0,
+    linesRemoved: 0,
+    renameFrom: "",
     before: create(FileContentSchema, {
       body: { case: "inline", value: "export function greet(name: string) {\n  return name;\n}\n" },
     }),
     after: create(FileContentSchema, {
       body: { case: "inline", value: OPEN_FILE_TEXT },
     }),
-  });
+  };
 }

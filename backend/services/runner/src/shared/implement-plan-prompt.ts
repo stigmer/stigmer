@@ -30,7 +30,7 @@ import { isPlanArtifactName } from "./plan-artifact.js";
 /**
  * Progress-tracking instruction shared by both directive variants (Tier 3 of
  * Plan mode — plan-driven build progress). The agent's own to-do tool is the
- * single writer of `status.todos`, so instructing it to derive the list from
+ * single writer of the turn's to-do list, so instructing it to derive the list from
  * the approved plan is the entire plan→progress linkage: the runner's todo
  * extraction and the clients' todo renderers light up unchanged.
  *

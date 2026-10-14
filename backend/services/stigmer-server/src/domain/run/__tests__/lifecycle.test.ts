@@ -4,9 +4,12 @@
  * plus the pipeline-level behavior Go asserts through conformance:
  *
  *   - applyLifecyclePhaseTransition: the pure mutation inside the atomic
- *     persist closure — terminal cascade (sub-agents, tool-call settle
- *     #207, pending clear), PAUSED non-terminality, recover's error clear;
- *   - the five pipelines over a real SQLite store with a stub engine:
+ *     persist closure — a terminal phase's completed_at and stop cause,
+ *     PAUSED non-terminality, recover's error clear, and nothing else of
+ *     the run touched (a tool call the turn never finished is read as
+ *     stopped from the session's log, never written here);
+ *   - the four lifecycle pipelines, and the cancel steps the session's
+ *     interrupt runs, over a real SQLite store with a stub engine:
  *     phase refusals, idempotent already-in-target, NotFound, the
  *     disconnected-engine refusal, warn-and-proceed on workflow-not-found,
  *     and recover's full terminate → re-plan → fresh-start chain, the new
@@ -24,9 +27,9 @@
  *     executions never wait on each other. The first recover is released
  *     on whichever comes first, the second entering the serializer or the
  *     second reaching the engine, so no timer decides either outcome;
- *   - the pause/decision-append race: the lifecycle persist rides
- *     store.updateResource under the write lock, so a concurrent approval
- *     append is never clobbered (the Go 50-iteration regression).
+ *   - the pause/record race: the lifecycle persist rides the row-locked
+ *     write, so a concurrent write to the run's file record is never
+ *     clobbered (the Go 50-iteration regression).
  */
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import {
@@ -52,34 +55,32 @@ import {
   RunValueSourceSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
-  ApprovalAction,
   RunPhase,
   RunValueOrigin,
-  SubAgentStatus,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type {
-  CancelRunInput,
   PauseRunInput,
   RecoverRunInput,
   ResumeRunInput,
   TerminateRunInput,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import {
-  CancelRunInputSchema,
   PauseRunInputSchema,
   RecoverRunInputSchema,
   ResumeRunInputSchema,
   TerminateRunInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
-import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
+import { InterruptSessionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
 import type { RunStatusTransition } from "../../../extensions/status-hooks.js";
 import { KeyedSerializer } from "../../../pipeline/keyed-serializer.js";
+import { newPipeline } from "../../../pipeline/pipeline.js";
+import { LOADED_EXECUTION_KEY, RequestContext } from "../../../pipeline/request-context.js";
+import type { CallerIdentity } from "../../../extensions/identity.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
@@ -94,15 +95,14 @@ import { EngineWorkflowNotFoundError } from "../engine.js";
 import type { LifecycleDeps } from "../lifecycle.js";
 import {
   applyLifecyclePhaseTransition,
-  cancelInProgressSubAgents,
-  cancelExecution,
+  cancelSteps,
   pauseExecution,
   recoverExecution,
   resumeExecution,
   terminateExecution,
 } from "../lifecycle.js";
-import { StreamBroker } from "../stream-broker.js";
 import { stubConnectedEngine } from "./engine-stub.js";
+import { capturedSet } from "./file-review-seed.js";
 import { SessionEventBroker } from "../../session/events/broker.js";
 import { LIST_INDEXES } from "../../../boot/list-indexes.js";
 
@@ -126,86 +126,21 @@ afterAll(() => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-function subAgent(init: {
-  id: string;
-  status: SubAgentStatus;
-  completedAt?: string;
-}): SubAgentRun {
-  return create(SubAgentRunSchema, init);
-}
-
-describe("cancelInProgressSubAgents", () => {
-  it("cascades in-flight, preserves terminal and preexisting timestamps", () => {
-    const subAgents = [
-      subAgent({ id: "a", status: SubAgentStatus.SUB_AGENT_IN_PROGRESS }),
-      subAgent({ id: "b", status: SubAgentStatus.SUB_AGENT_PENDING }),
-      subAgent({
-        id: "c",
-        status: SubAgentStatus.SUB_AGENT_COMPLETED,
-        completedAt: "2026-01-01T00:00:00Z",
-      }),
-      subAgent({
-        id: "d",
-        status: SubAgentStatus.SUB_AGENT_IN_PROGRESS,
-        completedAt: "preexisting",
-      }),
-    ];
-
-    cancelInProgressSubAgents(subAgents, "2026-06-05T00:00:00Z");
-
-    // IN_PROGRESS -> CANCELLED, completed_at filled in.
-    expect(subAgents[0]?.status).toBe(SubAgentStatus.SUB_AGENT_CANCELLED);
-    expect(subAgents[0]?.completedAt).toBe("2026-06-05T00:00:00Z");
-    // PENDING -> CANCELLED.
-    expect(subAgents[1]?.status).toBe(SubAgentStatus.SUB_AGENT_CANCELLED);
-    // COMPLETED is terminal — untouched.
-    expect(subAgents[2]?.status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
-    expect(subAgents[2]?.completedAt).toBe("2026-01-01T00:00:00Z");
-    // Cancelled but the preexisting timestamp is preserved.
-    expect(subAgents[3]?.status).toBe(SubAgentStatus.SUB_AGENT_CANCELLED);
-    expect(subAgents[3]?.completedAt).toBe("preexisting");
-  });
-
-  it("is safe on an empty list and on undefined elements (Go NilSafe)", () => {
-    expect(() =>
-      cancelInProgressSubAgents([], "2026-06-05T00:00:00Z"),
-    ).not.toThrow();
-    expect(() =>
-      cancelInProgressSubAgents(
-        [undefined] as unknown as SubAgentRun[],
-        "2026-06-05T00:00:00Z",
-      ),
-    ).not.toThrow();
-  });
-});
-
-// An IN_PROGRESS execution carrying every field the transition can touch,
-// so each case asserts both what changes and what is left alone.
+// An IN_PROGRESS run carrying every field the transition must leave
+// alone beside the ones it sets, so each case asserts both.
 function newTransitionFixture(): Run {
   return create(RunSchema, {
     status: {
       phase: RunPhase.RUN_IN_PROGRESS,
       completedAt: "2026-01-01T00:00:00Z",
       error: "preexisting error",
-      messages: [
-        {
-          toolCalls: [
-            { id: "tc-running", status: ToolCallStatus.TOOL_CALL_RUNNING },
-            { id: "tc-done", status: ToolCallStatus.TOOL_CALL_COMPLETED },
-          ],
-        },
-      ],
-      subAgentRuns: [
-        { id: "s1", status: SubAgentStatus.SUB_AGENT_IN_PROGRESS },
-        { id: "s2", status: SubAgentStatus.SUB_AGENT_COMPLETED },
-      ],
-      pendingApprovals: [{}],
+      fileChanges: [capturedSet("run_fixture:0")],
     },
   });
 }
 
 describe("applyLifecyclePhaseTransition", () => {
-  it("pause: non-terminal, keeps completed_at/pending/sub-agents/error", () => {
+  it("pause: non-terminal, keeps completed_at, error and the file record", () => {
     const exec = newTransitionFixture();
     applyLifecyclePhaseTransition(
       exec,
@@ -219,18 +154,11 @@ describe("applyLifecyclePhaseTransition", () => {
     // PAUSED is not terminal; completed_at untouched.
     expect(exec.status?.completedAt).toBe("2026-01-01T00:00:00Z");
     expect(exec.status?.error).toBe("preexisting error");
-    // Pending must survive a pause (it can resume).
-    expect(exec.status?.pendingApprovals).toHaveLength(1);
-    expect(exec.status?.subAgentRuns[0]?.status).toBe(
-      SubAgentStatus.SUB_AGENT_IN_PROGRESS,
-    );
-    // PAUSED is not terminal; in-flight tool calls untouched.
-    expect(exec.status?.messages[0]?.toolCalls[0]?.status).toBe(
-      ToolCallStatus.TOOL_CALL_RUNNING,
-    );
+    expect(exec.status?.stopCause).toBe("");
+    expect(exec.status?.fileChanges).toHaveLength(1);
   });
 
-  it("resume: IN_PROGRESS clears completed_at, keeps error and pending", () => {
+  it("resume: IN_PROGRESS clears completed_at, keeps error", () => {
     const exec = newTransitionFixture();
     exec.status!.phase = RunPhase.RUN_PAUSED;
     applyLifecyclePhaseTransition(
@@ -245,7 +173,6 @@ describe("applyLifecyclePhaseTransition", () => {
     expect(exec.status?.completedAt).toBe("");
     // Resume does not clear error.
     expect(exec.status?.error).toBe("preexisting error");
-    expect(exec.status?.pendingApprovals).toHaveLength(1);
   });
 
   it("recover: IN_PROGRESS clears completed_at and error", () => {
@@ -264,7 +191,7 @@ describe("applyLifecyclePhaseTransition", () => {
     expect(exec.status?.error).toBe("");
   });
 
-  it("cancel: terminal sets completed_at, cascades, clears pending", () => {
+  it("cancel: terminal sets completed_at and the stop cause, and leaves the record", () => {
     const exec = newTransitionFixture();
     applyLifecyclePhaseTransition(
       exec,
@@ -276,31 +203,13 @@ describe("applyLifecyclePhaseTransition", () => {
 
     expect(exec.status?.phase).toBe(RunPhase.RUN_CANCELLED);
     expect(exec.status?.completedAt).not.toBe("");
-    // A terminal execution carries no pending approvals.
-    expect(exec.status?.pendingApprovals).toHaveLength(0);
-    // In-flight sub-agent cascaded to CANCELLED.
-    expect(exec.status?.subAgentRuns[0]?.status).toBe(
-      SubAgentStatus.SUB_AGENT_CANCELLED,
-    );
-    expect(exec.status?.subAgentRuns[0]?.completedAt).not.toBe("");
-    // Already-COMPLETED sub-agent preserved.
-    expect(exec.status?.subAgentRuns[1]?.status).toBe(
-      SubAgentStatus.SUB_AGENT_COMPLETED,
-    );
+    expect(exec.status?.stopCause).toBe("user");
     // Cancel does not set error.
     expect(exec.status?.error).toBe("preexisting error");
-    // In-flight tool call settled to INTERRUPTED (#207).
-    expect(exec.status?.messages[0]?.toolCalls[0]?.status).toBe(
-      ToolCallStatus.TOOL_CALL_INTERRUPTED,
-    );
-    expect(exec.status?.messages[0]?.toolCalls[0]?.completedAt).not.toBe("");
-    // Already-terminal tool call preserved.
-    expect(exec.status?.messages[0]?.toolCalls[1]?.status).toBe(
-      ToolCallStatus.TOOL_CALL_COMPLETED,
-    );
+    expect(exec.status?.fileChanges.map((cs) => cs.id)).toEqual(["run_fixture:0"]);
   });
 
-  it("terminate: sets error from reason, cascades, clears pending", () => {
+  it("terminate: sets error from reason and completed_at, no stop cause", () => {
     const exec = newTransitionFixture();
     applyLifecyclePhaseTransition(
       exec,
@@ -312,15 +221,9 @@ describe("applyLifecyclePhaseTransition", () => {
 
     expect(exec.status?.phase).toBe(RunPhase.RUN_TERMINATED);
     expect(exec.status?.completedAt).not.toBe("");
-    expect(exec.status?.pendingApprovals).toHaveLength(0);
-    expect(exec.status?.subAgentRuns[0]?.status).toBe(
-      SubAgentStatus.SUB_AGENT_CANCELLED,
-    );
+    expect(exec.status?.stopCause).toBe("");
     expect(exec.status?.error).toBe("Terminated: disk full");
-    // Force-kill settles in-flight tool calls.
-    expect(exec.status?.messages[0]?.toolCalls[0]?.status).toBe(
-      ToolCallStatus.TOOL_CALL_INTERRUPTED,
-    );
+    expect(exec.status?.fileChanges).toHaveLength(1);
   });
 
   it("terminate: empty reason falls back to default error", () => {
@@ -354,30 +257,6 @@ describe("applyLifecyclePhaseTransition", () => {
 // ---------------------------------------------------------------------------
 
 let counter = 0;
-
-function gatedExecution(id: string, toolCallId: string): Run {
-  return create(RunSchema, {
-    apiVersion: "agentic.stigmer.ai/v1",
-    kind: "Run",
-    metadata: { id, name: id },
-    spec: {},
-    status: {
-      phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
-      messages: [
-        {
-          toolCalls: [
-            {
-              id: toolCallId,
-              name: "Write",
-              status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-              requiresApproval: true,
-            },
-          ],
-        },
-      ],
-    },
-  });
-}
 
 async function seedExecution(init: {
   phase: RunPhase;
@@ -477,7 +356,6 @@ function lifecycleDeps(engineState: ExecutionEngineState): LifecycleDeps {
     logger: silentLogger,
     authorizer: newPermissiveSingleTeamAuthorizer(),
     recoverSerializer: new KeyedSerializer(),
-    broker: new StreamBroker(silentLogger),
     sessionEventBroker: new SessionEventBroker(silentLogger),
     engineState: () => engineState,
     runValuePlanner: stubPlannerDeps(),
@@ -511,8 +389,33 @@ async function expectCode(
   throw new Error(`expected code ${Code[code]}, call succeeded`);
 }
 
-function cancelInput(id: string): CancelRunInput {
-  return create(CancelRunInputSchema, { id });
+/** The cancel input a test names a run by; the session's interrupt names it to the steps directly. */
+function cancelInput(id: string): { readonly id: string } {
+  return { id };
+}
+
+/**
+ * The cancel steps as the session's interrupt runs them for one run: in a
+ * chain of the interrupt's own, with the run named to the steps.
+ */
+async function cancelExecution(
+  deps: LifecycleDeps,
+  input: { readonly id: string },
+  identity: CallerIdentity,
+): Promise<Run> {
+  type InterruptDesc = typeof SessionCommandController.method.interrupt.input;
+  const ctx = new RequestContext(
+    SessionCommandController.method.interrupt.input,
+    create(InterruptSessionInputSchema, { sessionId: "ses_lifecycle" }),
+    identity,
+    ApiResourceKind.run,
+  );
+  const builder = newPipeline<InterruptDesc>("agentexecution-cancel", deps.logger);
+  for (const step of cancelSteps<InterruptDesc>(deps, () => input.id)) {
+    builder.addStep(step);
+  }
+  await builder.build().execute(ctx);
+  return ctx.get(LOADED_EXECUTION_KEY) as Run;
 }
 function terminateInput(id: string, reason = ""): TerminateRunInput {
   return create(TerminateRunInputSchema, { id, reason });
@@ -626,7 +529,7 @@ describe("lifecycle pipelines", () => {
     expect(engineCalls).toBe(0);
   });
 
-  it("cancel with a connected engine persists CANCELLED and broadcasts", async () => {
+  it("cancel with a connected engine persists CANCELLED", async () => {
     const cancelled: string[] = [];
     const deps = lifecycleDeps(
       connected(
@@ -834,8 +737,7 @@ describe("lifecycle pipelines", () => {
       logger: silentLogger,
       authorizer: newPermissiveSingleTeamAuthorizer(),
       recoverSerializer: new KeyedSerializer(),
-      broker: new StreamBroker(silentLogger),
-      sessionEventBroker: new SessionEventBroker(silentLogger),
+        sessionEventBroker: new SessionEventBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
       sandboxLane: { enabled: false },
@@ -935,8 +837,7 @@ describe("lifecycle pipelines", () => {
       logger: silentLogger,
       authorizer: newPermissiveSingleTeamAuthorizer(),
       recoverSerializer: new KeyedSerializer(),
-      broker: new StreamBroker(silentLogger),
-      sessionEventBroker: new SessionEventBroker(silentLogger),
+        sessionEventBroker: new SessionEventBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
       sandboxLane: { enabled: false },
@@ -983,8 +884,7 @@ describe("lifecycle pipelines", () => {
       logger: silentLogger,
       authorizer: newPermissiveSingleTeamAuthorizer(),
       recoverSerializer: new KeyedSerializer(),
-      broker: new StreamBroker(silentLogger),
-      sessionEventBroker: new SessionEventBroker(silentLogger),
+        sessionEventBroker: new SessionEventBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
       sandboxLane: { enabled: false },
@@ -1038,8 +938,7 @@ describe("lifecycle pipelines", () => {
       logger: silentLogger,
       authorizer: newPermissiveSingleTeamAuthorizer(),
       recoverSerializer: new KeyedSerializer(),
-      broker: new StreamBroker(silentLogger),
-      sessionEventBroker: new SessionEventBroker(silentLogger),
+        sessionEventBroker: new SessionEventBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
       sandboxLane: { enabled: false },
@@ -1271,8 +1170,7 @@ describe("lifecycle pipelines", () => {
       logger: silentLogger,
       authorizer: newPermissiveSingleTeamAuthorizer(),
       recoverSerializer: new KeyedSerializer(),
-      broker: new StreamBroker(silentLogger),
-      sessionEventBroker: new SessionEventBroker(silentLogger),
+        sessionEventBroker: new SessionEventBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
       sandboxLane: { enabled: false },
@@ -1587,7 +1485,8 @@ describe("recover runs one at a time per execution (stigmer#1672)", () => {
 // The lifecycle persist must go through the store's atomic row-locked
 // write, never the whole-resource saveResource it replaced (Go
 // TestLifecyclePersist_UsesUpdateResource): a saveResource here is the
-// regression that lets a concurrent SubmitApproval append be clobbered.
+// regression that lets a concurrent write to the run (its file record, as
+// the race test below writes) be clobbered.
 // The atomic write is writeResourceAppendingEvents since a transition
 // commits with its session's events (session/events/run-writes.ts). The
 // mechanism pin complements the race test below — it pinpoints the
@@ -1648,8 +1547,7 @@ describe("lifecycle persist uses the atomic row-locked write", () => {
         logger: silentLogger,
         authorizer: newPermissiveSingleTeamAuthorizer(),
         recoverSerializer: new KeyedSerializer(),
-        broker: new StreamBroker(silentLogger),
-        sessionEventBroker: new SessionEventBroker(silentLogger),
+            sessionEventBroker: new SessionEventBroker(silentLogger),
         engineState: () => connected(stubConnectedEngine()),
         runValuePlanner: stubPlannerDeps(),
         gateSteps: new Map(),
@@ -1677,13 +1575,12 @@ describe("lifecycle persist uses the atomic row-locked write", () => {
   }
 });
 
-// The lifecycle path never loses a decision: a pause and an approval
-// stamp race on the same gated execution. Because the lifecycle persist
-// re-reads fresh under the store's write lock, it can never clobber a
-// decision a concurrent writer recorded (Go's 50-iteration regression).
-describe("lifecycle pause racing a decision append", () => {
-  it("keeps both the decision and the pause across 50 races", async () => {
-    const toolCallId = "tc-1";
+// The lifecycle path never loses a concurrent write: a pause and a write to
+// the run's file record race on the same run. Because the lifecycle persist
+// re-reads fresh under the store's write lock, it can never clobber what a
+// concurrent writer recorded (Go's 50-iteration regression).
+describe("lifecycle pause racing a write to the run's record", () => {
+  it("keeps both the record and the pause across 50 races", async () => {
     const deps = lifecycleDeps(connected(stubConnectedEngine()));
 
     for (let i = 0; i < 50; i++) {
@@ -1692,54 +1589,27 @@ describe("lifecycle pause racing a decision append", () => {
         ApiResourceKind.run,
         id,
         RunSchema,
-        gatedExecution(id, toolCallId),
-      );
-
-      // Go seeds WAITING_FOR_APPROVAL; pause requires PENDING/IN_PROGRESS,
-      // so flip to IN_PROGRESS while keeping the gated call — the overlap
-      // window the plan describes.
-      await store.updateResource(
-        ApiResourceKind.run,
-        id,
-        RunSchema,
-        (loaded) => {
-          loaded.status!.phase = RunPhase.RUN_IN_PROGRESS;
-        },
+        create(RunSchema, {
+          apiVersion: "agentic.stigmer.ai/v1",
+          kind: "Run",
+          metadata: { id, name: id },
+          spec: {},
+          status: { phase: RunPhase.RUN_IN_PROGRESS },
+        }),
       );
 
       await Promise.all([
         pauseExecution(deps, pauseInput(id), testCallerIdentity()),
-        store.updateResource(
-          ApiResourceKind.run,
-          id,
-          RunSchema,
-          (loaded) => {
-            const tc = loaded.status?.messages[0]?.toolCalls[0];
-            if (tc === undefined) {
-              throw new Error(`tool call ${toolCallId} not found`);
-            }
-            tc.approvalAction = ApprovalAction.APPROVE;
-            tc.approvalDecidedAt = new Date()
-              .toISOString()
-              .replace(/\.\d{3}Z$/, "Z");
-          },
-        ),
+        store.updateResource(ApiResourceKind.run, id, RunSchema, (loaded) => {
+          loaded.status!.fileChanges.push(capturedSet(`${id}:0`));
+        }),
       ]);
 
-      const final = await store.getResource(
-        ApiResourceKind.run,
-        id,
-        RunSchema,
-      );
+      const final = await store.getResource(ApiResourceKind.run, id, RunSchema);
 
-      expect(
-        final.status?.messages[0]?.toolCalls[0]?.approvalAction,
-        `iteration ${i}: decision lost`,
-      ).toBe(ApprovalAction.APPROVE);
+      expect(final.status?.fileChanges.map((cs) => cs.id), `iteration ${i}: record lost`).toEqual([`${id}:0`]);
       // The pause transition must also have landed.
-      expect(final.status?.phase, `iteration ${i}: phase`).toBe(
-        RunPhase.RUN_PAUSED,
-      );
+      expect(final.status?.phase, `iteration ${i}: phase`).toBe(RunPhase.RUN_PAUSED);
     }
   });
 });

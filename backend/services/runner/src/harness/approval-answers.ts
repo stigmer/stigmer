@@ -3,7 +3,7 @@
  * the door through which an approval reaches a resumed turn.
  *
  * An answer is a session event the server writes (`confirmToolUse`,
- * `grantPermission`, or the `submitApproval` adapter onto them): a
+ * `grantPermission`): a
  * `user.tool_confirmation` (`allow` or `deny`, a deny with the reason the
  * person gave) per call answered, and a `stigmer.permission.grant` (with
  * its lease: a category, a server, or a hook's asks on one tool) on the
@@ -15,10 +15,10 @@
  * (`events/ids.ts` `toolUseEventId`, the id the emitter wrote the ask
  * under).
  *
- * The reader lists the run's three types once, on every reinvocation
- * (`turn-context.ts` `reconcileReinvocation`): a turn with no row still
- * waiting reads them too, since the calls answered in earlier invocations
- * of the run carry their answers and the grants their leases.
+ * The run's three types are read once, on every reinvocation, in the same
+ * read as the seed (`turn-context.ts` `reconcileReinvocation`): a turn with
+ * no row still waiting reads them too, since the calls answered in earlier
+ * invocations of the run carry their answers and the grants their leases.
  *
  *   allow ..................... APPROVE
  *   deny ...................... REJECT, with its deny message
@@ -35,12 +35,12 @@
  *    still WAITING_APPROVAL, the set the runtime has always resumed by: a
  *    sub-agent's ask surfaces as a root WAITING row on the engine that
  *    pauses for it;
- *  - the answer on every row ({@link copyAnswersOntoRows}). The rows are
- *    the runtime's working memory of the transcript, and the seed copies
- *    each call's answer from the log onto its row's `approval_action`
- *    (clearing whatever the fetched row carried), so every later reader of
- *    that field (the exact-apply, the settle, provenance, the boundary's
- *    closed-gate rule) reads the log's answer and never a server stamp.
+ *  - the answer on every row ({@link copyAnswersOntoRows}). The seeded
+ *    rows are the asks the resumed engine resumes onto (`transcript/resume-seed.ts`),
+ *    and the seed copies each call's answer from the log onto its row's
+ *    `approval_action`, so every later reader of that field (the
+ *    exact-apply, the settle, provenance, the boundary's closed-gate rule)
+ *    reads the log's answer.
  *
  * Failure. The read is a control-plane read like the turn's own fetches: it
  * throws, and the activity's retry runs the turn's start again.
@@ -50,14 +50,12 @@
  * goldens.
  */
 
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
-import type { StigmerClient } from "../client/stigmer-client.js";
 import type { LeaseGrant } from "../shared/approval-policy.js";
 import { toolUseEventId } from "./events/ids.js";
+import type { AgentMessage, TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction, ToolCallStatus } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** The log types the door lists: the answers, the grants, and the asks they answer. */
 export const APPROVAL_ANSWER_EVENT_TYPES = ["user.tool_confirmation", "stigmer.permission.grant", "stigmer.permission.asked"] as const;
@@ -93,15 +91,6 @@ export interface ApprovalAnswers {
   readonly asks: ReadonlyMap<string, ApprovalAsk>;
 }
 
-/** No answers: a fresh turn. */
-export const NO_APPROVAL_ANSWERS: ApprovalAnswers = {
-  decisions: new Map(),
-  denyMessages: new Map(),
-  answers: new Map(),
-  grants: new Map(),
-  asks: new Map(),
-};
-
 /** The verdict the log gives the call under `toolUseId`; UNSPECIFIED when it holds no answer. */
 export function loggedActionOf(answers: Pick<ApprovalAnswers, "answers" | "grants">, toolUseId: string): ApprovalAction {
   const answer = answers.answers.get(toolUseId);
@@ -112,11 +101,15 @@ export function loggedActionOf(answers: Pick<ApprovalAnswers, "answers" | "grant
 
 /**
  * The run's answers, grants and asks among `events`, and the verdicts for
- * the root rows of `status` still WAITING_APPROVAL, keyed by tool-call id in
- * transcript order. A pure map: the reader below and both test kits share
- * it.
+ * the root rows still WAITING_APPROVAL, keyed by tool-call id in
+ * transcript order. A pure map: the reinvocation phase
+ * (`turn-context.ts`) and both test kits share it.
  */
-export function approvalAnswersOf(runId: string, status: RunStatus, events: readonly SessionEvent[]): ApprovalAnswers {
+export function approvalAnswersOf(
+  runId: string,
+  rows: { readonly messages: readonly AgentMessage[] },
+  events: readonly SessionEvent[],
+): ApprovalAnswers {
   const answers = new Map<string, LoggedAnswer>();
   const grants = new Map<string, LeaseGrant>();
   const asks = new Map<string, ApprovalAsk>();
@@ -145,7 +138,7 @@ export function approvalAnswersOf(runId: string, status: RunStatus, events: read
   }
   const decisions = new Map<string, ApprovalAction>();
   const denyMessages = new Map<string, string>();
-  for (const message of status.messages) {
+  for (const message of rows.messages) {
     for (const row of message.toolCalls) {
       if (row.status !== ToolCallStatus.TOOL_CALL_WAITING_APPROVAL) continue;
       const useId = toolUseEventId(runId, row.id);
@@ -166,25 +159,16 @@ export function approvalAnswersOf(runId: string, status: RunStatus, events: read
  * tool use. Sub-agent rows take their tool use id from the run and their own
  * id, as the emitter wrote them. In place.
  */
-export function copyAnswersOntoRows(runId: string, status: RunStatus, answers: Pick<ApprovalAnswers, "answers" | "grants">): void {
+export function copyAnswersOntoRows(
+  runId: string,
+  rows: Pick<TurnRows, "messages" | "subAgentRuns">,
+  answers: Pick<ApprovalAnswers, "answers" | "grants">,
+): void {
   const copy = (messages: readonly AgentMessage[]): void => {
     for (const message of messages) {
       for (const row of message.toolCalls) row.approvalAction = loggedActionOf(answers, toolUseEventId(runId, row.id));
     }
   };
-  copy(status.messages);
-  for (const subAgent of status.subAgentRuns) copy(subAgent.messages);
-}
-
-/**
- * Read the run's answers, grants and asks from its session's log and map
- * them onto the seeded rows (the module header). Throws when the log cannot
- * be read.
- */
-export async function readApprovalAnswers(
-  client: Pick<StigmerClient, "listRunSessionEvents">,
-  args: { readonly sessionId: string; readonly runId: string; readonly status: RunStatus },
-): Promise<ApprovalAnswers> {
-  const events = await client.listRunSessionEvents(args.sessionId, args.runId, APPROVAL_ANSWER_EVENT_TYPES);
-  return approvalAnswersOf(args.runId, args.status, events);
+  copy(rows.messages);
+  for (const subAgent of rows.subAgentRuns) copy(subAgent.messages);
 }

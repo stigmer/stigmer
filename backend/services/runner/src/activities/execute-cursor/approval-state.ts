@@ -87,10 +87,6 @@ import { watch } from "node:fs";
 import { writeFile, readFile, mkdir, rename, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
-import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { ApprovalCategory, McpApprovalDefault } from "./approval-policy.js";
 import { extractArgKey, approvalCategory, resolveApprovalMessage, POLICY_ENGINE_VERSION } from "./approval-policy.js";
 import { DESTRUCTIVE_MCP_APPROVAL_MESSAGE } from "../../shared/approval-policy.js";
@@ -102,6 +98,13 @@ import {
   fingerprintCoarseIdentity,
   type FingerprintKey,
 } from "../../shared/approval-fingerprint.js";
+import {
+  PendingApprovalSchema,
+  type PendingApproval,
+  type AgentMessage,
+  type ToolCall,
+} from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction, ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** One MCP tool that asks first because its server marks it destructive. */
 export interface McpDestructiveToolEntry {

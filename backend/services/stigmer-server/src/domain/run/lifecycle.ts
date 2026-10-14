@@ -1,8 +1,10 @@
 /**
- * The lifecycle RPCs — ports cancel.go, terminate.go, pause.go,
- * resume.go, recover.go and lifecycle_steps.go: the five phase-transition
- * commands over one shared step vocabulary; recover plans the run's values
- * again (RePlanRunValues).
+ * The lifecycle RPCs — ports terminate.go, pause.go, resume.go, recover.go
+ * and lifecycle_steps.go: the phase-transition commands over one shared
+ * step vocabulary; recover plans the run's values again
+ * (RePlanRunValues). A turn is stopped by the session's interrupt
+ * (domain/session/hitl/interrupt.ts), which runs this module's cancel
+ * steps (`cancelSteps`) for every unfinished run of its session.
  *
  * Every Temporal touchpoint rides the engine seam. With the engine
  * disconnected the Temporal steps refuse
@@ -14,11 +16,11 @@
  * The phase transition + persist is ONE atomic read-modify-write under
  * the store's per-resource write lock — the lifecycle counterpart of the
  * UpdateStatus merge chokepoint. Cancel is reachable from
- * WAITING_FOR_APPROVAL and PAUSED as well as PENDING and IN_PROGRESS (the
- * session's interrupt stops every unfinished turn through its steps,
- * domain/session/hitl/interrupt.ts), so the window with a concurrent
- * answer is real; pause and terminate admit PENDING and IN_PROGRESS only.
- * A cancel records the stop's cause, `user`, with its phase.
+ * WAITING_FOR_APPROVAL and PAUSED as well as PENDING and IN_PROGRESS, so
+ * the window with a concurrent answer is real; pause and terminate admit
+ * PENDING and IN_PROGRESS only. A cancel records the stop's cause, `user`,
+ * with its phase. A tool call the turn never finished is read as stopped
+ * from the turn's end in the session's log; no transition writes it.
  *
  * That persist makes each transition atomic, not a whole chain. Recover's
  * chain acts on Temporal and on the run's value plan before its
@@ -40,17 +42,14 @@ import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/
 import {
   RunPhase,
   RunPhaseSchema,
-  SubAgentStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type {
-  CancelRunInput,
   PauseRunInput,
   RecoverRunInput,
   ResumeRunInput,
   TerminateRunInput,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 import type { DescMessage, DescMethod, MessageShape } from "@bufbuild/protobuf";
 import { enumToJson } from "@bufbuild/protobuf";
 
@@ -92,8 +91,6 @@ import {
 } from "./resolve-run-agent.js";
 import { notifyStatusObservers } from "./status-observers.js";
 import { sessionIdOf } from "./target.js";
-import { settleInterruptedToolCalls } from "./tool-call-settle.js";
-import type { StreamBroker } from "./stream-broker.js";
 import type { SessionEventBroker } from "../session/events/broker.js";
 import { updateRunAppendingEvents } from "../session/events/run-writes.js";
 
@@ -117,7 +114,6 @@ export interface LifecycleDeps {
    * builds it, because the routes are registered once per router.
    */
   readonly recoverSerializer: KeyedSerializer;
-  readonly broker: StreamBroker;
   /** The fan-out of each session's event log (a transition appends its session's status events). */
   readonly sessionEventBroker: SessionEventBroker;
   readonly engineState: ExecutionEngineStateProvider;
@@ -151,19 +147,25 @@ interface LifecycleInputWithReasonShape extends LifecycleInputShape {
 // Shared steps (lifecycle_steps.go).
 // ---------------------------------------------------------------------------
 
-/** What the cancel chain's steps need (interrupt runs them too). */
+/** What the cancel chain's steps need (the session's interrupt runs them). */
 export type CancelDeps = Pick<
   LifecycleDeps,
-  "store" | "logger" | "broker" | "sessionEventBroker" | "engineState" | "statusObservers"
+  "store" | "logger" | "sessionEventBroker" | "engineState" | "statusObservers"
 >;
+
+/** The run a lifecycle chain acts on: its input's `id`. */
+function inputRunId<Desc extends DescMessage>(ctx: RequestContext<Desc>): string {
+  return (ctx.newState as unknown as LifecycleInputShape).id;
+}
 
 function newLoadExecutionByIdStep<Desc extends DescMessage>(
   deps: Pick<LifecycleDeps, "store">,
+  runIdOf: (ctx: RequestContext<Desc>) => string = inputRunId,
 ): PipelineStep<Desc> {
   return {
     name: "LoadExecutionById",
     async execute(ctx) {
-      const executionId = (ctx.newState as unknown as LifecycleInputShape).id;
+      const executionId = runIdOf(ctx);
       if (executionId === "") {
         throw invalidArgumentError("execution id is required");
       }
@@ -278,9 +280,8 @@ function newEngineLifecycleStep<Desc extends DescMessage>(config: {
 
 /**
  * Applies a lifecycle phase transition in place: target phase +
- * phase-dependent fields (completed_at, error, the terminal sub-agent
- * cascade, the terminal tool-call settle #207, the terminal
- * pending_approvals clear). The body run inside the updateResource
+ * phase-dependent fields (completed_at, the stop's cause, error). The body
+ * run inside the updateResource
  * closure — the transition is computed against the very snapshot that
  * will be persisted (Go applyLifecyclePhaseTransition, exercised directly
  * by the lifecycle unit tests).
@@ -308,23 +309,6 @@ export function applyLifecyclePhaseTransition(
       // (RunStatus.stop_cause), recorded with the phase.
       status.stopCause = "user";
     }
-
-    // Cascade to in-flight sub-agents: a cancelled/terminated parent
-    // leaves no live delegation, so IN_PROGRESS/PENDING sub-agents move
-    // to CANCELLED — never a permanent "Running" zombie. Authoritative
-    // here: the runner's own cancellation persist is best-effort and can
-    // be lost to the cancellation race.
-    cancelInProgressSubAgents(status.subAgentRuns, now);
-
-    // Same cascade for in-flight tool calls (issue #207) — authoritative
-    // for force-kill, where the runner never gets a finalize.
-    settleInterruptedToolCalls(status, now);
-
-    // A terminal execution has no actionable approvals; this blind clear
-    // keeps the invariant on the bypass paths too, edition-consistently
-    // with the Cloud terminal handlers (the graceful-cancel case is also
-    // cleared later by the workflow cleanup running the seam).
-    status.pendingApprovals = [];
   }
 
   // Clear completed_at for recovery / resume back to IN_PROGRESS.
@@ -342,38 +326,10 @@ export function applyLifecyclePhaseTransition(
 }
 
 /**
- * Transitions non-terminal sub-agents (IN_PROGRESS/PENDING) to CANCELLED
- * with a completion timestamp (only when empty, preserving any
- * runner-recorded one) — Go cancelInProgressSubAgents.
- */
-export function cancelInProgressSubAgents(
-  subAgents: SubAgentRun[],
-  completedAt: string,
-): void {
-  for (const sa of subAgents) {
-    // Go skips nil elements (lifecycle_cancel_cascade_test.go NilSafe);
-    // the defensive twin for a hole smuggled past the type system.
-    if (sa === undefined) {
-      continue;
-    }
-    if (
-      sa.status === SubAgentStatus.SUB_AGENT_IN_PROGRESS ||
-      sa.status === SubAgentStatus.SUB_AGENT_PENDING
-    ) {
-      sa.status = SubAgentStatus.SUB_AGENT_CANCELLED;
-      if (sa.completedAt === "") {
-        sa.completedAt = completedAt;
-      }
-    }
-  }
-}
-
-/**
  * The atomic phase-transition persist (Go
  * UpdateExecutionPhaseAndPersistStep): one read-modify-write under the
- * per-resource write lock, so an approval event a concurrent
- * SubmitApproval appends between the earlier load and this persist can
- * never be lost. UpdateResource requires existence (no upsert): a
+ * per-resource write lock, so an answer a concurrent write records
+ * between the earlier load and this persist can never be lost. UpdateResource requires existence (no upsert): a
  * lifecycle op racing a delete returns NOT_FOUND rather than resurrecting
  * a half-built document.
  */
@@ -418,33 +374,17 @@ function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(
         }
         throw internalError(error, "failed to persist execution");
       }
-      // Notify site 2 of 4 (status-observers.ts): observers see the persisted
-      // transition before LifecycleBroadcast runs — broadcast stays last.
+      // Notify site 2 of 4 (status-observers.ts): observers see the
+      // persisted transition.
       await notifyStatusObservers(deps, updated, oldPhase, targetPhase);
-      // Hand the persisted result to the broadcast step and the handler's
-      // return value (both read the same key).
+      // Hand the persisted result to the handler's return value.
       ctx.set(LOADED_EXECUTION_KEY, updated);
     },
   };
 }
 
-/** Publishes the transition to live subscribers (Go LifecycleBroadcastStep). */
-function newLifecycleBroadcastStep<Desc extends DescMessage>(
-  deps: Pick<LifecycleDeps, "broker">,
-): PipelineStep<Desc> {
-  return {
-    name: "LifecycleBroadcast",
-    execute(ctx) {
-      if (ctx.get(ALREADY_IN_TARGET_STATE_KEY) === true) {
-        return;
-      }
-      deps.broker.broadcast(loadedExecution(ctx));
-    },
-  };
-}
-
 // ---------------------------------------------------------------------------
-// The five RPCs.
+// The RPCs.
 // ---------------------------------------------------------------------------
 
 async function runLifecyclePipeline<Desc extends DescMessage>(
@@ -479,31 +419,6 @@ async function runLifecyclePipeline<Desc extends DescMessage>(
   return execution as Run;
 }
 
-/**
- * Cancel — graceful cancellation via the workflow's cancel signal; the
- * agent can save checkpoint and clean up before CANCELLED.
- */
-export async function cancelExecution(
-  deps: LifecycleDeps,
-  input: CancelRunInput,
-  identity: CallerIdentity,
-): Promise<Run> {
-  type Desc = typeof RunCommandController.method.cancel.input;
-  deps.logger.info("Cancel agent execution request", {
-    executionId: input.id,
-    reason: input.reason,
-  });
-  return runLifecyclePipeline<Desc>(
-    deps,
-    "agentexecution-cancel",
-    RunCommandController.method.cancel.input,
-    input,
-    RunCommandController.method.cancel,
-    identity,
-    cancelSteps<Desc>(deps),
-  );
-}
-
 /** The phases a cancel stops: every unfinished one. */
 export const CANCELLABLE_PHASES: ReadonlyArray<RunPhase> = [
   RunPhase.RUN_PENDING,
@@ -513,16 +428,19 @@ export const CANCELLABLE_PHASES: ReadonlyArray<RunPhase> = [
 ];
 
 /**
- * The cancel chain after its Authorize: the run is loaded by the input's
- * `id`, an already cancelled run is success, a finished one is refused,
- * the workflow is cancelled (at its gate's or its pause's wait, where it
- * writes CANCELLED itself), the transition is persisted with its
- * session's events and observers, and broadcast. A run at the approval
- * gate or paused is cancelled at its workflow's wait.
+ * The cancel steps the session's interrupt runs for each run it stops:
+ * the run (`runIdOf`) is loaded, an already cancelled run is success, a
+ * finished one is refused, the workflow is cancelled (at its gate's or its
+ * pause's wait, where it writes CANCELLED itself), and the transition is
+ * persisted with its session's events and observers. A run at the
+ * approval gate or paused is cancelled at its workflow's wait.
  */
-export function cancelSteps<Desc extends DescMessage>(deps: CancelDeps): PipelineStep<Desc>[] {
+export function cancelSteps<Desc extends DescMessage>(
+  deps: CancelDeps,
+  runIdOf: (ctx: RequestContext<Desc>) => string,
+): PipelineStep<Desc>[] {
   return [
-    newLoadExecutionByIdStep(deps),
+    newLoadExecutionByIdStep(deps, runIdOf),
     newValidatePhaseStep({
       name: "ValidateCancellable",
       targetPhase: RunPhase.RUN_CANCELLED,
@@ -544,7 +462,6 @@ export function cancelSteps<Desc extends DescMessage>(deps: CancelDeps): Pipelin
       false,
       false,
     ),
-    newLifecycleBroadcastStep(deps),
   ];
 }
 
@@ -598,7 +515,6 @@ export async function terminateExecution(
         true,
         false,
       ),
-      newLifecycleBroadcastStep(deps),
     ],
   );
 }
@@ -652,7 +568,6 @@ export async function pauseExecution(
         false,
         false,
       ),
-      newLifecycleBroadcastStep(deps),
     ],
   );
 }
@@ -697,7 +612,6 @@ export async function resumeExecution(
         false,
         false,
       ),
-      newLifecycleBroadcastStep(deps),
     ],
   );
 }
@@ -824,7 +738,6 @@ function runRecoverPipeline(
         false,
         true, // clear error on recovery
       ),
-      newLifecycleBroadcastStep(deps),
     ],
   );
 }

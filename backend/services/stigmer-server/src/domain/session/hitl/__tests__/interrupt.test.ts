@@ -16,7 +16,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { InterruptSessionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -33,7 +33,6 @@ import type { TempStore } from "../../../../store/sqlite/__tests__/support.js";
 import { stubConnectedEngine } from "../../../run/__tests__/engine-stub.js";
 import type { ConnectedExecutionEngine } from "../../../run/engine.js";
 import { ENGINE_DISCONNECTED } from "../../../run/engine.js";
-import { StreamBroker } from "../../../run/stream-broker.js";
 import { SessionEventBroker } from "../../events/broker.js";
 import { eventOf } from "../../events/codec.js";
 import { createRunAppendingEvents, updateRunAppendingEvents } from "../../events/run-writes.js";
@@ -72,7 +71,6 @@ function deps(
     store: temp.store,
     logger: silentLogger,
     authorizer: overrides.authorizer ?? newPermissiveSingleTeamAuthorizer(),
-    broker: new StreamBroker(silentLogger),
     sessionEventBroker: new SessionEventBroker(silentLogger),
     engineState: () =>
       overrides.disconnected === true
@@ -100,16 +98,11 @@ async function seedTurn(runId: string, phase: RunPhase): Promise<void> {
     create(RunSchema, {
       metadata: { id: runId, org: "acme" },
       spec: { target: { case: "sessionId", value: SESSION }, message: `turn ${runId}` },
-      status: {
-        phase: RunPhase.RUN_PENDING,
-        messages: waiting
-          ? [{ toolCalls: [{ id: "tc-1", name: "write", status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL, requiresApproval: true }] }]
-          : [],
-      },
+      status: { phase: RunPhase.RUN_PENDING },
     }),
   );
   if (waiting) {
-    await appendAsks(temp.store, runId);
+    await appendAsks(temp.store, runId, [{ id: "tc-1", name: "write" }]);
   }
   if (phase !== RunPhase.RUN_PENDING) {
     await updateRunAppendingEvents(writeDeps(), runId, (r) => {
@@ -166,7 +159,6 @@ describe("interrupt", () => {
       expect(run.status?.stopCause, runId).toBe("user");
     }
     expect((await phaseOf("run_done")).status?.phase).toBe(RunPhase.RUN_COMPLETED);
-    expect((await phaseOf("run_waiting")).status?.pendingApprovals).toEqual([]);
     const log = await statusLog();
     expect(log.slice(log.indexOf("user.interrupt"))).toEqual(["user.interrupt", "session.status_idle end_turn"]);
     expect(observed.map((t) => [t.run.metadata?.id, RunPhase[t.oldPhase], RunPhase[t.newPhase]]).sort()).toEqual([
@@ -206,6 +198,19 @@ describe("interrupt", () => {
     const response = await stop();
     expect(response.stoppedRunIds).toEqual([]);
     expect(await statusLog()).toContain("user.interrupt");
+  });
+
+  it("a second interrupt, or one after the turn completed, stops nothing", async () => {
+    await seedTurn("run_working", RunPhase.RUN_IN_PROGRESS);
+    expect((await stop()).stoppedRunIds).toEqual(["run_working"]);
+    expect((await stop()).stoppedRunIds).toEqual([]);
+    await seedTurn("run_finished", RunPhase.RUN_IN_PROGRESS);
+    await updateRunAppendingEvents(writeDeps(), "run_finished", (r) => {
+      r.status!.phase = RunPhase.RUN_COMPLETED;
+    });
+    expect((await stop()).stoppedRunIds).toEqual([]);
+    expect(cancelled).toEqual(["run_working"]);
+    expect((await statusLog()).filter((type) => type === "user.interrupt")).toHaveLength(3);
   });
 
   it("a turn that finishes before the interrupt reaches it is left as it is", async () => {

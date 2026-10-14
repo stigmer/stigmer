@@ -39,14 +39,8 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunPhase,
-  MessageType,
-  TodoStatus,
-  ToolCallStatus,
-  ToolKind,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -60,6 +54,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import {
@@ -67,6 +64,7 @@ import {
   deepAgentExecutionRecord,
   runDeepAgentTurn,
 } from "../../__test-utils__/hermetic-deep-agent.js";
+import { MessageType, TodoStatus, ToolCallStatus, ToolKind } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const CALL_ID = "call-hermetic-todos-0001";
 const USER_MESSAGE = "Plan the two steps.";
@@ -139,23 +137,24 @@ describe("ExecuteDeepAgent hermetic — write_todos", () => {
 
     // ── Assert: the transcript — the row beside the text that proposed it ──
     const final = record.lastFullStatus!;
-    const ai = final.messages.filter((m) => m.type === MessageType.MESSAGE_AI);
+    const finalRows = record.rowsOf(final);
+    const ai = finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_AI);
     expect(ai.map((m) => [m.content, m.toolCalls.map((tc) => tc.id)])).toEqual([
       [TEXT_PLAN, [CALL_ID]],
       [TEXT_CLOSING, []],
     ]);
 
     // ── Assert: the projection, by key (byte-identical across the swap) ─────
-    expect(Object.keys(final.todos).sort()).toEqual(["todo-0", "todo-1"]);
-    expect([final.todos["todo-0"].content, final.todos["todo-0"].status]).toEqual(["Read the fixture", TodoStatus.TODO_PENDING]);
-    expect([final.todos["todo-1"].content, final.todos["todo-1"].status]).toEqual(["Summarise it", TodoStatus.TODO_IN_PROGRESS]);
+    expect(Object.keys(finalRows.todos).sort()).toEqual(["todo-0", "todo-1"]);
+    expect([finalRows.todos["todo-0"].content, finalRows.todos["todo-0"].status]).toEqual(["Read the fixture", TodoStatus.TODO_PENDING]);
+    expect([finalRows.todos["todo-1"].content, finalRows.todos["todo-1"].status]).toEqual(["Summarise it", TodoStatus.TODO_IN_PROGRESS]);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/write-todos.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/write-todos.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/write-todos.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/write-todos.events.json");
   });
 });

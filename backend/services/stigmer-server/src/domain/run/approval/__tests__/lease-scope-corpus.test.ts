@@ -4,16 +4,15 @@
  * lease_scope_test.go: every vector derives through deriveLeaseScope and
  * must equal the expected scope, a hook's scope included. The runner loads
  * the same file, so a drift fails one of the two suites. A vector names
- * its policy source by the ApprovalPolicySource enum's name; the server
- * derives from the ask as the session's log states it, whose
- * stigmer.permission.asked event carries the same source as one word
- * without the enum's prefix, so each vector's name is read as that word.
+ * its policy source by the runner's ApprovalPolicySource enum name; the
+ * server derives from the ask as the session's log states it, whose
+ * stigmer.permission.asked event carries the source as one word. The
+ * policy-source corpus (apis/testdata/hitl/policy-source) pairs each enum
+ * name with that word, so each vector's name is read through it.
  */
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
-
-import { ApprovalPolicySourceSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { deriveLeaseScope, sameLeaseScope } from "../lease-scope.js";
 import type { LeaseSubject } from "../lease-scope.js";
@@ -36,23 +35,31 @@ interface LeaseScopeVector {
   } | null;
 }
 
-/** The enum's prefix the asked event's word leaves off. */
-const POLICY_SOURCE_PREFIX = "APPROVAL_POLICY_SOURCE_";
+interface PolicySourceVector {
+  /** The asked event's word; null for UNSPECIFIED, which an asked event leaves empty. */
+  policySource: string | null;
+  name_proto: string;
+}
 
-/**
- * The asked event's word for a vector's enum name ("" for none or
- * UNSPECIFIED, which an asked event leaves empty); an unknown name fails
- * the vector.
- */
+/** The asked event's word for each enum name, from the policy-source corpus. */
+const POLICY_SOURCE_WORDS: ReadonlyMap<string, string> = new Map(
+  (
+    readCorpusJson(path.join(hitlCorpusDir(), "policy-source", "vectors.json")) as unknown as {
+      vectors: PolicySourceVector[];
+    }
+  ).vectors.map((v) => [v.name_proto, v.policySource ?? ""]),
+);
+
+/** The asked event's word for a vector's enum name ("" for none); an unknown name fails the vector. */
 function policySourceOf(name: string | undefined): string {
   if (name === undefined) {
     return "";
   }
-  const value = ApprovalPolicySourceSchema.values.find((v) => v.name === name);
-  if (value === undefined) {
+  const word = POLICY_SOURCE_WORDS.get(name);
+  if (word === undefined) {
     throw new Error(`unknown ApprovalPolicySource name in corpus: ${name}`);
   }
-  return value.number === 0 ? "" : value.name.slice(POLICY_SOURCE_PREFIX.length).toLowerCase();
+  return word;
 }
 
 function ask(subject: Partial<LeaseSubject> & Pick<LeaseSubject, "name">): LeaseSubject {

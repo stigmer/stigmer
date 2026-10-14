@@ -22,7 +22,7 @@ import { promisify } from "node:util";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { FileChangeKind, FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   captureProgressDelta,
   snapshotBaseline,
@@ -43,6 +43,7 @@ import {
   type ProgressEntry,
   type ProgressSubstrate,
 } from "../progress.js";
+import { FileChangeType } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const execFileAsync = promisify(execFile);
 const EXEC_ID = "exec-progress-1";

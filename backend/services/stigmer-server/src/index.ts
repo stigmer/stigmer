@@ -953,7 +953,7 @@ export {
 export { LOADED_EXECUTION_KEY } from "./pipeline/request-context.js";
 // The answer to a waiting tool use, as the steps of the
 // `agent-execution-submit-approval:gate` slot read it, whichever method
-// carried it (confirmToolUse, grantPermission, the submitApproval adapter;
+// carried it (confirmToolUse, grantPermission;
 // domain/session/hitl/answer.ts). A replayed answer never reaches the slot.
 export type { ApprovalAnswer } from "./domain/session/hitl/answer.js";
 export { APPROVAL_ANSWER_KEY, approvalAnswerOf } from "./domain/session/hitl/answer.js";

@@ -38,7 +38,6 @@
  * persist, and the terminal result mapping.
  */
 
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { TranscriptBuilder } from "../../harness/transcript/builder.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import type { McpApprovalDefault } from "../../shared/approval-policy.js";
@@ -58,6 +57,7 @@ import {
   stampUnattendedSkippedToolCalls,
   type UnattributedHookBlock,
 } from "./boundary-rows.js";
+import type { TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 // How long the boundary waits for the first-denial-stop's run.cancel() to
 // settle before reading the final denial ledger. Long enough for the SDK's
@@ -69,12 +69,12 @@ const FIRST_DENIAL_CANCEL_TIMEOUT_MS = 5_000;
 
 export interface TurnBoundaryOptions {
   /** Read, and AMENDED in place by identity: gate rows overlaid, twins collapsed, narration redacted. */
-  readonly status: RunStatus;
+  readonly rows: TurnRows;
   /**
-   * The turn's transcript builder over `status`: every row the boundary
+   * The turn's transcript builder over `rows`: every row the boundary
    * CREATES — the gate it proposes for a denial no streamed call matched, the
    * #965 disclosure line — goes through it (`approval_proposed`,
-   * `system_note`), never onto `status.messages` directly (#1097's
+   * `system_note`), never onto `rows.messages` directly (#1097's
    * rule: rows are created through the builder; a harness amends rows its
    * boundary owns and says which).
    */
@@ -141,19 +141,17 @@ export interface TurnBoundaryResult {
 
 /**
  * Run the turn boundary: overlay the hook's denials as approval gates and
- * settle what the ledger accounts for. Mutates `opts.status` in place and
+ * settle what the ledger accounts for. Mutates `opts.rows` in place and
  * reports whether a denial pauses the turn.
  *
  * The hook records each denial to the ledger; we mark the corresponding tool
- * calls WAITING_APPROVAL. The backend projects pending_approvals from that
- * tool-call status (PendingApprovalComputer), so — exactly like the native
- * harness — the approval surface is driven entirely by tool-call status. We
- * deliberately do NOT set status.pendingApprovals here: any value would be
- * discarded by the backend's recompute on the next updateStatus.
+ * calls WAITING_APPROVAL. The emitter writes each such row's tool use with
+ * its `stigmer.permission.asked`, so — exactly like the native harness — the
+ * approval surface is driven entirely by tool-call status.
  */
 export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBoundaryResult> {
   const {
-    status,
+    rows,
     transcript,
     executionId,
     hitlDir,
@@ -189,7 +187,7 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
   // paths, so no platformDir routing is needed here.
   const gateWorkspaceBackend = new LocalWorkspaceBackend(primaryWorkspaceDir);
   const deniedToolCalls = await reconcileDeniedToolCalls(
-    status.messages,
+    rows.messages,
     transcript,
     approvalLedger,
     mcpDefault,
@@ -219,7 +217,7 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
     // that reaction in place (keeping the message count, so the finalize stays
     // append-only) rather than removing it. See
     // clearProvisionalPostDenialNarration for the full rationale.
-    const redactedNarration = clearProvisionalPostDenialNarration(status.messages, deniedToolCalls);
+    const redactedNarration = clearProvisionalPostDenialNarration(rows.messages, deniedToolCalls);
     if (redactedNarration.length > 0) {
       console.log(
         `ExecuteCursor redacted ${redactedNarration.length} provisional post-denial narration message(s) before pausing for approval`,
@@ -236,8 +234,8 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
   // rows (they are in the full ledger regardless, so attribution was safe
   // either way).
   const stampedUnattended = stampUnattendedSkippedToolCalls(
-    status.messages,
-    status.subAgentRuns,
+    rows.messages,
+    rows.subAgentRuns,
     unattendedDenials(deniedLedger),
     primaryWorkspaceDir,
   );
@@ -253,8 +251,8 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
   // call carrying the refusal the model read, no approval, no provenance.
   // Before the #205 pass, so a refused call is never read as a foreign block.
   const stampedRefusals = stampScopeRefusedToolCalls(
-    status.messages,
-    status.subAgentRuns,
+    rows.messages,
+    rows.subAgentRuns,
     deniedLedger,
     turnStartMessageIndex,
     primaryWorkspaceDir,
@@ -271,8 +269,8 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
   // native shape, a FAILED call carrying the refusal the model read, with the
   // hook named. Before the #205 pass, for the same reason as the lists'.
   const hookRefusedToolCallIds = stampHookRefusedToolCalls(
-    status.messages,
-    status.subAgentRuns,
+    rows.messages,
+    rows.subAgentRuns,
     deniedLedger,
     turnStartMessageIndex,
     primaryWorkspaceDir,
@@ -291,7 +289,7 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
   // approval gates are already WAITING_APPROVAL/collapsed and cannot appear
   // here as false positives.
   const unattributedHookBlocks = detectUnattributedHookBlocks(
-    status.messages,
+    rows.messages,
     turnStartMessageIndex,
     deniedLedger,
     primaryWorkspaceDir,
@@ -316,7 +314,7 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
   let settledUnresolved: readonly { toolCallId: string; toolName: string }[] = [];
   if (!waiting) {
     settledUnresolved = settleUnresolvedToolCalls(
-      status.messages,
+      rows.messages,
       turnStartMessageIndex,
       deniedLedger,
       primaryWorkspaceDir,

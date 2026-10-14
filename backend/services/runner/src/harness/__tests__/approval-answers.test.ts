@@ -18,21 +18,20 @@
  * hermetic goldens prove the whole round trip on both engines.
  */
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
-import { ApprovalAction, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
 import {
   APPROVAL_ANSWER_EVENT_TYPES,
   approvalAnswersOf,
   copyAnswersOntoRows,
-  readApprovalAnswers,
 } from "../approval-answers.js";
+import { RESUME_SEED_EVENT_TYPES } from "../transcript/resume-seed.js";
+import { REINVOCATION_EVENT_TYPES } from "../turn-context.js";
 import { toolUseEventId } from "../events/ids.js";
+import { AgentMessageSchema, ToolCallSchema, SubAgentRunSchema, TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction, MessageType, ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const RUN = "run_01answers";
 
@@ -42,7 +41,7 @@ function waiting(id: string) {
 
 /** Every row shape the door must answer or pass over. */
 function status() {
-  return create(RunStatusSchema, {
+  return create(TurnRowsSchema, {
     messages: [
       create(AgentMessageSchema, {
         type: MessageType.MESSAGE_AI,
@@ -136,7 +135,7 @@ describe("approvalAnswersOf", () => {
 
   it("answers nothing from an empty log or a fresh status", () => {
     expect(approvalAnswersOf(RUN, status(), []).decisions.size).toBe(0);
-    expect(approvalAnswersOf(RUN, create(RunStatusSchema, {}), LOG).decisions.size).toBe(0);
+    expect(approvalAnswersOf(RUN, create(TurnRowsSchema, {}), LOG).decisions.size).toBe(0);
   });
 });
 
@@ -195,28 +194,9 @@ describe("copyAnswersOntoRows", () => {
   });
 });
 
-describe("readApprovalAnswers", () => {
-  it("reads the run's log even when no row waits: closed rows and leases need the answers too", async () => {
-    const client = { listRunSessionEvents: vi.fn(async () => LOG) };
-    const settled = create(RunStatusSchema, {
-      messages: [create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, toolCalls: [create(ToolCallSchema, { id: "call_granted", status: ToolCallStatus.TOOL_CALL_COMPLETED })] })],
-    });
-    const answers = await readApprovalAnswers(client, { sessionId: "ses_1", runId: RUN, status: settled });
-    expect(client.listRunSessionEvents).toHaveBeenCalledExactlyOnceWith("ses_1", RUN, APPROVAL_ANSWER_EVENT_TYPES);
-    expect(answers.decisions.size, "nothing waits, so nothing is decided this turn").toBe(0);
-    expect(answers.grants.has(toolUseEventId(RUN, "call_granted")), "the grant still leases").toBe(true);
-  });
-
-  it("lists the run's answers, grants and asks by type, once, and maps them onto the seed", async () => {
-    const client = { listRunSessionEvents: vi.fn(async () => LOG) };
-    const answers = await readApprovalAnswers(client, { sessionId: "ses_1", runId: RUN, status: status() });
-    expect(client.listRunSessionEvents).toHaveBeenCalledExactlyOnceWith("ses_1", RUN, APPROVAL_ANSWER_EVENT_TYPES);
+describe("the reinvocation's one read", () => {
+  it("lists the answers' types beside the seed's, so one read of the run serves both", () => {
     expect(APPROVAL_ANSWER_EVENT_TYPES).toEqual(["user.tool_confirmation", "stigmer.permission.grant", "stigmer.permission.asked"]);
-    expect(answers.decisions.get("call_deny")).toBe(ApprovalAction.REJECT);
-  });
-
-  it("fails the turn's start when the log cannot be read", async () => {
-    const client = { listRunSessionEvents: vi.fn(async () => Promise.reject(new Error("log unreachable"))) };
-    await expect(readApprovalAnswers(client, { sessionId: "ses_1", runId: RUN, status: status() })).rejects.toThrow("log unreachable");
+    for (const type of [...APPROVAL_ANSWER_EVENT_TYPES, ...RESUME_SEED_EVENT_TYPES]) expect(REINVOCATION_EVENT_TYPES).toContain(type);
   });
 });

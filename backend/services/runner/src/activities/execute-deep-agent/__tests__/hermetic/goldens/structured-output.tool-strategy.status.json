@@ -1,16 +1,4 @@
 {
-  "messages": [
-    {
-      "type": "MESSAGE_AI",
-      "content": "Here is the structured answer.",
-      "timestamp": "2026-01-01T00:00:01.000Z"
-    },
-    {
-      "type": "MESSAGE_AI",
-      "content": "Returning structured response: {\"answer\":\"forty-two\",\"score\":42}",
-      "timestamp": "2026-01-01T00:00:01.000Z"
-    }
-  ],
   "phase": "RUN_COMPLETED",
   "startedAt": "2026-01-01T00:00:00.000Z",
   "completedAt": "2026-01-01T00:00:01.000Z",
@@ -24,9 +12,5 @@
     "observedAt": "2026-01-01T00:00:01.000Z",
     "requestedServiceTier": "SERVICE_TIER_STANDARD",
     "requestedThinkingMode": "THINKING_MODE_DISABLED"
-  },
-  "structuredOutput": {
-    "answer": "forty-two",
-    "score": 42
   }
 }
