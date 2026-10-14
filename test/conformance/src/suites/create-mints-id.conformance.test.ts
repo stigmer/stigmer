@@ -33,7 +33,7 @@
 // on) holds. On the open-source server the execution class pins the same rule
 // with an engine behind it ("create never keeps a metadata.id the caller
 // sent" in the run suite). Memory
-// create is refused for the cloud's platform-client-minted caller
+// create is refused for a minted user token's caller
 // (`firstPartyMemoryCapture`). Each gated group sits under its own
 // `describe.skipIf` on the flag itself, so the skip names its reason.
 //
@@ -550,29 +550,6 @@ const ROWS: readonly Row[] = [
     },
   },
   {
-    title: "[rpc:PlatformClientCommandController.create] PlatformClient",
-    key: "PlatformClientCommandController.create",
-    kind: ApiResourceKind.platform_client,
-    async send({ org }, chosenId) {
-      // Built here rather than through support/platformclients.ts, whose
-      // builder sends no id: the request is the support module's, plus the id.
-      const name = uniqueName("mint-pcl");
-      const created = await clients.platformClientCommand.create({
-        apiVersion: "iam.stigmer.ai/v1",
-        kind: "PlatformClient",
-        metadata: { id: chosenId, name, org },
-        spec: { createAccountsOnSignIn: true, allowedOrigins: [] },
-      });
-      // Create answers the client beside its one-time secret.
-      const answer = answerOf(this.key, created.platformClient?.metadata);
-      fixtures.defer(() => clients.platformClientCommand.delete({ resourceId: answer.id }));
-      return answer;
-    },
-    async read(id) {
-      return (await clients.platformClientQuery.get({ value: id })).metadata?.id;
-    },
-  },
-  {
     title: "[rpc:OrganizationCommandController.create] Organization",
     key: "OrganizationCommandController.create",
     kind: ApiResourceKind.organization,
@@ -664,7 +641,7 @@ describe("A create never keeps the id the caller sent", () => {
     });
   });
 
-  // Memory create is refused for the cloud's platform-client-minted caller.
+  // Memory create is refused for a minted user token's caller.
   describe.skipIf(!capabilities.firstPartyMemoryCapture)("where first-party memory capture is served", () => {
     it.for(casesFor("memory"))(CASE_TITLE, async ([, row]) => {
       await assertMintsItsOwnId(row);

@@ -12,7 +12,7 @@
 // themselves a role in C, which C's access list shows. Everyone in C reads
 // and runs what P shares at visibility_child_orgs; nobody in another
 // parent's child does. A parent with children is not deleted. A
-// PlatformClient of P mints user tokens into C.
+// service account of P mints user tokens into C.
 //
 // Every arm runs on the target's enforcing lane: the primary on the cloud,
 // open source's OIDC sibling on the local targets, where the built-in
@@ -34,10 +34,11 @@ import { makeSharedVault, myVaultTarget, setSecretsInput, vaultTarget } from "..
 import { organizationRole } from "../support/iampolicies";
 import { uniqueName, uniqueOrg } from "../support/naming";
 import {
-  createPlatformClient,
-  deletePlatformClient,
+  createMinter,
+  deleteMinter,
   mintUserToken,
-} from "../support/platformclients";
+  setEmbedding,
+} from "../support/user-tokens";
 import { makeSession } from "../support/sessions";
 import {
   createTarget,
@@ -476,26 +477,25 @@ describe("child organizations — managed by the parent, never read by it", () =
     ).toEqual(["ORGANIZATION_HAS_CHILDREN"]);
   });
 
-  it("[rpc:PlatformClientTokenController.mintUserToken] a PlatformClient of the parent mints into a child: the token works there and not in the parent", async (ctx) => {
+  it("[rpc:TokenService.mintUserToken] the parent's service account mints into a child: the token works there and not in the parent", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
-    if (!target.capabilities.platformClientTokens) {
+    if (!target.capabilities.userTokens) {
       return ctx.skip(
-        "this target's enforcing lane mints no PlatformClient user tokens",
+        "this target's enforcing lane mints no user tokens",
       );
     }
     const parent = await tenancy(on);
     const child = await childOf(on, parent);
-    const client = await createPlatformClient(on.clients, {
+    const minter = await createMinter(on.clients, {
       org: parent.org,
-      name: uniqueName("child-pc"),
-      signInRole: IamRole.member,
+      name: uniqueName("child-minter"),
     });
-    fixtures.defer(() => deletePlatformClient(on.clients, client.id));
+    fixtures.defer(() => deleteMinter(on.clients, minter.accountId));
+    await setEmbedding(on.clients, parent.org, { signInRole: IamRole.member });
+    const asMinter = on.clientsPresenting(minter.key);
     const asCustomer = on.clientsPresenting(
-      await mintUserToken(on.clients, client.credentials, uniqueName("user"), {
-        org: child.org,
-      }),
+      await mintUserToken(asMinter, child.org, uniqueName("user")),
     );
     const mine = await asCustomer.organizationQuery.listMine({});
     expect(
@@ -521,12 +521,9 @@ describe("child organizations — managed by the parent, never read by it", () =
     const rival = await tenancy(on);
     const rivalChild = await childOf(on, rival);
     await expectGrpcCode(
-      () =>
-        mintUserToken(on.clients, client.credentials, uniqueName("user"), {
-          org: rivalChild.org,
-        }),
-      Code.InvalidArgument,
-      "a PlatformClient mints into no other parent's child",
+      () => mintUserToken(asMinter, rivalChild.org, uniqueName("user")),
+      Code.PermissionDenied,
+      "a service account mints into no other parent's child",
     );
   });
 });

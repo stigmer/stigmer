@@ -53,9 +53,7 @@ import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identi
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import type { ApiResourceRefView } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { ApiResourceRefViewSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
-import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
-import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
-import { MintGuestTokenResponseSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
+import { MintGuestTokenResponseSchema } from "@stigmer/protos/ai/stigmer/iam/token/v1/token_pb";
 import type {
   ApiResourceRef,
   IamPolicySpec,
@@ -77,7 +75,6 @@ import {
   createLogger,
   DuplicateAccountError,
   fittedSlug,
-  DuplicatePlatformClientError,
   DuplicatePolicyError,
   EncryptionScope,
   EncryptionUnavailableError,
@@ -99,13 +96,11 @@ import {
   newBuildUpdateStateStep,
   newModelCatalogProviderFromDocument,
   newPipeline,
-  newSystemManagedPlatformClient,
   newResolveSlugStep,
   newR2ArtifactStorage,
   newValidateProtoStep,
   notFoundError,
   PLATFORM_TOKEN_ISSUER,
-  platformClientStoreContract,
   portContractCases,
   principalForSubject,
   platformTokenKeyRingFromPem,
@@ -126,7 +121,6 @@ import {
   sandboxTaskQueue,
   SERVER_RELEASE_ENV,
   SUBSTRATE_MAX_IN_PLACE_PAUSE_SECONDS,
-  SYSTEM_SHARE_CLIENT_SLUG,
   TARGET_RESOURCE_KEY,
   TOKEN_TYPE_EXECUTION_SCOPED,
   BOUND_ELSEWHERE_DENY_REASON,
@@ -172,9 +166,6 @@ import type {
   OrganizationDirectory,
   OutboundEgressPolicy,
   PipelineStep,
-  PlatformClientStore,
-  PlatformClientStoreContractCase,
-  PlatformClientStoreContractFixture,
   PlatformTokenKeyRing,
   PlatformTokenSigningOptions,
   PolicyGrantScope,
@@ -207,7 +198,6 @@ import type {
   ServerExtension,
   SignedPlatformToken,
   Store,
-  SystemManagedPlatformClientInput,
   VisibilityChangedEvent,
   WorkerFactory,
 } from "@stigmer/server";
@@ -230,21 +220,21 @@ const authorizer: Authorizer = {
 };
 
 /**
- * A consumer-shaped caller guard — the
- * platform-client enforcement shape: skip logic lives entirely in the
+ * A consumer-shaped caller guard — the minter's enforcement shape: skip
+ * logic lives entirely in the
  * guard (claim-less tokens, the load-bearing token_type exemption),
  * refusal is the guard's own ConnectError with byte-pinned copy, and the
  * Origin header rides the request headers the chassis passes through.
  */
 const callerGuard: CallerGuard = {
-  name: "consumer-platform-client",
+  name: "consumer-origin",
   guard: (caller: CallerIdentity, method: DescMethod, headers: Headers) => {
     void method.parent.typeName;
     if (caller.rawToken === "" || headers.get("origin") === null) {
       return Promise.resolve();
     }
     return Promise.reject(
-      new ConnectError("platform client was deleted", Code.Unauthenticated),
+      new ConnectError("origin refused", Code.PermissionDenied),
     );
   },
 };
@@ -344,99 +334,6 @@ export function consumerSlugLookupContract(): ReadonlyArray<PortContractCase> {
 }
 
 /**
- * A consumer-shaped PlatformClient store driver: the PORT the domain's
- * chains, the mint and the verifier's liveness read go through when a
- * composition registers one (the cloud's `cloud.iam_platform_client` store
- * takes this position, registered below as `drivers.platformClientStore`).
- * A held id, slug or client_id is DuplicatePlatformClientError.
- */
-const consumerPlatformClients = new Map<string, PlatformClient>();
-const consumerPlatformClientStore: PlatformClientStore = {
-  save: (client) => {
-    const id = client.metadata?.id ?? "";
-    if (consumerPlatformClients.has(id)) {
-      return Promise.reject(
-        new DuplicatePlatformClientError(
-          `platform client '${id}' already exists`,
-        ),
-      );
-    }
-    consumerPlatformClients.set(id, client);
-    return Promise.resolve();
-  },
-  // The guarded write: the stored form is compared as bytes, as a
-  // driver's swap compares its data column.
-  readForWrite: (id) => {
-    const stored = consumerPlatformClients.get(id);
-    return Promise.resolve(
-      stored === undefined
-        ? undefined
-        : { row: clone(PlatformClientSchema, stored), bytes: toBinary(PlatformClientSchema, stored) },
-    );
-  },
-  swap: (id, expectedBytes, next) => {
-    const stored = consumerPlatformClients.get(id);
-    const current = stored === undefined ? undefined : toBinary(PlatformClientSchema, stored);
-    if (
-      current === undefined ||
-      current.length !== expectedBytes.length ||
-      current.some((byte, index) => byte !== expectedBytes[index])
-    ) {
-      return Promise.resolve(false);
-    }
-    consumerPlatformClients.set(id, clone(PlatformClientSchema, next));
-    return Promise.resolve(true);
-  },
-  modifyById: (id, modify) => {
-    const stored = consumerPlatformClients.get(id);
-    if (stored === undefined) {
-      return Promise.resolve(undefined);
-    }
-    // Modify a copy and store it only when modify returns: a modify that
-    // throws leaves the held row as it was.
-    const next = clone(PlatformClientSchema, stored);
-    try {
-      modify(next);
-    } catch (error) {
-      return Promise.reject(error);
-    }
-    consumerPlatformClients.set(id, next);
-    return Promise.resolve(next);
-  },
-  deleteById: (id) => {
-    consumerPlatformClients.delete(id);
-    return Promise.resolve();
-  },
-  findById: (id) => Promise.resolve(consumerPlatformClients.get(id)),
-  findByClientId: (clientId) =>
-    Promise.resolve(
-      [...consumerPlatformClients.values()].find(
-        (client) => client.spec?.clientId === clientId,
-      ),
-    ),
-  findByOrg: (org) =>
-    Promise.resolve(
-      [...consumerPlatformClients.values()].filter(
-        (client) => client.metadata?.org === org,
-      ),
-    ),
-  // The list lane's page source: a real driver answers the rows after the
-  // cursor, newest first; this compile proof answers an empty page.
-  pageByOrg: () => Promise.resolve([]),
-};
-
-/** The PlatformClient port-contract kit over the consumer's driver (compile-only here). */
-export function consumerPlatformClientStoreContract(): ReadonlyArray<PlatformClientStoreContractCase> {
-  return platformClientStoreContract(
-    async (): Promise<PlatformClientStoreContractFixture> => ({
-      store: consumerPlatformClientStore,
-      disconnect: () => Promise.resolve(),
-      cleanup: () => Promise.resolve(),
-    }),
-  );
-}
-
-/**
  * A consumer's platform-token key ring, built from its configured PEMs
  * (registered below as `drivers.platformTokenKeys`): the active public key
  * first, the previous one still accepted, and the private key that signs.
@@ -455,10 +352,9 @@ const CONSUMER_GUEST_TOKEN_TTL_SECONDS = 3600;
 
 /**
  * A consumer's own typed platform-token lane: a guest token signed through
- * the exported envelope with the lane's own lifetime, naming the org's
- * system-managed client, and claimed by a verifier on the same envelope —
- * the shape a composition's typed lanes take once open source owns the
- * untyped user-token lane.
+ * the exported envelope with the lane's own lifetime, naming its share, and
+ * claimed by a verifier on the same envelope — the shape a composition's
+ * typed lanes take beside open source's untyped user-token lane.
  */
 export async function mintConsumerGuestToken(
   org: string,
@@ -467,7 +363,6 @@ export async function mintConsumerGuestToken(
   if (!canSign(consumerPlatformTokenKeys)) {
     throw new Error("consumer ring cannot sign");
   }
-  const client = await ensureConsumerSystemShareClient(org);
   const options: PlatformTokenSigningOptions = {
     ttlSeconds: CONSUMER_GUEST_TOKEN_TTL_SECONDS,
   };
@@ -476,39 +371,11 @@ export async function mintConsumerGuestToken(
     {
       sub: "ida_consumer_guest",
       [TOKEN_TYPE_CLAIM]: "guest",
-      platform_client_id: client.metadata?.id ?? "",
+      org,
       share_id: shareId,
     },
     options,
   );
-}
-
-/**
- * The org's system-managed share client, built by the library and kept in
- * the consumer's own store (the cloud's `cloud.iam_platform_client` driver
- * takes this position): get, else build and save.
- */
-async function ensureConsumerSystemShareClient(
-  org: string,
-): Promise<PlatformClient> {
-  // The consumer keeps its own rows, so it reads its own system client;
-  // the port carries no lookup by slug (slugs are the name table's).
-  const existing = [...consumerPlatformClients.values()].find(
-    (client) =>
-      client.metadata?.org === org &&
-      client.metadata?.slug === SYSTEM_SHARE_CLIENT_SLUG,
-  );
-  if (existing !== undefined) {
-    return existing;
-  }
-  const input: SystemManagedPlatformClientInput = {
-    org,
-    slug: SYSTEM_SHARE_CLIENT_SLUG,
-    name: "System Share Client",
-  };
-  const client = newSystemManagedPlatformClient(input);
-  await consumerPlatformClientStore.save(client);
-  return client;
 }
 
 const consumerGuestTokenVerifier: IdentityVerifier = {
@@ -1644,10 +1511,8 @@ export const fakeExtension: ServerExtension = {
     // composition registers the strict posture the library exports and
     // owns no copy of the address ranges.
     outboundEgress: consumerOutboundEgress,
-    // The PlatformClient seams: the domain served over the consumer's own
-    // store, the key ring its tokens ride, and the guest mint only it
-    // hosts.
-    platformClientStore: consumerPlatformClientStore,
+    // The token seams: the key ring its tokens ride, and the guest mint
+    // only it hosts.
     platformTokenKeys: consumerPlatformTokenKeys,
     guestTokenMinting: consumerGuestTokenMinting,
   },

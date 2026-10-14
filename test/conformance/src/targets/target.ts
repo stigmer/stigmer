@@ -134,7 +134,7 @@ export interface CapabilityFlags {
   // identity, no gate) and for cloud, whose conformance primary signs in
   // through the environment's tenant as a console person does. Where false
   // (a target whose primary were a credential the gate excludes, such as a
-  // PlatformClient user token), the suite pins the gate itself: create
+  // minted user token), the suite pins the gate itself: create
   // answers PermissionDenied even with both memory_enabled flags on.
   firstPartyMemoryCapture: boolean;
   // The channel RUNTIME lanes exist here: provider installs
@@ -179,13 +179,13 @@ export interface CapabilityFlags {
   // There is no refusal contract to pin, so the run-admission suite skips
   // entirely (the scheduleFiring posture).
   billingGates: boolean;
-  // The target's ENFORCING lane mints PlatformClient user tokens and enforces
-  // the minting client's contract at the serving edge: mintUserToken answers
-  // a user token, deleting the minting client revokes its outstanding user
-  // tokens on the next request (deletion-revocation), and
-  // browser requests from origins outside the client's allowed_origins are
-  // refused (stigmer/stigmer#375). Every edition serves PlatformClient, but
-  // only a server that authenticates its callers mints — so the arms run on
+  // The target's ENFORCING lane mints user tokens with a service account's
+  // key and enforces the minter's contract at the serving edge: mintUserToken
+  // answers a user token, deleting the minting service account revokes its
+  // outstanding user tokens on the next request, and browser requests from
+  // origins outside the organization's embedding allowed_origins are
+  // refused (stigmer/stigmer#375). Every edition serves the token service,
+  // but only a server that authenticates its callers mints — so the arms run on
   // the enforcing lane: the cloud's primary, and on the local targets the
   // open-source sibling booted in the OIDC posture. The refusal copy is
   // byte-pinned across editions and the enforcement suite asserts the exact
@@ -194,7 +194,7 @@ export interface CapabilityFlags {
   // False only for a target with no enforcing lane to mint on. Deliberately
   // NOT folded into multiTenant: tenant isolation and the minting client's
   // contract are different concerns.
-  platformClientTokens: boolean;
+  userTokens: boolean;
   // Every non-public RPC requires a credential: a request with NO bearer is
   // refused UNAUTHENTICATED "authentication token missing" (the copy both
   // editions pin — the Java interceptor's, and the OSS chassis's byte-for-
@@ -211,7 +211,7 @@ export interface CapabilityFlags {
   // operator, and a presented-but-unclaimed token falls through to the same
   // identity when no verifier is composed. Where
   // false, the suite pins that admission — the OSS contract the TS server
-  // must keep. Deliberately NOT folded into platformClientTokens or
+  // must keep. Deliberately NOT folded into userTokens or
   // multiTenant: a self-host with STIGMER_OIDC_ISSUER set requires
   // authentication with neither of those.
   requiresAuthentication: boolean;
@@ -346,7 +346,7 @@ export interface CapabilityFlags {
   // OSS targets — BY THE EDITION BOUNDARY: no marketing site fronts a
   // self-host; the suites skip.
   publicLane: boolean;
-  // PlatformClientTokenController.mintGuestToken mints here: a unit composes
+  // TokenService.mintGuestToken mints here: a unit composes
   // the guest-token capability (`drivers.guestTokenMinting`) that turns a
   // share id from a hosted chat link into a short-lived guest token for the
   // share's organization.
@@ -444,7 +444,7 @@ export type OrganizationRole = (typeof ORGANIZATION_ROLES)[number];
 // A server whose composed Authorizer ENFORCES the authorization model, with
 // the people an authorization arm needs — see TargetProfile.enforcingLane.
 // The same arm runs against every lane: the cloud's primary (its
-// PlatformClient-minted people), and an open-source sibling in the OIDC
+// console-signed-in people), and an open-source sibling in the OIDC
 // posture against the harness's local issuer (its issuer-minted people).
 // Whatever differs between those two — how a person is minted, how an
 // organization comes to exist, what a newcomer holds on arrival — is the

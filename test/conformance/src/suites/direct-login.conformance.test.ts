@@ -129,7 +129,7 @@ describe.skipIf(!directLoginEnabled)(
         ).toBe(subject);
         expect(
           account.spec?.provisioningMode,
-          "a platform-tenant login is a DIRECT account (never federated, never platform_client)",
+          "a platform-tenant login is a DIRECT account (never federated, never an app user)",
         ).toBe(IdentityAccountProvisioningMode.direct);
         expect(
           account.spec?.email,

@@ -4,7 +4,7 @@
 // Domain: conformance targets (execution engine).
 //
 // Composes rather than forks: the connect-only identity/tenancy machinery is
-// delegated to CloudTarget (CLOUD_ENV contract, real orgs, PlatformClient
+// delegated to CloudTarget (CLOUD_ENV contract, real orgs, user-token
 // minting), and this target adds exactly what `local-execution` adds to
 // `local` — the TS-owned engine trio (runner, mock LLM proxy, MCP tool
 // fixture). The fixtures stay TS-pure (no cross-language coupling), which is

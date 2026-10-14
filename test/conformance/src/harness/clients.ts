@@ -53,9 +53,7 @@ import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/command_pb";
 import { OAuthAppQueryController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/query_pb";
-import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/command_pb";
-import { PlatformClientQueryController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/query_pb";
-import { PlatformClientTokenController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
+import { TokenService } from "@stigmer/protos/ai/stigmer/iam/token/v1/token_pb";
 import { GitHubQueryController } from "@stigmer/protos/ai/stigmer/platform/github/v1/query_pb";
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
@@ -147,12 +145,10 @@ export interface ConformanceClients {
   githubQuery: Client<typeof GitHubQueryController>;
   oauthAppCommand: Client<typeof OAuthAppCommandController>;
   oauthAppQuery: Client<typeof OAuthAppQueryController>;
-  // PlatformClient, served by every edition: the CRUD controllers and the
-  // token service (mintUserToken; mintGuestToken where an edition hosts
-  // shared-agent pages).
-  platformClientCommand: Client<typeof PlatformClientCommandController>;
-  platformClientQuery: Client<typeof PlatformClientQueryController>;
-  platformClientToken: Client<typeof PlatformClientTokenController>;
+  // The token service, served by every edition: mintUserToken (a service
+  // account's key, on a server that authenticates its callers) and
+  // mintGuestToken where an edition hosts shared-agent pages.
+  token: Client<typeof TokenService>;
 }
 
 export interface TransportOptions {
@@ -162,7 +158,7 @@ export interface TransportOptions {
   bearerToken?: string;
   // Stamped as the plain lowercase `origin` metadata key on every RPC — the
   // header browsers attach to cross-origin fetches and page script cannot
-  // forge. Suites set it to simulate a browser context (the platform-client
+  // forge. Suites set it to simulate a browser context (the embedding
   // allowed_origins enforcement arms replay a leaked token from a foreign
   // site this way); leaving it unset mirrors non-browser callers (curl,
   // backend services), whose absence of Origin never refuses.
@@ -170,7 +166,7 @@ export interface TransportOptions {
 }
 
 // What a caller presenting a bearer may add: the browser context the
-// platform-client origin arm replays a leaked token from.
+// embedding origin arm replays a leaked token from.
 export type PresentingOptions = Pick<TransportOptions, "origin">;
 
 export function createTransport(
@@ -278,11 +274,6 @@ export function makeClients(transport: Transport): ConformanceClients {
     githubQuery: createClient(GitHubQueryController, transport),
     oauthAppCommand: createClient(OAuthAppCommandController, transport),
     oauthAppQuery: createClient(OAuthAppQueryController, transport),
-    platformClientCommand: createClient(
-      PlatformClientCommandController,
-      transport,
-    ),
-    platformClientQuery: createClient(PlatformClientQueryController, transport),
-    platformClientToken: createClient(PlatformClientTokenController, transport),
+    token: createClient(TokenService, transport),
   };
 }

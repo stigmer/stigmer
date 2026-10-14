@@ -45,8 +45,7 @@
 //     organization's blueprints and members and never reads a member's
 //     conversations, keys or vaults.
 //   - Administrative rows (an OAuth app, which carries its organization's
-//     vendor credentials, a platform client, which mints tokens into it,
-//     and a channel app, which carries its Slack or Meta app secrets): the
+//     vendor credentials, and a channel app, which carries its Slack or Meta app secrets): the
 //     organization's current admins', whoever created the row — `owner` is
 //     `admin from organization` and the kind records none
 //     (stigmer/stigmer#1321, #1329, #1409) — so an admin who did not create
@@ -114,7 +113,6 @@ import { uniqueName } from "../support/naming";
 import { makeSlackAgentChannel } from "../support/agentchannels";
 import { makeSlackChannelApp } from "../support/channelapps";
 import { makeOAuthApp } from "../support/oauthapps";
-import { createPlatformClient } from "../support/platformclients";
 import { makeSession } from "../support/sessions";
 import { makeSkillArtifact } from "../support/skills";
 import {
@@ -662,9 +660,8 @@ describe("role enforcement — personal rows: a member's own, and nobody else's,
 // One administrative kind as the wire offers it: created by the owner (the
 // create bar is the organization's admins), read, listed for the
 // organization, edited and deleted. `edit` is the mutation the kind's
-// `can_edit` guards that matters most: an OAuth app's `update`, a platform
-// client's `rotateSecret`, which hands out a live secret, and a channel
-// app's `update`, which rotates its credentials.
+// `can_edit` guards that matters most: an OAuth app's `update` and a
+// channel app's `update`, which rotates its credentials.
 interface AdministrativeRow {
   readonly id: string;
   readonly name: string;
@@ -707,23 +704,6 @@ const ADMINISTRATIVE_KINDS: ReadonlyArray<AdministrativeKind> = [
         metadata: { id: row.id, name: row.name, org },
       }, updateMask: { paths: ["*"] } }),
     delete: (using, id) => using.oauthAppCommand.delete({ resourceId: id }),
-  },
-  {
-    name: "platform_client",
-    async create(using, org) {
-      const name = uniqueName("role-platform-client");
-      const created = await createPlatformClient(using, { org, name });
-      return { id: created.id, name };
-    },
-    get: (using, id) => using.platformClientQuery.get({ value: id }),
-    listIds: async (using, org) =>
-      (await using.platformClientQuery.list({ org })).entries.map(
-        (c) => c.metadata?.id ?? "",
-      ),
-    edit: (using, _org, row) =>
-      using.platformClientCommand.rotateSecret({ value: row.id }),
-    delete: (using, id) =>
-      using.platformClientCommand.delete({ resourceId: id }),
   },
   {
     name: "channel_app",

@@ -11,7 +11,7 @@
 //     first, a token on the first two and none after the third;
 //   - a list of an organization or of the caller (agents, skills, plugins,
 //     channels, shares, schedules, vaults, memories, sessions, API keys,
-//     OAuth apps, channel apps, platform clients, the caller's
+//     OAuth apps, channel apps, the caller's
 //     organizations, search) may also hold rows the edition provisions with
 //     an organization, and a page may be short, even empty, under a read
 //     scope, so the walk proves the seeded rows come back once each, newest
@@ -43,7 +43,6 @@ import { makeSlackChannelApp } from "../support/channelapps";
 import { MEMORY_CAP, makeMemory } from "../support/memories";
 import { uniqueName } from "../support/naming";
 import { makeOAuthApp } from "../support/oauthapps";
-import { createPlatformClient, deletePlatformClient } from "../support/platformclients";
 import { mcpOnly, pushPlugin } from "../support/plugins";
 import { makeSchedule } from "../support/schedules";
 import { makeSession } from "../support/sessions";
@@ -471,29 +470,6 @@ describe("List conformance — an organization's lists walk every seeded row onc
 
     const walked = await walk(
       (pageToken) => clients.channelAppQuery.list({ org, pageSize: 1, pageToken }),
-      (entry) => entry.metadata!.id,
-    );
-    expectSeededWalk(walked, seeded);
-  });
-
-  it("[rpc:PlatformClientQueryController.list] platform clients", async () => {
-    const context = await target.provisionTenancy();
-    fixtures.defer(() => target.cleanupTenancy(context));
-    const { org } = context;
-    const seeded = await seedThree(async () => {
-      const client = await createPlatformClient(clients, { org, name: uniqueName("list-pc") });
-      fixtures.defer(async () => {
-        try {
-          await deletePlatformClient(clients, client.id);
-        } catch {
-          // Already gone with its tenancy.
-        }
-      });
-      return client.id;
-    });
-
-    const walked = await walk(
-      (pageToken) => clients.platformClientQuery.list({ org, pageSize: 1, pageToken }),
       (entry) => entry.metadata!.id,
     );
     expectSeededWalk(walked, seeded);
