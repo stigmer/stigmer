@@ -125,16 +125,17 @@ export function embeddingContext(
   );
 }
 
-/** ClearEmbedding — create: a new organization starts with no embedding settings. */
+/**
+ * ClearEmbedding — create: a new organization starts with no embedding
+ * settings. Its attachers need no clearing: BuildNewState drops the whole
+ * status a request carries.
+ */
 export function newClearEmbeddingStep(): OrganizationStep {
   return {
     name: "ClearEmbedding",
     execute(ctx: OrganizationContext): void {
       if (ctx.newState.spec !== undefined) {
         ctx.newState.spec.embedding = undefined;
-      }
-      if (ctx.newState.status !== undefined) {
-        ctx.newState.status.embeddingVaultAttachers = {};
       }
     },
   };

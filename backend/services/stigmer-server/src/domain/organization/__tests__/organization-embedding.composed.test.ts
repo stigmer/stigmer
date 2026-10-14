@@ -12,7 +12,7 @@
  *     organization grants is the door's;
  *   - only the organization's admins change it;
  *   - update keeps the stored settings whatever it carries, and create
- *     starts an organization with none.
+ *     starts an organization with none and no attachers.
  */
 import { clone, create } from "@bufbuild/protobuf";
 import { Code, createClient } from "@connectrpc/connect";
@@ -170,13 +170,15 @@ describe("the other organization writes", () => {
     expect(updated.status?.embeddingVaultAttachers).toEqual({ [keysVault]: FOUNDER_ATTACHER });
   });
 
-  it("create starts an organization with no embedding settings", async () => {
+  it("create starts an organization with no embedding settings and no attachers", async () => {
     const created = await asFounder().create({
       apiVersion: "tenancy.stigmer.ai/v1",
       kind: "Organization",
       metadata: { name: "embedding-fresh", slug: "embedding-fresh" },
       spec: { embedding: { createAccountsOnSignIn: true, signInRole: IamRole.member } },
+      status: { embeddingVaultAttachers: { [keysVault]: FOUNDER_ATTACHER } },
     });
     expect(created.spec?.embedding).toBeUndefined();
+    expect(created.status?.embeddingVaultAttachers ?? {}).toEqual({});
   });
 });

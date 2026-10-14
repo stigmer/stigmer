@@ -362,6 +362,7 @@ function accountInput(
       spec: input.spec,
     }),
   );
+  /* v8 ignore start -- a backstop: the request's own rules, fittedName and an authorized organization bound every field the account takes, so no request reaches either refusal; it stays so a contract change cannot leave a grant for an account the create path would refuse */
   if (result.kind === "invalid") {
     throw new ConnectError(result.error.message, Code.InvalidArgument);
   }
@@ -371,6 +372,7 @@ function accountInput(
       Code.Internal,
     );
   }
+  /* v8 ignore stop */
   return input;
 }
 

@@ -103,6 +103,7 @@ function harness(
     organization?: "gone" | "unreadable";
     failGrant?: boolean;
     failCreate?: "fault" | "lost-race";
+    failLookup?: boolean;
   } = {},
 ): Harness {
   const events: string[] = [];
@@ -140,7 +141,13 @@ function harness(
   const deps: UserTokenMintDeps = {
     store: organizations,
     authorizer,
-    accounts: { findByIdpId: async (idpId) => accounts.get(idpId) },
+    accounts: {
+      findByIdpId: async (idpId) => {
+        events.push("lookup");
+        if (options.failLookup === true) throw new Error("account store down");
+        return accounts.get(idpId);
+      },
+    },
     createAccount: async (input, caller) => {
       events.push("create");
       const account = create(IdentityAccountSchema, {
@@ -299,9 +306,19 @@ describe("mintUserToken — the person", () => {
       }),
     );
     const minted = await mintUserToken(h.deps, request(), KEY_CALLER);
-    expect(h.events).toEqual(["read acme"]);
+    expect(h.events).toEqual(["read acme", "lookup"]);
     const verified = verifyPlatformToken(RING, minted.accessToken, NOW);
     expect(verified.outcome === "verified" && verified.token.subject).toBe("ida_existing");
+  });
+
+  it("answers a fault reading the account INTERNAL, before any grant or write", async () => {
+    const h = harness({
+      embedding: { createAccountsOnSignIn: true, signInRole: IamRole.viewer },
+      failLookup: true,
+    });
+    const fault = await refusal(mintUserToken(h.deps, request(), KEY_CALLER));
+    expect([fault.code, fault.rawMessage]).toEqual([Code.Internal, "failed to resolve the app user"]);
+    expect(h.events).toEqual(["read acme", "lookup"]);
   });
 
   it("refuses an account under the subject that no mint created", async () => {
@@ -328,7 +345,7 @@ describe("mintUserToken — the person", () => {
         Code.FailedPrecondition,
         noAccountMessage("user-7", "acme"),
       ]);
-      expect(h.events).toEqual(["read acme"]);
+      expect(h.events).toEqual(["read acme", "lookup"]);
     }
   });
 
@@ -336,7 +353,7 @@ describe("mintUserToken — the person", () => {
     const h = harness({ embedding: { createAccountsOnSignIn: true, signInRole: IamRole.member } });
     const minted = await mintUserToken(h.deps, request(), KEY_CALLER);
 
-    expect(h.events).toEqual(["read acme", "grant", "create"]);
+    expect(h.events).toEqual(["read acme", "lookup", "grant", "create"]);
     const grant = h.granted[0];
     expect(grant?.spec.principal?.id).toBe(accountIdFor(SUBJECT));
     expect(grant?.spec.relation).toBe("member");
@@ -400,7 +417,7 @@ describe("mintUserToken — the person", () => {
     const h = harness();
     await mintUserToken(h.deps, request(), KEY_CALLER);
     expect(h.granted).toEqual([]);
-    expect(h.events).toEqual(["read acme", "create"]);
+    expect(h.events).toEqual(["read acme", "lookup", "create"]);
 
     const owner = harness({ embedding: { createAccountsOnSignIn: true, signInRole: IamRole.owner } });
     const refusedOwner = await refusal(mintUserToken(owner.deps, request(), KEY_CALLER));
@@ -408,7 +425,7 @@ describe("mintUserToken — the person", () => {
       Code.InvalidArgument,
       OWNER_SIGN_IN_ROLE_MESSAGE,
     ]);
-    expect(owner.events).toEqual(["read acme"]);
+    expect(owner.events).toEqual(["read acme", "lookup"]);
 
     for (const role of [IamRole.participant, IamRole.editor, IamRole.user]) {
       const stored = harness({ embedding: { createAccountsOnSignIn: true, signInRole: role } });
@@ -417,7 +434,7 @@ describe("mintUserToken — the person", () => {
         Code.InvalidArgument,
         signInRoleNotGrantableMessage(role),
       ]);
-      expect(stored.events, IamRole[role]).toEqual(["read acme"]);
+      expect(stored.events, IamRole[role]).toEqual(["read acme", "lookup"]);
     }
   });
 
@@ -428,7 +445,7 @@ describe("mintUserToken — the person", () => {
     });
     const failed = await refusal(mintUserToken(h.deps, request(), KEY_CALLER));
     expect([failed.code, failed.rawMessage]).toEqual([Code.Internal, PROVISIONING_FAILED_MESSAGE]);
-    expect(h.events).toEqual(["read acme", "grant"]);
+    expect(h.events).toEqual(["read acme", "lookup", "grant"]);
     expect(h.accounts.size).toBe(0);
   });
 
@@ -438,7 +455,7 @@ describe("mintUserToken — the person", () => {
     await expect(mintUserToken(failing.deps, request(), KEY_CALLER)).rejects.toThrow(
       "account store down",
     );
-    expect(failing.events).toEqual(["read acme", "grant", "create"]);
+    expect(failing.events).toEqual(["read acme", "lookup", "grant", "create", "lookup"]);
 
     const retry = harness({ embedding });
     await mintUserToken(retry.deps, request(), KEY_CALLER);
