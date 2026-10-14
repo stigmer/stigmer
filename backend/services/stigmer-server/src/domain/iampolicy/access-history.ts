@@ -50,7 +50,9 @@
  * entry was removed holds none, so the page answers one past the last
  * number its history handed out (`lastChangeSequence`, which retention
  * never lowers): a tool that held 42 of 100 still learns 43 to 100 are
- * gone. Only an organization that never recorded an entry reads 0.
+ * gone. Only an organization that never recorded an entry reads 0. The
+ * last number is read before the oldest entry, so a change that commits
+ * between the two reads is numbered past it and never reported removed.
  *
  * Naming happens at read time, never from the stored row's audit stamp: the
  * actor and the principal through the account resolver and the composed
@@ -292,12 +294,11 @@ async function oldestKeptSequence(
   lowestExamined: bigint | undefined,
 ): Promise<bigint> {
   let held: bigint | undefined;
-  let last = 0n;
+  let last: bigint;
   try {
+    // The head first: whatever commits after it is numbered above it.
+    last = await deps.policies.lastChangeSequence(org);
     held = (await deps.policies.listChanges(org, { limit: 1, after: 0n })).at(0)?.sequence;
-    if (held === undefined && lowestExamined === undefined) {
-      last = await deps.policies.lastChangeSequence(org);
-    }
   } catch (error) {
     throw internalError(error, "failed to read the access history");
   }

@@ -546,6 +546,36 @@ describe("listAccessHistory's retention", () => {
     expect((await h.query.listAccessHistory({ org: ACME, afterSequence: 1n })).oldestSequence).toBe(4n);
   });
 
+  it("never reports a change that commits while the page reads the oldest entry as removed", async () => {
+    const base = fakeIamPolicyStore();
+    const recordOf: PolicyChangeRecord = { actor: { id: ANA, callerClass: "user" }, cause: "grant", organizationId: ACME };
+    const rowOf = (n: number) => {
+      const spec = orgRole(`ida_${n}`, "member", ACME);
+      return create(IamPolicySchema, { metadata: { id: policyIdFor(spec) }, spec });
+    };
+    let grantDuringOldestRead = true;
+    const policies: IamPolicyStore = {
+      ...base,
+      listChanges: async (org, page) => {
+        const changes = await base.listChanges(org, page);
+        if (grantDuringOldestRead && page.limit === 1 && "after" in page && page.after === 0n) {
+          grantDuringOldestRead = false;
+          await base.save(rowOf(4), recordOf);
+        }
+        return changes;
+      },
+    };
+    for (let n = 1; n <= 3; n += 1) {
+      await base.save(rowOf(n), recordOf);
+    }
+    await base.pruneChanges(LATER, 10);
+    const h = await harness({ policies, retentionDays: 365 });
+
+    const page = await h.query.listAccessHistory({ org: ACME, afterSequence: 1n });
+    expect(page.entries).toEqual([]);
+    expect(page.oldestSequence).toBe(4n);
+  });
+
   it("says 0 for both when no window is declared and the organization holds nothing", async () => {
     const h = await harness();
     const page = await h.query.listAccessHistory({ org: ACME });
