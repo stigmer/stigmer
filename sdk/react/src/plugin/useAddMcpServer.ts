@@ -4,7 +4,8 @@
  * "Add MCP server": an MCP server at an address becomes a plugin of one
  * server, built in the browser and installed through the plugin push, the
  * one way anything is installed. There is no MCP server resource: a server
- * lives in a plugin, and a plugin this small is two files.
+ * is an entry in a plugin or in an agent's own mcp_servers, and a plugin
+ * this small is two files.
  *
  * The files are the Claude Code layout every client reads: a
  * `.claude-plugin/plugin.json` naming the plugin after the server, and a
