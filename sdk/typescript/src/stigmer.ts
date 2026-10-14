@@ -5,6 +5,7 @@ import { GitHubClient } from "./github.js";
 import { ManifestClient } from "./manifest/index.js";
 import { PlatformClient } from "./platform.js";
 import { SearchClient } from "./search.js";
+import { TokenClient } from "./tokens.js";
 import { RoutedPluginClient } from "./plugin.js";
 import { RoutedSkillClient } from "./skill.js";
 import { createStigmerTransport } from "./transport.js";
@@ -29,6 +30,7 @@ type ExecutionTargetOption = StigmerConfig["executionTarget"];
  * - Configuration and transport setup ({@link StigmerConfig})
  * - {@link billing} billing account, Stripe and model catalog client
  * - Cross-resource {@link search} client
+ * - {@link tokens} user-token minting with a service account's key
  * - {@link github} OAuth integration client
  * - Kind-agnostic {@link manifest} client for declarative YAML apply
  *
@@ -80,6 +82,7 @@ export class Stigmer extends GeneratedClient {
   readonly billing: BillingClient;
   readonly platform: PlatformClient;
   readonly search: SearchClient;
+  readonly tokens: TokenClient;
   readonly github: GitHubClient;
   readonly manifest: ManifestClient;
   /**
@@ -114,6 +117,7 @@ export class Stigmer extends GeneratedClient {
     this.billing = new BillingClient(transport);
     this.platform = new PlatformClient(transport);
     this.search = new SearchClient(transport);
+    this.tokens = new TokenClient(transport);
     this.github = new GitHubClient(transport);
     this.manifest = new ManifestClient(transport);
     this.skill = new RoutedSkillClient(transport, config.fetch);

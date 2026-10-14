@@ -1,36 +1,37 @@
 /**
- * Example: Mint Stigmer user tokens with PlatformClient credentials.
+ * Example: mint Stigmer user tokens from your product's backend.
  *
- * This minimal Express server exposes a /api/stigmer-token endpoint
- * that platform builders call from their React frontend. The React SDK's
- * StigmerProvider uses getAccessToken to fetch from this endpoint.
+ * This minimal Express server exposes a /api/stigmer-token endpoint that
+ * your React frontend calls; the React SDK's StigmerProvider fetches from
+ * it through getAccessToken.
  *
  * Prerequisites:
- *   STIGMER_CLIENT_ID   — PlatformClient client_id
- *   STIGMER_CLIENT_SECRET — PlatformClient client_secret
+ *   STIGMER_API_KEY — an API key of a service account with the admin role
+ *                     in your organization (Settings > Service accounts)
+ *   STIGMER_ORG     — your organization's slug
  *
  * This is NOT a runnable program — it shows the API patterns.
  * A real implementation would add your own auth middleware.
  */
 
 import express from "express";
-import { createPlatformClientAuth } from "@stigmer/sdk/node";
+import { createNodeClient } from "@stigmer/sdk/node";
 
 const app = express();
 
-const auth = createPlatformClientAuth({
+const stigmer = createNodeClient({
   baseUrl: "https://api.stigmer.ai",
-  clientId: process.env.STIGMER_CLIENT_ID!,
-  clientSecret: process.env.STIGMER_CLIENT_SECRET!,
+  apiKey: process.env.STIGMER_API_KEY!,
 });
 
 app.get("/api/stigmer-token", async (req, res) => {
   // In production, authenticate the request with your own auth system
-  // and extract the user identity from the session.
+  // and take the person's identity from the session.
   const userId = req.query.userId as string;
 
   try {
-    const { accessToken, expiresAt } = await auth.mintUserToken({
+    const { accessToken, expiresAt } = await stigmer.tokens.mintUserToken({
+      org: process.env.STIGMER_ORG!,
       userId,
       userEmail: req.query.email as string,
       userName: req.query.name as string,

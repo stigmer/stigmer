@@ -51,8 +51,6 @@ import {
 } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationSpecSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
-import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
-import { PlatformClientSpecSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/spec_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -75,7 +73,6 @@ import { buildIdentityAccountProto, toIdentityAccountInput } from "../gen/identi
 import { buildIdentityProviderProto, toIdentityProviderInput } from "../gen/identityprovider";
 import { buildOAuthAppProto, toOAuthAppInput } from "../gen/oauthapp";
 import { buildOrganizationProto, toOrganizationInput } from "../gen/organization";
-import { buildPlatformClientProto, toPlatformClientInput } from "../gen/platformclient";
 import { buildScheduleProto, toScheduleInput } from "../gen/schedule";
 import { buildSessionProto, toSessionInput } from "../gen/session";
 import { buildVaultProto, toVaultInput } from "../gen/vault";
@@ -670,6 +667,12 @@ describe("toOrganizationInput (tripwire)", () => {
         parentOrg: "org_01jaaaaaaaaaaaaaaaaaaaaaaa",
         preferences: { standingContext: "We deploy to us-east-1." },
         policies: { membersCanCreateAgents: true },
+        embedding: {
+          allowedOrigins: ["https://app.acme.example"],
+          createAccountsOnSignIn: true,
+          signInRole: IamRole.member,
+          vaults: [{ org: "acme", slug: "product-keys", kind: ApiResourceKind.vault }],
+        },
       },
     });
 
@@ -684,49 +687,6 @@ describe("toOrganizationInput (tripwire)", () => {
       original,
       buildOrganizationProto(toOrganizationInput(original)),
     );
-  });
-});
-
-describe("toPlatformClientInput", () => {
-  const fixture = () =>
-    create(PlatformClientSchema, {
-      metadata: META,
-      spec: {
-        clientId: "pc-1",
-        clientSecretHash: "sha256:hash",
-        secretFingerprint: "fp-1",
-        expiresAt: timestampFromDate(new Date("2027-06-01T00:00:00Z")),
-        neverExpires: true,
-        createAccountsOnSignIn: true,
-        signInRole: IamRole.owner,
-        allowedOrigins: ["https://embed.acme.example"],
-        vaults: [
-          { org: "acme", slug: "prod", kind: ApiResourceKind.vault },
-        ],
-      },
-    });
-
-  it("fixture covers every PlatformClientSpec field (schema tripwire)", () => {
-    assertFixtureCoversSpec(PlatformClientSpecSchema, fixture().spec!);
-  });
-
-  it("round-trips the full spec and metadata through the builder", () => {
-    const original = fixture();
-    assertSpecRoundTrip(
-      PlatformClientSpecSchema,
-      original,
-      buildPlatformClientProto(toPlatformClientInput(original)),
-    );
-  });
-
-  it("preserves vaults when only origins change (live wipe bug)", () => {
-    const original = fixture();
-    const rebuilt = buildPlatformClientProto({
-      ...toPlatformClientInput(original),
-      allowedOrigins: ["https://other.acme.example"],
-    });
-    expect(rebuilt.spec?.vaults.map((r) => r.slug)).toEqual(["prod"]);
-    expect(rebuilt.spec?.allowedOrigins).toEqual(["https://other.acme.example"]);
   });
 });
 

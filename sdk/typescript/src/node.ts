@@ -7,13 +7,6 @@ import {
   errorStripInterceptor,
 } from "./internal/interceptors.js";
 
-export {
-  createPlatformClientAuth,
-  PlatformClientAuth,
-  type PlatformClientAuthConfig,
-  type MintUserTokenInput,
-  type MintUserTokenResult,
-} from "./platform-client-auth.js";
 import { trimTrailing } from "./internal/trim.js";
 
 /**

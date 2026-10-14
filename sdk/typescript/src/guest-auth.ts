@@ -1,8 +1,10 @@
 import { createGrpcWebTransport } from "@connectrpc/connect-web";
 import { createClient, type Client } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
-import { PlatformClientTokenController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
-import { MintGuestTokenRequestSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
+import {
+  MintGuestTokenRequestSchema,
+  TokenService,
+} from "@stigmer/protos/ai/stigmer/iam/token/v1/token_pb";
 import { wrapError } from "./gen/errors.js";
 import {
   rpcMetadataInterceptor,
@@ -24,10 +26,11 @@ export interface GuestIdStorage {
 /**
  * Configuration for a guest token-minting helper.
  *
- * Unlike {@link PlatformClientAuthConfig}, this carries **no
- * credentials** — `mintGuestToken` is a public RPC gated server-side
- * on an enabled AgentShare with the given id. It is therefore safe to
- * use directly from a browser.
+ * Unlike a user-token mint (`stigmer.tokens.mintUserToken`, called with
+ * a service account's key), this carries **no credentials** —
+ * `mintGuestToken` is a public RPC gated server-side on an enabled
+ * AgentShare with the given id. It is therefore safe to use directly
+ * from a browser.
  *
  * @example
  * ```typescript
@@ -134,7 +137,7 @@ const GUEST_ID_STORAGE_PREFIX = "stigmer:guest-id:";
  * ```
  */
 export class GuestAuth {
-  private readonly tokenClient: Client<typeof PlatformClientTokenController>;
+  private readonly tokenClient: Client<typeof TokenService>;
   private readonly shareId: string;
   private readonly storage: GuestIdStorage;
   private readonly storageKey: string;
@@ -157,7 +160,7 @@ export class GuestAuth {
       interceptors: [rpcMetadataInterceptor, errorStripInterceptor],
     });
 
-    this.tokenClient = createClient(PlatformClientTokenController, transport);
+    this.tokenClient = createClient(TokenService, transport);
   }
 
   /**
@@ -287,7 +290,7 @@ function safeSetItem(storage: GuestIdStorage, key: string, value: string): void 
  * Create a guest token-minting helper for a shared agent's hosted page
  * or embed.
  *
- * This is the browser-side counterpart of `createPlatformClientAuth`:
+ * This is the browser-side counterpart of `stigmer.tokens.mintUserToken`:
  * it involves **no credentials** — the server gates minting on an
  * enabled AgentShare and issues a short-lived guest JWT scoped to the
  * sharing org. Pass {@link GuestAuth.getAccessToken} to a `Stigmer`

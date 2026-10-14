@@ -105,7 +105,7 @@ export {
   granteeRef,
   granteeFromView,
   granteeKey,
-  isPlatformClientAccount,
+  isAppUserAccount,
   isServiceAccount,
 } from "./iam-principal.js";
 export {
@@ -131,6 +131,13 @@ export {
   type CreateBillingPortalSessionParams,
   type CreatePaymentMethodSetupSessionParams,
 } from "./billing.js";
+
+// Token client (mint user tokens from your product's backend)
+export {
+  TokenClient,
+  type MintUserTokenInput,
+  type MintUserTokenResult,
+} from "./tokens.js";
 
 // Search client
 export {
@@ -328,11 +335,6 @@ export {
   buildOrganizationProto,
   type OrganizationInput,
 } from "./gen/organization.js";
-export {
-  PlatformClientClient,
-  buildPlatformClientProto,
-  type PlatformClientInput,
-} from "./gen/platformclient.js";
 // The billing kinds (cloud_only): the plan catalog, an organization's
 // subscription, and issued licenses. The entitlement input types are
 // emitted once per module that uses them, identical in shape; this barrel
@@ -513,7 +515,6 @@ export { toIdentityProviderInput } from "./gen/identityprovider.js";
 export { toMemoryInput } from "./gen/memory.js";
 export { toOAuthAppInput } from "./gen/oauthapp.js";
 export { toOrganizationInput } from "./gen/organization.js";
-export { toPlatformClientInput } from "./gen/platformclient.js";
 export { toRunInput } from "./gen/run.js";
 export { toScheduleInput } from "./gen/schedule.js";
 export { toScoreInput } from "./gen/score.js";

@@ -9,8 +9,8 @@
  *   - reading an access-list entry back is the inverse of building one,
  *     and anything else (a structural principal, another team qualifier)
  *     is refused rather than guessed at;
- *   - an entry is a PlatformClient-provisioned account only when it is a
- *     person whose identity origin says `platform_client`; every other
+ *   - an entry is an app user only when it is a person whose identity
+ *     origin says `app_user`; every other
  *     origin, a missing origin (an entry the server could not resolve) and
  *     any other kind read as not one;
  *   - an entry is an organization's service account by the same rule with
@@ -36,7 +36,7 @@ import { TEAM_GRANTABLE_ROLES } from "../gen/authorization-config";
 import {
   granteeFromView,
   granteeRef,
-  isPlatformClientAccount,
+  isAppUserAccount,
   isServiceAccount,
   personGrantee,
   teamGrantee,
@@ -70,7 +70,7 @@ describe("granteeFromView — reading an access-list entry back", () => {
   });
 });
 
-describe("isPlatformClientAccount — telling a product's users from the organization's people", () => {
+describe("isAppUserAccount — telling a product's users from the organization's people", () => {
   const origin = (provisioningMode: IdentityAccountProvisioningMode) =>
     create(IdentityOriginSchema, { provisioningMode });
   const person = (provisioningMode: IdentityAccountProvisioningMode) => ({
@@ -78,8 +78,8 @@ describe("isPlatformClientAccount — telling a product's users from the organiz
     identityOrigin: origin(provisioningMode),
   });
 
-  it("is true for a person a PlatformClient provisioned", () => {
-    expect(isPlatformClientAccount(person(IdentityAccountProvisioningMode.platform_client))).toBe(true);
+  it("is true for a person a mint signed in", () => {
+    expect(isAppUserAccount(person(IdentityAccountProvisioningMode.app_user))).toBe(true);
   });
 
   it("is false for every other origin, for an entry with no origin, and for any other kind", () => {
@@ -89,13 +89,13 @@ describe("isPlatformClientAccount — telling a product's users from the organiz
       IdentityAccountProvisioningMode.machine,
       IdentityAccountProvisioningMode.identity_account_provisioning_mode_unspecified,
     ]) {
-      expect(isPlatformClientAccount(person(mode)), IdentityAccountProvisioningMode[mode]).toBe(false);
+      expect(isAppUserAccount(person(mode)), IdentityAccountProvisioningMode[mode]).toBe(false);
     }
-    expect(isPlatformClientAccount({ kind: "identity_account", identityOrigin: undefined })).toBe(false);
+    expect(isAppUserAccount({ kind: "identity_account", identityOrigin: undefined })).toBe(false);
     expect(
-      isPlatformClientAccount({
+      isAppUserAccount({
         kind: "team",
-        identityOrigin: origin(IdentityAccountProvisioningMode.platform_client),
+        identityOrigin: origin(IdentityAccountProvisioningMode.app_user),
       }),
     ).toBe(false);
   });
@@ -112,7 +112,7 @@ describe("isServiceAccount — telling an organization's automation from its peo
   it("is true for a service account, which is never also a product's user", () => {
     const serviceAccount = account(IdentityAccountProvisioningMode.service_account);
     expect(isServiceAccount(serviceAccount)).toBe(true);
-    expect(isPlatformClientAccount(serviceAccount)).toBe(false);
+    expect(isAppUserAccount(serviceAccount)).toBe(false);
   });
 
   it("is false for every other origin, for an entry with no origin, and for any other kind", () => {
@@ -120,7 +120,7 @@ describe("isServiceAccount — telling an organization's automation from its peo
       IdentityAccountProvisioningMode.direct,
       IdentityAccountProvisioningMode.federated,
       IdentityAccountProvisioningMode.machine,
-      IdentityAccountProvisioningMode.platform_client,
+      IdentityAccountProvisioningMode.app_user,
       IdentityAccountProvisioningMode.identity_account_provisioning_mode_unspecified,
     ]) {
       expect(isServiceAccount(account(mode)), IdentityAccountProvisioningMode[mode]).toBe(false);
