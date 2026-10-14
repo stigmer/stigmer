@@ -1,7 +1,7 @@
 /**
  * The server's own reads of one turn's facts from its session's log: what
  * the scoring readers (domain/score: the checks' actions, the judge's
- * subject, a plugin eval's trace), the vote and verdict readers and the
+ * subject, an eval run's trace), the vote and verdict readers and the
  * usage report read, in place of the run's transcript rows; working-time.ts
  * beside this file reads the status events through the same full read.
  *

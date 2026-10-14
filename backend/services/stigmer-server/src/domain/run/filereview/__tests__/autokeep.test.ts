@@ -4,7 +4,7 @@
  * commands the person approved (an allow in the session's log) is kept by
  * an approved_command decision, and every claim the server cannot verify
  * against its own records falls back to manual review, as does a set the
- * log shows a person decided. A plugin eval's try keeps its change set,
+ * log shows a person decided. An eval run's try keeps its change set,
  * whatever produced it, except a set that cannot be kept whole, and a run
  * that is no try keeps nothing that way. Once a later message is sent, a
  * turn's undecided edits are kept with origin next_turn: a whole set nobody
@@ -208,7 +208,7 @@ describe("autoKeepEvalRunTrySets", () => {
     expect(decided(first).map((d) => [d.origin, d.reason, d.decidedBy])).toEqual([
       [
         "eval_try",
-        "Kept automatically: a plugin eval's try keeps its edits, as Claude Code's evals do; nobody reviews a try",
+        "Kept automatically: an eval run's try keeps its edits, as Claude Code's evals do; nobody reviews a try",
         "",
       ],
     ]);

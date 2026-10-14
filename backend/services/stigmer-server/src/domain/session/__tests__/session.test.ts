@@ -18,7 +18,7 @@
  *     platform-visible, is refused and the stored row is left as it was;
  *     an echo of a skill deleted since the session named it passes (the
  *     runner's harness-state write-back sends the whole row);
- *   - list leaves out a plugin eval's tries, which get still answers;
+ *   - list leaves out an eval run's tries, which get still answers;
  *   - a session's state is computed from its event log on every read (get,
  *     list, listByAgent): idle when fresh, running while its newest status
  *     event says so; never stored, and a state a client sends on create or
@@ -503,8 +503,8 @@ describe("session update — references the stored row already carries", () => {
   });
 });
 
-describe("session list — a plugin eval's tries", () => {
-  it("leaves out a session carrying the plugin eval label, which get still answers", async () => {
+describe("session list — an eval run's tries", () => {
+  it("leaves out a session carrying the eval run label, which get still answers", async () => {
     const chat = await createSession({});
     const evalTry = await createSession({});
     // The eval's workflow stamps the label through a server-composed

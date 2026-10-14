@@ -52,12 +52,6 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | ChannelMessageCommandController.sendMessage | `org` |
 | ChannelMessageQueryController.listTemplates | `org` |
 
-## `ai.stigmer.agentic.agenteval.v1`
-
-| Method | Organization fields |
-|---|---|
-| AgentEvalCommandController.create | `metadata.org`, `spec.vaults.org` |
-
 ## `ai.stigmer.agentic.run.v1`
 
 | Method | Organization fields |
@@ -91,6 +85,12 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | ChannelAppQueryController.getByReference | `org` |
 | ChannelAppQueryController.list | `org` |
 
+## `ai.stigmer.agentic.evalrun.v1`
+
+| Method | Organization fields |
+|---|---|
+| EvalRunCommandController.create | `metadata.org`, `spec.cases.plugin.org`, `spec.vaults.org` |
+
 ## `ai.stigmer.agentic.evaluator.v1`
 
 | Method | Organization fields |
@@ -116,12 +116,6 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | PluginQueryController.getByReference | `org` |
 | PluginQueryController.list | `org` |
 | PluginQueryController.listVersions | `org` |
-
-## `ai.stigmer.agentic.plugineval.v1`
-
-| Method | Organization fields |
-|---|---|
-| EvalRunCommandController.create | `metadata.org`, `spec.vaults.org` |
 
 ## `ai.stigmer.agentic.schedule.v1`
 

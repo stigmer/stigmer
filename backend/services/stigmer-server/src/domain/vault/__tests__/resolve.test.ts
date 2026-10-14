@@ -766,7 +766,7 @@ describe("which vaults a run uses", () => {
     expect(gone.rawMessage).toContain(`vault ${ORG}/gone, named by share 'public', no longer exists`);
   });
 
-  it("a plugin eval's vaults reach its tries, checked against their attacher", async () => {
+  it("an eval run's vaults reach its tries, checked against their attacher", async () => {
     const keys = await seedSharedVault(rig.store, ORG, "eval-keys", { secrets: { A: "from-eval" } });
     await rig.store.saveResource(
       ApiResourceKind.eval_run,
@@ -803,7 +803,7 @@ describe("which vaults a run uses", () => {
     ).toEqual({ A: "from-eval", B: "from-chat" });
   });
 
-  it("a plugin eval that is gone, or of another organization, contributes no vaults to its tries", async () => {
+  it("an eval run that is gone, or of another organization, contributes no vaults to its tries", async () => {
     await seedSharedVault(rig.store, "rival", "rival-keys", { secrets: { API_KEY: "rival" } });
     await rig.store.saveResource(
       ApiResourceKind.eval_run,

@@ -1,5 +1,5 @@
 /**
- * A plugin eval's one reader of a try: what the format's graders look at,
+ * An eval run's one reader of a try: what the format's graders look at,
  * in Claude Code's names. The third reader of a turn beside `actionsOf`
  * (../checks/actions.ts, hashes for the free checks) and `subjectPartsOf`
  * (../judge/subject.ts, what the judge is shown), all three reading the

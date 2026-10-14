@@ -7,7 +7,7 @@
  * entry naming a server segment the plugin does not have (another
  * plugin's, or a server it lacks) is refused with the entry and the
  * segment; Claude tools, specifiers and non-plugin MCP names are never
- * read in a plugin eval. An agent eval passes every plugin its agent
+ * read in an eval run. An eval run passes every plugin its agent
  * attaches, and an entry naming a server of any of them passes; it also
  * passes the servers the agent writes itself, and then an entry naming any
  * other MCP server must name one of those (`mcp__*` names them all).
@@ -81,7 +81,7 @@ describe("checkAllowTools", () => {
     });
   });
 
-  it("in an agent eval, keeps entries naming the agent's own servers and refuses any other non-plugin server", () => {
+  it("in an eval run, keeps entries naming the agent's own servers and refuses any other non-plugin server", () => {
     const tools = ["mcp__zendesk__*", "mcp__zendesk__search", "mcp__crm", "mcp__*", "Read"];
     expect(checkAllowTools(tools, [plugin], ["zendesk", "crm"])).toEqual({ ok: true, tools });
     expect(checkAllowTools(["mcp__github__*"], [plugin], ["zendesk"])).toEqual({

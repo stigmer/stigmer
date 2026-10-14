@@ -1,5 +1,5 @@
 /**
- * The plugin eval's purge (domain/organization/purge/kind-purge.ts): every
+ * The eval run's purge (domain/organization/purge/kind-purge.ts): every
  * eval of an organization being deleted, removed with its delete chain's
  * cleanup: its workflow asked to stop, the row and its access, read
  * through the eval list index. It runs after the conversations' purge,
@@ -67,7 +67,7 @@ function newStopEvalRunStep(deps: EvalRunPurgeDeps): PipelineStep<DeleteDesc> {
           deps.evalRunWorkflows,
           deps.logger,
           existing,
-          "a purged plugin eval's workflow could not be cancelled",
+          "a purged eval run's workflow could not be cancelled",
         );
       }
     },

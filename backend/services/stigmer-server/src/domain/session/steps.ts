@@ -420,7 +420,7 @@ function requireSessionId<Desc extends DescMessage>(
 /**
  * ListAllSessions — one page of sessions, the request's organization when
  * it names one, newest first. Malformed rows warn and are skipped. A
- * plugin eval's tries are left out (the `eval_run` key): they are read
+ * eval run's tries are left out (the `eval_run` key): they are read
  * from the eval and by id, never from the conversation list.
  */
 export function newListAllSessionsStep(
@@ -456,7 +456,7 @@ export function newListAllSessionsStep(
 /**
  * FilterByAgent: one page of the sessions whose pinned agent
  * (status.agent_id) matches, newest first, whichever version each runs.
- * A plugin eval's tries are left out, as `session.list` leaves them out:
+ * An eval run's tries are left out, as `session.list` leaves them out:
  * their conversations are read from the eval.
  */
 export function newFilterByAgentStep(

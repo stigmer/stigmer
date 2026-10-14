@@ -341,7 +341,7 @@ export interface ResolvedExtensionDrivers {
    */
   readonly gradingCaller: GradingCallerMint | undefined;
   /**
-   * The plugin-eval caller mint — undefined = a plugin eval's tries enter
+   * The eval-run caller mint — undefined = an eval run's tries enter
    * the create pipeline as the `internal` class, or as the eval's creator
    * under the built-in posture (compose.ts).
    */

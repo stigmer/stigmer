@@ -1,5 +1,5 @@
 /**
- * Pins the plugin eval's in-process try lane (`evalRunTries`): a try's
+ * Pins the eval run's in-process try lane (`evalRunTries`): a try's
  * session and run are created through the session's and the run's own
  * create RPCs over the in-process transport, as the caller the eval's
  * workflow gives (the eval's creator, so the try is theirs) or, given
@@ -99,7 +99,7 @@ function laneOver(refuse = false) {
   return { lane, seen };
 }
 
-describe("the plugin eval's in-process try lane", () => {
+describe("the eval run's in-process try lane", () => {
   it("creates the try's session and run as the caller it is given", async () => {
     const { lane, seen } = laneOver();
 

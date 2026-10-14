@@ -2,7 +2,7 @@
  * What the eval's activities ask of the rest of the server, served by the
  * in-process edge (boot/inprocess.ts): a try's or a vote's session and
  * run, created through their full create chains as the eval's caller
- * (extensions/plugin-eval-caller.ts) when one was minted, else as the
+ * (extensions/eval-run-caller.ts) when one was minted, else as the
  * server; and a run's stop as the server. A vote's session is deleted
  * through the judge session's deleter (domain/score/ports.ts), the same
  * one an eval's delete removes its tries' sessions with. The session is

@@ -1,5 +1,5 @@
 /**
- * Pins the plugin eval steps' arms the composed lanes cannot reach (no
+ * Pins the eval run steps' arms the composed lanes cannot reach (no
  * engine runs behind them): a workflow that starts leaves the pending row
  * as it is; a failed start marks a pending eval failed and never
  * overwrites what the workflow already wrote, a start that timed out
@@ -236,13 +236,13 @@ describe("StartEvalRunWorkflow", () => {
       },
     ).execute(ctx);
     expect(ctx.newState.status?.phase).toBe(EvalRunPhase.failed);
-    expect(EVAL_RUN_NOT_STARTED_ERROR).toBe("the eval's workflow could not be started");
+    expect(EVAL_RUN_NOT_STARTED_ERROR).toBe("the eval run's workflow could not be started");
     expect(ctx.newState.status?.error).toBe(EVAL_RUN_NOT_STARTED_ERROR);
     expect((await stored("evr_1")).status?.phase).toBe(EvalRunPhase.failed);
     expect(logged).toEqual([
       {
-        message: "a plugin eval's workflow could not start; marking it failed",
-        fields: { evalId: "evr_1", cause: "dial tcp 10.0.0.7:7233: connection refused" },
+        message: "an eval run's workflow could not start; marking it failed",
+        fields: { evalRunId: "evr_1", cause: "dial tcp 10.0.0.7:7233: connection refused" },
       },
     ]);
   });
@@ -330,7 +330,7 @@ describe("CancelEvalRun", () => {
       newCancelEvalRunStep(temp.store, workflows({ cancel: () => Promise.reject(new Error("transport")) })).execute(idCtx(running)),
     );
     expect(fault.code).toBe(Code.Internal);
-    expect(fault.rawMessage).toBe("failed to cancel the plugin eval");
+    expect(fault.rawMessage).toBe("failed to cancel the eval run");
   });
 });
 
@@ -369,7 +369,7 @@ describe("an eval whose workflow ended without finishing", () => {
     const answered = ctx.get(TARGET_RESOURCE_KEY) as EvalRun;
     expect(answered.status?.phase).toBe(EvalRunPhase.failed);
     expect(answered.status?.error).toBe(EVAL_RUN_WORKFLOW_ENDED_ERROR);
-    expect(EVAL_RUN_WORKFLOW_ENDED_ERROR).toBe("the eval's workflow ended without finishing");
+    expect(EVAL_RUN_WORKFLOW_ENDED_ERROR).toBe("the eval run's workflow ended without finishing");
     expect(answered.status?.finishedAt).toBeDefined();
     expect((await stored("evr_stale")).status?.phase).toBe(EvalRunPhase.failed);
 
@@ -573,7 +573,7 @@ describe("the create's question and its faults", () => {
       newPlanEvalRunStep({ readArchive: () => Promise.reject(new Error("disk")) }, catalog).execute(planCtx(row)),
     );
     expect(broken.code).toBe(Code.Internal);
-    expect(broken.rawMessage).toBe("failed to read the plugin's evals");
+    expect(broken.rawMessage).toBe("failed to read the plugins' evals");
   });
 
   it("refuses a suite past the limits with its counts, planning no cell", async () => {
@@ -741,7 +741,7 @@ describe("a chain built wrong", () => {
       newCancelEvalRunStep(temp.store, workflows()).execute(bare()),
     );
     expect(noTarget.code).toBe(Code.Internal);
-    expect(noTarget.rawMessage).toBe("plugin eval not found in context");
+    expect(noTarget.rawMessage).toBe("eval run not found in context");
 
     const noExisting = await failure(() =>
       newRefuseActiveEvalRunDeleteStep().execute(bare()),
@@ -778,6 +778,6 @@ describe("a chain built wrong", () => {
       ),
     );
     expect(listed.code).toBe(Code.Internal);
-    expect(listed.rawMessage).toBe("failed to list the plugin's evals");
+    expect(listed.rawMessage).toBe("failed to list the plugin's eval runs");
   });
 });

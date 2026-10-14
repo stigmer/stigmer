@@ -66,7 +66,7 @@ export const UNTITLED_SESSION_SUBJECT = "Untitled session";
 /**
  * Marks a session as runtime-originated. Recents shows personal sessions
  * only: channel conversations, guest/share
- * sessions, schedule-triggered sessions and a plugin eval's tries and
+ * sessions, schedule-triggered sessions and an eval run's tries and
  * votes are excluded for every caller — each runtime surface owns its own
  * list (an eval's tries are read through the eval). share/guest are
  * cloud-only today but excluded identically so a future OSS share surface

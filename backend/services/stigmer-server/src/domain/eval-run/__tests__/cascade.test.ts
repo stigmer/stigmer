@@ -269,11 +269,11 @@ describe("SweepEvalRunsAfterDelete", () => {
     expect(await exists(ApiResourceKind.eval_run, "evr_slow")).toBe(false);
     expect(await exists(ApiResourceKind.session, "ses_busy")).toBe(true);
     expect(warnings).toContainEqual({
-      message: "a swept plugin eval's workflow has not ended; deleting the eval all the same",
-      fields: { evalId: "evr_slow", pluginId: "plg_1" },
+      message: "a swept eval run's workflow has not ended; deleting it all the same",
+      fields: { evalRunId: "evr_slow", subject: "plugin plg_1" },
     });
     expect(warnings).toContainEqual({
-      message: "a plugin eval's try could not be deleted with its eval; it is left",
+      message: "an eval run's try could not be deleted with its eval; it is left",
       fields: { evalId: "evr_slow", sessionId: "ses_busy", error: "[failed_precondition] the session has an active run" },
     });
   });
@@ -311,7 +311,7 @@ describe("SweepEvalRunsAfterDelete", () => {
       }).execute(deleteCtx()),
     );
     expect(fault.code).toBe(Code.Internal);
-    expect(fault.rawMessage).toBe("failed to list the plugin's evals after its delete");
+    expect(fault.rawMessage).toBe("failed to list the plugin's eval runs after its delete");
   });
 });
 
@@ -355,6 +355,6 @@ describe("EnsureEvaluatedPluginStillExists", () => {
       newEnsureEvalRunSubjectStillExistsStep(undeletable, undefined, silentLogger).execute(createCtx(row)),
     );
     expect(deleteFault.code).toBe(Code.Internal);
-    expect(deleteFault.rawMessage).toBe("failed to remove the plugin eval of a deleted plugin");
+    expect(deleteFault.rawMessage).toBe("failed to remove the eval run of a deleted subject");
   });
 });

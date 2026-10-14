@@ -15,10 +15,11 @@
  *     `not run: <feature>` and no cells, never run degraded; so is a case
  *     with a scaffold script when the eval skips scaffolds (`not run:
  *     scaffold skipped`, Claude Code's `--no-scaffold`);
- *   - the targets are the spec's; with none, an agent eval's one target is
- *     the agent as it runs (`agentTarget`: its engine, its model as the
- *     label, and no model on the run, so its own tier and thinking apply),
- *     and a plugin eval's is the case's own `model` on the native harness
+ *   - the targets are the spec's; with none, an eval run about an agent's
+ *     one target is the agent as it runs (`agentTarget`: its engine, its
+ *     model as the label, and no model on the run, so its own tier and
+ *     thinking apply), and an eval run about a plugin's is the case's own
+ *     `model` on the native harness
  *     when the catalog knows it there, else the native harness's default.
  *     A `model` the catalog does not know is that target's `not run: model
  *     '<name>' is not in Stigmer's catalog`: no alias is guessed, since
@@ -29,8 +30,8 @@
  *     passes no `env` (`@stigmer/plugin-package`
  *     `evalCaseUnsupportedOnCursor`);
  *   - tries per arm are the spec's `runs`, else the case's, else 3;
- *   - ablation `none` plans the with-arm only, as does an agent eval,
- *     whose spec has no ablation.
+ *   - ablation `none` plans the with arm only, as does a spec with no
+ *     ablation (an eval run that compares no plugin: matrixSpecOf).
  *
  * Every index is zero-based into the arrays this module returns: a cell's
  * `caseIndex` into `cases`, its `targetIndex` into that case's `targets`,
@@ -68,7 +69,7 @@ export interface PlannedTarget {
   /** Tries per arm. */
   runs: number;
   /**
-   * Set on an agent eval's default target: the try names no model, so the
+   * Set on an agent's default target: the try names no model, so the
    * agent's own model, tier and thinking apply; `target.modelName` is the
    * agent's model, for the label only.
    */
@@ -76,16 +77,15 @@ export interface PlannedTarget {
 }
 
 /**
- * The spec fields the planner reads, which a plugin eval's and an agent
- * eval's specs share by name; an agent eval has no ablation, and runs the
- * with-arm only.
+ * The spec fields the planner reads (matrixSpecOf): with no ablation, as
+ * when no plugin is compared, it plans the with arm only.
  */
 export type MatrixSpec = Pick<EvalRunSpec, "caseGlob" | "caseTags" | "runs" | "skipScaffold"> & {
   readonly targets: ReadonlyArray<Pick<EvalRunTarget, "harness" | "modelName">>;
   readonly ablation?: EvalRunSpec["ablation"];
 };
 
-/** An agent eval's default target: the agent's engine, and its model as the label. */
+/** An agent's default target: its engine, and its model as the label. */
 export interface AgentTarget {
   readonly harness: Harness;
   readonly modelName: string;

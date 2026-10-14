@@ -11,7 +11,7 @@ It is held equal to the contract by `src/pipeline/steps/__tests__/reference-fiel
 - **stamped reference**: an `ApiResourceReference` the server or the runner writes, never a person: held by id like any stored reference. A run's loaded versions (`LoadedVersions`) are the runner's, written through `updateStatus`, which whoever may edit the run can call too, so each new entry is admitted by the reference rule from the run's organization before it is stored (`src/domain/run/update-status.ts`).
 - **stamped id**: a `<kind>_id` string the server writes or a request names the resource by: an id already.
 - **display slug**: a slug kept beside an id for people to read, never resolved.
-- **create-time selector**: names a person writes that choose among a resource's own references once, at create, after which the server stamps ids: `AgentEvalSpec.plugins` chooses among the evaluated agent's attached plugins, and the eval stamps each one's id and digest.
+- **create-time selector**: names a person writes that choose among a resource's own references once, at create, after which the server stamps ids. None is left: an eval run names its case sources by reference (`EvalRunCaseSource.plugin`), each matched to a plugin a try loads.
 - **not a resource**, with why: a field whose name reads like a resource's but names something else.
 
 Rows read `| \`Message.field\` | class |`.
@@ -47,17 +47,6 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.agentchannel.v1.SlackInstallStatus.team_id` | stamped id |
 | `ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus.channel_app_id` | stamped id |
 
-## `ai.stigmer.agentic.agenteval.v1`
-
-| Field | Class |
-|---|---|
-| `ai.stigmer.agentic.agenteval.v1.AgentEvalPlugin.plugin_id` | stamped id |
-| `ai.stigmer.agentic.agenteval.v1.AgentEvalPlugin.plugin_slug` | display slug |
-| `ai.stigmer.agentic.agenteval.v1.AgentEvalSpec.agent_id` | stamped id |
-| `ai.stigmer.agentic.agenteval.v1.AgentEvalSpec.plugins` | create-time selector |
-| `ai.stigmer.agentic.agenteval.v1.AgentEvalSpec.vaults` | manifest reference |
-| `ai.stigmer.agentic.agenteval.v1.ListAgentEvalsByAgentRequest.agent_id` | stamped id |
-
 ## `ai.stigmer.agentic.agentshare.v1`
 
 | Field | Class |
@@ -68,6 +57,21 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.agentshare.v1.ListAgentSharesByAgentRequest.agent_id` | stamped id |
 | `ai.stigmer.agentic.agentshare.v1.SharedAgentProfile.agent_ref` | stamped reference |
 | `ai.stigmer.agentic.agentshare.v1.SharedAgentProfile.slug` | not a resource: the share's own name, beside its org |
+
+## `ai.stigmer.agentic.evalrun.v1`
+
+| Field | Class |
+|---|---|
+| `ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource.plugin` | manifest reference |
+| `ai.stigmer.agentic.evalrun.v1.EvalRunPlugin.plugin_id` | stamped id |
+| `ai.stigmer.agentic.evalrun.v1.EvalRunPlugin.plugin_slug` | display slug |
+| `ai.stigmer.agentic.evalrun.v1.EvalRunSpec.agent_id` | stamped id |
+| `ai.stigmer.agentic.evalrun.v1.EvalRunSpec.plugin_id` | stamped id |
+| `ai.stigmer.agentic.evalrun.v1.EvalRunSpec.vaults` | manifest reference |
+| `ai.stigmer.agentic.evalrun.v1.EvalRunTry.run_id` | stamped id |
+| `ai.stigmer.agentic.evalrun.v1.EvalRunTry.session_id` | stamped id |
+| `ai.stigmer.agentic.evalrun.v1.ListEvalRunsByAgentRequest.agent_id` | stamped id |
+| `ai.stigmer.agentic.evalrun.v1.ListEvalRunsByPluginRequest.plugin_id` | stamped id |
 
 ## `ai.stigmer.agentic.evaluator.v1`
 
@@ -91,16 +95,6 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.plugin.v1.ListPluginToolsInput.plugin_id` | stamped id |
 | `ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput.slug` | request reference |
 | `ai.stigmer.agentic.plugin.v1.PluginAgent.skills` | not a resource: the plugin's own skills, parts of its package, by name |
-
-## `ai.stigmer.agentic.plugineval.v1`
-
-| Field | Class |
-|---|---|
-| `ai.stigmer.agentic.plugineval.v1.ListEvalRunsByPluginRequest.plugin_id` | stamped id |
-| `ai.stigmer.agentic.plugineval.v1.EvalRunSpec.plugin_id` | stamped id |
-| `ai.stigmer.agentic.plugineval.v1.EvalRunSpec.vaults` | manifest reference |
-| `ai.stigmer.agentic.plugineval.v1.EvalRunTry.run_id` | stamped id |
-| `ai.stigmer.agentic.plugineval.v1.EvalRunTry.session_id` | stamped id |
 
 ## `ai.stigmer.agentic.run.v1`
 

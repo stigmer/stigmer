@@ -2,7 +2,7 @@
  * Pins the vault attachments step: a My vault is refused on every surface
  * that runs for someone else (a conversation, a share, a channel, an
  * organization's embedding settings, which an Organization row carries
- * under its own id rather than metadata.org, a plugin eval, whose tries its plugin's viewers read)
+ * under its own id rather than metadata.org, an eval run, whose tries its plugin's viewers read)
  * and admitted on its owner's own schedule only;
  * who attached each vault is recorded for the vaults a write introduces
  * and kept for the ones it keeps, a removed vault's entry dropped, so an
@@ -223,7 +223,7 @@ describe("a My vault", () => {
     }
   });
 
-  it("is refused on a plugin eval, even its creator's own, since every viewer of the plugin reads its tries", async () => {
+  it("is refused on an eval run, even its creator's own, since every viewer of the plugin reads its tries", async () => {
     const mine = ref((await rig.vaults.findById(anasId))!.metadata!.slug);
     const failure = await refusalOf(
       run(
@@ -240,7 +240,7 @@ describe("a My vault", () => {
     );
     expect(failure.code).toBe(Code.FailedPrecondition);
     expect(failure.rawMessage).toBe(
-      "a My vault cannot be attached to a plugin eval, whose tries every viewer of its plugin can read: " +
+      "a My vault cannot be attached to an eval run, whose tries every viewer of its agent or plugin can read: " +
         "it serves only its own person's runs. Attach a shared vault that holds what is needed instead",
     );
   });

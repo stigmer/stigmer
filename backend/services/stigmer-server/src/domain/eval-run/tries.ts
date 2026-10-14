@@ -10,7 +10,7 @@
  * workflow has not ended, leaves a try whose run is still being stopped,
  * logged, rather than keep the eval.
  *
- * Proven by __tests__/plugin-eval.test.ts (the delete lane and the
+ * Proven by __tests__/eval-run.test.ts (the delete lane and the
  * plugin's cascade).
  */
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -36,7 +36,7 @@ export async function deleteEvalRunTries(
   try {
     sessionIds = await listTrySessionIds(store, logger, evalId);
   } catch (error) {
-    throw internalError(error, "failed to list the plugin eval's tries");
+    throw internalError(error, "failed to list the eval run's tries");
   }
   for (const sessionId of sessionIds) {
     try {
@@ -48,7 +48,7 @@ export async function deleteEvalRunTries(
       if (options.leaveRefused !== true) {
         throw error;
       }
-      logger.warn("a plugin eval's try could not be deleted with its eval; it is left", {
+      logger.warn("an eval run's try could not be deleted with its eval; it is left", {
         evalId,
         sessionId,
         error: error instanceof Error ? error.message : String(error),

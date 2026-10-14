@@ -15,7 +15,7 @@
  *     never decide one target twice in one write; the live progress clears
  *     once its set is captured;
  *   - the agent a turn ran (status.agent_id, agent_version_hash) is the
- *     create pipeline's stamp alone; the files a plugin-eval try's graders
+ *     create pipeline's stamp alone; the files a eval-run try's graders
  *     read (eval_files) are kept on a try's run only; and what a run
  *     loaded (loaded_versions) is merged by union over (id, version), never
  *     replaced, an entry with no id refused by the shared validator before
@@ -241,7 +241,7 @@ describe("the policy keeps in the write that captures", () => {
     expect(origins(both.decided)).toEqual(["approved_command"]);
   });
 
-  it("keeps a plugin eval's try's set by the try's rule, and only once with the outdated close", () => {
+  it("keeps an eval run's try's set by the try's rule, and only once with the outdated close", () => {
     const tryRun = create(RunSchema, {
       metadata: { id: "exec-guard", labels: { "stigmer.ai/eval-run": "true" } },
       spec: {},
@@ -255,7 +255,7 @@ describe("the policy keeps in the write that captures", () => {
   });
 });
 
-describe("the files a plugin-eval try's graders read (eval_files)", () => {
+describe("the files a eval-run try's graders read (eval_files)", () => {
   const files = {
     files: [{ path: "app.txt", content: { case: "text" as const, value: "version = 1\n" } }],
   };

@@ -288,7 +288,7 @@ async function listByAgent(
     .addStep(newListEvalRunsBySubjectStep<typeof input>("agent", deps.store, deps.authorizer, deps.logger))
     .build()
     .execute(reqCtx);
-  return chainResult<EvalRunList>(reqCtx.get(EVAL_RUN_RESULT_KEY), "agent eval runs");
+  return chainResult<EvalRunList>(reqCtx.get(EVAL_RUN_RESULT_KEY), "eval runs of agent");
 }
 
 /** ListByPlugin: Authorize asks can_view on the plugin; each eval run is then filtered by its own. */
@@ -305,5 +305,5 @@ async function listByPlugin(
     .addStep(newListEvalRunsBySubjectStep<typeof input>("plugin", deps.store, deps.authorizer, deps.logger))
     .build()
     .execute(reqCtx);
-  return chainResult<EvalRunList>(reqCtx.get(EVAL_RUN_RESULT_KEY), "plugin eval runs");
+  return chainResult<EvalRunList>(reqCtx.get(EVAL_RUN_RESULT_KEY), "eval runs of plugin");
 }

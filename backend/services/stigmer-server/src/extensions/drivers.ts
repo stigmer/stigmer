@@ -204,8 +204,8 @@ export interface ExtensionDrivers {
    */
   readonly gradingCaller?: GradingCallerMint;
   /**
-   * The plugin-eval caller mint (single-instance point): the identity a
-   * plugin eval's tries and AI-graded checks act as when the eval's
+   * The eval-run caller mint (single-instance point): the identity a
+   * eval run's tries and AI-graded checks act as when the eval's
    * workflow creates them. When absent, they enter as the `internal`
    * class, or as the eval's creator under the built-in authorization
    * posture (bound at the compose.ts consumption site).

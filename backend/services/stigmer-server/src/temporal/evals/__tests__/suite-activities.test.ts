@@ -233,7 +233,7 @@ describe("load-suite against an eval that ends while it reads", () => {
           EvalRunSchema,
           (live) => {
             live.status!.phase = EvalRunPhase.failed;
-            live.status!.error = "the eval's workflow could not be started";
+            live.status!.error = "the eval run's workflow could not be started";
           },
         );
         if (options.broken) {
@@ -255,7 +255,7 @@ describe("load-suite against an eval that ends while it reads", () => {
     ).toEqual({ kind: "stop" });
     const status = (await readEval(temp.store)).status;
     expect(status?.phase).toBe(EvalRunPhase.failed);
-    expect(status?.error).toBe("the eval's workflow could not be started");
+    expect(status?.error).toBe("the eval run's workflow could not be started");
     expect(status?.plugins[0]?.cases).toEqual([]);
   });
 
@@ -270,7 +270,7 @@ describe("load-suite against an eval that ends while it reads", () => {
       })[LOAD_SUITE_ACTIVITY_NAME](EVAL_ID),
     ).toEqual({ kind: "stop" });
     expect((await readEval(temp.store)).status?.error).toBe(
-      "the eval's workflow could not be started",
+      "the eval run's workflow could not be started",
     );
   });
 });

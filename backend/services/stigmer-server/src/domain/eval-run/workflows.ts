@@ -6,10 +6,6 @@
  * cancellation, which the workflow turns into a partial "cancelled" eval
  * with the results of the tries that finished.
  *
- * An agent eval's workflow is started and stopped the same way, under its
- * own type and id (temporal/evals/names.ts RUN_AGENT_EVAL_WORKFLOW_TYPE),
- * through the same port.
- *
  * Bounded as the grading observer's start is (domain/score/grading-observer.ts):
  * every call carries the connection's deadline, so an unreachable engine
  * costs a create or a cancel at most that.

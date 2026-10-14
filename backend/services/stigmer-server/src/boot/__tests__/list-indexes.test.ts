@@ -38,16 +38,18 @@ const PINNED: Readonly<
   // keys did not, so the rename kept revision 1; revision 2 added the judge
   // label's key, revision 3 the plugin eval label's, revision 4 the working
   // session's, revision 5 the schedule label's, revision 6 split the waiting
-  // session out of the working one, revision 7 the recorded agent's.
+  // session out of the working one, revision 7 the recorded agent's,
+  // revision 8 renamed the plugin eval label's key to the eval run label's.
   run: {
-    revision: 7,
+    revision: 8,
     fingerprint:
-      "run{agent=field:status.agent_id,grades=label:stigmer.ai/grades-run,eval_run=label:stigmer.ai/eval-run,schedule=label:stigmer.ai/schedule-id,session=field:spec.session_id,waiting_session=fieldWhen:spec.session_id?status.phase=6,working_session=fieldWhen:spec.session_id?status.phase=1|2}",
+      "run{agent=field:status.agent_id,eval_run=label:stigmer.ai/eval-run,grades=label:stigmer.ai/grades-run,schedule=label:stigmer.ai/schedule-id,session=field:spec.session_id,waiting_session=fieldWhen:spec.session_id?status.phase=6,working_session=fieldWhen:spec.session_id?status.phase=1|2}",
   },
   // Revision 2 added the agent's key and the plugin eval label's, which an
-  // agent's quality report and flagged list read.
+  // agent's quality report and flagged list read; revision 3 renamed it to
+  // the eval run label's.
   score: {
-    revision: 2,
+    revision: 3,
     fingerprint:
       "score{agent=field:status.agent_id,eval_run=label:stigmer.ai/eval-run,run=field:spec.run_id,session=field:spec.session_id}",
   },
@@ -57,15 +59,12 @@ const PINNED: Readonly<
   },
   eval_run: {
     revision: 1,
-    fingerprint: "eval_run{plugin=field:spec.plugin_id}",
+    fingerprint: "eval_run{agent=field:spec.agent_id,plugin=field:spec.plugin_id}",
   },
-  agent_eval: {
-    revision: 1,
-    fingerprint: "agent_eval{agent=field:spec.agent_id}",
-  },
-  // Revision 3 added the plugin eval label's key.
+  // Revision 3 added the plugin eval label's key; revision 4 renamed it to
+  // the eval run label's.
   session: {
-    revision: 3,
+    revision: 4,
     fingerprint:
       "session{agent=field:status.agent_id,channel=label:stigmer.ai/channel-id,eval_run=label:stigmer.ai/eval-run}",
   },

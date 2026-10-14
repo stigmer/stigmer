@@ -1,5 +1,5 @@
 /**
- * Pins how the plugin eval's shared reads, its tries' removal, the
+ * Pins how the eval run's shared reads, its tries' removal, the
  * plugin-delete cascade and the organization purge answer when something
  * under them fails, over a real store opened with the server's list
  * indexes:
@@ -157,7 +157,7 @@ async function failure(run: () => unknown): Promise<ConnectError> {
 }
 
 describe("the shared reads", () => {
-  it("skip and log a plugin eval row that does not decode, and keep the plugin's others", async () => {
+  it("skip and log an eval run row that does not decode, and keep the plugin's others", async () => {
     await saveEval("evr_a", EvalRunPhase.completed);
     await saveEval("evr_other", EvalRunPhase.completed, "plg_2");
     const { logger, lines } = recordingLogger();
@@ -168,9 +168,9 @@ describe("the shared reads", () => {
     expect(lines).toEqual([
       expect.objectContaining({
         level: "warn",
-        message: "skipped a plugin eval row that does not decode",
-        evalId: "evr_bad",
-        pluginId: "plg_1",
+        message: "skipped an eval run row that does not decode",
+        evalRunId: "evr_bad",
+        subject: "plugin plg_1",
       }),
     ]);
   });
@@ -205,7 +205,7 @@ describe("removing an eval's tries", () => {
       ),
     );
     expect(fault.code).toBe(Code.Internal);
-    expect(fault.rawMessage).toBe("failed to list the plugin eval's tries");
+    expect(fault.rawMessage).toBe("failed to list the eval run's tries");
   });
 
   it("skips a conversation already gone and stops on any other failure with it", async () => {
@@ -292,7 +292,7 @@ describe("the plugin-delete cascade", () => {
     );
     expect(fault.code).toBe(Code.Internal);
     expect(fault.rawMessage).toBe(
-      "failed to list the plugin's evals for cascade delete",
+      "failed to list the plugin's eval runs for cascade delete",
     );
   });
 
@@ -303,7 +303,7 @@ describe("the plugin-delete cascade", () => {
     );
     expect(fault.code).toBe(Code.Internal);
     expect(fault.rawMessage).toBe(
-      "failed to cascade-delete plugin eval evr_a of plugin plg_1",
+      "failed to cascade-delete eval run evr_a of plugin plg_1",
     );
   });
 });
@@ -340,8 +340,8 @@ describe("the organization purge", () => {
     expect(lines).toEqual([
       expect.objectContaining({
         level: "warn",
-        message: "a purged plugin eval's workflow could not be cancelled",
-        evalId: "evr_running",
+        message: "a purged eval run's workflow could not be cancelled",
+        evalRunId: "evr_running",
         error: "engine unreachable",
       }),
     ]);

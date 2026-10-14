@@ -54,15 +54,15 @@ Rows read `| \`package.Service.method\` | class |`.
 | `ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.listTimeline` | paged |
 | `ai.stigmer.agentic.agentchannel.v1.ChannelMessageQueryController.listMessagingChannels` | exempt: computed, the channels the calling agent may send business-initiated messages on, derived from its credential |
 | `ai.stigmer.agentic.agentchannel.v1.ChannelMessageQueryController.listTemplates` | exempt: an outside system's answer, the channel provider's message templates, read live from its registry |
-| `ai.stigmer.agentic.agenteval.v1.AgentEvalQueryController.listByAgent` | paged |
 | `ai.stigmer.agentic.agentshare.v1.AgentShareQueryController.list` | paged |
 | `ai.stigmer.agentic.agentshare.v1.AgentShareQueryController.listByAgent` | paged |
 | `ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController.list` | paged |
+| `ai.stigmer.agentic.evalrun.v1.EvalRunQueryController.listByAgent` | paged |
+| `ai.stigmer.agentic.evalrun.v1.EvalRunQueryController.listByPlugin` | paged |
 | `ai.stigmer.agentic.memory.v1.MemoryQueryController.list` | paged |
 | `ai.stigmer.agentic.plugin.v1.PluginCommandController.listTools` | exempt: computed, the tools one server of a plugin offers, asked of the server through a runner |
 | `ai.stigmer.agentic.plugin.v1.PluginQueryController.list` | paged |
 | `ai.stigmer.agentic.plugin.v1.PluginQueryController.listVersions` | paged |
-| `ai.stigmer.agentic.plugineval.v1.EvalRunQueryController.listByPlugin` | paged |
 | `ai.stigmer.agentic.run.v1.RunQueryController.list` | paged |
 | `ai.stigmer.agentic.run.v1.RunQueryController.listBySession` | paged |
 | `ai.stigmer.agentic.schedule.v1.ScheduleQueryController.list` | paged |

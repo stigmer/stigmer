@@ -753,11 +753,11 @@ export async function composeServer(
     (authorizationPosture === "built-in"
       ? newBuiltInGradingCaller({ store, accounts: identityAccounts, authorizer })
       : undefined);
-  // Who a plugin eval's tries and AI-graded checks act as: a unit's eval
+  // Who an eval run's tries and AI-graded checks act as: a unit's eval
   // caller (the hosted edition's per-organization eval account), else the
   // eval's creator under the built-in posture, while they may still edit
   // the eval's plugin, else the server itself on the trusted-local laptop
-  // (extensions/plugin-eval-caller.ts). The eval's worker
+  // (extensions/eval-run-caller.ts). The eval's worker
   // (temporal/evals/) mints through it per try and per vote.
   const evalRunCaller: EvalRunCallerMint | undefined =
     extensions.drivers.evalRunCaller ??
@@ -1206,7 +1206,7 @@ export async function composeServer(
         gradingCaller,
         logger,
       }),
-      // Plugin evals: the suite and case workflows on their own queue
+      // Eval runs: the suite and case workflows on their own queue
       // (temporal/evals/). The archive reader, the artifact read and the
       // in-process lane are resolved when an activity runs, after the
       // stores below and the routes exist.

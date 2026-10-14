@@ -22,8 +22,8 @@
  * a throw is logged by the notifier and the run is unaffected.
  *
  * A judge run (domain/score/judge/judge-run.ts) is never graded: grading
- * the grader would spend a judge on every judge. Nor is a plugin eval's
- * run (domain/eval-run/plugin-eval-run.ts): the eval grades its own
+ * the grader would spend a judge on every judge. Nor is an eval run's
+ * run (domain/eval-run/run-label.ts): the eval grades its own
  * tries, by the plugin's own checks. Nor is a reconcile turn
  * (`spec.reconcile_file_review`): it runs no model and has no message, so
  * there is no answer to judge.

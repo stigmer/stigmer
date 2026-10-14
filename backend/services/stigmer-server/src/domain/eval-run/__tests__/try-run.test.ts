@@ -95,7 +95,7 @@ describe("a try's tools", () => {
     expect(tools.tools).toEqual(["Read", "Grep", "Write"]);
     expect(tools.disallowedTools).toEqual(["Skill"]);
     expect(tools.notes).toEqual([
-      "Bash not granted: the eval's allow_tools does not grant it",
+      "Bash not granted: the eval run's allow_tools does not grant it",
     ]);
   });
 

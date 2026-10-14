@@ -1,5 +1,5 @@
 /**
- * Plugin evals' Temporal configuration: the task queue the suite and case
+ * Eval runs' Temporal configuration: the task queue the suite and case
  * workflows and their activities run on. Their own queue, as grading's
  * (temporal/grading/config.ts), so an eval of a thousand tries never
  * delays the grading of live runs or the schedule clock. The environment

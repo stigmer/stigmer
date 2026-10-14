@@ -14,7 +14,7 @@ export const RUN_HEALTH_METRIC = "run-health";
 /** An AI judge's verdict on a completed run (judge/). */
 export const JUDGE_METRIC = "judge";
 
-/** A plugin eval's checks on one try of one of its cases (domain/eval-run/). */
+/** An eval run's checks on one try of one of its cases (domain/eval-run/). */
 export const EVAL_METRIC = "eval";
 
 /** The refusal of a person's source from anyone but a first-party person. */
@@ -29,15 +29,15 @@ export const CHECK_SOURCE_REFUSED_MESSAGE =
 export const JUDGE_SOURCE_REFUSED_MESSAGE =
   "judge scores are written by the platform's AI grading, never through the API";
 
-/** The refusal of a plugin eval's source from anyone but the server itself. */
+/** The refusal of an eval run's source from anyone but the server itself. */
 export const EVAL_SOURCE_REFUSED_MESSAGE =
-  "eval scores are written by the platform's plugin evals, never through the API";
+  "eval scores are written by the platform's eval runs, never through the API";
 
 /** The create lane's deny copy when the caller cannot see the run. */
 export const SCORE_CREATE_DENIED_MESSAGE = "unauthorized to score run";
 
 /** The refusal of a metric the source does not give. */
-export const SCORE_METRIC_SOURCE_MISMATCH_MESSAGE = `a person gives the metric "${FEEDBACK_METRIC}" (score_source_human), the platform's checks give "${RUN_HEALTH_METRIC}" (score_source_check) and its AI judge gives "${JUDGE_METRIC}" (score_source_judge) and a plugin eval gives "${EVAL_METRIC}" (score_source_eval)`;
+export const SCORE_METRIC_SOURCE_MISMATCH_MESSAGE = `a person gives the metric "${FEEDBACK_METRIC}" (score_source_human), the platform's checks give "${RUN_HEALTH_METRIC}" (score_source_check) and its AI judge gives "${JUDGE_METRIC}" (score_source_judge) and an eval run gives "${EVAL_METRIC}" (score_source_eval)`;
 
 /** The refusal of a comment on a score no person gave. */
 export const SCORE_COMMENT_HUMAN_ONLY_MESSAGE =

@@ -50,12 +50,6 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | ChannelMessageCommandController.sendMessage | org |
 | ChannelMessageQueryController.listTemplates | org |
 
-## `ai.stigmer.agentic.agenteval.v1`
-
-| Method | Fills |
-|---|---|
-| AgentEvalCommandController.create | metadata.org |
-
 ## `ai.stigmer.agentic.run.v1`
 
 | Method | Fills |
@@ -85,6 +79,12 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | ChannelAppQueryController.getByReference | org |
 | ChannelAppQueryController.list | org |
 
+## `ai.stigmer.agentic.evalrun.v1`
+
+| Method | Fills |
+|---|---|
+| EvalRunCommandController.create | metadata.org |
+
 ## `ai.stigmer.agentic.evaluator.v1`
 
 | Method | Fills |
@@ -108,12 +108,6 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | PluginQueryController.getByReference | org |
 | PluginQueryController.list | org |
 | PluginQueryController.listVersions | org |
-
-## `ai.stigmer.agentic.plugineval.v1`
-
-| Method | Fills |
-|---|---|
-| EvalRunCommandController.create | metadata.org |
 
 ## `ai.stigmer.agentic.schedule.v1`
 

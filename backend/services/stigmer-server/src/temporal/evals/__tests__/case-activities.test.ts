@@ -353,7 +353,8 @@ function withoutReference(real: EvalContextLoader): EvalContextLoader {
     const kept = Object.entries(JUDGED_SUITE).filter(
       ([path]) => path !== REFERENCE_PATH,
     );
-    return { ...context, files: inMemoryPluginFiles(new Map(kept)) };
+    const files = inMemoryPluginFiles(new Map(kept));
+    return { ...context, sources: context.sources.map((source) => ({ ...source, files })) };
   };
 }
 

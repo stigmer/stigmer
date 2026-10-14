@@ -26,7 +26,7 @@
  * organization, and a classifier that throws withholds it. The same
  * classifier refuses a visitor's appended system prompt
  * (RefuseVisitorAppendedPrompt), the server's own requests excepted; and a
- * plugin-eval case's context, refused on any request the server did not
+ * eval case's context, refused on any request the server did not
  * compose (GuardEvalRunCase), and on update kept as the create stored
  * it, whatever the request carries (KeepEvalRunCase); a reconcile turn's
  * flag, held to the same two rules (GuardReconcileFileReview,
@@ -1262,14 +1262,14 @@ describe("the compose steps where callers are persons", () => {
     });
   }
 
-  // A plugin eval's try measures the plugin: nothing the organization or
+  // An eval run's try measures the plugin: nothing the organization or
   // the eval's creator wrote or remembers reaches it, in either posture
-  // (domain/eval-run/plugin-eval-run.ts).
+  // (domain/eval-run/run-label.ts).
   for (const [posture, accounts] of [
     ["where callers are persons", "persons"],
     ["under the single-operator posture", "single"],
   ] as const) {
-    it(`composes no standing context and recalls nothing for a plugin eval's try ${posture}`, async () => {
+    it(`composes no standing context and recalls nothing for an eval run's try ${posture}`, async () => {
       await seedOrg("test-org", "We deploy to us-east-1.");
       await seedRecallRows();
       const directoryOrNone =

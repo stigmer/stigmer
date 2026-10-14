@@ -1,17 +1,18 @@
 /**
- * An eval's `allow_tools`, checked against the plugin it runs. A turn names
+ * An eval run's `allow_tools`, checked against the plugins its tries load. A turn names
  * a plugin's MCP tools as Claude Code does,
  * `mcp__plugin_<plugin>_<server>__<tool>` (`toolServerSegment`), so a
  * suite's CI line written for `claude plugin eval --allow-tools` works
  * unchanged here and is stored as written; it names a server an agent
  * writes itself by that server's own name, `mcp__<server>__<tool>`.
  *
- * An entry naming a plugin server must name a server of a plugin the try
- * attaches (the plugin eval's own; each plugin an agent eval's agent
- * attaches), and in an agent eval an entry naming any other server must
- * name one the agent writes itself: an entry naming another one could
- * never grant anything and is refused rather than silently kept. A plugin
- * eval runs no agent's servers, so it leaves such entries as they are. The
+ * An entry naming a plugin server must name a server of a plugin a try
+ * loads (the plugin of an eval run about a plugin; each plugin an agent
+ * attaches, and a compared one), and on an agent an entry naming any other
+ * server must name one the agent writes itself: an entry naming another
+ * one could never grant anything and is refused rather than silently kept.
+ * The built-in assistant runs no agent's servers, so an eval run about a
+ * plugin leaves such entries as they are. The
  * segment is compared whole, never split back into a plugin and a server,
  * since either name may hold `_`.
  *
@@ -36,7 +37,7 @@ function serverPartOf(entry: string): string {
 
 /**
  * Checks that every plugin MCP entry names a server of one of `plugins`,
- * and, when `agentServers` is given (an agent eval), that every other MCP
+ * and, when `agentServers` is given (an eval run about an agent), that every other MCP
  * entry names one of them.
  */
 export function checkAllowTools(

@@ -34,10 +34,10 @@
  *   4. for a run with no person only, the vaults of the surface it came
  *      through, found from server-stamped facts: the minting platform
  *      client (the run's audit), its schedule (the run's
- *      stigmer.ai/schedule-id), its plugin eval (the run's
+ *      stigmer.ai/schedule-id), its eval run (the run's
  *      stigmer.ai/eval-run), its share or channel (the session's
  *      stigmer.ai/share-id or stigmer.ai/channel-id). A surface of another
- *      organization than the run's contributes nothing. A plugin eval's
+ *      organization than the run's contributes nothing. An eval run's
  *      vaults also serve a try that acts as a person (open source acts as
  *      the eval's creator), after its conversation's: a try's conversation
  *      names none, and the eval's vaults are what its hooks and servers
@@ -1289,7 +1289,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
         }
       }
       sources.push(...(await namedSources(named, person, RunValueOrigin.VAULT)));
-      // A plugin eval's try acting as its creator: the eval's vaults serve it
+      // An eval run's try acting as its creator: the eval's vaults serve it
       // after the conversation's, checked against who attached each.
       const evalSurface = await evalRunSurfaceOf(execution);
       if (evalSurface !== undefined) {
@@ -1349,7 +1349,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
         };
         await add(await sessionNamed(stored, person, executionOrg), RunValueOrigin.VAULT);
         if (person !== undefined) {
-          // A plugin eval's try acting as its creator: the eval's vaults are
+          // An eval run's try acting as its creator: the eval's vaults are
           // the run's, as the plan found them.
           const evalSurface = await evalRunSurfaceOf(execution);
           if (evalSurface !== undefined) {

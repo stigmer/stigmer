@@ -6,7 +6,7 @@
  * permissive default allows (OSS byte-identity), no kind takes a reserved
  * key from a client (the retired personal-environment marker refuses on a
  * vault like any other; a client cannot mark a session or run as a
- * plugin eval's try, which the eval's server-composed requests do), and internal
+ * eval run's try, which the eval's server-composed requests do), and internal
  * callers skip entirely. The operator question itself
  * (mayWriteReservedLabels) answers allow as yes, deny and not-found as no,
  * and fails closed as a sanitized Internal on an authorizer that throws,
@@ -246,7 +246,7 @@ describe("GuardReservedLabels", () => {
     });
   });
 
-  it("a client cannot mark a conversation or a run as a plugin eval's try; the eval's own requests do", async () => {
+  it("a client cannot mark a conversation or a run as an eval run's try; the eval's own requests do", async () => {
     const labels = { [EVAL_RUN_LABEL]: "evr_someone_elses" };
     const session = (caller: CallerIdentity) =>
       new RequestContext(

@@ -245,7 +245,7 @@ describe("the suite workflow", () => {
     };
     await runEvalRun({ evalId: "evr_1" });
     expect(most).toBe(2);
-    expect(ids[0]).toBe("plugin-eval/evr_1/0/0/with/0");
+    expect(ids[0]).toBe("eval-run/evr_1/0/0/with/0");
     expect(recorded).toHaveLength(5);
     expect(finished).toEqual([{ phase: "completed" }]);
   });

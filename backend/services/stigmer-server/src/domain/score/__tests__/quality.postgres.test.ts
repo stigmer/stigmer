@@ -1,7 +1,7 @@
 /**
  * Pins an agent's quality reads (../quality.ts) on both store drivers:
  * SQLite always, Postgres under TEST_DATABASE_URL. The lanes read the
- * score list index's agent and plugin eval keys with a creation-time
+ * score list index's agent and eval run keys with a creation-time
  * window, so each driver's indexed read is what decides the rows.
  *
  * The load-bearing pins:

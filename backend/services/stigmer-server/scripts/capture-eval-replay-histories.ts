@@ -5,21 +5,20 @@
  * change to the suite or case workflow must replay the committed
  * histories green, or be gated with patched().
  *
- * Two scenarios, each two tries of one case with one AI-graded check, so
- * the history holds child workflows under their ids, votes and records:
+ * Two scenarios, each one case with one AI-graded check tried in both
+ * arms, so the history holds child workflows under their ids in both arms,
+ * votes and records:
  *
- *   - plugin-eval-completed: a plugin eval whose load answers a plan with
- *     no `caseWorkflowPrefix`, the plan's shape before agent evals; its
- *     committed history was captured on the code before that field
- *     existed (`--workflows` pointed at that checkout's workflow barrel);
- *   - agent-eval-completed: an agent eval under its own type, whose plan
- *     names the `agent-eval` prefix.
+ *   - eval-run-plugin-completed: an eval run about a plugin, with and
+ *     without it;
+ *   - eval-run-agent-compare-completed: an eval run about an agent
+ *     comparing a plugin it attaches, two tries per arm.
  *
  * Mock data only, safe to commit. Writes proto-JSON to
  * src/temporal/evals/__tests__/replay-histories/. Regenerate a history only
  * when no producing release is still supported.
  *
- * Usage: npx tsx scripts/capture-eval-replay-histories.ts [--only plugin|agent] [--workflows <path to workflows/index.ts>]
+ * Usage: npx tsx scripts/capture-eval-replay-histories.ts [--only plugin|agent-compare] [--workflows <path to workflows/index.ts>]
  * (requires the `temporal` CLI on PATH, as the workflow tests do)
  */
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -40,7 +39,7 @@ const WORKFLOWS_PATH =
   argument("--workflows") ?? fileURLToPath(new URL("../src/temporal/evals/workflows/index.ts", import.meta.url));
 const ONLY = argument("--only");
 
-/** The plan the load answers: two tries of case 0, optionally naming the prefix. */
+/** The plan the load answers: the scenario's tries of case 0. */
 let plan: Record<string, unknown> = {};
 
 const activities = {
@@ -83,13 +82,12 @@ const activities = {
   }),
 };
 
-const CELLS = [0, 1].map((tryIndex) => ({
-  caseIndex: 0,
-  targetIndex: 0,
-  arm: "with",
-  tryIndex,
-  timeoutSeconds: 600,
-}));
+/** `runs` tries of case 0 in each arm, the with arm's first, as the matrix orders them. */
+function cells(runs: number) {
+  return (["with", "without"] as const).flatMap((arm) =>
+    Array.from({ length: runs }, (_, tryIndex) => ({ caseIndex: 0, targetIndex: 0, arm, tryIndex, timeoutSeconds: 600 })),
+  );
+}
 
 async function main(): Promise<void> {
   mkdirSync(OUT_DIR, { recursive: true });
@@ -116,12 +114,12 @@ async function main(): Promise<void> {
   }
 
   if (ONLY === undefined || ONLY === "plugin") {
-    plan = { kind: "run", org: "acme", cells: CELLS, maxCostUsd: 10, concurrency: 1 };
-    await capture("plugin-eval-completed", "stigmer/evals/run-plugin-eval", "plugin-eval/evr_replay", "evr_replay");
+    plan = { kind: "run", org: "acme", cells: cells(1), maxCostUsd: 10, concurrency: 1 };
+    await capture("eval-run-plugin-completed", "stigmer/evals/eval-run", "eval-run/evr_replay", "evr_replay");
   }
-  if (ONLY === undefined || ONLY === "agent") {
-    plan = { kind: "run", org: "acme", cells: CELLS, maxCostUsd: 10, concurrency: 1, caseWorkflowPrefix: "agent-eval" };
-    await capture("agent-eval-completed", "stigmer/evals/run-agent-eval", "agent-eval/aev_replay", "aev_replay");
+  if (ONLY === undefined || ONLY === "agent-compare") {
+    plan = { kind: "run", org: "acme", cells: cells(2), maxCostUsd: 10, concurrency: 2 };
+    await capture("eval-run-agent-compare-completed", "stigmer/evals/eval-run", "eval-run/evr_compare", "evr_compare");
   }
 
   worker.shutdown();

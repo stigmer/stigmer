@@ -3,7 +3,7 @@
  * events: the fold `@stigmer/session-log` gives every client, the turn's
  * primary-thread tool uses in order with their states, and a tool use's
  * call id. The three readers (the checks' actions, checks/actions.ts; the
- * judge's subject, judge/subject.ts; a plugin eval's trace, eval/trace.ts)
+ * judge's subject, judge/subject.ts; an eval run's trace, eval/trace.ts)
  * build their own views from it.
  *
  * A tool use's state is the fold's: completed, failed, denied (a person

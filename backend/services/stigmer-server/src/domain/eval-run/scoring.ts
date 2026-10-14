@@ -1,5 +1,5 @@
 /**
- * A plugin eval's arithmetic, as Claude Code's plugin-eval format defines
+ * An eval run's arithmetic, as Claude Code's plugin-eval format defines
  * it, plus pass^k, which is Stigmer's. Pure: the try's grader verdicts and
  * the eval's status in, numbers out, so the case workflow's record and the
  * suite workflow's fold compute the same thing whenever they run.
@@ -33,8 +33,8 @@
  *     failures, is left out of both counts whatever its without-plugin
  *     tries did, as a try not graded is left out of every mean),
  *     `mean_delta` the mean of the cases' deltas where one exists, and
- *     `cases_not_run` the cases listed but not run. An agent eval adds
- *     these up per plugin and over every plugin's cases (`recomputeCases`).
+ *     `cases_not_run` the cases listed but not run. These add up per
+ *     plugin and over every plugin's cases (`recomputeCases`).
  *
  * Proven by __tests__/scoring.test.ts (a hand-computed suite: weights,
  * indicators, `arm: both`, the delta, pass^k).

@@ -1,5 +1,5 @@
 /**
- * Pins the agent eval steps' arms the composed lanes cannot reach (no
+ * Pins the eval run steps' arms the composed lanes cannot reach (no
  * engine runs behind them), over a temp store:
  *
  *   - the create's question is can_edit on the agent, and a
@@ -272,7 +272,7 @@ describe("the create's question and the agent's read", () => {
     await seedAgent();
     const ctx = createCtx(evalRow("", EvalRunPhase.unspecified));
     await newLoadEvalRunSubjectStep(temp.store).execute(ctx);
-    expect((ctx.get(EVAL_RUN_SUBJECT_KEY) as Agent).metadata?.id).toBe(AGENT_ID);
+    expect((ctx.get(EVAL_RUN_SUBJECT_KEY) as LoadedSubject).row.metadata?.id).toBe(AGENT_ID);
 
     const fault = await failure(() =>
       newLoadEvalRunSubjectStep(failing(temp.store, "getResource")).execute(
@@ -524,11 +524,11 @@ describe("EnsureEvaluatedAgentStillExists", () => {
     expect(refused.code).toBe(Code.NotFound);
     expect(refused.rawMessage).toContain(AGENT_ID);
     await expect(stored("evr_1")).rejects.toBeInstanceOf(ResourceNotFoundError);
-    expect(access.cleaned).toEqual([`agent_eval evr_1 ${ORG}`]);
+    expect(access.cleaned).toEqual([`eval_run evr_1 ${ORG}`]);
     expect(warned).toEqual([
       {
-        message: "an agent eval's agent was deleted while it was created; removing the eval",
-        fields: { evalId: "evr_1", agentId: AGENT_ID },
+        message: "an eval run's subject was deleted while it was created; removing the eval run",
+        fields: { evalRunId: "evr_1", subject: `agent ${AGENT_ID}` },
       },
     ]);
   });
@@ -550,7 +550,7 @@ describe("EnsureEvaluatedAgentStillExists", () => {
       ),
     );
     expect(unremoved.code).toBe(Code.Internal);
-    expect(unremoved.rawMessage).toBe("failed to remove the agent eval of a deleted agent");
+    expect(unremoved.rawMessage).toBe("failed to remove the eval run of a deleted subject");
     expect(access.cleaned).toEqual([]);
     expect((await stored("evr_1")).metadata?.id).toBe("evr_1");
   });
@@ -582,8 +582,8 @@ describe("StartAgentEvalWorkflow", () => {
     expect((await stored("evr_1")).status?.phase).toBe(EvalRunPhase.failed);
     expect(warned).toEqual([
       {
-        message: "an agent eval's workflow could not start; marking it failed",
-        fields: { evalId: "evr_1", cause: "dial tcp 10.0.0.7:7233: connection refused" },
+        message: "an eval run's workflow could not start; marking it failed",
+        fields: { evalRunId: "evr_1", cause: "dial tcp 10.0.0.7:7233: connection refused" },
       },
     ]);
   });
@@ -618,11 +618,11 @@ describe("StartAgentEvalWorkflow", () => {
       ),
     );
     expect(fault.code).toBe(Code.Internal);
-    expect(fault.rawMessage).toBe("failed to save the agent eval");
+    expect(fault.rawMessage).toBe("failed to save the eval run");
   });
 });
 
-describe("an agent eval whose workflow ended without finishing", () => {
+describe("an eval run whose workflow ended without finishing", () => {
   function outlived(id: string, phase: EvalRunPhase): EvalRun {
     const row = evalRow(id, phase);
     row.status!.startedAt = timestampFromMs(Date.now() - 31 * DAY_MS);
@@ -722,7 +722,7 @@ describe("CancelAgentEval", () => {
       ),
     );
     expect(fault.code).toBe(Code.Internal);
-    expect(fault.rawMessage).toBe("failed to cancel the agent eval");
+    expect(fault.rawMessage).toBe("failed to cancel the eval run");
     expect((await stored("evr_1")).status?.phase).toBe(EvalRunPhase.running);
   });
 });
@@ -755,7 +755,7 @@ describe("ListAgentEvalsByAgent", () => {
     await newListEvalRunsBySubjectStep<typeof ListEvalRunsByAgentRequestSchema>("agent", temp.store, onlyA, silentLogger).execute(ctx);
     expect(listed(ctx).entries.map((row) => row.metadata?.id)).toEqual(["evr_a"]);
     expect(listed(ctx).entries).toHaveLength(1);
-    expect(asked.sort()).toEqual(["can_view agent_eval aev_a", "can_view agent_eval aev_b"]);
+    expect(asked.sort()).toEqual(["can_view eval_run evr_a", "can_view eval_run evr_b"]);
 
     asked.length = 0;
     const serverCtx = listCtx(testCallerIdentity({ origin: "in-process" }));
@@ -802,14 +802,14 @@ describe("ListAgentEvalsByAgent", () => {
     };
     const unanswered = await failure(() => newListEvalRunsBySubjectStep<typeof ListEvalRunsByAgentRequestSchema>("agent", temp.store, down, silentLogger).execute(listCtx()));
     expect(unanswered.code).toBe(Code.Internal);
-    expect(unanswered.rawMessage).toBe("failed to authorize the agent's evals");
+    expect(unanswered.rawMessage).toBe("failed to authorize the agent's eval runs");
 
     const allow: Authorizer = { authorize: () => Promise.resolve({ kind: "allow" }) };
     const fault = await failure(() =>
       newListEvalRunsBySubjectStep<typeof ListEvalRunsByAgentRequestSchema>("agent", failing(temp.store, "queryResources"), allow, silentLogger).execute(listCtx()),
     );
     expect(fault.code).toBe(Code.Internal);
-    expect(fault.rawMessage).toBe("failed to list the agent's evals");
+    expect(fault.rawMessage).toBe("failed to list the agent's eval runs");
   });
 
   it("answers each eval without its tries, keeping every summary, and leaves the stored row whole", async () => {
@@ -861,7 +861,7 @@ describe("a chain built wrong", () => {
       newResolveEvalRunDefaultsStep(temp.store, ALLOW_ALL).execute(createCtx(evalRow("", EvalRunPhase.unspecified))),
     );
     expect(noAgent.code).toBe(Code.Internal);
-    expect(noAgent.rawMessage).toBe("evaluated agent not found in context");
+    expect(noAgent.rawMessage).toBe("eval run subject not found in context");
 
     const noVersion = await failure(() =>
       newPlanEvalRunStep({ readArchive: () => Promise.reject(new Error("unread")) }, catalog).execute(
@@ -869,15 +869,15 @@ describe("a chain built wrong", () => {
       ),
     );
     expect(noVersion.code).toBe(Code.Internal);
-    expect(noVersion.rawMessage).toBe("evaluated agent version not found in context");
+    expect(noVersion.rawMessage).toBe("eval run load not found in context");
 
     const noTarget = await failure(() => newCancelEvalRunStep(temp.store, workflows()).execute(bareIdCtx()));
     expect(noTarget.code).toBe(Code.Internal);
-    expect(noTarget.rawMessage).toBe("agent eval not found in context");
+    expect(noTarget.rawMessage).toBe("eval run not found in context");
 
     const noExisting = await failure(() => newRefuseActiveEvalRunDeleteStep().execute(bareIdCtx()));
     expect(noExisting.code).toBe(Code.Internal);
-    expect(noExisting.rawMessage).toBe("existing agent eval not found in context");
+    expect(noExisting.rawMessage).toBe("existing eval run not found in context");
   });
 
   it("lets a finished eval's delete through", () => {

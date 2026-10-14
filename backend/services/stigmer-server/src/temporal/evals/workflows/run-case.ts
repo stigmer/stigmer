@@ -1,5 +1,5 @@
 /**
- * One try of a plugin eval: start it, wait for it within the case's time,
+ * One try of an eval run: start it, wait for it within the case's time,
  * grade it, and report to the suite workflow, which alone writes the
  * eval's status.
  *

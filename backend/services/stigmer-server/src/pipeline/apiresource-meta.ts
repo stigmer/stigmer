@@ -420,7 +420,7 @@ function kindsByEnumName(): Map<string, ApiResourceKind> {
  * runner-credential lane, whose token binds an execution by id and must
  * know whether that id names a run without a second claim or a guess, and
  * the evals, whose try label and workflows carry an eval's id alone
- * (domain/eval-run/plugin-eval-run.ts evalKindOf). A kind's retired prefixes (`retired_id_prefixes`) name it too:
+ * (domain/eval-run/run-label.ts evalRunOfRun). A kind's retired prefixes (`retired_id_prefixes`) name it too:
  * ids are identities and are never rewritten, so a store keeps the ids it
  * minted before a kind's prefix changed (a run's `aex_…`). Anything that
  * is not `<known prefix>_<rest>` — no underscore, an unknown prefix, the

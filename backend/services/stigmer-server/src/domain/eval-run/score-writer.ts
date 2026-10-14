@@ -1,8 +1,8 @@
 /**
- * The Score a plugin eval writes on each try's run: `source: eval`,
+ * The Score an eval run writes on each try's run: `source: eval`,
  * `metric: "eval"`, one criterion per grader, so the run's own page shows
  * why the try scored what it did. It is the try's only score: the grading
- * observer skips a plugin eval's runs (domain/score/grading-observer.ts),
+ * observer skips an eval run's runs (domain/score/grading-observer.ts),
  * so a try gets no run-health score.
  *
  *   - `evaluator_version` is the SHA-256 of the plugin archive's digest and

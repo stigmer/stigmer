@@ -220,7 +220,7 @@ function startEval() {
   });
 }
 
-describe("stigmer/evals/run-plugin-eval workflow (TestWorkflowEnvironment)", () => {
+describe("stigmer/evals/run-eval-run workflow (TestWorkflowEnvironment)", () => {
   beforeAll(async () => {
     try {
       const { TestWorkflowEnvironment: TWE } =

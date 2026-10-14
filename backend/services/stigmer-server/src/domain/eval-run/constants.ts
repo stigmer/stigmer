@@ -63,11 +63,11 @@ export function evalRunNoCasesMessage(dir: string): string {
   return `this plugin version has no eval cases: add a case directory under ${dir}/ holding a prompt.md or a case.yaml`;
 }
 
-/** The refusal of an agent eval run with nothing whose cases could run. */
+/** The refusal of an eval run about an agent with nothing whose cases could run. */
 export const EVAL_RUN_NO_CASE_SOURCES_MESSAGE =
   "this agent version attaches no plugin, and the eval run compares none: attach a plugin with eval cases, or compare one with --plugin";
 
-/** The refusal of an agent eval run none of whose case sources has cases. */
+/** The refusal of an eval run about an agent none of whose case sources has cases. */
 export const EVAL_RUN_NO_CASES_MESSAGE =
   "none of the plugins whose cases this eval run runs has eval cases at the version it runs";
 

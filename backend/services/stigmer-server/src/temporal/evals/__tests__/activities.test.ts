@@ -229,7 +229,7 @@ describe("load-suite", () => {
     const first = status.plugins[0]!.cases[0]!;
     expect(first.notes).toEqual([
       "max_turns 4 raised to the run's minimum of 10 tool rounds",
-      "Bash not granted: the eval's allow_tools does not grant it",
+      "Bash not granted: the eval run's allow_tools does not grant it",
     ]);
     expect(
       first.targets[0]?.withPlugin?.tries.map((t) => [t.index, t.state]),
@@ -420,12 +420,13 @@ describe("start-try", () => {
     expect(run.run.spec?.runConfig?.maxCostUsd, "capped at the budget the suite passed").toBe(4);
   });
 
-  it("runs the without-arm on the assistant with no plugin listed, the plugin's server still disallowed", async () => {
+  it("runs the without arm on the assistant with the plugin listed and left out of the run, its server still disallowed", async () => {
     await seeded();
     const { cases, record } = build();
     await cases[START_TRY_ACTIVITY_NAME]({ ...CELL, arm: "without" });
     expect(record.sessions[0]?.session.spec?.agentRef).toBeUndefined();
-    expect(record.sessions[0]?.session.spec?.plugins).toEqual([]);
+    expect(record.sessions[0]?.session.spec?.plugins.map((ref) => ref.id)).toEqual([PLUGIN_ID]);
+    expect(record.runs[0]?.run.spec?.excludedPluginIds).toEqual([PLUGIN_ID]);
     expect(record.runs[0]?.run.spec?.disallowedTools).toEqual([
       `mcp__${PLUGIN_SERVER_SEGMENT}`,
     ]);

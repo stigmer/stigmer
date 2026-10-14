@@ -1,5 +1,5 @@
 /**
- * The one glob matcher plugin evals use: a `file_exists` grader's `path`
+ * The one glob matcher eval runs use: a `file_exists` grader's `path`
  * against the files a try created, and an eval's `case_glob` against its
  * case names. A glob is compiled once to token lists and matched by a
  * dynamic program over (token, input position), so a match costs at most

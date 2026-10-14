@@ -130,7 +130,7 @@ describe("the grading observer", () => {
     expect(rec.recorded).toEqual([]);
   });
 
-  it("never grades a plugin eval's run: the eval grades its own tries", async () => {
+  it("never grades an eval run's run: the eval grades its own tries", async () => {
     const { client, startSpy } = engine(() => Promise.resolve({}));
     const rec = recorder();
     const evalTry = create(RunSchema, {

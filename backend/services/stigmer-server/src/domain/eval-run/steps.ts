@@ -40,7 +40,7 @@
  * Proven by __tests__/steps.test.ts (each step's arms) and
  * __tests__/eval-run.test.ts (the composed lanes).
  */
-import { Code, ConnectError } from "@connectrpc/connect";
+import { ConnectError } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import { timestampMs, timestampNow } from "@bufbuild/protobuf/wkt";
 
@@ -663,11 +663,15 @@ export function newEnsureEvalRunSubjectStillExistsStep(
     async execute(ctx: RequestContext<typeof EvalRunSchema>): Promise<void> {
       const subject = requiredSubject(ctx.newState.spec);
       try {
-        await readSubject(store, subject);
+        if (subject.kind === "agent") {
+          await store.getResource(ApiResourceKind.agent, subject.id, AgentSchema);
+        } else {
+          await store.getResource(ApiResourceKind.plugin, subject.id, PluginSchema);
+        }
         return;
       } catch (error) {
-        if (!(error instanceof ConnectError) || error.code !== Code.NotFound) {
-          throw error;
+        if (!(error instanceof ResourceNotFoundError)) {
+          throw internalError(error, `failed to read the ${subject.kind} to evaluate again`);
         }
       }
       const evalRunId = ctx.newState.metadata?.id ?? "";

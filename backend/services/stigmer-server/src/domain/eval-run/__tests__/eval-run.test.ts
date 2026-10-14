@@ -147,7 +147,7 @@ function evalOf(plugin: Plugin, spec: Record<string, unknown> = {}, org = ORG) {
     apiVersion: API_VERSION,
     kind: "EvalRun",
     metadata: { org },
-    spec: { pluginId: plugin.metadata!.id, maxCostUsd: 5, ...spec },
+    spec: { subject: { case: "pluginId" as const, value: plugin.metadata!.id }, maxCostUsd: 5, ...spec },
   };
 }
 
@@ -193,7 +193,7 @@ async function sessionExists(id: string): Promise<boolean> {
   }
 }
 
-describe("plugin eval create", () => {
+describe("eval run create", () => {
   it("mints its own id, stamps the current version, plans its tries, and fails with the reason when no engine can start it", async () => {
     const plugin = await install();
     const created = await evals.create({
@@ -208,7 +208,7 @@ describe("plugin eval create", () => {
     expect(created.status?.triesTotal).toBe(2 * 3 + 2 * 2);
     // Both arms run the built-in assistant, the with-arm listing the plugin: the comparison is not provisional.
     expect(created.status?.phase).toBe(EvalRunPhase.failed);
-    expect(created.status?.error).toBe("the eval's workflow could not be started");
+    expect(created.status?.error).toBe("the eval run's workflow could not be started");
 
     const read = await evalQuery.get({ value: created.metadata!.id });
     expect(read.status?.phase).toBe(EvalRunPhase.failed);
@@ -317,7 +317,7 @@ describe("plugin eval create", () => {
   });
 });
 
-describe("plugin eval reads, cancel and delete", () => {
+describe("eval run reads, cancel and delete", () => {
   it("lists a plugin's evals newest first, and only that plugin's", async () => {
     const plugin = await install();
     const other = await install();

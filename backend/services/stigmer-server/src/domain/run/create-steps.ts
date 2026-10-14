@@ -326,11 +326,11 @@ export function newComposeDeclaredPreferencesStep(
         logger.debug("Judge run, composing no standing context");
         return;
       }
-      // A plugin eval's try measures the plugin, not who started the eval:
+      // An eval run's try measures the plugin, not who started the eval:
       // nothing personal loads, as in Claude Code's evals
-      // (domain/eval-run/plugin-eval-run.ts).
+      // (domain/eval-run/run-label.ts).
       if (isEvalRun(execution)) {
-        logger.debug("Plugin eval run, composing no standing context");
+        logger.debug("Eval run try, composing no standing context");
         return;
       }
 
@@ -363,15 +363,15 @@ export function newComposeDeclaredPreferencesStep(
   };
 }
 
-/** The refusal of a plugin-eval case's context on a request the server did not compose. */
+/** The refusal of a eval case's context on a request the server did not compose. */
 export const EVAL_RUN_CASE_NOT_COMPOSED_MESSAGE =
-  "spec.eval_case is set only by the server's plugin evals";
+  "spec.eval_case is set only by the server's eval runs";
 
 /**
  * GuardEvalRunCase: `spec.eval_case` makes the runner run a
  * plugin's scaffold, resume a recorded conversation, set variables and
  * answer the plugin's MCP servers with stand-ins. Only the server's
- * plugin-eval case workflow composes it, from the eval's own plugin at the
+ * eval case workflow composes it, from the eval's own plugin at the
  * eval's digest; any other request that carries it is refused, whoever
  * sends it.
  */
@@ -513,7 +513,7 @@ export const VISITOR_APPENDED_PROMPT_MESSAGE =
  * system prompt after the agent owner's instructions, which is the owner's
  * to steer, as the organization's standing context is withheld from
  * visitors (ComposeDeclaredPreferences). The server's own in-process
- * requests pass: a plugin eval's tries set it from the case.
+ * requests pass: an eval run's tries set it from the case.
  */
 export function newRefuseVisitorAppendedPromptStep(
   logger: Logger,
@@ -683,10 +683,10 @@ export function newComposeRecalledMemoriesStep(
         logger.debug("Judge run, composing no recalled memories");
         return;
       }
-      // Nor does a plugin eval's try: an organization's memory must not
+      // Nor does an eval run's try: an organization's memory must not
       // move its score.
       if (isEvalRun(execution)) {
-        logger.debug("Plugin eval run, composing no recalled memories");
+        logger.debug("Eval run try, composing no recalled memories");
         return;
       }
 

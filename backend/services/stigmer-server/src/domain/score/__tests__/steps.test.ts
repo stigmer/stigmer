@@ -127,7 +127,7 @@ function check(
   });
 }
 
-/** A plugin eval's score on its try. */
+/** An eval run's score on its try. */
 function evalScore(): Score {
   const score = check();
   score.spec!.metric = "eval";
@@ -226,7 +226,7 @@ describe("GuardScoreSource", () => {
     }
   });
 
-  it("admits a plugin eval's score from the server alone", async () => {
+  it("admits an eval run's score from the server alone", async () => {
     expect(() =>
       guard.execute(
         ctxFor(evalScore(), testCallerIdentity({ callerClass: "internal" })),
@@ -295,7 +295,7 @@ describe("ResolveScoreDefaults", () => {
     }
   });
 
-  it("takes a plugin eval's score on any ended run, never on one still going", async () => {
+  it("takes an eval run's score on any ended run, never on one still going", async () => {
     const internal = testCallerIdentity({ callerClass: "internal" });
     for (const phase of [
       RunPhase.RUN_COMPLETED,
