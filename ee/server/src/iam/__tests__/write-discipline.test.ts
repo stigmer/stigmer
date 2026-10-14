@@ -5,7 +5,7 @@
  * in its own tables, so the shapes that would break it are a store member
  * that writes a whole row with no compare (`update` or `replace`) and a
  * call of the library store's upsert, `saveResource`. A team and an
- * identity provider are updated through the guarded write
+ * federation issuer are updated through the guarded write
  * (`readForWrite` and `swap`, the library's store/guarded-port.ts); an
  * invitation changes only through writes that name their fields under its
  * row lock (redemption, its release, revoke).
@@ -29,7 +29,7 @@ const PORTS: ReadonlyArray<
   readonly [name: string, module: string, guarded: boolean]
 > = [
   ["TeamStore", "iam/team/store.ts", true],
-  ["IdentityProviderStore", "iam/provider/store.ts", true],
+  ["FederationIssuerStore", "iam/issuer/store.ts", true],
   ["InvitationStore", "iam/invitation/store.ts", false],
 ];
 

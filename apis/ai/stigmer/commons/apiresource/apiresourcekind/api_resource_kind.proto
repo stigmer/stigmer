@@ -203,30 +203,33 @@ enum ApiResourceKind {
     }
   }];
 
-  // IAM - External identity provider configuration
+  // IAM - Federation: outside issuers whose tokens Stigmer accepts
 
-  // External identity provider for federated authentication.
-  identity_provider = 21 [(kind_meta) = {
+  // An outside issuer whose tokens Stigmer accepts for its own users
+  // (identity federation): its keys, its audience, and what its tokens get.
+  federation_issuer = 21 [(kind_meta) = {
     group: iam
     version: v1
-    name: "IdentityProvider"
-    display_name: "Identity Provider"
-    id_prefix: "idp"
+    name: "FederationIssuer"
+    display_name: "Federation Issuer"
+    id_prefix: "fis"
+    // Minted as idp_ while the kind was IdentityProvider.
+    retired_id_prefixes: ["idp"]
     is_versioned: false
     not_search_indexed: true
     // Registering the platforms whose tokens Stigmer trusts, and federating
     // many organizations.
     // The open-source edition has one OIDC issuer by configuration and no
-    // IdP resources.
+    // federation issuers.
     tier: enterprise
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
-      // No owner: a provider carries its organization's trust configuration
+      // No owner: an issuer carries its organization's trust configuration
       // and is managed by the organization's current administrators, so a
       // creator who loses admin loses control of it. The creator is
       // recorded in the audit trail.
       owner_type: OWNER_ATTRIBUTION_TYPE_NONE
-      // A direct grant can only let someone read the provider; managing it
+      // A direct grant can only let someone read the issuer; managing it
       // is its organization's admins' alone.
       grantable_roles: [viewer]
       role_descriptions: [

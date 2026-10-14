@@ -71,11 +71,11 @@ type IdentityAccountCommandControllerClient interface {
 	// answers UNIMPLEMENTED.
 	//
 	// Authorization: Requires can_create_identity_account on the organization
-	// that owns the identity provider.
+	// that owns the federation issuer.
 	CreateFederatedAccount(ctx context.Context, in *CreateFederatedAccountInput, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// Update profile fields on a federated identity account.
 	//
-	// Looks up the account by natural key (identity_provider_ref + external_sub)
+	// Looks up the account by natural key (federation_issuer_ref + external_sub)
 	// and updates email, name, and picture. Identity keys are immutable.
 	//
 	// Called by platform backends when a user's profile changes on their platform.
@@ -84,11 +84,11 @@ type IdentityAccountCommandControllerClient interface {
 	// answers UNIMPLEMENTED.
 	//
 	// Authorization: Requires can_create_identity_account on the organization
-	// that owns the identity provider.
+	// that owns the federation issuer.
 	UpdateFederatedAccount(ctx context.Context, in *UpdateFederatedAccountInput, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// Deprovision a federated identity account by revoking access or deleting it.
 	//
-	// Looks up the account by natural key (identity_provider_ref + external_sub).
+	// Looks up the account by natural key (federation_issuer_ref + external_sub).
 	// When delete_account is false, revokes all IAM policies in the organization.
 	// When delete_account is true, revokes policies and deletes the account.
 	// Under a just-in-time provider, a deleted account is created again at
@@ -101,7 +101,7 @@ type IdentityAccountCommandControllerClient interface {
 	// answers UNIMPLEMENTED.
 	//
 	// Authorization: Requires can_create_identity_account on the organization
-	// that owns the identity provider.
+	// that owns the federation issuer.
 	DeprovisionFederatedAccount(ctx context.Context, in *DeprovisionFederatedAccountInput, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// Create a service account: an organization's own non-person account for
 	// automation, holding one organization role.
@@ -126,7 +126,7 @@ type IdentityAccountCommandControllerClient interface {
 	// and the SDK's ensureMyIdentityAccount. Derives the account from the
 	// caller's token and the userinfo endpoint of the issuer that vouched for
 	// it. Idempotent: returns the existing account on retry. A caller another
-	// lane vouched for (an organization's identity provider, a platform
+	// lane vouched for (an organization's federation issuer, a platform
 	// client, a system lane) already has the account that lane provisions,
 	// and is refused PERMISSION_DENIED.
 	ProvisionMyAccount(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*IdentityAccount, error)
@@ -261,11 +261,11 @@ type IdentityAccountCommandControllerServer interface {
 	// answers UNIMPLEMENTED.
 	//
 	// Authorization: Requires can_create_identity_account on the organization
-	// that owns the identity provider.
+	// that owns the federation issuer.
 	CreateFederatedAccount(context.Context, *CreateFederatedAccountInput) (*IdentityAccount, error)
 	// Update profile fields on a federated identity account.
 	//
-	// Looks up the account by natural key (identity_provider_ref + external_sub)
+	// Looks up the account by natural key (federation_issuer_ref + external_sub)
 	// and updates email, name, and picture. Identity keys are immutable.
 	//
 	// Called by platform backends when a user's profile changes on their platform.
@@ -274,11 +274,11 @@ type IdentityAccountCommandControllerServer interface {
 	// answers UNIMPLEMENTED.
 	//
 	// Authorization: Requires can_create_identity_account on the organization
-	// that owns the identity provider.
+	// that owns the federation issuer.
 	UpdateFederatedAccount(context.Context, *UpdateFederatedAccountInput) (*IdentityAccount, error)
 	// Deprovision a federated identity account by revoking access or deleting it.
 	//
-	// Looks up the account by natural key (identity_provider_ref + external_sub).
+	// Looks up the account by natural key (federation_issuer_ref + external_sub).
 	// When delete_account is false, revokes all IAM policies in the organization.
 	// When delete_account is true, revokes policies and deletes the account.
 	// Under a just-in-time provider, a deleted account is created again at
@@ -291,7 +291,7 @@ type IdentityAccountCommandControllerServer interface {
 	// answers UNIMPLEMENTED.
 	//
 	// Authorization: Requires can_create_identity_account on the organization
-	// that owns the identity provider.
+	// that owns the federation issuer.
 	DeprovisionFederatedAccount(context.Context, *DeprovisionFederatedAccountInput) (*IdentityAccount, error)
 	// Create a service account: an organization's own non-person account for
 	// automation, holding one organization role.
@@ -316,7 +316,7 @@ type IdentityAccountCommandControllerServer interface {
 	// and the SDK's ensureMyIdentityAccount. Derives the account from the
 	// caller's token and the userinfo endpoint of the issuer that vouched for
 	// it. Idempotent: returns the existing account on retry. A caller another
-	// lane vouched for (an organization's identity provider, a platform
+	// lane vouched for (an organization's federation issuer, a platform
 	// client, a system lane) already has the account that lane provisions,
 	// and is refused PERMISSION_DENIED.
 	ProvisionMyAccount(context.Context, *emptypb.Empty) (*IdentityAccount, error)

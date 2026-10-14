@@ -176,9 +176,9 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         ]);
         providers = memoryReader([
           [
-            "idp_acme",
-            fixtureRow(storedDeclaration("identity_provider"), {
-              id: "idp_acme",
+            "fis_acme",
+            fixtureRow(storedDeclaration("federation_issuer"), {
+              id: "fis_acme",
               org: "acme",
               visibility: ApiResourceVisibility.visibility_private,
               createdBy: ADMIN,
@@ -187,7 +187,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         ]);
         readers = new Map([
           [ApiResourceKind.team, teams.reader],
-          [ApiResourceKind.identity_provider, providers.reader],
+          [ApiResourceKind.federation_issuer, providers.reader],
           [ApiResourceKind.invitation, memoryReader([]).reader],
         ]);
         await grant(policies, orgRole(ROOT, "owner", "acme"));
@@ -266,11 +266,11 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           });
         }
 
-        it("answers an identity provider from the model over its reader's row: its organization's admin views it, a member does not", async () => {
+        it("answers a federation issuer from the model over its reader's row: its organization's admin views it, a member does not", async () => {
           const check = {
             permission: IamPermission.can_view,
-            resourceKind: ApiResourceKind.identity_provider,
-            resourceId: "idp_acme",
+            resourceKind: ApiResourceKind.federation_issuer,
+            resourceId: "fis_acme",
           };
           expect(await authorizer().authorize(caller(ADMIN), check)).toEqual({
             kind: "allow",
@@ -279,7 +279,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             kind: "deny",
             reason: "",
           });
-          expect(providers.asked).toContain("idp_acme");
+          expect(providers.asked).toContain("fis_acme");
         });
 
         it("answers a team: a member of its organization views it, one who left does not", async () => {
@@ -298,7 +298,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         });
 
         it.each([
-          [ApiResourceKind.identity_provider, "idp_missing"],
+          [ApiResourceKind.federation_issuer, "fis_missing"],
           [ApiResourceKind.invitation, "inv_missing"],
           [ApiResourceKind.team, "tm_missing"],
           [ApiResourceKind.platform, "stigmer"],
@@ -383,7 +383,7 @@ describe("kindsWithoutRows", () => {
     findById: () => Promise.resolve(undefined),
   };
   const all = new Map([
-    [ApiResourceKind.identity_provider, reader],
+    [ApiResourceKind.federation_issuer, reader],
     [ApiResourceKind.invitation, reader],
     [ApiResourceKind.team, reader],
   ]);
@@ -405,7 +405,7 @@ describe("kindsWithoutRows", () => {
         model: builtInModel,
         readers: new Map([[ApiResourceKind.invitation, reader]]),
       }),
-    ).toEqual([ApiResourceKind.identity_provider, ApiResourceKind.team]);
+    ).toEqual([ApiResourceKind.federation_issuer, ApiResourceKind.team]);
   });
 
   it("is empty once each kind the edition serves has a reader", () => {

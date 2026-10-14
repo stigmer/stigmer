@@ -17,7 +17,7 @@ Pre-update checklist and known pitfalls when working with IdentityAccounts.
 - [ ] `spec.email` is not set (assigned by the backend; ignored on create)
 - [ ] `spec.is_machine_account` is not set (computed from `idp_id`)
 - [ ] `spec.provisioning_mode` is not set (computed by the backend)
-- [ ] `spec.identity_provider_ref` is not set (computed for federated accounts only)
+- [ ] `spec.federation_issuer_ref` is not set (computed for federated accounts only)
 
 ### Never-Set Fields
 
@@ -45,7 +45,7 @@ The `create` RPC is system-level. It is called by federated account creation and
 
 ### Federated Account Must Be Created Before Authentication (Manual Mode)
 
-When the IdentityProvider provisions accounts manually (`create_accounts_on_sign_in` false), the platform must create each federated account with the `createFederatedAccount` RPC before the user authenticates. If a user presents a valid JWT but no account exists for their `(identity_provider_ref, sub)` pair, Stigmer returns 401 Unauthorized. A just-in-time provider creates the account on the first sign-in instead.
+When the FederationIssuer provisions accounts manually (`create_accounts_on_sign_in` false), the platform must create each federated account with the `createFederatedAccount` RPC before the user authenticates. If a user presents a valid JWT but no account exists for their `(federation_issuer_ref, sub)` pair, Stigmer returns 401 Unauthorized. A just-in-time provider creates the account on the first sign-in instead.
 
 ### Confusing IdentityAccount ID with IDP ID
 
@@ -71,4 +71,4 @@ Deleting an IdentityAccount removes it from Stigmer's database and cleans up IAM
 
 ### Deleting a Federated Account Does Not Block a Just-In-Time Sign-In
 
-A just-in-time IdentityProvider creates an account for any subject it vouches for that has none. After a federated account is deleted, the user's next sign-in with a valid token creates a new account and grants it the provider's `sign_in_role`. To keep such a user out of the provider's organizations, revoke the account's access and keep the account (`deprovisionFederatedAccount` with `delete_account: false`): the sign-in role is granted once per account and organization, so a kept account that already signed in there gets no role back, though it can still sign in. Stopping the user at the platform's own sign-in stops them signing in at all.
+A just-in-time FederationIssuer creates an account for any subject it vouches for that has none. After a federated account is deleted, the user's next sign-in with a valid token creates a new account and grants it the provider's `sign_in_role`. To keep such a user out of the provider's organizations, revoke the account's access and keep the account (`deprovisionFederatedAccount` with `delete_account: false`): the sign-in role is granted once per account and organization, so a kept account that already signed in there gets no role back, though it can still sign in. Stopping the user at the platform's own sign-in stops them signing in at all.

@@ -35,8 +35,8 @@ describe("grantsAccess", () => {
     ["a parent organization", { kind: "organization", id: "acme" }, false],
     ["a blueprint (default instance)", { kind: "agent", id: "agt_2" }, false],
     [
-      "an identity provider (managed organization)",
-      { kind: "identity_provider", id: "idp_1" },
+      "a federation issuer (managed organization)",
+      { kind: "federation_issuer", id: "fis_1" },
       false,
     ],
   ])("a row naming %s: %s", (_name, principal, expected) => {

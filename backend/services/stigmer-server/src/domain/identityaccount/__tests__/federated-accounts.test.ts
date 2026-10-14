@@ -35,7 +35,7 @@ import {
   reservedSubjectMessage,
 } from "../constants.js";
 import { newCreateAccountPath } from "../controller.js";
-import type { CreateAccount, FederatedProvider } from "../provisioning.js";
+import type { CreateAccount, FederatedIssuer } from "../provisioning.js";
 import { newResourceIdentityAccountStore } from "../resource-store.js";
 import type { IdentityAccountStore } from "../store.js";
 
@@ -63,13 +63,13 @@ afterEach(() => {
 });
 
 const ACME_ORG = "org_01hzacme000000000000000000";
-const OKTA_ID = "idp_01hzacmeokta0000000000000";
-const OKTA: FederatedProvider = { org: ACME_ORG, id: OKTA_ID };
-const SIGN_IN = serverActingFor("idp_01hzacmeokta0000000000000");
+const OKTA_ID = "fis_01hzacmeokta0000000000000";
+const OKTA: FederatedIssuer = { org: ACME_ORG, id: OKTA_ID };
+const SIGN_IN = serverActingFor("fis_01hzacmeokta0000000000000");
 
 function federated(
   idpId: string,
-  provider: FederatedProvider = OKTA,
+  provider: FederatedIssuer = OKTA,
   email = "",
 ) {
   return {
@@ -103,26 +103,26 @@ describe("the create path's federated arm", () => {
     expect(account.spec?.provisioningMode).toBe(
       IdentityAccountProvisioningMode.federated,
     );
-    expect(account.spec?.identityProviderRef).toMatchObject({
+    expect(account.spec?.federationIssuerRef).toMatchObject({
       org: ACME_ORG,
-      kind: ApiResourceKind.identity_provider,
+      kind: ApiResourceKind.federation_issuer,
       id: OKTA_ID,
       slug: "",
     });
     expect(account.status?.audit?.specAudit?.createdBy?.id).toBe(
-      "idp_01hzacmeokta0000000000000",
+      "fis_01hzacmeokta0000000000000",
     );
   });
 
   it("takes the provider from the path, never from the spec it was handed", async () => {
     const input = federated("okta|erin");
-    input.spec.identityProviderRef = create(ApiResourceReferenceSchema, {
+    input.spec.federationIssuerRef = create(ApiResourceReferenceSchema, {
       org: "org_01hzother00000000000000000",
-      kind: ApiResourceKind.identity_provider,
-      id: "idp_01hzother0000000000000000",
+      kind: ApiResourceKind.federation_issuer,
+      id: "fis_01hzother0000000000000000",
     });
     const account = await createAccount(input, SIGN_IN);
-    expect(account.spec?.identityProviderRef?.id).toBe(OKTA_ID);
+    expect(account.spec?.federationIssuerRef?.id).toBe(OKTA_ID);
     expect(account.metadata?.id).toBe(
       federatedAccountIdFor(OKTA_ID, "okta|erin"),
     );
@@ -132,7 +132,7 @@ describe("the create path's federated arm", () => {
     await createAccount(federated("shared|sam"), SIGN_IN);
     expect(
       (
-        await accounts.findByProviderAndIdpId(OKTA_ID, "shared|sam")
+        await accounts.findByIssuerAndIdpId(OKTA_ID, "shared|sam")
       )?.metadata?.id,
     ).toBe(federatedAccountIdFor(OKTA_ID, "shared|sam"));
     expect(await accounts.findDirectByIdpId("shared|sam")).toBeUndefined();

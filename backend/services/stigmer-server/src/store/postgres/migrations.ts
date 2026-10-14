@@ -123,16 +123,17 @@ import {
   unreadableWorkflowRowError,
 } from "../workflow-instance-retired.js";
 import {
-  RUN_KIND_TABLES,
-  RUN_RENAME_PAGE_SIZE,
-  RUN_RENAME_POLICY_KIND,
+  KIND_TABLES,
+  KIND_RENAME_PAGE_SIZE,
+  KIND_RENAME_POLICY_KIND,
+  FEDERATION_ISSUER_RENAME_V30,
   RUN_RENAME_V18,
   RUN_RENAME_V21,
-  rekeyedRunPolicy,
-  renamedRunRow,
-  unreadableRunRenameRowError,
-} from "../run-rename.js";
-import type { RekeyedPolicy, RunRename } from "../run-rename.js";
+  rekeyedPolicy,
+  renamedKindRow,
+  unreadableKindRenameRowError,
+} from "../kind-rename.js";
+import type { KindRename, RekeyedPolicy } from "../kind-rename.js";
 import {
   AGENT_RUN_KIND,
   AGENT_RUN_RETIRED_PAGE_SIZE,
@@ -236,11 +237,14 @@ export const SCHEMA_VERSION_28 = 28;
 /** v29: every stored resource stamped with its etag. */
 export const SCHEMA_VERSION_29 = 29;
 
-/** v30: the permission history indexed by time, for retention (DDL only). */
+/** v30: the identity provider is a federation issuer: its names and the grants that name it. */
 export const SCHEMA_VERSION_30 = 30;
 
+/** v31: the permission history indexed by time, for retention (DDL only). */
+export const SCHEMA_VERSION_31 = 31;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_30;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_31;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -311,6 +315,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_28, migrateToV28],
       [SCHEMA_VERSION_29, (migrating) => migrateToV29(migrating, logger)],
       [SCHEMA_VERSION_30, migrateToV30],
+      [SCHEMA_VERSION_31, migrateToV31],
     ];
 
     for (const [version, migrate] of chain) {
@@ -1021,19 +1026,19 @@ async function migrateToV12(client: PoolClient): Promise<void> {
 }
 
 /**
- * v13: agent executions are runs. run-rename.ts says what each row becomes
- * and why an unreadable row fails the step; `renameRunKind` applies it.
+ * v13: agent executions are runs. kind-rename.ts says what each row becomes
+ * and why an unreadable row fails the step; `renameKind` applies it.
  */
 async function migrateToV13(client: PoolClient): Promise<void> {
-  await renameRunKind(client, RUN_RENAME_V18);
+  await renameKind(client, RUN_RENAME_V18);
 }
 
 /**
- * One rename of the run kind (run-rename.ts), shared by v13 and v16.
+ * One rename of a kind (kind-rename.ts), shared by v13, v16 and v30.
  *
- * - Every run row is read in keyset pages under its old kind and rewritten
- *   when its bytes spell the kind the old way; then every table keyed by
- *   kind renames the run kind.
+ * - Every row of the kind is read in keyset pages under its old name and
+ *   rewritten when its bytes spell the kind the old way; then every table
+ *   keyed by kind renames the kind.
  * - Every IamPolicy row is read in keyset pages, and the ones naming the
  *   old kind are re-keyed: the old row leaves with its list keys, its
  *   history kept, and the new row is written unproven with `updated_at`
@@ -1046,7 +1051,7 @@ async function migrateToV13(client: PoolClient): Promise<void> {
  * key serves it. The chain's advisory lock keeps a second instance's boot
  * out of the step, and the transaction makes it whole or nothing.
  */
-async function renameRunKind(client: PoolClient, rename: RunRename): Promise<void> {
+async function renameKind(client: PoolClient, rename: KindRename): Promise<void> {
   const [fromKind, toKind] = rename.kind;
   const forEachRow = async (
     kind: string,
@@ -1059,13 +1064,13 @@ async function renameRunKind(client: PoolClient, rename: RunRename): Promise<voi
            WHERE kind = $1 AND id > $2
            ORDER BY id
            LIMIT $3`,
-          [kind, after, RUN_RENAME_PAGE_SIZE],
+          [kind, after, KIND_RENAME_PAGE_SIZE],
         )
       ).rows;
       for (const row of rows) {
         await visit(row);
       }
-      if (rows.length < RUN_RENAME_PAGE_SIZE) {
+      if (rows.length < KIND_RENAME_PAGE_SIZE) {
         return;
       }
       after = rows[rows.length - 1]!.id;
@@ -1075,9 +1080,9 @@ async function renameRunKind(client: PoolClient, rename: RunRename): Promise<voi
   await forEachRow(fromKind, async (row) => {
     let data: Uint8Array | undefined;
     try {
-      data = renamedRunRow(rename, new Uint8Array(row.data));
+      data = renamedKindRow(rename, new Uint8Array(row.data));
     } catch (error) {
-      throw unreadableRunRenameRowError(rename, fromKind, row.id, error);
+      throw unreadableKindRenameRowError(rename, fromKind, row.id, error);
     }
     if (data !== undefined) {
       await client.query(
@@ -1086,7 +1091,7 @@ async function renameRunKind(client: PoolClient, rename: RunRename): Promise<voi
       );
     }
   });
-  for (const table of RUN_KIND_TABLES) {
+  for (const table of KIND_TABLES) {
     await client.query(`UPDATE ${table} SET kind = $1 WHERE kind = $2`, [
       toKind,
       fromKind,
@@ -1094,26 +1099,26 @@ async function renameRunKind(client: PoolClient, rename: RunRename): Promise<voi
   }
 
   const rekeyed: Array<{ from: string; policy: RekeyedPolicy }> = [];
-  await forEachRow(RUN_RENAME_POLICY_KIND, (row) => {
+  await forEachRow(KIND_RENAME_POLICY_KIND, (row) => {
     try {
-      const policy = rekeyedRunPolicy(rename, new Uint8Array(row.data));
+      const policy = rekeyedPolicy(rename, new Uint8Array(row.data));
       if (policy !== undefined) {
         rekeyed.push({ from: row.id, policy });
       }
     } catch (error) {
-      throw unreadableRunRenameRowError(rename, RUN_RENAME_POLICY_KIND, row.id, error);
+      throw unreadableKindRenameRowError(rename, KIND_RENAME_POLICY_KIND, row.id, error);
     }
   });
   for (const { from, policy } of rekeyed) {
     for (const table of ["resource_list_keys", "resources"]) {
       await client.query(`DELETE FROM ${table} WHERE kind = $1 AND id = $2`, [
-        RUN_RENAME_POLICY_KIND,
+        KIND_RENAME_POLICY_KIND,
         from,
       ]);
     }
     await client.query(
       `INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, now())`,
-      [RUN_RENAME_POLICY_KIND, policy.id, Buffer.from(policy.data)],
+      [KIND_RENAME_POLICY_KIND, policy.id, Buffer.from(policy.data)],
     );
   }
 }
@@ -1207,7 +1212,7 @@ async function migrateToV14(client: PoolClient): Promise<void> {
     }
   });
 
-  for (const table of RUN_KIND_TABLES) {
+  for (const table of KIND_TABLES) {
     await client.query(`DELETE FROM ${table} WHERE kind = ANY($1::text[])`, [
       RETIRED_WORKFLOW_KINDS,
     ]);
@@ -1252,12 +1257,12 @@ async function migrateToV15(client: PoolClient): Promise<void> {
 /**
  * v16: the agent run is a run. The kind `agent_run` and its kind string
  * `AgentRun` become `run` and `Run` by the same transformation as v13
- * (`renameRunKind`), with this step's frozen names (run-rename.ts
+ * (`renameKind`), with this step's frozen names (kind-rename.ts
  * `RUN_RENAME_V21`, the SQLite step's number). Runs keep their ids, the
  * `aex_` ones included.
  */
 async function migrateToV16(client: PoolClient): Promise<void> {
-  await renameRunKind(client, RUN_RENAME_V21);
+  await renameKind(client, RUN_RENAME_V21);
 }
 
 /**
@@ -1310,7 +1315,7 @@ async function migrateToV17(client: PoolClient): Promise<void> {
     );
   }
 
-  for (const table of RUN_KIND_TABLES) {
+  for (const table of KIND_TABLES) {
     await client.query(`DELETE FROM ${table} WHERE kind = $1`, [
       RETIRED_ENVIRONMENT_KIND,
     ]);
@@ -1447,7 +1452,7 @@ async function migrateToV19(client: PoolClient): Promise<void> {
  * instance's boot out of the step.
  */
 async function migrateToV20(client: PoolClient): Promise<void> {
-  for (const table of RUN_KIND_TABLES) {
+  for (const table of KIND_TABLES) {
     await client.query(`DELETE FROM ${table} WHERE kind = $1`, [
       RETIRED_EXECUTION_CONTEXT_KIND,
     ]);
@@ -1970,14 +1975,73 @@ async function migrateToV29(client: PoolClient, logger: StoreLogger): Promise<vo
 }
 
 /**
- * v30: the permission history indexed by time, for retention
+ * v30: the identity provider is a federation issuer. The kind
+ * `identity_provider` and its kind string `IdentityProvider` become
+ * `federation_issuer` and `FederationIssuer` by the same transformation as
+ * v13 (`renameKind`), with this step's frozen names (kind-rename.ts
+ * `FEDERATION_ISSUER_RENAME_V30`): the name table's claims an edition made
+ * for its issuers, and every grant naming one, re-keyed. The issuers' own
+ * rows are an edition's, in tables of its own, and it renames them itself.
+ * SQLite has no twin (kind-rename.ts says why). Issuers keep their ids,
+ * the `idp_` ones included.
+ *
+ * The permission history (v27), which the earlier renames predate, follows
+ * too: each entry naming the kind gets the kind's new name in its columns,
+ * and the policy id and bytes its grant was re-keyed to, so the history
+ * reads the kind by its name and a revoke after the upgrade names the id
+ * the grant's entry holds. Entries are read in keyset pages on
+ * `(org, sequence)`; their numbers and times are kept.
+ */
+async function migrateToV30(client: PoolClient): Promise<void> {
+  const rename = FEDERATION_ISSUER_RENAME_V30;
+  await renameKind(client, rename);
+  const [fromKind, toKind] = rename.kind;
+  for (let afterOrg = "", afterSequence = 0; ; ) {
+    const rows = (
+      await client.query<{ org: string; sequence: string; data: Buffer }>(
+        `SELECT org, sequence, data FROM iam_policy_history
+         WHERE (principal_kind = $1 OR resource_kind = $1)
+           AND (org COLLATE "C", sequence) > ($2 COLLATE "C", $3)
+         ORDER BY org COLLATE "C", sequence
+         LIMIT $4`,
+        [fromKind, afterOrg, afterSequence, KIND_RENAME_PAGE_SIZE],
+      )
+    ).rows;
+    for (const row of rows) {
+      let policy: RekeyedPolicy | undefined;
+      try {
+        policy = rekeyedPolicy(rename, new Uint8Array(row.data));
+      } catch (error) {
+        throw unreadableKindRenameRowError(rename, "iam_policy_history", `${row.org}/${row.sequence}`, error);
+      }
+      await client.query(
+        `UPDATE iam_policy_history
+            SET principal_kind = CASE WHEN principal_kind = $1 THEN $2 ELSE principal_kind END,
+                resource_kind = CASE WHEN resource_kind = $1 THEN $2 ELSE resource_kind END,
+                policy_id = COALESCE($3, policy_id),
+                data = COALESCE($4, data)
+          WHERE org = $5 AND sequence = $6`,
+        [fromKind, toKind, policy?.id ?? null, policy === undefined ? null : Buffer.from(policy.data), row.org, row.sequence],
+      );
+    }
+    if (rows.length < KIND_RENAME_PAGE_SIZE) {
+      return;
+    }
+    const last = rows[rows.length - 1]!;
+    afterOrg = last.org;
+    afterSequence = Number(last.sequence);
+  }
+}
+
+/**
+ * v31: the permission history indexed by time, for retention
  * (../permission-history.ts, "Removal"). The removal deletes the entries
  * before a cutoff ordered by `(occurred_at, org, sequence)`, a batch at a
  * time; the index is that order exactly, so each batch is a walk that
  * stops at its limit instead of a scan of every organization's entries.
  * The SQLite driver's v35 in this engine's terms.
  */
-async function migrateToV30(client: PoolClient): Promise<void> {
+async function migrateToV31(client: PoolClient): Promise<void> {
   await client.query(`
     CREATE INDEX iam_policy_history_by_time
       ON iam_policy_history (occurred_at, org, sequence)

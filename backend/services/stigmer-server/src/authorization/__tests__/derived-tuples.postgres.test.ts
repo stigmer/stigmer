@@ -551,7 +551,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         // Declared, served by the wider editions: the store has no such row.
         expect(
           await source.tuplesOf(
-            parseObjectRef("identity_provider:idp"),
+            parseObjectRef("federation_issuer:idp"),
             "owner",
           ),
         ).toEqual([]);

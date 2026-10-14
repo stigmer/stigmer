@@ -70,14 +70,14 @@ import { abortedError, failedPreconditionError } from "@stigmer/server";
 import type { IdentityAccountService } from "./account/port.js";
 import { resolveCreateRace } from "./account/port.js";
 import type { IamPolicyGrantPathClient } from "./policy/grant-path-client.js";
-import { PROVIDER_BEING_DELETED_MESSAGE } from "./provider/steps.js";
-import type { IdentityProviderStore } from "./provider/store.js";
+import { ISSUER_BEING_DELETED_MESSAGE } from "./issuer/steps.js";
+import type { FederationIssuerStore } from "./issuer/store.js";
 
 export interface CloudIdentityFederationDeps {
   readonly accounts: IdentityAccountService;
   readonly policies: IamPolicyGrantPathClient;
-  /** The IdentityProvider rows — the controller's IdP-exists precondition, create's delete check and deprovision's provider read them. */
-  readonly providers: Pick<IdentityProviderStore, "findById" | "isLive">;
+  /** The FederationIssuer rows — the controller's IdP-exists precondition, create's delete check and deprovision's provider read them. */
+  readonly providers: Pick<FederationIssuerStore, "findById" | "isLive">;
   /**
    * The provider organization's children, which deprovision's revoke
    * reaches, and those mid-delete, which it cannot reach yet.
@@ -130,7 +130,7 @@ export function newIdentityFederation(
     try {
       await accounts.deleteAccount(account, providerId);
     } catch (error) {
-      logger.error("an account created under an identity provider being deleted could not be removed", {
+      logger.error("an account created under a federation issuer being deleted could not be removed", {
         accountId: account.metadata?.id ?? "",
         idp: await idpName(ref),
         error: error instanceof Error ? error.message : String(error),
@@ -144,15 +144,15 @@ export function newIdentityFederation(
       // write below catches one already past it (the module header).
       const provider = await providerOf(ref.org, ref.id);
       if (provider !== undefined && !(await providers.isLive(provider.metadata?.id ?? ""))) {
-        throw failedPreconditionError(PROVIDER_BEING_DELETED_MESSAGE);
+        throw failedPreconditionError(ISSUER_BEING_DELETED_MESSAGE);
       }
-      const existing = await accounts.store.findByProviderAndIdpId(
+      const existing = await accounts.store.findByIssuerAndIdpId(
         ref.id,
         input.externalSub,
       );
       if (existing !== undefined) {
         throw new ConnectError(
-          "Federated account already exists for this identity provider " +
+          "Federated account already exists for this federation issuer " +
             `and external subject (existing id: ${existing.metadata?.id ?? ""})`,
           Code.AlreadyExists,
         );
@@ -170,13 +170,13 @@ export function newIdentityFederation(
             lastName: input.lastName,
             pictureUrl: input.pictureUrl,
             provisioningMode: IdentityAccountProvisioningMode.federated,
-            identityProviderRef: ref,
+            federationIssuerRef: ref,
           }),
         }, provider?.metadata?.id);
       } catch (error) {
         made = false;
         account = await resolveCreateRace(error, () =>
-          accounts.store.findByProviderAndIdpId(ref.id, input.externalSub),
+          accounts.store.findByIssuerAndIdpId(ref.id, input.externalSub),
         );
       }
       const providerId = provider?.metadata?.id;
@@ -195,7 +195,7 @@ export function newIdentityFederation(
         if (made) {
           await removeMade(account, ref, providerId);
         }
-        throw failedPreconditionError(PROVIDER_BEING_DELETED_MESSAGE);
+        throw failedPreconditionError(ISSUER_BEING_DELETED_MESSAGE);
       }
       return account;
     },
@@ -299,7 +299,7 @@ async function requireFederatedAccount(
   externalSub: string,
   idpName: () => Promise<string>,
 ): Promise<IdentityAccount> {
-  const account = await accounts.store.findByProviderAndIdpId(ref.id, externalSub);
+  const account = await accounts.store.findByIssuerAndIdpId(ref.id, externalSub);
   if (account === undefined) {
     throw new ConnectError(
       `No federated account found for IdP '${await idpName()}' ` +

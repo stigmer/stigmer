@@ -2,7 +2,7 @@
 // Domain: conformance support.
 //
 // OAuthApp is the outbound-auth registration with an external vendor (the
-// mirror image of IdentityProvider's inbound trust): client credentials plus
+// mirror image of FederationIssuer's inbound trust): client credentials plus
 // the vendor's OAuth endpoints. Its spec carries a real secret
 // (client_secret), which the contract encrypts at rest and REDACTS on every
 // read — the suites assert the redaction marker, never a stored value.

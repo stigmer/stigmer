@@ -1,0 +1,245 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.federationissuer.v1;
+
+import "ai/stigmer/iam/v1/enum.proto";
+import "buf/validate/validate.proto";
+
+// FederationIssuerSpec defines which outside issuer's tokens Stigmer accepts, and what they get.
+//
+// A FederationIssuer is an outside issuer whose tokens Stigmer accepts for its own users.
+// It is owned by an organization (e.g., "planton") and configures how Stigmer validates
+// tokens from that platform. Each request presents the issuer's own JWT: Stigmer routes
+// it by its issuer and audience, validates the token signature against the configured
+// JWKS, and resolves the user's federated identity account by the JWT's sub claim and
+// this issuer's reference.
+//
+// Every token this issuer vouches for is bound to one organization: the
+// child organization external_id_claim names when it is set, otherwise the
+// issuer's own. A bound token works in that organization only.
+//
+// Two settings control what happens when someone signs in:
+//
+//   1. create_accounts_on_sign_in: whether Stigmer creates a federated
+//      identity account from the token's claims the first time it sees a
+//      user. When false (the default), the platform creates accounts through
+//      CreateFederatedAccount before its users can sign in.
+//
+//   2. sign_in_role: the role an account receives the first time it signs in
+//      to an organization through this issuer. Unspecified means none: the
+//      platform grants roles itself through IAM policies.
+//
+// A federation issuer is trust in another platform's tokens, never a way
+// to sign in to the Stigmer console: a company that wants its people to sign
+// in with its own identity provider makes it the deployment's own sign-in
+// (on a self-hosted server, STIGMER_OIDC_ISSUER).
+//
+// The spec contains only public validation configuration — no secrets are stored.
+// For OIDC-based integrators (e.g., Auth0), the jwks_uri and userinfo_endpoint
+// point to the OIDC provider's standard endpoints.
+//
+// Example YAML (platform delegation):
+//   apiVersion: iam.stigmer.ai/v1
+//   kind: FederationIssuer
+//   metadata:
+//     name: Planton
+//     slug: planton
+//     org: planton
+//   spec:
+//     display_name: "Planton"
+//     jwks_uri: "https://planton-prod.us.auth0.com/.well-known/jwks.json"
+//     allowed_issuers: ["https://planton-prod.us.auth0.com/"]
+//     expected_audience: "https://api.planton.ai/"
+//     userinfo_endpoint: "https://planton-prod.us.auth0.com/userinfo"
+//
+// Example YAML (JIT provisioning, single-org):
+//   apiVersion: iam.stigmer.ai/v1
+//   kind: FederationIssuer
+//   metadata:
+//     name: Acme Platform
+//     slug: acme-platform
+//     org: acme
+//   spec:
+//     display_name: "Acme Platform"
+//     jwks_uri: "https://auth.acme.com/.well-known/jwks.json"
+//     allowed_issuers: ["https://auth.acme.com/"]
+//     expected_audience: "https://api.acme.com/stigmer"
+//     userinfo_endpoint: "https://auth.acme.com/userinfo"
+//     create_accounts_on_sign_in: true
+//     sign_in_role: viewer
+//
+// Example YAML (JIT provisioning, multi-tenant):
+//   apiVersion: iam.stigmer.ai/v1
+//   kind: FederationIssuer
+//   metadata:
+//     name: SaaS Platform
+//     slug: saas-platform
+//     org: saas-co
+//   spec:
+//     display_name: "SaaS Platform"
+//     jwks_uri: "https://auth.saas.co/.well-known/jwks.json"
+//     allowed_issuers: ["https://auth.saas.co/"]
+//     expected_audience: "https://api.saas.co/stigmer"
+//     userinfo_endpoint: "https://auth.saas.co/userinfo"
+//     create_accounts_on_sign_in: true
+//     sign_in_role: member
+//     external_id_claim: "org_id"
+
+message FederationIssuerSpec {
+  option (buf.validate.message).cel = {
+    id: "federation_issuer.sign_in_role_not_owner"
+    message: "sign_in_role cannot be owner; organization ownership must be assigned explicitly"
+    expression: "this.sign_in_role != 1"
+  };
+  option (buf.validate.message).cel = {
+    id: "federation_issuer.jwks_uri_required_with_issuers"
+    message: "jwks_uri is required when allowed_issuers names an issuer"
+    expression: "this.allowed_issuers.size() == 0 || this.jwks_uri != ''"
+  };
+
+  // Human-readable display name for this federation issuer.
+  // Used in UI and audit logs to identify the integrating platform.
+  string display_name = 1 [(buf.validate.field).string.max_len = 200];
+
+  // JWKS endpoint URL for validating the tokens this issuer's users present.
+  // For OIDC-based integrators, this points to the provider's standard JWKS endpoint
+  // (e.g., Auth0's /.well-known/jwks.json). Stigmer fetches and caches signing keys
+  // from this URL for JWT signature verification.
+  //
+  // This is the standard "jwks_uri" metadata field defined in
+  // OpenID Connect Discovery 1.0 (Section 3) and RFC 7517 (JSON Web Key Set).
+  // It must be the jwks_uri that the discovery document of every allowed
+  // issuer names, so that only an issuer's own keys verify its tokens.
+  // Required when allowed_issuers names an issuer.
+  string jwks_uri = 2 [(buf.validate.field).string.max_len = 2048];
+
+  // JWT issuer values that Stigmer will accept from this platform.
+  // Each JWT's `iss` claim must match one of these values.
+  // For Auth0-based integrators, this is the Auth0 tenant URL
+  // (e.g., "https://planton-prod.us.auth0.com/").
+  // Several values are accepted only when every issuer's discovery document
+  // names the same jwks_uri (and the same userinfo_endpoint when one is set);
+  // an environment with its own tenant and keys is its own federation issuer.
+  //
+  // Each issuer must publish an OpenID Connect Discovery document whose
+  // `issuer` equals it. An issuer and expected_audience together identify
+  // this provider: no two federation issuers share an issuer and audience
+  // pair, so organizations that federate with the same issuer each register
+  // an audience of their own. The issuer a deployment signs its own users in
+  // with cannot be registered.
+  repeated string allowed_issuers = 3 [(buf.validate.field).repeated = {
+    max_items: 10
+    items: {
+      string: {
+        min_len: 1
+        max_len: 2048
+      }
+    }
+  }];
+
+  // Expected JWT audience value.
+  // Every JWT from this platform must include this as the `aud` claim.
+  // For Auth0-based integrators, this is the API identifier configured in Auth0
+  // (e.g., "https://api.planton.ai/").
+  // Prevents tokens intended for other services from being accepted by Stigmer.
+  //
+  // Required. Register an audience for Stigmer at the issuer that is your
+  // organization's own, such as an API identifier or a client ID: a token is
+  // routed to the federation issuer whose issuer and audience it carries, so
+  // an audience another federation issuer already registered at the same
+  // issuer is refused. It cannot be a URL the issuer's discovery document
+  // names, such as its userinfo endpoint, which the issuer may add to every
+  // token it mints.
+  string expected_audience = 4 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 200
+  }];
+
+  // Field 5 held a requests-per-minute budget that no server ever enforced;
+  // it was removed rather than left as a setting that does nothing, and is
+  // reserved so the number and name cannot return with another meaning.
+  reserved 5;
+  reserved "rate_limit_budget";
+
+  // Replaced by create_accounts_on_sign_in and sign_in_role, which grant on
+  // each organization's first sign-in rather than once per account.
+  reserved 9, 10, 11;
+  reserved "auto_provision_accounts", "auto_grant_on_org", "auto_grant_role";
+
+  // Fields 7, 8 and 15 made an issuer its organization's single sign-on:
+  // the console's "Sign in with" button, the browser client it used, and the
+  // requirement that people act in the organization only through it.
+  // Stigmer has no single sign-on of its own, so they were removed, and are
+  // reserved so the numbers and names cannot return with another meaning.
+  reserved 7, 8, 15;
+  reserved "is_sso_provider", "oidc_client_id", "sso_required";
+
+  // OIDC UserInfo endpoint URL for reading a user's profile when Stigmer creates their account.
+  // When Stigmer auto-provisions a federated account from a token that carries
+  // no email claim, it calls this endpoint with that token (as a Bearer token)
+  // to read the user's email, name, and picture. An account that already
+  // exists is not refreshed from it.
+  //
+  // This is the standard "userinfo_endpoint" metadata field defined in
+  // OpenID Connect Discovery 1.0 (Section 3). The endpoint itself is specified in
+  // OpenID Connect Core 1.0 (Section 5.3).
+  //
+  // For Auth0-based integrators: https://{tenant}.auth0.com/userinfo
+  //
+  // When set, it must be the userinfo_endpoint that the discovery document of
+  // every allowed issuer names.
+  string userinfo_endpoint = 6 [(buf.validate.field).string.max_len = 2048];
+
+  // Name of the JWT claim that names the child organization a token works
+  // in, by the identifier the issuer's organization keeps for it.
+  //
+  // When set, Stigmer reads this claim from every token the issuer vouches
+  // for and resolves it to one of the issuer organization's children:
+  //
+  //   1. Read the claim value from the JWT (e.g., claim "org_id" yields
+  //      value "cust-4411").
+  //   2. Find the child organization whose parent_org is the issuer's
+  //      organization and whose external_id is the claim value.
+  //   3. Bind the token to that organization: it works there and nowhere
+  //      else, whatever roles the person holds in other organizations.
+  //
+  // When empty, every token is bound to the issuer's own organization.
+  //
+  // The parent creates its child organizations with their external_id
+  // first. The first time an account signs in to a child, it receives
+  // sign_in_role there when one is set; a role an admin later removes stays
+  // removed.
+  //
+  // The claim name is case-sensitive and must match the JWT payload key
+  // exactly. A token that lacks the claim, carries a value that is not a
+  // string, or names no child of the issuer's organization is refused as
+  // unauthenticated on every sign-in, returning or first; the refusal does
+  // not name the value. A first sign-in refused this way leaves no account.
+  // An issuer in a child organization cannot set it: a child has no
+  // children.
+  string external_id_claim = 12 [(buf.validate.field).string.max_len = 256];
+
+  // Whether Stigmer creates a federated identity account the first time a
+  // valid token arrives for a sub claim it has no account for.
+  //
+  // When false (the default), the platform creates federated accounts through
+  // the CreateFederatedAccount API before its users can sign in. When true,
+  // the account is created from the token's claims, or from the
+  // userinfo_endpoint when the token carries no email claim. Later sign-ins
+  // do not refresh the profile.
+  //
+  // Creating an account grants nothing by itself: sign_in_role does.
+  bool create_accounts_on_sign_in = 13;
+
+  // The role an account receives the first time it signs in to an
+  // organization through this issuer: the organization its token is bound
+  // to (external_id_claim's, or the issuer's own).
+  //
+  // Granted once per account and organization. A role an admin later removes
+  // is not granted again, and changing this setting does not reach accounts
+  // that already signed in there. Unspecified (iam_role_unspecified) grants
+  // nothing. The owner role is refused with
+  // `federation_issuer.sign_in_role_not_owner`: ownership is assigned
+  // explicitly.
+  ai.stigmer.iam.v1.IamRole sign_in_role = 14;
+}

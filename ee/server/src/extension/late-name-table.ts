@@ -4,7 +4,7 @@
  * late-child-organizations.ts: the unit hands its lanes `names` at build
  * time and fills it from its `onComposed`; each call reads what was
  * filled, and a call before that is a boot-order bug, answered with the
- * unit's name. The identity unit's team and identity provider lanes claim,
+ * unit's name. The identity unit's team and federation issuer lanes claim,
  * read and release their slugs through it (@stigmer/server's names steps).
  */
 import type { NameTable, ResourceNameStore } from "@stigmer/server";

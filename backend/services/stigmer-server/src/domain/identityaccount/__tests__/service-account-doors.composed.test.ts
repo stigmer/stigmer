@@ -93,9 +93,9 @@ describe("an admin service account's key, at the doors that decide membership or
     const asKey = createClient(IdentityAccountCommandController, at.presenting(ciKey));
     const ref = { org: acme, slug: "doors-okta" };
     const attempts: ReadonlyArray<() => Promise<unknown>> = [
-      () => asKey.createFederatedAccount({ org: acme, identityProviderRef: ref, externalSub: "okta|x", email: "x@acme.test" }),
-      () => asKey.updateFederatedAccount({ org: acme, identityProviderRef: ref, externalSub: "okta|x", email: "x@acme.test" }),
-      () => asKey.deprovisionFederatedAccount({ org: acme, identityProviderRef: ref, externalSub: "okta|x" }),
+      () => asKey.createFederatedAccount({ org: acme, federationIssuerRef: ref, externalSub: "okta|x", email: "x@acme.test" }),
+      () => asKey.updateFederatedAccount({ org: acme, federationIssuerRef: ref, externalSub: "okta|x", email: "x@acme.test" }),
+      () => asKey.deprovisionFederatedAccount({ org: acme, federationIssuerRef: ref, externalSub: "okta|x" }),
     ];
     for (const attempt of attempts) {
       const error = await refusal(attempt());

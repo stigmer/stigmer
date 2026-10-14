@@ -9,9 +9,9 @@ from ._agentshare import AgentShareClient, AgentShareInput, AgentShareMessagesIn
 from ._apikey import ApiKeyClient, ApiKeyInput
 from ._channelapp import ChannelAppClient, ChannelAppInput, SlackChannelAppConfigInput, WhatsAppChannelAppConfigInput
 from ._evaluator import EvaluatorClient, EvaluatorInput
+from ._federationissuer import FederationIssuerClient, FederationIssuerInput
 from ._iampolicy import IamPolicyClient, IamPolicyInput, ApiResourceRefInput
 from ._identityaccount import IdentityAccountClient, IdentityAccountInput, IdentityAccountPreferencesInput
-from ._identityprovider import IdentityProviderClient, IdentityProviderInput
 from ._invitation import InvitationClient, InvitationInput
 from ._license import LicenseClient, LicenseInput, LicenseCustomerInput, EntitlementsInput, EntitlementLimitsInput
 from ._memory import MemoryClient, MemoryInput, MemoryProvenanceInput
@@ -73,14 +73,14 @@ __all__ = [
     "WhatsAppChannelAppConfigInput",
     "EvaluatorClient",
     "EvaluatorInput",
+    "FederationIssuerClient",
+    "FederationIssuerInput",
     "IamPolicyClient",
     "IamPolicyInput",
     "ApiResourceRefInput",
     "IdentityAccountClient",
     "IdentityAccountInput",
     "IdentityAccountPreferencesInput",
-    "IdentityProviderClient",
-    "IdentityProviderInput",
     "InvitationClient",
     "InvitationInput",
     "LicenseClient",

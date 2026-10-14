@@ -19,7 +19,7 @@ to the people of another child.
 ## When you need this
 
 You already have a working
-[Identity Provider](/docs/guides/authentication/federation/register-identity-provider),
+[Federation Issuer](/docs/guides/authentication/federation/register-federation-issuer),
 or a [PlatformClient](/docs/guides/authentication/platform-client/overview), and
 you want to:
 
@@ -38,9 +38,9 @@ you want to:
   [limited to the Organization](/docs/guides/authentication/overview) works too:
   a key limited to the parent creates and manages its children, and reads none
   of what they hold.
-- For sign-in through your own auth provider, a **registered Identity Provider**
+- For sign-in through your own auth provider, a **registered Federation Issuer**
   in the parent (see
-  [Register an Identity Provider](/docs/guides/authentication/federation/register-identity-provider))
+  [Register a Federation Issuer](/docs/guides/authentication/federation/register-federation-issuer))
 
 ## How it fits together
 
@@ -56,7 +56,7 @@ flowchart TD
   end
   subgraph stigmer ["Stigmer"]
     subgraph acmeOrg ["Parent organization: acme"]
-      SIdP["IdentityProvider<br/>(acme-cloud-auth)"]
+      SIdP["FederationIssuer<br/>(acme-cloud-auth)"]
       Catalog["Shared catalog<br/>(visibility_child_orgs)"]
     end
     subgraph childA ["Child organization: tenant-alpha<br/>externalId: cust-4411"]
@@ -275,8 +275,8 @@ profile page.
 
 ## Route your customers' sign-ins
 
-Every token an Identity Provider vouches for works in one Organization only.
-Without `externalIdClaim`, that Organization is the Identity Provider's own
+Every token a Federation Issuer vouches for works in one Organization only.
+Without `externalIdClaim`, that Organization is the Federation Issuer's own
 (`acme` here), so your customers' tokens would never reach their child
 organizations. Set `externalIdClaim` to the name of the JWT claim that carries
 your customer id, and put that claim in every token your auth provider issues
@@ -295,7 +295,7 @@ On every request, Stigmer:
 
 1. Reads the claim value from the token (here, claim `org_id` yields
    `cust-4411`)
-2. Finds the child of the Identity Provider's Organization whose `externalId` is
+2. Finds the child of the Federation Issuer's Organization whose `externalId` is
    that value
 3. Binds the token to that child: the token works there and nowhere else,
    whatever roles the user holds in other child organizations
@@ -308,19 +308,19 @@ with a token that names it.
   **Example.** Alice is a user at two of your customers, Alpha and Beta, and
   holds a role in both child organizations. Her token that claims Alpha is
   refused in Beta, even though she holds a role there. To work in Beta, she
-  signs in with a token that claims Beta. If your Identity Provider sets a
+  signs in with a token that claims Beta. If your Federation Issuer sets a
   `signInRole`, the first time she signs in to Beta with a Beta token she
   receives that role in Beta, once.
 </Callout>
 
-Set `externalIdClaim` when you register the Identity Provider in your
+Set `externalIdClaim` when you register the Federation Issuer in your
 Organization:
 
 <SDKTabs>
 <Tab value="TypeScript">
 
 ```typescript
-const idp = await stigmer.identityProvider.create({
+const issuer = await stigmer.federationIssuer.create({
   name: "Acme Cloud Auth",
   org: "acme",
   slug: "acme-cloud-auth",
@@ -336,7 +336,7 @@ const idp = await stigmer.identityProvider.create({
 <Tab value="Go">
 
 ```go
-idp, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityProviderInput{
+issuer, err := client.FederationIssuer.Create(ctx, &stigmer.FederationIssuerInput{
   Name:             "Acme Cloud Auth",
   Org:              "acme",
   Slug:             "acme-cloud-auth",
@@ -352,7 +352,7 @@ idp, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityProviderInput{
 <Tab value="Python">
 
 ```python
-idp = client.identity_providers.create(IdentityProviderInput(
+issuer = client.federation_issuers.create(FederationIssuerInput(
     name="Acme Cloud Auth",
     org="acme",
     slug="acme-cloud-auth",
@@ -368,7 +368,7 @@ idp = client.identity_providers.create(IdentityProviderInput(
 <Tab value="Java">
 
 ```java
-IdentityProvider idp = client.identityProviders().create(IdentityProviderInput.builder()
+FederationIssuer issuer = client.federationIssuers().create(FederationIssuerInput.builder()
     .name("Acme Cloud Auth")
     .org("acme")
     .slug("acme-cloud-auth")
@@ -389,7 +389,7 @@ grants roles from its backend, as the next sections show. To have Stigmer create
 accounts and grant a role as well, see
 [Create accounts and grant a role at sign-in](#create-accounts-and-grant-a-role-at-sign-in).
 
-An Identity Provider in a child organization cannot set `externalIdClaim`: a
+A Federation Issuer in a child organization cannot set `externalIdClaim`: a
 child organization has no children to route to.
 
 ### What a bound token can reach
@@ -410,7 +410,7 @@ Organization, or accept an invitation to another Organization.
 | Error                       | When                                                                                     | What to do                                                                                 |
 | --------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `UNAUTHENTICATED` (`401`)   | The token lacks the `externalIdClaim` claim, or its value is not a string                | Put the claim, as a string, in every token your auth provider issues for Stigmer           |
-| `UNAUTHENTICATED` (`401`)   | The claim names no child of the Identity Provider's Organization                         | Create the child organization with that `externalId`, or fix the value your provider sends |
+| `UNAUTHENTICATED` (`401`)   | The claim names no child of the Federation Issuer's Organization                         | Create the child organization with that `externalId`, or fix the value your provider sends |
 | `PERMISSION_DENIED` (`403`) | The token names one child organization and the request targets another                   | Sign in with a token that names the child organization the request targets                 |
 | `PERMISSION_DENIED` (`403`) | The token names the right child organization, but the user's role there doesn't allow it | Grant a role on the child organization                                                     |
 
@@ -418,7 +418,7 @@ Stigmer refuses a missing or unknown claim on every sign-in, returning users
 included, and the refusal does not name the value. A first sign-in refused this
 way leaves no account behind.
 
-### Without an Identity Provider: PlatformClient tokens
+### Without a Federation Issuer: PlatformClient tokens
 
 A platform that mints tokens from its backend with a
 [PlatformClient](/docs/guides/authentication/platform-client/overview) of its
@@ -448,12 +448,12 @@ client's `sign_in_role`.
 ## Provision users and place them in children
 
 When a user signs up on your platform, provision their federated Identity
-Account once, under the Organization that owns your Identity Provider: the `org`
-field must be the Identity Provider reference's own `org`, and Stigmer refuses
-any other value with `INVALID_ARGUMENT`. The account belongs to your Identity
-Provider, not to a child. What places the user in a child is the role you grant
-on that child organization in the next step, and what lets their token reach it
-is the claim that [routes it](#route-your-customers-sign-ins).
+Account once, under the Organization that owns your Federation Issuer: the `org`
+field must be the Federation Issuer reference's own `org`, and Stigmer refuses
+any other value with `INVALID_ARGUMENT`. The account belongs to your Federation
+Issuer, not to a child. What places the user in a child is the role you grant on
+that child organization in the next step, and what lets their token reach it is
+the claim that [routes it](#route-your-customers-sign-ins).
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -461,9 +461,9 @@ is the claim that [routes it](#route-your-customers-sign-ins).
 ```typescript
 const account = await stigmer.identityAccount.createFederatedAccount({
   org: "acme",
-  identityProviderRef: {
+  federationIssuerRef: {
     org: "acme",
-    kind: "identity_provider",
+    kind: "federation_issuer",
     slug: "acme-cloud-auth",
   },
   externalSub: user.oidcSubject,
@@ -479,9 +479,9 @@ const account = await stigmer.identityAccount.createFederatedAccount({
 ```go
 account, err := client.IdentityAccount.CreateFederatedAccount(ctx, &stigmer.CreateFederatedAccountInput{
   Org: "acme",
-  IdentityProviderRef: &stigmer.ResourceRef{
+  FederationIssuerRef: &stigmer.ResourceRef{
     Org:  "acme",
-    Kind: "identity_provider",
+    Kind: "federation_issuer",
     Slug: "acme-cloud-auth",
   },
   ExternalSub: user.OIDCSubject,
@@ -500,9 +500,9 @@ if err != nil {
 ```python
 account = client.identity_accounts.create_federated_account(CreateFederatedAccountInput(
     org="acme",
-    identity_provider_ref=ResourceRef(
+    federation_issuer_ref=ResourceRef(
         org="acme",
-        kind="identity_provider",
+        kind="federation_issuer",
         slug="acme-cloud-auth",
     ),
     external_sub=user.oidc_subject,
@@ -518,9 +518,9 @@ account = client.identity_accounts.create_federated_account(CreateFederatedAccou
 ```java
 IdentityAccount account = client.identityAccounts().createFederatedAccount(CreateFederatedAccountInput.builder()
     .org("acme")
-    .identityProviderRef(ResourceRef.builder()
+    .federationIssuerRef(ResourceRef.builder()
         .org("acme")
-        .kind("identity_provider")
+        .kind("federation_issuer")
         .slug("acme-cloud-auth")
         .build())
     .externalSub(user.getOidcSubject())
@@ -534,7 +534,7 @@ IdentityAccount account = client.identityAccounts().createFederatedAccount(Creat
 </SDKTabs>
 
 <Callout type="info">
-  A federated account is unique per **Identity Provider + external subject**:
+  A federated account is unique per **Federation Issuer + external subject**:
   each user of your platform has one account, whichever customers they belong
   to. A user who joins a second customer keeps their account; check for it with
   `getByExternalSub` (see [Provision federated
@@ -613,7 +613,7 @@ sign-in role the first time they sign in to each child.
 />
 
 ```typescript
-const idp = await stigmer.identityProvider.create({
+const issuer = await stigmer.federationIssuer.create({
   name: "Acme Cloud Auth",
   org: "acme",
   slug: "acme-cloud-auth",
@@ -744,4 +744,4 @@ async function onboardCustomerUser(
   [Keep your customers' keys](/docs/guides/authentication/customer-keys).
 - **API reference** --- For API details, see the
   [Organization SDK reference](/docs/sdk/resources/organization) and
-  [IdentityProvider SDK reference](/docs/sdk/resources/identity-provider).
+  [FederationIssuer SDK reference](/docs/sdk/resources/federation-issuer).

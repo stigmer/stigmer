@@ -15,7 +15,7 @@
  * It asserts the authorization cases a host's OpenFGA suites assert for the
  * same unit, so one unit is held to one answer on both engines:
  *
- *   - identity providers: an org admin creates one, with its organization
+ *   - federation issuers: an org admin creates one, with its organization
  *     link and no owner row; its organization's admins read it by id, by
  *     name and in the list, and its members, viewers and outsiders do not;
  *     an admin who did not create it edits it, a member does not; its
@@ -37,7 +37,7 @@
  *
  * Beside those cases, and outside the parity with the OpenFGA suites, the
  * unit's four creates of a kind open source does not serve (team,
- * invitation, identity provider, and the identity provider's apply as a
+ * invitation, federation issuer, and the federation issuer's apply as a
  * create) each replace a well-formed id the caller sent with one the server
  * minted, and the resource reads back under the minted id
  * (stigmer/stigmer#1489, the rule the OSS conformance suite holds for the
@@ -80,8 +80,8 @@ import {
 } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
-import { IdentityProviderQueryController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/query_pb";
+import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
+import { FederationIssuerQueryController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/query_pb";
 import { InvitationCommandController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/command_pb";
 import { InvitationState } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/enum_pb";
 import { InvitationQueryController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/query_pb";
@@ -106,12 +106,12 @@ import { refusingPort } from "../../__test-utils__/refusing-doubles.js";
 import type { IdentityAccountService } from "../../iam/account/port.js";
 import { InMemoryInvitationStore } from "../../iam/invitation/__tests__/in-memory-invitation-store.js";
 import { newKindMetaPolicyGrantScope } from "../../iam/policy/roles.js";
-import { InMemoryProviderStore } from "../../iam/provider/__tests__/in-memory-provider-store.js";
+import { InMemoryIssuerStore } from "../../iam/issuer/__tests__/in-memory-issuer-store.js";
 import {
   publicLookup,
   publishedIssuer,
   publishedIssuersFetch,
-} from "../../iam/provider/__tests__/published-issuers.js";
+} from "../../iam/issuer/__tests__/published-issuers.js";
 import { InMemoryTeamStore } from "../../iam/team/__tests__/in-memory-team-store.js";
 import { inMemorySignInGrants } from "../../iam/federation/__tests__/in-memory-sign-in-grants.js";
 import { newEnterpriseIdentityExtension } from "../enterprise-identity.js";
@@ -164,7 +164,7 @@ const noFederatedAccounts: IdentityAccountService = new Proxy(refusingPort<Ident
     member === "store"
       ? new Proxy(refusingPort<IdentityAccountService["store"]>("accounts.store"), {
           get: (store, storeMember) =>
-            storeMember === "findByProvider"
+            storeMember === "findByIssuer"
               ? () => Promise.resolve([])
               : storeMember === "findById"
                 ? () => Promise.resolve(undefined)
@@ -208,7 +208,7 @@ describe("the Enterprise identity unit on open source's own authorization (compo
   // The services the unit registers, read from its registrations.
   let served: ReadonlyArray<DescService> = [];
   const policyStore = new InMemoryIamPolicyStore();
-  const providers = new InMemoryProviderStore();
+  const providers = new InMemoryIssuerStore();
   const invitations = new InMemoryInvitationStore();
   const teams = new InMemoryTeamStore();
 
@@ -259,15 +259,15 @@ describe("the Enterprise identity unit on open source's own authorization (compo
     });
   }
 
-  async function createProvider(
+  async function createIssuer(
     name: string,
     org: string,
     admin: string,
   ): Promise<string> {
     const issuer = `https://${name.toLowerCase().replaceAll(" ", "-")}.${org}.test`;
-    const provider = await createClient(IdentityProviderCommandController, as(admin)).create({
+    const provider = await createClient(FederationIssuerCommandController, as(admin)).create({
       apiVersion: "iam.stigmer.ai/v1",
-      kind: "IdentityProvider",
+      kind: "FederationIssuer",
       metadata: { name, org },
       spec: {
         displayName: name,
@@ -278,10 +278,10 @@ describe("the Enterprise identity unit on open source's own authorization (compo
     return provider.metadata?.id ?? "";
   }
 
-  function editProvider(as_: string, id: string, displayName: string) {
-    return createClient(IdentityProviderCommandController, as(as_)).update({ resource: {
+  function editIssuer(as_: string, id: string, displayName: string) {
+    return createClient(FederationIssuerCommandController, as(as_)).update({ resource: {
       apiVersion: "iam.stigmer.ai/v1",
-      kind: "IdentityProvider",
+      kind: "FederationIssuer",
       metadata: { id, name: "Acme Platform", org: ACME },
       spec: {
         displayName,
@@ -291,8 +291,8 @@ describe("the Enterprise identity unit on open source's own authorization (compo
     }, updateMask: { paths: ["*"] } });
   }
 
-  async function listedProviders(account: string): Promise<string[]> {
-    const answer = await createClient(IdentityProviderQueryController, as(account)).list({ org: ACME });
+  async function listedIssuers(account: string): Promise<string[]> {
+    const answer = await createClient(FederationIssuerQueryController, as(account)).list({ org: ACME });
     return answer.entries.map((entry) => entry.metadata?.id ?? "");
   }
 
@@ -426,37 +426,37 @@ describe("the Enterprise identity unit on open source's own authorization (compo
     }
   });
 
-  describe("identity providers", () => {
+  describe("federation issuers", () => {
     let providerId = "";
 
     it("an org admin creates a provider: the row lands with its organization link and no owner row", async () => {
-      providerId = await createProvider("Acme Platform", ACME, CAROL);
-      expect(providerId).toMatch(/^idp_[0-9a-z]{26}$/);
+      providerId = await createIssuer("Acme Platform", ACME, CAROL);
+      expect(providerId).toMatch(/^fis_[0-9a-z]{26}$/);
       expect(await providers.findById(providerId)).toBeDefined();
       expect(
         policyStore
           .all()
-          .filter((row) => row.spec?.resource?.kind === "identity_provider" && row.spec?.resource?.id === providerId)
+          .filter((row) => row.spec?.resource?.kind === "federation_issuer" && row.spec?.resource?.id === providerId)
           .filter((row) => row.spec?.relation === "owner"),
       ).toEqual([]);
     });
 
     it("its organization's admins read it by id, by name and in the list; members, viewers and outsiders do not", async () => {
       for (const admin of [CAROL, ANA, FOUNDER]) {
-        const queries = createClient(IdentityProviderQueryController, as(admin));
+        const queries = createClient(FederationIssuerQueryController, as(admin));
         expect((await queries.get({ value: providerId })).metadata?.id).toBe(providerId);
         expect((await queries.getByReference({ org: ACME, slug: "acme-platform" })).metadata?.id).toBe(providerId);
-        expect(await listedProviders(admin)).toEqual([providerId]);
+        expect(await listedIssuers(admin)).toEqual([providerId]);
       }
       for (const person of [DAVE, VERA]) {
-        const queries = createClient(IdentityProviderQueryController, as(person));
+        const queries = createClient(FederationIssuerQueryController, as(person));
         expect((await refusalOf(queries.get({ value: providerId }))).code).toBe(Code.PermissionDenied);
         expect(
           (await refusalOf(queries.getByReference({ org: ACME, slug: "acme-platform" }))).code,
         ).toBe(Code.PermissionDenied);
-        expect(await listedProviders(person)).toEqual([]);
+        expect(await listedIssuers(person)).toEqual([]);
       }
-      const outsider = createClient(IdentityProviderQueryController, as(OUTSIDER));
+      const outsider = createClient(FederationIssuerQueryController, as(OUTSIDER));
       expect((await refusalOf(outsider.get({ value: providerId }))).code).toBe(Code.PermissionDenied);
       expect(
         (await refusalOf(outsider.getByReference({ org: ACME, slug: "acme-platform" }))).code,
@@ -465,10 +465,10 @@ describe("the Enterprise identity unit on open source's own authorization (compo
     });
 
     it("an admin who did not create it edits it; a member does not", async () => {
-      expect((await editProvider(ANA, providerId, "Acme Platform (edited by Ana)")).spec?.displayName).toBe(
+      expect((await editIssuer(ANA, providerId, "Acme Platform (edited by Ana)")).spec?.displayName).toBe(
         "Acme Platform (edited by Ana)",
       );
-      expect((await refusalOf(editProvider(DAVE, providerId, "edited by a member"))).code).toBe(
+      expect((await refusalOf(editIssuer(DAVE, providerId, "edited by a member"))).code).toBe(
         Code.PermissionDenied,
       );
     });
@@ -477,20 +477,20 @@ describe("the Enterprise identity unit on open source's own authorization (compo
       const owner = createClient(IamPolicyCommandController, as(FOUNDER));
       await owner.create(grant(ref("identity_account", CAROL), "member", ref("organization", ACME)));
       await owner.delete(grant(ref("identity_account", CAROL), "admin", ref("organization", ACME)));
-      expect((await refusalOf(editProvider(CAROL, providerId, "edited by its creator"))).code).toBe(
+      expect((await refusalOf(editIssuer(CAROL, providerId, "edited by its creator"))).code).toBe(
         Code.PermissionDenied,
       );
 
       await owner.create(grant(ref("identity_account", CAROL), "admin", ref("organization", ACME)));
       await owner.delete(grant(ref("identity_account", CAROL), "member", ref("organization", ACME)));
-      expect((await editProvider(CAROL, providerId, "edited by its creator")).spec?.displayName).toBe(
+      expect((await editIssuer(CAROL, providerId, "edited by its creator")).spec?.displayName).toBe(
         "edited by its creator",
       );
     });
 
     it("every provider read refuses an unauthenticated caller", async () => {
-      await createProvider("Acme Partner", ACME, CAROL);
-      const tokenless = createClient(IdentityProviderQueryController, transport());
+      await createIssuer("Acme Partner", ACME, CAROL);
+      const tokenless = createClient(FederationIssuerQueryController, transport());
 
       expect((await refusalOf(tokenless.getByReference({ org: ACME, slug: "acme-partner" }))).code).toBe(
         Code.Unauthenticated,
@@ -501,10 +501,10 @@ describe("the Enterprise identity unit on open source's own authorization (compo
 
     it("deleting an organization removes its providers and every row naming them", async () => {
       await createOrganization("phoenix", FOUNDER);
-      const doomed = await createProvider("Doomed", "phoenix", FOUNDER);
+      const doomed = await createIssuer("Doomed", "phoenix", FOUNDER);
       await createClient(OrganizationCommandController, as(FOUNDER)).delete({ value: "phoenix" });
       expect(await providers.findById(doomed)).toBeUndefined();
-      expect(rowsNaming("identity_provider", doomed)).toBe(0);
+      expect(rowsNaming("federation_issuer", doomed)).toBe(0);
     });
   });
 
@@ -685,14 +685,14 @@ describe("the Enterprise identity unit on open source's own authorization (compo
       const issuer = `https://mint.${org}.test`;
       return {
         apiVersion: "iam.stigmer.ai/v1",
-        kind: "IdentityProvider",
+        kind: "FederationIssuer",
         metadata: { id: chosenId, name: "Mint Provider", org },
         spec: { displayName: "Mint Provider", ...publishedIssuer(issuer), expectedAudience: `${issuer}/stigmer` },
       };
     }
 
-    const readProvider = async (id: string) =>
-      (await createClient(IdentityProviderQueryController, as(FOUNDER)).get({ value: id })).metadata?.id;
+    const readIssuer = async (id: string) =>
+      (await createClient(FederationIssuerQueryController, as(FOUNDER)).get({ value: id })).metadata?.id;
 
     const ROWS: readonly MintRow[] = [
       {
@@ -735,28 +735,28 @@ describe("the Enterprise identity unit on open source's own authorization (compo
         },
       },
       {
-        title: "[rpc:IdentityProviderCommandController.create] IdentityProvider",
-        key: "IdentityProviderCommandController.create",
-        kind: ApiResourceKind.identity_provider,
+        title: "[rpc:FederationIssuerCommandController.create] FederationIssuer",
+        key: "FederationIssuerCommandController.create",
+        kind: ApiResourceKind.federation_issuer,
         async send(org, chosenId) {
-          const provider = await createClient(IdentityProviderCommandController, as(FOUNDER)).create(
+          const provider = await createClient(FederationIssuerCommandController, as(FOUNDER)).create(
             providerRequest(org, chosenId),
           );
           return provider.metadata?.id ?? "";
         },
-        read: readProvider,
+        read: readIssuer,
       },
       {
-        title: "[rpc:IdentityProviderCommandController.apply] IdentityProvider (apply as a create)",
-        key: "IdentityProviderCommandController.apply",
-        kind: ApiResourceKind.identity_provider,
+        title: "[rpc:FederationIssuerCommandController.apply] FederationIssuer (apply as a create)",
+        key: "FederationIssuerCommandController.apply",
+        kind: ApiResourceKind.federation_issuer,
         async send(org, chosenId) {
-          const provider = await createClient(IdentityProviderCommandController, as(FOUNDER)).apply(
+          const provider = await createClient(FederationIssuerCommandController, as(FOUNDER)).apply(
             providerRequest(org, chosenId),
           );
           return provider.metadata?.id ?? "";
         },
-        read: readProvider,
+        read: readIssuer,
       },
     ];
 

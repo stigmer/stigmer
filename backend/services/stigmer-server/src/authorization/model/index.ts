@@ -16,7 +16,7 @@
  * The model declares every type, whichever edition serves it. Which kinds
  * an edition evaluates is the tier's question, answered before any
  * evaluation (authorizer.ts, `kindServedByEdition`): open source refuses a
- * check that targets `team`, `identity_provider`, `invitation` or
+ * check that targets `team`, `federation_issuer`, `invitation` or
  * `platform`, and a tuple that names one resolves over tuples alone, since
  * open source stores no row of those kinds. An edition that serves them
  * keeps their rows in its units' own stores and registers a reader for

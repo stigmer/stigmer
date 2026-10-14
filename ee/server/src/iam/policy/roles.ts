@@ -86,7 +86,7 @@ export function newKindMetaPolicyGrantScope(): PolicyGrantScope {
  * The library's `isPersonAccount` answers another question (which
  * accounts the built-in membership rules derive roles for, federated ones
  * excluded) and is not this rule: it would refuse every person who signs
- * in through their organization's own identity provider.
+ * in through their organization's own federation issuer.
  */
 export function isPersonCaller(caller: CallerIdentity): boolean {
   return caller.callerClass === "user";

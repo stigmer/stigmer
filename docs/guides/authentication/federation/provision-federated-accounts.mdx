@@ -10,10 +10,10 @@ Identity Account for each user **before** that user can call the Stigmer API.
 This gives you full control over who gets access and when.
 
 <Callout type="info">
-  **Using JIT provisioning?** If your Identity Provider has
+  **Using JIT provisioning?** If your Federation Issuer has
   `createAccountsOnSignIn` enabled, Stigmer creates accounts automatically on
   first authentication. You don't need to follow this page. See [Enable JIT
-  provisioning](/docs/guides/authentication/federation/register-identity-provider#enable-jit-provisioning)
+  provisioning](/docs/guides/authentication/federation/register-federation-issuer#enable-jit-provisioning)
   for the automatic setup.
 </Callout>
 
@@ -48,7 +48,7 @@ flowchart TD
 
 Before creating an account, check whether one already exists for this user's
 OIDC subject. The `getByExternalSub` method looks up a federated account by
-Identity Provider reference and external subject identifier.
+Federation Issuer reference and external subject identifier.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -57,9 +57,9 @@ Identity Provider reference and external subject identifier.
 try {
   const existing = await stigmer.identityAccount.getByExternalSub({
     org: "acme",
-    identityProviderRef: {
+    federationIssuerRef: {
       org: "acme",
-      kind: "identity_provider",
+      kind: "federation_issuer",
       slug: "acme-cloud-auth",
     },
     externalSub: user.oidcSubject,
@@ -80,9 +80,9 @@ try {
 ```go
 existing, err := client.IdentityAccount.GetByExternalSub(ctx, &stigmer.ExternalSubLookup{
   Org: "acme",
-  IdentityProviderRef: &stigmer.ResourceRef{
+  FederationIssuerRef: &stigmer.ResourceRef{
     Org:  "acme",
-    Kind: "identity_provider",
+    Kind: "federation_issuer",
     Slug: "acme-cloud-auth",
   },
   ExternalSub: user.OIDCSubject,
@@ -105,9 +105,9 @@ from grpc import StatusCode, RpcError
 try:
     existing = client.identity_accounts.get_by_external_sub(ExternalSubLookup(
         org="acme",
-        identity_provider_ref=ResourceRef(
+        federation_issuer_ref=ResourceRef(
             org="acme",
-            kind="identity_provider",
+            kind="federation_issuer",
             slug="acme-cloud-auth",
         ),
         external_sub=user.oidc_subject,
@@ -127,9 +127,9 @@ except RpcError as e:
 try {
     IdentityAccount existing = client.identityAccounts().getByExternalSub(ExternalSubLookup.builder()
         .org("acme")
-        .identityProviderRef(ResourceRef.builder()
+        .federationIssuerRef(ResourceRef.builder()
             .org("acme")
-            .kind("identity_provider")
+            .kind("federation_issuer")
             .slug("acme-cloud-auth")
             .build())
         .externalSub(user.getOidcSubject())
@@ -150,7 +150,7 @@ try {
 <Callout type="info">
   `getByExternalSub` requires `can_create_identity_account` permission on the
   Organization. Your API key must have admin access to the Organization that
-  owns the Identity Provider.
+  owns the Federation Issuer.
 </Callout>
 
 ## Create the federated account
@@ -165,9 +165,9 @@ profile data.
 ```typescript
 const account = await stigmer.identityAccount.createFederatedAccount({
   org: "acme",
-  identityProviderRef: {
+  federationIssuerRef: {
     org: "acme",
-    kind: "identity_provider",
+    kind: "federation_issuer",
     slug: "acme-cloud-auth",
   },
   externalSub: user.oidcSubject,
@@ -186,9 +186,9 @@ console.log(`Created federated account: ${account.metadata.id}`);
 ```go
 account, err := client.IdentityAccount.CreateFederatedAccount(ctx, &stigmer.CreateFederatedAccountInput{
   Org: "acme",
-  IdentityProviderRef: &stigmer.ResourceRef{
+  FederationIssuerRef: &stigmer.ResourceRef{
     Org:  "acme",
-    Kind: "identity_provider",
+    Kind: "federation_issuer",
     Slug: "acme-cloud-auth",
   },
   ExternalSub: user.OIDCSubject,
@@ -209,9 +209,9 @@ fmt.Printf("Created federated account: %s\n", account.Metadata.Id)
 ```python
 account = client.identity_accounts.create_federated_account(CreateFederatedAccountInput(
     org="acme",
-    identity_provider_ref=ResourceRef(
+    federation_issuer_ref=ResourceRef(
         org="acme",
-        kind="identity_provider",
+        kind="federation_issuer",
         slug="acme-cloud-auth",
     ),
     external_sub=user.oidc_subject,
@@ -230,9 +230,9 @@ print(f"Created federated account: {account.metadata.id}")
 ```java
 IdentityAccount account = client.identityAccounts().createFederatedAccount(CreateFederatedAccountInput.builder()
     .org("acme")
-    .identityProviderRef(ResourceRef.builder()
+    .federationIssuerRef(ResourceRef.builder()
         .org("acme")
-        .kind("identity_provider")
+        .kind("federation_issuer")
         .slug("acme-cloud-auth")
         .build())
     .externalSub(user.getOidcSubject())
@@ -256,7 +256,7 @@ Stigmer uses to resolve tokens to accounts at runtime.
 
 <Callout type="warn">
   Use the OIDC `sub` claim, not the email address. Email addresses can change
-  and aren't guaranteed to be unique across Identity Providers. The `sub` claim
+  and aren't guaranteed to be unique across Federation Issuers. The `sub` claim
   is immutable and unique within a provider.
 </Callout>
 
@@ -271,13 +271,13 @@ Common `sub` claim formats by provider:
 
 ## Uniqueness constraint
 
-Stigmer enforces a compound uniqueness constraint: **Identity Provider +
-external subject** (the Identity Provider named by its Organization and slug).
+Stigmer enforces a compound uniqueness constraint: **Federation Issuer +
+external subject** (the Federation Issuer named by its Organization and slug).
 This means:
 
-- The same `sub` can exist in different Identity Providers (different auth
+- The same `sub` can exist in different Federation Issuers (different auth
   systems have independent subject spaces)
-- The same `sub` in the same Identity Provider can't be duplicated
+- The same `sub` in the same Federation Issuer can't be duplicated
 - Attempting to create a duplicate returns `ALREADY_EXISTS`
 
 ## Full provisioning handler
@@ -290,16 +290,16 @@ handling:
 
 ```typescript
 async function provisionUser(user: PlatformUser): Promise<string> {
-  const idpRef = {
+  const issuerRef = {
     org: "acme",
-    kind: "identity_provider",
+    kind: "federation_issuer",
     slug: "acme-cloud-auth",
   };
 
   try {
     const existing = await stigmer.identityAccount.getByExternalSub({
       org: "acme",
-      identityProviderRef: idpRef,
+      federationIssuerRef: issuerRef,
       externalSub: user.oidcSubject,
     });
     return existing.metadata.id;
@@ -309,7 +309,7 @@ async function provisionUser(user: PlatformUser): Promise<string> {
 
   const account = await stigmer.identityAccount.createFederatedAccount({
     org: "acme",
-    identityProviderRef: idpRef,
+    federationIssuerRef: issuerRef,
     externalSub: user.oidcSubject,
     email: user.email,
     firstName: user.firstName,
@@ -326,15 +326,15 @@ async function provisionUser(user: PlatformUser): Promise<string> {
 
 ```go
 func provisionUser(ctx context.Context, client *stigmer.Client, user PlatformUser) (string, error) {
-  idpRef := &stigmer.ResourceRef{
+  issuerRef := &stigmer.ResourceRef{
     Org:  "acme",
-    Kind: "identity_provider",
+    Kind: "federation_issuer",
     Slug: "acme-cloud-auth",
   }
 
   existing, err := client.IdentityAccount.GetByExternalSub(ctx, &stigmer.ExternalSubLookup{
     Org:                 "acme",
-    IdentityProviderRef: idpRef,
+    FederationIssuerRef: issuerRef,
     ExternalSub:         user.OIDCSubject,
   })
   if err == nil {
@@ -346,7 +346,7 @@ func provisionUser(ctx context.Context, client *stigmer.Client, user PlatformUse
 
   account, err := client.IdentityAccount.CreateFederatedAccount(ctx, &stigmer.CreateFederatedAccountInput{
     Org:                 "acme",
-    IdentityProviderRef: idpRef,
+    FederationIssuerRef: issuerRef,
     ExternalSub:         user.OIDCSubject,
     Email:               user.Email,
     FirstName:           user.FirstName,
@@ -366,16 +366,16 @@ func provisionUser(ctx context.Context, client *stigmer.Client, user PlatformUse
 
 ```python
 def provision_user(client, user: PlatformUser) -> str:
-    idp_ref = ResourceRef(
+    issuer_ref = ResourceRef(
         org="acme",
-        kind="identity_provider",
+        kind="federation_issuer",
         slug="acme-cloud-auth",
     )
 
     try:
         existing = client.identity_accounts.get_by_external_sub(ExternalSubLookup(
             org="acme",
-            identity_provider_ref=idp_ref,
+            federation_issuer_ref=issuer_ref,
             external_sub=user.oidc_subject,
         ))
         return existing.metadata.id
@@ -385,7 +385,7 @@ def provision_user(client, user: PlatformUser) -> str:
 
     account = client.identity_accounts.create_federated_account(CreateFederatedAccountInput(
         org="acme",
-        identity_provider_ref=idp_ref,
+        federation_issuer_ref=issuer_ref,
         external_sub=user.oidc_subject,
         email=user.email,
         first_name=user.first_name,
@@ -401,16 +401,16 @@ def provision_user(client, user: PlatformUser) -> str:
 
 ```java
 public String provisionUser(StigmerClient client, PlatformUser user) {
-    ResourceRef idpRef = ResourceRef.builder()
+    ResourceRef issuerRef = ResourceRef.builder()
         .org("acme")
-        .kind("identity_provider")
+        .kind("federation_issuer")
         .slug("acme-cloud-auth")
         .build();
 
     try {
         IdentityAccount existing = client.identityAccounts().getByExternalSub(ExternalSubLookup.builder()
             .org("acme")
-            .identityProviderRef(idpRef)
+            .federationIssuerRef(issuerRef)
             .externalSub(user.getOidcSubject())
             .build());
         return existing.getMetadata().getId();
@@ -422,7 +422,7 @@ public String provisionUser(StigmerClient client, PlatformUser user) {
 
     IdentityAccount account = client.identityAccounts().createFederatedAccount(CreateFederatedAccountInput.builder()
         .org("acme")
-        .identityProviderRef(idpRef)
+        .federationIssuerRef(issuerRef)
         .externalSub(user.getOidcSubject())
         .email(user.getEmail())
         .firstName(user.getFirstName())
@@ -441,7 +441,7 @@ public String provisionUser(StigmerClient client, PlatformUser user) {
 
 When a user's profile changes on your platform (email, name, or picture), sync
 those changes to Stigmer with `updateFederatedAccount`. The method uses the same
-natural-key lookup as provisioning: Identity Provider reference + external
+natural-key lookup as provisioning: Federation Issuer reference + external
 subject.
 
 <SDKTabs>
@@ -450,9 +450,9 @@ subject.
 ```typescript
 const updated = await stigmer.identityAccount.updateFederatedAccount({
   org: "acme",
-  identityProviderRef: {
+  federationIssuerRef: {
     org: "acme",
-    kind: "identity_provider",
+    kind: "federation_issuer",
     slug: "acme-cloud-auth",
   },
   externalSub: user.oidcSubject,
@@ -469,9 +469,9 @@ const updated = await stigmer.identityAccount.updateFederatedAccount({
 ```go
 updated, err := client.IdentityAccount.UpdateFederatedAccount(ctx, &stigmer.UpdateFederatedAccountInput{
   Org: "acme",
-  IdentityProviderRef: &stigmer.ResourceRef{
+  FederationIssuerRef: &stigmer.ResourceRef{
     Org:  "acme",
-    Kind: "identity_provider",
+    Kind: "federation_issuer",
     Slug: "acme-cloud-auth",
   },
   ExternalSub: user.OIDCSubject,
@@ -488,9 +488,9 @@ updated, err := client.IdentityAccount.UpdateFederatedAccount(ctx, &stigmer.Upda
 ```python
 updated = client.identity_accounts.update_federated_account(UpdateFederatedAccountInput(
     org="acme",
-    identity_provider_ref=ResourceRef(
+    federation_issuer_ref=ResourceRef(
         org="acme",
-        kind="identity_provider",
+        kind="federation_issuer",
         slug="acme-cloud-auth",
     ),
     external_sub=user.oidc_subject,
@@ -507,9 +507,9 @@ updated = client.identity_accounts.update_federated_account(UpdateFederatedAccou
 ```java
 IdentityAccount updated = client.identityAccounts().updateFederatedAccount(UpdateFederatedAccountInput.builder()
     .org("acme")
-    .identityProviderRef(ResourceRef.builder()
+    .federationIssuerRef(ResourceRef.builder()
         .org("acme")
-        .kind("identity_provider")
+        .kind("federation_issuer")
         .slug("acme-cloud-auth")
         .build())
     .externalSub(user.getOidcSubject())
@@ -524,7 +524,7 @@ IdentityAccount updated = client.identityAccounts().updateFederatedAccount(Updat
 </SDKTabs>
 
 The update replaces all profile fields at once. Pass the current values for any
-fields that haven't changed. Identity keys (`org`, `identityProviderRef`,
+fields that haven't changed. Identity keys (`org`, `federationIssuerRef`,
 `externalSub`) are immutable and used only for lookup.
 
 ## Revoke a federated account
@@ -546,9 +546,9 @@ When a user leaves your platform, revoke their Stigmer access with
 const deprovisioned = await stigmer.identityAccount.deprovisionFederatedAccount(
   {
     org: "acme",
-    identityProviderRef: {
+    federationIssuerRef: {
       org: "acme",
-      kind: "identity_provider",
+      kind: "federation_issuer",
       slug: "acme-cloud-auth",
     },
     externalSub: user.oidcSubject,
@@ -563,9 +563,9 @@ const deprovisioned = await stigmer.identityAccount.deprovisionFederatedAccount(
 ```go
 deprovisioned, err := client.IdentityAccount.DeprovisionFederatedAccount(ctx, &stigmer.DeprovisionFederatedAccountInput{
   Org: "acme",
-  IdentityProviderRef: &stigmer.ResourceRef{
+  FederationIssuerRef: &stigmer.ResourceRef{
     Org:  "acme",
-    Kind: "identity_provider",
+    Kind: "federation_issuer",
     Slug: "acme-cloud-auth",
   },
   ExternalSub:   user.OIDCSubject,
@@ -579,9 +579,9 @@ deprovisioned, err := client.IdentityAccount.DeprovisionFederatedAccount(ctx, &s
 ```python
 deprovisioned = client.identity_accounts.deprovision_federated_account(DeprovisionFederatedAccountInput(
     org="acme",
-    identity_provider_ref=ResourceRef(
+    federation_issuer_ref=ResourceRef(
         org="acme",
-        kind="identity_provider",
+        kind="federation_issuer",
         slug="acme-cloud-auth",
     ),
     external_sub=user.oidc_subject,
@@ -595,9 +595,9 @@ deprovisioned = client.identity_accounts.deprovision_federated_account(Deprovisi
 ```java
 IdentityAccount deprovisioned = client.identityAccounts().deprovisionFederatedAccount(DeprovisionFederatedAccountInput.builder()
     .org("acme")
-    .identityProviderRef(ResourceRef.builder()
+    .federationIssuerRef(ResourceRef.builder()
         .org("acme")
-        .kind("identity_provider")
+        .kind("federation_issuer")
         .slug("acme-cloud-auth")
         .build())
     .externalSub(user.getOidcSubject())
@@ -609,13 +609,13 @@ IdentityAccount deprovisioned = client.identityAccounts().deprovisionFederatedAc
 </SDKTabs>
 
 <Callout type="warn">
-  If the Identity Provider has JIT provisioning enabled, deleting the account
+  If the Federation Issuer has JIT provisioning enabled, deleting the account
   does not keep the user out: their next sign-in with a valid token creates a
-  new account and grants it the provider's sign-in role. To keep such a user out
-  of your Organizations, revoke only (`deleteAccount: false`). Stigmer grants
-  the sign-in role once per account and Organization, so a kept account can
-  still sign in but holds no role in them. To stop the user signing in at all,
-  stop them at your auth provider.
+  new account and grants it the Federation Issuer's sign-in role. To keep such a
+  user out of your Organizations, revoke only (`deleteAccount: false`). Stigmer
+  grants the sign-in role once per account and Organization, so a kept account
+  can still sign in but holds no role in them. To stop the user signing in at
+  all, stop them at your auth provider.
 </Callout>
 
 ## What's next

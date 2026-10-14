@@ -26,8 +26,8 @@ export const file_ai_stigmer_iam_oauthapp_v1_api: GenFile = /*@__PURE__*/
  * needed for vendor-specific OAuth flows. It enables Stigmer to authenticate
  * with external services (Slack, Salesforce, Figma, etc.) on behalf of users.
  *
- * OAuthApp is the outbound counterpart to IdentityProvider (inbound auth).
- * While IdentityProvider configures how external platforms authenticate
+ * OAuthApp is the outbound counterpart to FederationIssuer (inbound auth).
+ * While FederationIssuer configures how external platforms authenticate
  * *into* Stigmer, OAuthApp configures how Stigmer authenticates *outward*
  * to external services.
  *

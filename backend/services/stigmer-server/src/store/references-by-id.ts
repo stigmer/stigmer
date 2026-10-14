@@ -53,7 +53,7 @@
  * referring rows in tables of its own rewrites their references itself.
  *
  * Why a federated identity account fails the step. A federated account's
- * id is derived from its identity provider (domain/identityaccount/
+ * id is derived from its federation issuer (domain/identityaccount/
  * constants.ts, federatedAccountIdFor), and from this release on from the
  * provider's id rather than its organization and name. Rewriting the
  * account's reference would leave the row at an address no lookup reaches,
@@ -145,9 +145,14 @@ const API_RESOURCE_REFERENCE_TYPE =
 const SESSION_SPEC_TYPE = "ai.stigmer.agentic.session.v1.SessionSpec";
 const SESSION_AGENT_FIELD = "agent_ref";
 
-/** The kind whose federated rows the step refuses, and the field that marks one. */
+/**
+ * The kind whose federated rows the step refuses, and the field that marks
+ * one: IdentityAccountSpec's field 8, found by its number, which no rename
+ * changes (it was identity_provider_ref when this step was written and is
+ * federation_issuer_ref now).
+ */
 const FEDERATED_KIND = "identity_account";
-const FEDERATED_PROVIDER_FIELD = "identity_provider_ref";
+const FEDERATED_REFERENCE_FIELD_NUMBER = 8;
 
 /** An organization id as the server mints it. */
 const ORGANIZATION_ID = /^org_[0-9a-z]{26}$/;
@@ -298,9 +303,9 @@ export class ReferenceRewrite {
   }
 }
 
-/** Throws, naming the row, when an identity account's spec names an identity provider (the module header). */
+/** Throws, naming the row, when an identity account's spec names a federation issuer (the module header). */
 function refuseFederated(rowId: string, spec: ReflectMessage): void {
-  const field = spec.fields.find((f) => f.name === FEDERATED_PROVIDER_FIELD);
+  const field = spec.fields.find((f) => f.number === FEDERATED_REFERENCE_FIELD_NUMBER);
   if (field === undefined || field.fieldKind !== "message" || !spec.isSet(field)) {
     return;
   }
@@ -309,7 +314,7 @@ function refuseFederated(rowId: string, spec: ReflectMessage): void {
     return;
   }
   throw new Error(
-    `migrate references to ids: the identity_account row '${rowId}' is a federated account, whose address this release derives from its identity provider's id rather than its name, and this step does not move it; remove the federated accounts, or stay on the previous release, then start the server again`,
+    `migrate references to ids: the identity_account row '${rowId}' is a federated account, whose address this release derives from its federation issuer's id rather than its name, and this step does not move it; remove the federated accounts, or stay on the previous release, then start the server again`,
   );
 }
 

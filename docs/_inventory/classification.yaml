@@ -649,12 +649,12 @@ pages:
     embeds:
       authentication-flow-playback: keep
 
-  guides/authentication/federation/register-identity-provider:
+  guides/authentication/federation/register-federation-issuer:
     fate: keep
     diataxis: how-to
     teaches:
       Gather JWKS URI, issuer, and audience from your OIDC vendor and create the
-      Identity Provider, optionally with JIT.
+      Federation Issuer, optionally with JIT.
     medium: none
 
   guides/authentication/federation/grant-access:

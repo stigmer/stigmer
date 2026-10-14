@@ -47,7 +47,7 @@ status: {}  # System-managed, never set by users
 | `spec.picture_url` | No | Yes | URL to the account holder's profile picture. |
 | `spec.is_machine_account` | Never | Never | Computed. `true` when `idp_id` ends with `@clients`. Assigned by the backend. |
 | `spec.provisioning_mode` | Never | Never | Computed. One of `direct`, `federated`, or `machine`. Assigned by the backend based on `idp_id`. |
-| `spec.identity_provider_ref` | Never | Never | Computed. Set only for `federated` accounts — identifies the IdentityProvider that owns this account. Together with `idp_id`, forms the unique federated identity. |
+| `spec.federation_issuer_ref` | Never | Never | Computed. Set only for `federated` accounts — identifies the FederationIssuer that owns this account. Together with `idp_id`, forms the unique federated identity. |
 
 ## Status Fields
 

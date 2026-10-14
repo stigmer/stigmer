@@ -377,7 +377,7 @@ describe("the renamable manifest kinds' handlers", () => {
       ApiResourceKind.schedule,
       ApiResourceKind.channel_app,
       ApiResourceKind.oauth_app,
-      ApiResourceKind.identity_provider,
+      ApiResourceKind.federation_issuer,
     ]) {
       const handler = APPLY_HANDLERS.get(kind);
       expect(handler?.rename, ApiResourceKind[kind]).toBeDefined();

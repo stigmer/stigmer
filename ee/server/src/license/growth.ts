@@ -25,12 +25,12 @@ import { failedPreconditionError } from "@stigmer/server";
 import type { GrowthGate } from "../iam/growth-gate.js";
 import { isLapsed, licenseStateAt } from "./state.js";
 
-/** The reason a renewal refusal carries (stigmer/stigmer's organization, team and identity provider command protos). */
+/** The reason a renewal refusal carries (stigmer/stigmer's organization, team and federation issuer command protos). */
 export const LICENSE_RENEWAL_REQUIRED = "LICENSE_RENEWAL_REQUIRED";
 
 /** The refusal's copy: what ended, what renewing unlocks, and that nothing stops. */
 export const LICENSE_RENEWAL_MESSAGE =
-  "This server's Stigmer Enterprise license has ended; renew it to create organizations, teams or identity providers. Everything that exists keeps working.";
+  "This server's Stigmer Enterprise license has ended; renew it to create organizations, teams or federation issuers. Everything that exists keeps working.";
 
 export interface LicenseGrowthInput {
   readonly claims: LicenseClaims;

@@ -42,8 +42,8 @@ function recordingStore(called: string[]): IdentityAccountStore {
     findDirectByIdpId: () => (called.push("findDirectByIdpId"), Promise.resolve(account)),
     findDirectByEmail: () => (called.push("findDirectByEmail"), Promise.resolve(account)),
     findByIds: () => (called.push("findByIds"), Promise.resolve([account])),
-    findByProviderAndIdpId: () => (called.push("findByProviderAndIdpId"), Promise.resolve(account)),
-    findByProvider: () => (called.push("findByProvider"), Promise.resolve([account])),
+    findByIssuerAndIdpId: () => (called.push("findByIssuerAndIdpId"), Promise.resolve(account)),
+    findByIssuer: () => (called.push("findByIssuer"), Promise.resolve([account])),
     findByOrg: () => (called.push("findByOrg"), Promise.resolve([account])),
   };
 }
@@ -56,7 +56,7 @@ function federatedRequest(): NewAccountRequest {
       idpId: "okta|dana",
       email: "dana@acme.example",
       provisioningMode: IdentityAccountProvisioningMode.federated,
-      identityProviderRef: { org: "org_acme", slug: "acme-okta" },
+      federationIssuerRef: { org: "org_acme", slug: "acme-okta" },
     }),
   };
 }
@@ -103,8 +103,8 @@ describe("the server-ee account service's store", () => {
     await store.findDirectByIdpId("okta|x");
     await store.findDirectByEmail("x@acme.example");
     await store.findByIds(["ida_x"]);
-    await store.findByProviderAndIdpId("idp_acme_okta", "okta|x");
-    await store.findByProvider("idp_acme_okta");
+    await store.findByIssuerAndIdpId("fis_acme_okta", "okta|x");
+    await store.findByIssuer("fis_acme_okta");
     await store.findByOrg("org_acme");
     expect(called).toEqual([
       "save",
@@ -116,8 +116,8 @@ describe("the server-ee account service's store", () => {
       "findDirectByIdpId",
       "findDirectByEmail",
       "findByIds",
-      "findByProviderAndIdpId",
-      "findByProvider",
+      "findByIssuerAndIdpId",
+      "findByIssuer",
       "findByOrg",
     ]);
   });
@@ -133,33 +133,33 @@ describe("the server-ee account service's create", () => {
     const { accounts } = filled();
     const request = federatedRequest();
     request.spec.provisioningMode = IdentityAccountProvisioningMode.direct;
-    await expect(accounts.service.createAccount(request, "idp_acme")).rejects.toThrow(/only federated accounts/);
+    await expect(accounts.service.createAccount(request, "fis_acme")).rejects.toThrow(/only federated accounts/);
   });
 
   it("refuses a federated account made acting for no provider", async () => {
     const { accounts } = filled();
     await expect(accounts.service.createAccount(federatedRequest())).rejects.toThrow(
-      /acting for the identity provider/,
+      /acting for the federation issuer/,
     );
   });
 
   it("returns a fault that is not ALREADY_EXISTS as it came", async () => {
     const fault = new ConnectError("store down", Code.Unavailable);
     const { accounts } = filled({ createFault: fault });
-    await expect(accounts.service.createAccount(federatedRequest(), "idp_acme")).rejects.toBe(fault);
+    await expect(accounts.service.createAccount(federatedRequest(), "fis_acme")).rejects.toBe(fault);
   });
 });
 
 describe("the server-ee account service's delete", () => {
   it("refuses before the composition hands it the account domain", async () => {
-    await expect(newEnterpriseAccounts().service.deleteAccount(ACCOUNT, "idp_acme")).rejects.toThrow(
+    await expect(newEnterpriseAccounts().service.deleteAccount(ACCOUNT, "fis_acme")).rejects.toThrow(
       /before the composition handed it the account domain/,
     );
   });
 
   it("rethrows a fault of the library's delete that is not NOT_FOUND", async () => {
     const { accounts } = filled({ deleteFault: new ConnectError("store down", Code.Unavailable) });
-    const error = await accounts.service.deleteAccount(ACCOUNT, "idp_acme").then(
+    const error = await accounts.service.deleteAccount(ACCOUNT, "fis_acme").then(
       () => undefined,
       (e: unknown) => ConnectError.from(e),
     );

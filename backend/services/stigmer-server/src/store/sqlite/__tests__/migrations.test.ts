@@ -165,7 +165,7 @@ import {
 import { materializeGoFixture } from "./support.js";
 import { agentExecutionListIndex } from "../../../domain/run/list-index.js";
 import { iamPolicyListIndex } from "../../../domain/iampolicy/list-index.js";
-import { RUN_KIND_TABLES, RUN_RENAME_PAGE_SIZE } from "../../run-rename.js";
+import { KIND_TABLES, KIND_RENAME_PAGE_SIZE } from "../../kind-rename.js";
 import {
   AGENT_RUN_NAMES,
   EXECUTION_NAMES,
@@ -1894,7 +1894,7 @@ describe("v18: agent executions are runs", () => {
 
   it("reads runs across keyset pages, missing none past the first page", () => {
     const { dbPath, db: setup } = v17Database();
-    for (let i = 0; i <= RUN_RENAME_PAGE_SIZE; i++) {
+    for (let i = 0; i <= KIND_RENAME_PAGE_SIZE; i++) {
       const id = `aex_page_${String(i).padStart(4, "0")}`;
       insertPlain(setup, "agent_execution", id, runBytes(id, "ses_1", EXECUTION_NAMES));
     }
@@ -1903,8 +1903,8 @@ describe("v18: agent executions are runs", () => {
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());
     runMigrations(db, SCHEMA_VERSION_18);
-    const last = `aex_page_${String(RUN_RENAME_PAGE_SIZE).padStart(4, "0")}`;
-    expect(count(db, "resources", "agent_run")).toBe(RUN_RENAME_PAGE_SIZE + 1);
+    const last = `aex_page_${String(KIND_RENAME_PAGE_SIZE).padStart(4, "0")}`;
+    expect(count(db, "resources", "agent_run")).toBe(KIND_RENAME_PAGE_SIZE + 1);
     expect(row(db, "agent_run", last)?.data).toEqual(runBytes(last, "ses_1", AGENT_RUN_NAMES));
   });
 
@@ -2148,7 +2148,7 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
     runMigrations(db, SCHEMA_VERSION_19);
 
     expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_19);
-    for (const table of RUN_KIND_TABLES) {
+    for (const table of KIND_TABLES) {
       for (const kind of GONE_KINDS) {
         expect(count(db, table, kind), `${kind} in ${table}`).toBe(0);
       }
@@ -2638,7 +2638,7 @@ describe("v21: the agent run is a run", () => {
     cleanups.push(() => db.close());
     runMigrations(db, SCHEMA_VERSION_21);
     expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_21);
-    for (const table of RUN_KIND_TABLES) {
+    for (const table of KIND_TABLES) {
       expect(count(db, table, "agent_run"), table).toBe(0);
       expect(count(db, table, "agent_execution"), table).toBe(0);
     }
@@ -2694,7 +2694,7 @@ describe("v21: the agent run is a run", () => {
   it("reads runs across keyset pages, missing none past the first page", () => {
     const { dbPath, db: setup } = databaseAt(SCHEMA_VERSION_20);
     setup.exec("BEGIN");
-    for (let i = 0; i <= RUN_RENAME_PAGE_SIZE; i++) {
+    for (let i = 0; i <= KIND_RENAME_PAGE_SIZE; i++) {
       // Mixed case and punctuation: the keyset holds in byte order.
       const id = `${i % 2 === 0 ? "aex_" : "AEX-"}${String(i).padStart(4, "0")}`;
       insertRow(setup, "agent_run", id, runBytes(id, "ses_1", AGENT_RUN_NAMES));
@@ -2705,8 +2705,8 @@ describe("v21: the agent run is a run", () => {
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());
     runMigrations(db, SCHEMA_VERSION_21);
-    expect(count(db, "resources", "run")).toBe(RUN_RENAME_PAGE_SIZE + 1);
-    for (let i = 0; i <= RUN_RENAME_PAGE_SIZE; i++) {
+    expect(count(db, "resources", "run")).toBe(KIND_RENAME_PAGE_SIZE + 1);
+    for (let i = 0; i <= KIND_RENAME_PAGE_SIZE; i++) {
       const id = `${i % 2 === 0 ? "aex_" : "AEX-"}${String(i).padStart(4, "0")}`;
       expect(row(db, "run", id)?.data, id).toEqual(runBytes(id, "ses_1", RUN_NAMES));
     }
@@ -2813,7 +2813,7 @@ describe("v22: environments and the sign-in grant table leave the store", () => 
     runMigrations(db, SCHEMA_VERSION_22);
 
     expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_22);
-    for (const table of RUN_KIND_TABLES) {
+    for (const table of KIND_TABLES) {
       expect(count(db, table, "environment"), `environment in ${table}`).toBe(0);
     }
     const policies = db
