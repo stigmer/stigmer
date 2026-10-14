@@ -1,7 +1,8 @@
 /**
  * Pins the vault attachments step: a My vault is refused on every surface
- * that runs for someone else (a conversation, a share, a channel, a
- * platform client, a plugin eval, whose tries its plugin's viewers read)
+ * that runs for someone else (a conversation, a share, a channel, an
+ * organization's embedding settings, which an Organization row carries
+ * under its own id rather than metadata.org, a plugin eval, whose tries its plugin's viewers read)
  * and admitted on its owner's own schedule only;
  * who attached each vault is recorded for the vaults a write introduces
  * and kept for the ones it keeps, a removed vault's entry dropped, so an
@@ -27,7 +28,7 @@ import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_
 import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
@@ -36,6 +37,7 @@ import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
 
+import { EMBEDDING_VAULT_ATTACHMENTS } from "../../organization/embedding.js";
 import { PLUGIN_EVAL_VAULT_ATTACHMENTS } from "../../plugin-eval/vault-attachments.js";
 import { SCHEDULE_VAULT_ATTACHMENTS } from "../../schedule/vault-attachments.js";
 import { resolveReferences } from "../../../pipeline/steps/references.js";
@@ -176,7 +178,7 @@ async function refusalOf(promise: Promise<unknown>): Promise<ConnectError> {
 }
 
 describe("a My vault", () => {
-  it("is refused on a conversation, a share, a channel and a platform client, even by its own person", async () => {
+  it("is refused on a conversation, a share, a channel and an organization's embedding settings, even by its own person", async () => {
     const mine = ref((await rig.vaults.findById(anasId))!.metadata!.slug);
     const cases: Array<[string, Promise<unknown>]> = [
       [
@@ -204,12 +206,12 @@ describe("a My vault", () => {
         ),
       ],
       [
-        "a platform client",
+        "an organization's embedding settings",
         run(
-          PlatformClientSchema,
-          ApiResourceKind.platform_client,
-          create(PlatformClientSchema, { metadata: { org: ORG }, spec: { vaults: [mine] } }),
-          unrecorded("a platform client"),
+          OrganizationSchema,
+          ApiResourceKind.organization,
+          create(OrganizationSchema, { metadata: { id: ORG }, spec: { embedding: { vaults: [mine] } } }),
+          EMBEDDING_VAULT_ATTACHMENTS,
           { writer: "ida_ana" },
         ),
       ],

@@ -1,0 +1,71 @@
+# Who may mint a user token for an organization (can_mint_user_tokens):
+# its admins, and the admins of its parent for a child. Minting can create
+# a person's account and grant the organization's embedding sign-in role,
+# so a member or viewer never holds it, a service account holds it exactly
+# when its role is admin, and the admins of an unrelated organization hold
+# it nowhere here.
+#
+# Cast (organization acme unless named; kid is acme's child):
+#   root      - acme owner (an admin through the role hierarchy)
+#   ana       - acme admin
+#   dave      - acme member-role member
+#   vera      - acme viewer-role member
+#   ci-admin  - acme's service account, holding admin
+#   ci-member - acme's service account, holding member
+#   kai       - kid's own admin
+#   zara      - admin of the unrelated organization other
+name: organization-user-token-minting
+model_file: ../../src/authorization/model/data/authorization-model.json
+tuples:
+  - {user: organization:acme, relation: parent_org, object: organization:kid}
+  - {user: organization:kid, relation: child_org, object: organization:acme}
+  - {user: identity_account:root, relation: owner, object: organization:acme}
+  - {user: identity_account:root, relation: affiliated, object: organization:acme}
+  - {user: identity_account:ana, relation: admin, object: organization:acme}
+  - {user: identity_account:ana, relation: affiliated, object: organization:acme}
+  - {user: identity_account:dave, relation: member, object: organization:acme}
+  - {user: identity_account:dave, relation: affiliated, object: organization:acme}
+  - {user: identity_account:vera, relation: viewer, object: organization:acme}
+  - {user: identity_account:vera, relation: affiliated, object: organization:acme}
+  - {user: identity_account:ci-admin, relation: admin, object: organization:acme}
+  - {user: identity_account:ci-admin, relation: affiliated, object: organization:acme}
+  - {user: organization:acme, relation: organization, object: identity_account:ci-admin}
+  - {user: identity_account:ci-member, relation: member, object: organization:acme}
+  - {user: identity_account:ci-member, relation: affiliated, object: organization:acme}
+  - {user: organization:acme, relation: organization, object: identity_account:ci-member}
+  - {user: identity_account:kai, relation: admin, object: organization:kid}
+  - {user: identity_account:kai, relation: affiliated, object: organization:kid}
+  - {user: identity_account:zara, relation: admin, object: organization:other}
+  - {user: identity_account:zara, relation: affiliated, object: organization:other}
+tests:
+  - name: an organization's admins mint for it, the owner through the same role
+    check:
+      - {user: identity_account:ana, object: organization:acme, assertions: {can_mint_user_tokens: true}}
+      - {user: identity_account:root, object: organization:acme, assertions: {can_mint_user_tokens: true}}
+      - {user: identity_account:ci-admin, object: organization:acme, assertions: {can_mint_user_tokens: true}}
+  - name: a member, a viewer and a member-role service account do not
+    check:
+      - {user: identity_account:dave, object: organization:acme, assertions: {can_mint_user_tokens: false}}
+      - {user: identity_account:vera, object: organization:acme, assertions: {can_mint_user_tokens: false}}
+      - {user: identity_account:ci-member, object: organization:acme, assertions: {can_mint_user_tokens: false}}
+  - name: the parent's admins mint for a child, and so do the child's own
+    check:
+      - {user: identity_account:ana, object: organization:kid, assertions: {can_mint_user_tokens: true}}
+      - {user: identity_account:ci-admin, object: organization:kid, assertions: {can_mint_user_tokens: true}}
+      - {user: identity_account:kai, object: organization:kid, assertions: {can_mint_user_tokens: true}}
+      - {user: identity_account:ci-member, object: organization:kid, assertions: {can_mint_user_tokens: false}}
+  - name: a child's admins do not mint for the parent, and nobody mints across unrelated organizations
+    check:
+      - {user: identity_account:kai, object: organization:acme, assertions: {can_mint_user_tokens: false}}
+      - {user: identity_account:zara, object: organization:acme, assertions: {can_mint_user_tokens: false}}
+      - {user: identity_account:ci-admin, object: organization:other, assertions: {can_mint_user_tokens: false}}
+  - name: the organizations each admin may mint for
+    list_objects:
+      - user: identity_account:ci-admin
+        type: organization
+        assertions:
+          can_mint_user_tokens: [organization:acme, organization:kid]
+      - user: identity_account:ci-member
+        type: organization
+        assertions:
+          can_mint_user_tokens: []

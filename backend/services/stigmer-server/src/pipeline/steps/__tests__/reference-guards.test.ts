@@ -8,9 +8,8 @@
  *   - the share, schedule and channel defaults refuse an agent_ref that
  *     names nothing, INVALID_ARGUMENT, in their copy;
  *   - the schedule and channel defaults answer a failed agent read INTERNAL;
- *   - getByReference (the shared loader and the platform client's) refuses a
- *     reference that names nothing, names a missing target by its id, and
- *     finds one by id only in the organization the reference names.
+ *   - getByReference's shared loader refuses a reference that names
+ *     nothing and names a missing target by its id.
  */
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
@@ -28,9 +27,6 @@ import { AGENT_REF_REQUIRED_MESSAGE as CHANNEL_AGENT_REF_REQUIRED } from "../../
 import { newResolveChannelDefaultsStep } from "../../../domain/agentchannel/steps.js";
 import { AGENT_REF_REQUIRED_MESSAGE as SHARE_AGENT_REF_REQUIRED } from "../../../domain/agentshare/constants.js";
 import { newResolveShareDefaultsStep } from "../../../domain/agentshare/steps.js";
-import { referenceNotFoundMessage } from "../../../domain/platformclient/constants.js";
-import { newLoadClientByReferenceStep } from "../../../domain/platformclient/steps.js";
-import type { PlatformClientStore } from "../../../domain/platformclient/store.js";
 import { newResolveScheduleDefaultsStep } from "../../../domain/schedule/steps.js";
 import type { ModelCatalogProvider } from "../../../modelcatalog/model-catalog-provider.js";
 import type { Store } from "../../../store/interface.js";
@@ -123,46 +119,5 @@ describe("getByReference names a missing target by what the request wrote", () =
     const gone = await refusal(step, ApiResourceReferenceSchema, reference({ id: "agt_gone" }), ApiResourceKind.agent);
     expect(gone.code).toBe(Code.NotFound);
     expect(gone.rawMessage).toContain("agt_gone");
-  });
-
-  it("the platform client's refuses a reference naming nothing, and names a missing id", async () => {
-    const clients = { findById: () => Promise.resolve(undefined) } as unknown as PlatformClientStore;
-    const step = newLoadClientByReferenceStep(empty, clients);
-    const nothing = await refusal(step, ApiResourceReferenceSchema, reference({ org: ORG }), ApiResourceKind.platform_client);
-    expect([nothing.code, nothing.rawMessage]).toEqual([Code.InvalidArgument, "slug or id is required in reference"]);
-    const gone = await refusal(
-      step,
-      ApiResourceReferenceSchema,
-      reference({ org: ORG, id: "pcl_gone" }),
-      ApiResourceKind.platform_client,
-    );
-    expect([gone.code, gone.rawMessage]).toEqual([Code.NotFound, referenceNotFoundMessage(ORG, "pcl_gone")]);
-  });
-
-  it("the platform client's loads the client a reference names by id in its organization", async () => {
-    const client = { metadata: { id: "pcl_1", org: ORG } };
-    const clients = { findById: () => Promise.resolve(client) } as unknown as PlatformClientStore;
-    const ctx = new RequestContext(
-      ApiResourceReferenceSchema,
-      reference({ org: ORG, id: "pcl_1" }),
-      testCallerIdentity(),
-      ApiResourceKind.platform_client,
-    );
-    await newLoadClientByReferenceStep(empty, clients).execute(ctx);
-    expect(ctx.get(TARGET_RESOURCE_KEY)).toBe(client);
-  });
-
-  it("the platform client's answers a client of another organization than the reference names as missing", async () => {
-    const clients = {
-      findById: () => Promise.resolve({ metadata: { id: "pcl_1", org: "org_elsewhere" } }),
-    } as unknown as PlatformClientStore;
-    const step = newLoadClientByReferenceStep(empty, clients);
-    const elsewhere = await refusal(
-      step,
-      ApiResourceReferenceSchema,
-      reference({ org: ORG, id: "pcl_1" }),
-      ApiResourceKind.platform_client,
-    );
-    expect([elsewhere.code, elsewhere.rawMessage]).toEqual([Code.NotFound, referenceNotFoundMessage(ORG, "pcl_1")]);
   });
 });

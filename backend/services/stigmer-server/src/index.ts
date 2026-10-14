@@ -360,25 +360,9 @@ export { accountIdFor } from "./domain/identityaccount/constants.js";
 // same two.
 export { fittedSlug } from "./pipeline/steps/slug.js";
 export { repairAccountSlug } from "./store/account-slugs-repaired.js";
-// The PlatformClient seams: the store PORT a composition drives the domain
-// through (drivers.platformClientStore; a driver throws
-// DuplicatePlatformClientError for a held id, slug or client_id) and its
-// vitest-free contract kit; the guest-token capability
-// (drivers.guestTokenMinting — the one token method only an edition that
-// hosts shared-agent pages serves); and the builder of the system-managed
-// client such an edition keeps per organization under the reserved slug,
-// so the tokens it signs for guests and schedule fires name a real client.
-export type { PlatformClientStore } from "./domain/platformclient/store.js";
-export { DuplicatePlatformClientError } from "./domain/platformclient/store.js";
-export type {
-  PlatformClientStoreContractCase,
-  PlatformClientStoreContractFixture,
-} from "./domain/platformclient/store-contract.js";
-export { platformClientStoreContract } from "./domain/platformclient/store-contract.js";
+// The guest-token capability (drivers.guestTokenMinting — the one token
+// method only an edition that hosts shared-agent pages serves).
 export type { GuestTokenMinting } from "./extensions/guest-token-minting.js";
-export type { SystemManagedPlatformClientInput } from "./domain/platformclient/system-managed.js";
-export { newSystemManagedPlatformClient } from "./domain/platformclient/system-managed.js";
-export { SYSTEM_SHARE_CLIENT_SLUG } from "./domain/platformclient/constants.js";
 // The platform-token envelope and its key ring: the RS256 JWT every token
 // the server signs for itself rides. A composition supplies its ring
 // (drivers.platformTokenKeys, built from its PEMs), signs its own typed

@@ -974,10 +974,10 @@ describe("membership rules", () => {
       expect(isPersonAccount(machineMode)).toBe(false);
     });
 
-    it("a platform-client end user is not: the mint grants it its client's role and nothing else", () => {
+    it("an app user is not: the mint grants it the embedding sign-in role and nothing else", () => {
       const endUser = account("stgm_pc|acme|user-7", OPERATOR_EMAIL);
       endUser.spec!.provisioningMode =
-        IdentityAccountProvisioningMode.platform_client;
+        IdentityAccountProvisioningMode.app_user;
       expect(isPersonAccount(endUser)).toBe(false);
     });
 

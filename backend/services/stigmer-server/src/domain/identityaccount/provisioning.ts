@@ -80,10 +80,10 @@ export class UserInfoFetchError extends Error {
  * decides its backend-assigned fields (steps.ts AssignBackendFields):
  *   - `direct`: the platform's own subject (a first sign-in, the boot
  *     operator, a machine account created over the RPC). Its subject may
- *     not use the `stgm_pc|` prefix platform-client accounts reserve.
- *   - `platform_client`: an end user a PlatformClient's mint provisioned
- *     (domain/platformclient/mint.ts). Its subject is the reserved
- *     composite, and it belongs to the client's owning organization.
+ *     not use the `stgm_pc|` prefix app-user accounts reserve.
+ *   - `app_user`: a person an organization's product signed in by minting
+ *     their token (domain/token/mint.ts). Its subject is the reserved
+ *     composite, and it belongs to the organization the token is for.
  *   - `federated`: a person an organization's identity provider vouches
  *     for, provisioned by the edition that serves identity providers. Its
  *     subject is the provider's to choose, so none of the direct arm's
@@ -98,7 +98,7 @@ export class UserInfoFetchError extends Error {
  */
 export type AccountProvisioning =
   | { readonly mode: "direct" }
-  | { readonly mode: "platform_client"; readonly org: string }
+  | { readonly mode: "app_user"; readonly org: string }
   | {
       readonly mode: "federated";
       readonly provider: FederatedProvider;
@@ -124,7 +124,7 @@ const OWNING_ORGANIZATION: {
   ) => string;
 } = {
   direct: () => "",
-  platform_client: (provisioning) => provisioning.org,
+  app_user: (provisioning) => provisioning.org,
   federated: (provisioning) => provisioning.provider.org,
   service_account: (provisioning) => provisioning.org,
 };

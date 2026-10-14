@@ -123,6 +123,13 @@ import {
   unreadableWorkflowRowError,
 } from "../workflow-instance-retired.js";
 import {
+  PLATFORM_CLIENT_RETIRED_PAGE_SIZE,
+  PLATFORM_CLIENT_RETIRED_POLICY_KIND,
+  RETIRED_PLATFORM_CLIENT_KIND,
+  policyNamesRetiredPlatformClient,
+  unreadablePlatformClientRowError,
+} from "../platform-client-retired.js";
+import {
   RUN_KIND_TABLES,
   RUN_RENAME_PAGE_SIZE,
   RUN_RENAME_POLICY_KIND,
@@ -236,8 +243,11 @@ export const SCHEMA_VERSION_28 = 28;
 /** v29: every stored resource stamped with its etag. */
 export const SCHEMA_VERSION_29 = 29;
 
+/** v30: the platform client rows removed, with every grant naming one. */
+export const SCHEMA_VERSION_30 = 30;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_29;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_30;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -307,6 +317,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_27, migrateToV27],
       [SCHEMA_VERSION_28, migrateToV28],
       [SCHEMA_VERSION_29, (migrating) => migrateToV29(migrating, logger)],
+      [SCHEMA_VERSION_30, migrateToV30],
     ];
 
     for (const [version, migrate] of chain) {
@@ -1962,5 +1973,66 @@ async function migrateToV29(client: PoolClient, logger: StoreLogger): Promise<vo
       after = rows[rows.length - 1]!.id;
     }
     logUnreadableEtagRows(logger, kind, unreadable);
+  }
+}
+
+/**
+ * v30: the platform client kind is removed (../platform-client-retired.ts
+ * says what leaves, what stays and why an unreadable row fails the step).
+ *
+ * - Every IamPolicy row is read in keyset pages, and the ones naming a
+ *   client as resource or principal are deleted with their list keys,
+ *   their history kept, as the store deletes a policy.
+ * - The client rows then leave every table that keys a row by kind.
+ *
+ * Each page compares and orders `id` under the column's own collation, so
+ * the keyset is consistent whatever the database's locale and the primary
+ * key serves it. The chain's advisory lock keeps a second instance's boot
+ * out of the step, and the transaction makes it whole or nothing.
+ */
+async function migrateToV30(client: PoolClient): Promise<void> {
+  const retiredPolicies: string[] = [];
+  for (let after = ""; ; ) {
+    const rows = (
+      await client.query<{ id: string; data: Buffer }>(
+        `SELECT id, data FROM resources
+         WHERE kind = $1 AND id > $2
+         ORDER BY id
+         LIMIT $3`,
+        [
+          PLATFORM_CLIENT_RETIRED_POLICY_KIND,
+          after,
+          PLATFORM_CLIENT_RETIRED_PAGE_SIZE,
+        ],
+      )
+    ).rows;
+    for (const row of rows) {
+      try {
+        if (policyNamesRetiredPlatformClient(new Uint8Array(row.data))) {
+          retiredPolicies.push(row.id);
+        }
+      } catch (error) {
+        throw unreadablePlatformClientRowError(
+          PLATFORM_CLIENT_RETIRED_POLICY_KIND,
+          row.id,
+          error,
+        );
+      }
+    }
+    if (rows.length < PLATFORM_CLIENT_RETIRED_PAGE_SIZE) {
+      break;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
+  for (const table of ["resource_list_keys", "resources"]) {
+    await client.query(
+      `DELETE FROM ${table} WHERE kind = $1 AND id = ANY($2::text[])`,
+      [PLATFORM_CLIENT_RETIRED_POLICY_KIND, retiredPolicies],
+    );
+  }
+  for (const table of RUN_KIND_TABLES) {
+    await client.query(`DELETE FROM ${table} WHERE kind = $1`, [
+      RETIRED_PLATFORM_CLIENT_KIND,
+    ]);
   }
 }

@@ -81,7 +81,7 @@ beforeEach(() => {
     authorizer: newPermissiveSingleTeamAuthorizer(),
     secretService: rig.secrets,
     vaults: rig.vaults,
-    platformClients: { findById: async () => undefined },
+    accounts: { findById: async () => undefined },
     freshener: { freshToken: async (_vault, connection) => connection.token },
   });
   credentials = newExecutionScopedRunnerCredentialProvider(RunnerAuthService.create(randomBytes(32)));

@@ -1,5 +1,5 @@
 /**
- * The frozen envelopes two frozen data migrations decode the rows of
+ * The frozen envelopes the frozen data migrations decode the rows of
  * retired kinds through: the resource envelope every kind shares
  * (api_version = 1, kind = 2, metadata = 3) under each retired message's
  * full name, built by one builder from a hand-written descriptor that
@@ -10,13 +10,15 @@
  * statements about the store as it was when they arrived, and each forbids
  * a later release from changing what it does; between them they list
  * `agent_instance`, `workflow_instance`, `workflow`, `workflow_execution`,
- * `environment`, `artifact` and `mcp_server` among their kinds. Those kinds have since been removed
+ * `environment`, `artifact` and `mcp_server` among their kinds, and they
+ * and the name backfill (resource-names-backfill.ts) and the reference
+ * rewrite (references-by-id.ts) list `platform_client`. Those kinds have since been removed
  * from the contract, so their generated schemas no longer exist, but a
  * store that replays the migration chain from an old version still holds
  * their rows when those two steps run (the later migrations that remove the
  * rows, agent-instance-retired.ts, workflow-instance-retired.ts,
- * workflow-retired.ts, environment-retired.ts and mcp-server-retired.ts,
- * run after them). Both steps read and edit `metadata`
+ * workflow-retired.ts, environment-retired.ts, mcp-server-retired.ts and
+ * platform-client-retired.ts, run after them). Both steps read and edit `metadata`
  * only, through reflection, so an envelope is exactly what they need:
  * protobuf-es keeps the fields it does not declare (spec = 4, status = 5)
  * as unknown fields through `fromBinary` and writes them back verbatim in
@@ -73,6 +75,11 @@ export const FrozenEnvironmentEnvelopeSchema = frozenEnvelope(
 /** The envelope of a retired McpServer row. */
 export const FrozenMcpServerEnvelopeSchema = frozenEnvelope(
   "ai.stigmer.agentic.mcpserver.v1.McpServer",
+);
+
+/** The envelope of a retired PlatformClient row. */
+export const FrozenPlatformClientEnvelopeSchema = frozenEnvelope(
+  "ai.stigmer.iam.platformclient.v1.PlatformClient",
 );
 
 /** The envelope's schema under `typeName`, a retired message's full name (the module header). */

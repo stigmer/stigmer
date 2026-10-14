@@ -53,7 +53,6 @@ import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityac
 import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { InvitationSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
-import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -83,7 +82,6 @@ export const RESOURCE_SCHEMAS: ReadonlyMap<ApiResourceKind, DescMessage> = new M
   [ApiResourceKind.oauth_app, OAuthAppSchema],
   [ApiResourceKind.organization, OrganizationSchema],
   [ApiResourceKind.plan, PlanSchema],
-  [ApiResourceKind.platform_client, PlatformClientSchema],
   [ApiResourceKind.plugin, PluginSchema],
   [ApiResourceKind.plugin_eval, PluginEvalSchema],
   [ApiResourceKind.run, RunSchema],

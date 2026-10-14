@@ -106,6 +106,13 @@ import {
   unreadableWorkflowRowError,
 } from "../workflow-instance-retired.js";
 import {
+  PLATFORM_CLIENT_RETIRED_PAGE_SIZE,
+  PLATFORM_CLIENT_RETIRED_POLICY_KIND,
+  RETIRED_PLATFORM_CLIENT_KIND,
+  policyNamesRetiredPlatformClient,
+  unreadablePlatformClientRowError,
+} from "../platform-client-retired.js";
+import {
   RUN_KIND_TABLES,
   RUN_RENAME_PAGE_SIZE,
   RUN_RENAME_POLICY_KIND,
@@ -233,8 +240,11 @@ export const SCHEMA_VERSION_33 = 33;
 /** v34: every stored resource stamped with its etag. */
 export const SCHEMA_VERSION_34 = 34;
 
+/** v35: the platform client rows removed, with every grant naming one. */
+export const SCHEMA_VERSION_35 = 35;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_34;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_35;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -294,6 +304,7 @@ export function runMigrations(
     [SCHEMA_VERSION_32, migrateToV32],
     [SCHEMA_VERSION_33, migrateToV33],
     [SCHEMA_VERSION_34, (migrating) => migrateToV34(migrating, logger)],
+    [SCHEMA_VERSION_35, migrateToV35],
   ];
 
   for (const [version, migrate] of chain) {
@@ -1896,5 +1907,59 @@ function migrateToV34(db: DatabaseSync, logger: StoreLogger): void {
       after = rows[rows.length - 1]!.id;
     }
     logUnreadableEtagRows(logger, kind, unreadable);
+  }
+}
+
+/**
+ * v35: the platform client kind is removed — the Postgres driver's v30 in
+ * this engine's terms (../platform-client-retired.ts says what leaves, what
+ * stays and why an unreadable row fails the step). Every IamPolicy row
+ * naming a client as resource or principal is found in keyset pages and
+ * deleted with its list keys, its history kept, as the store deletes a
+ * policy. The client rows then leave every table that keys a row by kind.
+ * Runs inside applyInTransaction's BEGIN, so a throw rolls the whole step
+ * back and the boot stops on the row it names.
+ */
+function migrateToV35(db: DatabaseSync): void {
+  const page = db.prepare(
+    `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+  );
+  const retiredPolicies: string[] = [];
+  for (let after = ""; ; ) {
+    const rows = page.all(
+      PLATFORM_CLIENT_RETIRED_POLICY_KIND,
+      after,
+      PLATFORM_CLIENT_RETIRED_PAGE_SIZE,
+    ) as Array<{ id: string; data: Uint8Array }>;
+    for (const row of rows) {
+      try {
+        if (policyNamesRetiredPlatformClient(row.data)) {
+          retiredPolicies.push(row.id);
+        }
+      } catch (error) {
+        throw unreadablePlatformClientRowError(
+          PLATFORM_CLIENT_RETIRED_POLICY_KIND,
+          row.id,
+          error,
+        );
+      }
+    }
+    if (rows.length < PLATFORM_CLIENT_RETIRED_PAGE_SIZE) {
+      break;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
+  const deletePolicy = ["resource_list_keys", "resources"].map((table) =>
+    db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
+  );
+  for (const id of retiredPolicies) {
+    for (const statement of deletePolicy) {
+      statement.run(PLATFORM_CLIENT_RETIRED_POLICY_KIND, id);
+    }
+  }
+  for (const table of RUN_KIND_TABLES) {
+    db.prepare(`DELETE FROM ${table} WHERE kind = ?`).run(
+      RETIRED_PLATFORM_CLIENT_KIND,
+    );
   }
 }

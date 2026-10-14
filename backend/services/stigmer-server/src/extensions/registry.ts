@@ -49,7 +49,6 @@ import { BUILT_IN_STORAGE_TYPES } from "../artifactstorage/artifact-storage.js";
 import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
 import type { IamPolicyStore } from "../domain/iampolicy/store.js";
-import type { PlatformClientStore } from "../domain/platformclient/store.js";
 import type { SecretCodec } from "../encryption/codec.js";
 import { V1_VERSION } from "../encryption/v1-codec.js";
 import type { PlatformTokenKeyRing } from "../platformtoken/key-ring.js";
@@ -383,11 +382,6 @@ export interface ResolvedExtensionDrivers {
    */
   readonly outboundEgress: OutboundEgressPolicy | undefined;
   /**
-   * The platform-client store driver — undefined = compose.ts installs the
-   * OSS adapter over the generic Store.
-   */
-  readonly platformClientStore: PlatformClientStore | undefined;
-  /**
    * The platform-token key ring — undefined = compose.ts composes open
    * source's ring under an authentication posture, and refuses to boot a
    * non-open-source edition that supplied none.
@@ -488,8 +482,6 @@ export function resolveExtensions(
   let licenseStatusDeclaredBy: string | undefined;
   let outboundEgress: OutboundEgressPolicy | undefined;
   let outboundEgressDeclaredBy: string | undefined;
-  let platformClientStore: PlatformClientStore | undefined;
-  let platformClientStoreDeclaredBy: string | undefined;
   let platformTokenKeys: PlatformTokenKeyRing | undefined;
   let platformTokenKeysDeclaredBy: string | undefined;
   let guestTokenMinting: GuestTokenMinting | undefined;
@@ -766,16 +758,6 @@ export function resolveExtensions(
       outboundEgressDeclaredBy = unit.name;
     }
 
-    if (unit.drivers?.platformClientStore !== undefined) {
-      if (platformClientStoreDeclaredBy !== undefined) {
-        throw new Error(
-          `extension '${unit.name}' registers a PlatformClientStore, but '${platformClientStoreDeclaredBy}' already did — exactly one may be composed`,
-        );
-      }
-      platformClientStore = unit.drivers.platformClientStore;
-      platformClientStoreDeclaredBy = unit.name;
-    }
-
     if (unit.drivers?.platformTokenKeys !== undefined) {
       if (platformTokenKeysDeclaredBy !== undefined) {
         throw new Error(
@@ -1020,7 +1002,6 @@ export function resolveExtensions(
       principalDisplay,
       licenseStatus,
       outboundEgress,
-      platformClientStore,
       platformTokenKeys,
       guestTokenMinting,
       visitorClassifier,

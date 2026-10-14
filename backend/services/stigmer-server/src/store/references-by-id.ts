@@ -83,8 +83,8 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { reference_kind } from "@stigmer/protos/ai/stigmer/commons/apiresource/field_options_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 
+import { FrozenPlatformClientEnvelopeSchema } from "./frozen-envelopes.js";
 import type { StoreLogger } from "./logger.js";
 
 /** How many rows a keyset page of the rewrite reads. */
@@ -104,7 +104,7 @@ export const REFERRING_KINDS_AT_REWRITE: ReadonlyArray<ReferringKindAtRewrite> =
   { kind: "agent_eval", schema: AgentEvalSchema },
   { kind: "agent_share", schema: AgentShareSchema },
   { kind: "identity_account", schema: IdentityAccountSchema },
-  { kind: "platform_client", schema: PlatformClientSchema },
+  { kind: "platform_client", schema: FrozenPlatformClientEnvelopeSchema },
   { kind: "plugin_eval", schema: PluginEvalSchema },
   { kind: "schedule", schema: ScheduleSchema },
   { kind: "session", schema: SessionSchema },

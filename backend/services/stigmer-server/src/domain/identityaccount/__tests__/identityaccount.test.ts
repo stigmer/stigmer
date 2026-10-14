@@ -326,7 +326,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
           spec.email = "rewritten@example.com";
           spec.isMachineAccount = true;
           spec.provisioningMode =
-            IdentityAccountProvisioningMode.platform_client;
+            IdentityAccountProvisioningMode.app_user;
         }), updateMask: { paths: ["*"] } },
       );
       expect(updated.spec?.firstName).toBe("Edited");

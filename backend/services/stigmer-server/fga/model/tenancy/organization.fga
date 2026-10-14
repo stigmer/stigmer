@@ -141,7 +141,6 @@ type organization
     define can_create_idp: admin
     define can_create_identity_account: admin
     define can_create_oauth_app: admin
-    define can_create_platform_client: admin
     # Channel apps hold org-wide webhook + OAuth credentials — admin-gated
     # like can_create_oauth_app.
     define can_create_channel_app: admin
@@ -164,6 +163,12 @@ type organization
     # Creating, finding and listing the organization's children. A child's
     # admins hold it too and cannot use it: a child has no children.
     define can_manage_child_orgs: admin
+    # Minting a user token for the organization (TokenService.mintUserToken):
+    # it can create a person's account and grant them the embedding
+    # sign-in role, an administrator's act, so its admins and the parent's
+    # admins hold it, and a service account's key mints only when its
+    # account does. The mint refuses every caller but a service account.
+    define can_mint_user_tokens: admin or parent_admin
     
     # ========================================
     # IAM POLICY MANAGEMENT

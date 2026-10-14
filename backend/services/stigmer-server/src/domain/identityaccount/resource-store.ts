@@ -306,7 +306,7 @@ function isDirect(account: IdentityAccount): boolean {
   return (
     account.spec?.identityProviderRef === undefined &&
     mode !== IdentityAccountProvisioningMode.federated &&
-    mode !== IdentityAccountProvisioningMode.platform_client &&
+    mode !== IdentityAccountProvisioningMode.app_user &&
     mode !== IdentityAccountProvisioningMode.service_account
   );
 }

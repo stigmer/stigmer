@@ -10,12 +10,16 @@
  *     encode writes them, so the step does what it did when it shipped;
  *   - a row that does not hold the public level is left untouched;
  *   - each envelope carries its retired message's own full name, one
- *     envelope per message.
+ *     envelope per message;
+ *   - the platform client envelope is what the slug ledger, the name
+ *     backfill and the reference rewrite read a retired client through, and
+ *     it reads the organization a retired row names.
  */
 import { create, toBinary } from "@bufbuild/protobuf";
 import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 import { describe, expect, it } from "vitest";
 
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiResourceAuditStatusSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
@@ -23,6 +27,7 @@ import { ApiResourceAuditStatusSchema } from "@stigmer/protos/ai/stigmer/commons
 import {
   FrozenAgentInstanceEnvelopeSchema,
   FrozenArtifactEnvelopeSchema,
+  FrozenPlatformClientEnvelopeSchema,
   FrozenWorkflowEnvelopeSchema,
   FrozenWorkflowExecutionEnvelopeSchema,
   FrozenWorkflowInstanceEnvelopeSchema,
@@ -35,7 +40,9 @@ import {
   PUBLIC_ROW_KINDS_AT_RETIREMENT,
   movePublicRowToOrg,
 } from "../public-visibility-retired.js";
+import { REFERRING_KINDS_AT_REWRITE } from "../references-by-id.js";
 import { retiredInstanceRow } from "./retired-instance-rows.js";
+import { retiredPlatformClientRow } from "./retired-platform-client-rows.js";
 import {
   retiredArtifactRow,
   retiredWorkflowInstanceRow,
@@ -321,5 +328,30 @@ describe("the frozen workflow, workflow run and artifact envelopes", () => {
     expect(
       movePublicRowToOrg(moverOf("workflow")!, at(ApiResourceVisibility.visibility_private)),
     ).toBeUndefined();
+  });
+});
+
+describe("the frozen platform client envelope", () => {
+  const ledgerEntry = ORGANIZATION_SCOPED_KINDS_AT_LEDGER.find(
+    (entry) => entry.kind === "platform_client",
+  );
+
+  it("is what the slug ledger and the reference rewrite read a retired client through, under the retired message's name", () => {
+    expect(ledgerEntry?.schema).toBe(FrozenPlatformClientEnvelopeSchema);
+    expect(
+      REFERRING_KINDS_AT_REWRITE.find((entry) => entry.kind === "platform_client")?.schema,
+    ).toBe(FrozenPlatformClientEnvelopeSchema);
+    expect(FrozenPlatformClientEnvelopeSchema.typeName).toBe(
+      "ai.stigmer.iam.platformclient.v1.PlatformClient",
+    );
+  });
+
+  it("lets the slug ledger read the organization a retired row names", () => {
+    const row = retiredPlatformClientRow({
+      metadata: { id: "pcl_1", org: "acme", slug: "dashboard" },
+      clientId: "stgm_cid_1",
+      vaults: [{ kind: ApiResourceKind.vault, org: "acme", slug: "product-keys" }],
+    });
+    expect(organizationNamedBy(ledgerEntry!, row)).toBe("acme");
   });
 });

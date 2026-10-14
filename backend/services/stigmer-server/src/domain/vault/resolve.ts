@@ -167,6 +167,7 @@ import type {
 } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
 import { hookVariableReferences, PLATFORM_VARIABLES } from "@stigmer/plugin-package";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
@@ -185,7 +186,7 @@ import type { Store } from "../../store/interface.js";
 import type { RunSubagent } from "../run/run-subagents.js";
 import { evalOfRun } from "../plugin-eval/plugin-eval-run.js";
 import { SCHEDULE_ID_LABEL_KEY } from "../schedule/labels.js";
-import type { PlatformClientStore } from "../platformclient/store.js";
+import type { IdentityAccountStore } from "../identityaccount/store.js";
 import { sessionIdOf } from "../run/target.js";
 
 import { gitHostOf, toolAddressOf } from "./address.js";
@@ -357,7 +358,8 @@ export interface VaultResolverDeps {
   readonly authorizer: Authorizer;
   readonly secretService: SecretService;
   readonly vaults: VaultService;
-  readonly platformClients: Pick<PlatformClientStore, "findById">;
+  /** Where the service account that minted an app user's token is read, for its organization. */
+  readonly accounts: Pick<IdentityAccountStore, "findById">;
   readonly freshener: SignInFreshener;
 }
 
@@ -415,7 +417,7 @@ export function recordedRunPerson(execution: Run): string | undefined {
  * any other run: a run that recorded no person, whose creator stamp names
  * someone other than the conversation's creator (a conversation that
  * records no creator has none to compare). A surface's run (a guest,
- * a channel, a schedule, a platform client's user) is created by the same
+ * a channel, a schedule, an app user) is created by the same
  * account that created its conversation, so it is never one.
  */
 export function participantSenderOf(
@@ -991,15 +993,20 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     const executionOrg = execution.metadata?.org ?? "";
     const surfaces: RunSurface[] = [];
 
-    const platformClientId =
-      execution.status?.audit?.specAudit?.createdBy?.platformClientId ?? "";
-    if (platformClientId !== "") {
-      const client = await deps.platformClients.findById(platformClientId);
-      if (client !== undefined && (client.metadata?.org ?? "") === executionOrg) {
+    const mintedBy =
+      execution.status?.audit?.specAudit?.createdBy?.mintedBy ?? "";
+    if (mintedBy !== "") {
+      const minter = await deps.accounts.findById(mintedBy);
+      const minterOrg = minter?.metadata?.org ?? "";
+      const organization =
+        minterOrg !== "" && minterOrg === executionOrg
+          ? await loadOptional(ApiResourceKind.organization, minterOrg, OrganizationSchema)
+          : undefined;
+      if (organization !== undefined) {
         surfaces.push({
-          what: `platform client '${client.metadata?.name ?? platformClientId}'`,
-          refs: client.spec?.vaults ?? [],
-          attachers: client.status?.vaultAttachers ?? {},
+          what: "the organization's embedding settings",
+          refs: organization.spec?.embedding?.vaults ?? [],
+          attachers: organization.status?.embeddingVaultAttachers ?? {},
           org: executionOrg,
         });
       }

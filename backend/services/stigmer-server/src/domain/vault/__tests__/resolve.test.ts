@@ -93,8 +93,10 @@ import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_
 import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultConnectionSource, VaultSecretSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
-import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
+import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import {
@@ -144,7 +146,7 @@ let freshened: string[];
 /** The caller each renewal was written back as. */
 let renewedAs: CallerIdentity[];
 let freshenFails: boolean;
-let clients: Map<string, PlatformClient>;
+let accounts: Map<string, IdentityAccount>;
 let resolver: VaultResolver;
 
 const useTable: Authorizer = {
@@ -175,14 +177,14 @@ beforeEach(() => {
   freshened = [];
   renewedAs = [];
   freshenFails = false;
-  clients = new Map();
+  accounts = new Map();
   resolver = newVaultResolver({
     store: rig.store,
     logger: silentLogger,
     authorizer: useTable,
     secretService: rig.secrets,
     vaults: rig.vaults,
-    platformClients: { findById: async (id) => clients.get(id) },
+    accounts: { findById: async (id) => accounts.get(id) },
     freshener,
   });
 });
@@ -343,7 +345,7 @@ function sessionOf(init: {
 function runOf(init: {
   person?: string;
   labels?: Record<string, string>;
-  platformClientId?: string;
+  mintedBy?: string;
   sender?: string;
 } = {}): Run {
   return create(RunSchema, {
@@ -352,7 +354,7 @@ function runOf(init: {
       credentials: init.person === undefined ? {} : { person: init.person },
       audit: {
         specAudit: {
-          createdBy: { id: init.sender ?? "ida_x", platformClientId: init.platformClientId ?? "" },
+          createdBy: { id: init.sender ?? "ida_x", mintedBy: init.mintedBy ?? "" },
         },
       },
     },
@@ -896,30 +898,31 @@ describe("which vaults a run uses", () => {
     ).toEqual({ A: "chan" });
   });
 
-  it("a minted user's run uses its platform client's vaults; another organization's client contributes nothing", async () => {
+  it("an app user's run uses its minting organization's embedding vaults; a minter of another organization contributes nothing", async () => {
     const embed = await seedSharedVault(rig.store, ORG, "embed", { secrets: { A: "embed" } });
     mayUse.add(`${ADMIN}:${embed.metadata!.id}`);
-    clients.set(
-      "pcl_dash",
-      create(PlatformClientSchema, {
-        metadata: { id: "pcl_dash", name: "dashboard", org: ORG },
-        spec: { vaults: [vaultRef("embed")] },
-        status: { vaultAttachers: { [embed.metadata!.id]: ADMIN } },
+    await rig.store.saveResource(
+      ApiResourceKind.organization,
+      ORG,
+      OrganizationSchema,
+      create(OrganizationSchema, {
+        metadata: { id: ORG, name: ORG },
+        spec: { embedding: { vaults: [vaultRef("embed")] } },
+        status: { embeddingVaultAttachers: { [embed.metadata!.id]: ADMIN } },
       }),
     );
-    clients.set(
-      "pcl_foreign",
-      create(PlatformClientSchema, {
-        metadata: { id: "pcl_foreign", name: "foreign", org: "globex" },
-        spec: { vaults: [vaultRef("embed")] },
-        status: { vaultAttachers: { [embed.metadata!.id]: ADMIN } },
-      }),
-    );
+    const minter = (id: string, org: string): IdentityAccount =>
+      create(IdentityAccountSchema, {
+        metadata: { id, org },
+        spec: { provisioningMode: IdentityAccountProvisioningMode.service_account },
+      });
+    accounts.set("ida_dash", minter("ida_dash", ORG));
+    accounts.set("ida_foreign", minter("ida_foreign", "globex"));
     expect(
-      await resolve({ run: runOf({ platformClientId: "pcl_dash" }), agentSpec: agent({ A: KEY }) }),
+      await resolve({ run: runOf({ mintedBy: "ida_dash" }), agentSpec: agent({ A: KEY }) }),
     ).toEqual({ A: "embed" });
     const foreign = await refusal(
-      resolve({ run: runOf({ platformClientId: "pcl_foreign" }), agentSpec: agent({ A: KEY }) }),
+      resolve({ run: runOf({ mintedBy: "ida_foreign" }), agentSpec: agent({ A: KEY }) }),
     );
     expect(foreign.rawMessage).toBe("the agent Helper needs A: list a vault that holds A on the conversation");
   });
@@ -2365,7 +2368,7 @@ function resolverWith(overrides: {
     authorizer: overrides.authorizer ?? useTable,
     secretService: rig.secrets,
     vaults: rig.vaults,
-    platformClients: { findById: async () => undefined },
+    accounts: { findById: async () => undefined },
     freshener: overrides.freshener ?? freshener,
   });
 }
@@ -2483,7 +2486,7 @@ describe("edges", () => {
       authorizer: useTable,
       secretService: rig.secrets,
       vaults: rig.vaults,
-      platformClients: { findById: async () => undefined },
+      accounts: { findById: async () => undefined },
       freshener,
     });
     await expect(
@@ -2622,7 +2625,7 @@ describe("a stored value the server cannot open", () => {
         secretService: secrets,
         authorizationLifecycle: undefined,
       }),
-      platformClients: { findById: async () => undefined },
+      accounts: { findById: async () => undefined },
       freshener,
     });
   }
@@ -2773,7 +2776,7 @@ describe("a stored value the server cannot open", () => {
       authorizer: useTable,
       secretService: cannot.secrets,
       vaults,
-      platformClients: { findById: async () => undefined },
+      accounts: { findById: async () => undefined },
       freshener: newSignInFreshener({
         loginProviders: new Map(),
         vaults,

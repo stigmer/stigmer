@@ -36,7 +36,7 @@
  *     uniqueness rules bring their own step under the same name").
  *   - AssignBackendFields: `is_machine_account` from the `@clients`
  *     suffix and the provisioning mode the path was given (`direct`,
- *     `platform_client` for the mint's end users, `federated` with the
+ *     `app_user` for the mint's people, `federated` with the
  *     provider's reference, or `service_account` for an organization's
  *     own non-person account) on create (the spec's
  *     "assigned by backend" fields); on update, every backend-assigned
@@ -91,15 +91,15 @@ import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import { idValueOf, metadataOf } from "../../pipeline/steps/shapes.js";
 import { fittedName, fittedSlug } from "../../pipeline/steps/slug.js";
 import {
-  PLATFORM_CLIENT_SUBJECT_PREFIX,
+  APP_USER_SUBJECT_PREFIX,
   SERVICE_ACCOUNT_SUBJECT_PREFIX,
   accountIdFor,
   accountNotFoundMessage,
   federatedAccountIdFor,
   idpIdImmutableMessage,
+  isAppUserSubject,
   isFederatedSubject,
   isMachineSubject,
-  isPlatformClientSubject,
   isServiceAccountSubject,
   reservedSubjectMessage,
 } from "./constants.js";
@@ -235,16 +235,16 @@ export function assignDirectBackendFields(
 }
 
 /**
- * The backend-assigned fields of a PLATFORM-CLIENT account: the machine
- * flag from the subject's shape (the cloud's rule for every mode), mode
- * `platform_client`, no provider ref — the PlatformClient admits the user
- * at mint time and is no ongoing authentication authority.
+ * The backend-assigned fields of an APP-USER account: the machine flag
+ * from the subject's shape (the cloud's rule for every mode), mode
+ * `app_user`, no provider ref — the minting service account admits the
+ * person at mint time, and no identity provider vouches for them later.
  */
-function assignPlatformClientBackendFields(
+function assignAppUserBackendFields(
   spec: IdentityAccountSpec,
 ): IdentityAccountSpec {
   spec.isMachineAccount = isMachineSubject(spec.idpId);
-  spec.provisioningMode = IdentityAccountProvisioningMode.platform_client;
+  spec.provisioningMode = IdentityAccountProvisioningMode.app_user;
   spec.identityProviderRef = undefined;
   return spec;
 }
@@ -315,16 +315,16 @@ export function newAssignBackendFieldsStep(
           assignDirectBackendFields(spec);
           return;
         }
-        case "platform_client":
-          if (!isPlatformClientSubject(spec.idpId)) {
+        case "app_user":
+          if (!isAppUserSubject(spec.idpId)) {
             throw internalError(
               new Error(
-                `a platform-client account's subject must carry the '${PLATFORM_CLIENT_SUBJECT_PREFIX}' prefix`,
+                `an app user's subject must carry the '${APP_USER_SUBJECT_PREFIX}' prefix`,
               ),
               "assign backend fields",
             );
           }
-          assignPlatformClientBackendFields(spec);
+          assignAppUserBackendFields(spec);
           return;
         case "federated":
           assignFederatedBackendFields(spec, provisioning.provider);

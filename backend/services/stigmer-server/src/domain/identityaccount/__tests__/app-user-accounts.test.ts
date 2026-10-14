@@ -1,12 +1,12 @@
 /**
- * Pins the identity-account create path's platform-client arm over the OSS
+ * Pins the identity-account create path's app-user arm over the OSS
  * adapter on sqlite:
- *   - `platform_client` provisioning writes the mode, the owning
+ *   - `app_user` provisioning writes the mode, the owning
  *     organization and the derived id, with the actor the caller named;
  *   - the `stgm_pc|` subject namespace is reserved in both directions: a
  *     direct account refuses it INVALID_ARGUMENT before anything is written,
- *     and a platform-client account without it is the caller's bug;
- *   - the direct lookups never answer the platform-client account, while the
+ *     and an app-user account without it is the caller's bug;
+ *   - the direct lookups never answer the app-user account, while the
  *     any-mode lookup (the mint's) does.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -55,7 +55,7 @@ afterEach(() => {
 });
 
 const SUBJECT = "stgm_pc|acme|user-7";
-const CLIENT = serverActingFor("pcl_dashboard");
+const MINTER = serverActingFor("ida_dashboard_minter");
 
 async function refusal(promise: Promise<unknown>): Promise<ConnectError> {
   try {
@@ -78,7 +78,7 @@ describe("the create path's account slug, from a name the server chose", () => {
         }),
         provisioning: { mode: "direct" },
       },
-      CLIENT,
+      MINTER,
     );
     expect(account.metadata?.slug).toBe("a-2024internacme-com");
   });
@@ -91,7 +91,7 @@ describe("the create path's account slug, from a name the server chose", () => {
         spec: create(IdentityAccountSpecSchema, { idpId: "auth0|long-email", email }),
         provisioning: { mode: "direct" },
       },
-      CLIENT,
+      MINTER,
     );
     expect(account.metadata?.name).toBe(email.slice(0, 200));
     expect(account.spec?.email).toBe(email);
@@ -118,7 +118,7 @@ describe("the create path's account slug, from a name the server chose", () => {
     expect(validator().validate(IdentityAccountSchema, account).kind).toBe("valid");
   });
 
-  it("provisions a platform-client user whose external id is numeric, and one named by a UUID", async () => {
+  it("provisions an app user whose external id is numeric, and one named by a UUID", async () => {
     for (const [external, slug] of [
       ["12345", "a-12345"],
       ["550e8400-e29b-41d4-a716-446655440000", "a-550e8400-e29b-41d4-a716-446655440000"],
@@ -127,17 +127,17 @@ describe("the create path's account slug, from a name the server chose", () => {
         {
           name: external,
           spec: create(IdentityAccountSpecSchema, { idpId: `stgm_pc|acme|${external}` }),
-          provisioning: { mode: "platform_client", org: "acme" },
+          provisioning: { mode: "app_user", org: "acme" },
         },
-        CLIENT,
+        MINTER,
       );
       expect(account.metadata?.slug).toBe(slug);
     }
   });
 });
 
-describe("the create path's platform-client arm", () => {
-  it("writes the mode, the owning organization and the derived id, stamped as the client", async () => {
+describe("the create path's app-user arm", () => {
+  it("writes the mode, the owning organization and the derived id, stamped as the minting service account", async () => {
     const account = await createAccount(
       {
         name: "pat@example.com",
@@ -145,17 +145,17 @@ describe("the create path's platform-client arm", () => {
           idpId: SUBJECT,
           email: "pat@example.com",
         }),
-        provisioning: { mode: "platform_client", org: "acme" },
+        provisioning: { mode: "app_user", org: "acme" },
       },
-      CLIENT,
+      MINTER,
     );
     expect(account.metadata?.id).toBe(accountIdFor(SUBJECT));
     expect(account.metadata?.org).toBe("acme");
     expect(account.spec?.provisioningMode).toBe(
-      IdentityAccountProvisioningMode.platform_client,
+      IdentityAccountProvisioningMode.app_user,
     );
     expect(account.status?.audit?.specAudit?.createdBy?.id).toBe(
-      "pcl_dashboard",
+      "ida_dashboard_minter",
     );
 
     expect(await accounts.findDirectByIdpId(SUBJECT)).toBeUndefined();
@@ -173,7 +173,7 @@ describe("the create path's platform-client arm", () => {
           spec: create(IdentityAccountSpecSchema, { idpId: SUBJECT }),
           provisioning: { mode: "direct" },
         },
-        CLIENT,
+        MINTER,
       ),
     );
     expect(denied.code).toBe(Code.InvalidArgument);
@@ -181,15 +181,15 @@ describe("the create path's platform-client arm", () => {
     expect(await accounts.findByIdpId(SUBJECT)).toBeUndefined();
   });
 
-  it("refuses a platform-client account without the reserved prefix as a server fault", async () => {
+  it("refuses an app-user account without the reserved prefix as a server fault", async () => {
     const denied = await refusal(
       createAccount(
         {
           name: "stray",
           spec: create(IdentityAccountSpecSchema, { idpId: "auth0|stray" }),
-          provisioning: { mode: "platform_client", org: "acme" },
+          provisioning: { mode: "app_user", org: "acme" },
         },
-        CLIENT,
+        MINTER,
       ),
     );
     expect(denied.code).toBe(Code.Internal);

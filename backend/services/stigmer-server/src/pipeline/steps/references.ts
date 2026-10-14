@@ -165,7 +165,7 @@ import type { RequestContext } from "../request-context.js";
 import { kindEnumName } from "../apiresource-meta.js";
 import { evaluateAuthorizer } from "./authorize.js";
 import { EXISTING_RESOURCE_KEY } from "./load-existing.js";
-import { messageFieldByName, metadataOf } from "./shapes.js";
+import { messageFieldByName, metadataOf, owningOrgOf } from "./shapes.js";
 import { findResourceByName, resolveName } from "./names.js";
 
 const API_RESOURCE_REFERENCE_TYPE =
@@ -1016,7 +1016,7 @@ export function newNormalizeReferencesStep<Desc extends DescMessage>(
         store,
         ctx.schema,
         ctx.newState,
-        metadata.org,
+        owningOrgOf(ctx.schema, ctx.newState),
         new Date(),
         ctx.get(EXISTING_RESOURCE_KEY) as Message | undefined,
       );
@@ -1068,7 +1068,7 @@ export function newValidateReferencesStep<Desc extends DescMessage>(
         isSet,
       );
       const parent: ReferenceParent = {
-        org: metadata.org,
+        org: owningOrgOf(ctx.schema, ctx.newState),
         visibility: metadata.visibility,
       };
       const existing = ctx.get(EXISTING_RESOURCE_KEY) as Message | undefined;

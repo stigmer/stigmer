@@ -350,7 +350,7 @@ describe("listTools — refusals before anything starts", () => {
         ...untouchable<VaultResolverDeps["vaults"]>("vaults"),
         findMine: () => Promise.resolve(undefined),
       },
-      platformClients: untouchable("platformClients"),
+      accounts: untouchable("accounts"),
       freshener: untouchable("freshener"),
     };
     const error = await refusal(

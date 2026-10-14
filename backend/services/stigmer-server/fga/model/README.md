@@ -287,7 +287,6 @@ fga/
 │   │   ├── iam_policy.fga          # Access policies
 │   │   ├── api_key.fga             # User API keys
 │   │   ├── oauth_app.fga           # OAuth client registrations
-│   │   ├── platform_client.fga     # Platform builder credentials
 │   │   ├── invitation.fga          # Org membership invitations
 │   │   └── team.fga                # Enterprise teams (bounded membership)
 │   ├── tenancy/

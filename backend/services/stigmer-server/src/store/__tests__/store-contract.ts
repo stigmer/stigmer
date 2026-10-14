@@ -55,8 +55,11 @@ import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { ApiResourceAuditSchema, ApiResourceAuditStatusSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+import {
+  OrganizationSchema,
+  OrganizationStatusSchema,
+} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 
 import { AuditNotFoundError, ResourceNotFoundError } from "../interface.js";
 import type {
@@ -676,7 +679,7 @@ export function describeStoreContract(
       expect(edited.metadata?.etag).not.toBe(saved.metadata?.etag);
 
       const statusOnly = await fx.store.updateResource(KIND, "etag-org", OrganizationSchema, (row) => {
-        const status = (row.status ??= create(ApiResourceAuditStatusSchema));
+        const status = (row.status ??= create(OrganizationStatusSchema));
         status.audit = create(ApiResourceAuditSchema, { statusAudit: { event: "touched" } });
       });
       expect(statusOnly.metadata?.etag, "a status write leaves the etag as it was").toBe(edited.metadata?.etag);

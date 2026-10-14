@@ -4,8 +4,8 @@
  * credentials exist, held shut to an organization's admin service account,
  * over the composed sign-in server:
  *
- *   - a platform client's create, update and secret rotation (its sign-in
- *     role makes members, its secret mints users);
+ *   - the organization's embedding settings (their sign-in role decides
+ *     which role the key's own mint grants);
  *   - the federated account RPCs (they make and remove members), refused
  *     before the edition's federation is even consulted;
  *   - an organization's delete, a child of its own organization included;
@@ -24,7 +24,6 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
-import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/command_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
@@ -48,15 +47,6 @@ let globex = "";
 let ciId = "";
 let ciKey = "";
 
-function platformClientInput(org: string, name: string) {
-  return {
-    apiVersion: "iam.stigmer.ai/v1",
-    kind: "PlatformClient",
-    metadata: { name, org },
-    spec: { createAccountsOnSignIn: true, signInRole: IamRole.admin },
-  };
-}
-
 beforeAll(async () => {
   at = await bootSignInServer("service-account-doors");
   await provision(at, FOUNDER);
@@ -72,21 +62,21 @@ afterAll(async () => {
 });
 
 describe("an admin service account's key, at the doors that decide membership or credentials", () => {
-  it("is refused a platform client's create, update and secret rotation; a person admin is not", async () => {
-    const asPerson = createClient(PlatformClientCommandController, at.as(FOUNDER));
-    const made = await asPerson.create(platformClientInput(acme, "doors-portal"));
-    const client = made.platformClient;
-    const asKey = createClient(PlatformClientCommandController, at.presenting(ciKey));
-    const attempts: ReadonlyArray<() => Promise<unknown>> = [
-      () => asKey.create(platformClientInput(acme, "doors-rogue")),
-      () => asKey.update({ resource: client ?? {}, updateMask: { paths: ["*"] } }),
-      () => asKey.rotateSecret({ value: client?.metadata?.id ?? "" }),
-    ];
-    for (const attempt of attempts) {
-      const error = await refusal(attempt());
-      expect(error.code).toBe(Code.PermissionDenied);
-      expect(error.rawMessage).toBe(serviceAccountRefusedMessage("create or change platform clients"));
-    }
+  it("is refused changing the organization's embedding settings; a person admin is not", async () => {
+    const embedding = { createAccountsOnSignIn: true, signInRole: IamRole.admin };
+    const saved = await createClient(OrganizationCommandController, at.as(FOUNDER)).updateEmbedding({
+      orgId: acme,
+      embedding,
+    });
+    expect(saved.spec?.embedding?.signInRole).toBe(IamRole.admin);
+    const error = await refusal(
+      createClient(OrganizationCommandController, at.presenting(ciKey)).updateEmbedding({
+        orgId: acme,
+        embedding: { createAccountsOnSignIn: true, signInRole: IamRole.member },
+      }),
+    );
+    expect(error.code).toBe(Code.PermissionDenied);
+    expect(error.rawMessage).toBe(serviceAccountRefusedMessage("change the organization's embedding settings"));
   });
 
   it("is refused the federated account RPCs before the edition's federation is consulted", async () => {

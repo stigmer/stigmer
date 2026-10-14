@@ -131,11 +131,11 @@ function federatedAccount(overrides: {
 }
 
 /**
- * A platform-client end user as the mint provisions it: the reserved
- * composite subject, mode `platform_client`, the owning organization, and
+ * An app user as the mint provisions it: the reserved composite
+ * subject, mode `app_user`, the owning organization, and
  * the derived id of its subject (the id every subject lookup reads).
  */
-function platformClientAccount(overrides: {
+function appUserAccount(overrides: {
   idpId: string;
   email: string;
   org?: string;
@@ -151,7 +151,7 @@ function platformClientAccount(overrides: {
     spec: {
       idpId: overrides.idpId,
       email: overrides.email,
-      provisioningMode: IdentityAccountProvisioningMode.platform_client,
+      provisioningMode: IdentityAccountProvisioningMode.app_user,
     },
   });
 }
@@ -466,7 +466,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
       assert.equal(
         await store.findByIdpId("auth0|fed"),
         undefined,
-        "the subject lookup must not resolve to a federated account: a provider chooses its subjects, so one equal to a platform person's or a platform client user's would otherwise answer for them",
+        "the subject lookup must not resolve to a federated account: a provider chooses its subjects, so one equal to a platform person's or an app user's would otherwise answer for them",
       );
     },
   ],
@@ -565,13 +565,13 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
     },
   ],
   [
-    "findDirectByEmail answers the direct account when federated and platform-client rows share its email",
+    "findDirectByEmail answers the direct account when federated and app-user rows share its email",
     async ({ store }) => {
       await store.save(
         federatedAccount({ idpId: "okta|shared", email: "shared@example.com" }),
       );
       await store.save(
-        platformClientAccount({
+        appUserAccount({
           idpId: "stgm_pc|acme|shared",
           email: "shared@example.com",
         }),
@@ -587,10 +587,10 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
     },
   ],
   [
-    "findDirectByIdpId and findDirectByEmail never answer a platform-client account, while findByIdpId (any mode) does",
+    "findDirectByIdpId and findDirectByEmail never answer an app-user account, while findByIdpId (any mode) does",
     async ({ store }) => {
       await store.save(
-        platformClientAccount({
+        appUserAccount({
           idpId: "stgm_pc|acme|user-7",
           email: "pat@example.com",
         }),
@@ -598,7 +598,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
       assert.equal(
         await store.findDirectByIdpId("stgm_pc|acme|user-7"),
         undefined,
-        "the direct-subject lookup must not resolve to an account a platform client provisioned",
+        "the direct-subject lookup must not resolve to an account a mint provisioned",
       );
       assert.equal(
         await store.findDirectByEmail("pat@example.com"),
@@ -607,8 +607,8 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
       );
       assert.equal(
         (await store.findByIdpId("stgm_pc|acme|user-7"))?.spec?.provisioningMode,
-        IdentityAccountProvisioningMode.platform_client,
-        "the any-mode subject lookup — the mint's — must answer the platform-client account",
+        IdentityAccountProvisioningMode.app_user,
+        "the any-mode subject lookup — the mint's — must answer the app-user account",
       );
     },
   ],
@@ -647,13 +647,13 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
     "findByOrg answers the accounts whose row names the organization, and never a person's own",
     async ({ store }) => {
       await store.save(
-        platformClientAccount({ idpId: "stgm_pc|acme|user-1", email: "a@example.com" }),
+        appUserAccount({ idpId: "stgm_pc|acme|user-1", email: "a@example.com" }),
       );
       await store.save(
-        platformClientAccount({ idpId: "stgm_pc|acme|user-2", email: "b@example.com" }),
+        appUserAccount({ idpId: "stgm_pc|acme|user-2", email: "b@example.com" }),
       );
       await store.save(
-        platformClientAccount({
+        appUserAccount({
           idpId: "stgm_pc|globex|user-1",
           email: "c@example.com",
           org: "globex",

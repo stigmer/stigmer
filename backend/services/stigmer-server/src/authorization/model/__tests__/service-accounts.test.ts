@@ -64,11 +64,11 @@ describe("identity_account#organization", () => {
     }
   });
 
-  it("a platform client's end user derives nothing, though its row names an organization", async () => {
+  it("an app user derives nothing, though its row names an organization", async () => {
     expect(
       await serviceAccountOrganization(
         OBJECT,
-        accountRow(IdentityAccountProvisioningMode.platform_client, "org_acme"),
+        accountRow(IdentityAccountProvisioningMode.app_user, "org_acme"),
         NO_LOADER,
       ),
     ).toEqual([]);

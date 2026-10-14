@@ -92,7 +92,7 @@ beforeEach(async () => {
     authorizer: useTable,
     secretService: rig.secrets,
     vaults: rig.vaults,
-    platformClients: { findById: async () => undefined },
+    accounts: { findById: async () => undefined },
     freshener: { freshToken: async () => "unused" },
   });
 });

@@ -122,7 +122,6 @@ describe("NOT_FOUND_EXEMPT_KINDS", () => {
         ApiResourceKind.identity_account,
         ApiResourceKind.identity_provider,
         ApiResourceKind.iam_policy,
-        ApiResourceKind.platform_client,
         ApiResourceKind.invitation,
         ApiResourceKind.team,
       ].sort(),

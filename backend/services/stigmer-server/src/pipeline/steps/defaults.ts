@@ -306,18 +306,19 @@ export function operatorIdentitySnapshot(): {
  * unconfigured → the "system" placeholder, which the runner deliberately
  * demotes to anonymous (SYSTEM_CREATOR_SENTINEL). Verifier-produced
  * identities (OIDC claims and the like) stamp their own email/displayName
- * when present, identityId alone otherwise. A PlatformClient-minted
- * caller also stamps the client it came through (platform_client_id):
+ * when present, identityId alone otherwise. A caller on a minted user
+ * token also stamps the service account whose key minted it (minted_by):
  * the account alone cannot say, and the run's credential resolver finds
- * the PlatformClient whose vaults a run uses from this record (#1256). Every
- * other identity stamps it empty, so local-posture bytes are unchanged.
+ * the organization whose embedding vaults a run uses from this record.
+ * Every other identity stamps it empty, so local-posture bytes are
+ * unchanged.
  */
 export function auditActorFor(identity: CallerIdentity): ApiResourceAuditActor {
   return create(ApiResourceAuditActorSchema, {
     id: identity.identityId,
     email: identity.email ?? "",
     displayName: identity.displayName ?? "",
-    platformClientId: identity.platformClientId ?? "",
+    mintedBy: identity.mintedBy ?? "",
   });
 }
 

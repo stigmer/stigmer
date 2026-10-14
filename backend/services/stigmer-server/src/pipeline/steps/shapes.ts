@@ -14,6 +14,7 @@ import type { ReflectMessage } from "@bufbuild/protobuf/reflect";
 import type { DescField, DescMessage, Message } from "@bufbuild/protobuf";
 
 import type { ApiResourceMetadata } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 /** Go HasMetadata: every API resource carries metadata of this one type. */
 export interface HasMetadataShape {
@@ -31,6 +32,21 @@ export interface HasValueShape {
  */
 export function metadataOf(msg: Message): ApiResourceMetadata | undefined {
   return (msg as unknown as HasMetadataShape).metadata;
+}
+
+/**
+ * The organization a row's references are judged in: its `metadata.org`,
+ * or, for an Organization, whose own `metadata.org` is always empty, its
+ * own id. The steps that resolve and judge references and record vault
+ * attachments read it here, so the vaults an organization's own settings
+ * name (its embedding vaults) are judged as its resources' vaults are.
+ */
+export function owningOrgOf(schema: DescMessage, msg: Message): string {
+  const metadata = metadataOf(msg);
+  if (schema.typeName === OrganizationSchema.typeName) {
+    return metadata?.id ?? "";
+  }
+  return metadata?.org ?? "";
 }
 
 /** The ID-wrapper's value ("" when absent) — Go HasValue.GetValue(). */

@@ -96,6 +96,8 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import {
   CONTRACT_SESSION_INDEX,
@@ -122,6 +124,7 @@ import {
   SCHEMA_VERSION_32,
   SCHEMA_VERSION_33,
   SCHEMA_VERSION_34,
+  SCHEMA_VERSION_35,
   SCHEMA_VERSION_7,
   getSchemaVersion,
   runMigrations,
@@ -147,6 +150,8 @@ import { currentSessionRow, sessionRowWithValues } from "../../__tests__/retired
 import { HISTORY_PAGE_SIZE } from "../../organization-slug-history.js";
 import { PUBLIC_ROW_KINDS_AT_RETIREMENT } from "../../public-visibility-retired.js";
 import { WORKFLOW_RETIREMENT_PAGE_SIZE } from "../../workflow-instance-retired.js";
+import { PLATFORM_CLIENT_RETIRED_PAGE_SIZE } from "../../platform-client-retired.js";
+import { retiredPlatformClientRow } from "../../__tests__/retired-platform-client-rows.js";
 import {
   AGENT_RUN_RETIRED_PAGE_SIZE,
   RETIRED_WORKFLOW_KINDS,
@@ -340,7 +345,7 @@ describe("fresh database", () => {
       .all() as Array<{ version: number }>;
     expect(rows.map((row) => row.version)).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-      22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
+      22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
     ]);
   });
 
@@ -3228,5 +3233,225 @@ describe("v33 and v34: a session's harness state moves to its status, and every 
         fields: { kind: "agent", count: 1, ids: ["agt_b_bad"] },
       },
     ]);
+  });
+});
+
+describe("v35: the platform client rows and the grants naming them leave", () => {
+  const ORG = "org_01jz0000000000000000000000";
+  const SEEDED_AT = "2026-10-01 00:00:00";
+
+  /** A v34 database: the chain replayed up to the step before v35. */
+  function v34Database(): { dbPath: string; db: DatabaseSync } {
+    const dbPath = tempDbPath();
+    const setup = new DatabaseSync(dbPath);
+    runMigrations(setup, SCHEMA_VERSION_35 - 1);
+    expect(getSchemaVersion(setup)).toBe(SCHEMA_VERSION_35 - 1);
+    return { dbPath, db: setup };
+  }
+
+  function insert(db: DatabaseSync, kind: string, id: string, data: Uint8Array): void {
+    db.prepare(
+      `INSERT INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, ?)`,
+    ).run(kind, id, data, SEEDED_AT);
+  }
+
+  function row(db: DatabaseSync, kind: string, id: string): { data: Uint8Array; updated_at: string } {
+    return db
+      .prepare(`SELECT data, updated_at FROM resources WHERE kind = ? AND id = ?`)
+      .get(kind, id) as { data: Uint8Array; updated_at: string };
+  }
+
+  function count(db: DatabaseSync, table: string, kind: string): number {
+    return (db.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE kind = ?`).get(kind) as { n: number }).n;
+  }
+
+  /** A client with its history, a list key and its name. */
+  function seedClient(db: DatabaseSync): void {
+    insert(
+      db,
+      "platform_client",
+      "pcl_dashboard",
+      retiredPlatformClientRow({
+        metadata: { id: "pcl_dashboard", org: ORG, slug: "dashboard" },
+        clientId: "stgm_cid_dashboard",
+        allowedOrigins: ["https://app.example"],
+        signInRole: IamRole.member,
+        vaults: [{ kind: ApiResourceKind.vault, org: ORG, id: "vlt_keys" }],
+        vaultAttachers: { vlt_keys: "ida_admin" },
+      }),
+    );
+    db.prepare(
+      `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('platform_client', 'pcl_dashboard', ?, '', '')`,
+    ).run(new Uint8Array([0x00]));
+    db.prepare(
+      `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('platform_client', 'pcl_dashboard', 'org', ?, '')`,
+    ).run(ORG);
+    db.prepare(
+      `INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES ('platform_client', ?, 'dashboard', 'pcl_dashboard', 'current', ?)`,
+    ).run(ORG, SEEDED_AT);
+  }
+
+  /** An account a client's mint created, which stays. */
+  const appUser = toBinary(
+    IdentityAccountSchema,
+    create(IdentityAccountSchema, {
+      apiVersion: "iam.stigmer.ai/v1",
+      kind: "IdentityAccount",
+      metadata: { id: "ida_app_user", org: ORG },
+      spec: {
+        idpId: `stgm_pc|${ORG}|user-7`,
+        provisioningMode: IdentityAccountProvisioningMode.app_user,
+      },
+    }),
+  );
+
+  const keptGrant = {
+    id: "iam_on_org",
+    principal: "identity_account:ida_app_user",
+    relation: "member",
+    resource: `organization:${ORG}`,
+  };
+  const retiredGrants = [
+    {
+      id: "iam_on_client",
+      principal: "identity_account:ida_1",
+      relation: "viewer",
+      resource: "platform_client:pcl_dashboard",
+    },
+    {
+      id: "iam_client_holds",
+      principal: "platform_client:pcl_dashboard",
+      relation: "viewer",
+      resource: "agent:agt_1",
+    },
+  ];
+
+  function seedGrants(db: DatabaseSync): void {
+    for (const grant of [...retiredGrants, keptGrant]) {
+      insert(db, "iam_policy", grant.id, policyRow(grant));
+      db.prepare(
+        `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('iam_policy', ?, 'principal', ?, '')`,
+      ).run(grant.id, grant.principal.split(":")[1] ?? "");
+    }
+    db.prepare(
+      `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('iam_policy', 'iam_on_client', ?, '', '')`,
+    ).run(new Uint8Array([0x00]));
+  }
+
+  it("removes the client rows from every table and every grant naming one, its history kept, and keeps the accounts its mints created and their grants", () => {
+    const { dbPath, db: setup } = v34Database();
+    seedClient(setup);
+    seedGrants(setup);
+    insert(setup, "identity_account", "ida_app_user", appUser);
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_35);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_35);
+
+    for (const table of RUN_KIND_TABLES) {
+      expect(count(db, table, "platform_client"), table).toBe(0);
+    }
+    const policyIds = (table: string) =>
+      (
+        db.prepare(`SELECT id FROM ${table} WHERE kind = 'iam_policy' ORDER BY id`).all() as Array<{ id: string }>
+      ).map((r) => r.id);
+    expect(policyIds("resources")).toEqual([keptGrant.id]);
+    expect(policyIds("resource_list_keys")).toEqual([keptGrant.id]);
+    expect(row(db, "iam_policy", keptGrant.id)).toEqual({ data: policyRow(keptGrant), updated_at: SEEDED_AT });
+    expect(count(db, "resource_audit", "iam_policy")).toBe(1);
+    expect(row(db, "identity_account", "ida_app_user")).toEqual({ data: appUser, updated_at: SEEDED_AT });
+  });
+
+  it("reads grants across keyset pages, missing none past the first page", () => {
+    const { dbPath, db: setup } = v34Database();
+    seedClient(setup);
+    setup.exec("BEGIN");
+    for (let i = 0; i <= PLATFORM_CLIENT_RETIRED_PAGE_SIZE; i++) {
+      const id = `iam_page_${String(i).padStart(4, "0")}`;
+      insert(
+        setup,
+        "iam_policy",
+        id,
+        policyRow({
+          id,
+          principal: "identity_account:ida_1",
+          relation: "viewer",
+          resource: i === PLATFORM_CLIENT_RETIRED_PAGE_SIZE ? "platform_client:pcl_dashboard" : "agent:agt_1",
+        }),
+      );
+    }
+    setup.exec("COMMIT");
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_35);
+
+    expect(count(db, "resources", "iam_policy")).toBe(PLATFORM_CLIENT_RETIRED_PAGE_SIZE);
+    const last = `iam_page_${String(PLATFORM_CLIENT_RETIRED_PAGE_SIZE).padStart(4, "0")}`;
+    expect(row(db, "iam_policy", last)).toBeUndefined();
+    expect(count(db, "resources", "platform_client")).toBe(0);
+  });
+
+  it("a grant that does not decode fails the step, names the row, rolls back, and leaves the database at v34", () => {
+    const { dbPath, db: setup } = v34Database();
+    seedClient(setup);
+    insert(setup, "iam_policy", "iam_a_retired", policyRow({ ...retiredGrants[0]!, id: "iam_a_retired" }));
+    insert(setup, "iam_policy", "iam_z_broken", new Uint8Array([0x22, 0xff]));
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(() => runMigrations(db, SCHEMA_VERSION_35)).toThrow(
+      "iam_policy 'iam_z_broken' cannot be read to retire the platform client kind",
+    );
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_35 - 1);
+    expect(row(db, "iam_policy", "iam_a_retired").data).toEqual(
+      policyRow({ ...retiredGrants[0]!, id: "iam_a_retired" }),
+    );
+    expect(count(db, "resources", "platform_client")).toBe(1);
+  });
+
+  it("replays every frozen step over a client from before the slug ledger, then removes it", () => {
+    const dbPath = tempDbPath();
+    const setup = new DatabaseSync(dbPath);
+    runMigrations(setup, SCHEMA_VERSION_12 - 1);
+    insert(
+      setup,
+      "platform_client",
+      "pcl_early",
+      retiredPlatformClientRow({
+        metadata: { id: "pcl_early", org: "acme", slug: "early" },
+        clientId: "stgm_cid_early",
+        vaults: [{ kind: ApiResourceKind.vault, org: "acme", slug: "product-keys" }],
+      }),
+    );
+    insert(
+      setup,
+      "iam_policy",
+      "iam_on_early",
+      policyRow({
+        id: "iam_on_early",
+        principal: "identity_account:ida_1",
+        relation: "viewer",
+        resource: "platform_client:pcl_early",
+      }),
+    );
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_35 - 1);
+    // The name backfill read the retired row through its envelope.
+    expect(count(db, "resource_names", "platform_client")).toBe(1);
+
+    runMigrations(db, SCHEMA_VERSION_35);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_35);
+    for (const table of RUN_KIND_TABLES) {
+      expect(count(db, table, "platform_client"), table).toBe(0);
+    }
+    expect(count(db, "resources", "iam_policy")).toBe(0);
   });
 });
