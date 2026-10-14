@@ -6,10 +6,12 @@
  *
  * The list is a summary, as a plugin eval's is: each eval with its
  * plugins, aggregates and scores, its tries possibly emptied, so a view
- * that shows tries reads the one eval through `useAgentEval`. While any
- * listed eval is pending or running the list is read again every
- * {@link AGENT_EVAL_POLL_MS}, so a row shows the eval finished once it
- * has; it stops once all have finished. An empty agent id asks nothing.
+ * that shows tries reads the one eval through `useAgentEval`. While an
+ * eval on the first page is pending or running that page is read again
+ * every {@link AGENT_EVAL_POLL_MS}, so a row shows the eval finished once
+ * it has; it stops once all there have finished. A poll refreshes only the
+ * first page, so only its rows start one (a new eval lands there, newest
+ * first). An empty agent id asks nothing.
  * Pinned by `__tests__/hooks.test.tsx`.
  */
 
@@ -71,10 +73,11 @@ export function useAgentEvals(agentId: string): UseAgentEvalsReturn {
     { refetchInterval: polling ? AGENT_EVAL_POLL_MS : false },
   );
   const data = pages.items;
+  const firstPage = pages.firstPage;
 
   useEffect(() => {
-    setPolling(data.some(isEvalActive));
-  }, [data]);
+    setPolling(firstPage?.entries.some(isEvalActive) ?? false);
+  }, [firstPage]);
 
   const { hasMore, loadMore, isLoadingMore, loadMoreError, isLoading, error, refetch } = pages;
   return useMemo(
