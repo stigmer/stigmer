@@ -179,7 +179,7 @@ describe("MarketplaceCatalog: the grid", () => {
     expect(within(dialog).getByText(/Drop a plugin folder/)).toBeTruthy();
   });
 
-  it("pages at CATALOG_PAGE_SIZE, the Upload tile taking one slot on the first page, and a new query returns to page one", async () => {
+  it("pages at CATALOG_PAGE_SIZE next and back, the Upload tile taking one slot on the first page, and a new query returns to page one", async () => {
     // A catalogue of thirty entries, each its own manifest-only directory.
     const files = hostedMarketplaceFiles();
     const many = Array.from({ length: 30 }, (_, index) => `plugin-${String(index).padStart(2, "0")}`);
@@ -203,6 +203,10 @@ describe("MarketplaceCatalog: the grid", () => {
     expect(cards).toHaveLength(30 - (CATALOG_PAGE_SIZE - 1));
     expect(screen.queryByRole("button", { name: /Upload a plugin/ })).toBeNull();
     expect(screen.getByRole("button", { name: `Install plugin-${CATALOG_PAGE_SIZE - 1}` })).toBeTruthy();
+
+    fireEvent.click(within(screen.getByRole("navigation", { name: "Plugins pagination" })).getByRole("button", { name: "Previous" }));
+    expect(screen.getByRole("navigation", { name: "Plugins pagination" }).textContent).toContain("Page 1 of 2");
+    expect(screen.getByRole("button", { name: /Upload a plugin/ })).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("Search plugins"), { target: { value: "plugin-2" } });
     expect(screen.queryByRole("navigation", { name: "Plugins pagination" })).toBeNull();
