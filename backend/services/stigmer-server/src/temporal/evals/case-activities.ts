@@ -156,6 +156,7 @@ import type { EvalCaseSource, EvalContextLoader } from "./context.js";
 import {
   attachmentOf,
   cellOf,
+  indicatorsLeaveScore,
   loadOrUndefined,
   loadRun,
   otherServersOf,
@@ -447,7 +448,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         trace,
         patternsFor(deps.patterns, input.evalId),
       );
-      const scoring = scoringOf(graders, context.twoArms);
+      const scoring = scoringOf(graders, indicatorsLeaveScore(context, input.caseIndex));
       const outcomes: WireOutcome[] = checked.map((outcome, index) => {
         const grader = graders[index];
         if (
@@ -714,7 +715,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         }
         return "votes" in outcome ? tallyVotes(votes[index] ?? []) : outcome;
       });
-      const scoring = scoringOf(graders, context.twoArms);
+      const scoring = scoringOf(graders, indicatorsLeaveScore(context, input.caseIndex));
       // An indicator counts toward no score, so one left not graded is
       // reported on its own criterion and never voids the try.
       const failed = verdicts.find(

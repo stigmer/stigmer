@@ -27,7 +27,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { Store } from "../../../store/interface.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
-import { attachmentOf, newEvalContextLoader, otherServersOf } from "../context.js";
+import { attachmentOf, indicatorsLeaveScore, newEvalContextLoader, otherServersOf } from "../context.js";
 import { tryToolsOf } from "../../../domain/eval-run/try-run.js";
 import {
   EVAL_RUN_ON_AGENT_ID,
@@ -105,6 +105,23 @@ describe("an eval run's context about an agent", () => {
     expect(withIt.plugins).toEqual(without.plugins);
     expect(without.agentRef).toEqual(withIt.agentRef);
     expect([withIt.excludedPluginIds, without.excludedPluginIds]).toEqual([[], [PLUGIN_ID]]);
+  });
+
+  it("takes a case's indicators out of its score only when its own plugin is the compared one", async () => {
+    await seedAgent(temp.store);
+    await seedPlugin(temp.store);
+    await seedEvalRunOnAgent(temp.store, { compared: true });
+    const comparing = await loader()(EVAL_RUN_ON_AGENT_ID);
+    if (comparing === undefined) throw new Error("no context");
+    expect(indicatorsLeaveScore(comparing, 0)).toBe(true);
+    // The same case while the eval run compares another plugin: its own
+    // plugin, skills and mocks stay loaded in both arms, so it scores whole.
+    expect(indicatorsLeaveScore({ ...comparing, comparedPluginId: "plg_other" }, 0)).toBe(false);
+    expect(indicatorsLeaveScore(comparing, 99)).toBe(false);
+    await seedEvalRunOnAgent(temp.store);
+    const oneArm = await loader()(EVAL_RUN_ON_AGENT_ID);
+    if (oneArm === undefined) throw new Error("no context");
+    expect(indicatorsLeaveScore(oneArm, 0)).toBe(false);
   });
 
   it("counts the agent's own servers among those a try turns off, unless the eval runs real servers", async () => {

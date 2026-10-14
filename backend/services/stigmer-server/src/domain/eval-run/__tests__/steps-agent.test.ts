@@ -503,6 +503,26 @@ describe("ResolveEvalRunDefaults' case sources and store faults", () => {
     expect(gone.rawMessage).toBe(evalRunUnloadedCaseSourceMessage("plg_gone"));
   });
 
+  it("names a case source the caller cannot view by the id it sent, never the slug its row holds", async () => {
+    await temp.store.saveResource(ApiResourceKind.plugin, "plg_candidate", PluginSchema, CANDIDATE);
+    const asked: string[] = [];
+    const viewerOfNothing: Authorizer = {
+      authorize: (_caller, check) => {
+        asked.push(`${ApiResourceKind[check.resourceKind]}:${check.resourceId}`);
+        return Promise.resolve({ kind: "deny", reason: "" });
+      },
+    };
+    const hidden = await failure(() =>
+      newResolveEvalRunDefaultsStep(temp.store, viewerOfNothing).execute(withSources(["plg_candidate"])),
+    );
+    expect(hidden.code).toBe(Code.InvalidArgument);
+    expect(hidden.rawMessage).toBe(evalRunUnloadedCaseSourceMessage("plg_candidate"));
+    expect(asked).toEqual(["plugin:plg_candidate"]);
+    const down: Authorizer = { authorize: () => Promise.resolve({ kind: "unavailable", cause: new Error("engine down") }) };
+    const fault = await failure(() => newResolveEvalRunDefaultsStep(temp.store, down).execute(withSources(["plg_candidate"])));
+    expect(fault.code).toBe(Code.Internal);
+  });
+
   it("is INTERNAL when the store cannot read a refused case source, or the compared plugin", async () => {
     const source = await failure(() =>
       newResolveEvalRunDefaultsStep(failingRead("plg_broken"), ALLOW_ALL).execute(withSources(["plg_broken"])),

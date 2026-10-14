@@ -247,6 +247,18 @@ export function sourceOf(context: EvalContext, caseIndex: number): EvalCaseSourc
   return index === undefined ? undefined : context.sources[index];
 }
 
+/**
+ * Whether a case's indicators leave its score (domain/eval-run/scoring.ts):
+ * only when the case runs in two arms and its own plugin is the compared
+ * one, which its without arm leaves out. A case of another plugin the
+ * tries load keeps its plugin, skills and mocks in both arms, so every
+ * check of it scores in both.
+ */
+export function indicatorsLeaveScore(context: EvalContext, caseIndex: number): boolean {
+  const own = sourceOf(context, caseIndex)?.plugin.metadata?.id;
+  return context.twoArms && own !== undefined && own === context.comparedPluginId;
+}
+
 /** The eval run's spec; undefined when the stored row carries none. */
 export function specOf(context: EvalContext): EvalSpecKnobs | undefined {
   return context.evalRun.spec;

@@ -457,7 +457,7 @@ async function resolveAgentSubject(
     throw failedPreconditionError(EVAL_RUN_NO_CASE_SOURCES_MESSAGE);
   }
   spec.agentVersion = hash;
-  return { agentSpec, plugins, selected: await selectedSources(store, spec, plugins, agentOrg) };
+  return { agentSpec, plugins, selected: await selectedSources(store, authorizer, ctx, spec, plugins, agentOrg) };
 }
 
 /**
@@ -497,12 +497,16 @@ async function readComparedPlugin(
 /**
  * The plugins whose cases run (the module header): each case source the
  * spec names, matched to a plugin a try loads by id, else by organization
- * and slug (INVALID_ARGUMENT naming one the try would not load, by the
- * slug its row holds, since the reference rule stored it by id); with none
- * named, the compared plugin, else every attached plugin.
+ * and slug (INVALID_ARGUMENT naming one the try would not load: by the
+ * slug its row holds when the caller may view it, since the reference rule
+ * stored it by id, else by the id the request holds, so the refusal tells
+ * nobody the slug or the existence of a plugin they cannot view); with
+ * none named, the compared plugin, else every attached plugin.
  */
 async function selectedSources(
   store: Store,
+  authorizer: Authorizer,
+  ctx: RequestContext<typeof EvalRunSchema>,
   spec: EvalRunSpec,
   plugins: ReadonlyArray<LoadedPlugin>,
   agentOrg: string,
@@ -521,17 +525,41 @@ async function selectedSources(
     const ref = source.source.value;
     const match = plugins.find((entry) => namesPlugin(ref, entry.plugin, agentOrg));
     if (match === undefined) {
-      throw invalidArgumentError(evalRunUnloadedCaseSourceMessage(await slugOf(store, ref)));
+      throw invalidArgumentError(evalRunUnloadedCaseSourceMessage(await nameOf(store, authorizer, ctx, ref)));
     }
     selected.add(match.plugin.metadata?.id ?? "");
   }
   return selected;
 }
 
-/** A plugin reference's slug, read from the row when the reference holds only its id; the id when the row is gone. */
-async function slugOf(store: Store, ref: ApiResourceReference): Promise<string> {
+/**
+ * How a refusal names a case source the try would not load: its slug when
+ * the reference holds one; else, when the caller may view the plugin the
+ * id names (a server-composed request may), the slug its row holds; else
+ * the id itself, the same answer for a plugin that is not there and one
+ * the caller cannot view.
+ */
+async function nameOf(
+  store: Store,
+  authorizer: Authorizer,
+  ctx: RequestContext<typeof EvalRunSchema>,
+  ref: ApiResourceReference,
+): Promise<string> {
   if (ref.slug !== "" || ref.id === "") {
     return ref.slug;
+  }
+  if (!isServerComposedRequest(ctx.callerIdentity)) {
+    const decision = await evaluateAuthorizer(authorizer, ctx.callerIdentity, {
+      permission: IamPermission.can_view,
+      resourceKind: ApiResourceKind.plugin,
+      resourceId: ref.id,
+    });
+    if (decision.kind === "unavailable") {
+      throw internalError(decision.cause, "failed to authorize a case source plugin");
+    }
+    if (decision.kind !== "allow") {
+      return ref.id;
+    }
   }
   try {
     return (await store.getResource(ApiResourceKind.plugin, ref.id, PluginSchema)).metadata?.slug || ref.id;

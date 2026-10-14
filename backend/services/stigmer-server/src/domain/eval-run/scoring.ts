@@ -91,13 +91,17 @@ function excludedInTwoArms(grader: EvalGrader): boolean {
   }
 }
 
-/** How each grader of a case counts, in the eval's arm mode. */
+/**
+ * How each grader of a case counts: `indicatorsLeave` when the case runs in
+ * two arms and its own plugin is the compared one (temporal/evals/
+ * context.ts, indicatorsLeaveScore), which takes its indicators out.
+ */
 export function scoringOf(
   graders: ReadonlyArray<EvalGrader>,
-  twoArms: boolean,
+  indicatorsLeave: boolean,
 ): GraderScoring[] {
   const excluded = graders.map(
-    (grader) => twoArms && excludedInTwoArms(grader),
+    (grader) => indicatorsLeave && excludedInTwoArms(grader),
   );
   const allExcluded = excluded.length > 0 && excluded.every(Boolean);
   return graders.map((grader, index) => ({
