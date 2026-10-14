@@ -1,0 +1,31 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "toolCalls": [
+        {
+          "id": "call-clean",
+          "name": "shell",
+          "args": {
+            "command": "rm -rf build/",
+            "cwd": "/x",
+            "timeout": 30000
+          },
+          "status": "TOOL_CALL_SKIPPED",
+          "error": "Rejected by user",
+          "requiresApproval": true,
+          "approvalMessage": "Run command: rm -rf build/",
+          "approvalAction": "APPROVAL_ACTION_REJECT",
+          "argsPreview": "{\"command\":\"rm -rf build/\",\"cwd\":\"/x\",\"timeout\":30000}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Understood: I will use make clean instead.",
+      "timestamp": "2026-01-01T00:00:05.000Z"
+    }
+  ]
+}

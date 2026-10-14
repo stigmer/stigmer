@@ -15,7 +15,6 @@
 // a base64 PNG screenshot (image content block) — back into the loop without
 // crashing the pipeline, and reaches COMPLETED with the tool call recorded as
 // COMPLETED. Finder is always running on macOS, so the action is deterministic.
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
@@ -26,6 +25,7 @@ import { agentRefOf, makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
 import { oneServerPlugin, pushPlugin } from "../support/plugins";
 import { uniqueName } from "../support/naming";
+import { toolUsesOf, turnOfRun } from "../support/turn";
 import { createTarget, type TargetProfile } from "../targets";
 
 const ENABLED = process.platform === "darwin" && process.env.STIGMER_DESKTOP_TESTS === "1";
@@ -105,12 +105,9 @@ describe.skipIf(!ENABLED)("Open Computer Use — desktop tool dispatch (local-on
       `execution ${executionId} should COMPLETE; reached ${RunPhase[final.status?.phase ?? 0]}`,
     ).toBe(RunPhase.RUN_COMPLETED);
 
-    const toolCalls = (final.status?.messages ?? []).flatMap((m) => m.toolCalls);
-    const call = toolCalls.find((tc) => tc.name === "get_app_state");
-    expect(call, "a get_app_state tool call should be recorded in status.messages").toBeTruthy();
-    expect(call?.status, "the get_app_state tool call should be COMPLETED").toBe(
-      ToolCallStatus.TOOL_CALL_COMPLETED,
-    );
+    const call = toolUsesOf(await turnOfRun(clients, final)).find((use) => use.name === "get_app_state");
+    expect(call, "a get_app_state tool use should be in the session's log").toBeTruthy();
+    expect(call?.state, "the get_app_state tool use should be completed").toBe("completed");
 
     expect(mock.remaining(), "both scripted LLM turns were consumed").toBe(0);
     expect(mock.consumed(), "exactly two LLM turns were served").toBe(2);

@@ -42,9 +42,8 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { create, toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { create } from "@bufbuild/protobuf";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -58,6 +57,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import {
@@ -69,6 +71,7 @@ import {
   type DeepAgentTurnOptions,
 } from "../../__test-utils__/hermetic-deep-agent.js";
 import { recordedModelBuilds } from "../../__test-utils__/scripted-model-module.js";
+import { MessageType } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const USER_MESSAGE = "Say hello.";
 const ASSISTANT_TEXT = "Hello from the hermetic fixture agent.";
@@ -119,7 +122,8 @@ describe("ExecuteDeepAgent hermetic — plain turn", () => {
 
     // ── Assert: the transcript ───────────────────────────────────────────────
     const final = record.lastFullStatus!;
-    const ai = final.messages.filter((m) => m.type === MessageType.MESSAGE_AI);
+    const finalRows = record.rowsOf(final);
+    const ai = finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_AI);
     expect(ai, "one assistant message, no tool rows").toHaveLength(1);
     expect(ai[0].content).toBe(ASSISTANT_TEXT);
     expect(ai[0].toolCalls).toHaveLength(0);
@@ -133,16 +137,16 @@ describe("ExecuteDeepAgent hermetic — plain turn", () => {
     expect(primaryBuild?.proxyEndpoint, "the OSS posture has no proxy").toBeUndefined();
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot(GOLDEN);
+    await expect(statusGolden(record.lastFullStatus!)).toMatchFileSnapshot(GOLDEN);
+    await expect(rowsGolden(record.rowsOf(record.lastFullStatus!))).toMatchFileSnapshot(rowsGoldenPath(GOLDEN));
     await expect(record.eventsGolden()).toMatchFileSnapshot(GOLDEN.replace(".status.json", ".events.json"));
   });
 
   it("produces the same status from the legacy positional wire shape", async () => {
     const { record, invocation } = await runPlainTurn({ positional: true });
     expect(invocation.outcome.kind).toBe("returned");
-    const json = JSON.stringify(toJson(RunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot(GOLDEN);
+    await expect(statusGolden(record.lastFullStatus!)).toMatchFileSnapshot(GOLDEN);
+    await expect(rowsGolden(record.rowsOf(record.lastFullStatus!))).toMatchFileSnapshot(rowsGoldenPath(GOLDEN));
     await expect(record.eventsGolden()).toMatchFileSnapshot(GOLDEN.replace(".status.json", ".events.json"));
   });
 

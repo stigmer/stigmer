@@ -1,7 +1,8 @@
 # =============================================================================
 # Codegen freshness gate: mcp-server/src/gen, sdk/typescript/src/gen,
-# sdk/python/src/stigmer/_gen, and the substrate sandbox driver's Agent
+# sdk/python/src/stigmer/_gen, the substrate sandbox driver's Agent
 # Substrate stubs (backend/services/stigmer-server/src/sandbox/substrate/gen)
+# and the runner's private turn-row stubs (backend/services/runner/src/gen/turn)
 # =============================================================================
 # The freshness counterpart of ci.go-sdk / ci.java-sdk for the three committed
 # codegen dirs that had no gate at all (oss#496): nothing regenerated them in
@@ -96,3 +97,9 @@ jobs:
 
       - name: Verify the Agent Substrate stubs are fresh
         run: make gen-substrate-stubs-check
+
+      # The runner's private turn rows (backend/services/runner/proto) compile
+      # against apis/; regenerate their stubs and fail on any difference, so a
+      # change to either lands with its regenerated stubs.
+      - name: Verify the runner turn-row stubs are fresh
+        run: make gen-runner-turn-stubs-check

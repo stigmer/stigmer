@@ -1,18 +1,15 @@
 /**
- * Test support: writes into a session's log the asks a runner writes for a
- * run's waiting rows (an `agent.tool_use`, or `agent.mcp_tool_use`, with
+ * Test support: writes into a session's log the asks a runner writes for
+ * the calls of a run that wait for an answer (an `agent.tool_use`, or
+ * `agent.mcp_tool_use` for a call of an MCP server, with
  * evaluated_permission `ask`, under the id the runner derives, and its
- * `stigmer.permission.asked` with the row's policy source as one word and
- * its hook), so a test that seeds a gated run straight into the store
- * holds the log the server decides what waits from. Rows of a sub-agent
- * are written in its thread.
+ * `stigmer.permission.asked` with the rule that asked as one word and its
+ * hook), so a test that seeds a waiting run holds the log the server
+ * decides what waits from. A sub-agent's call is written in its thread.
  */
 import { create } from "@bufbuild/protobuf";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalPolicySourceSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   SessionEventSchema,
   type SessionEvent,
@@ -24,27 +21,39 @@ import { draftOf } from "../../events/codec.js";
 import { toolUseEventId } from "../../events/ids.js";
 import { sessionIdOfRun } from "../../events/transitions.js";
 
-/** The asked event's word for a row's policy source: the enum's name without its prefix, "" for none. */
-function policySourceWord(call: ToolCall): string {
-  const value = ApprovalPolicySourceSchema.values.find((v) => v.number === call.approvalPolicySource);
-  return value === undefined || value.number === 0 ? "" : value.name.slice("APPROVAL_POLICY_SOURCE_".length).toLowerCase();
+/** One call that asks, as the runner writes it. */
+export interface AskedCall {
+  /** The provider's call id. */
+  readonly id: string;
+  readonly name: string;
+  /** The MCP server the tool belongs to; absent for a built-in. */
+  readonly server?: string;
+  /** The asked event's policy source word; "hook" when `hook` is given, else empty. */
+  readonly policySource?: string;
+  /** The plugin whose hook asked; set only for a hook's ask. */
+  readonly hook?: string;
+  /** The sub-agent's thread the call ran in; absent for the root. */
+  readonly threadId?: string;
 }
 
-function askOf(runId: string, call: ToolCall, threadId: string): SessionEvent[] {
+/** A call's tool use and its asked event. */
+export function askOf(runId: string, call: AskedCall): SessionEvent[] {
   const id = toolUseEventId(runId, call.id);
+  const threadId = call.threadId ?? "";
+  const policySource = call.policySource ?? (call.hook === undefined ? "" : "hook");
   const asked = create(SessionEventSchema, {
     runId,
     threadId,
     event: {
       case: "stigmerPermissionAsked",
-      value: { id: `${id}.ask`, toolUseId: id, policySource: policySourceWord(call), policyHook: call.approvalPolicyHook },
+      value: { id: `${id}.ask`, toolUseId: id, policySource, policyHook: call.hook ?? "" },
     },
   });
   const use = create(SessionEventSchema, {
     runId,
     threadId,
     event:
-      call.mcpServerSlug === ""
+      call.server === undefined || call.server === ""
         ? {
             case: "agentToolUse",
             value: { id, name: call.name, input: {}, evaluatedPermission: "ask", sessionThreadId: threadId },
@@ -54,7 +63,7 @@ function askOf(runId: string, call: ToolCall, threadId: string): SessionEvent[] 
             value: {
               id,
               name: call.name,
-              mcpServerName: call.mcpServerSlug,
+              mcpServerName: call.server,
               input: {},
               evaluatedPermission: "ask",
               sessionThreadId: threadId,
@@ -64,47 +73,22 @@ function askOf(runId: string, call: ToolCall, threadId: string): SessionEvent[] 
   return [use, asked];
 }
 
-/** The ask events of every row of `run` that asked, as the runner writes them. */
-export function asksOf(run: Run): SessionEvent[] {
-  const runId = run.metadata?.id ?? "";
-  const asks: SessionEvent[] = [];
-  for (const message of run.status?.messages ?? []) {
-    for (const call of message.toolCalls) {
-      if (call.requiresApproval) {
-        asks.push(...askOf(runId, call, ""));
-      }
-    }
-  }
-  for (const subAgent of run.status?.subAgentRuns ?? []) {
-    const threadId = toolUseEventId(runId, subAgent.id);
-    for (const message of subAgent.messages) {
-      for (const call of message.toolCalls) {
-        if (call.requiresApproval) {
-          asks.push(...askOf(runId, call, threadId));
-        }
-      }
-    }
-  }
-  return asks;
-}
-
-/**
- * Appends the stored run's asks to its session's log, or only those of
- * the calls `callIds` names; none for a run in no session.
- */
-export async function appendAsks(store: Store, runId: string, callIds?: ReadonlyArray<string>): Promise<void> {
+/** Appends the asks of `calls` to the stored run's session's log; none for a run in no session. */
+export async function appendAsks(store: Store, runId: string, calls: ReadonlyArray<AskedCall>): Promise<void> {
   const run = await store.getResource(ApiResourceKind.run, runId, RunSchema);
   const sessionId = sessionIdOfRun(run);
-  const asks = asksOf(run).filter(
-    (ask) => callIds === undefined || callIds.some((callId) => ask.event.value?.id.startsWith(toolUseEventId(runId, callId)) === true),
-  );
-  if (sessionId === "" || asks.length === 0) {
+  if (sessionId === "" || calls.length === 0) {
     return;
   }
-  await store.sessionEvents.append(sessionId, run.metadata?.org ?? "", asks.map(draftOf), {
-    kind: ApiResourceKind.run,
-    id: runId,
-    schema: RunSchema,
-    admit: () => undefined,
-  });
+  await store.sessionEvents.append(
+    sessionId,
+    run.metadata?.org ?? "",
+    calls.flatMap((call) => askOf(runId, call)).map(draftOf),
+    {
+      kind: ApiResourceKind.run,
+      id: runId,
+      schema: RunSchema,
+      admit: () => undefined,
+    },
+  );
 }

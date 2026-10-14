@@ -29,15 +29,17 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
-  # One pull request makes every update name the fields it changes: each
-  # update RPC takes Update<Kind>Input (the resource and an update_mask)
-  # instead of the bare resource, and the session's harness conversation id
-  # and its history move from spec to status, where only the runner writes
-  # them (bindHarnessState), with fields 3 and 13 of SessionSpec reserved.
-  # It is made before launch: the release notes name it under Upgrading.
-  # This block exists for that one pull request. While it stays, buf
-  # breaking does not report these rules on the listed files, so the pull
-  # request that removes it lands straight after the merge (#2241).
+  # One pull request, made before launch, takes the run's own transcript off
+  # the contract: RunStatus's messages, sub-agent runs, todos, approvals,
+  # structured output and file-review ledgers, the types only they used, and
+  # the run's submitApproval, submitFileDecision, cancel and subscribe
+  # methods. Every client and the platform read a conversation from the
+  # session's event log, and the session's interrupt, confirmToolUse,
+  # grantPermission and reviewFileChanges replace the methods. The release
+  # notes name it under Upgrading. This block exists for that one pull
+  # request. While it stays, buf breaking does not report these rules on the
+  # listed files, so the pull request that removes it lands straight after
+  # the merge.
   #
   # One pull request gives every list one shape: a request takes page_size
   # and page_token, a response returns entries and next_page_token, and 0
@@ -52,21 +54,9 @@ breaking:
   # pull request. While it stays, buf breaking does not report these rules
   # on the listed files, so the pull request that removes it lands straight
   # after the merge.
-  #
-  # One pull request removes Stigmer's own single sign-on: company sign-in
-  # is the identity providers' job, and an IdentityProvider is trust in
-  # another platform's tokens. It deletes getSsoProvider and
-  # previewSsoRequirement from IdentityProviderQueryController,
-  # createAccessMove and redeemAccessMove from
-  # IdentityProviderCommandController, bootstrapMoveOrgAccess from
-  # IamPolicyCommandController, their messages, and IdentityProviderSpec's
-  # is_sso_provider, oidc_client_id and sso_required, whose numbers and names
-  # are reserved. It is made before launch: the release notes name the
-  # change under Upgrading. This block exists for that one pull request.
-  # While it stays, buf breaking does not report these rules on the listed
-  # files, so the pull request that removes it lands straight after the
-  # merge (#2259).
   ignore_only:
+    ENUM_NO_DELETE:
+      - ai/stigmer/agentic/run/v1/enum.proto
     FIELD_NO_DELETE:
       - ai/stigmer/agentic/agent/v1/version.proto
       - ai/stigmer/agentic/agentchannel/v1/conversation_io.proto
@@ -76,15 +66,15 @@ breaking:
       - ai/stigmer/agentic/memory/v1/io.proto
       - ai/stigmer/agentic/plugin/v1/io.proto
       - ai/stigmer/agentic/plugineval/v1/io.proto
+      - ai/stigmer/agentic/run/v1/api.proto
+      - ai/stigmer/agentic/run/v1/filereview.proto
       - ai/stigmer/agentic/run/v1/io.proto
       - ai/stigmer/agentic/schedule/v1/io.proto
       - ai/stigmer/agentic/score/v1/io.proto
       - ai/stigmer/agentic/session/v1/io.proto
-      - ai/stigmer/agentic/session/v1/spec.proto
       - ai/stigmer/agentic/skill/v1/io.proto
       - ai/stigmer/agentic/vault/v1/io.proto
       - ai/stigmer/iam/identityaccount/v1/io.proto
-      - ai/stigmer/iam/identityprovider/v1/spec.proto
       - ai/stigmer/search/v1/io.proto
     FIELD_SAME_CARDINALITY:
       - ai/stigmer/agentic/plugin/v1/io.proto
@@ -123,6 +113,10 @@ breaking:
       - ai/stigmer/agentic/plugin/v1/io.proto
       - ai/stigmer/agentic/skill/v1/io.proto
     FILE_NO_DELETE:
+      - ai/stigmer/agentic/run/v1/approval.proto
+      - ai/stigmer/agentic/run/v1/context.proto
+      - ai/stigmer/agentic/run/v1/subagent.proto
+      - ai/stigmer/agentic/run/v1/todo.proto
       - ai/stigmer/commons/rpc/pagination.proto
     MESSAGE_NO_DELETE:
       - ai/stigmer/agentic/agentchannel/v1/conversation_io.proto
@@ -130,11 +124,14 @@ breaking:
       - ai/stigmer/agentic/agentshare/v1/io.proto
       - ai/stigmer/agentic/channelapp/v1/io.proto
       - ai/stigmer/agentic/plugin/v1/api.proto
+      - ai/stigmer/agentic/run/v1/api.proto
+      - ai/stigmer/agentic/run/v1/filereview.proto
+      - ai/stigmer/agentic/run/v1/io.proto
+      - ai/stigmer/agentic/run/v1/message.proto
       - ai/stigmer/agentic/schedule/v1/io.proto
       - ai/stigmer/agentic/skill/v1/api.proto
       - ai/stigmer/commons/apiresource/io.proto
       - ai/stigmer/iam/apikey/v1/io.proto
-      - ai/stigmer/iam/iampolicy/v1/io.proto
       - ai/stigmer/iam/identityaccount/v1/io.proto
       - ai/stigmer/iam/identityprovider/v1/io.proto
       - ai/stigmer/iam/invitation/v1/io.proto
@@ -147,10 +144,10 @@ breaking:
       - ai/stigmer/agentic/agentchannel/v1/query.proto
       - ai/stigmer/agentic/agentshare/v1/query.proto
       - ai/stigmer/agentic/channelapp/v1/query.proto
+      - ai/stigmer/agentic/run/v1/command.proto
+      - ai/stigmer/agentic/run/v1/query.proto
       - ai/stigmer/agentic/schedule/v1/query.proto
       - ai/stigmer/iam/apikey/v1/query.proto
-      - ai/stigmer/iam/iampolicy/v1/command.proto
-      - ai/stigmer/iam/identityprovider/v1/command.proto
       - ai/stigmer/iam/identityprovider/v1/query.proto
       - ai/stigmer/iam/invitation/v1/query.proto
       - ai/stigmer/iam/oauthapp/v1/query.proto
@@ -158,22 +155,4 @@ breaking:
       - ai/stigmer/iam/team/v1/query.proto
       - ai/stigmer/tenancy/organization/v1/query.proto
     RPC_SAME_REQUEST_TYPE:
-      - ai/stigmer/agentic/agent/v1/command.proto
-      - ai/stigmer/agentic/agentchannel/v1/command.proto
-      - ai/stigmer/agentic/agentshare/v1/command.proto
-      - ai/stigmer/agentic/channelapp/v1/command.proto
-      - ai/stigmer/agentic/evaluator/v1/command.proto
-      - ai/stigmer/agentic/memory/v1/command.proto
-      - ai/stigmer/agentic/run/v1/command.proto
-      - ai/stigmer/agentic/schedule/v1/command.proto
-      - ai/stigmer/agentic/score/v1/command.proto
-      - ai/stigmer/agentic/session/v1/command.proto
-      - ai/stigmer/agentic/vault/v1/command.proto
-      - ai/stigmer/iam/apikey/v1/command.proto
-      - ai/stigmer/iam/identityaccount/v1/command.proto
       - ai/stigmer/iam/identityaccount/v1/query.proto
-      - ai/stigmer/iam/identityprovider/v1/command.proto
-      - ai/stigmer/iam/oauthapp/v1/command.proto
-      - ai/stigmer/iam/platformclient/v1/command.proto
-      - ai/stigmer/iam/team/v1/command.proto
-      - ai/stigmer/tenancy/organization/v1/command.proto

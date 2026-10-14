@@ -12,12 +12,16 @@
  */
 
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { ApprovalPolicySource, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { AgentMessageSchema, ToolCallSchema, type ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 import { describe, expect, it } from "vitest";
 import { contentToken, grantToken, type DeniedLedgerEntry } from "../approval-state.js";
 import { collapseRedundantToolCallTwins, stampHookRefusedToolCalls } from "../boundary-rows.js";
+import {
+  AgentMessageSchema,
+  ToolCallSchema,
+  type ToolCall,
+  SubAgentRunSchema,
+} from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalPolicySource, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const BLOCKED = "Blocked by a hook";
 

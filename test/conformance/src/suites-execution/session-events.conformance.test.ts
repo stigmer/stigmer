@@ -370,19 +370,19 @@ describe("a session's event log on real turns", () => {
     expect(firstDone, "whichever turn ended first, it said so while the session still worked").toBeLessThan(idles[0]! - 1);
   });
 
-  it("[rpc:SessionQueryController.listEvents] a cancelled turn ends the session's turn as end_turn", async () => {
+  it("[rpc:SessionQueryController.listEvents] an interrupted turn ends the session's turn as end_turn", async () => {
     const { org } = await target.provisionTenancy();
     const sessionId = await newSession(org);
-    mock.enqueue(anthropicText("Held until cancelled."), { delayMs: HOLD_MS });
-    const runId = await startTurn(org, sessionId, "cancel me");
+    mock.enqueue(anthropicText("Held until interrupted."), { delayMs: HOLD_MS });
+    const runId = await startTurn(org, sessionId, "stop me");
     await awaitPhase(clients, runId, RunPhase.RUN_IN_PROGRESS);
-    await clients.agentExecutionCommand.cancel({ id: runId });
+    await clients.sessionCommand.interrupt({ sessionId });
     const final = await awaitTerminal(clients, runId);
     expect(final.status?.phase).toBe(RunPhase.RUN_CANCELLED);
     const events = await pollUntil(
       () => log(sessionId),
       (got) => got.length > 0 && typeOf(got[got.length - 1]!) === "session.status_idle",
-      (last) => `the session never went idle after the cancel: ${JSON.stringify(last?.map(typeOf))}`,
+      (last) => `the session never went idle after the interrupt: ${JSON.stringify(last?.map(typeOf))}`,
     );
     const idle = events[events.length - 1]!.event;
     expect(idle.case === "sessionStatusIdle" && idle.value.stopReason?.type).toBe("end_turn");
@@ -420,7 +420,7 @@ describe("a session's event log on real turns", () => {
     );
     expect(otherRun.rawMessage).toBe("only the runner acting for this run may record its session's harness state");
 
-    await clients.agentExecutionCommand.cancel({ id: runId });
+    await clients.sessionCommand.interrupt({ sessionId });
     await awaitTerminal(clients, runId);
   });
 

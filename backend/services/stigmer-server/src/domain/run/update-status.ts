@@ -2,65 +2,58 @@
  * UpdateStatus — ports controller/update_status.go: the runner's
  * progressive status-update RPC and the domain's single merge chokepoint.
  *
- * Chain: Authorize → ValidateUpdateStatusInput → MergeAndPersistExecution
- * → NotifyStatusObservers → BroadcastToStreams. The merge+persist is ONE
- * atomic read-modify-write under the store's per-resource write lock
- * (updateRunAppendingEvents) — the same discipline an answer uses: a
- * non-atomic load-then-save could drop the decision stamp a concurrent
- * answer recorded on a row in the window between the load and the save.
+ * Chain: Authorize → ValidateUpdateStatusInput → AdmitLoadedVersions →
+ * MergeAndPersistExecution → NotifyStatusObservers. The merge+persist is
+ * ONE atomic read-modify-write under the store's per-resource write lock
+ * (updateRunAppendingEvents), so a decision or an answer recorded
+ * concurrently is never lost to a stale copy.
  *
- * The status-transition hooks are consumed here — one of
- * the five notifying sites (the exhaustive list: status-observers.ts):
- * observers fire post-persist and before broadcast; the response
- * decorators run on the reply (the querySignal seam — a composition
- * piggybacks its control signal on this response; OSS answers
- * UNSPECIFIED).
+ * The status-transition hooks are consumed here — one of the notifying
+ * sites (the exhaustive list: status-observers.ts): observers fire
+ * post-persist; the response decorators run on the reply (the querySignal
+ * seam — a composition piggybacks its control signal on this response;
+ * OSS answers UNSPECIFIED).
  *
- * applyUpdateStatusMerge is the merge body run inside the updateResource
- * closure (and exercised directly by the guard tests), mirroring the Java
- * BuildNewStateWithStatusStep strategy: most fields are replaced
- * wholesale with the runner's latest complete state, while server-owned
- * fields (approval decisions, the file_review ledger) are preserved or
- * authored here because the runner never sends them. pending_approvals is
- * recomputed on every write from the rows and the run's open asks in the
- * session's log, read under the session's lock (approval/pending.ts). The transcript's platform rows are the same kind of server-owned
- * state (platform-rows.ts, stigmer#980): a platform marker write is
- * appended and never replaces the transcript, and a PAUSED or CANCELLED
- * execution's stop row stays last across the runner's later writes,
- * because the Pause and Cancel RPCs, the invoke workflow and the runner
- * all write a stopped execution and nothing orders them. For the same
- * reason a PAUSED execution's phase moves only on the platform's own
- * write (stigmer#1370): the runner learns of a pause on a later heartbeat
- * and keeps streaming IN_PROGRESS until then, and without the latch its
+ * applyUpdateStatusMerge is the merge body run inside the write (and
+ * exercised directly by the guard tests): most fields are replaced with
+ * the runner's latest, presence-guarded. What the agent said and did is
+ * the session's event log, which the runner appends to itself; the run
+ * holds the turn's lifecycle, its stamps and its file record. A PAUSED
+ * execution's phase moves only on the platform's own write
+ * (stigmer#1370): the runner learns of a pause on a later heartbeat and
+ * keeps streaming IN_PROGRESS until then, and without the latch its
  * stragglers un-pause the execution and Resume finds nothing to resume.
  *
- * loaded_versions is the one field merged by union rather than replaced:
- * every attempt of a turn resolves its skills and plugins again, so a turn
- * resumed after a pause may load a newer version than it started on, and a
- * run that ran two versions of one skill must say both. Its entries are
- * admitted first (AdmitLoadedVersions): updateStatus is open to whoever
- * may edit the run, not only the runner, and every read names each stored
- * entry with its target's current slug, so an entry the reference rule
- * would refuse from the run's organization (another organization's
- * resource, a parent's not shared with its children, an id nothing holds)
- * is dropped, never stored and never named.
+ * loaded_versions is merged by union rather than replaced: every attempt
+ * of a turn resolves its skills and plugins again, so a turn resumed after
+ * a pause may load a newer version than it started on, and a run that ran
+ * two versions of one skill must say both. Its entries are admitted first
+ * (AdmitLoadedVersions): updateStatus is open to whoever may edit the
+ * run, not only the runner, and every read names each stored entry with
+ * its target's current slug, so an entry the reference rule would refuse
+ * from the run's organization (another organization's resource, a
+ * parent's not shared with its children, an id nothing holds) is dropped,
+ * never stored and never named.
  *
- * A turn's file review closes when a later message is sent
- * (filereview/autokeep.ts keepOutdatedSets). The next turn's workflow
- * closes a turn that already captured; a turn that captures after the
- * later message was sent is closed here, as its candidate is folded: a
- * write carrying a CANDIDATE_CAPTURED asks the store for the run of the
- * session's newest `user.message`, read under the session's lock, and
- * keeps the run's undecided sets in the same write when that run is
- * another. No other write pays the read.
+ * file_changes, the run's file record (filereview/record.ts), is merged
+ * by change set id: a set the write carries replaces the one with its id,
+ * a new one is added, and no stored set is ever removed. The record
+ * carries no decision; the policy keeps decide from the session's log:
  *
- * The policy keeps (filereview/autokeep.ts) decide from the run's log:
- * the same write that folds a candidate reads the run's decided events and
- * answers under the session's lock (filereview/logged.ts), and the keeps
- * run there and only there, so a set is kept, or left for a person, in
- * the write that captured it.
- *
- * Broadcast rides in-memory channels.
+ *   - A write whose record carries a captured set reads, under the
+ *     session's lock, the run's decided events and answers
+ *     (filereview/logged.ts) and runs the policy keeps
+ *     (filereview/autokeep.ts) there and only there, so a set is kept, or
+ *     left for a person, in the write that captured it. Each keep is a
+ *     `stigmer.file_review.decided` event the write appends after its
+ *     status events.
+ *   - A turn's file review closes when a later message is sent
+ *     (keepOutdatedSets). The next turn's workflow closes a turn that
+ *     already captured; a turn that captures after the later message was
+ *     sent is closed here, as it captures: such a write asks the store for
+ *     the run of the session's newest `user.message`, and keeps the run's
+ *     undecided sets in the same write when that run is another. No other
+ *     write pays either read.
  */
 import { create } from "@bufbuild/protobuf";
 
@@ -72,7 +65,6 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
 import {
-  FileReviewEventType,
   RunControlSignal,
   RunPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -81,7 +73,7 @@ import type {
   UpdateStatusResponse,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -110,45 +102,30 @@ import {
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 
-import { pendingApprovalsOf } from "./approval/pending.js";
-import { preserveApprovalFields } from "./approval/preserve.js";
-import { appendRunnerEvents } from "./filereview/author.js";
 import {
   autoKeepApprovedCommandSets,
   autoKeepPluginEvalTrySets,
   keepOutdatedSets,
 } from "./filereview/autokeep.js";
 import { isPluginEvalRun } from "../plugin-eval/plugin-eval-run.js";
-import { RUN_REVIEW_EVENT_TYPES, runReviewLogOf } from "./filereview/logged.js";
+import { RUN_REVIEW_EVENT_TYPES, runReviewLogOf, withDecisions } from "./filereview/logged.js";
 import type { RunReviewLog } from "./filereview/logged.js";
-import { projectFileChangeSets } from "./filereview/project.js";
 import { reconcileFileChangeProgress } from "./filereview/progress.js";
-import {
-  isTerminalExecutionPhase,
-  isTranscriptTerminalPhase,
-} from "./phases.js";
-import {
-  appendPlatformMarker,
-  endsWithRows,
-  heldStopRow,
-  isPlatformMarkerWrite,
-} from "./platform-rows.js";
+import { isCaptured, upsertFileChanges } from "./filereview/record.js";
+import { isTerminalExecutionPhase } from "./phases.js";
 import {
   applyResponseDecorators,
   notifyStatusObservers,
 } from "./status-observers.js";
-import { settleInterruptedToolCalls } from "./tool-call-settle.js";
-import type { StreamBroker } from "./stream-broker.js";
 import type { SessionEventBroker } from "../session/events/broker.js";
 import { eventOf } from "../session/events/codec.js";
-import { openAsksOf, updateRunAppendingEvents } from "../session/events/run-writes.js";
+import { updateRunAppendingEvents } from "../session/events/run-writes.js";
 
 export interface UpdateStatusDeps {
   readonly store: Store;
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
-  readonly broker: StreamBroker;
   /** The fan-out of each session's event log (the merge appends its session's status events). */
   readonly sessionEventBroker: SessionEventBroker;
   /** The composed status-transition observers. */
@@ -211,25 +188,25 @@ export async function updateStatus(
         try {
           // The merge commits with the session's status events when it
           // changes whether the run is working (session/events/run-writes.ts).
-          // A write folding a candidate asks for the conversation's newest
-          // turn, so a late capture of an outdated turn is kept as it
-          // lands (module header).
-          const foldsCandidate = carriesCandidate(ctx.input);
+          // A write carrying a captured set asks for the conversation's
+          // newest turn and the run's decisions, so its policy keeps run
+          // and a late capture of an outdated turn is kept as it lands
+          // (module header).
+          const captures = carriesCapture(ctx.input);
           ({ run: updated, previousPhase: oldPhase } = await updateRunAppendingEvents(
             deps,
             ctx.input.runId,
-            (execution, session) => {
-              applyUpdateStatusMerge(
+            (execution, session) => ({
+              last: applyUpdateStatusMerge(
                 execution,
                 ctx.input,
                 deps.logger,
                 isServerComposedRequest(identity) ? "platform" : "wire",
-                foldsCandidate && isOutdatedTurn(ctx.input.runId, session.runOfNewestType),
-                openAsksOf(session, ctx.input.runId),
-                foldsCandidate ? runReviewLogOf(session.runEvents.map(eventOf)) : undefined,
-              );
-            },
-            foldsCandidate
+                captures && isOutdatedTurn(ctx.input.runId, session.runOfNewestType),
+                captures ? runReviewLogOf(session.runEvents.map(eventOf)) : undefined,
+              ),
+            }),
+            captures
               ? { runOfNewestType: NEWEST_TURN_EVENT_TYPE, runEventTypes: RUN_REVIEW_EVENT_TYPES }
               : {},
           ));
@@ -239,7 +216,7 @@ export async function updateStatus(
           }
           throw internalError(error, "failed to update execution status");
         }
-        // Hand the merged result to the observer + broadcast steps.
+        // Hand the merged result to the observer step and the reply.
         ctx.set(EXECUTION_KEY, updated);
         ctx.set(OLD_PHASE_KEY, oldPhase);
       },
@@ -248,8 +225,12 @@ export async function updateStatus(
       name: "NotifyStatusObservers",
       async execute(ctx) {
         const execution = ctx.get(EXECUTION_KEY) as Run | undefined;
+        /* v8 ignore next 6 -- @preserve: the merge step sets the key or throws, so only a reordered chain reaches this */
         if (execution === undefined) {
-          return; // BroadcastToStreams answers the missing-key fault below.
+          throw internalError(
+            new Error("execution not found in context"),
+            "execution not found in context",
+          );
         }
         await notifyStatusObservers(
           deps,
@@ -257,22 +238,6 @@ export async function updateStatus(
           ctx.get(OLD_PHASE_KEY) as RunPhase,
           execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED,
         );
-      },
-    })
-    .addStep({
-      name: "BroadcastToStreams",
-      execute(ctx) {
-        const execution = ctx.get(EXECUTION_KEY);
-        if (execution === undefined) {
-          throw internalError(
-            new Error("execution not found in context"),
-            "execution not found in context",
-          );
-        }
-        // Push to active subscribers AFTER the persist commits (the
-        // broker's write path) — the ordering subscribe's register-before-snapshot
-        // guarantee builds on.
-        deps.broker.broadcast(execution as Run);
       },
     })
     .build()
@@ -292,10 +257,12 @@ export async function updateStatus(
 }
 
 /**
- * The policy keeps of a write that folds a candidate, decided from the
- * run's log (`log`, read under the session's lock): the approved-command
- * keep, the plugin-eval try's keep, and, for a turn a later message
- * outdated, the close of its review.
+ * The policy keeps of a write that carries a captured set, decided from
+ * the run's log (`log`, read under the session's lock) against the merged
+ * record: the approved-command keep, the plugin-eval try's keep, and, for
+ * a turn a later message outdated, the close of its review. Each keep's
+ * decisions are folded into the log the next decides from, so two rules
+ * never decide one target in one write. Returns the decided events.
  */
 function applyPolicyKeeps(
   execution: Run,
@@ -303,35 +270,34 @@ function applyPolicyKeeps(
   logger: Logger,
   outdatedTurn: boolean,
   log: RunReviewLog,
-): void {
-  const status = execution.status!;
-  // Approved-command auto-keep: a candidate whose provenance verifies
-  // against the person's answers in the log is decided by policy IN THE
-  // SAME WRITE that folded it.
-  autoKeepApprovedCommandSets(status, runId, execution.spec?.autoApproveAll ?? false, logger, log);
+): SessionEvent[] {
+  const sets = execution.status?.fileChanges ?? [];
+  // Approved-command keep: a captured set whose provenance verifies
+  // against the person's answers in the log is decided IN THE SAME WRITE
+  // that captured it.
+  const approved = autoKeepApprovedCommandSets(sets, runId, execution.spec?.autoApproveAll ?? false, logger, log);
+  let seen = withDecisions(log, approved);
   // A plugin eval's try keeps its edits by policy: nobody reviews a try.
-  autoKeepPluginEvalTrySets(status, runId, isPluginEvalRun(execution), logger, log);
+  const evalTry = autoKeepPluginEvalTrySets(sets, runId, isPluginEvalRun(execution), logger, seen);
+  seen = withDecisions(seen, evalTry);
   // A turn that captured after a later message was sent is closed as it
   // lands: its undecided edits are kept, as the next turn keeps them.
-  if (outdatedTurn) {
-    const kept = keepOutdatedSets(status, runId, log);
-    if (kept > 0) {
-      logger.info("Kept a turn's undecided file changes: a later message was sent", {
-        executionId: runId,
-        decisions: kept,
-      });
-    }
+  const outdated = outdatedTurn ? keepOutdatedSets(sets, runId, seen) : [];
+  if (outdated.length > 0) {
+    logger.info("Kept a turn's undecided file changes: a later message was sent", {
+      executionId: runId,
+      decisions: outdated.length,
+    });
   }
+  return [...approved, ...evalTry, ...outdated];
 }
 
 /** The event that names the conversation's newest turn: the user message its run was created with. */
 const NEWEST_TURN_EVENT_TYPE = "user.message";
 
-/** Whether the incoming status folds a captured candidate into the ledger. */
-function carriesCandidate(input: RunUpdateStatusInput): boolean {
-  return (input.status?.fileReviewEventStream?.events ?? []).some(
-    (ev) => ev.eventType === FileReviewEventType.CANDIDATE_CAPTURED,
-  );
+/** Whether the incoming status carries a captured set for the run's file record. */
+function carriesCapture(input: RunUpdateStatusInput): boolean {
+  return (input.status?.fileChanges ?? []).some(isCaptured);
 }
 
 /**
@@ -344,99 +310,6 @@ function isOutdatedTurn(runId: string, newestTurnRunId: string | undefined): boo
 }
 
 /**
- * Whether replacing existing with incoming would drop committed
- * transcript history for a non-terminal execution, plus a short reason
- * for the rejection log. Enforces the append-only-at-identity invariant:
- * a non-terminal transcript may grow and reconcile entries in place, but
- * it may neither shrink nor drop a previously committed tool-call id.
- * Terminal executions (the TRANSCRIPT terminal set — TERMINATED stays
- * protected) may be rewritten freely and so are never a regression here.
- */
-export function nonTerminalTranscriptRegression(
-  phase: RunPhase,
-  existing: AgentMessage[],
-  incoming: AgentMessage[],
-): { reject: boolean; reason: string } {
-  if (isTranscriptTerminalPhase(phase)) {
-    return { reject: false, reason: "" };
-  }
-  if (incoming.length < existing.length) {
-    return { reject: true, reason: "would shrink the message transcript" };
-  }
-
-  const incomingToolCallIds = new Set<string>();
-  for (const m of incoming) {
-    for (const tc of m.toolCalls) {
-      if (tc.id !== "") {
-        incomingToolCallIds.add(tc.id);
-      }
-    }
-  }
-  for (const m of existing) {
-    for (const tc of m.toolCalls) {
-      if (tc.id === "") {
-        continue;
-      }
-      if (!incomingToolCallIds.has(tc.id)) {
-        return {
-          reject: true,
-          reason: "would drop a previously-committed tool call",
-        };
-      }
-    }
-  }
-  return { reject: false, reason: "" };
-}
-
-/**
- * The transcript the merge persists, or undefined to keep the stored one.
- * The stored phase's stop row, when it closes the transcript, is held
- * aside so the runner's settle write (which never carries it) is judged
- * against the transcript beneath it, and re-appended after. A platform
- * marker write is appended; anything else is the runner's write, replaced
- * wholesale unless the regression guard rejects it.
- */
-function mergeTranscript(
-  existingPhase: RunPhase,
-  existing: AgentMessage[],
-  incoming: AgentMessage[],
-  executionId: string,
-  logger: Logger,
-): AgentMessage[] | undefined {
-  const held = heldStopRow(existingPhase, existing);
-  const base = held === undefined ? existing : existing.slice(0, -1);
-
-  let next: AgentMessage[];
-  if (isPlatformMarkerWrite(base, incoming)) {
-    next = appendPlatformMarker(base, incoming);
-  } else {
-    const { reject, reason } = nonTerminalTranscriptRegression(
-      existingPhase,
-      base,
-      incoming,
-    );
-    if (reject) {
-      logger.warn(
-        "Rejected status update that would drop committed transcript history for a non-terminal execution; keeping existing messages",
-        {
-          executionId,
-          existingMessages: existing.length,
-          incomingMessages: incoming.length,
-          reason,
-        },
-      );
-      return undefined;
-    }
-    next = incoming;
-  }
-
-  if (held !== undefined && !endsWithRows(next, [held])) {
-    next = [...next, held];
-  }
-  return next;
-}
-
-/**
  * Who sent a status write: the platform's own (the invoke workflow's
  * writes, which reach this handler over the in-process transport, the
  * one origin the wire cannot claim) or the wire (the runner).
@@ -444,17 +317,17 @@ function mergeTranscript(
 export type StatusWriter = "platform" | "wire";
 
 /**
- * Merges an incoming status update into the execution in place — the
- * runner-owns-the-transcript merge rules, exactly update_status.go
- * applyUpdateStatusMerge. Runs inside the locked write (synchronous by
- * store contract), so the merge and the pending_approvals projection see
- * the same snapshot that will be persisted. `writer` defaults to the wire,
- * the side that grants nothing extra. `outdatedTurn` says a later message
- * was sent after this run's, so its file review is closed in this write;
- * `openAsks` are the run's tool uses that wait in the session's log, and
- * `reviewLog` the run's decisions and answers there, given only to a write
- * that folds a candidate, which alone runs the policy keeps (all read
- * under the session's lock; module header).
+ * Merges an incoming status update into the execution in place, exactly
+ * the runner's merge rules (module header). Runs inside the locked write
+ * (synchronous by store contract), so the merge and the policy keeps see
+ * the snapshot that will be persisted. `writer` defaults to the wire, the
+ * side that grants nothing extra. `outdatedTurn` says a later message was
+ * sent after this run's, so its file review is closed in this write;
+ * `reviewLog` is the run's decisions and answers in the session's log,
+ * given only to a write that carries a captured set, which alone runs the
+ * policy keeps (both read under the session's lock). Returns the
+ * `stigmer.file_review.decided` events the keeps decided, for the write to
+ * append.
  */
 export function applyUpdateStatusMerge(
   execution: Run,
@@ -462,9 +335,8 @@ export function applyUpdateStatusMerge(
   logger: Logger,
   writer: StatusWriter = "wire",
   outdatedTurn = false,
-  openAsks: ReadonlySet<string> = new Set(),
   reviewLog?: RunReviewLog,
-): void {
+): SessionEvent[] {
   if (execution.status === undefined) {
     execution.status = create(RunStatusSchema);
   }
@@ -473,54 +345,10 @@ export function applyUpdateStatusMerge(
   if (requestStatus === undefined) {
     // Unreachable through the RPC (the validate step refuses); the
     // direct-call guard keeps the merge total.
-    return;
+    return [];
   }
-
-  // Snapshot the pre-merge transcript before any replacement: the
-  // regression guard compares against the persisted messages, and
-  // preserveApprovalFields copies the SubmitApproval-owned decision
-  // fields from these existing messages onto the incoming ones.
-  // Reassigning status.messages below does not mutate these references.
-  const existingMessages = status.messages;
-  const existingSubAgents = status.subAgentRuns;
   const existingPhase = status.phase;
 
-  // Merge messages (replace with latest from request), guarding against
-  // any update that would drop committed transcript history for a
-  // non-terminal execution. The runner owns the transcript and only ever
-  // GROWS it in flight; two regressions are rejected at this single
-  // persistence chokepoint (the platform's own rows are handled first,
-  // see mergeTranscript):
-  //  1. A strictly SHORTER transcript — the classic partial write.
-  //  2. A transcript that DROPS a committed tool-call id while appending
-  //     enough later turns to keep the count equal-or-greater
-  //     (front-truncation, invisible to a count-only check; tool-call
-  //     ids are the only stable identity in the transcript).
-  // Content is deliberately NOT compared: legitimate updates both grow
-  // it (streaming) and blank it in place (the Cursor runner's
-  // post-denial narration redaction), so a content check would reject
-  // valid writes.
-  if (requestStatus.messages.length > 0) {
-    const merged = mergeTranscript(
-      existingPhase,
-      existingMessages,
-      requestStatus.messages,
-      input.runId,
-      logger,
-    );
-    if (merged !== undefined) {
-      status.messages = merged;
-    }
-  }
-
-  // Wholesale presence-guarded replacements (latest from request).
-  if (requestStatus.subAgentRuns.length > 0) {
-    status.subAgentRuns = requestStatus.subAgentRuns;
-  }
-  // todos is a map field; Go's len() counts entries.
-  if (Object.keys(requestStatus.todos).length > 0) {
-    status.todos = requestStatus.todos;
-  }
   // Artifacts are published by agents via publish_artifact during
   // execution; the runner persists them through this RPC.
   if (requestStatus.artifacts.length > 0) {
@@ -531,17 +359,6 @@ export function applyUpdateStatusMerge(
   if (requestStatus.workspaceWriteBacks.length > 0) {
     status.workspaceWriteBacks = requestStatus.workspaceWriteBacks;
   }
-
-  // Preserve approval fields (approval_action, approval_decided_at,
-  // approved_by) atomically recorded by SubmitApproval — the runner
-  // always sends UNSPECIFIED, so the wholesale replacement above would
-  // otherwise erase user decisions.
-  preserveApprovalFields(
-    status.messages,
-    status.subAgentRuns,
-    existingMessages,
-    existingSubAgents,
-  );
 
   // Update phase (if provided) — latched once terminal. A terminal phase
   // is final by contract, but a runner activity can outlive its
@@ -559,8 +376,7 @@ export function applyUpdateStatusMerge(
   // phase through its own lifecycle step; through this merge only the
   // platform's own writes do (the workflow's resume and recovery
   // re-assertions, which also heal a stale PAUSED over a fast resume,
-  // oss#869). The straggler's transcript still merges, beneath the held
-  // pause row.
+  // oss#869).
   if (requestStatus.phase !== RunPhase.RUN_PHASE_UNSPECIFIED) {
     if (
       existingPhase === RunPhase.RUN_PAUSED &&
@@ -620,80 +436,34 @@ export function applyUpdateStatusMerge(
     status.stopCause = "";
   }
 
-  // Terminal invariant (issue #207): a terminal execution carries zero
-  // non-terminal tool calls. Settling here — at the single merge
-  // chokepoint — covers every updateStatus writer without any of them
-  // having to remember it, and composes with the phase latch into a
-  // self-healing pair: a straggler persist that reintroduces RUNNING rows
-  // cannot move the terminal phase, so its rows are re-settled in the
-  // same merge, so a gated call on a dead execution is never pending.
-  if (isTerminalExecutionPhase(status.phase)) {
-    let settledAt = status.completedAt;
-    if (settledAt === "") {
-      settledAt = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
-    }
-    const settled = settleInterruptedToolCalls(status, settledAt);
-    if (settled > 0) {
-      logger.info(
-        "Settled in-flight tool calls to TOOL_CALL_INTERRUPTED on terminal execution",
-        {
-          executionId: input.runId,
-          phase: RunPhase[status.phase],
-          settledToolCalls: settled,
-        },
-      );
-    }
+  // The file record, merged by change set id: nothing stored is removed
+  // (module header).
+  if (requestStatus.fileChanges.length > 0) {
+    status.fileChanges = upsertFileChanges(input.runId, status.fileChanges, requestStatus.fileChanges);
   }
 
-  // The calls that wait: the rows' waiting calls whose asks are open in
-  // the session's log (approval/pending.ts).
-  status.pendingApprovals = pendingApprovalsOf(input.runId, status, openAsks, logger);
+  // The policy keeps run in the write that carries a captured set, which
+  // reads the run's log for them (module header).
+  const decided =
+    reviewLog === undefined ? [] : applyPolicyKeeps(execution, input.runId, logger, outdatedTurn, reviewLog);
 
-  // Fold the runner-authored capture/reconcile events (carried on the
-  // request payload) into the server-owned ledger: append-only,
-  // idempotent by event_id, FILE_DECIDED dropped (server-authored: a
-  // person's decision or a policy keep, never the runner's).
-  appendRunnerEvents(status, input.runId, requestStatus);
-
-  // The policy keeps run in the write that folds a candidate, which reads
-  // the run's log for them (module header).
-  if (reviewLog !== undefined) {
-    applyPolicyKeeps(execution, input.runId, logger, outdatedTurn, reviewLog);
-  }
-
-  // Recompute file_change_sets from the append-only ledger via its single
-  // projection seam — always derived, never merged, so it cannot go
-  // stale.
-  status.fileChangeSets = projectFileChangeSets(status.fileReviewEventStream);
-
-  // Mid-run live capture: merge the runner-owned transient
-  // progress snapshot (presence-guarded replace, like streaming_usage
-  // below), then clear it unless its change set is still CAPTURING — run
-  // here so it sees the freshly-projected file_change_sets.
+  // Mid-run live capture: merge the runner-owned transient progress
+  // snapshot (presence-guarded replace, like streaming_usage below), then
+  // clear it once its change set is captured on the record or the run has
+  // finished.
   if (requestStatus.fileChangeProgress !== undefined) {
     status.fileChangeProgress = requestStatus.fileChangeProgress;
   }
   status.fileChangeProgress = reconcileFileChangeProgress(
-    status.fileChangeSets,
+    status.fileChanges,
     status.fileChangeProgress,
+    isTerminalExecutionPhase(status.phase),
   );
 
   // Merge streaming_usage (replace with latest from request): a
   // display-only fallback when proxy-reported usage is unavailable.
   if (requestStatus.streamingUsage !== undefined) {
     status.streamingUsage = requestStatus.streamingUsage;
-  }
-
-  // Merge recalled_memories_report: runner-owned, written at most once
-  // per execution at prompt build. Later persists omit it, so
-  // this presence guard is what preserves the stored report across the
-  // execution's remaining status writes.
-  if (requestStatus.recalledMemoriesReport !== undefined) {
-    status.recalledMemoriesReport = requestStatus.recalledMemoriesReport;
-  }
-
-  if (requestStatus.contextInfo !== undefined) {
-    status.contextInfo = requestStatus.contextInfo;
   }
 
   if (requestStatus.setupProgress !== undefined) {
@@ -705,13 +475,6 @@ export function applyUpdateStatusMerge(
   // code path.
   if (status.phase !== RunPhase.RUN_PENDING) {
     status.setupProgress = undefined;
-  }
-
-  // Merge structured_output: populated by the runner on COMPLETED when
-  // the turn set spec.structured_output_schema; immutable after first
-  // population.
-  if (requestStatus.structuredOutput !== undefined) {
-    status.structuredOutput = requestStatus.structuredOutput;
   }
 
   // Merge plugin_eval_files: the files a plugin-eval try's graders read, as
@@ -743,9 +506,10 @@ export function applyUpdateStatusMerge(
   logger.debug("Merged status fields", {
     executionId: input.runId,
     phase: RunPhase[status.phase],
-    messagesCount: status.messages.length,
-    pendingApprovalsCount: status.pendingApprovals.length,
+    changeSets: status.fileChanges.length,
+    decided: decided.length,
   });
+  return decided;
 }
 
 /**

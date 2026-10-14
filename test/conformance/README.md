@@ -211,18 +211,19 @@ suite holds the quality tasks.
 
 The benchmark's sessions leave file review off, so a turn that edits files
 ends on its own and its edits stay. A turn whose session asks for review is
-offered for review when it ends; the benchmark then keeps the change set
-whole, stamps when the agent's work was done (`review_ready_ms`), and sends
-the next turn only after the terminal phase.
+offered for review when it ends; the benchmark stamps when the agent's work
+was offered (`review_ready_ms`), keeps the change set whole once the turn has
+ended, and only then sends the next turn.
 
 Per execution it reads its sources and joins them by execution id:
-- the `subscribe` stream: when the user first saw a token, when the work was
-  offered for review, when the turn ended;
+- the session's event stream (`streamEvents`, folded with `SessionLog`): when
+  the user first saw a token, when the work was offered for review, when the
+  turn ended; and from the folded turn, each primary-thread tool call's target
+  and outcome (a failed native edit is a returned string, so the outcome is
+  read from the result), the final to-do list by state, and the final reply;
 - the terminal status: `streaming_usage` (tokens and the runner's rate-card
-  cost ESTIMATE), `status.error` on a failure, memory on the spec as the
-  platform attachment, each root tool call's target and outcome (a failed
-  native edit is a returned string, so the outcome is read from the result),
-  and the final to-do list by state;
+  cost ESTIMATE), `status.error` on a failure, and memory on the spec as the
+  platform attachment;
 - the runner's `turn_phases`, `execution_setup` and Cursor-only
   `turn_first_event` timing lines, from its tee'd log (rounds, tool calls,
   MCP connect on native, the SDK's send window on Cursor, the declared counts;
@@ -438,16 +439,21 @@ hash returning `NotFound`), resolved by stigmer/stigmer#192.
 fields (`metadata.id`, `metadata.version`, `status`). `errors.ts` asserts gRPC
 status codes with diagnostic messages.
 
-Approval submits have one gesture: `submitApprovalPerContract`
-(`support/runs.ts`) submits the decision and asserts the response's
-`pending_approvals` reflects it synchronously — the one definition of that
-contract, and the reason a decision the server failed to record is red at the
-submit that made it rather than a timeout later in the arm. A session-scoped
-answer (`confirmToolUse`, `grantPermission`) goes through its twin,
-`confirmPerContract` (`support/answers.ts`), which reads the run right after
-the answer; the same module reads what the session's log says waits (the
+Answers have one gesture: `confirmPerContract` (`support/answers.ts`) gives
+the answer (`confirmToolUse`, `grantPermission`) and asserts, from the
+session's log folded right after it, how many of the turn's calls still wait
+— the one definition of that contract, and the reason an answer the server
+failed to record is red at the answer that made it rather than a timeout later
+in the arm. The same module reads what the session's log says waits (the
 newest idle's `requires_action` ids, `awaitRequiresAction`) and the answers it
 recorded (`answersOf`), the way a client reads them.
+
+A turn's transcript is the session's log, never a run's status:
+`support/turn.ts` folds the log with `foldSession` and hands a suite the
+turn's tool uses (`toolUsesOf`, `toolUseByCallId`), messages, sub-agent
+threads, structured output and memory recall. File review reads each turn's
+captured files from the run's file record (`status.file_changes`) and every
+decision from the log (`reviewSetNow`, `support/file-review.ts`).
 
 ### The RPC contract (`inventory/rpc-waivers.yaml`)
 
@@ -656,7 +662,7 @@ agent run always hits an LLM, so the `local-execution` target also boots a
 a programmable response queue that replays canned Anthropic SSE to the runner via
 a base-URL override (`STIGMER_PROXY_ENDPOINT`) — no API key, no network. A single
 text turn reaches COMPLETED; a `delayMs`-held turn keeps an execution genuinely
-IN_PROGRESS, the lever for the cancel/terminate/pause/resume happy paths. It
+IN_PROGRESS, the lever for the interrupt/terminate/pause/resume happy paths. It
 asserts the **engine-present** contract — **no `AlreadyExists` on create**
 (repeated identical creates yield distinct `run_` ids), runs are listed by
 conversation through **`listBySession`**, and a create with **no `target`** (neither a
@@ -671,8 +677,8 @@ server's controller unit tests rather than asserted here. Polling goes
 through one enum-agnostic core (`support/run-poll.ts`).
 
 `run-approval.conformance.test.ts` adds the **HITL tool-approval** contract:
-the session's answers (`confirmToolUse`, `grantPermission`), its stop
-(`interrupt`), and the run-scoped `submitApproval` adapter. It is the first slice that exercises a real *tool*:
+the session's answers (`confirmToolUse`, `grantPermission`) and its stop
+(`interrupt`). It is the first slice that exercises a real *tool*:
 an agent can only reach `EXECUTION_WAITING_FOR_APPROVAL` when it lists a
 plugin whose MCP server exposes an approval-gated tool, so the `local-execution` target
 also boots a **TS-pure HTTP (Streamable) MCP fixture** (`harness/mcp-server.ts`):
@@ -690,38 +696,36 @@ unfinished), an allow, a deny whose message the model reads, a grant that
 answers the co-pending calls of its class with one grant event, a replayed
 answer accepted and a contrary one refused, an interrupt that stops a turn at
 its gate, a paused turn and a queued second turn (each CANCELLED with stop
-cause `user`, the session idle with `end_turn`), the phase lifecycle (gate
-reached -> COMPLETED) for APPROVE/SKIP/REJECT/APPROVE_ALL on the adapter, the
-`pending_approvals` read model (`tool_call_id`, `tool_name`,
-`mcp_server_slug`, and the provenance `ANNOTATION_DESTRUCTIVE_TIGHTEN`),
-`auto_approve_all` bypass, idempotency, and the negative codes — and deliberately does **not** assert runner-internal projections that are
-not stable black-box observables (per-tool-call *final* status after the approval
-resume, and `args_preview`), exactly the boundary the integration HITL suite
-draws.
+cause `user`, the session idle with `end_turn`), what an ask names in the log
+(the tool, its MCP server segment, and the `policy_source`
+`annotation_destructive_tighten`), a grant's lease over a later call of its
+class, the durable resume of an allowed call, and the `auto_approve_all`
+bypass — and deliberately does **not** assert `args_preview`, which is not a
+stable black-box observable.
 
 **The runner-behavior facets** replaced the Go `test/integration-offline`
 suite, arm for arm: a runner behavior a
-client reads off execution status is contract, and the execution class is its
-home. `run-messages` (the transcript: text, thinking, MCP tool
-calls that succeed or fail, the ToolCall field contract, and the model id the
+client reads off the session's log or the run is contract, and the execution
+class is its home. `run-messages` (the transcript: text, thinking, MCP tool
+calls that succeed or fail, a tool use's fields, and the model id the
 provider received after registry resolution), `run-subagent`
 (`task` delegation to the saved agents an agent lists, each on its own
-definition, and `sub_agent_runs`), `run-provider-error`
+definition, and each sub-agent's thread), `run-provider-error`
 (who a proxy-mode provider fault is attributed to — the stigmer#330 incident
-shapes), `run-structured-output` (what the final message becomes on
-`structured_output`; the fallback's lack of schema validation is deliberately
+shapes), `run-structured-output` (what the final message becomes as the
+turn's `stigmer.agent.structured_output`; the fallback's lack of schema validation is deliberately
 NOT pinned, see the file header), `run-file-review` and
 `-file-review-progress` (apply-then-review in a session that asks for it,
-never a wait: review off and on, keep and undo through `reviewFileChanges` and
-its `submitFileDecision` adapter, the reconcile turn an undo starts, the next
+never a wait: review off and on, keep and undo through `reviewFileChanges`,
+the reconcile turn an undo starts, the next
 message closing a turn's review, an unattended write (stigmer#1471), the
 secret and binary rules over a harness git workspace, and the mid-run
 progress strip under the runner's capture throttle), `run-memory-selection`
 (the embedder posture, beside `-memory-retrieval`'s no-embedder one),
 `run-stigmer-mcp-stdio` (a fixture agent on the real
 `stigmer mcp-server` over stdio, the always-on proof of the stdio lane), plus additions to
-`run` (idempotent cancel/terminate), `run-approval` (the
-answers in the session's log, the APPROVE_ALL lease across turns, durable
+`run` (an idempotent interrupt and terminate), `run-approval` (the
+answers in the session's log, a grant's lease across the turn, durable
 resume, the stop at the gate) and
 `plugin-tools` (`listTools`: each tool of a plugin's server with its
 destructive mark, read as the caller, storing nothing, and asking no model). `run-tool-lists` pins an agent's `tools` and
@@ -784,9 +788,9 @@ fixtures/           working-agent/ (the working agent as a plugin: its skills, s
 3. Assert the intended contract. A server answer that does not match it is a
    server bug or a contract question — never something the suite asserts as
    right; an edition difference is a `CapabilityFlag`, never a fork.
-4. An approval submit goes through `submitApprovalPerContract`, and a
-   session answer through `confirmPerContract`, never a bare call followed by
-   an `expect` on `pending_approvals`.
+4. A session answer goes through `confirmPerContract`, never a bare call
+   followed by an `expect` on what waits; a turn's transcript is read through
+   `support/turn.ts`, never off a run's status.
 5. Tag each test with the RPC it pins (`[rpc:<Service>.<method>]`), or waive
    the RPC in `inventory/rpc-waivers.yaml`; `npm run inventory:check` names
    every declared RPC that has neither (see "The RPC contract").

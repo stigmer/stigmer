@@ -1,14 +1,15 @@
 /**
- * Decodes the run JSON that crosses Temporal, tolerating names the current
- * contract no longer knows.
+ * Decodes the run status JSON that crosses Temporal, tolerating names the
+ * current contract no longer knows.
  *
- * A local activity's result is recorded in Temporal history and replayed
- * from it, and an activity's input is recorded when the workflow schedules
- * it, so a run in flight across a deploy is decoded from JSON an older
- * server or runner wrote. Two kinds of old name reach these decoders:
+ * An activity's input is recorded when the workflow schedules it, so a
+ * status write in flight across a deploy (a retry of the workflow's own
+ * write) is decoded from JSON an older server wrote. Two kinds of old name
+ * reach the decoder:
  *
  * * - Retired names. The rename of executions to runs (October 2026)
- *   changed field JSON names (`executionId` became `runId`), enum value
+ *   changed field JSON names (`supersedesExecutionId` became
+ *   `supersedesRunId`), enum value
  *   names (`EXECUTION_COMPLETED` became `RUN_COMPLETED`) and the kind
  *   string (`AgentExecution` became `AgentRun`) without moving a field or
  *   value number; the rename of the agent run to a run, days later,
@@ -23,12 +24,14 @@
  *   string or a Struct value is never touched. The tables go once no
  *   history recorded before that release can still run, the way
  *   deprecatePatch ends a patched branch.
- * - Reserved names. When a release reserves a field or an enum value
- *   (approval_policy_source's per-tool policy values, for one), the JSON
- *   still carries it. The workflow's load of its run is a read of the
- *   record, never a write, so it drops an unknown name: the enum reads as
- *   its zero value, exactly as a stored row decodes. A status update is a
- *   write, and stays strict.
+ * - Reserved names. When a release removes a field and reserves its name
+ *   (the run's transcript, `messages` among them, which the workflow's
+ *   own stop and failure writes carried), the JSON still carries it. A
+ *   field name the message reserves is dropped, as its data left the
+ *   contract with it, under its retired spelling too (the tables keep a
+ *   reserved field's rename for that); any other unknown name is refused,
+ *   so a status update stays strict. A name reachable only inside a
+ *   reserved field left the tables with it.
  *
  * Bundle-safe: imported by the workflow.
  */
@@ -41,14 +44,7 @@ import {
   type JsonValue,
   type MessageShape,
 } from "@bufbuild/protobuf";
-import {
-  RunSchema,
-  type Run,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-
 export const RETIRED_FIELD_NAMES: ReadonlyMap<string, string> = new Map([
-  ["executionId", "runId"],
-  ["execution_id", "run_id"],
   ["subAgentExecutions", "subAgentRuns"],
   ["sub_agent_executions", "sub_agent_runs"],
   ["supersedesExecutionId", "supersedesRunId"],
@@ -70,7 +66,6 @@ export const RETIRED_ENUM_VALUE_NAMES: ReadonlyMap<string, string> = new Map([
   ["EXECUTION_WAITING_FOR_APPROVAL", "RUN_WAITING_FOR_APPROVAL"],
   ["agent_execution", "run"],
   ["agent_run", "run"],
-  ["mid_execution", "mid_run"],
 ]);
 
 /** The kind strings a run's `kind` field carried before the renames. */
@@ -95,7 +90,12 @@ function retiredMessage(value: JsonValue, desc: DescMessage): JsonValue {
   }
   const out: JsonObject = {};
   const spelledBy = new Map<string, string>();
+  const reserved = reservedNamesOf(desc);
   for (const [key, raw] of Object.entries(value)) {
+    // A reserved name, under its current spelling or a retired one.
+    if (reserved.has(key) || reserved.has(RETIRED_FIELD_NAMES.get(key) ?? "")) {
+      continue;
+    }
     let field = desc.fields.find((f) => f.jsonName === key || f.name === key);
     let name = key;
     if (field === undefined) {
@@ -125,6 +125,16 @@ function retiredMessage(value: JsonValue, desc: DescMessage): JsonValue {
     out.kind = RETIRED_KIND_NAMES.get(out.kind) ?? out.kind;
   }
   return out;
+}
+
+/** The field names a message reserves, as proto names and as JSON names. */
+function reservedNamesOf(desc: DescMessage): ReadonlySet<string> {
+  const names = new Set<string>();
+  for (const name of desc.proto.reservedName) {
+    names.add(name);
+    names.add(name.replace(/_([a-z0-9])/g, (_match, letter: string) => letter.toUpperCase()));
+  }
+  return names;
 }
 
 /** One field's value, or each element of a list or map field. */
@@ -170,14 +180,7 @@ export function renameRetiredRunJson(desc: DescMessage, raw: JsonValue): JsonVal
   return retiredMessage(raw, desc);
 }
 
-/** The workflow's load of its run: retired names renamed, reserved names dropped. */
-export function decodeLoadedExecution(raw: JsonValue): Run {
-  return fromJson(RunSchema, renameRetiredRunJson(RunSchema, raw), {
-    ignoreUnknownFields: true,
-  });
-}
-
-/** A status update's payload: retired names renamed, anything else unknown refused. */
+/** A status update's payload: retired names renamed, reserved names dropped, anything else unknown refused. */
 export function decodeRunStatusJson<Desc extends DescMessage>(
   schema: Desc,
   raw: JsonValue,

@@ -119,7 +119,9 @@ describe("the reference fill, over the interceptor alone", () => {
       yield frame(1);
       yield frame(2);
     }
-    const method = RunQueryController.method.subscribe;
+    // No served stream carries a reference today; a stream of runs stands
+    // for one, so the per-frame arm stays proven for the next that does.
+    const method = { ...RunQueryController.method.get, methodKind: "server_streaming" };
     const next = () => Promise.resolve({ stream: true, message: frames(), method } as unknown as StreamResponse);
     const response = (await createResourceReferenceInterceptor(names)(next)({ method } as unknown as UnaryRequest)) as unknown as {
       readonly message: AsyncIterable<Run>;

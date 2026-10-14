@@ -66,15 +66,10 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   FileChangeKind,
-  FileReviewEventType,
   RunPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import {
-  CapturedFileChangeSchema,
-  FileReviewEventSchema,
-  FileReviewEventStreamSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { FileReviewEvent } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import { CapturedFileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   CriterionResult,
   ScoreSource,
@@ -83,6 +78,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { LogFields, Logger } from "../../../boot/logger.js";
 import { PLUGIN_EVAL_LABEL } from "../../../domain/plugin-eval/constants.js";
+import { capturedSet } from "../../../domain/run/__tests__/file-review-seed.js";
 import { newPatternPool } from "../../../domain/plugin-eval/graders/patterns.js";
 import { tryRunName } from "../../../domain/plugin-eval/try-run.js";
 import { FILES_NOT_RECORDED_REASON } from "../../../domain/plugin-eval/graders/verdict.js";
@@ -318,10 +314,10 @@ async function setStatus(
   );
 }
 
-/** A completed try with a final message and, when given, a file-review ledger. */
+/** A completed try with a final message and, when given, its file record. */
 async function completeTry(
   runId: string,
-  events?: FileReviewEvent[],
+  sets?: FileChangeSet[],
 ): Promise<void> {
   await appendTurnEvents(temp.store, runId, (turn) =>
     turn.user("Write the release notes.").turnMessage("Release notes written."),
@@ -330,44 +326,21 @@ async function completeTry(
     phase: RunPhase.RUN_COMPLETED,
     startedAt: "2026-10-10T10:00:00Z",
     completedAt: "2026-10-10T10:00:12Z",
-    ...(events === undefined
-      ? {}
-      : {
-          fileReviewEventStream: create(FileReviewEventStreamSchema, {
-            events,
-          }),
-        }),
+    ...(sets === undefined ? {} : { fileChanges: sets }),
   });
 }
 
-/** A ledger that captured a baseline and, optionally, one candidate. */
+/** A file record holding one change set: its baseline alone, or captured with `changes`. */
 function ledger(
   ...changes: MessageInitShape<typeof CapturedFileChangeSchema>[]
-): FileReviewEvent[] {
-  const events = [
-    create(FileReviewEventSchema, {
-      changeSetId: "t1",
-      eventType: FileReviewEventType.BASELINE_CAPTURED,
-    }),
+): FileChangeSet[] {
+  return [
+    capturedSet(
+      "t1",
+      changes.map((change) => create(CapturedFileChangeSchema, change)),
+      changes.length > 0,
+    ),
   ];
-  if (changes.length > 0) {
-    events.push(
-      create(FileReviewEventSchema, {
-        changeSetId: "t1",
-        eventType: FileReviewEventType.CANDIDATE_CAPTURED,
-        payload: {
-          case: "candidateCaptured",
-          value: {
-            changeSetId: "t1",
-            changes: changes.map((change) =>
-              create(CapturedFileChangeSchema, change),
-            ),
-          },
-        },
-      }),
-    );
-  }
-  return events;
 }
 
 /** The loader answering the real context with the reference transcript gone from the archive. */

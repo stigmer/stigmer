@@ -44,7 +44,7 @@ import type { Command } from "@langchain/langgraph";
 import { createDeepAgent } from "deepagents";
 import { providerStrategy } from "langchain";
 import { transformJSONSchema } from "@anthropic-ai/sdk/lib/transform-json-schema";
-import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { Config } from "../../config.js";
 import type { TurnInput, TurnSink } from "../../harness/types.js";
@@ -97,6 +97,7 @@ import { ENGINE_TOOL } from "./engine-tools.js";
 import { createTodoListMiddleware } from "./todo-list.js";
 import { buildHookEvaluator } from "./hooks-setup.js";
 import { declaredServerCount } from "../../shared/mcp-resolver.js";
+import { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
  * The runner config this harness reads per turn, as a named slice

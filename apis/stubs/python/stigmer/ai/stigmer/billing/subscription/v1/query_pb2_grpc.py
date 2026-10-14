@@ -36,6 +36,11 @@ class SubscriptionQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.GetPeriodEstimateInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.PeriodEstimate.FromString,
                 _registered_method=True)
+        self.getAgentHours = channel.unary_unary(
+                '/ai.stigmer.billing.subscription.v1.SubscriptionQueryController/getAgentHours',
+                request_serializer=ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.GetAgentHoursInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.AgentHours.FromString,
+                _registered_method=True)
 
 
 class SubscriptionQueryControllerServicer(object):
@@ -90,6 +95,22 @@ class SubscriptionQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def getAgentHours(self, request, context):
+        """Read where the organization stands against its plan's agent hours.
+
+        Answers for every plan, Free included: the working seconds the
+        organization and its child organizations have used in the month its
+        plan counts, the hours the plan includes and its price past them. The
+        count is the one the estimate's working_seconds and the pause at the
+        allowance read, so the three agree at the same instant.
+
+        NOT_FOUND for a child organization: a child organization is on its
+        parent's plan, whose pool is the parent's to read.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_SubscriptionQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -107,6 +128,11 @@ def add_SubscriptionQueryControllerServicer_to_server(servicer, server):
                     servicer.getPeriodEstimate,
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.GetPeriodEstimateInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.PeriodEstimate.SerializeToString,
+            ),
+            'getAgentHours': grpc.unary_unary_rpc_method_handler(
+                    servicer.getAgentHours,
+                    request_deserializer=ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.GetAgentHoursInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.AgentHours.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -196,6 +222,33 @@ class SubscriptionQueryController(object):
             '/ai.stigmer.billing.subscription.v1.SubscriptionQueryController/getPeriodEstimate',
             ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.GetPeriodEstimateInput.SerializeToString,
             ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.PeriodEstimate.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getAgentHours(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.billing.subscription.v1.SubscriptionQueryController/getAgentHours',
+            ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.GetAgentHoursInput.SerializeToString,
+            ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.AgentHours.FromString,
             options,
             channel_credentials,
             insecure,

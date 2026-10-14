@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetEntitlementsInput, GetEntitlementsOutput, GetPeriodEstimateInput, GetSubscriptionForOrgInput, PeriodEstimate } from "./io_pbjs";
+import { AgentHours, GetAgentHoursInput, GetEntitlementsInput, GetEntitlementsOutput, GetPeriodEstimateInput, GetSubscriptionForOrgInput, PeriodEstimate } from "./io_pbjs";
 import { Subscription } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -73,6 +73,26 @@ export const SubscriptionQueryController = {
       name: "getPeriodEstimate",
       I: GetPeriodEstimateInput,
       O: PeriodEstimate,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Read where the organization stands against its plan's agent hours.
+     *
+     * Answers for every plan, Free included: the working seconds the
+     * organization and its child organizations have used in the month its
+     * plan counts, the hours the plan includes and its price past them. The
+     * count is the one the estimate's working_seconds and the pause at the
+     * allowance read, so the three agree at the same instant.
+     *
+     * NOT_FOUND for a child organization: a child organization is on its
+     * parent's plan, whose pool is the parent's to read.
+     *
+     * @generated from rpc ai.stigmer.billing.subscription.v1.SubscriptionQueryController.getAgentHours
+     */
+    getAgentHours: {
+      name: "getAgentHours",
+      I: GetAgentHoursInput,
+      O: AgentHours,
       kind: MethodKind.Unary,
     },
   }

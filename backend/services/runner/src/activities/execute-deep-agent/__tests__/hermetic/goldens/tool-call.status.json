@@ -1,31 +1,4 @@
 {
-  "messages": [
-    {
-      "type": "MESSAGE_AI",
-      "content": "Let me read it.",
-      "timestamp": "2026-01-01T00:00:01.000Z",
-      "toolCalls": [
-        {
-          "id": "call-hermetic-read-0001",
-          "name": "read_file",
-          "args": {
-            "file_path": "/README.md"
-          },
-          "result": "[{\"type\":\"text\",\"text\":\"@@ lines 1-3 of 3 @@\\n# Hermetic\\n\\nA fixture readme.\"}]",
-          "status": "TOOL_CALL_COMPLETED",
-          "startedAt": "2026-01-01T00:00:01.000Z",
-          "completedAt": "2026-01-01T00:00:01.000Z",
-          "argsPreview": "{\"file_path\":\"/README.md\"}",
-          "toolKind": "TOOL_KIND_FILE_READ"
-        }
-      ]
-    },
-    {
-      "type": "MESSAGE_AI",
-      "content": "README.md holds a one-line fixture description.",
-      "timestamp": "2026-01-01T00:00:02.000Z"
-    }
-  ],
   "phase": "RUN_COMPLETED",
   "startedAt": "2026-01-01T00:00:00.000Z",
   "completedAt": "2026-01-01T00:00:02.000Z",

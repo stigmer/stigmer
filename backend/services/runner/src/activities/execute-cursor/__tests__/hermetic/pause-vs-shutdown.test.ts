@@ -56,9 +56,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -76,6 +74,9 @@ import {
   threwCancelledFailure,
   type HermeticEnvironment,
   type InvocationControls,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { ScriptedCursorAgent, sdkEvents, step } from "../../__test-utils__/scripted-agent.js";
 import {
@@ -85,6 +86,7 @@ import {
   runCursorTurn,
 } from "../../__test-utils__/hermetic-cursor.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
+import { MessageType } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const USER_MESSAGE = "Refactor the parser module.";
 const NEVER_SEEN = "This text must never reach the transcript.";
@@ -157,17 +159,18 @@ describe("ExecuteCursor hermetic — orchestrator stop vs worker shutdown", () =
     expect(invocation.outcome.error.message).toBe("Activity paused by orchestrator");
     expect(record.persistedPhases, "the stop writes no phase").toEqual([RunPhase.RUN_IN_PROGRESS]);
     const final = record.persisted.at(-1)!;
+    const finalRows = record.rowsOf(final);
     expect(final.phase, "the settle write carries no phase").toBe(RunPhase.RUN_PHASE_UNSPECIFIED);
     expect(final.error, "a stop is not an error").toBe("");
     expect(final.completedAt, "a stopped turn is not complete").toBe("");
     expect(
-      final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content),
+      finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content),
       "no stop row: the workflow writes it",
     ).toEqual([]);
-    expect(final.messages.some((m) => m.content === NEVER_SEEN), "nothing after the cancel is processed").toBe(false);
+    expect(finalRows.messages.some((m) => m.content === NEVER_SEEN), "nothing after the cancel is processed").toBe(false);
 
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/pause.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/pause.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/pause.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/pause.events.json");
   });
 
@@ -202,17 +205,18 @@ describe("ExecuteCursor hermetic — orchestrator stop vs worker shutdown", () =
       RunPhase.RUN_FAILED,
     ]);
     const final = record.lastFullStatus!;
+    const finalRows = record.rowsOf(final);
     expect(final.error).toBe("Execution interrupted: runner worker was shut down. Retry or resume.");
     expect(final.completedAt).not.toBe("");
     expect(
-      final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content),
+      finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content),
     ).toEqual([
       "Execution interrupted: the runner worker was shut down while the agent was still running. You can retry or resume.",
     ]);
-    expect(final.messages.some((m) => m.content === NEVER_SEEN)).toBe(false);
+    expect(finalRows.messages.some((m) => m.content === NEVER_SEEN)).toBe(false);
 
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/worker-shutdown.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/worker-shutdown.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/worker-shutdown.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/worker-shutdown.events.json");
   });
 });

@@ -14,7 +14,7 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { MessageType, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -26,6 +26,7 @@ vi.mock("../../../../client/stigmer-client.js", async () =>
 import { ScriptedClock, createHermeticEnvironment, type HermeticEnvironment } from "../../../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import { beginDeepAgentScenario, deepAgentExecutionRecord, runDeepAgentTurn } from "../../__test-utils__/hermetic-deep-agent.js";
+import { MessageType } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const REFUSAL =
   "the agent support-bot needs ZENDESK_TOKEN from vault 'Support tools', which no longer holds it: " +
@@ -69,9 +70,10 @@ describe("ExecuteDeepAgent hermetic — the run's values are refused", () => {
 
     expect(turn.outcome.kind, "a refusal the person fixes RETURNS").toBe("returned");
     const final = record.lastFullStatus!;
+    const finalRows = record.rowsOf(final);
     expect(final.phase).toBe(RunPhase.RUN_FAILED);
     expect(final.error).toBe(REFUSAL);
-    expect(final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
+    expect(finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
       `Execution failed: ${REFUSAL}`,
     ]);
   });

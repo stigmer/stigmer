@@ -216,12 +216,23 @@ rows:
     observability: launcher
     caller: primary
     needs: [keyless-org]
+  - id: billing.rpc.get-agent-hours.free-calendar-month
+    surface: billing
+    lane: >-
+      rpc.Subscription.getAgentHours
+    behavior: >-
+      For an organization that never subscribed, getAgentHours answers Free's standing: included_hours present, no per_agent_hour_micros (new work pauses at the allowance), window calendar_month from the current UTC month's first instant to the next month's, and working_seconds 0.
+    class: behavior
+    disposition: conformance
+    observability: launcher
+    caller: primary
+    needs: [keyless-org]
   - id: billing.rpc.subscription.outsider-permission-denied
     surface: billing
     lane: >-
       rpc.Subscription.changePlan
     behavior: >-
-      An outsider's changePlan answers PERMISSION_DENIED "unauthorized to change this organization's plan", its getEntitlements PERMISSION_DENIED "unauthorized to view this organization's entitlements", and its getPeriodEstimate PERMISSION_DENIED "unauthorized to view this organization's period estimate".
+      An outsider's changePlan answers PERMISSION_DENIED "unauthorized to change this organization's plan", its getEntitlements PERMISSION_DENIED "unauthorized to view this organization's entitlements", its getPeriodEstimate PERMISSION_DENIED "unauthorized to view this organization's period estimate", and its getAgentHours PERMISSION_DENIED "unauthorized to view this organization's agent hours".
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -479,14 +490,14 @@ rows:
     lane: >-
       gate.checkBilling
     behavior: >-
-      submitApproval on an execution whose billing signal is STOP answers FAILED_PRECONDITION "Insufficient credits to continue this execution. Please add credits before acting on this approval, or cancel the execution."; a non-billed execution's approval is unaffected.
+      An approval decision on an execution whose billing signal is STOP answers FAILED_PRECONDITION "Insufficient credits to continue this execution. Please add credits before acting on this approval, or cancel the execution."; a non-billed execution's approval is unaffected.
     class: carve-out
     disposition: debris
     observability: none
     caller: primary
     needs: [funded-org, agent-execution]
     note: >-
-      Debris: no execution carries a billing STOP, so an approval asks nothing of billing. The provider-key gate at create is the only billing question a run meets (billing.gate.provider-key.keyless-run-refused, billing.gate.provider-key.keyless-cursor-run-refused).
+      Debris: no execution carries a billing STOP, so an approval asks nothing of billing; the run-scoped approval method is itself retired, and a waiting call is answered through the session's confirmToolUse and grantPermission. The provider-key gate at create is the only billing question a run meets (billing.gate.provider-key.keyless-run-refused, billing.gate.provider-key.keyless-cursor-run-refused).
   - id: billing.gate.rearm.recover-refused-when-unfunded
     surface: billing
     lane: >-

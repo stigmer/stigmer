@@ -2,10 +2,9 @@
 
 import { memo, useCallback, useEffect, useId, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
-import { ApprovalPolicySource, ToolKind, resolveToolKind, type ToolUse } from "@stigmer/sdk";
+import { resolveToolKind, type ToolUse } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import {
-  approvalPolicySourceOf,
   describeApprovalPolicySource,
   hookApproveAllLabel,
   isInformativePolicySource,
@@ -269,7 +268,7 @@ export function ApprovalCardBody({
 
   const ask = toolUse.ask;
   const argsPreview = ask?.argsPreview ?? "";
-  const policySource = approvalPolicySourceOf(ask?.policySource ?? "");
+  const policySource = ask?.policySource ?? "";
   const policyHook = ask?.policyHook ?? "";
   const categoryInfo = resolveToolCategoryFromCall(toolUse);
 
@@ -342,7 +341,7 @@ export function ApprovalCardBody({
     // throughout the runner (FILE_WRITE -> CREATE), so the gate says plainly
     // that a new file is being written; an edit cannot be proven a create,
     // so it keeps the non-committal notice.
-    const kind = resolveToolKind(toolUse) === ToolKind.FILE_WRITE ? "create" : "no-preview";
+    const kind = resolveToolKind(toolUse) === "file_write" ? "create" : "no-preview";
     preview = <EmptyChangeNotice kind={kind} />;
   } else if (displayArgs) {
     preview = (
@@ -501,12 +500,13 @@ function buildApproveAllLabel(
   tool: {
     readonly name: string;
     readonly mcpServerName: string;
-    readonly policySource: ApprovalPolicySource;
+    /** The ask's policy_source word (`hook`, `builtin_category`, ...). */
+    readonly policySource: string;
     readonly policyHook: string;
   },
 ): string {
   const { mcpServerName } = tool;
-  if (tool.policySource === ApprovalPolicySource.HOOK) {
+  if (tool.policySource === "hook") {
     return hookApproveAllLabel(hookLeaseSubject(category, tool.name, mcpServerName), tool.policyHook);
   }
   if (mcpServerName) {

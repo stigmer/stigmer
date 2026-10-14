@@ -26,12 +26,11 @@ var File_ai_stigmer_agentic_run_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"%ai/stigmer/agentic/run/v1/query.proto\x12\x19ai.stigmer.agentic.run.v1\x1a#ai/stigmer/agentic/run/v1/api.proto\x1a\"ai/stigmer/agentic/run/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xda\r\n" +
+	"%ai/stigmer/agentic/run/v1/query.proto\x12\x19ai.stigmer.agentic.run.v1\x1a#ai/stigmer/agentic/run/v1/api.proto\x1a\"ai/stigmer/agentic/run/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xd5\f\n" +
 	"\x12RunQueryController\x12q\n" +
 	"\x03get\x12 .ai.stigmer.agentic.run.v1.RunId\x1a\x1e.ai.stigmer.agentic.run.v1.Run\"(¸\x18$\b\x01\x10)\"\x05value*\x17unauthorized to get run\x12\\\n" +
 	"\x04list\x12*.ai.stigmer.agentic.run.v1.ListRunsRequest\x1a\".ai.stigmer.agentic.run.v1.RunList\"\x04и\x18\x01\x12n\n" +
-	"\rlistBySession\x123.ai.stigmer.agentic.run.v1.ListRunsBySessionRequest\x1a\".ai.stigmer.agentic.run.v1.RunList\"\x04и\x18\x01\x12\x82\x01\n" +
-	"\tsubscribe\x12 .ai.stigmer.agentic.run.v1.RunId\x1a\x1e.ai.stigmer.agentic.run.v1.Run\"1¸\x18-\b\x01\x10)\"\x05value* unauthorized to subscribe to run0\x01\x12\xcb\x01\n" +
+	"\rlistBySession\x123.ai.stigmer.agentic.run.v1.ListRunsBySessionRequest\x1a\".ai.stigmer.agentic.run.v1.RunList\"\x04и\x18\x01\x12\xcb\x01\n" +
 	"\x16getArtifactDownloadUrl\x128.ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlRequest\x1a9.ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlResponse\"<¸\x188\b\x01\x10)\"\x06run_id**unauthorized to download artifact from run\x12\xc3\x01\n" +
 	"\x12getArtifactContent\x124.ai.stigmer.agentic.run.v1.GetArtifactContentRequest\x1a5.ai.stigmer.agentic.run.v1.GetArtifactContentResponse\"@¸\x18<\b\x01\x10)\"\x06run_id*.unauthorized to read artifact content from run\x12\xb3\x01\n" +
 	"\x11getRunUsageReport\x121.ai.stigmer.agentic.run.v1.GetRunUsageReportInput\x1a2.ai.stigmer.agentic.run.v1.GetRunUsageReportOutput\"7¸\x183\b\x01\x10)\"\x06run_id*%unauthorized to view run usage report\x12\xc7\x01\n" +
@@ -68,27 +67,25 @@ var file_ai_stigmer_agentic_run_v1_query_proto_depIdxs = []int32{
 	0,  // 0: ai.stigmer.agentic.run.v1.RunQueryController.get:input_type -> ai.stigmer.agentic.run.v1.RunId
 	1,  // 1: ai.stigmer.agentic.run.v1.RunQueryController.list:input_type -> ai.stigmer.agentic.run.v1.ListRunsRequest
 	2,  // 2: ai.stigmer.agentic.run.v1.RunQueryController.listBySession:input_type -> ai.stigmer.agentic.run.v1.ListRunsBySessionRequest
-	0,  // 3: ai.stigmer.agentic.run.v1.RunQueryController.subscribe:input_type -> ai.stigmer.agentic.run.v1.RunId
-	3,  // 4: ai.stigmer.agentic.run.v1.RunQueryController.getArtifactDownloadUrl:input_type -> ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlRequest
-	4,  // 5: ai.stigmer.agentic.run.v1.RunQueryController.getArtifactContent:input_type -> ai.stigmer.agentic.run.v1.GetArtifactContentRequest
-	5,  // 6: ai.stigmer.agentic.run.v1.RunQueryController.getRunUsageReport:input_type -> ai.stigmer.agentic.run.v1.GetRunUsageReportInput
-	6,  // 7: ai.stigmer.agentic.run.v1.RunQueryController.getSessionUsageReport:input_type -> ai.stigmer.agentic.run.v1.GetSessionUsageReportInput
-	7,  // 8: ai.stigmer.agentic.run.v1.RunQueryController.getAgentUsageReport:input_type -> ai.stigmer.agentic.run.v1.GetAgentUsageReportInput
-	8,  // 9: ai.stigmer.agentic.run.v1.RunQueryController.getOrgUsageReport:input_type -> ai.stigmer.agentic.run.v1.GetOrgUsageReportInput
-	9,  // 10: ai.stigmer.agentic.run.v1.RunQueryController.getRunSummary:input_type -> ai.stigmer.agentic.run.v1.GetRunSummaryRequest
-	10, // 11: ai.stigmer.agentic.run.v1.RunQueryController.get:output_type -> ai.stigmer.agentic.run.v1.Run
-	11, // 12: ai.stigmer.agentic.run.v1.RunQueryController.list:output_type -> ai.stigmer.agentic.run.v1.RunList
-	11, // 13: ai.stigmer.agentic.run.v1.RunQueryController.listBySession:output_type -> ai.stigmer.agentic.run.v1.RunList
-	10, // 14: ai.stigmer.agentic.run.v1.RunQueryController.subscribe:output_type -> ai.stigmer.agentic.run.v1.Run
-	12, // 15: ai.stigmer.agentic.run.v1.RunQueryController.getArtifactDownloadUrl:output_type -> ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlResponse
-	13, // 16: ai.stigmer.agentic.run.v1.RunQueryController.getArtifactContent:output_type -> ai.stigmer.agentic.run.v1.GetArtifactContentResponse
-	14, // 17: ai.stigmer.agentic.run.v1.RunQueryController.getRunUsageReport:output_type -> ai.stigmer.agentic.run.v1.GetRunUsageReportOutput
-	15, // 18: ai.stigmer.agentic.run.v1.RunQueryController.getSessionUsageReport:output_type -> ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput
-	16, // 19: ai.stigmer.agentic.run.v1.RunQueryController.getAgentUsageReport:output_type -> ai.stigmer.agentic.run.v1.GetAgentUsageReportOutput
-	17, // 20: ai.stigmer.agentic.run.v1.RunQueryController.getOrgUsageReport:output_type -> ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput
-	18, // 21: ai.stigmer.agentic.run.v1.RunQueryController.getRunSummary:output_type -> ai.stigmer.agentic.run.v1.RunSummary
-	11, // [11:22] is the sub-list for method output_type
-	0,  // [0:11] is the sub-list for method input_type
+	3,  // 3: ai.stigmer.agentic.run.v1.RunQueryController.getArtifactDownloadUrl:input_type -> ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlRequest
+	4,  // 4: ai.stigmer.agentic.run.v1.RunQueryController.getArtifactContent:input_type -> ai.stigmer.agentic.run.v1.GetArtifactContentRequest
+	5,  // 5: ai.stigmer.agentic.run.v1.RunQueryController.getRunUsageReport:input_type -> ai.stigmer.agentic.run.v1.GetRunUsageReportInput
+	6,  // 6: ai.stigmer.agentic.run.v1.RunQueryController.getSessionUsageReport:input_type -> ai.stigmer.agentic.run.v1.GetSessionUsageReportInput
+	7,  // 7: ai.stigmer.agentic.run.v1.RunQueryController.getAgentUsageReport:input_type -> ai.stigmer.agentic.run.v1.GetAgentUsageReportInput
+	8,  // 8: ai.stigmer.agentic.run.v1.RunQueryController.getOrgUsageReport:input_type -> ai.stigmer.agentic.run.v1.GetOrgUsageReportInput
+	9,  // 9: ai.stigmer.agentic.run.v1.RunQueryController.getRunSummary:input_type -> ai.stigmer.agentic.run.v1.GetRunSummaryRequest
+	10, // 10: ai.stigmer.agentic.run.v1.RunQueryController.get:output_type -> ai.stigmer.agentic.run.v1.Run
+	11, // 11: ai.stigmer.agentic.run.v1.RunQueryController.list:output_type -> ai.stigmer.agentic.run.v1.RunList
+	11, // 12: ai.stigmer.agentic.run.v1.RunQueryController.listBySession:output_type -> ai.stigmer.agentic.run.v1.RunList
+	12, // 13: ai.stigmer.agentic.run.v1.RunQueryController.getArtifactDownloadUrl:output_type -> ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlResponse
+	13, // 14: ai.stigmer.agentic.run.v1.RunQueryController.getArtifactContent:output_type -> ai.stigmer.agentic.run.v1.GetArtifactContentResponse
+	14, // 15: ai.stigmer.agentic.run.v1.RunQueryController.getRunUsageReport:output_type -> ai.stigmer.agentic.run.v1.GetRunUsageReportOutput
+	15, // 16: ai.stigmer.agentic.run.v1.RunQueryController.getSessionUsageReport:output_type -> ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput
+	16, // 17: ai.stigmer.agentic.run.v1.RunQueryController.getAgentUsageReport:output_type -> ai.stigmer.agentic.run.v1.GetAgentUsageReportOutput
+	17, // 18: ai.stigmer.agentic.run.v1.RunQueryController.getOrgUsageReport:output_type -> ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput
+	18, // 19: ai.stigmer.agentic.run.v1.RunQueryController.getRunSummary:output_type -> ai.stigmer.agentic.run.v1.RunSummary
+	10, // [10:20] is the sub-list for method output_type
+	0,  // [0:10] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name

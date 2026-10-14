@@ -50,10 +50,11 @@ import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb
 import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import {
   RunArtifactKind,
-  MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ArtifactStorage } from "./artifact-storage.js";
 import { utcTimestamp } from "./status.js";
+import { MessageType } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import type { TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 /**
  * Legacy plan filename. Detection-only: {@link isPlanArtifactName} still
@@ -180,13 +181,13 @@ export function planArtifactSandboxPath(name: string): string {
 }
 
 /**
- * Returns the text of the last AI message in a completed status, trimmed.
+ * Returns the text of the last AI message in a completed turn's rows.
  * Returns `undefined` when there is no AI message with content — the plan was
  * empty and nothing should be published.
  */
-export function extractFinalPlanText(status: RunStatus): string | undefined {
-  for (let i = status.messages.length - 1; i >= 0; i--) {
-    const msg = status.messages[i];
+export function extractFinalPlanText(rows: Pick<TurnRows, "messages">): string | undefined {
+  for (let i = rows.messages.length - 1; i >= 0; i--) {
+    const msg = rows.messages[i];
     if (msg.type === MessageType.MESSAGE_AI && msg.content.trim().length > 0) {
       return msg.content;
     }

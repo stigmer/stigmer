@@ -40,6 +40,15 @@ export {
   type ReturnedReference,
 } from "./references.js";
 
+// An organization's access history, exported as JSON Lines (one format
+// for the CLI and the console)
+export {
+  exportAccessHistory,
+  accessHistoryJsonLine,
+  type AccessHistoryEntry,
+  type ExportAccessHistoryOptions,
+} from "./access-history.js";
+
 // Error handling
 export {
   StigmerError,
@@ -372,8 +381,7 @@ export {
 
 // Tool-call view model (framework-agnostic; shared by @stigmer/react and @stigmer/ink)
 export {
-  ToolKind,
-  FileChangeCaptureLevel,
+  type ToolKind,
   resolveToolKind,
   resolveToolKindByName,
   normalizeToolResult,
@@ -387,7 +395,6 @@ export {
   type ToolContentBlock,
 } from "./run/tool-view.js";
 export {
-  ApprovalPolicySource,
   describeApprovalPolicySource,
   hookApproveAllLabel,
   isInformativePolicySource,
@@ -480,11 +487,13 @@ export {
   type FetchSessionTranscriptOptions,
   type TranscriptToMarkdownOptions,
 } from "./run/transcript.js";
+export { displayFileChangeSets, fileChangeSetOf } from "./run/file-review-fold.js";
 export {
-  foldFileReviewEventStream,
-  displayFileChangeSets,
-} from "./run/file-review-fold.js";
-export { toDisplayFileChange } from "./run/to-display-file-change.js";
+  displayChangeTypeOf,
+  toDisplayFileChange,
+  type DisplayFileChange,
+  type DisplayFileChangeType,
+} from "./run/to-display-file-change.js";
 export { SkillClient, type SkillInput } from "./gen/skill.js";
 export { RoutedSkillClient, MAX_INLINE_ARTIFACT_BYTES } from "./skill.js";
 export { PluginClient, type PluginInput, type PluginAuthorInput } from "./gen/plugin.js";

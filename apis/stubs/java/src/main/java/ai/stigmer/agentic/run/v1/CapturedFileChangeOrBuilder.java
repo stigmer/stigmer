@@ -12,8 +12,8 @@ public interface CapturedFileChangeOrBuilder extends
 
   /**
    * <pre>
-   * Stable id of this file change within its set. The correlation key a
-   * FILE-scoped FileDecision references. Never a content hash.
+   * Stable id of this file change within its set. The id a file-scoped
+   * stigmer.file_review.decided event names. Never a content hash.
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -22,8 +22,8 @@ public interface CapturedFileChangeOrBuilder extends
   java.lang.String getId();
   /**
    * <pre>
-   * Stable id of this file change within its set. The correlation key a
-   * FILE-scoped FileDecision references. Never a content hash.
+   * Stable id of this file change within its set. The id a file-scoped
+   * stigmer.file_review.decided event names. Never a content hash.
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>

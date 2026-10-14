@@ -13,7 +13,7 @@
 // presentation seam.
 
 import { useMemo } from "react";
-import { ToolKind, resolveToolKind, normalizeToolResult } from "@stigmer/sdk";
+import { resolveToolKind, normalizeToolResult, type ToolKind } from "@stigmer/sdk";
 import type { ToolResultView, ToolUse } from "@stigmer/sdk";
 import {
   resolveToolCategoryFromCall,
@@ -70,9 +70,9 @@ const registry = new Map<ToolKind, ToolPresenter>();
  *
  * @example
  * ```ts
- * import { registerToolPresenter, ToolKind } from "@stigmer/react";
+ * import { registerToolPresenter } from "@stigmer/react";
  *
- * const dispose = registerToolPresenter(ToolKind.SHELL, {
+ * const dispose = registerToolPresenter("shell", {
  *   label: () => "Run command",
  *   summary: (_tc, result) =>
  *     result.type === "terminal" && result.exitCode ? `failed (${result.exitCode})` : null,

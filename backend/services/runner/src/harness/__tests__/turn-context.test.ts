@@ -17,6 +17,10 @@
  *    an approved whole-file write's bytes itself (the engine re-runs the
  *    model) and which never do (the engine applies the exact args it paused
  *    on).
+ *  - `reconcileReinvocation`: a resumed invocation's seed and answers come
+ *    from one read of the run's log (`transcript/resume-seed.ts`,
+ *    `approval-answers.ts`); when that read fails, the turn's start fails,
+ *    never a turn that runs with no asks and no answers.
  *
  * The phases that fetch and provision are exercised end to end by the
  * hermetic goldens (`activities/execute-cursor/__tests__/hermetic/`), which
@@ -28,14 +32,20 @@ import { describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { RunSchema, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   ENGINE_EVENT_TYPES,
+  REINVOCATION_EVENT_TYPES,
   fileReviewOn,
   isReinvocation,
+  reconcileReinvocation,
   reconcileTurnSettlement,
   regeneratesApprovedWrites,
   runEventsReader,
+  runFinishedWhileWaiting,
   runWroteEngineEvents,
+  type ResolutionDeps,
 } from "../turn-context.js";
 
 const INPUT = { executionId: "aex_1", threadId: "", turnSeq: 0 } as const;
@@ -76,6 +86,34 @@ describe("runWroteEngineEvents", () => {
     expect(ENGINE_EVENT_TYPES).not.toContain("user.message");
     expect(ENGINE_EVENT_TYPES).not.toContain("stigmer.memory.recalled");
     expect(ENGINE_EVENT_TYPES).not.toContain("stigmer.file_review.reconciled");
+  });
+});
+
+describe("reconcileReinvocation", () => {
+  /** The phase's reads on a stub: a run whose engine wrote to the log, and a log read that answers `list`. */
+  function reinvocationDeps(list: () => Promise<never[]>): {
+    readonly deps: ResolutionDeps;
+    readonly seed: ReturnType<typeof vi.fn>;
+    readonly listRunSessionEvents: ReturnType<typeof vi.fn>;
+  } {
+    const seed = vi.fn();
+    const listRunSessionEvents = vi.fn(list);
+    const stub = {
+      input: INPUT,
+      client: { hasRunSessionEvent: vi.fn(async () => true), listRunSessionEvents },
+      status: create(RunStatusSchema),
+      transcript: { seed },
+      enterPhase: vi.fn(),
+    };
+    return { deps: stub as unknown as ResolutionDeps, seed, listRunSessionEvents };
+  }
+  const args = { stateIdSource: "deterministic" as const, execution: create(RunSchema), sessionId: "ses_1" };
+
+  it("fails the turn's start when the log cannot be read, and seeds nothing", async () => {
+    const { deps, seed, listRunSessionEvents } = reinvocationDeps(async () => Promise.reject(new Error("log unreachable")));
+    await expect(reconcileReinvocation(deps, args)).rejects.toThrow("log unreachable");
+    expect(listRunSessionEvents).toHaveBeenCalledExactlyOnceWith("ses_1", INPUT.executionId, REINVOCATION_EVENT_TYPES);
+    expect(seed, "a turn whose asks could not be read never starts on an empty seed").not.toHaveBeenCalled();
   });
 });
 
@@ -146,5 +184,30 @@ describe("regeneratesApprovedWrites", () => {
 
   it("a gate-less engine has nothing approved to apply", () => {
     expect(regeneratesApprovedWrites("none")).toBe(false);
+  });
+});
+
+describe("runFinishedWhileWaiting", () => {
+  /** A stub whose run reads back in `phase`; the read is counted. */
+  function depsIn(phase: RunPhase): { readonly deps: ResolutionDeps; readonly getExecution: ReturnType<typeof vi.fn> } {
+    const getExecution = vi.fn(async () => create(RunSchema, { status: create(RunStatusSchema, { phase }) }));
+    return { deps: { input: INPUT, client: { getExecution } } as unknown as ResolutionDeps, getExecution };
+  }
+
+  it("reads nothing for a turn that did not wait", async () => {
+    const { deps, getExecution } = depsIn(RunPhase.RUN_COMPLETED);
+    expect(await runFinishedWhileWaiting(deps, false)).toBeUndefined();
+    expect(getExecution).not.toHaveBeenCalled();
+  });
+
+  it("runs on when the run it waited for is still going", async () => {
+    const { deps, getExecution } = depsIn(RunPhase.RUN_IN_PROGRESS);
+    expect(await runFinishedWhileWaiting(deps, true)).toBeUndefined();
+    expect(getExecution).toHaveBeenCalledWith("aex_1");
+  });
+
+  it("settles as the stored phase when the run finished while it waited", async () => {
+    const { deps } = depsIn(RunPhase.RUN_COMPLETED);
+    expect((await runFinishedWhileWaiting(deps, true))?.status.phase).toBe(RunPhase.RUN_COMPLETED);
   });
 });

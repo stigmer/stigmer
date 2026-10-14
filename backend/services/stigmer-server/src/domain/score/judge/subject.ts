@@ -39,8 +39,7 @@ import { EARLIER_TURNS_MAX } from "@stigmer/eval-runtime/judge";
 import type { SubjectCall, SubjectCallStatus, SubjectParts } from "@stigmer/eval-runtime/judge";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { Turn } from "@stigmer/session-log";
+import type { ToolUseState, Turn } from "@stigmer/session-log";
 
 import { canonicalJson } from "../../../pipeline/steps/spec-hash.js";
 import type { Store } from "../../../store/interface.js";
@@ -52,12 +51,7 @@ import {
   runEventsOf,
 } from "../../session/events/run-events.js";
 import type { RunTranscript } from "../../session/events/run-events.js";
-import {
-  lastMessageOf,
-  toolCallStatusOf,
-  toolUsesOf,
-  turnOfTranscript,
-} from "../turn.js";
+import { lastMessageOf, toolUsesOf, turnOfTranscript } from "../turn.js";
 
 /** The event types an earlier turn's answer is read from. */
 const ANSWER_EVENT_TYPES: ReadonlyArray<string> = [
@@ -128,7 +122,7 @@ function toolCallsOf(turn: Turn | undefined): SubjectCall[] {
     return {
       name: use.name,
       args: canonicalJson(use.input),
-      status: statusName(toolCallStatusOf(use.state)),
+      status: STATUS_NAMES[use.state],
       error: errored ? text : "",
       result: errored ? "" : text,
       resultCut:
@@ -147,20 +141,16 @@ function finalAnswerOf(turn: Turn | undefined): string {
 }
 
 /**
- * Each tool-call status as the judge reads it. A table over every value, so
- * a status added to the contract does not compile until it is named here.
+ * Each tool use state as the judge reads it: a person's or a rule's
+ * refusal as skipped, a call its turn ended before it returned as
+ * interrupted. A table over every state, so a state added to the fold
+ * does not compile until it is named here.
  */
-const STATUS_NAMES: Readonly<Record<ToolCallStatus, SubjectCallStatus>> = {
-  [ToolCallStatus.TOOL_CALL_STATUS_UNSPECIFIED]: "unknown",
-  [ToolCallStatus.TOOL_CALL_PENDING]: "pending",
-  [ToolCallStatus.TOOL_CALL_RUNNING]: "running",
-  [ToolCallStatus.TOOL_CALL_COMPLETED]: "completed",
-  [ToolCallStatus.TOOL_CALL_FAILED]: "failed",
-  [ToolCallStatus.TOOL_CALL_WAITING_APPROVAL]: "waiting for approval",
-  [ToolCallStatus.TOOL_CALL_SKIPPED]: "skipped",
-  [ToolCallStatus.TOOL_CALL_INTERRUPTED]: "interrupted",
+const STATUS_NAMES: Readonly<Record<ToolUseState, SubjectCallStatus>> = {
+  running: "running",
+  waiting: "waiting for approval",
+  completed: "completed",
+  failed: "failed",
+  denied: "skipped",
+  stopped: "interrupted",
 };
-
-function statusName(status: ToolCallStatus): SubjectCallStatus {
-  return STATUS_NAMES[status] ?? "unknown";
-}

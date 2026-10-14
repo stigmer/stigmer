@@ -57,10 +57,10 @@ export interface TurnInputFixtureOverrides extends Partial<Omit<TurnInput, "exec
   readonly message?: string;
   /**
    * The status the default execution carries — what the control plane
-   * persisted at the end of the previous invocation, on a reinvocation. The
-   * runtime seeds the turn's in-progress status from a clone of it
-   * (`seedFromPersistedStatus`) and an adapter may read the record's own
-   * copy for its facts, so a test standing in for the runtime hands both.
+   * persisted at the end of the previous invocation, on a reinvocation: its
+   * lifecycle, stamps and outputs, never the transcript (a reinvocation's
+   * asks come from the session's log). An adapter may read the record's
+   * copy for its facts.
    */
   readonly persistedStatus?: RunStatus;
   /**

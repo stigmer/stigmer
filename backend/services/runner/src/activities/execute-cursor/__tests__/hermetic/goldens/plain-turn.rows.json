@@ -1,0 +1,9 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Hello there, hermetic world.",
+      "timestamp": "2026-01-01T00:00:02.000Z"
+    }
+  ]
+}

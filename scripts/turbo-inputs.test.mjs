@@ -151,10 +151,6 @@ test("the widened inputs of 2026-09-10 are still needed (drop them from turbo.js
     (r) => r.target,
   );
   assert.ok(
-    sdkReads.some((t) => t.includes("apis/testdata/hitl/file-review")),
-    "sdk reads the HITL corpus",
-  );
-  assert.ok(
     sdkReads.some((t) => t.includes("test/fixtures/tool-view")),
     "sdk reads the tool-view fixtures",
   );

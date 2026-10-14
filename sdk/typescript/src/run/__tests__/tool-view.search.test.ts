@@ -9,16 +9,13 @@
 import { describe, it, expect } from "vitest";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import { toolUseOf } from "./tool-use.js";
-import {
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { normalizeToolResult } from "../tool-view";
 
 function searchCall(args: Record<string, unknown>, result: string) {
   return toolUseOf({
     id: "tc-search",
     name: "Grep",
-    status: ToolCallStatus.TOOL_CALL_COMPLETED,
+    status: "completed",
     args: args as JsonObject,
     result,
   });

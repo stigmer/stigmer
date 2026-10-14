@@ -105,6 +105,25 @@ export function formatChildOrgs(
 }
 
 /**
+ * The agent hours a plan includes each month and what happens past them,
+ * e.g. "25 agent hours a month, then $0.50 an hour" or "10 agent hours a
+ * month, then new work pauses"; empty when the plan states no allowance,
+ * so a plan whose hours are not yet set promises nothing.
+ */
+export function formatAgentHoursTerms(
+  entitlements: Entitlements | undefined,
+  terms: PlanTerms | undefined,
+): string {
+  const included = entitlements?.limits?.includedAgentHours;
+  if (included === undefined) {
+    return "";
+  }
+  const hours = `${included} agent hour${included === 1 ? "" : "s"} a month`;
+  const price = terms?.perAgentHourMicros;
+  return price === undefined ? `${hours}, then new work pauses` : `${hours}, then ${formatUsd(price)} an hour`;
+}
+
+/**
  * Working agent time as hours to one decimal, e.g. "31.4 h": the tenth of
  * an hour the invoice bills by, rounded half up.
  */

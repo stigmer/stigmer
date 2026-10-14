@@ -22,7 +22,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   applyApprovedPaths,
   captureChangeSet,
@@ -34,6 +33,7 @@ import {
   snapshotBaseline,
 } from "../git-substrate.js";
 import { sha256Bytes } from "../digest.js";
+import { FileChangeType } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const execFileAsync = promisify(execFile);
 

@@ -237,7 +237,7 @@ class SessionCommandControllerServicer(object):
 
         Fails with FAILED_PRECONDITION while any run in the
         session is still active (pending, in progress, waiting for approval,
-        or paused); cancel it or wait for it to finish first.
+        or paused); interrupt the session or wait for it to finish first.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

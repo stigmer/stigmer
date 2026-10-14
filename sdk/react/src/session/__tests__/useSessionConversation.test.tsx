@@ -53,7 +53,7 @@ function makeRun(
   run.spec!.supersedesRunId = opts?.supersedes ?? "";
   run.spec!.reconcileFileReview = opts?.reconcile ?? false;
   if (opts?.changeSetId) {
-    run.status!.fileChangeSets = [create(FileChangeSetSchema, { id: opts.changeSetId })];
+    run.status!.fileChanges = [create(FileChangeSetSchema, { id: opts.changeSetId })];
   }
   if (opts?.progress) {
     run.status!.fileChangeProgress = create(FileChangeProgressSchema, {});

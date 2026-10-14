@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Iterator
 
 import grpc
 
@@ -106,6 +107,24 @@ class IamPolicyClient:
             return self._query.getPrincipalsCount(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
+
+    def list_access_history(self, input: io_pb2.ListAccessHistoryInput) -> io_pb2.AccessHistoryPage:
+        try:
+            return self._query.listAccessHistory(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def list_access_history_all(self, input: io_pb2.ListAccessHistoryInput) -> Iterator[io_pb2.AccessHistoryEntry]:
+        """Every entry of ``list_access_history``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListAccessHistoryInput()
+        request.CopyFrom(input)
+        while True:
+            page = self.list_access_history(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
 
 
 @dataclass

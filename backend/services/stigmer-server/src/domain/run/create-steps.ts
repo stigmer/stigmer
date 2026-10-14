@@ -604,8 +604,8 @@ async function runPersonOf(
  * best-effort (degrading to DISABLED, never enabled-with-zero-facts, so a
  * broken recall never falsely offers the remember tool); confirmed-only
  * (the consent gate is meaningless otherwise); no compose-time truncation
- * (the runner's retriever selects at prompt build, recorded on
- * status.recalled_memories_report). Facts order oldest-first on
+ * (the runner's retriever selects at prompt build, recorded in the
+ * session's log as stigmer.memory.recalled). Facts order oldest-first on
  * created_at — identical prompt order in every posture.
  *
  * WHOSE memories follows the posture (stigmer#1387, the Java step's

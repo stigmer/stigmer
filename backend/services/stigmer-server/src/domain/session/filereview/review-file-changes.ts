@@ -3,8 +3,8 @@
  * turn's file changes, or one of its files, in a conversation with file
  * review on. The chain is Authorize (can_edit on the session, the posture
  * of every answer a person gives a conversation), ValidateProto, then
- * DecideFileChanges, which maps the input's words to the ledger's
- * (words.ts) and decides through the one core (decide.ts). The reply names
+ * DecideFileChanges, which reads the input's words (words.ts) and decides
+ * through the one core (decide.ts). The reply names
  * the reconcile turn an undo on an ended turn started, or "".
  *
  * Proven by __tests__/review-file-changes.test.ts, and end to end by the

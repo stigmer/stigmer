@@ -49,17 +49,6 @@ export const RunQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Subscribe to real-time run updates (streaming).
-     *
-     * @generated from rpc ai.stigmer.agentic.run.v1.RunQueryController.subscribe
-     */
-    subscribe: {
-      name: "subscribe",
-      I: RunId,
-      O: Run,
-      kind: MethodKind.ServerStreaming,
-    },
-    /**
      * Get a presigned download URL for a run artifact or attachment.
      *
      * Returns a time-limited URL for downloading an artifact published by

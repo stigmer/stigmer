@@ -7,7 +7,7 @@
  * (the one settlement whose evidence exists only inside this harness); on
  * the runtime's stop, mark in-flight sub-agent rows through the shared act
  * and settle `interrupted` with nothing further; the graph's
- * `structuredResponse` folded onto the status; the interrupts a completed
+ * `structuredResponse` folded onto the rows; the interrupts a completed
  * stream left pending proposed through the builder as WAITING rows; and the
  * outcome.
  *
@@ -58,7 +58,7 @@ export interface DeepAgentSettleDeps {
 export async function settleDeepAgentTurn(deps: DeepAgentSettleDeps): Promise<TurnOutcome> {
   const { input, sink, engine, transcript, stream } = deps;
   const { executionId } = input;
-  const { status } = sink;
+  const { rows } = sink;
 
   // Drain the publishes the stream fired (fire-and-forget completions) BEFORE
   // the safety net: its publisher skips a file only when the file's row is
@@ -68,7 +68,7 @@ export async function settleDeepAgentTurn(deps: DeepAgentSettleDeps): Promise<Tu
   await transcript.sideEffects.drainPublishes();
   if (stream.reason === "completed") {
     try {
-      await autoPublishWrittenFiles(status, transcript.publisher);
+      await autoPublishWrittenFiles(rows, transcript.publisher);
     } catch (err) {
       console.warn(`[turn-settle] execution=${executionId} — auto-publish safety net error: ${err}`);
     }
@@ -79,14 +79,14 @@ export async function settleDeepAgentTurn(deps: DeepAgentSettleDeps): Promise<Tu
   // approval mode: the skip has no human decision behind it, so the
   // runtime's terminalizer cannot see it; the gate's registry is this
   // harness's evidence.
-  reconcileUnattendedSkips(status, engine.gate.unattendedSkips);
+  reconcileUnattendedSkips(rows, engine.gate.unattendedSkips);
 
   if (stream.reason === "interrupted") {
     // A stopped turn aborted the graph run, so any sub-agent the parent had
     // delegated is no longer executing: CANCELLED through the one shared act
     // (the runtime marks them itself only on its thrown arms). There is no
     // review to open.
-    cancelInProgressSubAgentProtos(status.subAgentRuns);
+    cancelInProgressSubAgentProtos(rows.subAgentRuns);
     return { kind: "interrupted" };
   }
 
@@ -96,7 +96,7 @@ export async function settleDeepAgentTurn(deps: DeepAgentSettleDeps): Promise<Tu
   if (engine.hasStructuredOutput) {
     const sr = stream.runOutput?.structuredResponse;
     if (sr != null && typeof sr === "object" && !Array.isArray(sr)) {
-      status.structuredOutput = sr as JsonObject;
+      rows.structuredOutput = sr as JsonObject;
     } else if (sr !== undefined) {
       console.warn(`[turn-settle] structuredResponse is not a plain object for execution ${executionId}: type=${typeof sr}`);
     }

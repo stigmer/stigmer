@@ -4,9 +4,8 @@
  * events publishes them here after its transaction commits, so a stream
  * never shows an event the log does not hold.
  *
- * It differs from the run snapshot broker (run/stream-broker.ts) on one
- * rule. A dropped snapshot is harmless, the next one supersedes it; a
- * dropped event is gone. So a stream that falls more than
+ * A dropped event is gone, never superseded by a later one as a snapshot
+ * would be. So a stream that falls more than
  * `SESSION_EVENT_SUBSCRIBER_CAPACITY` frames, or
  * `SESSION_EVENT_SUBSCRIBER_MAX_BYTES` bytes, behind is ENDED (the stream
  * answers RESOURCE_EXHAUSTED, and its client lists from the last event it

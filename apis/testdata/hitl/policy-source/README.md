@@ -1,32 +1,29 @@
 # HITL Authorization-Provenance Contract
 
 This directory pins **authorization provenance** — the `ApprovalPolicySource`
-recorded on every gated or auto-approved tool call (`ToolCall.approval_policy_source`,
-projected onto `PendingApproval`). It answers *which policy layer decided this
-call's approval requirement*, so every authorization is auditable and the gate
-can be explained ("required: marked destructive by the server") while a tool is
-still waiting.
+the runner records on every gated or auto-approved tool call, and the word the
+session's `stigmer.permission.asked` event carries for it (`policy_source`). It
+answers *which policy layer decided this call's approval requirement*, so every
+authorization is auditable and the gate can be explained ("required: marked
+destructive by the server") while a tool is still waiting.
 
 ## Why a shared corpus
 
-The provenance is produced in one place, the runner, and consumed by the
-server, which copies the persisted enum through `update_status` and the
-`pending_approvals` projection without re-deriving it. The risk is therefore not
-two derivations disagreeing (as with lease-scope) but the **runner's union->enum
-mapping drifting from the proto enum the server consumes**. That would make a
-persisted `approval_policy_source` mean different things to its writer and its
-readers.
+The provenance is produced in one place, the runner, and read by the server
+from the asked event's word. The risk is the **runner's union->enum mapping
+drifting from the enum's numbering, or from the word the log carries**.
 
-Each vector pins one source to its proto enum `name_proto` and `number`:
+Each vector pins one source to its enum `name_proto`, its `number` and its
+word (`policySource`):
 
 - the runner: `toProtoPolicySource` in
   `backend/services/runner/src/shared/approval-policy.ts` maps the internal
-  `PolicySource` union (or `undefined`) to the generated enum; the test asserts
-  it lands on `number`;
-- the server: the generated enum must resolve `name_proto` to `number`.
-
-Both tests also require one vector per enum value, so a new value cannot land
-without its vector.
+  `PolicySource` union (or `undefined`) to the runner's enum; the test asserts
+  it lands on `number`, with one vector per enum value, so a new value cannot
+  land without its vector;
+- the server: its lease-scope corpus test
+  (`backend/services/stigmer-server/src/domain/run/approval/__tests__/lease-scope-corpus.test.ts`)
+  reads each lease vector's enum name as the word this corpus pairs it with.
 
 ## Contract
 

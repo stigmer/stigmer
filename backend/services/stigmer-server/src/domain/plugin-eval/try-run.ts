@@ -318,8 +318,8 @@ export function tryCaseContextOf(input: {
     mocks,
     agentMockModel: mocks.some((server) => server.tools.some((tool) => tool.kind === PluginEvalMockKind.agent)) ? spec.judgeModel : "",
     agentMockCallBudget: Math.min(4 * evalCase.maxTurns, MAX_AGENT_MOCK_CALLS),
-    // A scaffold's files are no change of the try's, so the ledger cannot
-    // show them: the runner returns what the graders read.
+    // A scaffold's files are no change of the try's, so the file record
+    // cannot show them: the runner returns what the graders read.
     readFiles: wantedFilesOf(evalCase.graders),
   });
 }

@@ -6,8 +6,9 @@
  *     runner wrote before the run rename, with retired names, included;
  *     any other unknown name refused) and hands it
  *     to the in-process status edge (stigmer#979) — the lane's answer,
- *     success or ConnectError, IS the activity's outcome. The lane itself
- *     (transport, interceptors, handler, merge, hooks, broadcast) is
+ *     success or ConnectError, IS the activity's outcome; the transcript
+ *     lines such a write once carried are dropped. The lane itself
+ *     (transport, interceptors, handler, merge, hooks) is
  *     pinned end to end in own-behalf-status-writes.test.ts;
  *   - LoadAgentExecution returns proto-JSON that survives the payload
  *     boundary INCLUDING int64 fields (the bigint rule: a Message
@@ -22,12 +23,12 @@
  *   - the retired DeleteExecutionContext name stays registered for runs
  *     whose history still calls it, and its body does nothing: a run
  *     stores no copy of its values, so there is nothing to delete;
- *   - CloseFileReview keeps the previous turn's undecided edits (origin
- *     next turn, with their `decided` event), the turn before this run's
+ *   - CloseFileReview keeps the previous turn's undecided edits (a
+ *     next_turn `decided` event in the log), the turn before this run's
  *     own message and not the newest, once; a first turn, a run whose
- *     message is not in the log, a previous turn since deleted, and one a
- *     person already decided close nothing; a store fault reading the
- *     previous turn fails the activity.
+ *     message is not in the log, a previous turn since deleted, and one
+ *     the log shows a person decided close nothing; a store fault reading
+ *     the previous turn fails the activity.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -41,14 +42,7 @@ import {
   RunSchema,
   RunStatusSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  FileChangeSetStatus,
-  FileDecisionAction,
-  FileDecisionOrigin,
-  FileDecisionScope,
-  RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { FileDecisionSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { RunUpdateStatusInput } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -57,10 +51,9 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import { createLogger } from "../../../boot/logger.js";
 import { fileReviewSeed } from "../../../domain/run/__tests__/file-review-seed.js";
-import { ACTOR_USER, recordFileDecisionEventWithActor } from "../../../domain/run/filereview/author.js";
-import { projectFileChangeSets } from "../../../domain/run/filereview/project.js";
+import { decidedEvent } from "../../../domain/run/filereview/decided.js";
 import { SessionEventBroker } from "../../../domain/session/events/broker.js";
-import { draftOf } from "../../../domain/session/events/codec.js";
+import { draftOf, eventOf } from "../../../domain/session/events/codec.js";
 import { createRunAppendingEvents, updateRunAppendingEvents } from "../../../domain/session/events/run-writes.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
@@ -192,7 +185,7 @@ describe("UpdateExecutionStatus activity", () => {
     expect(writes).toHaveLength(0);
   });
 
-  it("decodes a status recorded before the run rename, its retired names read as the current ones", async () => {
+  it("decodes a status recorded before the run rename, its retired names read as the current ones and its transcript dropped", async () => {
     const { activities, writes } = newFixture();
     // The status JSON the user-cancel replay history records for this
     // activity's input, written before agent executions became runs.
@@ -209,9 +202,6 @@ describe("UpdateExecutionStatus activity", () => {
 
     expect(writes).toHaveLength(1);
     expect(writes[0]?.status?.phase).toBe(RunPhase.RUN_CANCELLED);
-    expect(writes[0]?.status?.subAgentRuns[0]?.name).toBe("researcher");
-    // A free-form string is data, never a name: it survives as written.
-    expect(writes[0]?.status?.messages[0]?.content).toBe("Execution was cancelled.");
   });
 
   it("still refuses a name that is neither current nor retired, before the edge is reached", async () => {
@@ -453,10 +443,19 @@ describe("CloseFileReview activity", () => {
         }),
       );
     };
-    const decisions = async (id: string) => {
-      const run = await temp.store.getResource(ApiResourceKind.run, id, RunSchema);
-      return run.status?.fileChangeSets[0]?.decisions ?? [];
-    };
+    /** The origins of the run's decided events in the log. */
+    const decisions = async (id: string) =>
+      (
+        await temp.store.sessionEvents.list(SESSION, {
+          order: "asc",
+          runId: id,
+          types: ["stigmer.file_review.decided"],
+          limit: 10,
+        })
+      ).flatMap((record) => {
+        const event = eventOf(record);
+        return event.event.case === "stigmerFileReviewDecided" ? [event.event.value.origin] : [];
+      });
     const decidedRuns = async (): Promise<string[]> =>
       (
         await temp.store.sessionEvents.list(SESSION, {
@@ -475,9 +474,9 @@ describe("CloseFileReview activity", () => {
 
     await close("run_b", SESSION);
 
-    expect((await decisions("run_a")).map((d) => d.origin)).toEqual([FileDecisionOrigin.POLICY_NEXT_TURN]);
+    expect(await decisions("run_a")).toEqual(["next_turn"]);
     const run = await store.getResource(ApiResourceKind.run, "run_a", RunSchema);
-    expect(run.status?.fileChangeSets[0]?.status).toBe(FileChangeSetStatus.DECIDED);
+    expect(run.status?.fileChanges.map((cs) => cs.id), "the record keeps the set").toEqual(["run_a:0"]);
     expect(await decidedRuns()).toEqual(["run_a"]);
   });
 
@@ -490,7 +489,7 @@ describe("CloseFileReview activity", () => {
     await close("run_b", SESSION);
     await close("run_b", SESSION);
 
-    expect((await decisions("run_a")).map((d) => d.origin)).toEqual([FileDecisionOrigin.POLICY_NEXT_TURN]);
+    expect(await decisions("run_a")).toEqual(["next_turn"]);
     expect(await decisions("run_b"), "the run's own set is not its to close").toEqual([]);
     expect(await decisions("run_c")).toEqual([]);
     expect(await decidedRuns()).toEqual(["run_a"]);
@@ -532,48 +531,27 @@ describe("CloseFileReview activity", () => {
   it("leaves a previous turn a person already decided as it is", async () => {
     const { store, close, turn, decisions, decidedRuns } = closeFixture();
     await turn("run_a", true);
-    // The person's decision, as the decision core writes it: the ledger's
-    // FILE_DECIDED with its decided event in the log.
-    await updateRunAppendingEvents({ store, sessionEventBroker: new SessionEventBroker(silentLogger) }, "run_a", (run) => {
-      const decision = create(FileDecisionSchema, {
-        id: "run_a:0:run_a:0",
-        changeSetId: "run_a:0",
-        scope: FileDecisionScope.CHANGE_SET,
-        action: FileDecisionAction.REJECT,
-        origin: FileDecisionOrigin.USER,
-      });
-      recordFileDecisionEventWithActor(run.status, "run_a", decision, ACTOR_USER);
-      run.status!.fileChangeSets = projectFileChangeSets(run.status!.fileReviewEventStream);
-    });
-    await turn("run_b", false);
-
-    await close("run_b", SESSION);
-
-    expect((await decisions("run_a")).map((d) => d.origin)).toEqual([FileDecisionOrigin.USER]);
-    expect(await decidedRuns(), "the person's decided event, and no keep").toEqual(["run_a"]);
-  });
-
-  it("reads what is decided from the log: a decision only the ledger holds is closed, one only the log holds is not", async () => {
-    const { store, close, turn, decidedRuns } = closeFixture();
-    await turn("run_a", true);
-    // The ledger alone says decided: the log has nothing, so the close keeps.
-    await store.updateResource(ApiResourceKind.run, "run_a", RunSchema, (run) => {
-      recordFileDecisionEventWithActor(
-        run.status,
-        "run_a",
-        create(FileDecisionSchema, {
-          id: "run_a:0:fc-1",
+    // The person's decision, as the decision core writes it: its decided
+    // event in the log.
+    await updateRunAppendingEvents({ store, sessionEventBroker: new SessionEventBroker(silentLogger) }, "run_a", () => ({
+      last: [
+        decidedEvent("run_a", {
           changeSetId: "run_a:0",
-          fileChangeId: "fc-1",
-          scope: FileDecisionScope.FILE,
-          action: FileDecisionAction.REJECT,
-          origin: FileDecisionOrigin.USER,
+          scope: "change_set",
+          fileChangeId: "",
+          action: "undo",
+          expectedDigest: "",
+          origin: "person",
+          reason: "",
+          decidedBy: "usr_person",
         }),
-        ACTOR_USER,
-      );
-    });
+      ],
+    }));
     await turn("run_b", false);
+
     await close("run_b", SESSION);
-    expect(await decidedRuns()).toEqual(["run_a"]);
+
+    expect(await decisions("run_a")).toEqual(["person"]);
+    expect(await decidedRuns(), "the person's decided event, and no keep").toEqual(["run_a"]);
   });
 });

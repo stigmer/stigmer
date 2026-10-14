@@ -11,7 +11,7 @@ The simplest way to trigger a run. Name the agent in `session_spec.agent_ref` an
 **CLI:**
 
 ```bash
-stigmer run my-agent "What files are in the current directory?"
+stigmer run my-agent -m "What files are in the current directory?"
 ```
 
 **YAML (if constructing via API):**
@@ -36,10 +36,10 @@ spec:
 
 Append a new run to an existing session, preserving conversation history.
 
-**CLI:**
+**CLI** (reopens the session; type the next message there):
 
 ```bash
-stigmer run my-agent "Now summarize what you found" --session ses_abc123
+stigmer resume ses_abc123
 ```
 
 **YAML:**
@@ -59,7 +59,7 @@ Ask for a specific model for this message. It replaces the agent's default model
 **CLI:**
 
 ```bash
-stigmer run my-agent "Analyze this code" --model claude-sonnet-4.5
+stigmer run my-agent -m "Analyze this code" --model claude-sonnet-4.5
 ```
 
 **YAML:**
@@ -95,7 +95,7 @@ Pass a file into the agent's sandbox for it to read.
 **CLI:**
 
 ```bash
-stigmer run config-validator "Validate this configuration" --attach ./app-config.yaml
+stigmer run config-validator -m "Validate this configuration" --attach ./app-config.yaml
 ```
 
 **YAML (after uploading the file via `uploadAttachment`):**
@@ -122,7 +122,7 @@ The agent reads the file from `/inputs/app-config.yaml` inside its sandbox.
 ## Attach Multiple Files
 
 ```bash
-stigmer run data-processor "Validate data against the schema using the rules file" \
+stigmer run data-processor -m "Validate data against the schema using the rules file" \
   --attach ./data.csv \
   --attach ./schema.json \
   --attach ./validation-rules.yaml
@@ -155,7 +155,7 @@ spec:
 The CLI zips the directory automatically and sets `extract: true`.
 
 ```bash
-stigmer run code-reviewer "Review this project for security vulnerabilities" --attach ./src/
+stigmer run code-reviewer -m "Review this project for security vulnerabilities" --attach ./src/
 ```
 
 ```yaml
@@ -205,7 +205,7 @@ Bypass all HITL approval gates. Use in trusted CI/CD pipelines where human appro
 **CLI:**
 
 ```bash
-stigmer run deployment-agent "Deploy version 2.4.1 to staging" --auto-approve
+stigmer run deployment-agent -m "Deploy version 2.4.1 to staging" --auto-approve
 ```
 
 **YAML:**
@@ -240,7 +240,7 @@ spec:
     max_tool_result_chars: 20000
 ```
 
-Context summarization needs no settings: it follows the model's Model Registry entry, and `status.context_info` reports it.
+Context summarization needs no settings: it follows the model's Model Registry entry.
 
 ---
 
@@ -291,62 +291,55 @@ spec:
 ## Watching and Controlling a Running Run
 
 ```bash
-# Trigger the run
-EX_ID=$(stigmer run my-agent "Long analysis task" --output id)
+# Start the run without streaming; it prints the session to re-attach to
+stigmer run my-agent -m "Long analysis task" --detach
 
-# Watch streaming output in real time
-stigmer runs logs "$EX_ID" --follow
+# The run's id, as stigmer list run shows it
+RUN_ID=run_abc123
+
+# Follow its events from the session's log
+stigmer runs logs "$RUN_ID" --follow
 
 # Pause it to review progress
-stigmer runs pause "$EX_ID" --reason "Reviewing intermediate results"
+stigmer runs pause "$RUN_ID" --reason "Reviewing intermediate results"
 
 # Resume when ready
-stigmer runs resume "$EX_ID"
+stigmer runs resume "$RUN_ID"
 
-# If it gets stuck, cancel gracefully
-stigmer runs cancel "$EX_ID" --reason "Task definition was incorrect"
+# Stop it: interrupts the session, ending every unfinished turn
+stigmer runs cancel "$RUN_ID"
 
-# If cancel doesn't work, force terminate
-stigmer runs terminate "$EX_ID" --reason "Not responding to cancel"
-
-# If it fails, recover from last checkpoint
-stigmer runs recover "$EX_ID"
+# If it does not stop, force terminate
+stigmer runs terminate "$RUN_ID" --reason "Not responding to interrupt"
 ```
+
+A failed run is retried from its last checkpoint with the `recover` RPC.
 
 ---
 
 ## Handling HITL Approval in a Script
 
 ```bash
-# Trigger a run that may require approval
-EX_ID=$(stigmer run deployment-agent "Deploy to production" --output id)
+RUN_ID=run_abc123   # a run started with stigmer run ... --detach, as stigmer list run shows it
 
-# Poll until approval is needed (or run completes)
+# Poll until the run waits for an answer (or ends)
 while true; do
-  PHASE=$(stigmer runs get "$EX_ID" --output json | jq -r '.status.phase')
+  PHASE=$(stigmer get run "$RUN_ID" -o json | jq -r '.status.phase')
 
   if [ "$PHASE" = "RUN_WAITING_FOR_APPROVAL" ]; then
-    # Get the pending approval details
-    PENDING=$(stigmer runs get "$EX_ID" --output json | \
-      jq -r '.status.pending_approvals[0]')
-    TOOL_CALL_ID=$(echo "$PENDING" | jq -r '.tool_call_id')
-    MESSAGE=$(echo "$PENDING" | jq -r '.message')
+    # The stigmer.permission.asked line names the waiting tool use and why it asks
+    stigmer runs logs "$RUN_ID" | grep stigmer.permission.asked
+    read -p "Allow? [y/n] " decision
 
-    echo "Approval required: $MESSAGE"
-    read -p "Approve? [y/n/s(kip)] " decision
-
+    # --tool-call may be left out while the run waits on one call
     case "$decision" in
-      y) stigmer runs approve "$EX_ID" --tool-call "$TOOL_CALL_ID" ;;
-      s) stigmer runs skip "$EX_ID" --tool-call-id "$TOOL_CALL_ID" ;;
-      *) stigmer runs reject "$EX_ID" --tool-call-id "$TOOL_CALL_ID"; break ;;
+      y) stigmer runs approve "$RUN_ID" ;;
+      *) stigmer runs approve "$RUN_ID" --action deny --comment "Refused by the operator" ;;
     esac
 
-  elif [ "$PHASE" = "RUN_COMPLETED" ]; then
-    echo "Run completed successfully."
-    break
-
-  elif [ "$PHASE" = "RUN_FAILED" ]; then
-    echo "Run failed."
+  elif [ "$PHASE" = "RUN_COMPLETED" ] || [ "$PHASE" = "RUN_FAILED" ] || \
+       [ "$PHASE" = "RUN_CANCELLED" ] || [ "$PHASE" = "RUN_TERMINATED" ]; then
+    echo "Run ended: $PHASE"
     break
   fi
 
@@ -354,21 +347,19 @@ while true; do
 done
 ```
 
+A deny does not end the run: the agent reads the comment and continues. The answers are the session's `confirmToolUse`; see [hitl-approvals.md](hitl-approvals.md).
+
 ---
 
 ## Downloading Artifacts
 
 ```bash
-# Trigger an agent that produces output files
-EX_ID=$(stigmer run report-generator "Generate quarterly analysis report" --output id)
-
-# Wait for completion, then list artifacts
-stigmer runs get "$EX_ID" --output json | jq '.status.artifacts[]'
+# Wait for the run to complete, then list its artifacts
+stigmer get run "$RUN_ID" -o json | jq '.status.artifacts[]'
 
 # Download a specific artifact
-stigmer download run "$EX_ID" --artifact quarterly-report
+stigmer download run "$RUN_ID" --artifact quarterly-report
 
-# Refresh an expired URL
-stigmer runs get-artifact-url "$EX_ID" \
-  --storage-key "artifacts/${EX_ID}/quarterly-report.pdf"
+# Or download every artifact when the run completes
+stigmer run report-generator -m "Generate quarterly analysis report" --download ./out
 ```

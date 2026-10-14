@@ -22,6 +22,7 @@ import { SessionPanelChip } from "./SessionPanelChip.js";
 import { AutoApproveIndicator } from "./AutoApproveIndicator.js";
 import { includesMyVaultByDefault, type SessionAudience, type SessionPanelMode } from "./audience.js";
 import type { SessionRunConfig } from "./run-config.js";
+import { AgentHoursNotice, agentHoursUsedUp } from "../billing/AgentHoursNotice.js";
 import { ProviderKeyNotice, providerKeyRequired } from "../billing/ProviderKeyNotice.js";
 
 /** Props for {@link NewSessionViewer}. */
@@ -508,9 +509,14 @@ export function NewSessionViewer({
         />
 
         {/* A run refused for want of a provider key says where an admin
-            adds one; every other refusal reaches the host's onError. */}
+            adds one, and one refused because the plan's agent hours are
+            used says when they reset and where the plans are; every other
+            refusal reaches the host's onError. */}
         {flow.submitFailure !== null && providerKeyRequired(flow.submitFailure) !== null && (
           <ProviderKeyNotice error={flow.submitFailure} />
+        )}
+        {flow.submitFailure !== null && agentHoursUsedUp(flow.submitFailure) !== null && (
+          <AgentHoursNotice error={flow.submitFailure} />
         )}
 
         {/* Armed-only disclosure (#816 rework): a persisted account preference

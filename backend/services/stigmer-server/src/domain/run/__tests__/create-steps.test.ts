@@ -954,13 +954,6 @@ describe("newComposeRecalledMemoriesStep", () => {
 
       await step.execute(ctx);
 
-      // The step writes the snapshot alone: status.recalled_memories_report
-      // is runner-owned with a single writer.
-      expect(
-        ctx.newState.status?.recalledMemoriesReport,
-        "the compose step must never write status.recalled_memories_report",
-      ).toBeUndefined();
-
       const got = ctx.newState.status?.recalledMemories;
       expect(
         got,

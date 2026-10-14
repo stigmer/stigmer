@@ -34,8 +34,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { posix } from "node:path";
 import { SessionSpecSchema, type SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 
-import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Config } from "../config.js";
 import type { HarnessName } from "../harness/registry.js";
 import type { FailureSurface, HarnessAdapter, TurnInput, TurnOutcome, TurnSink, UsageDelta } from "../harness/types.js";
@@ -50,9 +49,11 @@ import {
   decodeMessage,
   encodeMessage,
   encodeRunEvents,
+  type TurnFields,
   encodeTurnInput, encodeOffloads } from "./codec.js";
 import { fromWireError, type WireError, type WireOutcome } from "./protocol.js";
 import type { AgentHostSupervisor, RemoteTurnEndpoint } from "./supervisor.js";
+import { TurnRowsSchema, type ToolCall, type TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 /** What the host may open live turns at: the local proxy's turn registry (`agent-proxy/server.ts`). */
 export interface LiveTurnRegistry {
@@ -105,14 +106,15 @@ async function runRemoteTurn(
       harness,
       input: encodeTurnInput(input),
       status: encodeMessage(RunStatusSchema, sink.status),
+      rows: encodeMessage(TurnRowsSchema, sink.rows),
       timing: sink.setupTiming.toWire(),
       fingerprintKey: executionFingerprintKey(input.executionId).toString("base64"),
       stopped: sink.stopSignal.aborted ? describeReason(sink.stopSignal.reason) : null,
       turnKey,
       traceparent: await activeTraceparent(),
     });
-    applyAdapterProjection(sink.status, settlement.projection);
-    confineHostRows(sink.status, input.executionId, turn.seededKeys);
+    applyAdapterProjection(sink, settlement.projection);
+    confineHostRows(sink, input.executionId, turn.seededKeys);
     turn.settle(settlement.cas === null ? undefined : confineCasSnapshot(decodeCasSnapshot(settlement.cas)));
     if (settlement.thrown !== null || settlement.outcome === null) {
       throw fromWireError(settlement.thrown ?? { name: "Error", message: "the agent host settled with no outcome" });
@@ -135,7 +137,7 @@ async function runRemoteTurn(
 /** One remote turn's runner side: the handlers the host's calls reach. */
 class RemoteTurn {
   private readonly runtimeFields: RuntimeFieldTracker;
-  /** The storage keys the runtime's status held when the turn began: rows the host may keep naming. */
+  /** The storage keys the runtime's rows and status held when the turn began: rows the host may keep naming. */
   readonly seededKeys: ReadonlySet<string>;
   private finalCas: CasTouchedSnapshot | undefined;
   private done = false;
@@ -148,15 +150,15 @@ class RemoteTurn {
     host: AgentHostSupervisor,
   ) {
     this.runtimeFields = new RuntimeFieldTracker(sink.status);
-    this.seededKeys = storageKeysOf(sink.status);
+    this.seededKeys = storageKeysOf(sink);
     const { executionId } = input;
     this.endpoint = {
       calls: {
         persist: async ({ projection }) => {
-          applyAdapterProjection(sink.status, projection);
-          confineHostRows(sink.status, executionId, this.seededKeys);
+          applyAdapterProjection(sink, projection);
+          confineHostRows(sink, executionId, this.seededKeys);
           await sink.requestPersist();
-          return { runtime: this.runtimeFields.changes(sink.status), offloads: encodeOffloads(offloadedOutputs(sink.status)) };
+          return { runtime: this.runtimeFields.changes(sink.status), offloads: encodeOffloads(offloadedOutputs(sink.rows)) };
         },
         reportProgress: async ({ label }) => {
           await sink.reportProgress(label);
@@ -228,33 +230,33 @@ export function isTurnArtifactKey(key: string, executionId: string): boolean {
   return !(rest === undefined || rest === "" || key.includes("\\") || segments.some((s) => s === "" || s === "." || s === ".."));
 }
 
-/** Every storage key the status names: its artifact rows' and its tool outputs' refs. */
-function storageKeysOf(status: RunStatus): Set<string> {
+/** Every storage key the turn names: its artifact rows' and its tool outputs' refs. */
+function storageKeysOf(turn: TurnFields): Set<string> {
   const keys = new Set<string>();
-  for (const artifact of status.artifacts) if (artifact.storageKey) keys.add(artifact.storageKey);
-  for (const tc of allToolCallsOf(status)) if (tc.outputRef?.storageKey) keys.add(tc.outputRef.storageKey);
+  for (const artifact of turn.status.artifacts) if (artifact.storageKey) keys.add(artifact.storageKey);
+  for (const tc of allToolCallsOf(turn.rows)) if (tc.outputRef?.storageKey) keys.add(tc.outputRef.storageKey);
   return keys;
 }
 
-function allToolCallsOf(status: RunStatus): ToolCall[] {
+function allToolCallsOf(rows: TurnRows): ToolCall[] {
   const calls: ToolCall[] = [];
-  const lists = [status.messages, ...status.subAgentRuns.map((run) => run.messages)];
+  const lists = [rows.messages, ...rows.subAgentRuns.map((run) => run.messages)];
   for (const messages of lists) for (const message of messages) calls.push(...message.toolCalls);
   return calls;
 }
 
 /**
  * Keep the host's rows to keys the turn may name: its own prefix, or a key
- * the runtime's status already held when the turn began. An artifact row
+ * the runtime's rows or status already held when the turn began. An artifact row
  * outside both is dropped; a tool output's ref outside both is dropped
  * (the runtime's offload makes its own on the next persist), so the
  * console never links another execution's artifact from this turn.
  */
-function confineHostRows(status: RunStatus, executionId: string, seeded: ReadonlySet<string>): void {
+function confineHostRows(turn: TurnFields, executionId: string, seeded: ReadonlySet<string>): void {
   const allowed = (key: string): boolean => key === "" || seeded.has(key) || isTurnArtifactKey(key, executionId);
-  const kept = status.artifacts.filter((artifact) => allowed(artifact.storageKey));
-  status.artifacts.splice(0, status.artifacts.length, ...kept);
-  for (const tc of allToolCallsOf(status)) {
+  const kept = turn.status.artifacts.filter((artifact) => allowed(artifact.storageKey));
+  turn.status.artifacts.splice(0, turn.status.artifacts.length, ...kept);
+  for (const tc of allToolCallsOf(turn.rows)) {
     if (tc.outputRef !== undefined && !allowed(tc.outputRef.storageKey)) tc.outputRef = undefined;
   }
 }

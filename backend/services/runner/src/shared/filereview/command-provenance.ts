@@ -35,12 +35,12 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { TurnCommandProvenanceSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import type { TurnCommandProvenance } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { ApprovalAction, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { classifyTool, toolApprovalCategory } from "../tool-kind.js";
 import { isToolCallRowHidden } from "../tool-row.js";
+import type { AgentMessage, ToolCall } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction, ToolKind } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
  * Tool kinds that can never mutate the workspace: their presence in a turn is

@@ -14,8 +14,9 @@
  *   StopRuns ........ every run of the session that is pending, in
  *                     progress, waiting for an answer or paused (the run
  *                     index's `session` key) goes through the cancel
- *                     chain's steps after its Authorize
- *                     (run/lifecycle.ts `cancelSteps`): each ends CANCELLED
+ *                     steps (run/lifecycle.ts `cancelSteps`), in a chain
+ *                     of the interrupt's own, one per run, already
+ *                     authorized above: each ends CANCELLED
  *                     with stop cause `user`, its workflow cancelled at its
  *                     wait, and the session goes idle with end_turn. A run
  *                     that finished meanwhile is left as it is.
@@ -31,9 +32,7 @@ import { ConnectError } from "@connectrpc/connect";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { CancelRunInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import {
@@ -73,10 +72,6 @@ export interface InterruptDeps extends CancelDeps {
 }
 
 type InterruptDesc = typeof SessionCommandController.method.interrupt.input;
-type CancelDesc = typeof RunCommandController.method.cancel.input;
-
-/** The reason a run stopped by an interrupt records. */
-export const INTERRUPT_REASON = "interrupted";
 
 const EVENT_KEY = "interruptEvent";
 const STOPPED_KEY = "interruptStoppedRunIds";
@@ -150,7 +145,7 @@ export async function interrupt(
     .addStep({
       name: "StopRuns",
       async execute(ctx) {
-        ctx.set(STOPPED_KEY, await stopUnfinishedRuns(deps, ctx.input.sessionId, ctx.callerIdentity));
+        ctx.set(STOPPED_KEY, await stopUnfinishedRuns(deps, ctx.input, ctx.callerIdentity));
       },
     })
     .build()
@@ -178,9 +173,10 @@ async function finishedSince(deps: InterruptDeps, runId: string): Promise<boolea
 /** Cancels every unfinished run of the session; returns the ids it stopped. */
 async function stopUnfinishedRuns(
   deps: InterruptDeps,
-  sessionId: string,
+  input: InterruptSessionInput,
   identity: CallerIdentity,
 ): Promise<string[]> {
+  const sessionId = input.sessionId;
   let rows;
   try {
     rows = await deps.store.queryResources(agentExecutionListIndex, {
@@ -199,14 +195,16 @@ async function stopUnfinishedRuns(
   const stopped: string[] = [];
   for (const run of unfinished) {
     const runId = run.metadata?.id ?? "";
+    // The interrupt's own chain per run: its input is the interrupt's, and
+    // the run it stops is named to the steps directly.
     const cancelCtx = new RequestContext(
-      RunCommandController.method.cancel.input,
-      create(CancelRunInputSchema, { id: runId, reason: INTERRUPT_REASON }),
+      SessionCommandController.method.interrupt.input,
+      input,
       identity,
       ApiResourceKind.run,
     );
-    const builder = newPipeline<CancelDesc>("agentexecution-cancel", deps.logger);
-    for (const step of cancelSteps<CancelDesc>(deps)) {
+    const builder = newPipeline<InterruptDesc>("agentexecution-cancel", deps.logger);
+    for (const step of cancelSteps<InterruptDesc>(deps, () => runId)) {
       builder.addStep(step);
     }
     try {

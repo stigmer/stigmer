@@ -248,21 +248,20 @@ import {
   type MessageThreadSlots,
   type TodoRowProps,
 } from "@stigmer/react";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 // Restyle only user bubbles; every other message keeps the built-in.
 function BrandedMessageEntry(props: MessageEntryProps) {
-  if (props.message.type !== MessageType.MESSAGE_HUMAN) {
+  if (props.message.kind !== "user") {
     return <MessageEntry {...props} />;
   }
-  return <div className="acme-bubble">{props.message.content}</div>;
+  return <div className="acme-bubble">{props.message.text}</div>;
 }
 
 // Bring your own to-do row (and iconography) inside the built-in card.
 function BrandedTodoRow({ item }: TodoRowProps) {
   return (
     <li className="acme-todo-row">
-      <AcmeCheckIcon done={item.status === 3} /> {item.content}
+      <AcmeCheckIcon done={item.status === "completed"} /> {item.content}
     </li>
   );
 }

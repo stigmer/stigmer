@@ -1,0 +1,31 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Running the tests.",
+      "timestamp": "2026-01-01T00:00:13.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-shelldelta-0002",
+          "name": "shell",
+          "args": {
+            "command": "npm test"
+          },
+          "result": "> test\n12 passing\n",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:16.000Z",
+          "completedAt": "2026-01-01T00:00:19.000Z",
+          "argsPreview": "{\"command\":\"npm test\"}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+          "policyEngineVersion": "hooks-2"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Done; the suite is green.",
+      "timestamp": "2026-01-01T00:00:20.000Z"
+    }
+  ]
+}

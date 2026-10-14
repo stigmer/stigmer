@@ -22,20 +22,13 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { clone, create } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
-  FileDecisionSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   FileCaptureClass,
-  FileDecisionAction,
-  FileDecisionScope,
-  FileChangeSetStatus,
-  FileReviewEventType,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ProxyArtifactStorage } from "../../artifact-storage.js";
 import { casBlobReader, casManifestKey } from "../cas-substrate.js";
@@ -44,6 +37,12 @@ import {
   captureCandidateToLedger,
   undoChangeSet,
 } from "../capture.js";
+import {
+  FileReviewEventType,
+} from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { TurnRowsSchema, type TurnRows } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import type { LoggedFileDecision } from "../capture.js";
+import type { FileReviewEvent } from "../../../gen/turn/ai/stigmer/runner/turn/v1/ledger_pb.js";
 
 const execFileAsync = promisify(execFile);
 const EXEC_ID = "exec-proxy-1";
@@ -142,40 +141,25 @@ async function startMockProxy(): Promise<MockProxy> {
 
 // ─── Change-set helpers (mirror the server projection: DECIDED set + snapshot) ─
 
-function eventsOfType(status: RunStatus, type: FileReviewEventType) {
+function eventsOfType(status: TurnRows, type: FileReviewEventType): FileReviewEvent[] {
   return (status.fileReviewEventStream?.events ?? []).filter((e) => e.eventType === type);
 }
-function candidateChanges(status: RunStatus): CapturedFileChange[] {
+function candidateChanges(status: TurnRows): CapturedFileChange[] {
   const ev = eventsOfType(status, FileReviewEventType.CANDIDATE_CAPTURED)[0];
   return ev?.payload.case === "candidateCaptured" ? ev.payload.value.changes : [];
 }
 function decidedChangeSet(
-  status: RunStatus,
-  decisionByPath: Record<string, FileDecisionAction>,
+  status: TurnRows,
+  decisionByPath: Record<string, "keep" | "undo">,
 ) {
   const changes = candidateChanges(status).map((c) => clone(CapturedFileChangeSchema, c));
-  const decisions = changes
+  const decisions: LoggedFileDecision[] = changes
     .filter((c) => decisionByPath[c.pathAfter || c.pathBefore] !== undefined)
-    .map((c) =>
-      create(FileDecisionSchema, {
-        id: `${c.id}:d`,
-        changeSetId: CHANGE_SET_ID,
-        scope: FileDecisionScope.FILE,
-        fileChangeId: c.id,
-        action: decisionByPath[c.pathAfter || c.pathBefore],
-        expectedDigest: c.fileDigest,
-      }),
-    );
+    .map((c) => ({ scope: "file", fileChangeId: c.id, action: decisionByPath[c.pathAfter || c.pathBefore]! }));
   const candEv = eventsOfType(status, FileReviewEventType.CANDIDATE_CAPTURED)[0];
   const candidateSnapshot =
     candEv?.payload.case === "candidateCaptured" ? candEv.payload.value.candidateSnapshot : undefined;
-  return create(FileChangeSetSchema, {
-    id: CHANGE_SET_ID,
-    changes,
-    decisions,
-    candidateSnapshot,
-    status: FileChangeSetStatus.DECIDED,
-  });
+  return Object.assign(create(FileChangeSetSchema, { id: CHANGE_SET_ID, changes, candidateSnapshot }), { decisions });
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────
@@ -203,20 +187,20 @@ describe("proxy-mode file-review reconcile (real ProxyArtifactStorage)", () => {
       await git(["add", "-A"]);
       await git(["commit", "-q", "-m", "initial"]);
 
-      const status = create(RunStatusSchema, {});
+      const status = create(TurnRowsSchema, {});
       const baseline = await captureBaselineToLedger({
-        status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS,
+        rows: status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS,
       });
       await writeFile(join(repo, "notes.md"), "PLANTON notes edited\n");
       await captureCandidateToLedger({
-        status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+        rows: status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
         baselineTree: baseline, harnessId: HARNESS,
       });
 
-      const changeSet = decidedChangeSet(status, { "notes.md": FileDecisionAction.REJECT });
+      const changeSet = decidedChangeSet(status, { "notes.md": "undo" });
 
       // The exact production call shape: a real ProxyArtifactStorage is threaded.
-      const outcome = await undoChangeSet({ gitRoot: repo, changeSet, gitWorkspace: true, readBlob: casBlobReader(storage) });
+      const outcome = await undoChangeSet({ gitRoot: repo, changeSet, decisions: changeSet.decisions, gitWorkspace: true, readBlob: casBlobReader(storage) });
 
       expect(outcome.failure).toBe("");
       expect(outcome.undonePaths).toEqual(["notes.md"]);
@@ -234,9 +218,9 @@ describe("proxy-mode file-review reconcile (real ProxyArtifactStorage)", () => {
     const ws = await mkdtemp(join(tmpdir(), "stigmer-proxy-cas-"));
     try {
       const enc = (s: string) => new TextEncoder().encode(s);
-      const status = create(RunStatusSchema, {});
+      const status = create(TurnRowsSchema, {});
       const baseline = await captureBaselineToLedger({
-        status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+        rows: status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
         harnessId: HARNESS, gitWorkspace: false,
       });
 
@@ -244,7 +228,7 @@ describe("proxy-mode file-review reconcile (real ProxyArtifactStorage)", () => {
       await writeFile(join(ws, "created.txt"), "X");
       await writeFile(join(ws, "edited.txt"), "NEW");
       await captureCandidateToLedger({
-        status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+        rows: status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
         baselineTree: baseline, harnessId: HARNESS, gitWorkspace: false, storage,
         casCaptures: [
           { path: "created.txt", before: null, after: enc("X"), captureClass: FileCaptureClass.NON_GIT_CAS },
@@ -260,10 +244,10 @@ describe("proxy-mode file-review reconcile (real ProxyArtifactStorage)", () => {
       expect(proxy.objects.size).toBe(4);
 
       const changeSet = decidedChangeSet(status, {
-        "created.txt": FileDecisionAction.APPROVE,
-        "edited.txt": FileDecisionAction.REJECT,
+        "created.txt": "keep",
+        "edited.txt": "undo",
       });
-      const outcome = await undoChangeSet({ gitRoot: ws, changeSet, gitWorkspace: false, readBlob: casBlobReader(storage) });
+      const outcome = await undoChangeSet({ gitRoot: ws, changeSet, decisions: changeSet.decisions, gitWorkspace: false, readBlob: casBlobReader(storage) });
 
       expect(outcome.failure).toBe("");
       expect(outcome.undonePaths).toEqual(["edited.txt"]);

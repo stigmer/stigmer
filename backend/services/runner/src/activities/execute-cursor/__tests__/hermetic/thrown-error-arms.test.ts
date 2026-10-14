@@ -47,9 +47,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -65,6 +63,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { _parkedAgentCountForTests } from "../../agent-session-cache.js";
 import { ScriptedCursorAgent } from "../../__test-utils__/scripted-agent.js";
@@ -76,6 +77,7 @@ import {
   runCursorTurn,
 } from "../../__test-utils__/hermetic-cursor.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
+import { MessageType } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const USER_MESSAGE = "Draft the release notes.";
 const GENERIC_SYSTEM_MESSAGE = "Internal system error occurred. Please contact support if this issue persists.";
@@ -142,7 +144,7 @@ describe("ExecuteCursor hermetic — thrown-error arms of the outer catch", () =
     const final = record.lastFullStatus!;
     expect(final.error).toBe(`${SDK_ERROR_MESSAGE} [category=auth, source=sdk, retryable=false]`);
     expect(final.completedAt).not.toBe("");
-    expect(systemMessages(final)).toEqual([GENERIC_SYSTEM_MESSAGE, `Error details: ${final.error}`]);
+    expect(systemMessages(record.rowsOf(final))).toEqual([GENERIC_SYSTEM_MESSAGE, `Error details: ${final.error}`]);
 
     // ── Assert: where it stopped ─────────────────────────────────────────────
     expect(scenario.sdk.resolutions.map((r) => r.kind), "one create attempt, unretried").toEqual(["create"]);
@@ -155,8 +157,8 @@ describe("ExecuteCursor hermetic — thrown-error arms of the outer catch", () =
     expect(invocation.heartbeats.length).toBeGreaterThan(0);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/sdk-error-at-create.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/sdk-error-at-create.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/sdk-error-at-create.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/sdk-error-at-create.events.json");
   });
 
@@ -188,7 +190,7 @@ describe("ExecuteCursor hermetic — thrown-error arms of the outer catch", () =
     const final = record.lastFullStatus!;
     expect(final.error).toBe(`[Error] ${CONTROL_PLANE_FAULT}`);
     expect(final.completedAt).not.toBe("");
-    expect(systemMessages(final)).toEqual([
+    expect(systemMessages(record.rowsOf(final))).toEqual([
       GENERIC_SYSTEM_MESSAGE,
       `Error details: [Error] ${CONTROL_PLANE_FAULT}`,
     ]);
@@ -205,8 +207,8 @@ describe("ExecuteCursor hermetic — thrown-error arms of the outer catch", () =
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/resolution-error.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/resolution-error.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/resolution-error.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/resolution-error.events.json");
   });
 });

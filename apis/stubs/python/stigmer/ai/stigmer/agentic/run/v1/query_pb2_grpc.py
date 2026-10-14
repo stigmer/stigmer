@@ -31,11 +31,6 @@ class RunQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.ListRunsBySessionRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.RunList.FromString,
                 _registered_method=True)
-        self.subscribe = channel.unary_stream(
-                '/ai.stigmer.agentic.run.v1.RunQueryController/subscribe',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.RunId.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.FromString,
-                _registered_method=True)
         self.getArtifactDownloadUrl = channel.unary_unary(
                 '/ai.stigmer.agentic.run.v1.RunQueryController/getArtifactDownloadUrl',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.GetArtifactDownloadUrlRequest.SerializeToString,
@@ -93,13 +88,6 @@ class RunQueryControllerServicer(object):
 
     def listBySession(self, request, context):
         """List all runs in a specific session.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def subscribe(self, request, context):
-        """Subscribe to real-time run updates (streaming).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -224,11 +212,6 @@ def add_RunQueryControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.ListRunsBySessionRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.RunList.SerializeToString,
             ),
-            'subscribe': grpc.unary_stream_rpc_method_handler(
-                    servicer.subscribe,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.RunId.FromString,
-                    response_serializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.SerializeToString,
-            ),
             'getArtifactDownloadUrl': grpc.unary_unary_rpc_method_handler(
                     servicer.getArtifactDownloadUrl,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.GetArtifactDownloadUrlRequest.FromString,
@@ -347,33 +330,6 @@ class RunQueryController(object):
             '/ai.stigmer.agentic.run.v1.RunQueryController/listBySession',
             ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.ListRunsBySessionRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.RunList.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def subscribe(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_stream(
-            request,
-            target,
-            '/ai.stigmer.agentic.run.v1.RunQueryController/subscribe',
-            ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.RunId.SerializeToString,
-            ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.FromString,
             options,
             channel_credentials,
             insecure,

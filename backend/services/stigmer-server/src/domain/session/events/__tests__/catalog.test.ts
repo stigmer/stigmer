@@ -6,20 +6,16 @@
  * the server; a
  * draft's bytes carry no seq, session or accepted time, so a resent event
  * encodes to the stored bytes; an ask's policy source admits the word of
- * every source a run records; and every file-review word the server maps
- * (../../filereview/words.ts) passes its event's validation, while a value
- * newer than this binary maps to no word.
+ * every source a run records (the shared policy-source corpus,
+ * apis/testdata/hitl/policy-source); and every file-review word the server
+ * speaks (../../filereview/words.ts) passes its event's validation.
  */
+import path from "node:path";
+
 import { create, equals } from "@bufbuild/protobuf";
 import { createValidator } from "@bufbuild/protovalidate";
 import { describe, expect, it } from "vitest";
 
-import {
-  ApprovalPolicySourceSchema,
-  FileDecisionActionSchema,
-  FileDecisionOriginSchema,
-  FileDecisionScopeSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   SessionEventSchema,
   StigmerFileReviewChangeSchema,
@@ -31,12 +27,13 @@ import {
 import { SESSION_EVENT_TYPES, isStigmerEventType } from "@stigmer/session-log";
 import { RUNNER_EVENT_TYPES, SESSION_STATUS_TYPES } from "../catalog.js";
 import { draftOf, eventOf } from "../codec.js";
+import { hitlCorpusDir, readCorpusJson } from "../../../run/approval/__tests__/corpus-support.js";
 import {
+  ACTION_WORDS,
+  ORIGIN_WORDS,
+  SCOPE_WORDS,
   actionOfWord,
-  actionWordOf,
-  originWordOf,
   scopeOfWord,
-  scopeWordOf,
 } from "../../filereview/words.js";
 
 describe("the catalog", () => {
@@ -105,8 +102,12 @@ describe("an ask's policy source", () => {
     validator.validate(StigmerPermissionAskedEventSchema, create(StigmerPermissionAskedEventSchema, { id: "a", toolUseId: "u", policySource })).kind;
 
   it("admits the word of every source a run records, and none", () => {
-    for (const value of ApprovalPolicySourceSchema.values) {
-      expect(ask(value.number === 0 ? "" : value.localName.toLowerCase())).toBe("valid");
+    const corpus = readCorpusJson(path.join(hitlCorpusDir(), "policy-source", "vectors.json")) as unknown as {
+      vectors: Array<{ policySource: string | null; name_proto: string }>;
+    };
+    expect(corpus.vectors.length).toBeGreaterThan(1);
+    for (const vector of corpus.vectors) {
+      expect(ask(vector.policySource ?? ""), vector.name_proto).toBe("valid");
     }
   });
 
@@ -130,38 +131,21 @@ describe("the file-review words", () => {
       }),
     ).kind;
 
-  it("every scope, action and origin a decision carries has a word its event admits, read back to the same value", () => {
-    for (const value of FileDecisionScopeSchema.values) {
-      const word = scopeWordOf(value.number);
-      expect(word === undefined, value.name).toBe(value.number === 0);
-      if (word !== undefined) {
-        expect(decided({ scope: word }), value.name).toBe("valid");
-        expect(scopeOfWord(word)).toBe(value.number);
-      }
+  it("every scope, action and origin the server speaks is a word its event admits, read back as itself", () => {
+    for (const word of SCOPE_WORDS) {
+      expect(decided({ scope: word }), word).toBe("valid");
+      expect(scopeOfWord(word)).toBe(word);
     }
-    for (const value of FileDecisionActionSchema.values) {
-      const word = actionWordOf(value.number);
-      expect(word === undefined, value.name).toBe(value.number === 0);
-      if (word !== undefined) {
-        expect(decided({ action: word }), value.name).toBe("valid");
-        expect(actionOfWord(word)).toBe(value.number);
-      }
+    for (const word of ACTION_WORDS) {
+      expect(decided({ action: word }), word).toBe("valid");
+      expect(actionOfWord(word)).toBe(word);
     }
-    for (const value of FileDecisionOriginSchema.values) {
-      const word = originWordOf(value.number);
-      expect(word, value.name).toBeDefined();
-      expect(decided({ origin: word ?? "" }), value.name).toBe("valid");
+    for (const word of ORIGIN_WORDS) {
+      expect(decided({ origin: word }), word).toBe("valid");
     }
   });
 
-  it("a value newer than this binary (a later binary's write, during a roll) has no word", () => {
-    const newer: number = 99;
-    expect(scopeWordOf(newer)).toBeUndefined();
-    expect(actionWordOf(newer)).toBeUndefined();
-    expect(originWordOf(newer)).toBeUndefined();
-  });
-
-  it("refuses a ledger name in place of a word, and reads no value from one", () => {
+  it("refuses an enum name in place of a word, and reads no word from one", () => {
     expect(decided({ scope: "CHANGE_SET" })).toBe("invalid");
     expect(decided({ action: "APPROVE" })).toBe("invalid");
     expect(decided({ origin: "user" })).toBe("invalid");

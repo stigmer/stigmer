@@ -96,7 +96,7 @@ export async function runCursorTurn(input: TurnInput, sink: TurnSink, config: Cu
     checkToolScope(input, mode);
     await checkWorkspaceHookFiles(input);
     const hooks = await prepareHooks(input, sink, config, mode);
-    const rows = readAdjudicatedRows(input, sink.status);
+    const rows = readAdjudicatedRows(input, sink.rows);
     gate = await installGate(input, sink, rows, streamState, hooks);
     if (sink.stopSignal.aborted) return (outcome = { kind: "interrupted" });
 

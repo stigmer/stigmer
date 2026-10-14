@@ -1,18 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  FileChangeCaptureLevel,
-  FileChangeType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { DisplayFileChange } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { BoundedContent } from "../internal/BoundedContent.js";
 import { computeDiff } from "../version-history/computeDiff.js";
 import { DiffViewer } from "../version-history/DiffViewer.js";
 import { DiffFileList } from "../version-history/DiffFileList.js";
 import { DiffSummary } from "../version-history/DiffSummary.js";
-import { UnifiedDiffView } from "../version-history/UnifiedDiffView.js";
 import type { DiffHunk, FileDiffEntry } from "../version-history/types.js";
 import { countHunks, toFileDiffEntry } from "./deriveRunFileChanges.js";
 import { FilePathLink } from "./FilePathLink.js";
@@ -25,7 +20,7 @@ export interface FileChangesViewProps {
    * Net file changes to render, typically from {@link useSessionFileChanges}.
    * One entry per changed file.
    */
-  readonly changes: readonly FileChange[];
+  readonly changes: readonly DisplayFileChange[];
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -35,10 +30,10 @@ export interface FileChangesViewProps {
  * bar, a file selector (when more than one file changed), and the unified diff
  * for the selected file.
  *
- * Renders the runner's authoritative {@link FileChange} captures directly
- * (proto-first). Whole-file captures (native) become a true before/after diff;
- * hunk-only captures (Cursor today) render their unified diff; offloaded bodies
- * are fetched lazily only when their file is opened (see {@link FileChangeDiff}).
+ * Renders the run's captured changes (its file record, projected to
+ * {@link DisplayFileChange}). Every capture is whole-file, so each becomes a
+ * true before/after diff; offloaded bodies are fetched lazily only when their
+ * file is opened (see {@link FileChangeDiff}).
  *
  * Zero Console dependencies — safe for platform builder embedding.
  *
@@ -101,7 +96,7 @@ export function FileChangesView({ changes, className }: FileChangesViewProps) {
 /** Props for {@link FileChangeDiff}. */
 export interface FileChangeDiffProps {
   /** The single file change to render. */
-  readonly change: FileChange;
+  readonly change: DisplayFileChange;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
   /**
@@ -137,13 +132,11 @@ export interface FileChangeDiffProps {
 }
 
 /**
- * Renders the diff for a single {@link FileChange}, adapting to how completely
- * the runner captured it:
+ * Renders the diff for a single {@link DisplayFileChange}:
  *
- * - **Whole-file** (native): a true before/after diff via {@link DiffViewer}.
- *   Offloaded bodies are fetched lazily; loading, error, and too-large
- *   (server-truncated) states are surfaced honestly.
- * - **Hunk-only** (Cursor today): the captured unified diff, labeled as such.
+ * - a true before/after diff via {@link DiffViewer}. Offloaded bodies are
+ *   fetched lazily; loading, error, and too-large (server-truncated) states
+ *   are surfaced honestly;
  * - **Binary**: a "binary file changed" notice instead of a text diff.
  *
  * Importable on its own by platform builders composing custom change UIs.
@@ -165,17 +158,14 @@ export function FileChangeDiff({
   }, [beforeText, afterText]);
 
   const stats = useMemo(() => {
-    if (change.captureLevel === FileChangeCaptureLevel.HUNK_ONLY) {
-      return { additions: change.linesAdded, deletions: change.linesRemoved };
-    }
-    // Whole-file: count the rendered hunks (what the user actually sees). When
+    // Count the rendered hunks (what the user actually sees). When
     // there are none to count — the body is offloaded/loading/truncated — fall
     // back to the capture-time counts, which are computed with the same diff
     // algorithm and so agree with the hunks whenever both exist.
     const computed = countHunks(hunks);
     if (computed.additions > 0 || computed.deletions > 0) return computed;
     return { additions: change.linesAdded, deletions: change.linesRemoved };
-  }, [change.captureLevel, change.linesAdded, change.linesRemoved, hunks]);
+  }, [change.linesAdded, change.linesRemoved, hunks]);
 
   const showStatsRow = showStats && (stats.additions > 0 || stats.deletions > 0);
 
@@ -187,7 +177,7 @@ export function FileChangeDiff({
       {(showFileName || showStatsRow) && (
         <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-muted-foreground">
           {showFileName &&
-            change.changeType === FileChangeType.RENAME &&
+            change.changeType === "renamed" &&
             change.renameFrom && (
               <span className="stg:min-w-0 stg:truncate stg:font-mono stg:text-muted-foreground-faint">
                 {change.renameFrom} →
@@ -221,7 +211,7 @@ export function FileChangeDiff({
 }
 
 // ---------------------------------------------------------------------------
-// Body — the capture-level / fetch-state switch
+// Body — the fetch-state switch
 // ---------------------------------------------------------------------------
 
 function FileChangeBody({
@@ -235,7 +225,7 @@ function FileChangeBody({
   bodyClassName,
   bounded,
 }: {
-  change: FileChange;
+  change: DisplayFileChange;
   hunks: readonly DiffHunk[];
   isBinary: boolean;
   isLoading: boolean;
@@ -249,7 +239,7 @@ function FileChangeBody({
   // else with no content degrades to the non-committal "no preview" (we never
   // claim emptiness we cannot prove from the capture).
   const emptyKind =
-    change.changeType === FileChangeType.CREATE ? "empty-create" : "no-preview";
+    change.changeType === "added" ? "empty-create" : "no-preview";
 
   // When bounded, the actual diff renderers (and only those — short notices need
   // no clamp) are wrapped in the shared BoundedContent budget, so the gate's
@@ -265,15 +255,7 @@ function FileChangeBody({
     return <Notice>Binary file changed.</Notice>;
   }
 
-  if (change.captureLevel === FileChangeCaptureLevel.HUNK_ONLY) {
-    return change.unifiedDiff ? (
-      bound(<UnifiedDiffView patch={change.unifiedDiff} className={bodyClassName} />)
-    ) : (
-      <EmptyChangeNotice kind={emptyKind} className={bodyClassName} />
-    );
-  }
-
-  // Whole-file: content may be inline (ready) or offloaded (fetched lazily).
+  // Content may be inline (ready) or offloaded (fetched lazily).
   if (isTruncated) {
     return (
       <Notice>

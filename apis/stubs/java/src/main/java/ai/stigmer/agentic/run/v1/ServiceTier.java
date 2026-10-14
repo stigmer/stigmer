@@ -159,7 +159,7 @@ public enum ServiceTier
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.run.v1.EnumProto.getDescriptor().getEnumType(16);
+    return ai.stigmer.agentic.run.v1.EnumProto.getDescriptor().getEnumType(5);
   }
 
   private static final ServiceTier[] VALUES = values();

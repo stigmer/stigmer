@@ -69,6 +69,7 @@ definitions, API names, and examples follow below.
 | **Approval flow**     | approval flow    | approval flow                          | approval flow, HITL    | `destructiveHint`, `confirmToolUse`             | HITL, approval    |
 | **Organization**      | Organization     | Organization                           | Organization           | Organization, `kind: organization`              | Organization      |
 | **Agent hour**        | agent hours      | ---                                    | agent hours            | `included_agent_hours`, `per_agent_hour_micros` | agent hours       |
+| **Working time**      | ---              | working time                           | working time           | `working_seconds`                               | working time      |
 | **Team**              | teams            | ---                                    | Team                   | Team, `kind: team`                              | Team              |
 | **Vault**             | vault            | vault ("your keys and logins")         | Vault                  | Vault, `kind: Vault`                            | vault             |
 | **Preference**        | preferences      | preference ("standing context")        | Preference             | `spec.preferences.standing_context`             | Preference        |
@@ -368,8 +369,9 @@ An ongoing conversation with an Agent across multiple messages.
   sender's own My vault first). Sessions can add `plugins` and `skill_refs` to
   the Agent's; the Agent's tool lists still govern every tool.
 - **Related terms**: A Session contains multiple runs. Each message exchange
-  within a Session is one run. The proto also uses `MessageType` (HUMAN, AI,
-  TOOL, SYSTEM) for individual messages.
+  within a Session is one run. What happens in a Session is its event log
+  (`session/v1/event.proto`): the person's messages, the Agent's messages and
+  tool uses, and every answer, read with `listEvents` or `streamEvents`.
 - **Sharing**: A Session is private to the person who started it, and its
   Organization's admins do not read it. In the Enterprise and Cloud editions its
   owner shares it with people one by one, as a **Participant** (reads and sends
@@ -497,10 +499,11 @@ action before proceeding.
   destructive (`destructiveHint`). An Agent's hooks (`hooks`) decide call by
   call: refuse, ask, or allow. Its `tools` and `disallowed_tools` lists decide
   which tools it has at all. A call that asks is an `agent.tool_use` with
-  `evaluated_permission` `ask`, announced by `stigmer.permission.asked`.
-  Answered on the Session: `SessionCommandController.confirmToolUse` (`allow` or
-  `deny`, recorded as `user.tool_confirmation`) or `grantPermission` (the call's
-  class for the rest of the run).
+  `evaluated_permission` `ask`, announced by `stigmer.permission.asked`. Read
+  from the Session's log, and answered on the Session:
+  `SessionCommandController.confirmToolUse` (`allow` or `deny`, recorded as
+  `user.tool_confirmation`) or `grantPermission` (the call's class for the rest
+  of the run).
 
 **Good examples**:
 
@@ -740,8 +743,31 @@ is never an agent hour.
   Stigmer's computers; a child organization draws on its parent's hours. A
   self-hosted deployment runs on its own computers and counts none; a license
   ignores both fields. Model tokens are never counted or priced as agent hours.
+  Every edition's usage reports show each run's [working time](#working-time);
+  agent hours are the working time a Stigmer Cloud plan counts, in Stigmer's
+  sandboxes, never an automatic grade's. Where an Organization stands against
+  its allowance is on **Settings → Billing** and in `stigmer usage hours`.
 - **Context rule**: "agent hours" in every context. Never "compute hours" or
   "session hours".
+
+---
+
+#### Working time
+
+How long an agent worked on a run: thinking, calling tools, writing files.
+Waiting for a person is never working time. Each stretch of work is credited to
+the run whose start began it.
+
+- **Capitalize**: No.
+- **API surface**: `working_seconds` on the usage reports
+  (`UsageReportAggregate`, `RunUsageSummary`, `SessionUsageSummary`,
+  `AgentUsageSummary`). CLI: `stigmer usage session|agent|org` (`Working time:`
+  and the `WORKING` column).
+- **Note**: a clock, never priced, shown in every edition. On Stigmer Cloud it
+  can exceed a plan's [agent hours](#agent-hour), which count only the turns
+  Stigmer's sandboxes run and never an automatic grade.
+- **Context rule**: "working time" in usage reports; "agent hours" for what a
+  plan includes and bills. Never "agent hours" for a usage report's figure.
 
 ---
 
@@ -912,6 +938,27 @@ that should keep working when the person who set it up leaves.
   Owner), acts only through API keys its Organization's admins create for it,
   and works only in its own Organization. See
   [Service accounts](/docs/guides/authentication/service-accounts).
+
+---
+
+#### Access history
+
+The record of every time someone in an Organization was given or lost access,
+who made the change, why, and when.
+
+- **Capitalize**: No. "access history" in prose; "Access history" as a console
+  heading.
+- **API surface**: `IamPolicyQueryController.listAccessHistory`, answering
+  `AccessHistoryEntry` items; the permission `can_view_access_history`. CLI:
+  `stigmer access-history list|export`.
+- **Context rule**: "access history" for what people read. "Permission history"
+  is the operator's word for the stored table (`iam_policy_history`), in
+  self-hosting docs only. Never "audit log": it records access changes, not
+  everything people did.
+- **Note**: Kept by Stigmer Enterprise and Stigmer Cloud, read by an
+  Organization's owners and admins. Each Organization numbers its entries in
+  order with no gaps (`sequence`), which is what lets a tool export "everything
+  after N". See [Access history](/docs/guides/authentication/access-history).
 
 ---
 
@@ -1118,7 +1165,9 @@ message, fire a schedule or open a share link.
   stigmer runs logs <id>
   ```
 
-- **Message types**: `HUMAN`, `AI`, `TOOL`, `SYSTEM` (from `run/v1/enum.proto`).
+- **What a run did**: its Session's events with the run's `run_id`: messages,
+  tool uses and answers. The run itself holds its lifecycle (phase, timing, stop
+  cause) and its file record (`status.file_changes`).
 - **Phases**: `RUN_WAITING_FOR_APPROVAL` is a notable phase---the run pauses
   during an approval flow.
 - **Two meanings**: the word "run" means two different things across Stigmer.

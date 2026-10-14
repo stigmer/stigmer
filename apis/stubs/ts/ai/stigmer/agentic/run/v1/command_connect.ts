@@ -5,7 +5,7 @@
 
 import { Run } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { CancelRunInput, PauseRunInput, RecoverRunInput, ResumeRunInput, RunUpdateStatusInput, SubmitApprovalInput, SubmitFileDecisionInput, TerminateRunInput, UpdateRunInput, UpdateStatusResponse, UploadAttachmentRequest, UploadAttachmentResponse } from "./io_pbjs";
+import { PauseRunInput, RecoverRunInput, ResumeRunInput, RunUpdateStatusInput, TerminateRunInput, UpdateRunInput, UpdateStatusResponse, UploadAttachmentRequest, UploadAttachmentResponse } from "./io_pbjs";
 import { ApiResourceId } from "../../../commons/apiresource/io_pbjs";
 
 /**
@@ -78,74 +78,10 @@ export const RunCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Submit an approval decision for a pending tool call.
-     *
-     * ## Preconditions
-     *
-     * - Run must be in RUN_WAITING_FOR_APPROVAL phase
-     * - tool_call_id must match status.pending_approval.tool_call_id
-     * - User must have can_edit permission on the run
-     *
-     * ## Behavior by Action
-     *
-     * - APPROVE: Tool executes normally, run resumes to IN_PROGRESS
-     * - SKIP: Tool returns skip message to LLM, run continues to IN_PROGRESS
-     * - REJECT: Tool is denied and the user's objection is fed back to the LLM;
-     *   the run CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
-     *   stop the whole run, use cancel/terminate)
-     *
-     * @generated from rpc ai.stigmer.agentic.run.v1.RunCommandController.submitApproval
-     */
-    submitApproval: {
-      name: "submitApproval",
-      I: SubmitApprovalInput,
-      O: Run,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Submit a keep/discard decision on a file change set (or a single file).
-     *
-     * Records a FILE_DECIDED event in the append-only file_review stream;
-     * FileChangeSet.decisions is the derived projection. The runner reconciles
-     * the approved bytes — this RPC records the decision and enforces
-     * that expected_digest still matches the captured content the user reviewed.
-     *
-     * ## Preconditions
-     *
-     * - Run must exist and be non-terminal
-     * - change_set_id must match a status.file_change_sets[].id; for FILE scope,
-     *   file_change_id must match a CapturedFileChange.id within it
-     * - expected_digest must match the target's current digest
-     * - User must have can_edit permission on the run
-     *
-     * @generated from rpc ai.stigmer.agentic.run.v1.RunCommandController.submitFileDecision
-     */
-    submitFileDecision: {
-      name: "submitFileDecision",
-      I: SubmitFileDecisionInput,
-      O: Run,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Cancel a running run gracefully.
-     *
-     * Sends a cancellation signal to the run. The agent can handle
-     * the cancellation signal to save checkpoint and clean up before
-     * transitioning to the CANCELLED phase.
-     *
-     * @generated from rpc ai.stigmer.agentic.run.v1.RunCommandController.cancel
-     */
-    cancel: {
-      name: "cancel",
-      I: CancelRunInput,
-      O: Run,
-      kind: MethodKind.Unary,
-    },
-    /**
      * Terminate a run immediately.
      *
-     * Force-stops the run without allowing cleanup. Unlike cancel,
-     * the agent cannot respond to termination - it is stopped immediately.
+     * Force-stops the run without allowing cleanup. Unlike the session's
+     * interrupt, the agent cannot respond to termination - it is stopped immediately.
      * Use this for stuck or unresponsive agents.
      *
      * @generated from rpc ai.stigmer.agentic.run.v1.RunCommandController.terminate
@@ -173,8 +109,8 @@ export const RunCommandController = {
     /**
      * Pause a running run.
      *
-     * Temporarily stops the agent at its current checkpoint. Unlike cancel,
-     * the run is NOT terminal and can be resumed later from where it left off.
+     * Temporarily stops the agent at its current checkpoint. Unlike the
+     * session's interrupt, the run is NOT terminal and can be resumed later from where it left off.
      *
      * @generated from rpc ai.stigmer.agentic.run.v1.RunCommandController.pause
      */

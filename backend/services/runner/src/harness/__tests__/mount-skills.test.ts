@@ -51,6 +51,7 @@ import { mountSkills, type ResolutionDeps } from "../turn-context.js";
 import { pluginSubagents } from "../../shared/blueprint-resolver.js";
 import { PLUGINS_SUBDIR } from "../../shared/plugin-mount.js";
 import { STIGMER_LOCAL_STATE_DIR } from "../../shared/workspace/stigmer-link.js";
+import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 const env = createHermeticEnvironment();
 afterAll(() => env.dispose());
@@ -83,6 +84,7 @@ function skillClient(available: readonly string[]) {
 function depsWith(client: ResolutionDeps["client"], sessionId: string): { deps: ResolutionDeps; labels: string[] } {
   const labels: string[] = [];
   const status = create(RunStatusSchema, {});
+  const rows = create(TurnRowsSchema);
   return {
     labels,
     deps: {
@@ -90,7 +92,8 @@ function depsWith(client: ResolutionDeps["client"], sessionId: string): { deps: 
       client,
       config: testConfig({ workspaceRootDir: env.workspaceRootDir }),
       status,
-      transcript: new TranscriptBuilder(`aex-${sessionId}`, status),
+      rows,
+      transcript: new TranscriptBuilder(`aex-${sessionId}`, rows, status),
       artifactStorage: undefined,
       timing: new TimingRecorder(),
       signal: new AbortController().signal,

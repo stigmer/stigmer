@@ -7,15 +7,12 @@ import React, { useMemo, useState } from "react";
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
 import {
-  ApprovalPolicySource,
-  ToolKind,
   resolveToolKind,
   describeApprovalPolicySource,
   hookApproveAllLabel,
   type ToolUse,
 } from "@stigmer/sdk";
 import {
-  approvalPolicySourceOf,
   extractShellIntentFromPreview,
   type ToolUseAnswer,
 } from "@stigmer/react";
@@ -64,19 +61,19 @@ interface ActionOption {
  */
 function buildApproveAllLabel(toolUse: ToolUse): string {
   const { mcpServerName } = toolUse;
-  if (approvalPolicySourceOf(toolUse.ask?.policySource ?? "") === ApprovalPolicySource.HOOK) {
+  if (toolUse.ask?.policySource === "hook") {
     return hookApproveAllLabel(hookLeaseSubject(toolUse), toolUse.ask?.policyHook ?? "");
   }
   if (mcpServerName) {
     return `Approve all ${mcpServerName} tools`;
   }
   switch (resolveToolKind(toolUse)) {
-    case ToolKind.SHELL:
+    case "shell":
       return "Approve all shell commands";
-    case ToolKind.FILE_DELETE:
+    case "file_delete":
       return "Approve all file deletions";
-    case ToolKind.FILE_WRITE:
-    case ToolKind.FILE_EDIT:
+    case "file_write":
+    case "file_edit":
       return "Approve all file edits";
     default:
       return "Approve all of this kind";
@@ -87,13 +84,13 @@ function buildApproveAllLabel(toolUse: ToolUse): string {
 function hookLeaseSubject(toolUse: ToolUse): string {
   if (toolUse.mcpServerName) return `${toolUse.name} calls`;
   switch (resolveToolKind(toolUse)) {
-    case ToolKind.SHELL:
+    case "shell":
       return "shell commands";
-    case ToolKind.FILE_DELETE:
+    case "file_delete":
       return "file deletions";
-    case ToolKind.FILE_WRITE:
+    case "file_write":
       return "file writes";
-    case ToolKind.FILE_EDIT:
+    case "file_edit":
       return "file edits";
     default:
       return `${toolUse.name} calls`;
@@ -169,10 +166,7 @@ export function ApprovalPrompt({
 
   // Why-gated: the rule that asked (the ask's policy source). Mirrors the
   // React card's gate-reason line so the terminal explains the gate at parity.
-  const gateReason = describeApprovalPolicySource(
-    approvalPolicySourceOf(ask?.policySource ?? ""),
-    ask?.policyHook ?? "",
-  );
+  const gateReason = describeApprovalPolicySource(ask?.policySource ?? "", ask?.policyHook ?? "");
 
   // Model-authored shell intent (stigmer#276), mirroring the React card's
   // header treatment: supplementary context only — the command in the Args

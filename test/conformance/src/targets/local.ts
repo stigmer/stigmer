@@ -108,6 +108,7 @@ export class LocalTarget implements TargetProfile {
     // here.
     perResourceGrants: false,
     authorizationQueries: false,
+    accessHistory: "unimplemented",
   };
 
   private server: RunningServer | undefined;

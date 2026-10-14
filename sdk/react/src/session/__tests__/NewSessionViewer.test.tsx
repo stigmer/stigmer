@@ -223,6 +223,26 @@ describe("NewSessionViewer — removing an attached reference compares orgs by i
   });
 });
 
+describe("NewSessionViewer — a first message refused because the plan's agent hours are used", () => {
+  it("says when they reset and where the plans are", async () => {
+    const { refusal } = await import("../../billing/__tests__/fixtures");
+    const copy = "This organization has used the 10 agent hours its Free plan includes this month.";
+    mockFlow = {
+      ...stubEmptyFlow,
+      submitFailure: refusal(copy, "AGENT_HOURS_USED_UP", {
+        org: "acme",
+        plan: "Free",
+        included_hours: "10",
+        resets_at: "2026-11-01T00:00:00.000Z",
+      }),
+    };
+    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
+    expect(screen.getByText(copy)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "View plans" }).getAttribute("href")).toBe("/settings/billing");
+    expect(screen.queryByRole("link", { name: "Open provider keys" })).toBeNull();
+  });
+});
+
 describe("NewSessionViewer — a run refused for want of a provider key", () => {
   it("says where an admin adds the key, and shows nothing for any other failure", async () => {
     const { refusal } = await import("../../billing/__tests__/fixtures");

@@ -46,9 +46,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -61,6 +59,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import {
@@ -69,6 +70,7 @@ import {
   runDeepAgentTurn,
   sessionWorkspaceDir,
 } from "../../__test-utils__/hermetic-deep-agent.js";
+import { MessageType, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const CALL_ID = "call-hermetic-read-0001";
 const USER_MESSAGE = "What is in README.md?";
@@ -142,7 +144,8 @@ describe("ExecuteDeepAgent hermetic — ungated tool call", () => {
 
     // ── Assert: the transcript — the row beside the text that proposed it ──
     const final = record.lastFullStatus!;
-    const ai = final.messages.filter((m) => m.type === MessageType.MESSAGE_AI);
+    const finalRows = record.rowsOf(final);
+    const ai = finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_AI);
     expect(ai.map((m) => m.content), "the proposing text, then the closing text").toEqual([
       "Let me read it.",
       ASSISTANT_TEXT,
@@ -157,8 +160,8 @@ describe("ExecuteDeepAgent hermetic — ungated tool call", () => {
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/tool-call.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/tool-call.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/tool-call.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/tool-call.events.json");
   });
 });

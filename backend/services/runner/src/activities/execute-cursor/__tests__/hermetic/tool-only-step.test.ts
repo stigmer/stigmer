@@ -22,9 +22,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -37,6 +35,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { ScriptedCursorAgent, sdkEvents, step } from "../../__test-utils__/scripted-agent.js";
 import {
@@ -47,6 +48,7 @@ import {
   runCursorTurn,
 } from "../../__test-utils__/hermetic-cursor.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
+import { MessageType, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const AGENT_ID = "agent-hermetic-toolonly-0001";
 const RUN_ID = "run-hermetic-toolonly-0001";
@@ -109,8 +111,9 @@ describe("ExecuteCursor hermetic — a tool call with no proposing text", () => 
 
     // ── Assert: the transcript ───────────────────────────────────────────────
     const final = record.lastFullStatus!;
+    const finalRows = record.rowsOf(final);
     expect(
-      final.messages.map((m) => [m.type, m.content, m.toolCalls.map((tc) => tc.id)]),
+      finalRows.messages.map((m) => [m.type, m.content, m.toolCalls.map((tc) => tc.id)]),
       "an empty AI message carries the row; the text after the tool is a new message",
     ).toEqual([
       [MessageType.MESSAGE_AI, "", [CALL_ID]],
@@ -124,8 +127,8 @@ describe("ExecuteCursor hermetic — a tool call with no proposing text", () => 
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/tool-only-step.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/tool-only-step.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/tool-only-step.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/tool-only-step.events.json");
   });
 });

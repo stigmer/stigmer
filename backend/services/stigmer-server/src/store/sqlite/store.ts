@@ -121,11 +121,16 @@ import {
 } from "../proto-fields.js";
 import {
   assertPermissionChangeKind,
+  PERMISSION_HISTORY_COLUMNS,
+  permissionHistoryBounds,
   permissionHistoryEntryOf,
+  permissionHistoryRecordOf,
 } from "../permission-history.js";
 import type {
   PermissionChange,
   PermissionHistoryEntry,
+  PermissionHistoryPage,
+  PermissionHistoryRecord,
 } from "../permission-history.js";
 import { instantNotBefore, rfc3339Seconds } from "../rfc3339.js";
 import { normalizeBm25Score, renderFts5MatchExpression } from "./fts5.js";
@@ -1179,6 +1184,24 @@ export class SqliteStore implements Store {
       db.exec("ROLLBACK");
       throw error;
     }
+  }
+
+  async listPermissionHistory(
+    org: string,
+    page: PermissionHistoryPage,
+  ): Promise<PermissionHistoryRecord[]> {
+    const db = this.open();
+    const { ascending, bound, limit } = permissionHistoryBounds(page);
+    const comparison = ascending ? ">" : "<";
+    const rows = db
+      .prepare(
+        `SELECT ${PERMISSION_HISTORY_COLUMNS} FROM iam_policy_history
+         WHERE org = ? AND (? IS NULL OR sequence ${comparison} ?)
+         ORDER BY sequence ${ascending ? "ASC" : "DESC"}
+         LIMIT ?`,
+      )
+      .all(org, bound ?? null, bound ?? null, limit) as Array<Record<string, unknown>>;
+    return rows.map(permissionHistoryRecordOf);
   }
 
   async listAuditRecords(

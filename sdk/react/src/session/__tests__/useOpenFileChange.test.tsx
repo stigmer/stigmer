@@ -1,11 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
-import { create } from "@bufbuild/protobuf";
-import {
-  FileChangeSchema,
-  type FileChange,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { DisplayFileChange } from "@stigmer/sdk";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 
 // ---------------------------------------------------------------------------
@@ -15,7 +10,7 @@ import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 // (useSessionFileChanges) is mocked; the join (findChangeForSelection) is real.
 // ---------------------------------------------------------------------------
 
-let mockFileChanges: FileChange[] = [];
+let mockFileChanges: DisplayFileChange[] = [];
 vi.mock("../useSessionFileChanges", () => ({
   useSessionFileChanges: (executions: readonly unknown[]) => ({
     // Honor the EMPTY_EXECUTIONS gate: no runs in → no changes out.
@@ -38,8 +33,16 @@ const entries = [gitEntry] as never;
 const allRuns = [{} as Run];
 const root = "/home/daytona/workspace";
 
-function modifyChange(path: string): FileChange {
-  return create(FileChangeSchema, { path, changeType: FileChangeType.MODIFY });
+function modifyChange(path: string): DisplayFileChange {
+  return {
+    path,
+    changeType: "modified",
+    before: undefined,
+    after: undefined,
+    linesAdded: 0,
+    linesRemoved: 0,
+    renameFrom: "",
+  };
 }
 
 beforeEach(() => {

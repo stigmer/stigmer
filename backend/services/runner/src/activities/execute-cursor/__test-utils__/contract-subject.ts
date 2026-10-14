@@ -81,7 +81,7 @@
 
 import { appendFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { ApprovalAction, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { Config } from "../../../config.js";
 import type { HarnessAdapter } from "../../../harness/types.js";
@@ -101,6 +101,7 @@ import { hookInputFor, streamArgsFor, STREAM_NAME, type GatedActionKind } from "
 import { FIXTURE, SDK_CATALOG, hermeticCursorConfig, runWorkspaceHook } from "./hermetic-cursor.js";
 import { ScriptedCursorAgent, sdkEvents, step, type ScriptStep, type ScriptedRun } from "./scripted-agent.js";
 import { ScriptedCursorSdk, bindScriptedSdk } from "./scripted-sdk.js";
+import { ApprovalAction } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** The user's message every kit turn asks; the prompt builder needs one and the kit has none to give. */
 const KIT_USER_MESSAGE = "Do what the scenario says.";

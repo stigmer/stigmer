@@ -1,6 +1,6 @@
 // What a plan shows: only the features Cloud offers today, in contract
 // order (a feature listed ahead of its gate is left out), its monthly fee
-// and its child organizations; every period day in UTC; working agent time
+// its child organizations and its agent hours; every period day in UTC; working agent time
 // in tenths of an hour; and which plans are offered, cheapest first, with
 // what a switch gives up.
 
@@ -13,6 +13,7 @@ import {
   buyablePlans,
   featuresLost,
   formatAgentHours,
+  formatAgentHoursTerms,
   formatChildOrgs,
   formatMonthlyFee,
   formatPeriodDay,
@@ -58,6 +59,19 @@ describe("plan terms", () => {
     expect(
       formatChildOrgs(create(EntitlementsSchema, { features: [Feature.child_orgs] }), terms),
     ).toBe("Unlimited child organizations");
+  });
+});
+
+describe("formatAgentHoursTerms", () => {
+  it("says the hours a plan includes and what happens past them, and nothing when it states none", () => {
+    const hours = (includedAgentHours: number) => create(EntitlementsSchema, { limits: { includedAgentHours } });
+    expect(formatAgentHoursTerms(hours(25), create(PlanTermsSchema, { perAgentHourMicros: USD / 2n }))).toBe(
+      "25 agent hours a month, then $0.50 an hour",
+    );
+    expect(formatAgentHoursTerms(hours(10), create(PlanTermsSchema))).toBe("10 agent hours a month, then new work pauses");
+    expect(formatAgentHoursTerms(hours(1), undefined)).toBe("1 agent hour a month, then new work pauses");
+    expect(formatAgentHoursTerms(BUSINESS, create(PlanTermsSchema, { perAgentHourMicros: USD }))).toBe("");
+    expect(formatAgentHoursTerms(undefined, undefined)).toBe("");
   });
 });
 

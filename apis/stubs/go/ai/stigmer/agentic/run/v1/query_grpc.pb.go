@@ -22,7 +22,6 @@ const (
 	RunQueryController_Get_FullMethodName                    = "/ai.stigmer.agentic.run.v1.RunQueryController/get"
 	RunQueryController_List_FullMethodName                   = "/ai.stigmer.agentic.run.v1.RunQueryController/list"
 	RunQueryController_ListBySession_FullMethodName          = "/ai.stigmer.agentic.run.v1.RunQueryController/listBySession"
-	RunQueryController_Subscribe_FullMethodName              = "/ai.stigmer.agentic.run.v1.RunQueryController/subscribe"
 	RunQueryController_GetArtifactDownloadUrl_FullMethodName = "/ai.stigmer.agentic.run.v1.RunQueryController/getArtifactDownloadUrl"
 	RunQueryController_GetArtifactContent_FullMethodName     = "/ai.stigmer.agentic.run.v1.RunQueryController/getArtifactContent"
 	RunQueryController_GetRunUsageReport_FullMethodName      = "/ai.stigmer.agentic.run.v1.RunQueryController/getRunUsageReport"
@@ -44,8 +43,6 @@ type RunQueryControllerClient interface {
 	List(ctx context.Context, in *ListRunsRequest, opts ...grpc.CallOption) (*RunList, error)
 	// List all runs in a specific session.
 	ListBySession(ctx context.Context, in *ListRunsBySessionRequest, opts ...grpc.CallOption) (*RunList, error)
-	// Subscribe to real-time run updates (streaming).
-	Subscribe(ctx context.Context, in *RunId, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Run], error)
 	// Get a presigned download URL for a run artifact or attachment.
 	//
 	// Returns a time-limited URL for downloading an artifact published by
@@ -129,25 +126,6 @@ func (c *runQueryControllerClient) ListBySession(ctx context.Context, in *ListRu
 	return out, nil
 }
 
-func (c *runQueryControllerClient) Subscribe(ctx context.Context, in *RunId, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Run], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RunQueryController_ServiceDesc.Streams[0], RunQueryController_Subscribe_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[RunId, Run]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RunQueryController_SubscribeClient = grpc.ServerStreamingClient[Run]
-
 func (c *runQueryControllerClient) GetArtifactDownloadUrl(ctx context.Context, in *GetArtifactDownloadUrlRequest, opts ...grpc.CallOption) (*GetArtifactDownloadUrlResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetArtifactDownloadUrlResponse)
@@ -230,8 +208,6 @@ type RunQueryControllerServer interface {
 	List(context.Context, *ListRunsRequest) (*RunList, error)
 	// List all runs in a specific session.
 	ListBySession(context.Context, *ListRunsBySessionRequest) (*RunList, error)
-	// Subscribe to real-time run updates (streaming).
-	Subscribe(*RunId, grpc.ServerStreamingServer[Run]) error
 	// Get a presigned download URL for a run artifact or attachment.
 	//
 	// Returns a time-limited URL for downloading an artifact published by
@@ -292,9 +268,6 @@ func (UnimplementedRunQueryControllerServer) List(context.Context, *ListRunsRequ
 }
 func (UnimplementedRunQueryControllerServer) ListBySession(context.Context, *ListRunsBySessionRequest) (*RunList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListBySession not implemented")
-}
-func (UnimplementedRunQueryControllerServer) Subscribe(*RunId, grpc.ServerStreamingServer[Run]) error {
-	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
 }
 func (UnimplementedRunQueryControllerServer) GetArtifactDownloadUrl(context.Context, *GetArtifactDownloadUrlRequest) (*GetArtifactDownloadUrlResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetArtifactDownloadUrl not implemented")
@@ -390,17 +363,6 @@ func _RunQueryController_ListBySession_Handler(srv interface{}, ctx context.Cont
 	}
 	return interceptor(ctx, in, info, handler)
 }
-
-func _RunQueryController_Subscribe_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(RunId)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(RunQueryControllerServer).Subscribe(m, &grpc.GenericServerStream[RunId, Run]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RunQueryController_SubscribeServer = grpc.ServerStreamingServer[Run]
 
 func _RunQueryController_GetArtifactDownloadUrl_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetArtifactDownloadUrlRequest)
@@ -576,12 +538,6 @@ var RunQueryController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RunQueryController_GetRunSummary_Handler,
 		},
 	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "subscribe",
-			Handler:       _RunQueryController_Subscribe_Handler,
-			ServerStreams: true,
-		},
-	},
+	Streams:  []grpc.StreamDesc{},
 	Metadata: "ai/stigmer/agentic/run/v1/query.proto",
 }

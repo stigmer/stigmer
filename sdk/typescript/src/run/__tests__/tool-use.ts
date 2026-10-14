@@ -1,12 +1,11 @@
 // A test helper: a folded tool use (`ToolUse`, @stigmer/session-log) from
 // the row-shaped fields the tool-view tests and the shared fixtures under
 // test/fixtures/tool-view/ are written in (name, mcpServerSlug, args,
-// result, error, status, outputRef). A failed status reads as an error
+// result, error, state, outputRef). A failed state reads as an error
 // result carrying the error text (or the result); an output reference reads
 // as the result's full-output location.
 
 import type { JsonObject } from "@bufbuild/protobuf";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ToolUse } from "@stigmer/session-log";
 
 export interface ToolRowInit {
@@ -17,7 +16,8 @@ export interface ToolRowInit {
   readonly args?: JsonObject;
   readonly result?: string;
   readonly error?: string;
-  readonly status?: ToolCallStatus;
+  /** How the call ended: completed or failed; unset reads as completed once it has a result. */
+  readonly status?: "completed" | "failed";
   readonly outputRef?: {
     readonly storageKey?: string;
     readonly sizeBytes?: bigint;
@@ -28,9 +28,9 @@ export interface ToolRowInit {
 }
 
 export function toolUseOf(init: ToolRowInit): ToolUse {
-  const failed = init.status === ToolCallStatus.TOOL_CALL_FAILED;
+  const failed = init.status === "failed";
   const text = failed ? init.error || init.result || "" : init.result ?? "";
-  const returned = failed || init.status === ToolCallStatus.TOOL_CALL_COMPLETED || text !== "";
+  const returned = failed || init.status === "completed" || text !== "";
   return {
     kind: "tool_use",
     id: `run_1.${init.id ?? "call_1"}`,

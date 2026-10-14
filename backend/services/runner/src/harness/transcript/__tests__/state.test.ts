@@ -14,11 +14,10 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
-import { MessageType, SubAgentStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Transcript, TranscriptState } from "../state.js";
+import { AgentMessageSchema, ToolCallSchema, SubAgentRunSchema, TurnRowsSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { MessageType, SubAgentStatus, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 
 function toolCall(id: string, name: string, status = ToolCallStatus.TOOL_CALL_COMPLETED) {
   return create(ToolCallSchema, { id, name, status });
@@ -30,7 +29,7 @@ function aiMessage(content: string, toolCalls: ReturnType<typeof toolCall>[] = [
 
 /** Two AI turns with three rows between them — the persisted transcript a reinvocation seeds. */
 function seededStatus() {
-  const status = create(RunStatusSchema, {});
+  const status = create(TurnRowsSchema, {});
   status.messages.push(aiMessage("test", [toolCall("tc-1", "read"), toolCall("tc-2", "write", ToolCallStatus.TOOL_CALL_RUNNING)]));
   status.messages.push(aiMessage("turn 2", [toolCall("tc-3", "search", ToolCallStatus.TOOL_CALL_WAITING_APPROVAL)]));
   return status;
@@ -87,23 +86,25 @@ describe("Transcript", () => {
 });
 
 describe("TranscriptState", () => {
-  it("exposes the proto it was handed and a root transcript over its messages", () => {
+  it("exposes the rows and the status it was handed and a root transcript over the rows' messages", () => {
     const status = seededStatus();
-    const state = new TranscriptState(status);
-    expect(state.proto).toBe(status);
+    const run = create(RunStatusSchema);
+    const state = new TranscriptState(status, run);
+    expect(state.rows).toBe(status);
+    expect(state.status).toBe(run);
     expect(state.root.messages).toBe(status.messages);
     expect(state.root.toolCalls.size).toBe(3);
   });
 
   it("scope(undefined) is the root; an unknown sub-agent id has no scope", () => {
-    const state = new TranscriptState(create(RunStatusSchema, {}));
+    const state = new TranscriptState(create(TurnRowsSchema, {}), create(RunStatusSchema));
     expect(state.scope(undefined)).toBe(state.root);
     expect(state.scope("nobody")).toBeUndefined();
     expect(state.subAgent("nobody")).toBeUndefined();
   });
 
   it("indexes every seeded sub-agent row and its rows at construction", () => {
-    const status = create(RunStatusSchema, {});
+    const status = create(TurnRowsSchema, {});
     const row = create(SubAgentRunSchema, {
       id: "task-1",
       name: "helper",
@@ -111,7 +112,7 @@ describe("TranscriptState", () => {
       messages: [aiMessage("sub says", [toolCall("sub-tc", "grep")])],
     });
     status.subAgentRuns.push(row);
-    const state = new TranscriptState(status);
+    const state = new TranscriptState(status, create(RunStatusSchema));
     const scope = state.subAgent("task-1")!;
     expect(scope.row).toBe(row);
     expect(scope.transcript.messages).toBe(row.messages);
@@ -121,8 +122,8 @@ describe("TranscriptState", () => {
   });
 
   it("openSubAgent pushes the row onto the status's own array and opens its transcript", () => {
-    const status = create(RunStatusSchema, {});
-    const state = new TranscriptState(status);
+    const status = create(TurnRowsSchema, {});
+    const state = new TranscriptState(status, create(RunStatusSchema));
     const row = create(SubAgentRunSchema, { id: "task-2", name: "worker" });
     const scope = state.openSubAgent(row);
     expect(status.subAgentRuns).toEqual([row]);
@@ -131,9 +132,9 @@ describe("TranscriptState", () => {
   });
 
   it("transcripts() yields the root first, then every sub-agent's", () => {
-    const status = create(RunStatusSchema, {});
+    const status = create(TurnRowsSchema, {});
     status.subAgentRuns.push(create(SubAgentRunSchema, { id: "a" }), create(SubAgentRunSchema, { id: "b" }));
-    const state = new TranscriptState(status);
+    const state = new TranscriptState(status, create(RunStatusSchema));
     const all = [...state.transcripts()];
     expect(all).toHaveLength(3);
     expect(all[0]).toBe(state.root);

@@ -1,0 +1,9 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Hello from the hermetic fixture agent.",
+      "timestamp": "2026-01-01T00:00:01.000Z"
+    }
+  ]
+}

@@ -34,7 +34,8 @@ import type { ToolApprovalCategory } from "../tool-kind.js";
 import type { McpToolListing } from "../mcp-tool-listing.js";
 import { create } from "@bufbuild/protobuf";
 import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalMode, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { ApprovalPolicySource } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** No active leases. */
 const NO_LEASES: ActiveLeases = { global: false, categories: new Set(), servers: new Set(), hooks: new Set() };

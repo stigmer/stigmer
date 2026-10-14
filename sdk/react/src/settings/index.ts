@@ -23,6 +23,7 @@ export { IdentityProvidersSection } from "./IdentityProvidersSection.js";
 export { PlatformClientsSection } from "./PlatformClientsSection.js";
 export { ServiceAccountsSection } from "./ServiceAccountsSection.js";
 export { TeamsSection } from "./TeamsSection.js";
+export { AccessHistorySection } from "./AccessHistorySection.js";
 export { OAuthAppsSection } from "./OAuthAppsSection.js";
 export { ChannelAppsSection } from "./ChannelAppsSection.js";
 export { UsageSection } from "./UsageSection.js";

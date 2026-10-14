@@ -2,13 +2,13 @@
 
 import { wrapError } from "./errors.js";
 import { stripUndefined } from "./proto-utils.js";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { IamPolicySchema, type IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
-import { IamPolicyIdSchema, RevokeOrgAccessInputSchema, CheckMyPermissionInputSchema, CheckAuthorizationResultSchema, CheckAuthorizationInputSchema, ListAuthorizedResourceIdsInputSchema, AuthorizedResourceIdsListSchema, ListAuthorizedPrincipalIdsInputSchema, AuthorizedPrincipalIdsListSchema, ListResourceAccessInputSchema, ResourceAccessByPrincipalListSchema, PrincipalResourceInputSchema, PrincipalResourceRolesSchema, GetPrincipalsCountInputSchema, PrincipalsCountSchema, type RevokeOrgAccessInput, type CheckMyPermissionInput, type CheckAuthorizationResult, type CheckAuthorizationInput, type ListAuthorizedResourceIdsInput, type AuthorizedResourceIdsList, type ListAuthorizedPrincipalIdsInput, type AuthorizedPrincipalIdsList, type ListResourceAccessInput, type ResourceAccessByPrincipalList, type PrincipalResourceInput, type PrincipalResourceRoles, type GetPrincipalsCountInput, type PrincipalsCount } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import { IamPolicyIdSchema, RevokeOrgAccessInputSchema, CheckMyPermissionInputSchema, CheckAuthorizationResultSchema, CheckAuthorizationInputSchema, ListAuthorizedResourceIdsInputSchema, AuthorizedResourceIdsListSchema, ListAuthorizedPrincipalIdsInputSchema, AuthorizedPrincipalIdsListSchema, ListResourceAccessInputSchema, ResourceAccessByPrincipalListSchema, PrincipalResourceInputSchema, PrincipalResourceRolesSchema, GetPrincipalsCountInputSchema, PrincipalsCountSchema, ListAccessHistoryInputSchema, AccessHistoryPageSchema, type RevokeOrgAccessInput, type CheckMyPermissionInput, type CheckAuthorizationResult, type CheckAuthorizationInput, type ListAuthorizedResourceIdsInput, type AuthorizedResourceIdsList, type ListAuthorizedPrincipalIdsInput, type AuthorizedPrincipalIdsList, type ListResourceAccessInput, type ResourceAccessByPrincipalList, type PrincipalResourceInput, type PrincipalResourceRoles, type GetPrincipalsCountInput, type PrincipalsCount, type ListAccessHistoryInput, type AccessHistoryPage } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
 import { ApiResourceRefSchema, IamPolicySpecSchema, type IamPolicySpec, type ApiResourceRef } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 
@@ -104,6 +104,26 @@ export class IamPolicyClient {
     try {
       return await this.query.getPrincipalsCount(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  async listAccessHistory(input: ListAccessHistoryInput): Promise<AccessHistoryPage> {
+    try {
+      return await this.query.listAccessHistory(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `listAccessHistory`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listAccessHistoryAll(input: MessageInitShape<typeof ListAccessHistoryInputSchema>): AsyncGenerator<AccessHistoryPage["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.listAccessHistory(create(ListAccessHistoryInputSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 }
 

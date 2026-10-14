@@ -1132,7 +1132,6 @@ describe("extension composition (gate slots + status hooks)", () => {
       status: {
         phase: RunPhase.RUN_COMPLETED,
         completedAt: "2026-08-27T10:00:00Z",
-        messages: [{ content: "done" }],
       },
     });
     // The decorator's contribution rides the field the shared reply
@@ -1150,7 +1149,6 @@ describe("extension composition (gate slots + status hooks)", () => {
       status: {
         phase: RunPhase.RUN_COMPLETED,
         completedAt: "2026-08-27T10:00:00Z",
-        messages: [{ content: "done" }],
       },
     });
     expect(repeat.signal).toBe(RunControlSignal.STOP);

@@ -12,9 +12,9 @@
  * this table and that fixture in lockstep.
  */
 
-import { ToolKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { MEMORY_ATTACHMENT_SLUG } from "./memory-attachment.js";
+import { ToolKind } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 // Bare tool name -> ToolKind, covering both harness naming conventions. A name
 // found here is a built-in and wins over a non-empty mcp_server_slug (an MCP

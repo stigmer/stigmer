@@ -1,72 +1,79 @@
-// Projects a CapturedFileChange (the file-review ledger/domain type) onto the
-// FileChange display view-model that every diff renderer speaks.
+// Projects a CapturedFileChange (one file of the run's file record,
+// `RunStatus.file_changes`) onto the DisplayFileChange every diff renderer
+// speaks: the path to show, the change as one word, the two sides' bodies
+// and the capture-time line counts.
 //
-// The two representations coexist by design (see the CapturedFileChange proto
-// comment): CapturedFileChange is the apply-then-review domain type (always
-// whole-file, byte-exact before/after, carries digests / capture_class /
-// blocked_reason for enforcement), while FileChange is the *display superset* —
-// it additionally models captureLevel and inline HUNK_ONLY diffs, which the
-// still-live deny-gate approval produces directly. Because FileChange is the
-// superset, this projection is lossless; the reverse would not be (a whole-file
-// CapturedFileChange has no inline hunk to lose, but a HUNK_ONLY FileChange has
-// no whole-file bytes). That asymmetry is exactly why display renders through
-// FileChange and this adapter only ever runs one way.
+// A capture is always whole-file: the candidate carries the byte-exact
+// before and after, so a display change renders as a true before/after diff.
+// What was decided about the file is not here; that is the session's
+// `stigmer.file_review.*` events, folded by @stigmer/session-log.
 //
-// This is a pure derive-on-read projection from the single source (the ledger),
-// not a stored second copy: it is called at render time by both FileReviewCard
-// and useSessionFileChanges, never persisted.
+// A pure derive-on-read projection, called at render time by the review
+// card and the session's Changes surface, never stored.
 //
-// Framework-agnostic (no React) so it is shared across @stigmer/react,
-// @stigmer/ink, and mirror-able by the Go CLI, alongside tool-view.ts.
+// Framework-agnostic (no React) so it is shared across @stigmer/react and
+// @stigmer/ink, alongside tool-view.ts.
 
-import { create } from "@bufbuild/protobuf";
 import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { FileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  FileChangeCaptureLevel,
-  FileChangeKind,
-  FileChangeType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { FileContent } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 /**
- * Adapts a {@link CapturedFileChange} to the {@link FileChange} the diff
- * renderers consume. The two reuse the same `FileContent` for before/after, so
- * the bodies map directly; a capture is always WHOLE_FILE (the candidate carries
- * the byte-exact sides), so the resulting `FileChange` renders as a true
- * before/after diff.
- *
- * @param captured - A captured file change from a `FileChangeSet`.
- * @returns The equivalent display-side {@link FileChange}.
+ * How a file changed, in the word the session's file-review events use
+ * (`FileReviewFile.change` in @stigmer/session-log).
  */
-export function toDisplayFileChange(captured: CapturedFileChange): FileChange {
-  return create(FileChangeSchema, {
-    path: captured.pathAfter || captured.pathBefore,
-    changeType: toFileChangeType(captured.kind),
-    captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-    before: captured.before,
-    after: captured.after,
-    // The runner's capture-time display counts ride along so renderers can
-    // show `+N −M` even when a body has been offloaded and no inline diff is
-    // computable. Zero means "no count exists" (binary/withheld/legacy) —
-    // consumers hide the stat, never show "+0 −0".
-    linesAdded: captured.linesAdded,
-    linesRemoved: captured.linesRemoved,
-    renameFrom:
-      captured.kind === FileChangeKind.RENAME ? captured.pathBefore : "",
-  });
+export type DisplayFileChangeType = "added" | "modified" | "deleted" | "renamed";
+
+/** One changed file, as a diff renderer shows it. */
+export interface DisplayFileChange {
+  /** The file's path after the change (its path before, for a deletion). */
+  readonly path: string;
+  readonly changeType: DisplayFileChangeType;
+  /** The file before the change; undefined for an added file. */
+  readonly before: FileContent | undefined;
+  /** The file after the change; undefined for a deleted file. */
+  readonly after: FileContent | undefined;
+  /**
+   * The runner's capture-time line counts, so a renderer can show `+N -M`
+   * even when a body was offloaded and no inline diff is computable. Zero
+   * means no count exists (binary or withheld): hide the stat, never show
+   * "+0 -0".
+   */
+  readonly linesAdded: number;
+  readonly linesRemoved: number;
+  /** The path before a rename; "" for any other change. */
+  readonly renameFrom: string;
 }
 
-/** Maps the ledger's {@link FileChangeKind} to the display {@link FileChangeType}. */
-function toFileChangeType(kind: FileChangeKind): FileChangeType {
+/**
+ * Adapts a {@link CapturedFileChange} to the {@link DisplayFileChange} the
+ * diff renderers consume.
+ *
+ * @param captured - A captured file change from a run's file record.
+ * @returns The display-side change.
+ */
+export function toDisplayFileChange(captured: CapturedFileChange): DisplayFileChange {
+  return {
+    path: captured.pathAfter || captured.pathBefore,
+    changeType: displayChangeTypeOf(captured.kind),
+    before: captured.before,
+    after: captured.after,
+    linesAdded: captured.linesAdded,
+    linesRemoved: captured.linesRemoved,
+    renameFrom: captured.kind === FileChangeKind.RENAME ? captured.pathBefore : "",
+  };
+}
+
+/** Maps the file record's {@link FileChangeKind} to its display word. */
+export function displayChangeTypeOf(kind: FileChangeKind): DisplayFileChangeType {
   switch (kind) {
     case FileChangeKind.ADD:
-      return FileChangeType.CREATE;
+      return "added";
     case FileChangeKind.DELETE:
-      return FileChangeType.DELETE;
+      return "deleted";
     case FileChangeKind.RENAME:
-      return FileChangeType.RENAME;
+      return "renamed";
     default:
-      return FileChangeType.MODIFY;
+      return "modified";
   }
 }

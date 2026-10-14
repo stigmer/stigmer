@@ -43,7 +43,8 @@ import { setMaxListeners } from "node:events";
 import { CancelledFailure, Context } from "@temporalio/activity";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, InteractionMode, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { TurnRowsSchema } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { RunPhase, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { Config } from "../config.js";
 import type { StigmerClient } from "../client/stigmer-client.js";
@@ -96,6 +97,7 @@ import { withRunSpan, type RunSpan } from "./run-span.js";
 import type { HarnessAdapter, TurnInput, TurnSink } from "./types.js";
 import { CostCapWatch } from "./cost-cap-watch.js";
 import type { UsageAccumulator } from "./usage-accumulator.js";
+import { MessageType } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
  * Interval of the activity-wide periodic heartbeat. Started before any phase
@@ -162,6 +164,9 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     phase: RunPhase.RUN_IN_PROGRESS,
     startedAt: utcTimestamp(),
   });
+  // The turn's rows: what the builder folds the engine's events into and the
+  // session event emitter writes the log from. Never sent with the status.
+  const rows = create(TurnRowsSchema);
 
   // The turn's origin, read once on both clocks so the two timelines below
   // and the harness's observed instants (`transcript/events.ts` `Observed`)
@@ -190,15 +195,14 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     boundaryRewritesRow: adapter.capabilities.boundaryRewritesRow,
   });
 
-  // The one transcript builder of this turn, born with the status and before
-  // any phase, so it exists for everything that writes a row or an output
-  // onto the status: the write-back coordinator (phase 2c), the seed of a
-  // reinvocation's prior rows (phase 3, through `seed()`, which indexes them
-  // as it appends), the adapter (`sink.transcript`), and the epilogue. One
-  // constructor call per turn; a second builder over the same status would
-  // index the same rows twice. The timeline and the emitter's previews are
-  // its observer.
-  const transcript = new TranscriptBuilder(executionId, status, (event, at, place) => {
+  // The one transcript builder of this turn, born with the rows and before
+  // any phase, so it exists for everything that writes a row or an output:
+  // the write-back coordinator (phase 2c), the seed of a reinvocation's asks
+  // (phase 3, through `seed()`, which indexes them as it appends), the
+  // adapter (`sink.transcript`), and the epilogue. One constructor call per
+  // turn; a second builder over the same rows would index them twice. The
+  // timeline and the emitter's previews are its observer.
+  const transcript = new TranscriptBuilder(executionId, rows, status, (event, at, place) => {
     timeline.observe(event, at);
     events.observe(event, place);
   });
@@ -226,6 +230,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     evalMocks: undefined,
     evalReadFiles: undefined,
     runWroteEvents: false,
+    priorAnswer: undefined,
   };
   const stop = new StopController();
   let usage: UsageAccumulator | undefined;
@@ -248,6 +253,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     client,
     executionId,
     status,
+    rows,
     offload: artifactStorage ? { artifactStorage, executionId } : undefined,
     usage: () => usage,
     progress: () => capture?.progress,
@@ -289,13 +295,13 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
    * the arm's own message stand.
    */
   const settleWith = async (arm: TerminalArm, failure?: CancelledFailure): Promise<Settled> => {
-    events.skipRootRows(applyTerminalArm(status, arm));
+    events.skipRootRows(applyTerminalArm(status, rows, arm));
     await recordEvalFiles();
     if (arm.disposition.kind === "return") {
       await chokepoint.write({ final: true });
       return { kind: "return", value: slimStatus(status) };
     }
-    cancelInProgressSubAgentProtos(status.subAgentRuns);
+    cancelInProgressSubAgentProtos(rows.subAgentRuns);
     await chokepoint.write({ final: true });
     return { kind: "throw", error: failure ?? new CancelledFailure(arm.disposition.message) };
   };
@@ -324,7 +330,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
         // bytes, so push the tree as the person left it. After the undo,
         // before persist, never on a failed one (diverged bytes must not
         // reach the remote). No engine ran and none will.
-        events.skipRootRows(applyTerminalArm(status, fileReviewResolvedArm(settlement)));
+        events.skipRootRows(applyTerminalArm(status, rows, fileReviewResolvedArm(settlement)));
         if (!settlement.failed && frame.writeback) {
           await frame.writeback.finalize();
         }
@@ -348,6 +354,18 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
         // declarer and the vault. A retry would read the same vaults.
         console.warn(`${activityName} could not fetch the run's values: execution=${executionId}, ${settlement.message}`);
         return settleWith(failedArm(settlement.message, "actionable"));
+      }
+      case "run-finished": {
+        // The run ended while this invocation waited for its workspace: its
+        // stored phase is the turn's outcome, and nothing is written, as
+        // the server takes no more of a finished run. No engine ran.
+        console.warn(
+          `${activityName} run already finished while the turn waited for its workspace; running nothing: ` +
+            `execution=${executionId}, phase=${RunPhase[settlement.status.phase]}`,
+        );
+        status.phase = settlement.status.phase;
+        status.error = settlement.status.error;
+        return { kind: "return", value: slimStatus(settlement.status) };
       }
       case "eval-scaffold-failed": {
         // A plugin-eval try's scaffold failed before the engine started:
@@ -373,7 +391,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     await events.begin({
       sessionId: turn.sessionId,
       resumed: frame.runWroteEvents || activity.info.attempt > 1,
-      status,
+      rows,
     });
     runSpan.model(turn.model.requested);
     const maxCostUsd = turn.execution.status?.runConfig?.maxCostUsd ?? 0;
@@ -408,6 +426,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
 
     const sink: TurnSink = {
       status,
+      rows,
       transcript,
       stopSignal: stop.signal,
       setupTiming,
@@ -449,7 +468,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     // anything on the tree after this point is the turn's change, whoever
     // wrote it (`capture.ts`). Absent outside capture mode.
     capture = await pinCaptureBaseline({
-      status,
+      rows,
       executionId,
       workspace: turn.workspace,
       fileReview: adapter.capabilities.fileReview,
@@ -494,7 +513,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     // the run's ledger and in the log for a Keep or an Undo (stigmer#1471).
     if (capture !== undefined && outcome.kind !== "interrupted") {
       await captureCandidate({
-        status,
+        rows,
         executionId,
         workspace: turn.workspace,
         fileReview: adapter.capabilities.fileReview,
@@ -509,7 +528,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     // before any persist of the outcome: no engine event flips such a row, so
     // without this it would persist WAITING on a finished execution. Every
     // outcome passes through here (`approval-decisions.ts`).
-    terminalizeNonExecutingDecisions(status);
+    terminalizeNonExecutingDecisions(rows);
 
     switch (outcome.kind) {
       case "completed":
@@ -601,11 +620,12 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
 
   /**
    * A turn the engine finished (COMPLETED) or ended cancelled on its own
-   * (CANCELLED): the final text from the last AI row; the structured output
-   * the execution asked for, extracted from that text unless the adapter
-   * already folded it onto the status; the plan artifact in plan mode; the
-   * write-back safety net; the one persist that makes COMPLETED and the
-   * structured output visible atomically; the slim return.
+   * (CANCELLED): the final text from the last AI row (or the run's newest
+   * logged answer, `lastAssistantText`); the structured output the
+   * execution asked for, extracted from that text unless the adapter
+   * already folded it onto the rows; the plan artifact in plan mode; the
+   * write-back safety net; the one persist that writes the structured
+   * output to the log and then COMPLETED; the slim return.
    */
   async function completeTurn(turn: TurnInput, phase: RunPhase): Promise<Settled> {
     status.completedAt = utcTimestamp();
@@ -639,32 +659,38 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
       }
     }
 
-    // NOW persist — the subscriber sees the phase and structured_output atomically.
+    // NOW persist: the structured output reaches the log before the status that completes the turn.
     await recordEvalFiles();
     await chokepoint.write({ final: true });
     console.log(
       `${activityName} completed: execution=${executionId}, phase=${RunPhase[status.phase]}, ` +
-        `hasStructuredOutput=${status.structuredOutput !== undefined}` +
+        `hasStructuredOutput=${rows.structuredOutput !== undefined}` +
         (status.error ? `, error=${status.error}` : ""),
     );
     return { kind: "return", value: slimStatus(status) };
   }
 
-  /** The last assistant text on the transcript: the turn's answer. */
+  /**
+   * The turn's answer: the last assistant text this invocation wrote, or,
+   * when it wrote none (a resumed invocation whose engine only ran the
+   * approved call), the run's newest `agent.message` an earlier invocation
+   * wrote to the log.
+   */
   function lastAssistantText(): string | undefined {
-    return [...status.messages].reverse().find((m) => m.type === MessageType.MESSAGE_AI)?.content;
+    const own = [...rows.messages].reverse().find((m) => m.type === MessageType.MESSAGE_AI && m.content !== "")?.content;
+    return own ?? frame.priorAnswer;
   }
 
   /**
-   * The structured output the execution asked for, folded onto the status
+   * The structured output the execution asked for, folded onto the rows
    * unless the adapter already did (the deep-agent's `structuredResponse`):
    * extracted from the final text through the tiers below. Runs where the
    * engine has FINISHED speaking: a completed turn.
    */
   async function resolveStructuredOutput(turn: TurnInput, finalText: string | undefined): Promise<void> {
-    if (status.structuredOutput !== undefined || !turn.structuredOutputSchema || !finalText) return;
+    if (rows.structuredOutput !== undefined || !turn.structuredOutputSchema || !finalText) return;
     const extracted = await extractStructuredOutputFromText(turn, finalText);
-    if (extracted !== undefined) status.structuredOutput = extracted as JsonObject;
+    if (extracted !== undefined) rows.structuredOutput = extracted as JsonObject;
   }
 
   /**
@@ -783,6 +809,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
       client,
       config,
       status,
+      rows,
       transcript,
       artifactStorage,
       timing: setupTiming,

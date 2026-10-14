@@ -2082,8 +2082,7 @@ type StigmerPermissionAskedEvent struct {
 	Message string `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
 	// A short preview of the tool's input, with secret values redacted.
 	ArgsPreview string `protobuf:"bytes,5,opt,name=args_preview,json=argsPreview,proto3" json:"args_preview,omitempty"`
-	// Which rule asked or resolved the call, as one word, the run's
-	// ApprovalPolicySource without its prefix: builtin_category (a built-in
+	// Which rule asked or resolved the call, as one word: builtin_category (a built-in
 	// tool that writes, deletes or runs a shell), annotation_destructive_tighten
 	// (an MCP tool its server marks destructive, or whose server's tools could
 	// not be listed), hook (a hook decided), approval_lease (an "approve all"
@@ -2797,7 +2796,11 @@ type StigmerFileReviewDecidedEvent struct {
 	// the change was kept).
 	Origin string `protobuf:"bytes,8,opt,name=origin,proto3" json:"origin,omitempty"`
 	// The reason given with the decision, if any.
-	Reason        string `protobuf:"bytes,9,opt,name=reason,proto3" json:"reason,omitempty"`
+	Reason string `protobuf:"bytes,9,opt,name=reason,proto3" json:"reason,omitempty"`
+	// The identity account id of the person who decided; empty for a
+	// decision no person made (an approved_command, eval_try or next_turn
+	// keep).
+	DecidedBy     string `protobuf:"bytes,10,opt,name=decided_by,json=decidedBy,proto3" json:"decided_by,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2891,6 +2894,13 @@ func (x *StigmerFileReviewDecidedEvent) GetOrigin() string {
 func (x *StigmerFileReviewDecidedEvent) GetReason() string {
 	if x != nil {
 		return x.Reason
+	}
+	return ""
+}
+
+func (x *StigmerFileReviewDecidedEvent) GetDecidedBy() string {
+	if x != nil {
+		return x.DecidedBy
 	}
 	return ""
 }
@@ -3686,7 +3696,7 @@ const file_ai_stigmer_agentic_session_v1_event_proto_rawDesc = "" +
 	"\rlines_removed\x18\a \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\flinesRemoved\x12H\n" +
 	"\n" +
 	"reviewable\x18\b \x01(\tB(\xbaH%r#R\bcompleteR\apartialR\x06binaryR\x06secretR\n" +
-	"reviewable\"\xba\x03\n" +
+	"reviewable\"\xd9\x03\n" +
 	"\x1dStigmerFileReviewDecidedEvent\x12:\n" +
 	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x12!\n" +
 	"\fprocessed_at\x18\x02 \x01(\tR\vprocessedAt\x12+\n" +
@@ -3697,7 +3707,10 @@ const file_ai_stigmer_agentic_session_v1_event_proto_rawDesc = "" +
 	"\x06action\x18\x06 \x01(\tB\x11\xbaH\x0er\fR\x04keepR\x04undoR\x06action\x12'\n" +
 	"\x0fexpected_digest\x18\a \x01(\tR\x0eexpectedDigest\x12L\n" +
 	"\x06origin\x18\b \x01(\tB4\xbaH1r/R\x06personR\x10approved_commandR\beval_tryR\tnext_turnR\x06origin\x12\x16\n" +
-	"\x06reason\x18\t \x01(\tR\x06reason\"\xbd\x02\n" +
+	"\x06reason\x18\t \x01(\tR\x06reason\x12\x1d\n" +
+	"\n" +
+	"decided_by\x18\n" +
+	" \x01(\tR\tdecidedBy\"\xbd\x02\n" +
 	" StigmerFileReviewReconciledEvent\x12:\n" +
 	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x12!\n" +
 	"\fprocessed_at\x18\x02 \x01(\tR\vprocessedAt\x12+\n" +

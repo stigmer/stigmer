@@ -1,20 +1,18 @@
 /**
  * Pins a run's file review as its session's log states it (../logged.ts):
- * decided events read in the ledger's terms, in log order, a word this
- * binary does not know passed over; a person's allows (and no deny) as the
- * consent; the first decision on exactly a target; a change-set decision
+ * decided events read in the event's words, in log order, with their
+ * decider (empty for a decision written before the event named one), a
+ * word this binary does not know passed over; a person's allows (and no
+ * deny) as the consent; the first decision on exactly a target; a write's
+ * own decisions folded in (`withDecisions`); a change-set decision
  * covering every file and a file decision its one file; and a set awaiting
- * review only once captured, while a file no decision covers remains (a
- * capture that changed no file until any decision).
+ * review only once its candidate is captured, while a file no decision
+ * covers remains (a capture that changed no file until any decision).
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import {
-  FileChangeSetStatus,
-  FileDecisionAction,
-  FileDecisionScope,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { SnapshotKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { FileChangeSetSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
@@ -22,17 +20,25 @@ import {
   awaitsReview,
   decisionOnTarget,
   decisionsOn,
-  isCaptured,
+  loggedDecisionOf,
   runReviewLogOf,
   undecidedFileIds,
+  withDecisions,
 } from "../logged.js";
 
-function decided(changeSetId: string, scope: string, action: string, fileChangeId = "", origin = "person"): SessionEvent {
+function decided(
+  changeSetId: string,
+  scope: string,
+  action: string,
+  fileChangeId = "",
+  origin = "person",
+  decidedBy = "",
+): SessionEvent {
   return create(SessionEventSchema, {
     runId: "run_a",
     event: {
       case: "stigmerFileReviewDecided",
-      value: { id: `d-${changeSetId}-${scope}-${fileChangeId}-${action}`, changeSetId, scope, fileChangeId, action, origin },
+      value: { id: `d-${changeSetId}-${scope}-${fileChangeId}-${action}`, changeSetId, scope, fileChangeId, action, origin, decidedBy },
     },
   });
 }
@@ -44,25 +50,32 @@ function confirmed(toolUseId: string, result: string): SessionEvent {
   });
 }
 
+const CANDIDATE = { kind: SnapshotKind.GIT_TREE_REF, git: { treeOid: "after", ref: "refs/stigmer/candidate" } };
+
 const twoFiles = create(FileChangeSetSchema, {
   id: "run_a:0",
-  status: FileChangeSetStatus.AWAITING_REVIEW,
+  candidateSnapshot: CANDIDATE,
   changes: [{ id: "fc-1" }, { id: "fc-2" }],
 });
 
 describe("a run's review log", () => {
-  it("reads decisions in the ledger's terms and in log order, passing over a word it does not know and every other event", () => {
+  it("reads decisions in the event's words and in log order, with their decider, passing over a word it does not know and every other event", () => {
     const log = runReviewLogOf([
-      decided("run_a:0", "file", "undo", "fc-1"),
+      decided("run_a:0", "file", "undo", "fc-1", "person", "usr_ada"),
       decided("run_a:0", "change_set", "keep", "ignored", "next_turn"),
       decided("run_a:0", "folder", "keep"),
       decided("run_a:0", "file", "shred", "fc-2"),
       create(SessionEventSchema, { runId: "run_a", event: { case: "agentThinking", value: { id: "t" } } }),
     ]);
     expect(log.decisions).toEqual([
-      { changeSetId: "run_a:0", scope: FileDecisionScope.FILE, fileChangeId: "fc-1", action: FileDecisionAction.REJECT, origin: "person" },
-      { changeSetId: "run_a:0", scope: FileDecisionScope.CHANGE_SET, fileChangeId: "", action: FileDecisionAction.APPROVE, origin: "next_turn" },
+      { changeSetId: "run_a:0", scope: "file", fileChangeId: "fc-1", action: "undo", origin: "person", decidedBy: "usr_ada" },
+      { changeSetId: "run_a:0", scope: "change_set", fileChangeId: "", action: "keep", origin: "next_turn", decidedBy: "" },
     ]);
+  });
+
+  it("reads one decided event alone, and nothing from any other event", () => {
+    expect(loggedDecisionOf(decided("run_a:0", "change_set", "undo", "", "person", ""))?.decidedBy).toBe("");
+    expect(loggedDecisionOf(confirmed("run_a.1", "allow"))).toBeUndefined();
   });
 
   it("holds the tool uses a person allowed, never one denied", () => {
@@ -76,10 +89,21 @@ describe("a run's review log", () => {
       decided("run_a:0", "change_set", "keep"),
       decided("run_a:1", "change_set", "undo"),
     ]);
-    expect(decisionOnTarget(log, "run_a:0", FileDecisionScope.CHANGE_SET, "")?.action).toBe(FileDecisionAction.APPROVE);
-    expect(decisionOnTarget(log, "run_a:0", FileDecisionScope.FILE, "fc-1")?.action).toBe(FileDecisionAction.REJECT);
-    expect(decisionOnTarget(log, "run_a:0", FileDecisionScope.FILE, "fc-2")).toBeUndefined();
+    expect(decisionOnTarget(log, "run_a:0", "change_set", "")?.action).toBe("keep");
+    expect(decisionOnTarget(log, "run_a:0", "file", "fc-1")?.action).toBe("undo");
+    expect(decisionOnTarget(log, "run_a:0", "file", "fc-2")).toBeUndefined();
     expect(decisionsOn(log, "run_a:1")).toHaveLength(1);
+  });
+
+  it("folds a write's own decisions in after the log's, keeping the allows, and is the same log for none", () => {
+    const log = runReviewLogOf([confirmed("run_a.1", "allow"), decided("run_a:0", "file", "undo", "fc-1")]);
+    expect(withDecisions(log, [])).toBe(log);
+    const after = withDecisions(log, [decided("run_a:0", "file", "keep", "fc-2", "next_turn")]);
+    expect(after.decisions.map((d) => [d.fileChangeId, d.action])).toEqual([
+      ["fc-1", "undo"],
+      ["fc-2", "keep"],
+    ]);
+    expect(after.allowed).toBe(log.allowed);
   });
 });
 
@@ -95,11 +119,12 @@ describe("what still awaits review", () => {
   });
 
   it("awaits nothing before the candidate is captured, and a capture with no file until any decision", () => {
-    const capturing = create(FileChangeSetSchema, { id: "run_a:0", status: FileChangeSetStatus.CAPTURING });
-    expect(isCaptured(capturing)).toBe(false);
+    const capturing = create(FileChangeSetSchema, {
+      id: "run_a:0",
+      baselineSnapshot: { kind: SnapshotKind.GIT_TREE_REF, git: { treeOid: "base" } },
+    });
     expect(awaitsReview(capturing, [])).toBe(false);
-    expect(isCaptured(create(FileChangeSetSchema, { id: "run_a:0" }))).toBe(false);
-    const empty = create(FileChangeSetSchema, { id: "run_a:0", status: FileChangeSetStatus.AWAITING_REVIEW });
+    const empty = create(FileChangeSetSchema, { id: "run_a:0", candidateSnapshot: CANDIDATE });
     expect(awaitsReview(empty, [])).toBe(true);
     expect(awaitsReview(empty, runReviewLogOf([decided("run_a:0", "change_set", "keep")]).decisions)).toBe(false);
   });

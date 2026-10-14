@@ -6,34 +6,21 @@ import {
   type Run,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import {
-  FileChangeSchema,
-  FileContentSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
-  FileReviewBaselineCapturedSchema,
-  FileReviewCandidateCapturedSchema,
-  FileReviewEventSchema,
-  FileReviewEventStreamSchema,
   type CapturedFileChange,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import {
-  RunPhase,
-  FileChangeCaptureLevel,
-  FileChangeKind,
-  FileChangeSetStatus,
-  FileChangeType,
-  FileReviewEventType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { DisplayFileChange, DisplayFileChangeType } from "@stigmer/sdk";
 import {
   deriveRunFileChanges,
   toFileDiffEntry,
 } from "../deriveRunFileChanges";
 
 // ---------------------------------------------------------------------------
-// Fixtures — CapturedFileChange only (apply-then-review ledger; see the
+// Fixtures: CapturedFileChange only, in each run's file record (see the
 // sibling useSessionFileChanges suite, which covers the session-wrapper
 // behavior over the same core).
 // ---------------------------------------------------------------------------
@@ -63,63 +50,26 @@ function captured(opts: {
   });
 }
 
-function execWith(id: string): Run {
+/** A run whose file record holds one change set of the given changes. */
+function execWith(id: string, changes: CapturedFileChange[]): Run {
   const exec = create(RunSchema);
   exec.metadata = create(ApiResourceMetadataSchema, { id });
-  exec.status = create(RunStatusSchema);
-  return exec;
-}
-
-/** A run carrying a live server projection of one change set. */
-function execWithProjection(
-  id: string,
-  changes: CapturedFileChange[],
-): Run {
-  const exec = execWith(id);
-  exec.status!.fileChangeSets = [
-    create(FileChangeSetSchema, {
-      id: `${id}:0`,
-      status: FileChangeSetStatus.AWAITING_REVIEW,
-      changes,
-    }),
-  ];
-  return exec;
-}
-
-/** A terminal run: empty projection, changes only in the durable ledger. */
-function execWithLedger(
-  id: string,
-  changes: CapturedFileChange[],
-): Run {
-  const exec = execWith(id);
-  exec.status!.phase = RunPhase.RUN_COMPLETED;
-  exec.status!.fileChangeSets = [];
-  const changeSetId = `${id}:0`;
-  exec.status!.fileReviewEventStream = create(FileReviewEventStreamSchema, {
-    runId: id,
-    events: [
-      create(FileReviewEventSchema, {
-        changeSetId,
-        eventType: FileReviewEventType.BASELINE_CAPTURED,
-        payload: {
-          case: "baselineCaptured",
-          value: create(FileReviewBaselineCapturedSchema, { changeSetId }),
-        },
-      }),
-      create(FileReviewEventSchema, {
-        changeSetId,
-        eventType: FileReviewEventType.CANDIDATE_CAPTURED,
-        payload: {
-          case: "candidateCaptured",
-          value: create(FileReviewCandidateCapturedSchema, {
-            changeSetId,
-            changes,
-          }),
-        },
-      }),
-    ],
+  exec.status = create(RunStatusSchema, {
+    fileChanges: [create(FileChangeSetSchema, { id: `${id}:0`, changes })],
   });
   return exec;
+}
+
+function display(init: Partial<DisplayFileChange> & { path: string }): DisplayFileChange {
+  return {
+    changeType: "modified",
+    before: undefined,
+    after: undefined,
+    linesAdded: 0,
+    linesRemoved: 0,
+    renameFrom: "",
+    ...init,
+  };
 }
 
 function inlineText(side: { body: { case?: string; value?: unknown } } | undefined) {
@@ -140,24 +90,24 @@ describe("deriveRunFileChanges", () => {
   it("net-diffs the same path ACROSS executions: first execution's before -> last execution's after", () => {
     // A session's follow-up turns: two runs touching one file.
     const r = deriveRunFileChanges([
-      execWithLedger("aex_1", [
+      execWith("aex_1", [
         captured({ id: "fc1", pathAfter: "src/shared.ts", before: "v0", after: "v1" }),
       ]),
-      execWithLedger("aex_2", [
+      execWith("aex_2", [
         captured({ id: "fc2", pathAfter: "src/shared.ts", before: "v1", after: "v2" }),
       ]),
     ]);
     expect(r).toHaveLength(1);
     expect(inlineText(r[0].before)).toBe("v0");
     expect(inlineText(r[0].after)).toBe("v2");
-    expect(r[0].changeType).toBe(FileChangeType.MODIFY);
+    expect(r[0].changeType).toBe("modified");
   });
 
   it("anchors the net diff on INPUT order — reversed executions produce the reversed anchors (chronology is a correctness input)", () => {
-    const first = execWithLedger("aex_1", [
+    const first = execWith("aex_1", [
       captured({ id: "fc1", pathAfter: "src/shared.ts", before: "v0", after: "v1" }),
     ]);
-    const second = execWithLedger("aex_2", [
+    const second = execWith("aex_2", [
       captured({ id: "fc2", pathAfter: "src/shared.ts", before: "v1", after: "v2" }),
     ]);
 
@@ -166,25 +116,25 @@ describe("deriveRunFileChanges", () => {
     expect(inlineText(reversed[0].after)).toBe("v1");
   });
 
-  it("reconciles create (execution 1) then delete (execution 2) to DELETE across the span", () => {
+  it("reconciles an add (execution 1) then a delete (execution 2) to deleted across the span", () => {
     const r = deriveRunFileChanges([
-      execWithLedger("aex_1", [
+      execWith("aex_1", [
         captured({ id: "fc1", pathAfter: "src/tmp.ts", after: "scratch", kind: FileChangeKind.ADD }),
       ]),
-      execWithLedger("aex_2", [
+      execWith("aex_2", [
         captured({ id: "fc2", pathBefore: "src/tmp.ts", pathAfter: "src/tmp.ts", before: "scratch", kind: FileChangeKind.DELETE }),
       ]),
     ]);
     expect(r).toHaveLength(1);
-    expect(r[0].changeType).toBe(FileChangeType.DELETE);
+    expect(r[0].changeType).toBe("deleted");
   });
 
-  it("mixes projection (live child) and ledger (terminal child) sources in one rollup", () => {
+  it("rolls up a finished run and a live run in one list", () => {
     const r = deriveRunFileChanges([
-      execWithLedger("aex_done", [
+      execWith("aex_done", [
         captured({ id: "fc1", pathAfter: "src/a.ts", before: "a", after: "b" }),
       ]),
-      execWithProjection("aex_live", [
+      execWith("aex_live", [
         captured({ id: "fc2", pathAfter: "src/b.ts", before: "x", after: "y" }),
       ]),
     ]);
@@ -193,10 +143,10 @@ describe("deriveRunFileChanges", () => {
 
   it("keeps distinct paths from distinct executions distinct", () => {
     const r = deriveRunFileChanges([
-      execWithLedger("aex_1", [
+      execWith("aex_1", [
         captured({ id: "fc1", pathAfter: "src/one.ts", before: "a", after: "b" }),
       ]),
-      execWithLedger("aex_2", [
+      execWith("aex_2", [
         captured({ id: "fc2", pathAfter: "src/two.ts", before: "c", after: "d" }),
       ]),
     ]);
@@ -205,40 +155,23 @@ describe("deriveRunFileChanges", () => {
 });
 
 // ---------------------------------------------------------------------------
-// toFileDiffEntry — the FileChange → FileDiffEntry projection
+// toFileDiffEntry — the DisplayFileChange → FileDiffEntry projection
 // ---------------------------------------------------------------------------
 
 describe("toFileDiffEntry", () => {
   it("maps change types to the file-list vocabulary", () => {
-    const of = (changeType: FileChangeType) =>
-      toFileDiffEntry(create(FileChangeSchema, { path: "p", changeType }));
-    expect(of(FileChangeType.CREATE).changeType).toBe("added");
-    expect(of(FileChangeType.DELETE).changeType).toBe("removed");
-    expect(of(FileChangeType.MODIFY).changeType).toBe("modified");
-    expect(of(FileChangeType.RENAME).changeType).toBe("modified");
-  });
-
-  it("uses the runner's authoritative counts for hunk-only captures", () => {
-    const entry = toFileDiffEntry(
-      create(FileChangeSchema, {
-        path: "src/a.ts",
-        changeType: FileChangeType.MODIFY,
-        captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
-        unifiedDiff: "@@ -1 +1 @@\n-a\n+b",
-        linesAdded: 3,
-        linesRemoved: 2,
-      }),
-    );
-    expect(entry.additions).toBe(3);
-    expect(entry.deletions).toBe(2);
+    const of = (changeType: DisplayFileChangeType) =>
+      toFileDiffEntry(display({ path: "p", changeType }));
+    expect(of("added").changeType).toBe("added");
+    expect(of("deleted").changeType).toBe("removed");
+    expect(of("modified").changeType).toBe("modified");
+    expect(of("renamed").changeType).toBe("modified");
   });
 
   it("derives counts from inline whole-file content", () => {
     const entry = toFileDiffEntry(
-      create(FileChangeSchema, {
+      display({
         path: "src/a.ts",
-        changeType: FileChangeType.MODIFY,
-        captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
         before: inlineSide("line1\nline2\n"),
         after: inlineSide("line1\nline2 changed\nline3\n"),
       }),
@@ -247,12 +180,10 @@ describe("toFileDiffEntry", () => {
     expect(entry.deletions).toBe(1);
   });
 
-  it("falls back to capture-time counts when a whole-file side is offloaded", () => {
+  it("falls back to capture-time counts when a side is offloaded", () => {
     const entry = toFileDiffEntry(
-      create(FileChangeSchema, {
+      display({
         path: "src/big.ts",
-        changeType: FileChangeType.MODIFY,
-        captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
         before: create(FileContentSchema, {
           body: {
             case: "ref",

@@ -9,6 +9,9 @@ package ai.stigmer.agentic.run.v1;
  * <pre>
  * RunStatus contains all run results and state.
  * Everything populated during or after the run goes here, not in spec.
+ * The conversation itself (messages, tool calls, approvals, todos,
+ * sub-agents, structured output and file-review decisions) is the session's
+ * event log (SessionEvent), not a field here.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.run.v1.RunStatus}
@@ -33,16 +36,13 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private RunStatus() {
-    messages_ = java.util.Collections.emptyList();
     phase_ = 0;
-    subAgentRuns_ = java.util.Collections.emptyList();
     error_ = "";
     startedAt_ = "";
     completedAt_ = "";
-    pendingApprovals_ = java.util.Collections.emptyList();
     artifacts_ = java.util.Collections.emptyList();
     workspaceWriteBacks_ = java.util.Collections.emptyList();
-    fileChangeSets_ = java.util.Collections.emptyList();
+    fileChanges_ = java.util.Collections.emptyList();
     agentId_ = "";
     agentVersionHash_ = "";
     approvalMode_ = 0;
@@ -59,18 +59,6 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.run.v1.ApiProto.internal_static_ai_stigmer_agentic_run_v1_RunStatus_descriptor;
   }
 
-  @SuppressWarnings({"rawtypes"})
-  @java.lang.Override
-  protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
-      int number) {
-    switch (number) {
-      case 9:
-        return internalGetTodos();
-      default:
-        throw new RuntimeException(
-            "Invalid map field number: " + number);
-    }
-  }
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internalGetFieldAccessorTable() {
@@ -118,77 +106,6 @@ private static final long serialVersionUID = 0L;
     return audit_ == null ? ai.stigmer.commons.apiresource.ApiResourceAudit.getDefaultInstance() : audit_;
   }
 
-  public static final int MESSAGES_FIELD_NUMBER = 1;
-  @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.run.v1.AgentMessage> messages_;
-  /**
-   * <pre>
-   * Sequential stream of run events: AI messages, tool calls, and system notifications.
-   * Ordered chronologically to reconstruct the complete run flow.
-   * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.run.v1.AgentMessage> getMessagesList() {
-    return messages_;
-  }
-  /**
-   * <pre>
-   * Sequential stream of run events: AI messages, tool calls, and system notifications.
-   * Ordered chronologically to reconstruct the complete run flow.
-   * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<? extends ai.stigmer.agentic.run.v1.AgentMessageOrBuilder> 
-      getMessagesOrBuilderList() {
-    return messages_;
-  }
-  /**
-   * <pre>
-   * Sequential stream of run events: AI messages, tool calls, and system notifications.
-   * Ordered chronologically to reconstruct the complete run flow.
-   * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-   */
-  @java.lang.Override
-  public int getMessagesCount() {
-    return messages_.size();
-  }
-  /**
-   * <pre>
-   * Sequential stream of run events: AI messages, tool calls, and system notifications.
-   * Ordered chronologically to reconstruct the complete run flow.
-   * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.AgentMessage getMessages(int index) {
-    return messages_.get(index);
-  }
-  /**
-   * <pre>
-   * Sequential stream of run events: AI messages, tool calls, and system notifications.
-   * Ordered chronologically to reconstruct the complete run flow.
-   * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.AgentMessageOrBuilder getMessagesOrBuilder(
-      int index) {
-    return messages_.get(index);
-  }
-
   public static final int PHASE_FIELD_NUMBER = 2;
   private int phase_ = 0;
   /**
@@ -217,77 +134,6 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override public ai.stigmer.agentic.run.v1.RunPhase getPhase() {
     ai.stigmer.agentic.run.v1.RunPhase result = ai.stigmer.agentic.run.v1.RunPhase.forNumber(phase_);
     return result == null ? ai.stigmer.agentic.run.v1.RunPhase.UNRECOGNIZED : result;
-  }
-
-  public static final int SUB_AGENT_RUNS_FIELD_NUMBER = 4;
-  @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.run.v1.SubAgentRun> subAgentRuns_;
-  /**
-   * <pre>
-   * Sub-agent runs invoked during this run.
-   * Tracks when the main agent delegates work to specialized sub-agents.
-   * Ordered chronologically by invocation time.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.run.v1.SubAgentRun> getSubAgentRunsList() {
-    return subAgentRuns_;
-  }
-  /**
-   * <pre>
-   * Sub-agent runs invoked during this run.
-   * Tracks when the main agent delegates work to specialized sub-agents.
-   * Ordered chronologically by invocation time.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<? extends ai.stigmer.agentic.run.v1.SubAgentRunOrBuilder> 
-      getSubAgentRunsOrBuilderList() {
-    return subAgentRuns_;
-  }
-  /**
-   * <pre>
-   * Sub-agent runs invoked during this run.
-   * Tracks when the main agent delegates work to specialized sub-agents.
-   * Ordered chronologically by invocation time.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-   */
-  @java.lang.Override
-  public int getSubAgentRunsCount() {
-    return subAgentRuns_.size();
-  }
-  /**
-   * <pre>
-   * Sub-agent runs invoked during this run.
-   * Tracks when the main agent delegates work to specialized sub-agents.
-   * Ordered chronologically by invocation time.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.SubAgentRun getSubAgentRuns(int index) {
-    return subAgentRuns_.get(index);
-  }
-  /**
-   * <pre>
-   * Sub-agent runs invoked during this run.
-   * Tracks when the main agent delegates work to specialized sub-agents.
-   * Ordered chronologically by invocation time.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.SubAgentRunOrBuilder getSubAgentRunsOrBuilder(
-      int index) {
-    return subAgentRuns_.get(index);
   }
 
   public static final int ERROR_FIELD_NUMBER = 6;
@@ -435,312 +281,6 @@ private static final long serialVersionUID = 0L;
     } else {
       return (com.google.protobuf.ByteString) ref;
     }
-  }
-
-  public static final int TODOS_FIELD_NUMBER = 9;
-  private static final class TodosDefaultEntryHolder {
-    static final com.google.protobuf.MapEntry<
-        java.lang.String, ai.stigmer.agentic.run.v1.TodoItem> defaultEntry =
-            com.google.protobuf.MapEntry
-            .<java.lang.String, ai.stigmer.agentic.run.v1.TodoItem>newDefaultInstance(
-                ai.stigmer.agentic.run.v1.ApiProto.internal_static_ai_stigmer_agentic_run_v1_RunStatus_TodosEntry_descriptor, 
-                com.google.protobuf.WireFormat.FieldType.STRING,
-                "",
-                com.google.protobuf.WireFormat.FieldType.MESSAGE,
-                ai.stigmer.agentic.run.v1.TodoItem.getDefaultInstance());
-  }
-  @SuppressWarnings("serial")
-  private com.google.protobuf.MapField<
-      java.lang.String, ai.stigmer.agentic.run.v1.TodoItem> todos_;
-  private com.google.protobuf.MapField<java.lang.String, ai.stigmer.agentic.run.v1.TodoItem>
-  internalGetTodos() {
-    if (todos_ == null) {
-      return com.google.protobuf.MapField.emptyMapField(
-          TodosDefaultEntryHolder.defaultEntry);
-    }
-    return todos_;
-  }
-  public int getTodosCount() {
-    return internalGetTodos().getMap().size();
-  }
-  /**
-   * <pre>
-   * Todo list tracking multi-step tasks and progress for this run.
-   * Updated via write_todos tool (if TodoListMiddleware is enabled).
-   * Each run maintains its own snapshot of todos at run time.
-   * Key: todo item ID, Value: todo item details
-   * </pre>
-   *
-   * <code>map&lt;string, .ai.stigmer.agentic.run.v1.TodoItem&gt; todos = 9 [json_name = "todos"];</code>
-   */
-  @java.lang.Override
-  public boolean containsTodos(
-      java.lang.String key) {
-    if (key == null) { throw new NullPointerException("map key"); }
-    return internalGetTodos().getMap().containsKey(key);
-  }
-  /**
-   * Use {@link #getTodosMap()} instead.
-   */
-  @java.lang.Override
-  @java.lang.Deprecated
-  public java.util.Map<java.lang.String, ai.stigmer.agentic.run.v1.TodoItem> getTodos() {
-    return getTodosMap();
-  }
-  /**
-   * <pre>
-   * Todo list tracking multi-step tasks and progress for this run.
-   * Updated via write_todos tool (if TodoListMiddleware is enabled).
-   * Each run maintains its own snapshot of todos at run time.
-   * Key: todo item ID, Value: todo item details
-   * </pre>
-   *
-   * <code>map&lt;string, .ai.stigmer.agentic.run.v1.TodoItem&gt; todos = 9 [json_name = "todos"];</code>
-   */
-  @java.lang.Override
-  public java.util.Map<java.lang.String, ai.stigmer.agentic.run.v1.TodoItem> getTodosMap() {
-    return internalGetTodos().getMap();
-  }
-  /**
-   * <pre>
-   * Todo list tracking multi-step tasks and progress for this run.
-   * Updated via write_todos tool (if TodoListMiddleware is enabled).
-   * Each run maintains its own snapshot of todos at run time.
-   * Key: todo item ID, Value: todo item details
-   * </pre>
-   *
-   * <code>map&lt;string, .ai.stigmer.agentic.run.v1.TodoItem&gt; todos = 9 [json_name = "todos"];</code>
-   */
-  @java.lang.Override
-  public /* nullable */
-ai.stigmer.agentic.run.v1.TodoItem getTodosOrDefault(
-      java.lang.String key,
-      /* nullable */
-ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
-    if (key == null) { throw new NullPointerException("map key"); }
-    java.util.Map<java.lang.String, ai.stigmer.agentic.run.v1.TodoItem> map =
-        internalGetTodos().getMap();
-    return map.containsKey(key) ? map.get(key) : defaultValue;
-  }
-  /**
-   * <pre>
-   * Todo list tracking multi-step tasks and progress for this run.
-   * Updated via write_todos tool (if TodoListMiddleware is enabled).
-   * Each run maintains its own snapshot of todos at run time.
-   * Key: todo item ID, Value: todo item details
-   * </pre>
-   *
-   * <code>map&lt;string, .ai.stigmer.agentic.run.v1.TodoItem&gt; todos = 9 [json_name = "todos"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.TodoItem getTodosOrThrow(
-      java.lang.String key) {
-    if (key == null) { throw new NullPointerException("map key"); }
-    java.util.Map<java.lang.String, ai.stigmer.agentic.run.v1.TodoItem> map =
-        internalGetTodos().getMap();
-    if (!map.containsKey(key)) {
-      throw new java.lang.IllegalArgumentException();
-    }
-    return map.get(key);
-  }
-
-  public static final int PENDING_APPROVALS_FIELD_NUMBER = 16;
-  @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.run.v1.PendingApproval> pendingApprovals_;
-  /**
-   * <pre>
-   * Active pending approval requests for this run.
-   *
-   * Contains one entry per tool call that requires user approval before
-   * it can proceed. Sub-agent approvals are included with from_sub_agent
-   * set to true. Empty when no approvals are pending.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.run.v1.PendingApproval> getPendingApprovalsList() {
-    return pendingApprovals_;
-  }
-  /**
-   * <pre>
-   * Active pending approval requests for this run.
-   *
-   * Contains one entry per tool call that requires user approval before
-   * it can proceed. Sub-agent approvals are included with from_sub_agent
-   * set to true. Empty when no approvals are pending.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<? extends ai.stigmer.agentic.run.v1.PendingApprovalOrBuilder> 
-      getPendingApprovalsOrBuilderList() {
-    return pendingApprovals_;
-  }
-  /**
-   * <pre>
-   * Active pending approval requests for this run.
-   *
-   * Contains one entry per tool call that requires user approval before
-   * it can proceed. Sub-agent approvals are included with from_sub_agent
-   * set to true. Empty when no approvals are pending.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-   */
-  @java.lang.Override
-  public int getPendingApprovalsCount() {
-    return pendingApprovals_.size();
-  }
-  /**
-   * <pre>
-   * Active pending approval requests for this run.
-   *
-   * Contains one entry per tool call that requires user approval before
-   * it can proceed. Sub-agent approvals are included with from_sub_agent
-   * set to true. Empty when no approvals are pending.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.PendingApproval getPendingApprovals(int index) {
-    return pendingApprovals_.get(index);
-  }
-  /**
-   * <pre>
-   * Active pending approval requests for this run.
-   *
-   * Contains one entry per tool call that requires user approval before
-   * it can proceed. Sub-agent approvals are included with from_sub_agent
-   * set to true. Empty when no approvals are pending.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.PendingApprovalOrBuilder getPendingApprovalsOrBuilder(
-      int index) {
-    return pendingApprovals_.get(index);
-  }
-
-  public static final int APPROVAL_EVENT_STREAM_FIELD_NUMBER = 22;
-  private ai.stigmer.agentic.run.v1.ApprovalEventStream approvalEventStream_;
-  /**
-   * <pre>
-   * No longer written: approvals and their answers are the session's events
-   * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
-   * stigmer.permission.grant). Runs written before then keep their entries.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
-   * @return Whether the approvalEventStream field is set.
-   */
-  @java.lang.Override
-  public boolean hasApprovalEventStream() {
-    return ((bitField0_ & 0x00000002) != 0);
-  }
-  /**
-   * <pre>
-   * No longer written: approvals and their answers are the session's events
-   * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
-   * stigmer.permission.grant). Runs written before then keep their entries.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
-   * @return The approvalEventStream.
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.ApprovalEventStream getApprovalEventStream() {
-    return approvalEventStream_ == null ? ai.stigmer.agentic.run.v1.ApprovalEventStream.getDefaultInstance() : approvalEventStream_;
-  }
-  /**
-   * <pre>
-   * No longer written: approvals and their answers are the session's events
-   * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
-   * stigmer.permission.grant). Runs written before then keep their entries.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.ApprovalEventStreamOrBuilder getApprovalEventStreamOrBuilder() {
-    return approvalEventStream_ == null ? ai.stigmer.agentic.run.v1.ApprovalEventStream.getDefaultInstance() : approvalEventStream_;
-  }
-
-  public static final int CONTEXT_INFO_FIELD_NUMBER = 14;
-  private ai.stigmer.agentic.run.v1.ContextInfo contextInfo_;
-  /**
-   * <pre>
-   * Context window utilization and summarization tracking.
-   *
-   * Provides visibility into how the agent is using its context window and
-   * any summarization events that occurred during the run.
-   *
-   * Populated when context management is active (not disabled via config).
-   * Updated progressively during streaming as token counts change.
-   *
-   * Use cases:
-   * - **Monitoring**: Track context utilization across runs
-   * - **Debugging**: Understand why a run hit context limits
-   * - **Cost optimization**: Identify runs with excessive summarization
-   * - **UX**: Show users their context window health
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
-   * @return Whether the contextInfo field is set.
-   */
-  @java.lang.Override
-  public boolean hasContextInfo() {
-    return ((bitField0_ & 0x00000004) != 0);
-  }
-  /**
-   * <pre>
-   * Context window utilization and summarization tracking.
-   *
-   * Provides visibility into how the agent is using its context window and
-   * any summarization events that occurred during the run.
-   *
-   * Populated when context management is active (not disabled via config).
-   * Updated progressively during streaming as token counts change.
-   *
-   * Use cases:
-   * - **Monitoring**: Track context utilization across runs
-   * - **Debugging**: Understand why a run hit context limits
-   * - **Cost optimization**: Identify runs with excessive summarization
-   * - **UX**: Show users their context window health
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
-   * @return The contextInfo.
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.ContextInfo getContextInfo() {
-    return contextInfo_ == null ? ai.stigmer.agentic.run.v1.ContextInfo.getDefaultInstance() : contextInfo_;
-  }
-  /**
-   * <pre>
-   * Context window utilization and summarization tracking.
-   *
-   * Provides visibility into how the agent is using its context window and
-   * any summarization events that occurred during the run.
-   *
-   * Populated when context management is active (not disabled via config).
-   * Updated progressively during streaming as token counts change.
-   *
-   * Use cases:
-   * - **Monitoring**: Track context utilization across runs
-   * - **Debugging**: Understand why a run hit context limits
-   * - **Cost optimization**: Identify runs with excessive summarization
-   * - **UX**: Show users their context window health
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.ContextInfoOrBuilder getContextInfoOrBuilder() {
-    return contextInfo_ == null ? ai.stigmer.agentic.run.v1.ContextInfo.getDefaultInstance() : contextInfo_;
   }
 
   public static final int ARTIFACTS_FIELD_NUMBER = 15;
@@ -971,7 +511,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
    */
   @java.lang.Override
   public boolean hasSetupProgress() {
-    return ((bitField0_ & 0x00000008) != 0);
+    return ((bitField0_ & 0x00000002) != 0);
   }
   /**
    * <pre>
@@ -1017,7 +557,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
    */
   @java.lang.Override
   public boolean hasStreamingUsage() {
-    return ((bitField0_ & 0x00000010) != 0);
+    return ((bitField0_ & 0x00000004) != 0);
   }
   /**
    * <pre>
@@ -1043,184 +583,6 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     return streamingUsage_ == null ? ai.stigmer.agentic.run.v1.StreamingUsageSummary.getDefaultInstance() : streamingUsage_;
   }
 
-  public static final int STRUCTURED_OUTPUT_FIELD_NUMBER = 21;
-  private com.google.protobuf.Struct structuredOutput_;
-  /**
-   * <pre>
-   * Structured output extracted from the agent's final response.
-   *
-   * Populated when spec.structured_output_schema was set and the
-   * runner successfully extracted schema-conforming data. Only meaningful
-   * when phase is RUN_COMPLETED.
-   *
-   * For native harness: populated from LangGraph graphState.structuredResponse
-   * (ToolStrategy enforcement). For Cursor harness: populated from 3-tier
-   * extraction (JSON.parse → fence extraction → extraction LLM fallback).
-   *
-   * Consumers: frontend architect/refine hooks read this instead of parsing
-   * YAML from messages.
-   * </pre>
-   *
-   * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
-   * @return Whether the structuredOutput field is set.
-   */
-  @java.lang.Override
-  public boolean hasStructuredOutput() {
-    return ((bitField0_ & 0x00000020) != 0);
-  }
-  /**
-   * <pre>
-   * Structured output extracted from the agent's final response.
-   *
-   * Populated when spec.structured_output_schema was set and the
-   * runner successfully extracted schema-conforming data. Only meaningful
-   * when phase is RUN_COMPLETED.
-   *
-   * For native harness: populated from LangGraph graphState.structuredResponse
-   * (ToolStrategy enforcement). For Cursor harness: populated from 3-tier
-   * extraction (JSON.parse → fence extraction → extraction LLM fallback).
-   *
-   * Consumers: frontend architect/refine hooks read this instead of parsing
-   * YAML from messages.
-   * </pre>
-   *
-   * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
-   * @return The structuredOutput.
-   */
-  @java.lang.Override
-  public com.google.protobuf.Struct getStructuredOutput() {
-    return structuredOutput_ == null ? com.google.protobuf.Struct.getDefaultInstance() : structuredOutput_;
-  }
-  /**
-   * <pre>
-   * Structured output extracted from the agent's final response.
-   *
-   * Populated when spec.structured_output_schema was set and the
-   * runner successfully extracted schema-conforming data. Only meaningful
-   * when phase is RUN_COMPLETED.
-   *
-   * For native harness: populated from LangGraph graphState.structuredResponse
-   * (ToolStrategy enforcement). For Cursor harness: populated from 3-tier
-   * extraction (JSON.parse → fence extraction → extraction LLM fallback).
-   *
-   * Consumers: frontend architect/refine hooks read this instead of parsing
-   * YAML from messages.
-   * </pre>
-   *
-   * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
-   */
-  @java.lang.Override
-  public com.google.protobuf.StructOrBuilder getStructuredOutputOrBuilder() {
-    return structuredOutput_ == null ? com.google.protobuf.Struct.getDefaultInstance() : structuredOutput_;
-  }
-
-  public static final int FILE_CHANGE_SETS_FIELD_NUMBER = 23;
-  @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.run.v1.FileChangeSet> fileChangeSets_;
-  /**
-   * <pre>
-   * Server-computed projection of file change sets awaiting or completing
-   * review for this run.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.run.v1.FileChangeSet> getFileChangeSetsList() {
-    return fileChangeSets_;
-  }
-  /**
-   * <pre>
-   * Server-computed projection of file change sets awaiting or completing
-   * review for this run.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<? extends ai.stigmer.agentic.run.v1.FileChangeSetOrBuilder> 
-      getFileChangeSetsOrBuilderList() {
-    return fileChangeSets_;
-  }
-  /**
-   * <pre>
-   * Server-computed projection of file change sets awaiting or completing
-   * review for this run.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-   */
-  @java.lang.Override
-  public int getFileChangeSetsCount() {
-    return fileChangeSets_.size();
-  }
-  /**
-   * <pre>
-   * Server-computed projection of file change sets awaiting or completing
-   * review for this run.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.FileChangeSet getFileChangeSets(int index) {
-    return fileChangeSets_.get(index);
-  }
-  /**
-   * <pre>
-   * Server-computed projection of file change sets awaiting or completing
-   * review for this run.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.FileChangeSetOrBuilder getFileChangeSetsOrBuilder(
-      int index) {
-    return fileChangeSets_.get(index);
-  }
-
-  public static final int FILE_REVIEW_EVENT_STREAM_FIELD_NUMBER = 24;
-  private ai.stigmer.agentic.run.v1.FileReviewEventStream fileReviewEventStream_;
-  /**
-   * <pre>
-   * Server-owned, append-only record of every file-review event (baseline /
-   * candidate capture, file decisions, reconcile, failures).
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
-   * @return Whether the fileReviewEventStream field is set.
-   */
-  @java.lang.Override
-  public boolean hasFileReviewEventStream() {
-    return ((bitField0_ & 0x00000040) != 0);
-  }
-  /**
-   * <pre>
-   * Server-owned, append-only record of every file-review event (baseline /
-   * candidate capture, file decisions, reconcile, failures).
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
-   * @return The fileReviewEventStream.
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.FileReviewEventStream getFileReviewEventStream() {
-    return fileReviewEventStream_ == null ? ai.stigmer.agentic.run.v1.FileReviewEventStream.getDefaultInstance() : fileReviewEventStream_;
-  }
-  /**
-   * <pre>
-   * Server-owned, append-only record of every file-review event (baseline /
-   * candidate capture, file decisions, reconcile, failures).
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.FileReviewEventStreamOrBuilder getFileReviewEventStreamOrBuilder() {
-    return fileReviewEventStream_ == null ? ai.stigmer.agentic.run.v1.FileReviewEventStream.getDefaultInstance() : fileReviewEventStream_;
-  }
-
   public static final int FILE_CHANGE_PROGRESS_FIELD_NUMBER = 25;
   private ai.stigmer.agentic.run.v1.FileChangeProgress fileChangeProgress_;
   /**
@@ -1235,7 +597,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
    */
   @java.lang.Override
   public boolean hasFileChangeProgress() {
-    return ((bitField0_ & 0x00000080) != 0);
+    return ((bitField0_ & 0x00000008) != 0);
   }
   /**
    * <pre>
@@ -1265,54 +627,100 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     return fileChangeProgress_ == null ? ai.stigmer.agentic.run.v1.FileChangeProgress.getDefaultInstance() : fileChangeProgress_;
   }
 
-  public static final int RECALLED_MEMORIES_REPORT_FIELD_NUMBER = 26;
-  private ai.stigmer.agentic.run.v1.RecalledMemoriesReport recalledMemoriesReport_;
+  public static final int FILE_CHANGES_FIELD_NUMBER = 37;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.run.v1.FileChangeSet> fileChanges_;
   /**
    * <pre>
-   * Report of which recalled memories were injected into this run's
-   * prompt.
+   * The run's file record: the change sets its turns captured, each with the
+   * files' contents before and after (inline or by storage key), the diff, the
+   * snapshots they were read from and the consent the turn's commands ran
+   * under. Empty for a run that changed no file or ran without file review.
    *
-   * Absent, or present with selection_active=false, means wholesale: every
-   * fact in the status.recalled_memories snapshot was injected.
+   * A record only: it carries no status and no decisions. What was decided,
+   * what is still undecided and what was put back are the session's
+   * stigmer.file_review.* events.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.run.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
-   * @return Whether the recalledMemoriesReport field is set.
+   * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
    */
   @java.lang.Override
-  public boolean hasRecalledMemoriesReport() {
-    return ((bitField0_ & 0x00000100) != 0);
+  public java.util.List<ai.stigmer.agentic.run.v1.FileChangeSet> getFileChangesList() {
+    return fileChanges_;
   }
   /**
    * <pre>
-   * Report of which recalled memories were injected into this run's
-   * prompt.
+   * The run's file record: the change sets its turns captured, each with the
+   * files' contents before and after (inline or by storage key), the diff, the
+   * snapshots they were read from and the consent the turn's commands ran
+   * under. Empty for a run that changed no file or ran without file review.
    *
-   * Absent, or present with selection_active=false, means wholesale: every
-   * fact in the status.recalled_memories snapshot was injected.
+   * A record only: it carries no status and no decisions. What was decided,
+   * what is still undecided and what was put back are the session's
+   * stigmer.file_review.* events.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.run.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
-   * @return The recalledMemoriesReport.
+   * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.run.v1.RecalledMemoriesReport getRecalledMemoriesReport() {
-    return recalledMemoriesReport_ == null ? ai.stigmer.agentic.run.v1.RecalledMemoriesReport.getDefaultInstance() : recalledMemoriesReport_;
+  public java.util.List<? extends ai.stigmer.agentic.run.v1.FileChangeSetOrBuilder> 
+      getFileChangesOrBuilderList() {
+    return fileChanges_;
   }
   /**
    * <pre>
-   * Report of which recalled memories were injected into this run's
-   * prompt.
+   * The run's file record: the change sets its turns captured, each with the
+   * files' contents before and after (inline or by storage key), the diff, the
+   * snapshots they were read from and the consent the turn's commands ran
+   * under. Empty for a run that changed no file or ran without file review.
    *
-   * Absent, or present with selection_active=false, means wholesale: every
-   * fact in the status.recalled_memories snapshot was injected.
+   * A record only: it carries no status and no decisions. What was decided,
+   * what is still undecided and what was put back are the session's
+   * stigmer.file_review.* events.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.run.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.run.v1.RecalledMemoriesReportOrBuilder getRecalledMemoriesReportOrBuilder() {
-    return recalledMemoriesReport_ == null ? ai.stigmer.agentic.run.v1.RecalledMemoriesReport.getDefaultInstance() : recalledMemoriesReport_;
+  public int getFileChangesCount() {
+    return fileChanges_.size();
+  }
+  /**
+   * <pre>
+   * The run's file record: the change sets its turns captured, each with the
+   * files' contents before and after (inline or by storage key), the diff, the
+   * snapshots they were read from and the consent the turn's commands ran
+   * under. Empty for a run that changed no file or ran without file review.
+   *
+   * A record only: it carries no status and no decisions. What was decided,
+   * what is still undecided and what was put back are the session's
+   * stigmer.file_review.* events.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.run.v1.FileChangeSet getFileChanges(int index) {
+    return fileChanges_.get(index);
+  }
+  /**
+   * <pre>
+   * The run's file record: the change sets its turns captured, each with the
+   * files' contents before and after (inline or by storage key), the diff, the
+   * snapshots they were read from and the consent the turn's commands ran
+   * under. Empty for a run that changed no file or ran without file review.
+   *
+   * A record only: it carries no status and no decisions. What was decided,
+   * what is still undecided and what was put back are the session's
+   * stigmer.file_review.* events.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.run.v1.FileChangeSetOrBuilder getFileChangesOrBuilder(
+      int index) {
+    return fileChanges_.get(index);
   }
 
   public static final int AGENT_ID_FIELD_NUMBER = 27;
@@ -1441,7 +849,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
    */
   @java.lang.Override
   public boolean hasLoadedVersions() {
-    return ((bitField0_ & 0x00000200) != 0);
+    return ((bitField0_ & 0x00000010) != 0);
   }
   /**
    * <pre>
@@ -1488,7 +896,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
    */
   @java.lang.Override
   public boolean hasDeclaredPreferences() {
-    return ((bitField0_ & 0x00000400) != 0);
+    return ((bitField0_ & 0x00000020) != 0);
   }
   /**
    * <pre>
@@ -1529,7 +937,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
    */
   @java.lang.Override
   public boolean hasRecalledMemories() {
-    return ((bitField0_ & 0x00000800) != 0);
+    return ((bitField0_ & 0x00000040) != 0);
   }
   /**
    * <pre>
@@ -1574,7 +982,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
    */
   @java.lang.Override
   public boolean hasRunConfig() {
-    return ((bitField0_ & 0x00001000) != 0);
+    return ((bitField0_ & 0x00000080) != 0);
   }
   /**
    * <pre>
@@ -1661,7 +1069,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
    */
   @java.lang.Override
   public boolean hasCredentials() {
-    return ((bitField0_ & 0x00002000) != 0);
+    return ((bitField0_ & 0x00000100) != 0);
   }
   /**
    * <pre>
@@ -1701,7 +1109,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
    */
   @java.lang.Override
   public boolean hasPluginEvalFiles() {
-    return ((bitField0_ & 0x00004000) != 0);
+    return ((bitField0_ & 0x00000200) != 0);
   }
   /**
    * <pre>
@@ -1800,14 +1208,8 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    for (int i = 0; i < messages_.size(); i++) {
-      output.writeMessage(1, messages_.get(i));
-    }
     if (phase_ != ai.stigmer.agentic.run.v1.RunPhase.RUN_PHASE_UNSPECIFIED.getNumber()) {
       output.writeEnum(2, phase_);
-    }
-    for (int i = 0; i < subAgentRuns_.size(); i++) {
-      output.writeMessage(4, subAgentRuns_.get(i));
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(error_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 6, error_);
@@ -1818,47 +1220,20 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(completedAt_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 8, completedAt_);
     }
-    com.google.protobuf.GeneratedMessage
-      .serializeStringMapTo(
-        output,
-        internalGetTodos(),
-        TodosDefaultEntryHolder.defaultEntry,
-        9);
-    if (((bitField0_ & 0x00000004) != 0)) {
-      output.writeMessage(14, getContextInfo());
-    }
     for (int i = 0; i < artifacts_.size(); i++) {
       output.writeMessage(15, artifacts_.get(i));
-    }
-    for (int i = 0; i < pendingApprovals_.size(); i++) {
-      output.writeMessage(16, pendingApprovals_.get(i));
     }
     for (int i = 0; i < workspaceWriteBacks_.size(); i++) {
       output.writeMessage(17, workspaceWriteBacks_.get(i));
     }
-    if (((bitField0_ & 0x00000008) != 0)) {
+    if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(18, getSetupProgress());
     }
-    if (((bitField0_ & 0x00000010) != 0)) {
+    if (((bitField0_ & 0x00000004) != 0)) {
       output.writeMessage(20, getStreamingUsage());
     }
-    if (((bitField0_ & 0x00000020) != 0)) {
-      output.writeMessage(21, getStructuredOutput());
-    }
-    if (((bitField0_ & 0x00000002) != 0)) {
-      output.writeMessage(22, getApprovalEventStream());
-    }
-    for (int i = 0; i < fileChangeSets_.size(); i++) {
-      output.writeMessage(23, fileChangeSets_.get(i));
-    }
-    if (((bitField0_ & 0x00000040) != 0)) {
-      output.writeMessage(24, getFileReviewEventStream());
-    }
-    if (((bitField0_ & 0x00000080) != 0)) {
+    if (((bitField0_ & 0x00000008) != 0)) {
       output.writeMessage(25, getFileChangeProgress());
-    }
-    if (((bitField0_ & 0x00000100) != 0)) {
-      output.writeMessage(26, getRecalledMemoriesReport());
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 27, agentId_);
@@ -1866,29 +1241,32 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentVersionHash_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 28, agentVersionHash_);
     }
-    if (((bitField0_ & 0x00000400) != 0)) {
+    if (((bitField0_ & 0x00000020) != 0)) {
       output.writeMessage(29, getDeclaredPreferences());
     }
-    if (((bitField0_ & 0x00000800) != 0)) {
+    if (((bitField0_ & 0x00000040) != 0)) {
       output.writeMessage(30, getRecalledMemories());
     }
-    if (((bitField0_ & 0x00001000) != 0)) {
+    if (((bitField0_ & 0x00000080) != 0)) {
       output.writeMessage(31, getRunConfig());
     }
     if (approvalMode_ != ai.stigmer.agentic.run.v1.ApprovalMode.APPROVAL_MODE_UNSPECIFIED.getNumber()) {
       output.writeEnum(32, approvalMode_);
     }
-    if (((bitField0_ & 0x00002000) != 0)) {
+    if (((bitField0_ & 0x00000100) != 0)) {
       output.writeMessage(33, getCredentials());
     }
-    if (((bitField0_ & 0x00004000) != 0)) {
+    if (((bitField0_ & 0x00000200) != 0)) {
       output.writeMessage(34, getPluginEvalFiles());
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(stopCause_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 35, stopCause_);
     }
-    if (((bitField0_ & 0x00000200) != 0)) {
+    if (((bitField0_ & 0x00000010) != 0)) {
       output.writeMessage(36, getLoadedVersions());
+    }
+    for (int i = 0; i < fileChanges_.size(); i++) {
+      output.writeMessage(37, fileChanges_.get(i));
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -1902,28 +1280,10 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     if (size != -1) return size;
 
     size = 0;
-
-        {
-          final int count = messages_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(messages_.get(i));
-          }
-          size += 1 * count;
-        }
     if (phase_ != ai.stigmer.agentic.run.v1.RunPhase.RUN_PHASE_UNSPECIFIED.getNumber()) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(2, phase_);
     }
-
-        {
-          final int count = subAgentRuns_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(subAgentRuns_.get(i));
-          }
-          size += 1 * count;
-        }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(error_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(6, error_);
     }
@@ -1932,20 +1292,6 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(completedAt_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(8, completedAt_);
-    }
-    for (java.util.Map.Entry<java.lang.String, ai.stigmer.agentic.run.v1.TodoItem> entry
-         : internalGetTodos().getMap().entrySet()) {
-      com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.run.v1.TodoItem>
-      todos__ = TodosDefaultEntryHolder.defaultEntry.newBuilderForType()
-          .setKey(entry.getKey())
-          .setValue(entry.getValue())
-          .buildPartial();
-      size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(9, todos__);
-    }
-    if (((bitField0_ & 0x00000004) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(14, getContextInfo());
     }
 
         {
@@ -1958,15 +1304,6 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         }
 
         {
-          final int count = pendingApprovals_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(pendingApprovals_.get(i));
-          }
-          size += 2 * count;
-        }
-
-        {
           final int count = workspaceWriteBacks_.size();
           for (int i = 0; i < count; i++) {
             size += com.google.protobuf.CodedOutputStream
@@ -1974,42 +1311,17 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
           }
           size += 2 * count;
         }
-    if (((bitField0_ & 0x00000008) != 0)) {
+    if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(18, getSetupProgress());
     }
-    if (((bitField0_ & 0x00000010) != 0)) {
+    if (((bitField0_ & 0x00000004) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(20, getStreamingUsage());
     }
-    if (((bitField0_ & 0x00000020) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(21, getStructuredOutput());
-    }
-    if (((bitField0_ & 0x00000002) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(22, getApprovalEventStream());
-    }
-
-        {
-          final int count = fileChangeSets_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(fileChangeSets_.get(i));
-          }
-          size += 2 * count;
-        }
-    if (((bitField0_ & 0x00000040) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(24, getFileReviewEventStream());
-    }
-    if (((bitField0_ & 0x00000080) != 0)) {
+    if (((bitField0_ & 0x00000008) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(25, getFileChangeProgress());
-    }
-    if (((bitField0_ & 0x00000100) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(26, getRecalledMemoriesReport());
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(27, agentId_);
@@ -2017,15 +1329,15 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentVersionHash_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(28, agentVersionHash_);
     }
-    if (((bitField0_ & 0x00000400) != 0)) {
+    if (((bitField0_ & 0x00000020) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(29, getDeclaredPreferences());
     }
-    if (((bitField0_ & 0x00000800) != 0)) {
+    if (((bitField0_ & 0x00000040) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(30, getRecalledMemories());
     }
-    if (((bitField0_ & 0x00001000) != 0)) {
+    if (((bitField0_ & 0x00000080) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(31, getRunConfig());
     }
@@ -2033,21 +1345,30 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(32, approvalMode_);
     }
-    if (((bitField0_ & 0x00002000) != 0)) {
+    if (((bitField0_ & 0x00000100) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(33, getCredentials());
     }
-    if (((bitField0_ & 0x00004000) != 0)) {
+    if (((bitField0_ & 0x00000200) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(34, getPluginEvalFiles());
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(stopCause_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(35, stopCause_);
     }
-    if (((bitField0_ & 0x00000200) != 0)) {
+    if (((bitField0_ & 0x00000010) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(36, getLoadedVersions());
     }
+
+        {
+          final int count = fileChanges_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(fileChanges_.get(i));
+          }
+          size += 2 * count;
+        }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(99, getAudit());
@@ -2072,31 +1393,13 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       if (!getAudit()
           .equals(other.getAudit())) return false;
     }
-    if (!getMessagesList()
-        .equals(other.getMessagesList())) return false;
     if (phase_ != other.phase_) return false;
-    if (!getSubAgentRunsList()
-        .equals(other.getSubAgentRunsList())) return false;
     if (!getError()
         .equals(other.getError())) return false;
     if (!getStartedAt()
         .equals(other.getStartedAt())) return false;
     if (!getCompletedAt()
         .equals(other.getCompletedAt())) return false;
-    if (!internalGetTodos().equals(
-        other.internalGetTodos())) return false;
-    if (!getPendingApprovalsList()
-        .equals(other.getPendingApprovalsList())) return false;
-    if (hasApprovalEventStream() != other.hasApprovalEventStream()) return false;
-    if (hasApprovalEventStream()) {
-      if (!getApprovalEventStream()
-          .equals(other.getApprovalEventStream())) return false;
-    }
-    if (hasContextInfo() != other.hasContextInfo()) return false;
-    if (hasContextInfo()) {
-      if (!getContextInfo()
-          .equals(other.getContextInfo())) return false;
-    }
     if (!getArtifactsList()
         .equals(other.getArtifactsList())) return false;
     if (!getWorkspaceWriteBacksList()
@@ -2111,28 +1414,13 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       if (!getStreamingUsage()
           .equals(other.getStreamingUsage())) return false;
     }
-    if (hasStructuredOutput() != other.hasStructuredOutput()) return false;
-    if (hasStructuredOutput()) {
-      if (!getStructuredOutput()
-          .equals(other.getStructuredOutput())) return false;
-    }
-    if (!getFileChangeSetsList()
-        .equals(other.getFileChangeSetsList())) return false;
-    if (hasFileReviewEventStream() != other.hasFileReviewEventStream()) return false;
-    if (hasFileReviewEventStream()) {
-      if (!getFileReviewEventStream()
-          .equals(other.getFileReviewEventStream())) return false;
-    }
     if (hasFileChangeProgress() != other.hasFileChangeProgress()) return false;
     if (hasFileChangeProgress()) {
       if (!getFileChangeProgress()
           .equals(other.getFileChangeProgress())) return false;
     }
-    if (hasRecalledMemoriesReport() != other.hasRecalledMemoriesReport()) return false;
-    if (hasRecalledMemoriesReport()) {
-      if (!getRecalledMemoriesReport()
-          .equals(other.getRecalledMemoriesReport())) return false;
-    }
+    if (!getFileChangesList()
+        .equals(other.getFileChangesList())) return false;
     if (!getAgentId()
         .equals(other.getAgentId())) return false;
     if (!getAgentVersionHash()
@@ -2185,38 +1473,14 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       hash = (37 * hash) + AUDIT_FIELD_NUMBER;
       hash = (53 * hash) + getAudit().hashCode();
     }
-    if (getMessagesCount() > 0) {
-      hash = (37 * hash) + MESSAGES_FIELD_NUMBER;
-      hash = (53 * hash) + getMessagesList().hashCode();
-    }
     hash = (37 * hash) + PHASE_FIELD_NUMBER;
     hash = (53 * hash) + phase_;
-    if (getSubAgentRunsCount() > 0) {
-      hash = (37 * hash) + SUB_AGENT_RUNS_FIELD_NUMBER;
-      hash = (53 * hash) + getSubAgentRunsList().hashCode();
-    }
     hash = (37 * hash) + ERROR_FIELD_NUMBER;
     hash = (53 * hash) + getError().hashCode();
     hash = (37 * hash) + STARTED_AT_FIELD_NUMBER;
     hash = (53 * hash) + getStartedAt().hashCode();
     hash = (37 * hash) + COMPLETED_AT_FIELD_NUMBER;
     hash = (53 * hash) + getCompletedAt().hashCode();
-    if (!internalGetTodos().getMap().isEmpty()) {
-      hash = (37 * hash) + TODOS_FIELD_NUMBER;
-      hash = (53 * hash) + internalGetTodos().hashCode();
-    }
-    if (getPendingApprovalsCount() > 0) {
-      hash = (37 * hash) + PENDING_APPROVALS_FIELD_NUMBER;
-      hash = (53 * hash) + getPendingApprovalsList().hashCode();
-    }
-    if (hasApprovalEventStream()) {
-      hash = (37 * hash) + APPROVAL_EVENT_STREAM_FIELD_NUMBER;
-      hash = (53 * hash) + getApprovalEventStream().hashCode();
-    }
-    if (hasContextInfo()) {
-      hash = (37 * hash) + CONTEXT_INFO_FIELD_NUMBER;
-      hash = (53 * hash) + getContextInfo().hashCode();
-    }
     if (getArtifactsCount() > 0) {
       hash = (37 * hash) + ARTIFACTS_FIELD_NUMBER;
       hash = (53 * hash) + getArtifactsList().hashCode();
@@ -2233,25 +1497,13 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       hash = (37 * hash) + STREAMING_USAGE_FIELD_NUMBER;
       hash = (53 * hash) + getStreamingUsage().hashCode();
     }
-    if (hasStructuredOutput()) {
-      hash = (37 * hash) + STRUCTURED_OUTPUT_FIELD_NUMBER;
-      hash = (53 * hash) + getStructuredOutput().hashCode();
-    }
-    if (getFileChangeSetsCount() > 0) {
-      hash = (37 * hash) + FILE_CHANGE_SETS_FIELD_NUMBER;
-      hash = (53 * hash) + getFileChangeSetsList().hashCode();
-    }
-    if (hasFileReviewEventStream()) {
-      hash = (37 * hash) + FILE_REVIEW_EVENT_STREAM_FIELD_NUMBER;
-      hash = (53 * hash) + getFileReviewEventStream().hashCode();
-    }
     if (hasFileChangeProgress()) {
       hash = (37 * hash) + FILE_CHANGE_PROGRESS_FIELD_NUMBER;
       hash = (53 * hash) + getFileChangeProgress().hashCode();
     }
-    if (hasRecalledMemoriesReport()) {
-      hash = (37 * hash) + RECALLED_MEMORIES_REPORT_FIELD_NUMBER;
-      hash = (53 * hash) + getRecalledMemoriesReport().hashCode();
+    if (getFileChangesCount() > 0) {
+      hash = (37 * hash) + FILE_CHANGES_FIELD_NUMBER;
+      hash = (53 * hash) + getFileChangesList().hashCode();
     }
     hash = (37 * hash) + AGENT_ID_FIELD_NUMBER;
     hash = (53 * hash) + getAgentId().hashCode();
@@ -2386,6 +1638,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
    * <pre>
    * RunStatus contains all run results and state.
    * Everything populated during or after the run goes here, not in spec.
+   * The conversation itself (messages, tool calls, approvals, todos,
+   * sub-agents, structured output and file-review decisions) is the session's
+   * event log (SessionEvent), not a field here.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.run.v1.RunStatus}
@@ -2399,28 +1654,6 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       return ai.stigmer.agentic.run.v1.ApiProto.internal_static_ai_stigmer_agentic_run_v1_RunStatus_descriptor;
     }
 
-    @SuppressWarnings({"rawtypes"})
-    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
-        int number) {
-      switch (number) {
-        case 9:
-          return internalGetTodos();
-        default:
-          throw new RuntimeException(
-              "Invalid map field number: " + number);
-      }
-    }
-    @SuppressWarnings({"rawtypes"})
-    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMutableMapFieldReflection(
-        int number) {
-      switch (number) {
-        case 9:
-          return internalGetMutableTodos();
-        default:
-          throw new RuntimeException(
-              "Invalid map field number: " + number);
-      }
-    }
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
@@ -2443,20 +1676,12 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetAuditFieldBuilder();
-        internalGetMessagesFieldBuilder();
-        internalGetSubAgentRunsFieldBuilder();
-        internalGetPendingApprovalsFieldBuilder();
-        internalGetApprovalEventStreamFieldBuilder();
-        internalGetContextInfoFieldBuilder();
         internalGetArtifactsFieldBuilder();
         internalGetWorkspaceWriteBacksFieldBuilder();
         internalGetSetupProgressFieldBuilder();
         internalGetStreamingUsageFieldBuilder();
-        internalGetStructuredOutputFieldBuilder();
-        internalGetFileChangeSetsFieldBuilder();
-        internalGetFileReviewEventStreamFieldBuilder();
         internalGetFileChangeProgressFieldBuilder();
-        internalGetRecalledMemoriesReportFieldBuilder();
+        internalGetFileChangesFieldBuilder();
         internalGetLoadedVersionsFieldBuilder();
         internalGetDeclaredPreferencesFieldBuilder();
         internalGetRecalledMemoriesFieldBuilder();
@@ -2474,56 +1699,24 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         auditBuilder_.dispose();
         auditBuilder_ = null;
       }
-      if (messagesBuilder_ == null) {
-        messages_ = java.util.Collections.emptyList();
-      } else {
-        messages_ = null;
-        messagesBuilder_.clear();
-      }
-      bitField0_ = (bitField0_ & ~0x00000002);
       phase_ = 0;
-      if (subAgentRunsBuilder_ == null) {
-        subAgentRuns_ = java.util.Collections.emptyList();
-      } else {
-        subAgentRuns_ = null;
-        subAgentRunsBuilder_.clear();
-      }
-      bitField0_ = (bitField0_ & ~0x00000008);
       error_ = "";
       startedAt_ = "";
       completedAt_ = "";
-      internalGetMutableTodos().clear();
-      if (pendingApprovalsBuilder_ == null) {
-        pendingApprovals_ = java.util.Collections.emptyList();
-      } else {
-        pendingApprovals_ = null;
-        pendingApprovalsBuilder_.clear();
-      }
-      bitField0_ = (bitField0_ & ~0x00000100);
-      approvalEventStream_ = null;
-      if (approvalEventStreamBuilder_ != null) {
-        approvalEventStreamBuilder_.dispose();
-        approvalEventStreamBuilder_ = null;
-      }
-      contextInfo_ = null;
-      if (contextInfoBuilder_ != null) {
-        contextInfoBuilder_.dispose();
-        contextInfoBuilder_ = null;
-      }
       if (artifactsBuilder_ == null) {
         artifacts_ = java.util.Collections.emptyList();
       } else {
         artifacts_ = null;
         artifactsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000800);
+      bitField0_ = (bitField0_ & ~0x00000020);
       if (workspaceWriteBacksBuilder_ == null) {
         workspaceWriteBacks_ = java.util.Collections.emptyList();
       } else {
         workspaceWriteBacks_ = null;
         workspaceWriteBacksBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00001000);
+      bitField0_ = (bitField0_ & ~0x00000040);
       setupProgress_ = null;
       if (setupProgressBuilder_ != null) {
         setupProgressBuilder_.dispose();
@@ -2534,33 +1727,18 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         streamingUsageBuilder_.dispose();
         streamingUsageBuilder_ = null;
       }
-      structuredOutput_ = null;
-      if (structuredOutputBuilder_ != null) {
-        structuredOutputBuilder_.dispose();
-        structuredOutputBuilder_ = null;
-      }
-      if (fileChangeSetsBuilder_ == null) {
-        fileChangeSets_ = java.util.Collections.emptyList();
-      } else {
-        fileChangeSets_ = null;
-        fileChangeSetsBuilder_.clear();
-      }
-      bitField0_ = (bitField0_ & ~0x00010000);
-      fileReviewEventStream_ = null;
-      if (fileReviewEventStreamBuilder_ != null) {
-        fileReviewEventStreamBuilder_.dispose();
-        fileReviewEventStreamBuilder_ = null;
-      }
       fileChangeProgress_ = null;
       if (fileChangeProgressBuilder_ != null) {
         fileChangeProgressBuilder_.dispose();
         fileChangeProgressBuilder_ = null;
       }
-      recalledMemoriesReport_ = null;
-      if (recalledMemoriesReportBuilder_ != null) {
-        recalledMemoriesReportBuilder_.dispose();
-        recalledMemoriesReportBuilder_ = null;
+      if (fileChangesBuilder_ == null) {
+        fileChanges_ = java.util.Collections.emptyList();
+      } else {
+        fileChanges_ = null;
+        fileChangesBuilder_.clear();
       }
+      bitField0_ = (bitField0_ & ~0x00000400);
       agentId_ = "";
       agentVersionHash_ = "";
       loadedVersions_ = null;
@@ -2628,59 +1806,32 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     }
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.run.v1.RunStatus result) {
-      if (messagesBuilder_ == null) {
-        if (((bitField0_ & 0x00000002) != 0)) {
-          messages_ = java.util.Collections.unmodifiableList(messages_);
-          bitField0_ = (bitField0_ & ~0x00000002);
-        }
-        result.messages_ = messages_;
-      } else {
-        result.messages_ = messagesBuilder_.build();
-      }
-      if (subAgentRunsBuilder_ == null) {
-        if (((bitField0_ & 0x00000008) != 0)) {
-          subAgentRuns_ = java.util.Collections.unmodifiableList(subAgentRuns_);
-          bitField0_ = (bitField0_ & ~0x00000008);
-        }
-        result.subAgentRuns_ = subAgentRuns_;
-      } else {
-        result.subAgentRuns_ = subAgentRunsBuilder_.build();
-      }
-      if (pendingApprovalsBuilder_ == null) {
-        if (((bitField0_ & 0x00000100) != 0)) {
-          pendingApprovals_ = java.util.Collections.unmodifiableList(pendingApprovals_);
-          bitField0_ = (bitField0_ & ~0x00000100);
-        }
-        result.pendingApprovals_ = pendingApprovals_;
-      } else {
-        result.pendingApprovals_ = pendingApprovalsBuilder_.build();
-      }
       if (artifactsBuilder_ == null) {
-        if (((bitField0_ & 0x00000800) != 0)) {
+        if (((bitField0_ & 0x00000020) != 0)) {
           artifacts_ = java.util.Collections.unmodifiableList(artifacts_);
-          bitField0_ = (bitField0_ & ~0x00000800);
+          bitField0_ = (bitField0_ & ~0x00000020);
         }
         result.artifacts_ = artifacts_;
       } else {
         result.artifacts_ = artifactsBuilder_.build();
       }
       if (workspaceWriteBacksBuilder_ == null) {
-        if (((bitField0_ & 0x00001000) != 0)) {
+        if (((bitField0_ & 0x00000040) != 0)) {
           workspaceWriteBacks_ = java.util.Collections.unmodifiableList(workspaceWriteBacks_);
-          bitField0_ = (bitField0_ & ~0x00001000);
+          bitField0_ = (bitField0_ & ~0x00000040);
         }
         result.workspaceWriteBacks_ = workspaceWriteBacks_;
       } else {
         result.workspaceWriteBacks_ = workspaceWriteBacksBuilder_.build();
       }
-      if (fileChangeSetsBuilder_ == null) {
-        if (((bitField0_ & 0x00010000) != 0)) {
-          fileChangeSets_ = java.util.Collections.unmodifiableList(fileChangeSets_);
-          bitField0_ = (bitField0_ & ~0x00010000);
+      if (fileChangesBuilder_ == null) {
+        if (((bitField0_ & 0x00000400) != 0)) {
+          fileChanges_ = java.util.Collections.unmodifiableList(fileChanges_);
+          bitField0_ = (bitField0_ & ~0x00000400);
         }
-        result.fileChangeSets_ = fileChangeSets_;
+        result.fileChanges_ = fileChanges_;
       } else {
-        result.fileChangeSets_ = fileChangeSetsBuilder_.build();
+        result.fileChanges_ = fileChangesBuilder_.build();
       }
     }
 
@@ -2693,115 +1844,82 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
             : auditBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
-      if (((from_bitField0_ & 0x00000004) != 0)) {
+      if (((from_bitField0_ & 0x00000002) != 0)) {
         result.phase_ = phase_;
       }
-      if (((from_bitField0_ & 0x00000010) != 0)) {
+      if (((from_bitField0_ & 0x00000004) != 0)) {
         result.error_ = error_;
       }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
+      if (((from_bitField0_ & 0x00000008) != 0)) {
         result.startedAt_ = startedAt_;
       }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
+      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.completedAt_ = completedAt_;
       }
       if (((from_bitField0_ & 0x00000080) != 0)) {
-        result.todos_ = internalGetTodos().build(TodosDefaultEntryHolder.defaultEntry);
-      }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
-        result.approvalEventStream_ = approvalEventStreamBuilder_ == null
-            ? approvalEventStream_
-            : approvalEventStreamBuilder_.build();
-        to_bitField0_ |= 0x00000002;
-      }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
-        result.contextInfo_ = contextInfoBuilder_ == null
-            ? contextInfo_
-            : contextInfoBuilder_.build();
-        to_bitField0_ |= 0x00000004;
-      }
-      if (((from_bitField0_ & 0x00002000) != 0)) {
         result.setupProgress_ = setupProgressBuilder_ == null
             ? setupProgress_
             : setupProgressBuilder_.build();
-        to_bitField0_ |= 0x00000008;
+        to_bitField0_ |= 0x00000002;
       }
-      if (((from_bitField0_ & 0x00004000) != 0)) {
+      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.streamingUsage_ = streamingUsageBuilder_ == null
             ? streamingUsage_
             : streamingUsageBuilder_.build();
-        to_bitField0_ |= 0x00000010;
+        to_bitField0_ |= 0x00000004;
       }
-      if (((from_bitField0_ & 0x00008000) != 0)) {
-        result.structuredOutput_ = structuredOutputBuilder_ == null
-            ? structuredOutput_
-            : structuredOutputBuilder_.build();
-        to_bitField0_ |= 0x00000020;
-      }
-      if (((from_bitField0_ & 0x00020000) != 0)) {
-        result.fileReviewEventStream_ = fileReviewEventStreamBuilder_ == null
-            ? fileReviewEventStream_
-            : fileReviewEventStreamBuilder_.build();
-        to_bitField0_ |= 0x00000040;
-      }
-      if (((from_bitField0_ & 0x00040000) != 0)) {
+      if (((from_bitField0_ & 0x00000200) != 0)) {
         result.fileChangeProgress_ = fileChangeProgressBuilder_ == null
             ? fileChangeProgress_
             : fileChangeProgressBuilder_.build();
-        to_bitField0_ |= 0x00000080;
+        to_bitField0_ |= 0x00000008;
       }
-      if (((from_bitField0_ & 0x00080000) != 0)) {
-        result.recalledMemoriesReport_ = recalledMemoriesReportBuilder_ == null
-            ? recalledMemoriesReport_
-            : recalledMemoriesReportBuilder_.build();
-        to_bitField0_ |= 0x00000100;
-      }
-      if (((from_bitField0_ & 0x00100000) != 0)) {
+      if (((from_bitField0_ & 0x00000800) != 0)) {
         result.agentId_ = agentId_;
       }
-      if (((from_bitField0_ & 0x00200000) != 0)) {
+      if (((from_bitField0_ & 0x00001000) != 0)) {
         result.agentVersionHash_ = agentVersionHash_;
       }
-      if (((from_bitField0_ & 0x00400000) != 0)) {
+      if (((from_bitField0_ & 0x00002000) != 0)) {
         result.loadedVersions_ = loadedVersionsBuilder_ == null
             ? loadedVersions_
             : loadedVersionsBuilder_.build();
-        to_bitField0_ |= 0x00000200;
+        to_bitField0_ |= 0x00000010;
       }
-      if (((from_bitField0_ & 0x00800000) != 0)) {
+      if (((from_bitField0_ & 0x00004000) != 0)) {
         result.declaredPreferences_ = declaredPreferencesBuilder_ == null
             ? declaredPreferences_
             : declaredPreferencesBuilder_.build();
-        to_bitField0_ |= 0x00000400;
+        to_bitField0_ |= 0x00000020;
       }
-      if (((from_bitField0_ & 0x01000000) != 0)) {
+      if (((from_bitField0_ & 0x00008000) != 0)) {
         result.recalledMemories_ = recalledMemoriesBuilder_ == null
             ? recalledMemories_
             : recalledMemoriesBuilder_.build();
-        to_bitField0_ |= 0x00000800;
+        to_bitField0_ |= 0x00000040;
       }
-      if (((from_bitField0_ & 0x02000000) != 0)) {
+      if (((from_bitField0_ & 0x00010000) != 0)) {
         result.runConfig_ = runConfigBuilder_ == null
             ? runConfig_
             : runConfigBuilder_.build();
-        to_bitField0_ |= 0x00001000;
+        to_bitField0_ |= 0x00000080;
       }
-      if (((from_bitField0_ & 0x04000000) != 0)) {
+      if (((from_bitField0_ & 0x00020000) != 0)) {
         result.approvalMode_ = approvalMode_;
       }
-      if (((from_bitField0_ & 0x08000000) != 0)) {
+      if (((from_bitField0_ & 0x00040000) != 0)) {
         result.credentials_ = credentialsBuilder_ == null
             ? credentials_
             : credentialsBuilder_.build();
-        to_bitField0_ |= 0x00002000;
+        to_bitField0_ |= 0x00000100;
       }
-      if (((from_bitField0_ & 0x10000000) != 0)) {
+      if (((from_bitField0_ & 0x00080000) != 0)) {
         result.pluginEvalFiles_ = pluginEvalFilesBuilder_ == null
             ? pluginEvalFiles_
             : pluginEvalFilesBuilder_.build();
-        to_bitField0_ |= 0x00004000;
+        to_bitField0_ |= 0x00000200;
       }
-      if (((from_bitField0_ & 0x20000000) != 0)) {
+      if (((from_bitField0_ & 0x00100000) != 0)) {
         result.stopCause_ = stopCause_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -2822,116 +1940,29 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       if (other.hasAudit()) {
         mergeAudit(other.getAudit());
       }
-      if (messagesBuilder_ == null) {
-        if (!other.messages_.isEmpty()) {
-          if (messages_.isEmpty()) {
-            messages_ = other.messages_;
-            bitField0_ = (bitField0_ & ~0x00000002);
-          } else {
-            ensureMessagesIsMutable();
-            messages_.addAll(other.messages_);
-          }
-          onChanged();
-        }
-      } else {
-        if (!other.messages_.isEmpty()) {
-          if (messagesBuilder_.isEmpty()) {
-            messagesBuilder_.dispose();
-            messagesBuilder_ = null;
-            messages_ = other.messages_;
-            bitField0_ = (bitField0_ & ~0x00000002);
-            messagesBuilder_ = 
-              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetMessagesFieldBuilder() : null;
-          } else {
-            messagesBuilder_.addAllMessages(other.messages_);
-          }
-        }
-      }
       if (other.phase_ != 0) {
         setPhaseValue(other.getPhaseValue());
       }
-      if (subAgentRunsBuilder_ == null) {
-        if (!other.subAgentRuns_.isEmpty()) {
-          if (subAgentRuns_.isEmpty()) {
-            subAgentRuns_ = other.subAgentRuns_;
-            bitField0_ = (bitField0_ & ~0x00000008);
-          } else {
-            ensureSubAgentRunsIsMutable();
-            subAgentRuns_.addAll(other.subAgentRuns_);
-          }
-          onChanged();
-        }
-      } else {
-        if (!other.subAgentRuns_.isEmpty()) {
-          if (subAgentRunsBuilder_.isEmpty()) {
-            subAgentRunsBuilder_.dispose();
-            subAgentRunsBuilder_ = null;
-            subAgentRuns_ = other.subAgentRuns_;
-            bitField0_ = (bitField0_ & ~0x00000008);
-            subAgentRunsBuilder_ = 
-              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetSubAgentRunsFieldBuilder() : null;
-          } else {
-            subAgentRunsBuilder_.addAllMessages(other.subAgentRuns_);
-          }
-        }
-      }
       if (!other.getError().isEmpty()) {
         error_ = other.error_;
-        bitField0_ |= 0x00000010;
+        bitField0_ |= 0x00000004;
         onChanged();
       }
       if (!other.getStartedAt().isEmpty()) {
         startedAt_ = other.startedAt_;
-        bitField0_ |= 0x00000020;
+        bitField0_ |= 0x00000008;
         onChanged();
       }
       if (!other.getCompletedAt().isEmpty()) {
         completedAt_ = other.completedAt_;
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000010;
         onChanged();
-      }
-      internalGetMutableTodos().mergeFrom(
-          other.internalGetTodos());
-      bitField0_ |= 0x00000080;
-      if (pendingApprovalsBuilder_ == null) {
-        if (!other.pendingApprovals_.isEmpty()) {
-          if (pendingApprovals_.isEmpty()) {
-            pendingApprovals_ = other.pendingApprovals_;
-            bitField0_ = (bitField0_ & ~0x00000100);
-          } else {
-            ensurePendingApprovalsIsMutable();
-            pendingApprovals_.addAll(other.pendingApprovals_);
-          }
-          onChanged();
-        }
-      } else {
-        if (!other.pendingApprovals_.isEmpty()) {
-          if (pendingApprovalsBuilder_.isEmpty()) {
-            pendingApprovalsBuilder_.dispose();
-            pendingApprovalsBuilder_ = null;
-            pendingApprovals_ = other.pendingApprovals_;
-            bitField0_ = (bitField0_ & ~0x00000100);
-            pendingApprovalsBuilder_ = 
-              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetPendingApprovalsFieldBuilder() : null;
-          } else {
-            pendingApprovalsBuilder_.addAllMessages(other.pendingApprovals_);
-          }
-        }
-      }
-      if (other.hasApprovalEventStream()) {
-        mergeApprovalEventStream(other.getApprovalEventStream());
-      }
-      if (other.hasContextInfo()) {
-        mergeContextInfo(other.getContextInfo());
       }
       if (artifactsBuilder_ == null) {
         if (!other.artifacts_.isEmpty()) {
           if (artifacts_.isEmpty()) {
             artifacts_ = other.artifacts_;
-            bitField0_ = (bitField0_ & ~0x00000800);
+            bitField0_ = (bitField0_ & ~0x00000020);
           } else {
             ensureArtifactsIsMutable();
             artifacts_.addAll(other.artifacts_);
@@ -2944,7 +1975,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
             artifactsBuilder_.dispose();
             artifactsBuilder_ = null;
             artifacts_ = other.artifacts_;
-            bitField0_ = (bitField0_ & ~0x00000800);
+            bitField0_ = (bitField0_ & ~0x00000020);
             artifactsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetArtifactsFieldBuilder() : null;
@@ -2957,7 +1988,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         if (!other.workspaceWriteBacks_.isEmpty()) {
           if (workspaceWriteBacks_.isEmpty()) {
             workspaceWriteBacks_ = other.workspaceWriteBacks_;
-            bitField0_ = (bitField0_ & ~0x00001000);
+            bitField0_ = (bitField0_ & ~0x00000040);
           } else {
             ensureWorkspaceWriteBacksIsMutable();
             workspaceWriteBacks_.addAll(other.workspaceWriteBacks_);
@@ -2970,7 +2001,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
             workspaceWriteBacksBuilder_.dispose();
             workspaceWriteBacksBuilder_ = null;
             workspaceWriteBacks_ = other.workspaceWriteBacks_;
-            bitField0_ = (bitField0_ & ~0x00001000);
+            bitField0_ = (bitField0_ & ~0x00000040);
             workspaceWriteBacksBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetWorkspaceWriteBacksFieldBuilder() : null;
@@ -2985,52 +2016,43 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       if (other.hasStreamingUsage()) {
         mergeStreamingUsage(other.getStreamingUsage());
       }
-      if (other.hasStructuredOutput()) {
-        mergeStructuredOutput(other.getStructuredOutput());
+      if (other.hasFileChangeProgress()) {
+        mergeFileChangeProgress(other.getFileChangeProgress());
       }
-      if (fileChangeSetsBuilder_ == null) {
-        if (!other.fileChangeSets_.isEmpty()) {
-          if (fileChangeSets_.isEmpty()) {
-            fileChangeSets_ = other.fileChangeSets_;
-            bitField0_ = (bitField0_ & ~0x00010000);
+      if (fileChangesBuilder_ == null) {
+        if (!other.fileChanges_.isEmpty()) {
+          if (fileChanges_.isEmpty()) {
+            fileChanges_ = other.fileChanges_;
+            bitField0_ = (bitField0_ & ~0x00000400);
           } else {
-            ensureFileChangeSetsIsMutable();
-            fileChangeSets_.addAll(other.fileChangeSets_);
+            ensureFileChangesIsMutable();
+            fileChanges_.addAll(other.fileChanges_);
           }
           onChanged();
         }
       } else {
-        if (!other.fileChangeSets_.isEmpty()) {
-          if (fileChangeSetsBuilder_.isEmpty()) {
-            fileChangeSetsBuilder_.dispose();
-            fileChangeSetsBuilder_ = null;
-            fileChangeSets_ = other.fileChangeSets_;
-            bitField0_ = (bitField0_ & ~0x00010000);
-            fileChangeSetsBuilder_ = 
+        if (!other.fileChanges_.isEmpty()) {
+          if (fileChangesBuilder_.isEmpty()) {
+            fileChangesBuilder_.dispose();
+            fileChangesBuilder_ = null;
+            fileChanges_ = other.fileChanges_;
+            bitField0_ = (bitField0_ & ~0x00000400);
+            fileChangesBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetFileChangeSetsFieldBuilder() : null;
+                 internalGetFileChangesFieldBuilder() : null;
           } else {
-            fileChangeSetsBuilder_.addAllMessages(other.fileChangeSets_);
+            fileChangesBuilder_.addAllMessages(other.fileChanges_);
           }
         }
       }
-      if (other.hasFileReviewEventStream()) {
-        mergeFileReviewEventStream(other.getFileReviewEventStream());
-      }
-      if (other.hasFileChangeProgress()) {
-        mergeFileChangeProgress(other.getFileChangeProgress());
-      }
-      if (other.hasRecalledMemoriesReport()) {
-        mergeRecalledMemoriesReport(other.getRecalledMemoriesReport());
-      }
       if (!other.getAgentId().isEmpty()) {
         agentId_ = other.agentId_;
-        bitField0_ |= 0x00100000;
+        bitField0_ |= 0x00000800;
         onChanged();
       }
       if (!other.getAgentVersionHash().isEmpty()) {
         agentVersionHash_ = other.agentVersionHash_;
-        bitField0_ |= 0x00200000;
+        bitField0_ |= 0x00001000;
         onChanged();
       }
       if (other.hasLoadedVersions()) {
@@ -3056,7 +2078,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       }
       if (!other.getStopCause().isEmpty()) {
         stopCause_ = other.stopCause_;
-        bitField0_ |= 0x20000000;
+        bitField0_ |= 0x00100000;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -3085,68 +2107,26 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
             case 0:
               done = true;
               break;
-            case 10: {
-              ai.stigmer.agentic.run.v1.AgentMessage m =
-                  input.readMessage(
-                      ai.stigmer.agentic.run.v1.AgentMessage.parser(),
-                      extensionRegistry);
-              if (messagesBuilder_ == null) {
-                ensureMessagesIsMutable();
-                messages_.add(m);
-              } else {
-                messagesBuilder_.addMessage(m);
-              }
-              break;
-            } // case 10
             case 16: {
               phase_ = input.readEnum();
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000002;
               break;
             } // case 16
-            case 34: {
-              ai.stigmer.agentic.run.v1.SubAgentRun m =
-                  input.readMessage(
-                      ai.stigmer.agentic.run.v1.SubAgentRun.parser(),
-                      extensionRegistry);
-              if (subAgentRunsBuilder_ == null) {
-                ensureSubAgentRunsIsMutable();
-                subAgentRuns_.add(m);
-              } else {
-                subAgentRunsBuilder_.addMessage(m);
-              }
-              break;
-            } // case 34
             case 50: {
               error_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000010;
+              bitField0_ |= 0x00000004;
               break;
             } // case 50
             case 58: {
               startedAt_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000008;
               break;
             } // case 58
             case 66: {
               completedAt_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000040;
+              bitField0_ |= 0x00000010;
               break;
             } // case 66
-            case 74: {
-              com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.run.v1.TodoItem>
-              todos__ = input.readMessage(
-                  TodosDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
-              internalGetMutableTodos().ensureBuilderMap().put(
-                  todos__.getKey(), todos__.getValue());
-              bitField0_ |= 0x00000080;
-              break;
-            } // case 74
-            case 114: {
-              input.readMessage(
-                  internalGetContextInfoFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00000400;
-              break;
-            } // case 114
             case 122: {
               ai.stigmer.agentic.run.v1.RunArtifact m =
                   input.readMessage(
@@ -3160,19 +2140,6 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
               }
               break;
             } // case 122
-            case 130: {
-              ai.stigmer.agentic.run.v1.PendingApproval m =
-                  input.readMessage(
-                      ai.stigmer.agentic.run.v1.PendingApproval.parser(),
-                      extensionRegistry);
-              if (pendingApprovalsBuilder_ == null) {
-                ensurePendingApprovalsIsMutable();
-                pendingApprovals_.add(m);
-              } else {
-                pendingApprovalsBuilder_.addMessage(m);
-              }
-              break;
-            } // case 130
             case 138: {
               ai.stigmer.agentic.run.v1.WorkspaceWriteBack m =
                   input.readMessage(
@@ -3190,126 +2157,98 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
               input.readMessage(
                   internalGetSetupProgressFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00002000;
+              bitField0_ |= 0x00000080;
               break;
             } // case 146
             case 162: {
               input.readMessage(
                   internalGetStreamingUsageFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00004000;
+              bitField0_ |= 0x00000100;
               break;
             } // case 162
-            case 170: {
-              input.readMessage(
-                  internalGetStructuredOutputFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00008000;
-              break;
-            } // case 170
-            case 178: {
-              input.readMessage(
-                  internalGetApprovalEventStreamFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00000200;
-              break;
-            } // case 178
-            case 186: {
-              ai.stigmer.agentic.run.v1.FileChangeSet m =
-                  input.readMessage(
-                      ai.stigmer.agentic.run.v1.FileChangeSet.parser(),
-                      extensionRegistry);
-              if (fileChangeSetsBuilder_ == null) {
-                ensureFileChangeSetsIsMutable();
-                fileChangeSets_.add(m);
-              } else {
-                fileChangeSetsBuilder_.addMessage(m);
-              }
-              break;
-            } // case 186
-            case 194: {
-              input.readMessage(
-                  internalGetFileReviewEventStreamFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00020000;
-              break;
-            } // case 194
             case 202: {
               input.readMessage(
                   internalGetFileChangeProgressFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00040000;
+              bitField0_ |= 0x00000200;
               break;
             } // case 202
-            case 210: {
-              input.readMessage(
-                  internalGetRecalledMemoriesReportFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00080000;
-              break;
-            } // case 210
             case 218: {
               agentId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00100000;
+              bitField0_ |= 0x00000800;
               break;
             } // case 218
             case 226: {
               agentVersionHash_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00200000;
+              bitField0_ |= 0x00001000;
               break;
             } // case 226
             case 234: {
               input.readMessage(
                   internalGetDeclaredPreferencesFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00800000;
+              bitField0_ |= 0x00004000;
               break;
             } // case 234
             case 242: {
               input.readMessage(
                   internalGetRecalledMemoriesFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x01000000;
+              bitField0_ |= 0x00008000;
               break;
             } // case 242
             case 250: {
               input.readMessage(
                   internalGetRunConfigFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x02000000;
+              bitField0_ |= 0x00010000;
               break;
             } // case 250
             case 256: {
               approvalMode_ = input.readEnum();
-              bitField0_ |= 0x04000000;
+              bitField0_ |= 0x00020000;
               break;
             } // case 256
             case 266: {
               input.readMessage(
                   internalGetCredentialsFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x08000000;
+              bitField0_ |= 0x00040000;
               break;
             } // case 266
             case 274: {
               input.readMessage(
                   internalGetPluginEvalFilesFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x10000000;
+              bitField0_ |= 0x00080000;
               break;
             } // case 274
             case 282: {
               stopCause_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x20000000;
+              bitField0_ |= 0x00100000;
               break;
             } // case 282
             case 290: {
               input.readMessage(
                   internalGetLoadedVersionsFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00400000;
+              bitField0_ |= 0x00002000;
               break;
             } // case 290
+            case 298: {
+              ai.stigmer.agentic.run.v1.FileChangeSet m =
+                  input.readMessage(
+                      ai.stigmer.agentic.run.v1.FileChangeSet.parser(),
+                      extensionRegistry);
+              if (fileChangesBuilder_ == null) {
+                ensureFileChangesIsMutable();
+                fileChanges_.add(m);
+              } else {
+                fileChangesBuilder_.addMessage(m);
+              }
+              break;
+            } // case 298
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -3491,354 +2430,6 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       return auditBuilder_;
     }
 
-    private java.util.List<ai.stigmer.agentic.run.v1.AgentMessage> messages_ =
-      java.util.Collections.emptyList();
-    private void ensureMessagesIsMutable() {
-      if (!((bitField0_ & 0x00000002) != 0)) {
-        messages_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.AgentMessage>(messages_);
-        bitField0_ |= 0x00000002;
-       }
-    }
-
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.run.v1.AgentMessage, ai.stigmer.agentic.run.v1.AgentMessage.Builder, ai.stigmer.agentic.run.v1.AgentMessageOrBuilder> messagesBuilder_;
-
-    /**
-     * <pre>
-     * Sequential stream of run events: AI messages, tool calls, and system notifications.
-     * Ordered chronologically to reconstruct the complete run flow.
-     * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.run.v1.AgentMessage> getMessagesList() {
-      if (messagesBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(messages_);
-      } else {
-        return messagesBuilder_.getMessageList();
-      }
-    }
-    /**
-     * <pre>
-     * Sequential stream of run events: AI messages, tool calls, and system notifications.
-     * Ordered chronologically to reconstruct the complete run flow.
-     * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-     */
-    public int getMessagesCount() {
-      if (messagesBuilder_ == null) {
-        return messages_.size();
-      } else {
-        return messagesBuilder_.getCount();
-      }
-    }
-    /**
-     * <pre>
-     * Sequential stream of run events: AI messages, tool calls, and system notifications.
-     * Ordered chronologically to reconstruct the complete run flow.
-     * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.AgentMessage getMessages(int index) {
-      if (messagesBuilder_ == null) {
-        return messages_.get(index);
-      } else {
-        return messagesBuilder_.getMessage(index);
-      }
-    }
-    /**
-     * <pre>
-     * Sequential stream of run events: AI messages, tool calls, and system notifications.
-     * Ordered chronologically to reconstruct the complete run flow.
-     * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-     */
-    public Builder setMessages(
-        int index, ai.stigmer.agentic.run.v1.AgentMessage value) {
-      if (messagesBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureMessagesIsMutable();
-        messages_.set(index, value);
-        onChanged();
-      } else {
-        messagesBuilder_.setMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sequential stream of run events: AI messages, tool calls, and system notifications.
-     * Ordered chronologically to reconstruct the complete run flow.
-     * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-     */
-    public Builder setMessages(
-        int index, ai.stigmer.agentic.run.v1.AgentMessage.Builder builderForValue) {
-      if (messagesBuilder_ == null) {
-        ensureMessagesIsMutable();
-        messages_.set(index, builderForValue.build());
-        onChanged();
-      } else {
-        messagesBuilder_.setMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sequential stream of run events: AI messages, tool calls, and system notifications.
-     * Ordered chronologically to reconstruct the complete run flow.
-     * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-     */
-    public Builder addMessages(ai.stigmer.agentic.run.v1.AgentMessage value) {
-      if (messagesBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureMessagesIsMutable();
-        messages_.add(value);
-        onChanged();
-      } else {
-        messagesBuilder_.addMessage(value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sequential stream of run events: AI messages, tool calls, and system notifications.
-     * Ordered chronologically to reconstruct the complete run flow.
-     * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-     */
-    public Builder addMessages(
-        int index, ai.stigmer.agentic.run.v1.AgentMessage value) {
-      if (messagesBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureMessagesIsMutable();
-        messages_.add(index, value);
-        onChanged();
-      } else {
-        messagesBuilder_.addMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sequential stream of run events: AI messages, tool calls, and system notifications.
-     * Ordered chronologically to reconstruct the complete run flow.
-     * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-     */
-    public Builder addMessages(
-        ai.stigmer.agentic.run.v1.AgentMessage.Builder builderForValue) {
-      if (messagesBuilder_ == null) {
-        ensureMessagesIsMutable();
-        messages_.add(builderForValue.build());
-        onChanged();
-      } else {
-        messagesBuilder_.addMessage(builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sequential stream of run events: AI messages, tool calls, and system notifications.
-     * Ordered chronologically to reconstruct the complete run flow.
-     * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-     */
-    public Builder addMessages(
-        int index, ai.stigmer.agentic.run.v1.AgentMessage.Builder builderForValue) {
-      if (messagesBuilder_ == null) {
-        ensureMessagesIsMutable();
-        messages_.add(index, builderForValue.build());
-        onChanged();
-      } else {
-        messagesBuilder_.addMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sequential stream of run events: AI messages, tool calls, and system notifications.
-     * Ordered chronologically to reconstruct the complete run flow.
-     * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-     */
-    public Builder addAllMessages(
-        java.lang.Iterable<? extends ai.stigmer.agentic.run.v1.AgentMessage> values) {
-      if (messagesBuilder_ == null) {
-        ensureMessagesIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, messages_);
-        onChanged();
-      } else {
-        messagesBuilder_.addAllMessages(values);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sequential stream of run events: AI messages, tool calls, and system notifications.
-     * Ordered chronologically to reconstruct the complete run flow.
-     * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-     */
-    public Builder clearMessages() {
-      if (messagesBuilder_ == null) {
-        messages_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000002);
-        onChanged();
-      } else {
-        messagesBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sequential stream of run events: AI messages, tool calls, and system notifications.
-     * Ordered chronologically to reconstruct the complete run flow.
-     * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-     */
-    public Builder removeMessages(int index) {
-      if (messagesBuilder_ == null) {
-        ensureMessagesIsMutable();
-        messages_.remove(index);
-        onChanged();
-      } else {
-        messagesBuilder_.remove(index);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sequential stream of run events: AI messages, tool calls, and system notifications.
-     * Ordered chronologically to reconstruct the complete run flow.
-     * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.AgentMessage.Builder getMessagesBuilder(
-        int index) {
-      return internalGetMessagesFieldBuilder().getBuilder(index);
-    }
-    /**
-     * <pre>
-     * Sequential stream of run events: AI messages, tool calls, and system notifications.
-     * Ordered chronologically to reconstruct the complete run flow.
-     * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.AgentMessageOrBuilder getMessagesOrBuilder(
-        int index) {
-      if (messagesBuilder_ == null) {
-        return messages_.get(index);  } else {
-        return messagesBuilder_.getMessageOrBuilder(index);
-      }
-    }
-    /**
-     * <pre>
-     * Sequential stream of run events: AI messages, tool calls, and system notifications.
-     * Ordered chronologically to reconstruct the complete run flow.
-     * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-     */
-    public java.util.List<? extends ai.stigmer.agentic.run.v1.AgentMessageOrBuilder> 
-         getMessagesOrBuilderList() {
-      if (messagesBuilder_ != null) {
-        return messagesBuilder_.getMessageOrBuilderList();
-      } else {
-        return java.util.Collections.unmodifiableList(messages_);
-      }
-    }
-    /**
-     * <pre>
-     * Sequential stream of run events: AI messages, tool calls, and system notifications.
-     * Ordered chronologically to reconstruct the complete run flow.
-     * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.AgentMessage.Builder addMessagesBuilder() {
-      return internalGetMessagesFieldBuilder().addBuilder(
-          ai.stigmer.agentic.run.v1.AgentMessage.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Sequential stream of run events: AI messages, tool calls, and system notifications.
-     * Ordered chronologically to reconstruct the complete run flow.
-     * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.AgentMessage.Builder addMessagesBuilder(
-        int index) {
-      return internalGetMessagesFieldBuilder().addBuilder(
-          index, ai.stigmer.agentic.run.v1.AgentMessage.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Sequential stream of run events: AI messages, tool calls, and system notifications.
-     * Ordered chronologically to reconstruct the complete run flow.
-     * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.run.v1.AgentMessage.Builder> 
-         getMessagesBuilderList() {
-      return internalGetMessagesFieldBuilder().getBuilderList();
-    }
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.run.v1.AgentMessage, ai.stigmer.agentic.run.v1.AgentMessage.Builder, ai.stigmer.agentic.run.v1.AgentMessageOrBuilder> 
-        internalGetMessagesFieldBuilder() {
-      if (messagesBuilder_ == null) {
-        messagesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.agentic.run.v1.AgentMessage, ai.stigmer.agentic.run.v1.AgentMessage.Builder, ai.stigmer.agentic.run.v1.AgentMessageOrBuilder>(
-                messages_,
-                ((bitField0_ & 0x00000002) != 0),
-                getParentForChildren(),
-                isClean());
-        messages_ = null;
-      }
-      return messagesBuilder_;
-    }
-
     private int phase_ = 0;
     /**
      * <pre>
@@ -3867,7 +2458,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder setPhaseValue(int value) {
       phase_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
@@ -3899,7 +2490,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder setPhase(ai.stigmer.agentic.run.v1.RunPhase value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       phase_ = value.getNumber();
       onChanged();
       return this;
@@ -3915,358 +2506,10 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearPhase() {
-      bitField0_ = (bitField0_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x00000002);
       phase_ = 0;
       onChanged();
       return this;
-    }
-
-    private java.util.List<ai.stigmer.agentic.run.v1.SubAgentRun> subAgentRuns_ =
-      java.util.Collections.emptyList();
-    private void ensureSubAgentRunsIsMutable() {
-      if (!((bitField0_ & 0x00000008) != 0)) {
-        subAgentRuns_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.SubAgentRun>(subAgentRuns_);
-        bitField0_ |= 0x00000008;
-       }
-    }
-
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.run.v1.SubAgentRun, ai.stigmer.agentic.run.v1.SubAgentRun.Builder, ai.stigmer.agentic.run.v1.SubAgentRunOrBuilder> subAgentRunsBuilder_;
-
-    /**
-     * <pre>
-     * Sub-agent runs invoked during this run.
-     * Tracks when the main agent delegates work to specialized sub-agents.
-     * Ordered chronologically by invocation time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.run.v1.SubAgentRun> getSubAgentRunsList() {
-      if (subAgentRunsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(subAgentRuns_);
-      } else {
-        return subAgentRunsBuilder_.getMessageList();
-      }
-    }
-    /**
-     * <pre>
-     * Sub-agent runs invoked during this run.
-     * Tracks when the main agent delegates work to specialized sub-agents.
-     * Ordered chronologically by invocation time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-     */
-    public int getSubAgentRunsCount() {
-      if (subAgentRunsBuilder_ == null) {
-        return subAgentRuns_.size();
-      } else {
-        return subAgentRunsBuilder_.getCount();
-      }
-    }
-    /**
-     * <pre>
-     * Sub-agent runs invoked during this run.
-     * Tracks when the main agent delegates work to specialized sub-agents.
-     * Ordered chronologically by invocation time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.SubAgentRun getSubAgentRuns(int index) {
-      if (subAgentRunsBuilder_ == null) {
-        return subAgentRuns_.get(index);
-      } else {
-        return subAgentRunsBuilder_.getMessage(index);
-      }
-    }
-    /**
-     * <pre>
-     * Sub-agent runs invoked during this run.
-     * Tracks when the main agent delegates work to specialized sub-agents.
-     * Ordered chronologically by invocation time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-     */
-    public Builder setSubAgentRuns(
-        int index, ai.stigmer.agentic.run.v1.SubAgentRun value) {
-      if (subAgentRunsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureSubAgentRunsIsMutable();
-        subAgentRuns_.set(index, value);
-        onChanged();
-      } else {
-        subAgentRunsBuilder_.setMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sub-agent runs invoked during this run.
-     * Tracks when the main agent delegates work to specialized sub-agents.
-     * Ordered chronologically by invocation time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-     */
-    public Builder setSubAgentRuns(
-        int index, ai.stigmer.agentic.run.v1.SubAgentRun.Builder builderForValue) {
-      if (subAgentRunsBuilder_ == null) {
-        ensureSubAgentRunsIsMutable();
-        subAgentRuns_.set(index, builderForValue.build());
-        onChanged();
-      } else {
-        subAgentRunsBuilder_.setMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sub-agent runs invoked during this run.
-     * Tracks when the main agent delegates work to specialized sub-agents.
-     * Ordered chronologically by invocation time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-     */
-    public Builder addSubAgentRuns(ai.stigmer.agentic.run.v1.SubAgentRun value) {
-      if (subAgentRunsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureSubAgentRunsIsMutable();
-        subAgentRuns_.add(value);
-        onChanged();
-      } else {
-        subAgentRunsBuilder_.addMessage(value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sub-agent runs invoked during this run.
-     * Tracks when the main agent delegates work to specialized sub-agents.
-     * Ordered chronologically by invocation time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-     */
-    public Builder addSubAgentRuns(
-        int index, ai.stigmer.agentic.run.v1.SubAgentRun value) {
-      if (subAgentRunsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureSubAgentRunsIsMutable();
-        subAgentRuns_.add(index, value);
-        onChanged();
-      } else {
-        subAgentRunsBuilder_.addMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sub-agent runs invoked during this run.
-     * Tracks when the main agent delegates work to specialized sub-agents.
-     * Ordered chronologically by invocation time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-     */
-    public Builder addSubAgentRuns(
-        ai.stigmer.agentic.run.v1.SubAgentRun.Builder builderForValue) {
-      if (subAgentRunsBuilder_ == null) {
-        ensureSubAgentRunsIsMutable();
-        subAgentRuns_.add(builderForValue.build());
-        onChanged();
-      } else {
-        subAgentRunsBuilder_.addMessage(builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sub-agent runs invoked during this run.
-     * Tracks when the main agent delegates work to specialized sub-agents.
-     * Ordered chronologically by invocation time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-     */
-    public Builder addSubAgentRuns(
-        int index, ai.stigmer.agentic.run.v1.SubAgentRun.Builder builderForValue) {
-      if (subAgentRunsBuilder_ == null) {
-        ensureSubAgentRunsIsMutable();
-        subAgentRuns_.add(index, builderForValue.build());
-        onChanged();
-      } else {
-        subAgentRunsBuilder_.addMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sub-agent runs invoked during this run.
-     * Tracks when the main agent delegates work to specialized sub-agents.
-     * Ordered chronologically by invocation time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-     */
-    public Builder addAllSubAgentRuns(
-        java.lang.Iterable<? extends ai.stigmer.agentic.run.v1.SubAgentRun> values) {
-      if (subAgentRunsBuilder_ == null) {
-        ensureSubAgentRunsIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, subAgentRuns_);
-        onChanged();
-      } else {
-        subAgentRunsBuilder_.addAllMessages(values);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sub-agent runs invoked during this run.
-     * Tracks when the main agent delegates work to specialized sub-agents.
-     * Ordered chronologically by invocation time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-     */
-    public Builder clearSubAgentRuns() {
-      if (subAgentRunsBuilder_ == null) {
-        subAgentRuns_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000008);
-        onChanged();
-      } else {
-        subAgentRunsBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sub-agent runs invoked during this run.
-     * Tracks when the main agent delegates work to specialized sub-agents.
-     * Ordered chronologically by invocation time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-     */
-    public Builder removeSubAgentRuns(int index) {
-      if (subAgentRunsBuilder_ == null) {
-        ensureSubAgentRunsIsMutable();
-        subAgentRuns_.remove(index);
-        onChanged();
-      } else {
-        subAgentRunsBuilder_.remove(index);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sub-agent runs invoked during this run.
-     * Tracks when the main agent delegates work to specialized sub-agents.
-     * Ordered chronologically by invocation time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.SubAgentRun.Builder getSubAgentRunsBuilder(
-        int index) {
-      return internalGetSubAgentRunsFieldBuilder().getBuilder(index);
-    }
-    /**
-     * <pre>
-     * Sub-agent runs invoked during this run.
-     * Tracks when the main agent delegates work to specialized sub-agents.
-     * Ordered chronologically by invocation time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.SubAgentRunOrBuilder getSubAgentRunsOrBuilder(
-        int index) {
-      if (subAgentRunsBuilder_ == null) {
-        return subAgentRuns_.get(index);  } else {
-        return subAgentRunsBuilder_.getMessageOrBuilder(index);
-      }
-    }
-    /**
-     * <pre>
-     * Sub-agent runs invoked during this run.
-     * Tracks when the main agent delegates work to specialized sub-agents.
-     * Ordered chronologically by invocation time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-     */
-    public java.util.List<? extends ai.stigmer.agentic.run.v1.SubAgentRunOrBuilder> 
-         getSubAgentRunsOrBuilderList() {
-      if (subAgentRunsBuilder_ != null) {
-        return subAgentRunsBuilder_.getMessageOrBuilderList();
-      } else {
-        return java.util.Collections.unmodifiableList(subAgentRuns_);
-      }
-    }
-    /**
-     * <pre>
-     * Sub-agent runs invoked during this run.
-     * Tracks when the main agent delegates work to specialized sub-agents.
-     * Ordered chronologically by invocation time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.SubAgentRun.Builder addSubAgentRunsBuilder() {
-      return internalGetSubAgentRunsFieldBuilder().addBuilder(
-          ai.stigmer.agentic.run.v1.SubAgentRun.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Sub-agent runs invoked during this run.
-     * Tracks when the main agent delegates work to specialized sub-agents.
-     * Ordered chronologically by invocation time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.SubAgentRun.Builder addSubAgentRunsBuilder(
-        int index) {
-      return internalGetSubAgentRunsFieldBuilder().addBuilder(
-          index, ai.stigmer.agentic.run.v1.SubAgentRun.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Sub-agent runs invoked during this run.
-     * Tracks when the main agent delegates work to specialized sub-agents.
-     * Ordered chronologically by invocation time.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.run.v1.SubAgentRun.Builder> 
-         getSubAgentRunsBuilderList() {
-      return internalGetSubAgentRunsFieldBuilder().getBuilderList();
-    }
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.run.v1.SubAgentRun, ai.stigmer.agentic.run.v1.SubAgentRun.Builder, ai.stigmer.agentic.run.v1.SubAgentRunOrBuilder> 
-        internalGetSubAgentRunsFieldBuilder() {
-      if (subAgentRunsBuilder_ == null) {
-        subAgentRunsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.agentic.run.v1.SubAgentRun, ai.stigmer.agentic.run.v1.SubAgentRun.Builder, ai.stigmer.agentic.run.v1.SubAgentRunOrBuilder>(
-                subAgentRuns_,
-                ((bitField0_ & 0x00000008) != 0),
-                getParentForChildren(),
-                isClean());
-        subAgentRuns_ = null;
-      }
-      return subAgentRunsBuilder_;
     }
 
     private java.lang.Object error_ = "";
@@ -4327,7 +2570,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       error_ = value;
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
@@ -4342,7 +2585,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder clearError() {
       error_ = getDefaultInstance().getError();
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000004);
       onChanged();
       return this;
     }
@@ -4361,7 +2604,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       error_ = value;
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
@@ -4424,7 +2667,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       startedAt_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -4439,7 +2682,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder clearStartedAt() {
       startedAt_ = getDefaultInstance().getStartedAt();
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000008);
       onChanged();
       return this;
     }
@@ -4458,7 +2701,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       startedAt_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -4521,7 +2764,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       completedAt_ = value;
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -4536,7 +2779,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder clearCompletedAt() {
       completedAt_ = getDefaultInstance().getCompletedAt();
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000010);
       onChanged();
       return this;
     }
@@ -4555,1052 +2798,17 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       completedAt_ = value;
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
-    }
-
-    private static final class TodosConverter implements com.google.protobuf.MapFieldBuilder.Converter<java.lang.String, ai.stigmer.agentic.run.v1.TodoItemOrBuilder, ai.stigmer.agentic.run.v1.TodoItem> {
-      @java.lang.Override
-      public ai.stigmer.agentic.run.v1.TodoItem build(ai.stigmer.agentic.run.v1.TodoItemOrBuilder val) {
-        if (val instanceof ai.stigmer.agentic.run.v1.TodoItem) { return (ai.stigmer.agentic.run.v1.TodoItem) val; }
-        return ((ai.stigmer.agentic.run.v1.TodoItem.Builder) val).build();
-      }
-
-      @java.lang.Override
-      public com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.run.v1.TodoItem> defaultEntry() {
-        return TodosDefaultEntryHolder.defaultEntry;
-      }
-    };
-    private static final TodosConverter todosConverter = new TodosConverter();
-
-    private com.google.protobuf.MapFieldBuilder<
-        java.lang.String, ai.stigmer.agentic.run.v1.TodoItemOrBuilder, ai.stigmer.agentic.run.v1.TodoItem, ai.stigmer.agentic.run.v1.TodoItem.Builder> todos_;
-    private com.google.protobuf.MapFieldBuilder<java.lang.String, ai.stigmer.agentic.run.v1.TodoItemOrBuilder, ai.stigmer.agentic.run.v1.TodoItem, ai.stigmer.agentic.run.v1.TodoItem.Builder>
-        internalGetTodos() {
-      if (todos_ == null) {
-        return new com.google.protobuf.MapFieldBuilder<>(todosConverter);
-      }
-      return todos_;
-    }
-    private com.google.protobuf.MapFieldBuilder<java.lang.String, ai.stigmer.agentic.run.v1.TodoItemOrBuilder, ai.stigmer.agentic.run.v1.TodoItem, ai.stigmer.agentic.run.v1.TodoItem.Builder>
-        internalGetMutableTodos() {
-      if (todos_ == null) {
-        todos_ = new com.google.protobuf.MapFieldBuilder<>(todosConverter);
-      }
-      bitField0_ |= 0x00000080;
-      onChanged();
-      return todos_;
-    }
-    public int getTodosCount() {
-      return internalGetTodos().ensureBuilderMap().size();
-    }
-    /**
-     * <pre>
-     * Todo list tracking multi-step tasks and progress for this run.
-     * Updated via write_todos tool (if TodoListMiddleware is enabled).
-     * Each run maintains its own snapshot of todos at run time.
-     * Key: todo item ID, Value: todo item details
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.run.v1.TodoItem&gt; todos = 9 [json_name = "todos"];</code>
-     */
-    @java.lang.Override
-    public boolean containsTodos(
-        java.lang.String key) {
-      if (key == null) { throw new NullPointerException("map key"); }
-      return internalGetTodos().ensureBuilderMap().containsKey(key);
-    }
-    /**
-     * Use {@link #getTodosMap()} instead.
-     */
-    @java.lang.Override
-    @java.lang.Deprecated
-    public java.util.Map<java.lang.String, ai.stigmer.agentic.run.v1.TodoItem> getTodos() {
-      return getTodosMap();
-    }
-    /**
-     * <pre>
-     * Todo list tracking multi-step tasks and progress for this run.
-     * Updated via write_todos tool (if TodoListMiddleware is enabled).
-     * Each run maintains its own snapshot of todos at run time.
-     * Key: todo item ID, Value: todo item details
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.run.v1.TodoItem&gt; todos = 9 [json_name = "todos"];</code>
-     */
-    @java.lang.Override
-    public java.util.Map<java.lang.String, ai.stigmer.agentic.run.v1.TodoItem> getTodosMap() {
-      return internalGetTodos().getImmutableMap();
-    }
-    /**
-     * <pre>
-     * Todo list tracking multi-step tasks and progress for this run.
-     * Updated via write_todos tool (if TodoListMiddleware is enabled).
-     * Each run maintains its own snapshot of todos at run time.
-     * Key: todo item ID, Value: todo item details
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.run.v1.TodoItem&gt; todos = 9 [json_name = "todos"];</code>
-     */
-    @java.lang.Override
-    public /* nullable */
-ai.stigmer.agentic.run.v1.TodoItem getTodosOrDefault(
-        java.lang.String key,
-        /* nullable */
-ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
-      if (key == null) { throw new NullPointerException("map key"); }
-      java.util.Map<java.lang.String, ai.stigmer.agentic.run.v1.TodoItemOrBuilder> map = internalGetMutableTodos().ensureBuilderMap();
-      return map.containsKey(key) ? todosConverter.build(map.get(key)) : defaultValue;
-    }
-    /**
-     * <pre>
-     * Todo list tracking multi-step tasks and progress for this run.
-     * Updated via write_todos tool (if TodoListMiddleware is enabled).
-     * Each run maintains its own snapshot of todos at run time.
-     * Key: todo item ID, Value: todo item details
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.run.v1.TodoItem&gt; todos = 9 [json_name = "todos"];</code>
-     */
-    @java.lang.Override
-    public ai.stigmer.agentic.run.v1.TodoItem getTodosOrThrow(
-        java.lang.String key) {
-      if (key == null) { throw new NullPointerException("map key"); }
-      java.util.Map<java.lang.String, ai.stigmer.agentic.run.v1.TodoItemOrBuilder> map = internalGetMutableTodos().ensureBuilderMap();
-      if (!map.containsKey(key)) {
-        throw new java.lang.IllegalArgumentException();
-      }
-      return todosConverter.build(map.get(key));
-    }
-    public Builder clearTodos() {
-      bitField0_ = (bitField0_ & ~0x00000080);
-      internalGetMutableTodos().clear();
-      return this;
-    }
-    /**
-     * <pre>
-     * Todo list tracking multi-step tasks and progress for this run.
-     * Updated via write_todos tool (if TodoListMiddleware is enabled).
-     * Each run maintains its own snapshot of todos at run time.
-     * Key: todo item ID, Value: todo item details
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.run.v1.TodoItem&gt; todos = 9 [json_name = "todos"];</code>
-     */
-    public Builder removeTodos(
-        java.lang.String key) {
-      if (key == null) { throw new NullPointerException("map key"); }
-      internalGetMutableTodos().ensureBuilderMap()
-          .remove(key);
-      return this;
-    }
-    /**
-     * Use alternate mutation accessors instead.
-     */
-    @java.lang.Deprecated
-    public java.util.Map<java.lang.String, ai.stigmer.agentic.run.v1.TodoItem>
-        getMutableTodos() {
-      bitField0_ |= 0x00000080;
-      return internalGetMutableTodos().ensureMessageMap();
-    }
-    /**
-     * <pre>
-     * Todo list tracking multi-step tasks and progress for this run.
-     * Updated via write_todos tool (if TodoListMiddleware is enabled).
-     * Each run maintains its own snapshot of todos at run time.
-     * Key: todo item ID, Value: todo item details
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.run.v1.TodoItem&gt; todos = 9 [json_name = "todos"];</code>
-     */
-    public Builder putTodos(
-        java.lang.String key,
-        ai.stigmer.agentic.run.v1.TodoItem value) {
-      if (key == null) { throw new NullPointerException("map key"); }
-      if (value == null) { throw new NullPointerException("map value"); }
-      internalGetMutableTodos().ensureBuilderMap()
-          .put(key, value);
-      bitField0_ |= 0x00000080;
-      return this;
-    }
-    /**
-     * <pre>
-     * Todo list tracking multi-step tasks and progress for this run.
-     * Updated via write_todos tool (if TodoListMiddleware is enabled).
-     * Each run maintains its own snapshot of todos at run time.
-     * Key: todo item ID, Value: todo item details
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.run.v1.TodoItem&gt; todos = 9 [json_name = "todos"];</code>
-     */
-    public Builder putAllTodos(
-        java.util.Map<java.lang.String, ai.stigmer.agentic.run.v1.TodoItem> values) {
-      for (java.util.Map.Entry<java.lang.String, ai.stigmer.agentic.run.v1.TodoItem> e : values.entrySet()) {
-        if (e.getKey() == null || e.getValue() == null) {
-          throw new NullPointerException();
-        }
-      }
-      internalGetMutableTodos().ensureBuilderMap()
-          .putAll(values);
-      bitField0_ |= 0x00000080;
-      return this;
-    }
-    /**
-     * <pre>
-     * Todo list tracking multi-step tasks and progress for this run.
-     * Updated via write_todos tool (if TodoListMiddleware is enabled).
-     * Each run maintains its own snapshot of todos at run time.
-     * Key: todo item ID, Value: todo item details
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.run.v1.TodoItem&gt; todos = 9 [json_name = "todos"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.TodoItem.Builder putTodosBuilderIfAbsent(
-        java.lang.String key) {
-      java.util.Map<java.lang.String, ai.stigmer.agentic.run.v1.TodoItemOrBuilder> builderMap = internalGetMutableTodos().ensureBuilderMap();
-      ai.stigmer.agentic.run.v1.TodoItemOrBuilder entry = builderMap.get(key);
-      if (entry == null) {
-        entry = ai.stigmer.agentic.run.v1.TodoItem.newBuilder();
-        builderMap.put(key, entry);
-      }
-      if (entry instanceof ai.stigmer.agentic.run.v1.TodoItem) {
-        entry = ((ai.stigmer.agentic.run.v1.TodoItem) entry).toBuilder();
-        builderMap.put(key, entry);
-      }
-      return (ai.stigmer.agentic.run.v1.TodoItem.Builder) entry;
-    }
-
-    private java.util.List<ai.stigmer.agentic.run.v1.PendingApproval> pendingApprovals_ =
-      java.util.Collections.emptyList();
-    private void ensurePendingApprovalsIsMutable() {
-      if (!((bitField0_ & 0x00000100) != 0)) {
-        pendingApprovals_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.PendingApproval>(pendingApprovals_);
-        bitField0_ |= 0x00000100;
-       }
-    }
-
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.run.v1.PendingApproval, ai.stigmer.agentic.run.v1.PendingApproval.Builder, ai.stigmer.agentic.run.v1.PendingApprovalOrBuilder> pendingApprovalsBuilder_;
-
-    /**
-     * <pre>
-     * Active pending approval requests for this run.
-     *
-     * Contains one entry per tool call that requires user approval before
-     * it can proceed. Sub-agent approvals are included with from_sub_agent
-     * set to true. Empty when no approvals are pending.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.run.v1.PendingApproval> getPendingApprovalsList() {
-      if (pendingApprovalsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(pendingApprovals_);
-      } else {
-        return pendingApprovalsBuilder_.getMessageList();
-      }
-    }
-    /**
-     * <pre>
-     * Active pending approval requests for this run.
-     *
-     * Contains one entry per tool call that requires user approval before
-     * it can proceed. Sub-agent approvals are included with from_sub_agent
-     * set to true. Empty when no approvals are pending.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-     */
-    public int getPendingApprovalsCount() {
-      if (pendingApprovalsBuilder_ == null) {
-        return pendingApprovals_.size();
-      } else {
-        return pendingApprovalsBuilder_.getCount();
-      }
-    }
-    /**
-     * <pre>
-     * Active pending approval requests for this run.
-     *
-     * Contains one entry per tool call that requires user approval before
-     * it can proceed. Sub-agent approvals are included with from_sub_agent
-     * set to true. Empty when no approvals are pending.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.PendingApproval getPendingApprovals(int index) {
-      if (pendingApprovalsBuilder_ == null) {
-        return pendingApprovals_.get(index);
-      } else {
-        return pendingApprovalsBuilder_.getMessage(index);
-      }
-    }
-    /**
-     * <pre>
-     * Active pending approval requests for this run.
-     *
-     * Contains one entry per tool call that requires user approval before
-     * it can proceed. Sub-agent approvals are included with from_sub_agent
-     * set to true. Empty when no approvals are pending.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-     */
-    public Builder setPendingApprovals(
-        int index, ai.stigmer.agentic.run.v1.PendingApproval value) {
-      if (pendingApprovalsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensurePendingApprovalsIsMutable();
-        pendingApprovals_.set(index, value);
-        onChanged();
-      } else {
-        pendingApprovalsBuilder_.setMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Active pending approval requests for this run.
-     *
-     * Contains one entry per tool call that requires user approval before
-     * it can proceed. Sub-agent approvals are included with from_sub_agent
-     * set to true. Empty when no approvals are pending.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-     */
-    public Builder setPendingApprovals(
-        int index, ai.stigmer.agentic.run.v1.PendingApproval.Builder builderForValue) {
-      if (pendingApprovalsBuilder_ == null) {
-        ensurePendingApprovalsIsMutable();
-        pendingApprovals_.set(index, builderForValue.build());
-        onChanged();
-      } else {
-        pendingApprovalsBuilder_.setMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Active pending approval requests for this run.
-     *
-     * Contains one entry per tool call that requires user approval before
-     * it can proceed. Sub-agent approvals are included with from_sub_agent
-     * set to true. Empty when no approvals are pending.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-     */
-    public Builder addPendingApprovals(ai.stigmer.agentic.run.v1.PendingApproval value) {
-      if (pendingApprovalsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensurePendingApprovalsIsMutable();
-        pendingApprovals_.add(value);
-        onChanged();
-      } else {
-        pendingApprovalsBuilder_.addMessage(value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Active pending approval requests for this run.
-     *
-     * Contains one entry per tool call that requires user approval before
-     * it can proceed. Sub-agent approvals are included with from_sub_agent
-     * set to true. Empty when no approvals are pending.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-     */
-    public Builder addPendingApprovals(
-        int index, ai.stigmer.agentic.run.v1.PendingApproval value) {
-      if (pendingApprovalsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensurePendingApprovalsIsMutable();
-        pendingApprovals_.add(index, value);
-        onChanged();
-      } else {
-        pendingApprovalsBuilder_.addMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Active pending approval requests for this run.
-     *
-     * Contains one entry per tool call that requires user approval before
-     * it can proceed. Sub-agent approvals are included with from_sub_agent
-     * set to true. Empty when no approvals are pending.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-     */
-    public Builder addPendingApprovals(
-        ai.stigmer.agentic.run.v1.PendingApproval.Builder builderForValue) {
-      if (pendingApprovalsBuilder_ == null) {
-        ensurePendingApprovalsIsMutable();
-        pendingApprovals_.add(builderForValue.build());
-        onChanged();
-      } else {
-        pendingApprovalsBuilder_.addMessage(builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Active pending approval requests for this run.
-     *
-     * Contains one entry per tool call that requires user approval before
-     * it can proceed. Sub-agent approvals are included with from_sub_agent
-     * set to true. Empty when no approvals are pending.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-     */
-    public Builder addPendingApprovals(
-        int index, ai.stigmer.agentic.run.v1.PendingApproval.Builder builderForValue) {
-      if (pendingApprovalsBuilder_ == null) {
-        ensurePendingApprovalsIsMutable();
-        pendingApprovals_.add(index, builderForValue.build());
-        onChanged();
-      } else {
-        pendingApprovalsBuilder_.addMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Active pending approval requests for this run.
-     *
-     * Contains one entry per tool call that requires user approval before
-     * it can proceed. Sub-agent approvals are included with from_sub_agent
-     * set to true. Empty when no approvals are pending.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-     */
-    public Builder addAllPendingApprovals(
-        java.lang.Iterable<? extends ai.stigmer.agentic.run.v1.PendingApproval> values) {
-      if (pendingApprovalsBuilder_ == null) {
-        ensurePendingApprovalsIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, pendingApprovals_);
-        onChanged();
-      } else {
-        pendingApprovalsBuilder_.addAllMessages(values);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Active pending approval requests for this run.
-     *
-     * Contains one entry per tool call that requires user approval before
-     * it can proceed. Sub-agent approvals are included with from_sub_agent
-     * set to true. Empty when no approvals are pending.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-     */
-    public Builder clearPendingApprovals() {
-      if (pendingApprovalsBuilder_ == null) {
-        pendingApprovals_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000100);
-        onChanged();
-      } else {
-        pendingApprovalsBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Active pending approval requests for this run.
-     *
-     * Contains one entry per tool call that requires user approval before
-     * it can proceed. Sub-agent approvals are included with from_sub_agent
-     * set to true. Empty when no approvals are pending.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-     */
-    public Builder removePendingApprovals(int index) {
-      if (pendingApprovalsBuilder_ == null) {
-        ensurePendingApprovalsIsMutable();
-        pendingApprovals_.remove(index);
-        onChanged();
-      } else {
-        pendingApprovalsBuilder_.remove(index);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Active pending approval requests for this run.
-     *
-     * Contains one entry per tool call that requires user approval before
-     * it can proceed. Sub-agent approvals are included with from_sub_agent
-     * set to true. Empty when no approvals are pending.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.PendingApproval.Builder getPendingApprovalsBuilder(
-        int index) {
-      return internalGetPendingApprovalsFieldBuilder().getBuilder(index);
-    }
-    /**
-     * <pre>
-     * Active pending approval requests for this run.
-     *
-     * Contains one entry per tool call that requires user approval before
-     * it can proceed. Sub-agent approvals are included with from_sub_agent
-     * set to true. Empty when no approvals are pending.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.PendingApprovalOrBuilder getPendingApprovalsOrBuilder(
-        int index) {
-      if (pendingApprovalsBuilder_ == null) {
-        return pendingApprovals_.get(index);  } else {
-        return pendingApprovalsBuilder_.getMessageOrBuilder(index);
-      }
-    }
-    /**
-     * <pre>
-     * Active pending approval requests for this run.
-     *
-     * Contains one entry per tool call that requires user approval before
-     * it can proceed. Sub-agent approvals are included with from_sub_agent
-     * set to true. Empty when no approvals are pending.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-     */
-    public java.util.List<? extends ai.stigmer.agentic.run.v1.PendingApprovalOrBuilder> 
-         getPendingApprovalsOrBuilderList() {
-      if (pendingApprovalsBuilder_ != null) {
-        return pendingApprovalsBuilder_.getMessageOrBuilderList();
-      } else {
-        return java.util.Collections.unmodifiableList(pendingApprovals_);
-      }
-    }
-    /**
-     * <pre>
-     * Active pending approval requests for this run.
-     *
-     * Contains one entry per tool call that requires user approval before
-     * it can proceed. Sub-agent approvals are included with from_sub_agent
-     * set to true. Empty when no approvals are pending.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.PendingApproval.Builder addPendingApprovalsBuilder() {
-      return internalGetPendingApprovalsFieldBuilder().addBuilder(
-          ai.stigmer.agentic.run.v1.PendingApproval.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Active pending approval requests for this run.
-     *
-     * Contains one entry per tool call that requires user approval before
-     * it can proceed. Sub-agent approvals are included with from_sub_agent
-     * set to true. Empty when no approvals are pending.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.PendingApproval.Builder addPendingApprovalsBuilder(
-        int index) {
-      return internalGetPendingApprovalsFieldBuilder().addBuilder(
-          index, ai.stigmer.agentic.run.v1.PendingApproval.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Active pending approval requests for this run.
-     *
-     * Contains one entry per tool call that requires user approval before
-     * it can proceed. Sub-agent approvals are included with from_sub_agent
-     * set to true. Empty when no approvals are pending.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.run.v1.PendingApproval.Builder> 
-         getPendingApprovalsBuilderList() {
-      return internalGetPendingApprovalsFieldBuilder().getBuilderList();
-    }
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.run.v1.PendingApproval, ai.stigmer.agentic.run.v1.PendingApproval.Builder, ai.stigmer.agentic.run.v1.PendingApprovalOrBuilder> 
-        internalGetPendingApprovalsFieldBuilder() {
-      if (pendingApprovalsBuilder_ == null) {
-        pendingApprovalsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.agentic.run.v1.PendingApproval, ai.stigmer.agentic.run.v1.PendingApproval.Builder, ai.stigmer.agentic.run.v1.PendingApprovalOrBuilder>(
-                pendingApprovals_,
-                ((bitField0_ & 0x00000100) != 0),
-                getParentForChildren(),
-                isClean());
-        pendingApprovals_ = null;
-      }
-      return pendingApprovalsBuilder_;
-    }
-
-    private ai.stigmer.agentic.run.v1.ApprovalEventStream approvalEventStream_;
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.run.v1.ApprovalEventStream, ai.stigmer.agentic.run.v1.ApprovalEventStream.Builder, ai.stigmer.agentic.run.v1.ApprovalEventStreamOrBuilder> approvalEventStreamBuilder_;
-    /**
-     * <pre>
-     * No longer written: approvals and their answers are the session's events
-     * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
-     * stigmer.permission.grant). Runs written before then keep their entries.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
-     * @return Whether the approvalEventStream field is set.
-     */
-    public boolean hasApprovalEventStream() {
-      return ((bitField0_ & 0x00000200) != 0);
-    }
-    /**
-     * <pre>
-     * No longer written: approvals and their answers are the session's events
-     * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
-     * stigmer.permission.grant). Runs written before then keep their entries.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
-     * @return The approvalEventStream.
-     */
-    public ai.stigmer.agentic.run.v1.ApprovalEventStream getApprovalEventStream() {
-      if (approvalEventStreamBuilder_ == null) {
-        return approvalEventStream_ == null ? ai.stigmer.agentic.run.v1.ApprovalEventStream.getDefaultInstance() : approvalEventStream_;
-      } else {
-        return approvalEventStreamBuilder_.getMessage();
-      }
-    }
-    /**
-     * <pre>
-     * No longer written: approvals and their answers are the session's events
-     * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
-     * stigmer.permission.grant). Runs written before then keep their entries.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
-     */
-    public Builder setApprovalEventStream(ai.stigmer.agentic.run.v1.ApprovalEventStream value) {
-      if (approvalEventStreamBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        approvalEventStream_ = value;
-      } else {
-        approvalEventStreamBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00000200;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * No longer written: approvals and their answers are the session's events
-     * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
-     * stigmer.permission.grant). Runs written before then keep their entries.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
-     */
-    public Builder setApprovalEventStream(
-        ai.stigmer.agentic.run.v1.ApprovalEventStream.Builder builderForValue) {
-      if (approvalEventStreamBuilder_ == null) {
-        approvalEventStream_ = builderForValue.build();
-      } else {
-        approvalEventStreamBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00000200;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * No longer written: approvals and their answers are the session's events
-     * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
-     * stigmer.permission.grant). Runs written before then keep their entries.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
-     */
-    public Builder mergeApprovalEventStream(ai.stigmer.agentic.run.v1.ApprovalEventStream value) {
-      if (approvalEventStreamBuilder_ == null) {
-        if (((bitField0_ & 0x00000200) != 0) &&
-          approvalEventStream_ != null &&
-          approvalEventStream_ != ai.stigmer.agentic.run.v1.ApprovalEventStream.getDefaultInstance()) {
-          getApprovalEventStreamBuilder().mergeFrom(value);
-        } else {
-          approvalEventStream_ = value;
-        }
-      } else {
-        approvalEventStreamBuilder_.mergeFrom(value);
-      }
-      if (approvalEventStream_ != null) {
-        bitField0_ |= 0x00000200;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * No longer written: approvals and their answers are the session's events
-     * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
-     * stigmer.permission.grant). Runs written before then keep their entries.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
-     */
-    public Builder clearApprovalEventStream() {
-      bitField0_ = (bitField0_ & ~0x00000200);
-      approvalEventStream_ = null;
-      if (approvalEventStreamBuilder_ != null) {
-        approvalEventStreamBuilder_.dispose();
-        approvalEventStreamBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * No longer written: approvals and their answers are the session's events
-     * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
-     * stigmer.permission.grant). Runs written before then keep their entries.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.ApprovalEventStream.Builder getApprovalEventStreamBuilder() {
-      bitField0_ |= 0x00000200;
-      onChanged();
-      return internalGetApprovalEventStreamFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * No longer written: approvals and their answers are the session's events
-     * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
-     * stigmer.permission.grant). Runs written before then keep their entries.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.ApprovalEventStreamOrBuilder getApprovalEventStreamOrBuilder() {
-      if (approvalEventStreamBuilder_ != null) {
-        return approvalEventStreamBuilder_.getMessageOrBuilder();
-      } else {
-        return approvalEventStream_ == null ?
-            ai.stigmer.agentic.run.v1.ApprovalEventStream.getDefaultInstance() : approvalEventStream_;
-      }
-    }
-    /**
-     * <pre>
-     * No longer written: approvals and their answers are the session's events
-     * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
-     * stigmer.permission.grant). Runs written before then keep their entries.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.run.v1.ApprovalEventStream, ai.stigmer.agentic.run.v1.ApprovalEventStream.Builder, ai.stigmer.agentic.run.v1.ApprovalEventStreamOrBuilder> 
-        internalGetApprovalEventStreamFieldBuilder() {
-      if (approvalEventStreamBuilder_ == null) {
-        approvalEventStreamBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.run.v1.ApprovalEventStream, ai.stigmer.agentic.run.v1.ApprovalEventStream.Builder, ai.stigmer.agentic.run.v1.ApprovalEventStreamOrBuilder>(
-                getApprovalEventStream(),
-                getParentForChildren(),
-                isClean());
-        approvalEventStream_ = null;
-      }
-      return approvalEventStreamBuilder_;
-    }
-
-    private ai.stigmer.agentic.run.v1.ContextInfo contextInfo_;
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.run.v1.ContextInfo, ai.stigmer.agentic.run.v1.ContextInfo.Builder, ai.stigmer.agentic.run.v1.ContextInfoOrBuilder> contextInfoBuilder_;
-    /**
-     * <pre>
-     * Context window utilization and summarization tracking.
-     *
-     * Provides visibility into how the agent is using its context window and
-     * any summarization events that occurred during the run.
-     *
-     * Populated when context management is active (not disabled via config).
-     * Updated progressively during streaming as token counts change.
-     *
-     * Use cases:
-     * - **Monitoring**: Track context utilization across runs
-     * - **Debugging**: Understand why a run hit context limits
-     * - **Cost optimization**: Identify runs with excessive summarization
-     * - **UX**: Show users their context window health
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
-     * @return Whether the contextInfo field is set.
-     */
-    public boolean hasContextInfo() {
-      return ((bitField0_ & 0x00000400) != 0);
-    }
-    /**
-     * <pre>
-     * Context window utilization and summarization tracking.
-     *
-     * Provides visibility into how the agent is using its context window and
-     * any summarization events that occurred during the run.
-     *
-     * Populated when context management is active (not disabled via config).
-     * Updated progressively during streaming as token counts change.
-     *
-     * Use cases:
-     * - **Monitoring**: Track context utilization across runs
-     * - **Debugging**: Understand why a run hit context limits
-     * - **Cost optimization**: Identify runs with excessive summarization
-     * - **UX**: Show users their context window health
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
-     * @return The contextInfo.
-     */
-    public ai.stigmer.agentic.run.v1.ContextInfo getContextInfo() {
-      if (contextInfoBuilder_ == null) {
-        return contextInfo_ == null ? ai.stigmer.agentic.run.v1.ContextInfo.getDefaultInstance() : contextInfo_;
-      } else {
-        return contextInfoBuilder_.getMessage();
-      }
-    }
-    /**
-     * <pre>
-     * Context window utilization and summarization tracking.
-     *
-     * Provides visibility into how the agent is using its context window and
-     * any summarization events that occurred during the run.
-     *
-     * Populated when context management is active (not disabled via config).
-     * Updated progressively during streaming as token counts change.
-     *
-     * Use cases:
-     * - **Monitoring**: Track context utilization across runs
-     * - **Debugging**: Understand why a run hit context limits
-     * - **Cost optimization**: Identify runs with excessive summarization
-     * - **UX**: Show users their context window health
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
-     */
-    public Builder setContextInfo(ai.stigmer.agentic.run.v1.ContextInfo value) {
-      if (contextInfoBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        contextInfo_ = value;
-      } else {
-        contextInfoBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00000400;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Context window utilization and summarization tracking.
-     *
-     * Provides visibility into how the agent is using its context window and
-     * any summarization events that occurred during the run.
-     *
-     * Populated when context management is active (not disabled via config).
-     * Updated progressively during streaming as token counts change.
-     *
-     * Use cases:
-     * - **Monitoring**: Track context utilization across runs
-     * - **Debugging**: Understand why a run hit context limits
-     * - **Cost optimization**: Identify runs with excessive summarization
-     * - **UX**: Show users their context window health
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
-     */
-    public Builder setContextInfo(
-        ai.stigmer.agentic.run.v1.ContextInfo.Builder builderForValue) {
-      if (contextInfoBuilder_ == null) {
-        contextInfo_ = builderForValue.build();
-      } else {
-        contextInfoBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00000400;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Context window utilization and summarization tracking.
-     *
-     * Provides visibility into how the agent is using its context window and
-     * any summarization events that occurred during the run.
-     *
-     * Populated when context management is active (not disabled via config).
-     * Updated progressively during streaming as token counts change.
-     *
-     * Use cases:
-     * - **Monitoring**: Track context utilization across runs
-     * - **Debugging**: Understand why a run hit context limits
-     * - **Cost optimization**: Identify runs with excessive summarization
-     * - **UX**: Show users their context window health
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
-     */
-    public Builder mergeContextInfo(ai.stigmer.agentic.run.v1.ContextInfo value) {
-      if (contextInfoBuilder_ == null) {
-        if (((bitField0_ & 0x00000400) != 0) &&
-          contextInfo_ != null &&
-          contextInfo_ != ai.stigmer.agentic.run.v1.ContextInfo.getDefaultInstance()) {
-          getContextInfoBuilder().mergeFrom(value);
-        } else {
-          contextInfo_ = value;
-        }
-      } else {
-        contextInfoBuilder_.mergeFrom(value);
-      }
-      if (contextInfo_ != null) {
-        bitField0_ |= 0x00000400;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Context window utilization and summarization tracking.
-     *
-     * Provides visibility into how the agent is using its context window and
-     * any summarization events that occurred during the run.
-     *
-     * Populated when context management is active (not disabled via config).
-     * Updated progressively during streaming as token counts change.
-     *
-     * Use cases:
-     * - **Monitoring**: Track context utilization across runs
-     * - **Debugging**: Understand why a run hit context limits
-     * - **Cost optimization**: Identify runs with excessive summarization
-     * - **UX**: Show users their context window health
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
-     */
-    public Builder clearContextInfo() {
-      bitField0_ = (bitField0_ & ~0x00000400);
-      contextInfo_ = null;
-      if (contextInfoBuilder_ != null) {
-        contextInfoBuilder_.dispose();
-        contextInfoBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Context window utilization and summarization tracking.
-     *
-     * Provides visibility into how the agent is using its context window and
-     * any summarization events that occurred during the run.
-     *
-     * Populated when context management is active (not disabled via config).
-     * Updated progressively during streaming as token counts change.
-     *
-     * Use cases:
-     * - **Monitoring**: Track context utilization across runs
-     * - **Debugging**: Understand why a run hit context limits
-     * - **Cost optimization**: Identify runs with excessive summarization
-     * - **UX**: Show users their context window health
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.ContextInfo.Builder getContextInfoBuilder() {
-      bitField0_ |= 0x00000400;
-      onChanged();
-      return internalGetContextInfoFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * Context window utilization and summarization tracking.
-     *
-     * Provides visibility into how the agent is using its context window and
-     * any summarization events that occurred during the run.
-     *
-     * Populated when context management is active (not disabled via config).
-     * Updated progressively during streaming as token counts change.
-     *
-     * Use cases:
-     * - **Monitoring**: Track context utilization across runs
-     * - **Debugging**: Understand why a run hit context limits
-     * - **Cost optimization**: Identify runs with excessive summarization
-     * - **UX**: Show users their context window health
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.ContextInfoOrBuilder getContextInfoOrBuilder() {
-      if (contextInfoBuilder_ != null) {
-        return contextInfoBuilder_.getMessageOrBuilder();
-      } else {
-        return contextInfo_ == null ?
-            ai.stigmer.agentic.run.v1.ContextInfo.getDefaultInstance() : contextInfo_;
-      }
-    }
-    /**
-     * <pre>
-     * Context window utilization and summarization tracking.
-     *
-     * Provides visibility into how the agent is using its context window and
-     * any summarization events that occurred during the run.
-     *
-     * Populated when context management is active (not disabled via config).
-     * Updated progressively during streaming as token counts change.
-     *
-     * Use cases:
-     * - **Monitoring**: Track context utilization across runs
-     * - **Debugging**: Understand why a run hit context limits
-     * - **Cost optimization**: Identify runs with excessive summarization
-     * - **UX**: Show users their context window health
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.run.v1.ContextInfo, ai.stigmer.agentic.run.v1.ContextInfo.Builder, ai.stigmer.agentic.run.v1.ContextInfoOrBuilder> 
-        internalGetContextInfoFieldBuilder() {
-      if (contextInfoBuilder_ == null) {
-        contextInfoBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.run.v1.ContextInfo, ai.stigmer.agentic.run.v1.ContextInfo.Builder, ai.stigmer.agentic.run.v1.ContextInfoOrBuilder>(
-                getContextInfo(),
-                getParentForChildren(),
-                isClean());
-        contextInfo_ = null;
-      }
-      return contextInfoBuilder_;
     }
 
     private java.util.List<ai.stigmer.agentic.run.v1.RunArtifact> artifacts_ =
       java.util.Collections.emptyList();
     private void ensureArtifactsIsMutable() {
-      if (!((bitField0_ & 0x00000800) != 0)) {
+      if (!((bitField0_ & 0x00000020) != 0)) {
         artifacts_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.RunArtifact>(artifacts_);
-        bitField0_ |= 0x00000800;
+        bitField0_ |= 0x00000020;
        }
     }
 
@@ -5893,7 +3101,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     public Builder clearArtifacts() {
       if (artifactsBuilder_ == null) {
         artifacts_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000800);
+        bitField0_ = (bitField0_ & ~0x00000020);
         onChanged();
       } else {
         artifactsBuilder_.clear();
@@ -6061,7 +3269,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         artifactsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.run.v1.RunArtifact, ai.stigmer.agentic.run.v1.RunArtifact.Builder, ai.stigmer.agentic.run.v1.RunArtifactOrBuilder>(
                 artifacts_,
-                ((bitField0_ & 0x00000800) != 0),
+                ((bitField0_ & 0x00000020) != 0),
                 getParentForChildren(),
                 isClean());
         artifacts_ = null;
@@ -6072,9 +3280,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     private java.util.List<ai.stigmer.agentic.run.v1.WorkspaceWriteBack> workspaceWriteBacks_ =
       java.util.Collections.emptyList();
     private void ensureWorkspaceWriteBacksIsMutable() {
-      if (!((bitField0_ & 0x00001000) != 0)) {
+      if (!((bitField0_ & 0x00000040) != 0)) {
         workspaceWriteBacks_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.WorkspaceWriteBack>(workspaceWriteBacks_);
-        bitField0_ |= 0x00001000;
+        bitField0_ |= 0x00000040;
        }
     }
 
@@ -6367,7 +3575,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     public Builder clearWorkspaceWriteBacks() {
       if (workspaceWriteBacksBuilder_ == null) {
         workspaceWriteBacks_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00001000);
+        bitField0_ = (bitField0_ & ~0x00000040);
         onChanged();
       } else {
         workspaceWriteBacksBuilder_.clear();
@@ -6535,7 +3743,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         workspaceWriteBacksBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.run.v1.WorkspaceWriteBack, ai.stigmer.agentic.run.v1.WorkspaceWriteBack.Builder, ai.stigmer.agentic.run.v1.WorkspaceWriteBackOrBuilder>(
                 workspaceWriteBacks_,
-                ((bitField0_ & 0x00001000) != 0),
+                ((bitField0_ & 0x00000040) != 0),
                 getParentForChildren(),
                 isClean());
         workspaceWriteBacks_ = null;
@@ -6559,7 +3767,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * @return Whether the setupProgress field is set.
      */
     public boolean hasSetupProgress() {
-      return ((bitField0_ & 0x00002000) != 0);
+      return ((bitField0_ & 0x00000080) != 0);
     }
     /**
      * <pre>
@@ -6600,7 +3808,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         setupProgressBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -6622,7 +3830,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         setupProgressBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -6639,7 +3847,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder mergeSetupProgress(ai.stigmer.agentic.run.v1.SetupProgress value) {
       if (setupProgressBuilder_ == null) {
-        if (((bitField0_ & 0x00002000) != 0) &&
+        if (((bitField0_ & 0x00000080) != 0) &&
           setupProgress_ != null &&
           setupProgress_ != ai.stigmer.agentic.run.v1.SetupProgress.getDefaultInstance()) {
           getSetupProgressBuilder().mergeFrom(value);
@@ -6650,7 +3858,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         setupProgressBuilder_.mergeFrom(value);
       }
       if (setupProgress_ != null) {
-        bitField0_ |= 0x00002000;
+        bitField0_ |= 0x00000080;
         onChanged();
       }
       return this;
@@ -6667,7 +3875,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
      */
     public Builder clearSetupProgress() {
-      bitField0_ = (bitField0_ & ~0x00002000);
+      bitField0_ = (bitField0_ & ~0x00000080);
       setupProgress_ = null;
       if (setupProgressBuilder_ != null) {
         setupProgressBuilder_.dispose();
@@ -6688,7 +3896,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
      */
     public ai.stigmer.agentic.run.v1.SetupProgress.Builder getSetupProgressBuilder() {
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00000080;
       onChanged();
       return internalGetSetupProgressFieldBuilder().getBuilder();
     }
@@ -6748,7 +3956,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * @return Whether the streamingUsage field is set.
      */
     public boolean hasStreamingUsage() {
-      return ((bitField0_ & 0x00004000) != 0);
+      return ((bitField0_ & 0x00000100) != 0);
     }
     /**
      * <pre>
@@ -6781,7 +3989,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         streamingUsageBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -6799,7 +4007,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         streamingUsageBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -6812,7 +4020,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder mergeStreamingUsage(ai.stigmer.agentic.run.v1.StreamingUsageSummary value) {
       if (streamingUsageBuilder_ == null) {
-        if (((bitField0_ & 0x00004000) != 0) &&
+        if (((bitField0_ & 0x00000100) != 0) &&
           streamingUsage_ != null &&
           streamingUsage_ != ai.stigmer.agentic.run.v1.StreamingUsageSummary.getDefaultInstance()) {
           getStreamingUsageBuilder().mergeFrom(value);
@@ -6823,7 +4031,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         streamingUsageBuilder_.mergeFrom(value);
       }
       if (streamingUsage_ != null) {
-        bitField0_ |= 0x00004000;
+        bitField0_ |= 0x00000100;
         onChanged();
       }
       return this;
@@ -6836,7 +4044,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
      */
     public Builder clearStreamingUsage() {
-      bitField0_ = (bitField0_ & ~0x00004000);
+      bitField0_ = (bitField0_ & ~0x00000100);
       streamingUsage_ = null;
       if (streamingUsageBuilder_ != null) {
         streamingUsageBuilder_.dispose();
@@ -6853,7 +4061,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
      */
     public ai.stigmer.agentic.run.v1.StreamingUsageSummary.Builder getStreamingUsageBuilder() {
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00000100;
       onChanged();
       return internalGetStreamingUsageFieldBuilder().getBuilder();
     }
@@ -6893,758 +4101,6 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       return streamingUsageBuilder_;
     }
 
-    private com.google.protobuf.Struct structuredOutput_;
-    private com.google.protobuf.SingleFieldBuilder<
-        com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder> structuredOutputBuilder_;
-    /**
-     * <pre>
-     * Structured output extracted from the agent's final response.
-     *
-     * Populated when spec.structured_output_schema was set and the
-     * runner successfully extracted schema-conforming data. Only meaningful
-     * when phase is RUN_COMPLETED.
-     *
-     * For native harness: populated from LangGraph graphState.structuredResponse
-     * (ToolStrategy enforcement). For Cursor harness: populated from 3-tier
-     * extraction (JSON.parse → fence extraction → extraction LLM fallback).
-     *
-     * Consumers: frontend architect/refine hooks read this instead of parsing
-     * YAML from messages.
-     * </pre>
-     *
-     * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
-     * @return Whether the structuredOutput field is set.
-     */
-    public boolean hasStructuredOutput() {
-      return ((bitField0_ & 0x00008000) != 0);
-    }
-    /**
-     * <pre>
-     * Structured output extracted from the agent's final response.
-     *
-     * Populated when spec.structured_output_schema was set and the
-     * runner successfully extracted schema-conforming data. Only meaningful
-     * when phase is RUN_COMPLETED.
-     *
-     * For native harness: populated from LangGraph graphState.structuredResponse
-     * (ToolStrategy enforcement). For Cursor harness: populated from 3-tier
-     * extraction (JSON.parse → fence extraction → extraction LLM fallback).
-     *
-     * Consumers: frontend architect/refine hooks read this instead of parsing
-     * YAML from messages.
-     * </pre>
-     *
-     * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
-     * @return The structuredOutput.
-     */
-    public com.google.protobuf.Struct getStructuredOutput() {
-      if (structuredOutputBuilder_ == null) {
-        return structuredOutput_ == null ? com.google.protobuf.Struct.getDefaultInstance() : structuredOutput_;
-      } else {
-        return structuredOutputBuilder_.getMessage();
-      }
-    }
-    /**
-     * <pre>
-     * Structured output extracted from the agent's final response.
-     *
-     * Populated when spec.structured_output_schema was set and the
-     * runner successfully extracted schema-conforming data. Only meaningful
-     * when phase is RUN_COMPLETED.
-     *
-     * For native harness: populated from LangGraph graphState.structuredResponse
-     * (ToolStrategy enforcement). For Cursor harness: populated from 3-tier
-     * extraction (JSON.parse → fence extraction → extraction LLM fallback).
-     *
-     * Consumers: frontend architect/refine hooks read this instead of parsing
-     * YAML from messages.
-     * </pre>
-     *
-     * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
-     */
-    public Builder setStructuredOutput(com.google.protobuf.Struct value) {
-      if (structuredOutputBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        structuredOutput_ = value;
-      } else {
-        structuredOutputBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00008000;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Structured output extracted from the agent's final response.
-     *
-     * Populated when spec.structured_output_schema was set and the
-     * runner successfully extracted schema-conforming data. Only meaningful
-     * when phase is RUN_COMPLETED.
-     *
-     * For native harness: populated from LangGraph graphState.structuredResponse
-     * (ToolStrategy enforcement). For Cursor harness: populated from 3-tier
-     * extraction (JSON.parse → fence extraction → extraction LLM fallback).
-     *
-     * Consumers: frontend architect/refine hooks read this instead of parsing
-     * YAML from messages.
-     * </pre>
-     *
-     * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
-     */
-    public Builder setStructuredOutput(
-        com.google.protobuf.Struct.Builder builderForValue) {
-      if (structuredOutputBuilder_ == null) {
-        structuredOutput_ = builderForValue.build();
-      } else {
-        structuredOutputBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00008000;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Structured output extracted from the agent's final response.
-     *
-     * Populated when spec.structured_output_schema was set and the
-     * runner successfully extracted schema-conforming data. Only meaningful
-     * when phase is RUN_COMPLETED.
-     *
-     * For native harness: populated from LangGraph graphState.structuredResponse
-     * (ToolStrategy enforcement). For Cursor harness: populated from 3-tier
-     * extraction (JSON.parse → fence extraction → extraction LLM fallback).
-     *
-     * Consumers: frontend architect/refine hooks read this instead of parsing
-     * YAML from messages.
-     * </pre>
-     *
-     * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
-     */
-    public Builder mergeStructuredOutput(com.google.protobuf.Struct value) {
-      if (structuredOutputBuilder_ == null) {
-        if (((bitField0_ & 0x00008000) != 0) &&
-          structuredOutput_ != null &&
-          structuredOutput_ != com.google.protobuf.Struct.getDefaultInstance()) {
-          getStructuredOutputBuilder().mergeFrom(value);
-        } else {
-          structuredOutput_ = value;
-        }
-      } else {
-        structuredOutputBuilder_.mergeFrom(value);
-      }
-      if (structuredOutput_ != null) {
-        bitField0_ |= 0x00008000;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Structured output extracted from the agent's final response.
-     *
-     * Populated when spec.structured_output_schema was set and the
-     * runner successfully extracted schema-conforming data. Only meaningful
-     * when phase is RUN_COMPLETED.
-     *
-     * For native harness: populated from LangGraph graphState.structuredResponse
-     * (ToolStrategy enforcement). For Cursor harness: populated from 3-tier
-     * extraction (JSON.parse → fence extraction → extraction LLM fallback).
-     *
-     * Consumers: frontend architect/refine hooks read this instead of parsing
-     * YAML from messages.
-     * </pre>
-     *
-     * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
-     */
-    public Builder clearStructuredOutput() {
-      bitField0_ = (bitField0_ & ~0x00008000);
-      structuredOutput_ = null;
-      if (structuredOutputBuilder_ != null) {
-        structuredOutputBuilder_.dispose();
-        structuredOutputBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Structured output extracted from the agent's final response.
-     *
-     * Populated when spec.structured_output_schema was set and the
-     * runner successfully extracted schema-conforming data. Only meaningful
-     * when phase is RUN_COMPLETED.
-     *
-     * For native harness: populated from LangGraph graphState.structuredResponse
-     * (ToolStrategy enforcement). For Cursor harness: populated from 3-tier
-     * extraction (JSON.parse → fence extraction → extraction LLM fallback).
-     *
-     * Consumers: frontend architect/refine hooks read this instead of parsing
-     * YAML from messages.
-     * </pre>
-     *
-     * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
-     */
-    public com.google.protobuf.Struct.Builder getStructuredOutputBuilder() {
-      bitField0_ |= 0x00008000;
-      onChanged();
-      return internalGetStructuredOutputFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * Structured output extracted from the agent's final response.
-     *
-     * Populated when spec.structured_output_schema was set and the
-     * runner successfully extracted schema-conforming data. Only meaningful
-     * when phase is RUN_COMPLETED.
-     *
-     * For native harness: populated from LangGraph graphState.structuredResponse
-     * (ToolStrategy enforcement). For Cursor harness: populated from 3-tier
-     * extraction (JSON.parse → fence extraction → extraction LLM fallback).
-     *
-     * Consumers: frontend architect/refine hooks read this instead of parsing
-     * YAML from messages.
-     * </pre>
-     *
-     * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
-     */
-    public com.google.protobuf.StructOrBuilder getStructuredOutputOrBuilder() {
-      if (structuredOutputBuilder_ != null) {
-        return structuredOutputBuilder_.getMessageOrBuilder();
-      } else {
-        return structuredOutput_ == null ?
-            com.google.protobuf.Struct.getDefaultInstance() : structuredOutput_;
-      }
-    }
-    /**
-     * <pre>
-     * Structured output extracted from the agent's final response.
-     *
-     * Populated when spec.structured_output_schema was set and the
-     * runner successfully extracted schema-conforming data. Only meaningful
-     * when phase is RUN_COMPLETED.
-     *
-     * For native harness: populated from LangGraph graphState.structuredResponse
-     * (ToolStrategy enforcement). For Cursor harness: populated from 3-tier
-     * extraction (JSON.parse → fence extraction → extraction LLM fallback).
-     *
-     * Consumers: frontend architect/refine hooks read this instead of parsing
-     * YAML from messages.
-     * </pre>
-     *
-     * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder> 
-        internalGetStructuredOutputFieldBuilder() {
-      if (structuredOutputBuilder_ == null) {
-        structuredOutputBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder>(
-                getStructuredOutput(),
-                getParentForChildren(),
-                isClean());
-        structuredOutput_ = null;
-      }
-      return structuredOutputBuilder_;
-    }
-
-    private java.util.List<ai.stigmer.agentic.run.v1.FileChangeSet> fileChangeSets_ =
-      java.util.Collections.emptyList();
-    private void ensureFileChangeSetsIsMutable() {
-      if (!((bitField0_ & 0x00010000) != 0)) {
-        fileChangeSets_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.FileChangeSet>(fileChangeSets_);
-        bitField0_ |= 0x00010000;
-       }
-    }
-
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.run.v1.FileChangeSet, ai.stigmer.agentic.run.v1.FileChangeSet.Builder, ai.stigmer.agentic.run.v1.FileChangeSetOrBuilder> fileChangeSetsBuilder_;
-
-    /**
-     * <pre>
-     * Server-computed projection of file change sets awaiting or completing
-     * review for this run.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.run.v1.FileChangeSet> getFileChangeSetsList() {
-      if (fileChangeSetsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(fileChangeSets_);
-      } else {
-        return fileChangeSetsBuilder_.getMessageList();
-      }
-    }
-    /**
-     * <pre>
-     * Server-computed projection of file change sets awaiting or completing
-     * review for this run.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-     */
-    public int getFileChangeSetsCount() {
-      if (fileChangeSetsBuilder_ == null) {
-        return fileChangeSets_.size();
-      } else {
-        return fileChangeSetsBuilder_.getCount();
-      }
-    }
-    /**
-     * <pre>
-     * Server-computed projection of file change sets awaiting or completing
-     * review for this run.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.FileChangeSet getFileChangeSets(int index) {
-      if (fileChangeSetsBuilder_ == null) {
-        return fileChangeSets_.get(index);
-      } else {
-        return fileChangeSetsBuilder_.getMessage(index);
-      }
-    }
-    /**
-     * <pre>
-     * Server-computed projection of file change sets awaiting or completing
-     * review for this run.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-     */
-    public Builder setFileChangeSets(
-        int index, ai.stigmer.agentic.run.v1.FileChangeSet value) {
-      if (fileChangeSetsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureFileChangeSetsIsMutable();
-        fileChangeSets_.set(index, value);
-        onChanged();
-      } else {
-        fileChangeSetsBuilder_.setMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Server-computed projection of file change sets awaiting or completing
-     * review for this run.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-     */
-    public Builder setFileChangeSets(
-        int index, ai.stigmer.agentic.run.v1.FileChangeSet.Builder builderForValue) {
-      if (fileChangeSetsBuilder_ == null) {
-        ensureFileChangeSetsIsMutable();
-        fileChangeSets_.set(index, builderForValue.build());
-        onChanged();
-      } else {
-        fileChangeSetsBuilder_.setMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Server-computed projection of file change sets awaiting or completing
-     * review for this run.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-     */
-    public Builder addFileChangeSets(ai.stigmer.agentic.run.v1.FileChangeSet value) {
-      if (fileChangeSetsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureFileChangeSetsIsMutable();
-        fileChangeSets_.add(value);
-        onChanged();
-      } else {
-        fileChangeSetsBuilder_.addMessage(value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Server-computed projection of file change sets awaiting or completing
-     * review for this run.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-     */
-    public Builder addFileChangeSets(
-        int index, ai.stigmer.agentic.run.v1.FileChangeSet value) {
-      if (fileChangeSetsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureFileChangeSetsIsMutable();
-        fileChangeSets_.add(index, value);
-        onChanged();
-      } else {
-        fileChangeSetsBuilder_.addMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Server-computed projection of file change sets awaiting or completing
-     * review for this run.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-     */
-    public Builder addFileChangeSets(
-        ai.stigmer.agentic.run.v1.FileChangeSet.Builder builderForValue) {
-      if (fileChangeSetsBuilder_ == null) {
-        ensureFileChangeSetsIsMutable();
-        fileChangeSets_.add(builderForValue.build());
-        onChanged();
-      } else {
-        fileChangeSetsBuilder_.addMessage(builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Server-computed projection of file change sets awaiting or completing
-     * review for this run.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-     */
-    public Builder addFileChangeSets(
-        int index, ai.stigmer.agentic.run.v1.FileChangeSet.Builder builderForValue) {
-      if (fileChangeSetsBuilder_ == null) {
-        ensureFileChangeSetsIsMutable();
-        fileChangeSets_.add(index, builderForValue.build());
-        onChanged();
-      } else {
-        fileChangeSetsBuilder_.addMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Server-computed projection of file change sets awaiting or completing
-     * review for this run.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-     */
-    public Builder addAllFileChangeSets(
-        java.lang.Iterable<? extends ai.stigmer.agentic.run.v1.FileChangeSet> values) {
-      if (fileChangeSetsBuilder_ == null) {
-        ensureFileChangeSetsIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, fileChangeSets_);
-        onChanged();
-      } else {
-        fileChangeSetsBuilder_.addAllMessages(values);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Server-computed projection of file change sets awaiting or completing
-     * review for this run.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-     */
-    public Builder clearFileChangeSets() {
-      if (fileChangeSetsBuilder_ == null) {
-        fileChangeSets_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00010000);
-        onChanged();
-      } else {
-        fileChangeSetsBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Server-computed projection of file change sets awaiting or completing
-     * review for this run.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-     */
-    public Builder removeFileChangeSets(int index) {
-      if (fileChangeSetsBuilder_ == null) {
-        ensureFileChangeSetsIsMutable();
-        fileChangeSets_.remove(index);
-        onChanged();
-      } else {
-        fileChangeSetsBuilder_.remove(index);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Server-computed projection of file change sets awaiting or completing
-     * review for this run.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.FileChangeSet.Builder getFileChangeSetsBuilder(
-        int index) {
-      return internalGetFileChangeSetsFieldBuilder().getBuilder(index);
-    }
-    /**
-     * <pre>
-     * Server-computed projection of file change sets awaiting or completing
-     * review for this run.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.FileChangeSetOrBuilder getFileChangeSetsOrBuilder(
-        int index) {
-      if (fileChangeSetsBuilder_ == null) {
-        return fileChangeSets_.get(index);  } else {
-        return fileChangeSetsBuilder_.getMessageOrBuilder(index);
-      }
-    }
-    /**
-     * <pre>
-     * Server-computed projection of file change sets awaiting or completing
-     * review for this run.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-     */
-    public java.util.List<? extends ai.stigmer.agentic.run.v1.FileChangeSetOrBuilder> 
-         getFileChangeSetsOrBuilderList() {
-      if (fileChangeSetsBuilder_ != null) {
-        return fileChangeSetsBuilder_.getMessageOrBuilderList();
-      } else {
-        return java.util.Collections.unmodifiableList(fileChangeSets_);
-      }
-    }
-    /**
-     * <pre>
-     * Server-computed projection of file change sets awaiting or completing
-     * review for this run.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.FileChangeSet.Builder addFileChangeSetsBuilder() {
-      return internalGetFileChangeSetsFieldBuilder().addBuilder(
-          ai.stigmer.agentic.run.v1.FileChangeSet.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Server-computed projection of file change sets awaiting or completing
-     * review for this run.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.FileChangeSet.Builder addFileChangeSetsBuilder(
-        int index) {
-      return internalGetFileChangeSetsFieldBuilder().addBuilder(
-          index, ai.stigmer.agentic.run.v1.FileChangeSet.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Server-computed projection of file change sets awaiting or completing
-     * review for this run.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.run.v1.FileChangeSet.Builder> 
-         getFileChangeSetsBuilderList() {
-      return internalGetFileChangeSetsFieldBuilder().getBuilderList();
-    }
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.run.v1.FileChangeSet, ai.stigmer.agentic.run.v1.FileChangeSet.Builder, ai.stigmer.agentic.run.v1.FileChangeSetOrBuilder> 
-        internalGetFileChangeSetsFieldBuilder() {
-      if (fileChangeSetsBuilder_ == null) {
-        fileChangeSetsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.agentic.run.v1.FileChangeSet, ai.stigmer.agentic.run.v1.FileChangeSet.Builder, ai.stigmer.agentic.run.v1.FileChangeSetOrBuilder>(
-                fileChangeSets_,
-                ((bitField0_ & 0x00010000) != 0),
-                getParentForChildren(),
-                isClean());
-        fileChangeSets_ = null;
-      }
-      return fileChangeSetsBuilder_;
-    }
-
-    private ai.stigmer.agentic.run.v1.FileReviewEventStream fileReviewEventStream_;
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.run.v1.FileReviewEventStream, ai.stigmer.agentic.run.v1.FileReviewEventStream.Builder, ai.stigmer.agentic.run.v1.FileReviewEventStreamOrBuilder> fileReviewEventStreamBuilder_;
-    /**
-     * <pre>
-     * Server-owned, append-only record of every file-review event (baseline /
-     * candidate capture, file decisions, reconcile, failures).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
-     * @return Whether the fileReviewEventStream field is set.
-     */
-    public boolean hasFileReviewEventStream() {
-      return ((bitField0_ & 0x00020000) != 0);
-    }
-    /**
-     * <pre>
-     * Server-owned, append-only record of every file-review event (baseline /
-     * candidate capture, file decisions, reconcile, failures).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
-     * @return The fileReviewEventStream.
-     */
-    public ai.stigmer.agentic.run.v1.FileReviewEventStream getFileReviewEventStream() {
-      if (fileReviewEventStreamBuilder_ == null) {
-        return fileReviewEventStream_ == null ? ai.stigmer.agentic.run.v1.FileReviewEventStream.getDefaultInstance() : fileReviewEventStream_;
-      } else {
-        return fileReviewEventStreamBuilder_.getMessage();
-      }
-    }
-    /**
-     * <pre>
-     * Server-owned, append-only record of every file-review event (baseline /
-     * candidate capture, file decisions, reconcile, failures).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
-     */
-    public Builder setFileReviewEventStream(ai.stigmer.agentic.run.v1.FileReviewEventStream value) {
-      if (fileReviewEventStreamBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        fileReviewEventStream_ = value;
-      } else {
-        fileReviewEventStreamBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00020000;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Server-owned, append-only record of every file-review event (baseline /
-     * candidate capture, file decisions, reconcile, failures).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
-     */
-    public Builder setFileReviewEventStream(
-        ai.stigmer.agentic.run.v1.FileReviewEventStream.Builder builderForValue) {
-      if (fileReviewEventStreamBuilder_ == null) {
-        fileReviewEventStream_ = builderForValue.build();
-      } else {
-        fileReviewEventStreamBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00020000;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Server-owned, append-only record of every file-review event (baseline /
-     * candidate capture, file decisions, reconcile, failures).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
-     */
-    public Builder mergeFileReviewEventStream(ai.stigmer.agentic.run.v1.FileReviewEventStream value) {
-      if (fileReviewEventStreamBuilder_ == null) {
-        if (((bitField0_ & 0x00020000) != 0) &&
-          fileReviewEventStream_ != null &&
-          fileReviewEventStream_ != ai.stigmer.agentic.run.v1.FileReviewEventStream.getDefaultInstance()) {
-          getFileReviewEventStreamBuilder().mergeFrom(value);
-        } else {
-          fileReviewEventStream_ = value;
-        }
-      } else {
-        fileReviewEventStreamBuilder_.mergeFrom(value);
-      }
-      if (fileReviewEventStream_ != null) {
-        bitField0_ |= 0x00020000;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Server-owned, append-only record of every file-review event (baseline /
-     * candidate capture, file decisions, reconcile, failures).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
-     */
-    public Builder clearFileReviewEventStream() {
-      bitField0_ = (bitField0_ & ~0x00020000);
-      fileReviewEventStream_ = null;
-      if (fileReviewEventStreamBuilder_ != null) {
-        fileReviewEventStreamBuilder_.dispose();
-        fileReviewEventStreamBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Server-owned, append-only record of every file-review event (baseline /
-     * candidate capture, file decisions, reconcile, failures).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.FileReviewEventStream.Builder getFileReviewEventStreamBuilder() {
-      bitField0_ |= 0x00020000;
-      onChanged();
-      return internalGetFileReviewEventStreamFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * Server-owned, append-only record of every file-review event (baseline /
-     * candidate capture, file decisions, reconcile, failures).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.FileReviewEventStreamOrBuilder getFileReviewEventStreamOrBuilder() {
-      if (fileReviewEventStreamBuilder_ != null) {
-        return fileReviewEventStreamBuilder_.getMessageOrBuilder();
-      } else {
-        return fileReviewEventStream_ == null ?
-            ai.stigmer.agentic.run.v1.FileReviewEventStream.getDefaultInstance() : fileReviewEventStream_;
-      }
-    }
-    /**
-     * <pre>
-     * Server-owned, append-only record of every file-review event (baseline /
-     * candidate capture, file decisions, reconcile, failures).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.run.v1.FileReviewEventStream, ai.stigmer.agentic.run.v1.FileReviewEventStream.Builder, ai.stigmer.agentic.run.v1.FileReviewEventStreamOrBuilder> 
-        internalGetFileReviewEventStreamFieldBuilder() {
-      if (fileReviewEventStreamBuilder_ == null) {
-        fileReviewEventStreamBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.run.v1.FileReviewEventStream, ai.stigmer.agentic.run.v1.FileReviewEventStream.Builder, ai.stigmer.agentic.run.v1.FileReviewEventStreamOrBuilder>(
-                getFileReviewEventStream(),
-                getParentForChildren(),
-                isClean());
-        fileReviewEventStream_ = null;
-      }
-      return fileReviewEventStreamBuilder_;
-    }
-
     private ai.stigmer.agentic.run.v1.FileChangeProgress fileChangeProgress_;
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.agentic.run.v1.FileChangeProgress, ai.stigmer.agentic.run.v1.FileChangeProgress.Builder, ai.stigmer.agentic.run.v1.FileChangeProgressOrBuilder> fileChangeProgressBuilder_;
@@ -7659,7 +4115,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * @return Whether the fileChangeProgress field is set.
      */
     public boolean hasFileChangeProgress() {
-      return ((bitField0_ & 0x00040000) != 0);
+      return ((bitField0_ & 0x00000200) != 0);
     }
     /**
      * <pre>
@@ -7696,7 +4152,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         fileChangeProgressBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00040000;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -7716,7 +4172,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         fileChangeProgressBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00040000;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -7731,7 +4187,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder mergeFileChangeProgress(ai.stigmer.agentic.run.v1.FileChangeProgress value) {
       if (fileChangeProgressBuilder_ == null) {
-        if (((bitField0_ & 0x00040000) != 0) &&
+        if (((bitField0_ & 0x00000200) != 0) &&
           fileChangeProgress_ != null &&
           fileChangeProgress_ != ai.stigmer.agentic.run.v1.FileChangeProgress.getDefaultInstance()) {
           getFileChangeProgressBuilder().mergeFrom(value);
@@ -7742,7 +4198,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         fileChangeProgressBuilder_.mergeFrom(value);
       }
       if (fileChangeProgress_ != null) {
-        bitField0_ |= 0x00040000;
+        bitField0_ |= 0x00000200;
         onChanged();
       }
       return this;
@@ -7757,7 +4213,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.FileChangeProgress file_change_progress = 25 [json_name = "fileChangeProgress"];</code>
      */
     public Builder clearFileChangeProgress() {
-      bitField0_ = (bitField0_ & ~0x00040000);
+      bitField0_ = (bitField0_ & ~0x00000200);
       fileChangeProgress_ = null;
       if (fileChangeProgressBuilder_ != null) {
         fileChangeProgressBuilder_.dispose();
@@ -7776,7 +4232,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.FileChangeProgress file_change_progress = 25 [json_name = "fileChangeProgress"];</code>
      */
     public ai.stigmer.agentic.run.v1.FileChangeProgress.Builder getFileChangeProgressBuilder() {
-      bitField0_ |= 0x00040000;
+      bitField0_ |= 0x00000200;
       onChanged();
       return internalGetFileChangeProgressFieldBuilder().getBuilder();
     }
@@ -7820,197 +4276,442 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       return fileChangeProgressBuilder_;
     }
 
-    private ai.stigmer.agentic.run.v1.RecalledMemoriesReport recalledMemoriesReport_;
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.run.v1.RecalledMemoriesReport, ai.stigmer.agentic.run.v1.RecalledMemoriesReport.Builder, ai.stigmer.agentic.run.v1.RecalledMemoriesReportOrBuilder> recalledMemoriesReportBuilder_;
-    /**
-     * <pre>
-     * Report of which recalled memories were injected into this run's
-     * prompt.
-     *
-     * Absent, or present with selection_active=false, means wholesale: every
-     * fact in the status.recalled_memories snapshot was injected.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
-     * @return Whether the recalledMemoriesReport field is set.
-     */
-    public boolean hasRecalledMemoriesReport() {
-      return ((bitField0_ & 0x00080000) != 0);
+    private java.util.List<ai.stigmer.agentic.run.v1.FileChangeSet> fileChanges_ =
+      java.util.Collections.emptyList();
+    private void ensureFileChangesIsMutable() {
+      if (!((bitField0_ & 0x00000400) != 0)) {
+        fileChanges_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.FileChangeSet>(fileChanges_);
+        bitField0_ |= 0x00000400;
+       }
     }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.run.v1.FileChangeSet, ai.stigmer.agentic.run.v1.FileChangeSet.Builder, ai.stigmer.agentic.run.v1.FileChangeSetOrBuilder> fileChangesBuilder_;
+
     /**
      * <pre>
-     * Report of which recalled memories were injected into this run's
-     * prompt.
+     * The run's file record: the change sets its turns captured, each with the
+     * files' contents before and after (inline or by storage key), the diff, the
+     * snapshots they were read from and the consent the turn's commands ran
+     * under. Empty for a run that changed no file or ran without file review.
      *
-     * Absent, or present with selection_active=false, means wholesale: every
-     * fact in the status.recalled_memories snapshot was injected.
+     * A record only: it carries no status and no decisions. What was decided,
+     * what is still undecided and what was put back are the session's
+     * stigmer.file_review.* events.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
-     * @return The recalledMemoriesReport.
+     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
      */
-    public ai.stigmer.agentic.run.v1.RecalledMemoriesReport getRecalledMemoriesReport() {
-      if (recalledMemoriesReportBuilder_ == null) {
-        return recalledMemoriesReport_ == null ? ai.stigmer.agentic.run.v1.RecalledMemoriesReport.getDefaultInstance() : recalledMemoriesReport_;
+    public java.util.List<ai.stigmer.agentic.run.v1.FileChangeSet> getFileChangesList() {
+      if (fileChangesBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(fileChanges_);
       } else {
-        return recalledMemoriesReportBuilder_.getMessage();
+        return fileChangesBuilder_.getMessageList();
       }
     }
     /**
      * <pre>
-     * Report of which recalled memories were injected into this run's
-     * prompt.
+     * The run's file record: the change sets its turns captured, each with the
+     * files' contents before and after (inline or by storage key), the diff, the
+     * snapshots they were read from and the consent the turn's commands ran
+     * under. Empty for a run that changed no file or ran without file review.
      *
-     * Absent, or present with selection_active=false, means wholesale: every
-     * fact in the status.recalled_memories snapshot was injected.
+     * A record only: it carries no status and no decisions. What was decided,
+     * what is still undecided and what was put back are the session's
+     * stigmer.file_review.* events.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
      */
-    public Builder setRecalledMemoriesReport(ai.stigmer.agentic.run.v1.RecalledMemoriesReport value) {
-      if (recalledMemoriesReportBuilder_ == null) {
+    public int getFileChangesCount() {
+      if (fileChangesBuilder_ == null) {
+        return fileChanges_.size();
+      } else {
+        return fileChangesBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * The run's file record: the change sets its turns captured, each with the
+     * files' contents before and after (inline or by storage key), the diff, the
+     * snapshots they were read from and the consent the turn's commands ran
+     * under. Empty for a run that changed no file or ran without file review.
+     *
+     * A record only: it carries no status and no decisions. What was decided,
+     * what is still undecided and what was put back are the session's
+     * stigmer.file_review.* events.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.FileChangeSet getFileChanges(int index) {
+      if (fileChangesBuilder_ == null) {
+        return fileChanges_.get(index);
+      } else {
+        return fileChangesBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * The run's file record: the change sets its turns captured, each with the
+     * files' contents before and after (inline or by storage key), the diff, the
+     * snapshots they were read from and the consent the turn's commands ran
+     * under. Empty for a run that changed no file or ran without file review.
+     *
+     * A record only: it carries no status and no decisions. What was decided,
+     * what is still undecided and what was put back are the session's
+     * stigmer.file_review.* events.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
+     */
+    public Builder setFileChanges(
+        int index, ai.stigmer.agentic.run.v1.FileChangeSet value) {
+      if (fileChangesBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        recalledMemoriesReport_ = value;
-      } else {
-        recalledMemoriesReportBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00080000;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Report of which recalled memories were injected into this run's
-     * prompt.
-     *
-     * Absent, or present with selection_active=false, means wholesale: every
-     * fact in the status.recalled_memories snapshot was injected.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
-     */
-    public Builder setRecalledMemoriesReport(
-        ai.stigmer.agentic.run.v1.RecalledMemoriesReport.Builder builderForValue) {
-      if (recalledMemoriesReportBuilder_ == null) {
-        recalledMemoriesReport_ = builderForValue.build();
-      } else {
-        recalledMemoriesReportBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00080000;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Report of which recalled memories were injected into this run's
-     * prompt.
-     *
-     * Absent, or present with selection_active=false, means wholesale: every
-     * fact in the status.recalled_memories snapshot was injected.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
-     */
-    public Builder mergeRecalledMemoriesReport(ai.stigmer.agentic.run.v1.RecalledMemoriesReport value) {
-      if (recalledMemoriesReportBuilder_ == null) {
-        if (((bitField0_ & 0x00080000) != 0) &&
-          recalledMemoriesReport_ != null &&
-          recalledMemoriesReport_ != ai.stigmer.agentic.run.v1.RecalledMemoriesReport.getDefaultInstance()) {
-          getRecalledMemoriesReportBuilder().mergeFrom(value);
-        } else {
-          recalledMemoriesReport_ = value;
-        }
-      } else {
-        recalledMemoriesReportBuilder_.mergeFrom(value);
-      }
-      if (recalledMemoriesReport_ != null) {
-        bitField0_ |= 0x00080000;
+        ensureFileChangesIsMutable();
+        fileChanges_.set(index, value);
         onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Report of which recalled memories were injected into this run's
-     * prompt.
-     *
-     * Absent, or present with selection_active=false, means wholesale: every
-     * fact in the status.recalled_memories snapshot was injected.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
-     */
-    public Builder clearRecalledMemoriesReport() {
-      bitField0_ = (bitField0_ & ~0x00080000);
-      recalledMemoriesReport_ = null;
-      if (recalledMemoriesReportBuilder_ != null) {
-        recalledMemoriesReportBuilder_.dispose();
-        recalledMemoriesReportBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Report of which recalled memories were injected into this run's
-     * prompt.
-     *
-     * Absent, or present with selection_active=false, means wholesale: every
-     * fact in the status.recalled_memories snapshot was injected.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.RecalledMemoriesReport.Builder getRecalledMemoriesReportBuilder() {
-      bitField0_ |= 0x00080000;
-      onChanged();
-      return internalGetRecalledMemoriesReportFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * Report of which recalled memories were injected into this run's
-     * prompt.
-     *
-     * Absent, or present with selection_active=false, means wholesale: every
-     * fact in the status.recalled_memories snapshot was injected.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.RecalledMemoriesReportOrBuilder getRecalledMemoriesReportOrBuilder() {
-      if (recalledMemoriesReportBuilder_ != null) {
-        return recalledMemoriesReportBuilder_.getMessageOrBuilder();
       } else {
-        return recalledMemoriesReport_ == null ?
-            ai.stigmer.agentic.run.v1.RecalledMemoriesReport.getDefaultInstance() : recalledMemoriesReport_;
+        fileChangesBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The run's file record: the change sets its turns captured, each with the
+     * files' contents before and after (inline or by storage key), the diff, the
+     * snapshots they were read from and the consent the turn's commands ran
+     * under. Empty for a run that changed no file or ran without file review.
+     *
+     * A record only: it carries no status and no decisions. What was decided,
+     * what is still undecided and what was put back are the session's
+     * stigmer.file_review.* events.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
+     */
+    public Builder setFileChanges(
+        int index, ai.stigmer.agentic.run.v1.FileChangeSet.Builder builderForValue) {
+      if (fileChangesBuilder_ == null) {
+        ensureFileChangesIsMutable();
+        fileChanges_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        fileChangesBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The run's file record: the change sets its turns captured, each with the
+     * files' contents before and after (inline or by storage key), the diff, the
+     * snapshots they were read from and the consent the turn's commands ran
+     * under. Empty for a run that changed no file or ran without file review.
+     *
+     * A record only: it carries no status and no decisions. What was decided,
+     * what is still undecided and what was put back are the session's
+     * stigmer.file_review.* events.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
+     */
+    public Builder addFileChanges(ai.stigmer.agentic.run.v1.FileChangeSet value) {
+      if (fileChangesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureFileChangesIsMutable();
+        fileChanges_.add(value);
+        onChanged();
+      } else {
+        fileChangesBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The run's file record: the change sets its turns captured, each with the
+     * files' contents before and after (inline or by storage key), the diff, the
+     * snapshots they were read from and the consent the turn's commands ran
+     * under. Empty for a run that changed no file or ran without file review.
+     *
+     * A record only: it carries no status and no decisions. What was decided,
+     * what is still undecided and what was put back are the session's
+     * stigmer.file_review.* events.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
+     */
+    public Builder addFileChanges(
+        int index, ai.stigmer.agentic.run.v1.FileChangeSet value) {
+      if (fileChangesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureFileChangesIsMutable();
+        fileChanges_.add(index, value);
+        onChanged();
+      } else {
+        fileChangesBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The run's file record: the change sets its turns captured, each with the
+     * files' contents before and after (inline or by storage key), the diff, the
+     * snapshots they were read from and the consent the turn's commands ran
+     * under. Empty for a run that changed no file or ran without file review.
+     *
+     * A record only: it carries no status and no decisions. What was decided,
+     * what is still undecided and what was put back are the session's
+     * stigmer.file_review.* events.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
+     */
+    public Builder addFileChanges(
+        ai.stigmer.agentic.run.v1.FileChangeSet.Builder builderForValue) {
+      if (fileChangesBuilder_ == null) {
+        ensureFileChangesIsMutable();
+        fileChanges_.add(builderForValue.build());
+        onChanged();
+      } else {
+        fileChangesBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The run's file record: the change sets its turns captured, each with the
+     * files' contents before and after (inline or by storage key), the diff, the
+     * snapshots they were read from and the consent the turn's commands ran
+     * under. Empty for a run that changed no file or ran without file review.
+     *
+     * A record only: it carries no status and no decisions. What was decided,
+     * what is still undecided and what was put back are the session's
+     * stigmer.file_review.* events.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
+     */
+    public Builder addFileChanges(
+        int index, ai.stigmer.agentic.run.v1.FileChangeSet.Builder builderForValue) {
+      if (fileChangesBuilder_ == null) {
+        ensureFileChangesIsMutable();
+        fileChanges_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        fileChangesBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The run's file record: the change sets its turns captured, each with the
+     * files' contents before and after (inline or by storage key), the diff, the
+     * snapshots they were read from and the consent the turn's commands ran
+     * under. Empty for a run that changed no file or ran without file review.
+     *
+     * A record only: it carries no status and no decisions. What was decided,
+     * what is still undecided and what was put back are the session's
+     * stigmer.file_review.* events.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
+     */
+    public Builder addAllFileChanges(
+        java.lang.Iterable<? extends ai.stigmer.agentic.run.v1.FileChangeSet> values) {
+      if (fileChangesBuilder_ == null) {
+        ensureFileChangesIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, fileChanges_);
+        onChanged();
+      } else {
+        fileChangesBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The run's file record: the change sets its turns captured, each with the
+     * files' contents before and after (inline or by storage key), the diff, the
+     * snapshots they were read from and the consent the turn's commands ran
+     * under. Empty for a run that changed no file or ran without file review.
+     *
+     * A record only: it carries no status and no decisions. What was decided,
+     * what is still undecided and what was put back are the session's
+     * stigmer.file_review.* events.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
+     */
+    public Builder clearFileChanges() {
+      if (fileChangesBuilder_ == null) {
+        fileChanges_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000400);
+        onChanged();
+      } else {
+        fileChangesBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The run's file record: the change sets its turns captured, each with the
+     * files' contents before and after (inline or by storage key), the diff, the
+     * snapshots they were read from and the consent the turn's commands ran
+     * under. Empty for a run that changed no file or ran without file review.
+     *
+     * A record only: it carries no status and no decisions. What was decided,
+     * what is still undecided and what was put back are the session's
+     * stigmer.file_review.* events.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
+     */
+    public Builder removeFileChanges(int index) {
+      if (fileChangesBuilder_ == null) {
+        ensureFileChangesIsMutable();
+        fileChanges_.remove(index);
+        onChanged();
+      } else {
+        fileChangesBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The run's file record: the change sets its turns captured, each with the
+     * files' contents before and after (inline or by storage key), the diff, the
+     * snapshots they were read from and the consent the turn's commands ran
+     * under. Empty for a run that changed no file or ran without file review.
+     *
+     * A record only: it carries no status and no decisions. What was decided,
+     * what is still undecided and what was put back are the session's
+     * stigmer.file_review.* events.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.FileChangeSet.Builder getFileChangesBuilder(
+        int index) {
+      return internalGetFileChangesFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * The run's file record: the change sets its turns captured, each with the
+     * files' contents before and after (inline or by storage key), the diff, the
+     * snapshots they were read from and the consent the turn's commands ran
+     * under. Empty for a run that changed no file or ran without file review.
+     *
+     * A record only: it carries no status and no decisions. What was decided,
+     * what is still undecided and what was put back are the session's
+     * stigmer.file_review.* events.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.FileChangeSetOrBuilder getFileChangesOrBuilder(
+        int index) {
+      if (fileChangesBuilder_ == null) {
+        return fileChanges_.get(index);  } else {
+        return fileChangesBuilder_.getMessageOrBuilder(index);
       }
     }
     /**
      * <pre>
-     * Report of which recalled memories were injected into this run's
-     * prompt.
+     * The run's file record: the change sets its turns captured, each with the
+     * files' contents before and after (inline or by storage key), the diff, the
+     * snapshots they were read from and the consent the turn's commands ran
+     * under. Empty for a run that changed no file or ran without file review.
      *
-     * Absent, or present with selection_active=false, means wholesale: every
-     * fact in the status.recalled_memories snapshot was injected.
+     * A record only: it carries no status and no decisions. What was decided,
+     * what is still undecided and what was put back are the session's
+     * stigmer.file_review.* events.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
      */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.run.v1.RecalledMemoriesReport, ai.stigmer.agentic.run.v1.RecalledMemoriesReport.Builder, ai.stigmer.agentic.run.v1.RecalledMemoriesReportOrBuilder> 
-        internalGetRecalledMemoriesReportFieldBuilder() {
-      if (recalledMemoriesReportBuilder_ == null) {
-        recalledMemoriesReportBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.run.v1.RecalledMemoriesReport, ai.stigmer.agentic.run.v1.RecalledMemoriesReport.Builder, ai.stigmer.agentic.run.v1.RecalledMemoriesReportOrBuilder>(
-                getRecalledMemoriesReport(),
+    public java.util.List<? extends ai.stigmer.agentic.run.v1.FileChangeSetOrBuilder> 
+         getFileChangesOrBuilderList() {
+      if (fileChangesBuilder_ != null) {
+        return fileChangesBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(fileChanges_);
+      }
+    }
+    /**
+     * <pre>
+     * The run's file record: the change sets its turns captured, each with the
+     * files' contents before and after (inline or by storage key), the diff, the
+     * snapshots they were read from and the consent the turn's commands ran
+     * under. Empty for a run that changed no file or ran without file review.
+     *
+     * A record only: it carries no status and no decisions. What was decided,
+     * what is still undecided and what was put back are the session's
+     * stigmer.file_review.* events.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.FileChangeSet.Builder addFileChangesBuilder() {
+      return internalGetFileChangesFieldBuilder().addBuilder(
+          ai.stigmer.agentic.run.v1.FileChangeSet.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * The run's file record: the change sets its turns captured, each with the
+     * files' contents before and after (inline or by storage key), the diff, the
+     * snapshots they were read from and the consent the turn's commands ran
+     * under. Empty for a run that changed no file or ran without file review.
+     *
+     * A record only: it carries no status and no decisions. What was decided,
+     * what is still undecided and what was put back are the session's
+     * stigmer.file_review.* events.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.FileChangeSet.Builder addFileChangesBuilder(
+        int index) {
+      return internalGetFileChangesFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.run.v1.FileChangeSet.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * The run's file record: the change sets its turns captured, each with the
+     * files' contents before and after (inline or by storage key), the diff, the
+     * snapshots they were read from and the consent the turn's commands ran
+     * under. Empty for a run that changed no file or ran without file review.
+     *
+     * A record only: it carries no status and no decisions. What was decided,
+     * what is still undecided and what was put back are the session's
+     * stigmer.file_review.* events.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.run.v1.FileChangeSet.Builder> 
+         getFileChangesBuilderList() {
+      return internalGetFileChangesFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.run.v1.FileChangeSet, ai.stigmer.agentic.run.v1.FileChangeSet.Builder, ai.stigmer.agentic.run.v1.FileChangeSetOrBuilder> 
+        internalGetFileChangesFieldBuilder() {
+      if (fileChangesBuilder_ == null) {
+        fileChangesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.run.v1.FileChangeSet, ai.stigmer.agentic.run.v1.FileChangeSet.Builder, ai.stigmer.agentic.run.v1.FileChangeSetOrBuilder>(
+                fileChanges_,
+                ((bitField0_ & 0x00000400) != 0),
                 getParentForChildren(),
                 isClean());
-        recalledMemoriesReport_ = null;
+        fileChanges_ = null;
       }
-      return recalledMemoriesReportBuilder_;
+      return fileChangesBuilder_;
     }
 
     private java.lang.Object agentId_ = "";
@@ -8071,7 +4772,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       agentId_ = value;
-      bitField0_ |= 0x00100000;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
@@ -8086,7 +4787,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder clearAgentId() {
       agentId_ = getDefaultInstance().getAgentId();
-      bitField0_ = (bitField0_ & ~0x00100000);
+      bitField0_ = (bitField0_ & ~0x00000800);
       onChanged();
       return this;
     }
@@ -8105,7 +4806,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       agentId_ = value;
-      bitField0_ |= 0x00100000;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
@@ -8186,7 +4887,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       agentVersionHash_ = value;
-      bitField0_ |= 0x00200000;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
@@ -8207,7 +4908,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder clearAgentVersionHash() {
       agentVersionHash_ = getDefaultInstance().getAgentVersionHash();
-      bitField0_ = (bitField0_ & ~0x00200000);
+      bitField0_ = (bitField0_ & ~0x00001000);
       onChanged();
       return this;
     }
@@ -8232,7 +4933,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       agentVersionHash_ = value;
-      bitField0_ |= 0x00200000;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
@@ -8253,7 +4954,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * @return Whether the loadedVersions field is set.
      */
     public boolean hasLoadedVersions() {
-      return ((bitField0_ & 0x00400000) != 0);
+      return ((bitField0_ & 0x00002000) != 0);
     }
     /**
      * <pre>
@@ -8294,7 +4995,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         loadedVersionsBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00400000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
@@ -8316,7 +5017,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         loadedVersionsBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00400000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
@@ -8333,7 +5034,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder mergeLoadedVersions(ai.stigmer.agentic.run.v1.LoadedVersions value) {
       if (loadedVersionsBuilder_ == null) {
-        if (((bitField0_ & 0x00400000) != 0) &&
+        if (((bitField0_ & 0x00002000) != 0) &&
           loadedVersions_ != null &&
           loadedVersions_ != ai.stigmer.agentic.run.v1.LoadedVersions.getDefaultInstance()) {
           getLoadedVersionsBuilder().mergeFrom(value);
@@ -8344,7 +5045,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         loadedVersionsBuilder_.mergeFrom(value);
       }
       if (loadedVersions_ != null) {
-        bitField0_ |= 0x00400000;
+        bitField0_ |= 0x00002000;
         onChanged();
       }
       return this;
@@ -8361,7 +5062,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.LoadedVersions loaded_versions = 36 [json_name = "loadedVersions"];</code>
      */
     public Builder clearLoadedVersions() {
-      bitField0_ = (bitField0_ & ~0x00400000);
+      bitField0_ = (bitField0_ & ~0x00002000);
       loadedVersions_ = null;
       if (loadedVersionsBuilder_ != null) {
         loadedVersionsBuilder_.dispose();
@@ -8382,7 +5083,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.LoadedVersions loaded_versions = 36 [json_name = "loadedVersions"];</code>
      */
     public ai.stigmer.agentic.run.v1.LoadedVersions.Builder getLoadedVersionsBuilder() {
-      bitField0_ |= 0x00400000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return internalGetLoadedVersionsFieldBuilder().getBuilder();
     }
@@ -8443,7 +5144,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * @return Whether the declaredPreferences field is set.
      */
     public boolean hasDeclaredPreferences() {
-      return ((bitField0_ & 0x00800000) != 0);
+      return ((bitField0_ & 0x00004000) != 0);
     }
     /**
      * <pre>
@@ -8478,7 +5179,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         declaredPreferencesBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00800000;
+      bitField0_ |= 0x00004000;
       onChanged();
       return this;
     }
@@ -8497,7 +5198,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         declaredPreferencesBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00800000;
+      bitField0_ |= 0x00004000;
       onChanged();
       return this;
     }
@@ -8511,7 +5212,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder mergeDeclaredPreferences(ai.stigmer.agentic.run.v1.DeclaredPreferences value) {
       if (declaredPreferencesBuilder_ == null) {
-        if (((bitField0_ & 0x00800000) != 0) &&
+        if (((bitField0_ & 0x00004000) != 0) &&
           declaredPreferences_ != null &&
           declaredPreferences_ != ai.stigmer.agentic.run.v1.DeclaredPreferences.getDefaultInstance()) {
           getDeclaredPreferencesBuilder().mergeFrom(value);
@@ -8522,7 +5223,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         declaredPreferencesBuilder_.mergeFrom(value);
       }
       if (declaredPreferences_ != null) {
-        bitField0_ |= 0x00800000;
+        bitField0_ |= 0x00004000;
         onChanged();
       }
       return this;
@@ -8536,7 +5237,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
      */
     public Builder clearDeclaredPreferences() {
-      bitField0_ = (bitField0_ & ~0x00800000);
+      bitField0_ = (bitField0_ & ~0x00004000);
       declaredPreferences_ = null;
       if (declaredPreferencesBuilder_ != null) {
         declaredPreferencesBuilder_.dispose();
@@ -8554,7 +5255,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
      */
     public ai.stigmer.agentic.run.v1.DeclaredPreferences.Builder getDeclaredPreferencesBuilder() {
-      bitField0_ |= 0x00800000;
+      bitField0_ |= 0x00004000;
       onChanged();
       return internalGetDeclaredPreferencesFieldBuilder().getBuilder();
     }
@@ -8609,7 +5310,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * @return Whether the recalledMemories field is set.
      */
     public boolean hasRecalledMemories() {
-      return ((bitField0_ & 0x01000000) != 0);
+      return ((bitField0_ & 0x00008000) != 0);
     }
     /**
      * <pre>
@@ -8644,7 +5345,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         recalledMemoriesBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x01000000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
@@ -8663,7 +5364,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         recalledMemoriesBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x01000000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
@@ -8677,7 +5378,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder mergeRecalledMemories(ai.stigmer.agentic.run.v1.RecalledMemories value) {
       if (recalledMemoriesBuilder_ == null) {
-        if (((bitField0_ & 0x01000000) != 0) &&
+        if (((bitField0_ & 0x00008000) != 0) &&
           recalledMemories_ != null &&
           recalledMemories_ != ai.stigmer.agentic.run.v1.RecalledMemories.getDefaultInstance()) {
           getRecalledMemoriesBuilder().mergeFrom(value);
@@ -8688,7 +5389,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         recalledMemoriesBuilder_.mergeFrom(value);
       }
       if (recalledMemories_ != null) {
-        bitField0_ |= 0x01000000;
+        bitField0_ |= 0x00008000;
         onChanged();
       }
       return this;
@@ -8702,7 +5403,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
      */
     public Builder clearRecalledMemories() {
-      bitField0_ = (bitField0_ & ~0x01000000);
+      bitField0_ = (bitField0_ & ~0x00008000);
       recalledMemories_ = null;
       if (recalledMemoriesBuilder_ != null) {
         recalledMemoriesBuilder_.dispose();
@@ -8720,7 +5421,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
      */
     public ai.stigmer.agentic.run.v1.RecalledMemories.Builder getRecalledMemoriesBuilder() {
-      bitField0_ |= 0x01000000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return internalGetRecalledMemoriesFieldBuilder().getBuilder();
     }
@@ -8779,7 +5480,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * @return Whether the runConfig field is set.
      */
     public boolean hasRunConfig() {
-      return ((bitField0_ & 0x02000000) != 0);
+      return ((bitField0_ & 0x00010000) != 0);
     }
     /**
      * <pre>
@@ -8822,7 +5523,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         runConfigBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x02000000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return this;
     }
@@ -8845,7 +5546,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         runConfigBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x02000000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return this;
     }
@@ -8863,7 +5564,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder mergeRunConfig(ai.stigmer.agentic.run.v1.RunConfig value) {
       if (runConfigBuilder_ == null) {
-        if (((bitField0_ & 0x02000000) != 0) &&
+        if (((bitField0_ & 0x00010000) != 0) &&
           runConfig_ != null &&
           runConfig_ != ai.stigmer.agentic.run.v1.RunConfig.getDefaultInstance()) {
           getRunConfigBuilder().mergeFrom(value);
@@ -8874,7 +5575,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         runConfigBuilder_.mergeFrom(value);
       }
       if (runConfig_ != null) {
-        bitField0_ |= 0x02000000;
+        bitField0_ |= 0x00010000;
         onChanged();
       }
       return this;
@@ -8892,7 +5593,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
      */
     public Builder clearRunConfig() {
-      bitField0_ = (bitField0_ & ~0x02000000);
+      bitField0_ = (bitField0_ & ~0x00010000);
       runConfig_ = null;
       if (runConfigBuilder_ != null) {
         runConfigBuilder_.dispose();
@@ -8914,7 +5615,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
      */
     public ai.stigmer.agentic.run.v1.RunConfig.Builder getRunConfigBuilder() {
-      bitField0_ |= 0x02000000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return internalGetRunConfigFieldBuilder().getBuilder();
     }
@@ -9000,7 +5701,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder setApprovalModeValue(int value) {
       approvalMode_ = value;
-      bitField0_ |= 0x04000000;
+      bitField0_ |= 0x00020000;
       onChanged();
       return this;
     }
@@ -9040,7 +5741,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder setApprovalMode(ai.stigmer.agentic.run.v1.ApprovalMode value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x04000000;
+      bitField0_ |= 0x00020000;
       approvalMode_ = value.getNumber();
       onChanged();
       return this;
@@ -9060,7 +5761,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearApprovalMode() {
-      bitField0_ = (bitField0_ & ~0x04000000);
+      bitField0_ = (bitField0_ & ~0x00020000);
       approvalMode_ = 0;
       onChanged();
       return this;
@@ -9079,7 +5780,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * @return Whether the credentials field is set.
      */
     public boolean hasCredentials() {
-      return ((bitField0_ & 0x08000000) != 0);
+      return ((bitField0_ & 0x00040000) != 0);
     }
     /**
      * <pre>
@@ -9114,7 +5815,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         credentialsBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x08000000;
+      bitField0_ |= 0x00040000;
       onChanged();
       return this;
     }
@@ -9133,7 +5834,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         credentialsBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x08000000;
+      bitField0_ |= 0x00040000;
       onChanged();
       return this;
     }
@@ -9147,7 +5848,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder mergeCredentials(ai.stigmer.agentic.run.v1.RunCredentials value) {
       if (credentialsBuilder_ == null) {
-        if (((bitField0_ & 0x08000000) != 0) &&
+        if (((bitField0_ & 0x00040000) != 0) &&
           credentials_ != null &&
           credentials_ != ai.stigmer.agentic.run.v1.RunCredentials.getDefaultInstance()) {
           getCredentialsBuilder().mergeFrom(value);
@@ -9158,7 +5859,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         credentialsBuilder_.mergeFrom(value);
       }
       if (credentials_ != null) {
-        bitField0_ |= 0x08000000;
+        bitField0_ |= 0x00040000;
         onChanged();
       }
       return this;
@@ -9172,7 +5873,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
      */
     public Builder clearCredentials() {
-      bitField0_ = (bitField0_ & ~0x08000000);
+      bitField0_ = (bitField0_ & ~0x00040000);
       credentials_ = null;
       if (credentialsBuilder_ != null) {
         credentialsBuilder_.dispose();
@@ -9190,7 +5891,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
      */
     public ai.stigmer.agentic.run.v1.RunCredentials.Builder getCredentialsBuilder() {
-      bitField0_ |= 0x08000000;
+      bitField0_ |= 0x00040000;
       onChanged();
       return internalGetCredentialsFieldBuilder().getBuilder();
     }
@@ -9244,7 +5945,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * @return Whether the pluginEvalFiles field is set.
      */
     public boolean hasPluginEvalFiles() {
-      return ((bitField0_ & 0x10000000) != 0);
+      return ((bitField0_ & 0x00080000) != 0);
     }
     /**
      * <pre>
@@ -9277,7 +5978,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         pluginEvalFilesBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x10000000;
+      bitField0_ |= 0x00080000;
       onChanged();
       return this;
     }
@@ -9295,7 +5996,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         pluginEvalFilesBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x10000000;
+      bitField0_ |= 0x00080000;
       onChanged();
       return this;
     }
@@ -9308,7 +6009,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder mergePluginEvalFiles(ai.stigmer.agentic.run.v1.PluginEvalFiles value) {
       if (pluginEvalFilesBuilder_ == null) {
-        if (((bitField0_ & 0x10000000) != 0) &&
+        if (((bitField0_ & 0x00080000) != 0) &&
           pluginEvalFiles_ != null &&
           pluginEvalFiles_ != ai.stigmer.agentic.run.v1.PluginEvalFiles.getDefaultInstance()) {
           getPluginEvalFilesBuilder().mergeFrom(value);
@@ -9319,7 +6020,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         pluginEvalFilesBuilder_.mergeFrom(value);
       }
       if (pluginEvalFiles_ != null) {
-        bitField0_ |= 0x10000000;
+        bitField0_ |= 0x00080000;
         onChanged();
       }
       return this;
@@ -9332,7 +6033,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
      */
     public Builder clearPluginEvalFiles() {
-      bitField0_ = (bitField0_ & ~0x10000000);
+      bitField0_ = (bitField0_ & ~0x00080000);
       pluginEvalFiles_ = null;
       if (pluginEvalFilesBuilder_ != null) {
         pluginEvalFilesBuilder_.dispose();
@@ -9349,7 +6050,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
      */
     public ai.stigmer.agentic.run.v1.PluginEvalFiles.Builder getPluginEvalFilesBuilder() {
-      bitField0_ |= 0x10000000;
+      bitField0_ |= 0x00080000;
       onChanged();
       return internalGetPluginEvalFilesFieldBuilder().getBuilder();
     }
@@ -9462,7 +6163,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       stopCause_ = value;
-      bitField0_ |= 0x20000000;
+      bitField0_ |= 0x00100000;
       onChanged();
       return this;
     }
@@ -9482,7 +6183,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder clearStopCause() {
       stopCause_ = getDefaultInstance().getStopCause();
-      bitField0_ = (bitField0_ & ~0x20000000);
+      bitField0_ = (bitField0_ & ~0x00100000);
       onChanged();
       return this;
     }
@@ -9506,7 +6207,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       stopCause_ = value;
-      bitField0_ |= 0x20000000;
+      bitField0_ |= 0x00100000;
       onChanged();
       return this;
     }

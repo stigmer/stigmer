@@ -7,8 +7,8 @@
  *
  * A fixture carries the sqlite rows (`checkpoints`, `writes`) with each blob
  * as UTF-8 text when it is JSON (the serializer's `json` tag) and base64
- * otherwise, the status the server held when the paused turn returned, and the
- * engine versions that wrote it.
+ * otherwise, the paused turn's rows and the status it persisted (one `toJson`
+ * object, {@link pausedTurnJson}), and the engine versions that wrote it.
  *
  * Its users:
  *  - `__tests__/hermetic/resume-across-engine-upgrade.test.ts`: sessions
@@ -23,9 +23,11 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { expect } from "vitest";
-import type { JsonValue } from "@bufbuild/protobuf";
+import { fromJson, toJson, type JsonObject, type JsonValue } from "@bufbuild/protobuf";
+import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 
 import { SqliteCheckpointSaver } from "../../../shared/checkpointer/sqlite-saver.js";
+import { TurnRowsSchema, type TurnRows } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 /** A blob as the fixture stores it: readable when the serializer wrote JSON. */
 export interface StoredBlob {
@@ -60,8 +62,25 @@ export interface PausedSessionFixture {
   readonly threadId: string;
   readonly checkpoints: readonly CheckpointRow[];
   readonly writes: readonly WriteRow[];
-  /** The status the server held when the paused turn returned (`toJson` form). */
+  /**
+   * The paused turn's rows and the status it persisted, as one `toJson`
+   * object ({@link pausedTurnJson}): the shape fixtures recorded while the
+   * rows rode the status already have, so a fixture is never rewritten.
+   */
   readonly status: JsonValue;
+}
+
+/** A paused turn's rows and status as one `toJson` object (the fixture's `status`). */
+export function pausedTurnJson(rows: TurnRows, status: RunStatus): JsonValue {
+  return { ...(toJson(RunStatusSchema, status) as JsonObject), ...(toJson(TurnRowsSchema, rows) as JsonObject) };
+}
+
+/** A fixture's `status` taken apart into the turn's rows and the status it persisted. */
+export function pausedTurnOf(json: JsonValue): { readonly rows: TurnRows; readonly status: RunStatus } {
+  return {
+    rows: fromJson(TurnRowsSchema, json, { ignoreUnknownFields: true }),
+    status: fromJson(RunStatusSchema, json, { ignoreUnknownFields: true }),
+  };
 }
 
 /** The version of `pkg` this process resolves, read from its own package.json. */

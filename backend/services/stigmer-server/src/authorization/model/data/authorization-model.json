@@ -936,6 +936,7 @@
           "can_manage_child_orgs": {},
           "can_view": {},
           "can_view_access": {},
+          "can_view_access_history": {},
           "can_view_billing": {},
           "can_view_settings": {},
           "child_org": {
@@ -1206,6 +1207,22 @@
               {
                 "computedUserset": {
                   "relation": "viewer"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "parent_admin"
+                }
+              }
+            ]
+          }
+        },
+        "can_view_access_history": {
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "admin"
                 }
               },
               {

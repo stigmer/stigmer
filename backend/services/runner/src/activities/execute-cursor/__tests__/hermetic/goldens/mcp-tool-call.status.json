@@ -1,32 +1,4 @@
 {
-  "messages": [
-    {
-      "type": "MESSAGE_AI",
-      "content": "Searching the docs.",
-      "timestamp": "2026-01-01T00:00:02.000Z",
-      "toolCalls": [
-        {
-          "id": "call-hermetic-mcp-0001",
-          "name": "search_docs",
-          "args": {
-            "query": "fixture"
-          },
-          "result": "1 result: README.md — A fixture readme.",
-          "status": "TOOL_CALL_COMPLETED",
-          "startedAt": "2026-01-01T00:00:03.000Z",
-          "completedAt": "2026-01-01T00:00:04.000Z",
-          "mcpServerSlug": "hermetic-docs",
-          "argsPreview": "{\"query\":\"fixture\"}",
-          "toolKind": "TOOL_KIND_MCP"
-        }
-      ]
-    },
-    {
-      "type": "MESSAGE_AI",
-      "content": "One document mentions the fixture: README.md.",
-      "timestamp": "2026-01-01T00:00:05.000Z"
-    }
-  ],
   "phase": "RUN_COMPLETED",
   "startedAt": "2026-01-01T00:00:00.000Z",
   "completedAt": "2026-01-01T00:00:07.000Z",

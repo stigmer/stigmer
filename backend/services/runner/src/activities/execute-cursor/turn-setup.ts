@@ -31,11 +31,9 @@
  */
 
 import type { SDKUserMessage } from "@cursor/sdk";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Config } from "../../config.js";
 import type { TurnInput, TurnSink } from "../../harness/types.js";
 import { toCursorImages } from "../../shared/attachment-vision.js";
@@ -102,6 +100,7 @@ import type { TurnStreamState } from "./turn-stream.js";
 import { buildCursorSubAgentDefinitions, subagentNamesInScope, subagentsInScope } from "./subagent-config.js";
 import { CursorUsagePricer } from "./usage-pricing.js";
 import { installHitlGate, MAX_HOOK_TIMEOUT_SECONDS, removeHitlGate, type HitlGateHandle } from "./workspace-setup.js";
+import type { PendingApproval, TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 /**
  * The runner config this harness reads per turn, as a named slice
@@ -446,16 +445,17 @@ export function resolveTimeoutMessage(facts: { readonly resuming: boolean; reado
  * The adapter's own read of the adjudicated rows the runtime already turned
  * into verdicts, with what each was asked under: both from the log, as the
  * runtime read it (`input.approvalDecisions`, `input.approvalAsks`); the
- * rows give only the set and the calls. Create-vs-resume is the adapter's
+ * rows (the asks the runtime seeded from the log, `sink.rows`) give only the
+ * set and the calls. Create-vs-resume is the adapter's
  * fact about its ENGINE: a bound agent id (`threadId`, engine-minted) means
  * the Cursor agent already holds this session's conversation, so this turn
  * resumes it — the runtime's `isReinvocation` answers its own question and
  * is not consulted here.
  */
-export function readAdjudicatedRows(input: TurnInput, status: RunStatus): AdjudicatedRows {
+export function readAdjudicatedRows(input: TurnInput, rows: Pick<TurnRows, "messages">): AdjudicatedRows {
   const reinvoked = input.threadId !== "";
   const adjudicated = reinvoked
-    ? reconstructAdjudicatedApprovals(input.execution.status?.messages ?? [], {
+    ? reconstructAdjudicatedApprovals(rows.messages, {
         runId: input.executionId,
         decisions: input.approvalDecisions,
         asks: input.approvalAsks,

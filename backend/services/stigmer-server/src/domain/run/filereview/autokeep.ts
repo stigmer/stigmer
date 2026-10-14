@@ -1,213 +1,117 @@
 /**
- * The approved-command auto-keep policy — ports
- * filereview/autokeep.go.
+ * The rules that keep a turn's file changes on the person's behalf.
  *
- * A turn whose ONLY mutation source was shell commands the human
- * explicitly authorized (per-command approval, APPROVE_ALL category
- * lease, or the pre-armed spec.auto_approve_all) must not re-gate its
- * file effects at the turn-boundary review — the user consented to the
- * command, and the command's file effects are the consented outcome. One
- * consent, one gate.
+ *   approved command . a turn whose ONLY mutation source was shell
+ *                      commands the person explicitly allowed (per call,
+ *                      by a grant for the class, or under the pre-armed
+ *                      spec.auto_approve_all) does not ask again at the
+ *                      turn's review: the person consented to the command,
+ *                      and its file effects are the consented outcome. One
+ *                      consent, one gate.
+ *   eval try ......... a plugin eval's try keeps its edits: nobody reviews
+ *                      a try (autoKeepPluginEvalTrySets).
+ *   next turn ........ once a later message is sent, a turn's still
+ *                      undecided edits are kept (keepOutdatedSets).
  *
- * TRUST MODEL. The runner asserts the turn FACTS on the candidate event
- * (TurnCommandProvenance) — the same trust level as the captured bytes.
- * The CONSENT is verified HERE against records only the server writes:
- * every cited call's tool use has a person's allow in the session's log
- * (a user.tool_confirmation, which confirmToolUse and grantPermission
- * write and a runner's append is refused), and the auto_approve_all flag
- * is checked against the spec. A runner can therefore never mint
- * authorization it was never given.
+ * TRUST MODEL. The runner asserts the turn's facts on the change set
+ * (FileChangeSet.command_provenance), the same trust level as the captured
+ * bytes. The CONSENT is verified here against records only the server
+ * writes: every cited call's tool use has a person's allow in the
+ * session's log (a user.tool_confirmation, which confirmToolUse and
+ * grantPermission write and a runner's append is refused), and the
+ * auto_approve_all claim is checked against the spec. A runner can
+ * therefore never mint authorization it was never given.
  *
- * The decision is a REAL FILE_DECIDED event (origin
- * POLICY_APPROVED_COMMAND, actor "policy", digest-bound to the reviewed
- * aggregate) — not a projection shortcut — so the fold keeps one
- * semantics, the audit trail shows who decided, and the runner reconciles
- * it exactly like a human keep-all.
- *
- * Beside it, the two other policy keeps: a plugin eval's try keeps its
- * edits (autoKeepPluginEvalTrySets), and a turn's still-undecided edits
- * are kept once a later message is sent (keepOutdatedSets). Every policy
- * decision reaches the session's log as a `stigmer.file_review.decided`
- * event through the run write that records it (session/events/run-writes.ts).
- *
- * What is decided is the log's to say (logged.ts): each keep reads the
- * run's decisions and answers from the session's log, handed in by the
- * write it runs under (`RunReviewLog`), and the sets and their files from
- * the ledger's capture. The FILE_DECIDED it records is the ledger's mirror
- * of the decision, written beside the log's event.
+ * What is decided is the log's to say (logged.ts), and which sets and
+ * files a run has is its file record (record.ts). Each rule reads both and
+ * returns the `stigmer.file_review.decided` events it decides
+ * (decided.ts, a rule's origin and no decider); the write it runs in
+ * appends them. Idempotent: a set the log shows decided is passed over,
+ * and the event id is the target's, so a repeat appends nothing.
  */
-import { create } from "@bufbuild/protobuf";
-
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  FileDecisionAction,
-  FileDecisionOrigin,
-  FileDecisionScope,
-  FileReviewEventType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type {
-  FileChangeSet,
-  FileDecision,
-  TurnCommandProvenance,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { FileDecisionSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { FileChangeSet, TurnCommandProvenance } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
 import type { Logger } from "../../../boot/logger.js";
 import { toolUseEventId } from "../../session/events/ids.js";
-import {
-  ACTOR_POLICY,
-  approveBlockedReason,
-  decisionScopeId,
-  findChangeSet,
-  recordFileDecisionEventWithActor,
-} from "./author.js";
+import { decidedEvent } from "./decided.js";
 import { awaitsReview, decisionsOn, undecidedFileIds } from "./logged.js";
 import type { LoggedDecision, RunReviewLog } from "./logged.js";
-import { projectFileChangeSets } from "./project.js";
+import { keepBlockedReason } from "./record.js";
 
-/**
- * The audit-trail text on a policy decision. The UI label derives from
- * FileDecision.origin; this is for the record itself.
- */
+/** The reason on an approved-command keep. */
 const AUTO_KEEP_REASON =
   "Kept automatically: every change in this turn was produced by a command the user approved";
 
 /**
- * Evaluates every change set no decision in the log touches whose
- * candidate carries TurnCommandProvenance and — when the consent verifies
- * and the set is fully reviewable — authors the policy APPROVE. Returns
- * how many sets were auto-kept.
- *
- * Idempotent: a set the log shows decided is passed over, and the
- * deterministic decision/event id makes a repeat a no-op. Fail-closed: any
- * verification miss leaves the set awaiting manual review, exactly as if
- * no provenance existed.
- *
- * Must run inside the store write lock (with appendRunnerEvents, before
- * the projection), with the run's log read under that lock, so the
- * authored decision lands in the same write as the candidate that
- * qualified it.
+ * The approved-command keep: every set no decision in the log touches
+ * whose provenance is present, verifies, and whose diff can be shown
+ * whole is kept, change-set wide, bound to the aggregate digest.
+ * Fail-closed: any miss leaves the set for a person, as if no provenance
+ * existed.
  */
 export function autoKeepApprovedCommandSets(
-  status: RunStatus,
-  executionId: string,
+  sets: ReadonlyArray<FileChangeSet>,
+  runId: string,
   autoApproveAll: boolean,
   logger: Logger,
   log: RunReviewLog,
-): number {
-  const stream = status.fileReviewEventStream;
-  if (stream === undefined || stream.events.length === 0) {
-    return 0;
-  }
-  const changeSets = projectFileChangeSets(stream);
-  if (changeSets.length === 0) {
-    return 0;
-  }
-
-  let kept = 0;
-  for (const ev of stream.events) {
-    if (ev.eventType !== FileReviewEventType.CANDIDATE_CAPTURED) {
-      continue;
-    }
-    const provenance =
-      ev.payload.case === "candidateCaptured"
-        ? ev.payload.value.commandProvenance
-        : undefined;
+): SessionEvent[] {
+  const kept: SessionEvent[] = [];
+  for (const cs of sets) {
+    const provenance = cs.commandProvenance;
     if (provenance === undefined) {
       continue;
     }
-    const cs = findChangeSet(changeSets, ev.changeSetId);
-    const decisions = cs === undefined ? [] : decisionsOn(log, cs.id);
-    if (cs === undefined || !awaitsReview(cs, decisions)) {
+    const decisions = decisionsOn(log, cs.id);
+    // A (possibly partial) decision exists: the person owns this set.
+    if (!awaitsReview(cs, decisions) || decisions.length > 0) {
       continue;
     }
-    if (decisions.length > 0) {
-      // A (possibly partial) human decision exists — the human owns this
-      // set.
-      continue;
-    }
-    // The same fail-closed completeness gate a human APPROVE passes, with
-    // NO binary acknowledgment: an unreviewable or binary-blocked set is
-    // never auto-kept — it falls back to manual review.
-    const blockedReason = approveBlockedReason(
-      cs,
-      FileDecisionScope.CHANGE_SET,
-      "",
-      false,
-    );
+    // The same fail-closed completeness gate a person's keep passes, with
+    // NO binary acknowledgment: a set that cannot be shown whole waits for
+    // a person.
+    const blockedReason = keepBlockedReason(cs, "change_set", "", false);
     if (blockedReason !== "") {
       logger.info("Auto-keep skipped: set not fully reviewable — manual review", {
-        executionId,
+        executionId: runId,
         changeSetId: cs.id,
         blockedReason,
       });
       continue;
     }
-    if (!verifyCommandConsent(executionId, provenance, autoApproveAll, log)) {
+    if (!verifyCommandConsent(runId, provenance, autoApproveAll, log)) {
       logger.warn(
         "Auto-keep skipped: claimed consent did not verify against server-authored approvals — manual review",
         {
-          executionId,
+          executionId: runId,
           changeSetId: cs.id,
           consentToolCallIds: provenance.consentToolCallIds,
         },
       );
       continue;
     }
-
-    const decision = buildPolicyAutoKeepDecision(cs);
-    recordFileDecisionEventWithActor(
-      status,
-      executionId,
-      decision,
-      ACTOR_POLICY,
-    );
-    kept++;
-    logger.info(
-      "Auto-kept change set: every change produced by an approved command",
-      {
-        executionId,
-        changeSetId: cs.id,
-        consentToolCallIds: provenance.consentToolCallIds,
-        authorizedByAutoApproveAll: provenance.authorizedByAutoApproveAll,
-      },
-    );
+    kept.push(setKeep(runId, cs, "approved_command", AUTO_KEEP_REASON));
+    logger.info("Auto-kept change set: every change produced by an approved command", {
+      executionId: runId,
+      changeSetId: cs.id,
+      consentToolCallIds: provenance.consentToolCallIds,
+      authorizedByAutoApproveAll: provenance.authorizedByAutoApproveAll,
+    });
   }
   return kept;
-}
-
-/**
- * The policy twin of buildFileDecision: a CHANGE_SET-scoped APPROVE bound
- * to the aggregate digest the runner captured, origin
- * POLICY_APPROVED_COMMAND, no reviewer (the actor is "policy"). Shares
- * the deterministic id space, so a concurrent human decision on the same
- * set collapses to whichever was appended first.
- */
-function buildPolicyAutoKeepDecision(cs: FileChangeSet): FileDecision {
-  const decision = create(FileDecisionSchema, {
-    changeSetId: cs.id,
-    scope: FileDecisionScope.CHANGE_SET,
-    action: FileDecisionAction.APPROVE,
-    expectedDigest: cs.aggregateDigest,
-    decidedAt: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
-    reason: AUTO_KEEP_REASON,
-    origin: FileDecisionOrigin.POLICY_APPROVED_COMMAND,
-  });
-  decision.id = `${cs.id}:${decisionScopeId(decision)}`;
-  return decision;
 }
 
 /**
  * Checks the runner's consent claims against the records only the server
  * writes. Every cited call's tool use (the root's or a sub-agent's: the
  * id is derived the same way, session/events/ids.ts) must have a person's
- * allow in the log — a confirmation, or the grant's own call, whose
- * confirmation is an allow too; the auto_approve_all claim must match the
- * spec-owned flag. At least one consent source is required — an empty
- * claim authorizes nothing.
+ * allow in the log; the auto_approve_all claim must match the spec-owned
+ * flag. At least one consent source is required: an empty claim
+ * authorizes nothing.
  */
 function verifyCommandConsent(
-  executionId: string,
+  runId: string,
   provenance: TurnCommandProvenance,
   autoApproveAll: boolean,
   log: RunReviewLog,
@@ -219,133 +123,120 @@ function verifyCommandConsent(
   if (ids.length === 0 && !provenance.authorizedByAutoApproveAll) {
     return false;
   }
-  return ids.every((id) => log.allowed.has(toolUseEventId(executionId, id)));
+  return ids.every((id) => log.allowed.has(toolUseEventId(runId, id)));
 }
 
-/** The audit-trail text on a plugin-eval try's policy decision. */
+/** The reason on a plugin-eval try's keep. */
 const EVAL_TRY_KEEP_REASON =
   "Kept automatically: a plugin eval's try keeps its edits, as Claude Code's evals do; nobody reviews a try";
 
 /**
  * The plugin-eval try keep: a run that is an eval's try (the reserved
- * `stigmer.ai/plugin-eval` label, which only the server can set) keeps every
- * undecided AWAITING_REVIEW change set, binary changes included, in the same
- * write that folded it, so the try's run never waits for a review nobody
- * gives. Its change sets stay on record: the eval's file graders read them.
- * A set that cannot be approved whole (an unreviewable capture) is left to
- * the try's timeout, logged. Returns how many sets were kept.
- *
- * Idempotent and first-append-wins, as the approved-command keep is.
+ * `stigmer.ai/plugin-eval` label, which only the server can set) keeps
+ * every undecided set, binary changes included, in the write that captured
+ * it, so the try never waits for a review nobody gives. Its sets stay on
+ * the record: the eval's file graders read them. A set that cannot be
+ * kept whole (an unreviewable capture) is left to the try's timeout,
+ * logged.
  */
 export function autoKeepPluginEvalTrySets(
-  status: RunStatus,
-  executionId: string,
+  sets: ReadonlyArray<FileChangeSet>,
+  runId: string,
   isEvalTry: boolean,
   logger: Logger,
   log: RunReviewLog,
-): number {
-  const stream = status.fileReviewEventStream;
-  if (!isEvalTry || stream === undefined || stream.events.length === 0) {
-    return 0;
+): SessionEvent[] {
+  if (!isEvalTry) {
+    return [];
   }
-  let kept = 0;
-  for (const cs of projectFileChangeSets(stream)) {
+  const kept: SessionEvent[] = [];
+  for (const cs of sets) {
     const decisions = decisionsOn(log, cs.id);
     if (!awaitsReview(cs, decisions) || decisions.length > 0) {
       continue;
     }
-    const blockedReason = approveBlockedReason(cs, FileDecisionScope.CHANGE_SET, "", true);
+    const blockedReason = keepBlockedReason(cs, "change_set", "", true);
     if (blockedReason !== "") {
       logger.warn("Eval try keep skipped: set cannot be approved whole", {
-        executionId,
+        executionId: runId,
         changeSetId: cs.id,
         blockedReason,
       });
       continue;
     }
-    const decision = create(FileDecisionSchema, {
-      changeSetId: cs.id,
-      scope: FileDecisionScope.CHANGE_SET,
-      action: FileDecisionAction.APPROVE,
-      expectedDigest: cs.aggregateDigest,
-      decidedAt: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
-      reason: EVAL_TRY_KEEP_REASON,
-      origin: FileDecisionOrigin.POLICY_EVAL_TRY,
-      acknowledgeUnreviewable: true,
-    });
-    decision.id = `${cs.id}:${decisionScopeId(decision)}`;
-    recordFileDecisionEventWithActor(status, executionId, decision, ACTOR_POLICY);
-    kept++;
+    kept.push(setKeep(runId, cs, "eval_try", EVAL_TRY_KEEP_REASON));
   }
   return kept;
 }
 
-/** The audit-trail text on a decision the next message made. */
+/** The reason on a keep the next message made. */
 const NEXT_TURN_KEEP_REASON =
   "Kept automatically: the next message was sent before these edits were decided";
 
 /**
  * The close of a turn's file review: once a later message is sent, every
- * still-undecided file of this run's change sets is kept, origin
- * POLICY_NEXT_TURN, actor "policy". A set nobody decided gets one
- * CHANGE_SET keep; a set decided in part gets one FILE keep per file not
- * yet decided, so a person's decisions stand. A set still capturing (no
- * candidate yet) is left for the write that folds its candidate, which
+ * still-undecided file of the run's sets is kept, origin next_turn. A set
+ * nobody decided gets one change-set keep; a set decided in part gets one
+ * file keep per file not yet decided, so a person's decisions stand. A set
+ * still being captured is left for the write that captures it, which
  * closes it then (update-status.ts).
  *
- * No completeness gate: the files are already on disk, and keeping them
- * is what the conversation did by moving on, so an unreviewable or binary
- * file is kept as it is. Idempotent by the deterministic decision ids, and
- * first-append-wins against a person's decision, as the other keeps are.
- * Must run inside the run's write lock, before the projection. Returns how
- * many decisions it recorded.
+ * No completeness gate: the files are already on disk, and keeping them is
+ * what the conversation did by moving on, so an unreviewable or binary
+ * file is kept as it is.
  */
-export function keepOutdatedSets(status: RunStatus, executionId: string, log: RunReviewLog): number {
-  const stream = status.fileReviewEventStream;
-  if (stream === undefined || stream.events.length === 0) {
-    return 0;
-  }
-  const decidedAt = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
-  let kept = 0;
-  for (const cs of projectFileChangeSets(stream)) {
+export function keepOutdatedSets(
+  sets: ReadonlyArray<FileChangeSet>,
+  runId: string,
+  log: RunReviewLog,
+): SessionEvent[] {
+  const kept: SessionEvent[] = [];
+  for (const cs of sets) {
     const decisions = decisionsOn(log, cs.id);
-    if (!awaitsReview(cs, decisions)) {
-      continue;
-    }
-    for (const decision of nextTurnKeeps(cs, decisions, decidedAt)) {
-      recordFileDecisionEventWithActor(status, executionId, decision, ACTOR_POLICY);
-      kept++;
+    if (awaitsReview(cs, decisions)) {
+      kept.push(...nextTurnKeeps(runId, cs, decisions));
     }
   }
   return kept;
 }
 
 /** The keeps that close one undecided or partly decided set, by the log's decisions on it. */
-function nextTurnKeeps(
-  cs: FileChangeSet,
-  decisions: ReadonlyArray<LoggedDecision>,
-  decidedAt: string,
-): FileDecision[] {
-  const keep = (scope: FileDecisionScope, fileChangeId: string, expectedDigest: string): FileDecision => {
-    const decision = create(FileDecisionSchema, {
-      changeSetId: cs.id,
-      fileChangeId,
-      scope,
-      action: FileDecisionAction.APPROVE,
-      expectedDigest,
-      decidedAt,
-      reason: NEXT_TURN_KEEP_REASON,
-      origin: FileDecisionOrigin.POLICY_NEXT_TURN,
-      acknowledgeUnreviewable: true,
-    });
-    decision.id = `${cs.id}:${decisionScopeId(decision)}`;
-    return decision;
-  };
+function nextTurnKeeps(runId: string, cs: FileChangeSet, decisions: ReadonlyArray<LoggedDecision>): SessionEvent[] {
   if (decisions.length === 0) {
-    return [keep(FileDecisionScope.CHANGE_SET, "", cs.aggregateDigest)];
+    return [setKeep(runId, cs, "next_turn", NEXT_TURN_KEEP_REASON)];
   }
   const undecided = new Set(undecidedFileIds(cs, decisions));
   return cs.changes
     .filter((change) => undecided.has(change.id))
-    .map((change) => keep(FileDecisionScope.FILE, change.id, change.fileDigest));
+    .map((change) =>
+      decidedEvent(runId, {
+        changeSetId: cs.id,
+        scope: "file",
+        fileChangeId: change.id,
+        action: "keep",
+        expectedDigest: change.fileDigest,
+        origin: "next_turn",
+        reason: NEXT_TURN_KEEP_REASON,
+        decidedBy: "",
+      }),
+    );
+}
+
+/** A rule's keep of a whole set, bound to its aggregate digest. */
+function setKeep(
+  runId: string,
+  cs: FileChangeSet,
+  origin: "approved_command" | "eval_try" | "next_turn",
+  reason: string,
+): SessionEvent {
+  return decidedEvent(runId, {
+    changeSetId: cs.id,
+    scope: "change_set",
+    fileChangeId: "",
+    action: "keep",
+    expectedDigest: cs.aggregateDigest,
+    origin,
+    reason,
+    decidedBy: "",
+  });
 }

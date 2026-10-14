@@ -126,6 +126,14 @@
           "outputType": "PrincipalsCount",
           "outputFullType": "ai.stigmer.iam.iampolicy.v1.PrincipalsCount",
           "description": "Count distinct principals that have access to a resource.\n\n This RPC answers: \"How many [principal-kind] have access to this organization?\"\n Used for member count badges and summary statistics.\n\n Use Cases:\n - Organization members count badge in navigation\n - Settings page member summary\n\n Input: GetPrincipalsCountInput with org and principal_kind\n Output: PrincipalsCount with integer count"
+        },
+        {
+          "name": "ListAccessHistory",
+          "inputType": "ListAccessHistoryInput",
+          "inputFullType": "ai.stigmer.iam.iampolicy.v1.ListAccessHistoryInput",
+          "outputType": "AccessHistoryPage",
+          "outputFullType": "ai.stigmer.iam.iampolicy.v1.AccessHistoryPage",
+          "description": "List an organization's access history: every time someone was given\n or lost access to the organization or to a resource in it, who did it,\n why, and when.\n\n Without after_sequence the entries come newest first, for people\n reading what happened lately. With after_sequence they come oldest\n first, starting just after that entry, for a tool that keeps its own\n copy: it asks for what came after the last entry it holds. Each\n organization numbers its entries from 1 in the order they happened,\n with no gaps, so a reader that resumes after entry N never misses one.\n\n Only the organization's owners and administrators may read it, and a\n parent organization's administrators for a child. A parent's\n administrators manage a child without reading what it holds, so they\n read only the entries about the child organization itself (who holds\n which role in it), never the child's resources or who was given access\n to them. The Enterprise and\n Cloud editions keep the history; an open-source server keeps none and\n answers UNIMPLEMENTED. A host may refuse the read for its own reasons,\n such as a plan that does not include it."
         }
       ]
     }
@@ -709,6 +717,94 @@
           "required": false
         }
       ]
+    },
+    {
+      "name": "ListAccessHistoryInput",
+      "description": "ListAccessHistoryInput names the organization whose access history to\n read, and where to start.",
+      "protoType": "ai.stigmer.iam.iampolicy.v1.ListAccessHistoryInput",
+      "protoFile": "apis/ai/stigmer/iam/iampolicy/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The organization, by slug or id.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 1
+          }
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100. A history only grows, so there is no size\n that returns every entry at once: follow next_page_token.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The previous response's next_page_token, to continue that read.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
+          }
+        },
+        {
+          "name": "AfterSequence",
+          "jsonName": "afterSequence",
+          "protoField": "after_sequence",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Read oldest first, starting just after this entry's sequence; 0 reads\n from the first entry. Unset reads newest first. A tool that keeps its\n own copy passes the last sequence it holds.",
+          "required": false,
+          "oneofGroup": "_after_sequence"
+        }
+      ]
+    },
+    {
+      "name": "AccessHistoryPage",
+      "description": "AccessHistoryPage is one page of an organization's access history.",
+      "protoType": "ai.stigmer.iam.iampolicy.v1.AccessHistoryPage",
+      "protoFile": "apis/ai/stigmer/iam/iampolicy/v1/io.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "AccessHistoryEntry"
+            }
+          },
+          "description": "The entries, newest first, or oldest first when the request named\n after_sequence.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Set when more entries may follow: pass it as page_token, with the same\n request otherwise, to continue. Empty when this page reached the end.\n A page may be short, even empty, and still carry a token: a parent\n organization's administrators are not shown the entries about a child's\n resources.",
+          "required": false
+        }
+      ]
     }
   ],
   "enumTypes": [
@@ -768,6 +864,242 @@
           "name": "service_account",
           "number": 5,
           "description": "An organization's own non-person account: the principal its automation\n (a CI job, a script, an integration) acts as, so the automation keeps\n working when the person who set it up leaves.\n\n Created by an organization admin with createServiceAccount, it belongs to\n that one organization for its whole life, holds one organization role\n (admin, member or viewer, never owner) and acts only through API keys\n the organization's admins create for it. Its keys work only in its\n organization, and deleting it ends every key at once.\n\n The idp_id uses the composite encoding \"stgm_sa|{org}|{random}\", where\n org is the owning organization's id and random is drawn at creation, so\n a service account deleted and created again under the same name is a\n new principal that inherits nothing. The \"stgm_sa|\" prefix is reserved:\n no other provisioning mode may use it, and no sign-in resolves to it."
+        }
+      ]
+    },
+    {
+      "name": "AccessChange",
+      "description": "AccessChange says what happened to someone's access.",
+      "protoType": "ai.stigmer.iam.iampolicy.v1.AccessChange",
+      "values": [
+        {
+          "name": "granted",
+          "number": 1,
+          "description": "Access was given."
+        },
+        {
+          "name": "revoked",
+          "number": 2,
+          "description": "Access was taken away."
+        }
+      ]
+    },
+    {
+      "name": "AccessChangeCause",
+      "description": "AccessChangeCause says why someone's access changed. A cause is added,\n never renamed or reused.",
+      "protoType": "ai.stigmer.iam.iampolicy.v1.AccessChangeCause",
+      "values": [
+        {
+          "name": "grant",
+          "number": 1,
+          "description": "Someone gave a person, a team or a group a role."
+        },
+        {
+          "name": "revoke",
+          "number": 2,
+          "description": "Someone took a role away."
+        },
+        {
+          "name": "structural",
+          "number": 3,
+          "description": "The server recorded what creating a resource implies: its creator's\n ownership, or the audience its visibility opens it to."
+        },
+        {
+          "name": "organization_access_revoked",
+          "number": 4,
+          "description": "Someone removed a person from the organization."
+        },
+        {
+          "name": "left_organization",
+          "number": 5,
+          "description": "A person left the organization, and the server took away what they\n still held on its resources."
+        },
+        {
+          "name": "resource_deleted",
+          "number": 6,
+          "description": "A resource was deleted, and its access with it."
+        },
+        {
+          "name": "organization_created",
+          "number": 7,
+          "description": "A person created the organization and became its owner."
+        },
+        {
+          "name": "first_sign_in",
+          "number": 8,
+          "description": "A person signed in for the first time and was given the roles the\n server's membership rules grant."
+        },
+        {
+          "name": "role_reconciliation",
+          "number": 9,
+          "description": "The server gave existing accounts the roles its membership rules would\n have given them."
+        },
+        {
+          "name": "operator_ownership",
+          "number": 10,
+          "description": "The server's operator became owner of an organization nobody owned."
+        },
+        {
+          "name": "platform_client_grant",
+          "number": 11,
+          "description": "A person who signed in through a platform client was given the\n organization role that client grants."
+        },
+        {
+          "name": "service_account_created",
+          "number": 12,
+          "description": "An administrator created a service account with its role in the\n organization."
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer.",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Immutable version record tracking changes to an API resource."
+        },
+        {
+          "name": "iam_policy",
+          "number": 10,
+          "description": "Role-based access control policy for granting permissions on resources."
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": "User account in the identity system."
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
+        },
+        {
+          "name": "identity_provider",
+          "number": 21,
+          "description": "External identity provider for federated authentication."
+        },
+        {
+          "name": "oauth_app",
+          "number": 22,
+          "description": "Registered OAuth application with an external vendor for outbound authentication."
+        },
+        {
+          "name": "platform_client",
+          "number": 23,
+          "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
+        },
+        {
+          "name": "team",
+          "number": 24,
+          "description": "Named group of an organization's people that access is shared with as one."
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "The boundary that holds people, Agents, Sessions and secrets\n together; nothing outside it sees them.\n\n Its id is a minted org_\u003culid\u003e that never changes; every organization-scoped\n resource names it by that id (metadata.org). Its slug is unique across the\n server and may change through rename; requests may name the organization\n by either."
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": "Singleton platform instance representing the Stigmer deployment."
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
+        },
+        {
+          "name": "run",
+          "number": 41,
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": "Conversation thread between a user and an agent."
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": "Knowledge resource that provides domain-specific context to an agent."
+        },
+        {
+          "name": "agent_share",
+          "number": 46,
+          "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
+        },
+        {
+          "name": "agent_channel",
+          "number": 47,
+          "description": "Connection binding an agent to an external messaging platform workspace."
+        },
+        {
+          "name": "channel_app",
+          "number": 48,
+          "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
+        },
+        {
+          "name": "schedule",
+          "number": 56,
+          "description": "Recurring trigger that runs an agent on a cron schedule."
+        },
+        {
+          "name": "memory",
+          "number": 57,
+          "description": "Agent-proposed, user-confirmed fact the platform remembers about a person."
+        },
+        {
+          "name": "plugin",
+          "number": 58,
+          "description": "An installed Agent Plugins package: one thing holding skills, agents,\n hooks and MCP servers, which agents and conversations list whole."
+        },
+        {
+          "name": "vault",
+          "number": 59,
+          "description": "A person's or an organization's box of logins (matched by a tool's\n address) and secrets (matched by name) that runs use."
+        },
+        {
+          "name": "score",
+          "number": 61,
+          "description": "One grade of a finished run: a person's thumbs or a free run-health\n check."
+        },
+        {
+          "name": "evaluator",
+          "number": 62,
+          "description": "AI grading switched on for one agent: its sample rate, monthly spending\n limit and judge model."
+        },
+        {
+          "name": "plugin_eval",
+          "number": 63,
+          "description": "One run of a plugin's own evals/ cases: every case tried with and\n without the plugin, on the models the eval names."
+        },
+        {
+          "name": "agent_eval",
+          "number": 64,
+          "description": "One run of the eval cases of the plugins an agent attaches, on the\n agent itself: each plugin's cases at the version the agent attaches,\n on the models the eval names, stamped with the agent's version."
+        },
+        {
+          "name": "plan",
+          "number": 70,
+          "description": "Catalog entry naming a bundle of entitlements and the terms that buy it.\n\n Platform-level: a plan belongs to no organization, so it carries no\n authorization scope and no owner. Immutable once created; a change of\n terms is a new Plan and the old one retires."
+        },
+        {
+          "name": "subscription",
+          "number": 71,
+          "description": "An organization's binding to a Plan; at most one active per organization.\n\n System-created: the payment system drives its lifecycle, so it has no\n owner and grants no roles. Its reads and writes authorize on the\n organization through the billing permissions."
+        },
+        {
+          "name": "license",
+          "number": 72,
+          "description": "A signed grant of entitlements to a self-hosting customer for a term.\n\n Platform-level: issued by the cloud's operators and verified offline by\n the Enterprise server, so the customer is a value inside the license\n (which may or may not name a cloud organization) and the kind has no\n authorization scope and no owner. Claims are immutable once signed; a\n renewal is a new License."
         }
       ]
     }

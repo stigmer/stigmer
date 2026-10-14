@@ -17,9 +17,6 @@
 
 import { describe, it, expect } from "vitest";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import {
   approvalCategory,
@@ -40,6 +37,8 @@ import {
   toolIdentity,
 } from "../approval-state.js";
 import { buildReinvocationPrompt } from "../prompt-builder.js";
+import { PendingApprovalSchema, type PendingApproval } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 function pending(overrides: MessageInitShape<typeof PendingApprovalSchema>): PendingApproval {
   return create(PendingApprovalSchema, {

@@ -31,8 +31,7 @@
  */
 
 import { resolve } from "node:path";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
-import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { formatConversationCatchupText } from "../../shared/conversation-catchup.js";
 import {
   formatChannelTemplatesSection,
@@ -57,6 +56,8 @@ import {
   buildImplementPlanDirective,
   findApprovedPlanPath,
 } from "../../shared/implement-plan-prompt.js";
+import type { PendingApproval } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
  * Marker path segments that identify runner-internal directories. A workspace

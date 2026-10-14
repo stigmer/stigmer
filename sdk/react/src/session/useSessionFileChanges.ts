@@ -2,18 +2,18 @@
 
 import { useMemo } from "react";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { DisplayFileChange } from "@stigmer/sdk";
 import { deriveRunFileChanges } from "../run/deriveRunFileChanges.js";
 
 /** Return value of {@link useSessionFileChanges}. */
 export interface UseSessionFileChangesReturn {
   /**
-   * One {@link FileChange} per file touched in the session — the *net*
+   * One {@link DisplayFileChange} per file touched in the session — the *net*
    * change for that path (see {@link deriveRunFileChanges} for the
    * net-diff semantics) — ordered for a file-list (modified, then
    * created/renamed, then deleted; alphabetical within each group).
    */
-  readonly fileChanges: readonly FileChange[];
+  readonly fileChanges: readonly DisplayFileChange[];
   /** `true` when at least one file was changed across all runs. */
   readonly hasFileChanges: boolean;
   /** Number of distinct files changed. */
@@ -29,7 +29,7 @@ export interface UseSessionFileChangesReturn {
  * bar) and does not consume this hook.
  *
  * A thin memoizing wrapper over {@link deriveRunFileChanges} — the
- * execution-domain core. The source (ledger-first via
+ * execution-domain core. The source (each run's file record, via
  * `displayFileChangeSets`), the net-diff collapse, and the file-list ordering
  * are all documented on the core.
  *

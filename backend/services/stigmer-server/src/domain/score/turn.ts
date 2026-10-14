@@ -1,23 +1,21 @@
 /**
  * The scoring readers' shared view of one turn, read from its session's
  * events: the fold `@stigmer/session-log` gives every client, the turn's
- * primary-thread tool uses in order, each use's state as the row status
- * it stands for, and a tool use's call id. The three readers (the checks'
- * actions, checks/actions.ts; the judge's subject, judge/subject.ts; a
- * plugin eval's trace, eval/trace.ts) build their own views from it.
+ * primary-thread tool uses in order with their states, and a tool use's
+ * call id. The three readers (the checks' actions, checks/actions.ts; the
+ * judge's subject, judge/subject.ts; a plugin eval's trace, eval/trace.ts)
+ * build their own views from it.
  *
- * A tool use's state reads as: completed and failed as such; denied (a
- * person or a rule refused it) as skipped; stopped (its turn ended before
- * it returned) as interrupted; waiting (for a person's answer) as waiting
- * for approval; running as running. The log states an error rather than
- * why a call did not run, so a call the runner skipped with no one's
- * denial reads as failed.
+ * A tool use's state is the fold's: completed, failed, denied (a person
+ * or a rule refused it), stopped (its turn ended before it returned),
+ * waiting (for a person's answer) or running. The log states an error
+ * rather than why a call did not run, so a call the runner skipped with
+ * no one's denial reads as failed.
  *
  * Proven through each reader's tests and __tests__/transcript-from-events.test.ts.
  */
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { foldSession, turnOf } from "@stigmer/session-log";
-import type { ToolUse, ToolUseState, Turn } from "@stigmer/session-log";
+import type { ToolUse, Turn } from "@stigmer/session-log";
 
 import type { RunTranscript } from "../session/events/run-events.js";
 
@@ -38,25 +36,6 @@ export function toolUsesOf(turn: Turn | undefined): ToolUse[] {
     }
   }
   return uses;
-}
-
-/**
- * Each tool use state as the row status it stands for (the module
- * header). A table over every state, so a state added to the fold does
- * not compile until it is named here.
- */
-const STATUS_OF_STATE: Readonly<Record<ToolUseState, ToolCallStatus>> = {
-  running: ToolCallStatus.TOOL_CALL_RUNNING,
-  waiting: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-  completed: ToolCallStatus.TOOL_CALL_COMPLETED,
-  failed: ToolCallStatus.TOOL_CALL_FAILED,
-  denied: ToolCallStatus.TOOL_CALL_SKIPPED,
-  stopped: ToolCallStatus.TOOL_CALL_INTERRUPTED,
-};
-
-/** The row status a tool use's state stands for. */
-export function toolCallStatusOf(state: ToolUseState): ToolCallStatus {
-  return STATUS_OF_STATE[state];
 }
 
 /**

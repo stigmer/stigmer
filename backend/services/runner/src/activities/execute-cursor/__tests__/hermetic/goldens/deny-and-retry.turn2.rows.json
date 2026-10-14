@@ -1,0 +1,32 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-shell-0001",
+          "name": "shell",
+          "args": {
+            "command": "npm run build",
+            "cwd": "/x",
+            "timeout": 30000
+          },
+          "result": "build ok (hermetic)\n",
+          "status": "TOOL_CALL_COMPLETED",
+          "completedAt": "2026-01-01T00:00:09.000Z",
+          "requiresApproval": true,
+          "approvalMessage": "Run command: npm run build",
+          "approvalAction": "APPROVAL_ACTION_APPROVE",
+          "argsPreview": "{\"command\":\"npm run build\",\"cwd\":\"/x\",\"timeout\":30000}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "The build passes.",
+      "timestamp": "2026-01-01T00:00:10.000Z"
+    }
+  ]
+}

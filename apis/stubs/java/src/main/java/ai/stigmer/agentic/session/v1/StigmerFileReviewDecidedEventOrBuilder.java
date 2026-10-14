@@ -201,4 +201,28 @@ public interface StigmerFileReviewDecidedEventOrBuilder extends
    */
   com.google.protobuf.ByteString
       getReasonBytes();
+
+  /**
+   * <pre>
+   * The identity account id of the person who decided; empty for a
+   * decision no person made (an approved_command, eval_try or next_turn
+   * keep).
+   * </pre>
+   *
+   * <code>string decided_by = 10 [json_name = "decidedBy"];</code>
+   * @return The decidedBy.
+   */
+  java.lang.String getDecidedBy();
+  /**
+   * <pre>
+   * The identity account id of the person who decided; empty for a
+   * decision no person made (an approved_command, eval_try or next_turn
+   * keep).
+   * </pre>
+   *
+   * <code>string decided_by = 10 [json_name = "decidedBy"];</code>
+   * @return The bytes for decidedBy.
+   */
+  com.google.protobuf.ByteString
+      getDecidedByBytes();
 }

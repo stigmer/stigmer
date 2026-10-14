@@ -28,7 +28,6 @@ import { VERDICT_SCHEMA, renderSubject } from "@stigmer/eval-runtime/judge";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -58,7 +57,7 @@ function runWith(opts: {
     readonly name: string;
     readonly result?: string;
     readonly spilled?: boolean;
-    readonly status?: ToolCallStatus;
+    readonly failed?: boolean;
     readonly error?: string;
   }>;
   readonly answer?: string;
@@ -72,7 +71,7 @@ function runWith(opts: {
     .turnMessage(
       "",
       (opts.calls ?? []).map((call, index) => {
-        const failed = call.status === ToolCallStatus.TOOL_CALL_FAILED;
+        const failed = call.failed === true;
         return {
           id: `c${index}`,
           name: call.name,
@@ -115,7 +114,7 @@ describe("subjectPartsOf", () => {
       runWith({
         calls: [
           { name: "assign", result: "assigned" },
-          { name: "notify", result: "", status: ToolCallStatus.TOOL_CALL_FAILED, error: "smtp down" },
+          { name: "notify", result: "", failed: true, error: "smtp down" },
         ],
         answer: "Assigned and notified.",
       }),

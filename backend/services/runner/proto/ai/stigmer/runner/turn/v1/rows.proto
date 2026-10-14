@@ -1,0 +1,653 @@
+syntax = "proto3";
+
+package ai.stigmer.runner.turn.v1;
+
+import "ai/stigmer/agentic/run/v1/message.proto";
+import "ai/stigmer/runner/turn/v1/enum.proto";
+import "ai/stigmer/runner/turn/v1/ledger.proto";
+import "google/protobuf/struct.proto";
+
+// The rows the runner keeps for one turn: its transcript, its sub-agents and
+// todos, the approvals it waits on and the memories it injected. They are the
+// runner's working memory, and its event emitter writes the session's events
+// from them. Runner-private: never part of the public contract (apis/),
+// compiled only for the runner and its in-process agent host. Message, field
+// and enum value names and numbers are the ones the public contract once
+// carried, so stored JSON and the runner's code read them unchanged.
+//
+// Field comments are carried over from the public contract these types came
+// from; where one names a retired run method or server projection, the
+// session's events now carry that role.
+
+// TurnRows is what the runner holds for one turn beside the run's public
+// status: the transcript half RunStatus once carried. Field numbers are the
+// RunStatus numbers each field came from.
+message TurnRows {
+  // The turn's messages, in order: the person's message, the agent's
+  // replies and thinking, and the tool calls on them.
+  repeated AgentMessage messages = 1;
+
+  // The sub-agents the turn delegated to, in the order they started.
+  repeated SubAgentRun sub_agent_runs = 4;
+
+  // The turn's todo list. Key: todo item id.
+  map<string, TodoItem> todos = 9;
+
+  // The schema-conforming output the runner extracted from the agent's
+  // final reply, when the run asked for one.
+  google.protobuf.Struct structured_output = 21;
+
+  // The file-review events the runner authored for the turn's change sets.
+  FileReviewEventStream file_review_event_stream = 24;
+
+  // Which recalled memories the runner injected into the turn's prompt.
+  RecalledMemoriesReport recalled_memories_report = 26;
+}
+
+// Represents a single message in the agent conversation.
+// Used to track the full conversation flow including user messages,
+// AI responses, and tool execution details.
+message AgentMessage {
+  // Type of message (human, ai, tool, system).
+  MessageType type = 1;
+
+  // The text content of the message.
+  string content = 2;
+
+  // ISO 8601 timestamp when the message was created.
+  string timestamp = 3;
+
+  // Tool calls associated with this message (if type == ai and tools were invoked).
+  repeated ToolCall tool_calls = 4;
+
+  // Optional message metadata.
+  google.protobuf.Struct metadata = 5;
+
+  // True while the AI is actively generating this message, false when complete.
+  // Enables UI to show typing indicator during streaming and final content when done.
+  // Default (false) indicates either a non-AI message or a completed AI message.
+  bool is_streaming = 6;
+}
+
+// Represents a tool call made by the agent during a run.
+message ToolCall {
+  // Unique identifier for this tool call.
+  string id = 1;
+
+  // Name of the tool being called.
+  string name = 2;
+
+  // Arguments passed to the tool (JSON structure), with the value of every
+  // secret-named top-level argument (password, token, secret, api_key, apikey,
+  // credentials, auth, authorization; any case) replaced by "[REDACTED]", as
+  // in args_preview.
+  //
+  // @internal
+  // Redacted by the runner's transcript builder at creation (stigmer#1119, the
+  // runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
+  // before that may carry the values; clients hide them on display through
+  // @stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
+  // test/fixtures/tool-view/secret-args.json.
+  google.protobuf.Struct args = 3;
+
+  // Result returned by the tool (optional, populated after execution).
+  string result = 4;
+
+  // Status of the tool call execution.
+  ToolCallStatus status = 5;
+
+  // ISO 8601 timestamp when the tool call started.
+  string started_at = 7;
+
+  // ISO 8601 timestamp when the tool call completed or failed.
+  string completed_at = 8;
+
+  // Error message if status == TOOL_CALL_FAILED.
+  string error = 9;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Approval Fields
+  //
+  // These fields track the approval state for tools that require user consent
+  // before execution. Populated only for tools where approval is configured.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // True when this tool call was held for a person's decision instead of
+  // running at once.
+  //
+  // Every harness sets it the same way: only when the approval gate parks the
+  // call, never when the call starts. A call that runs under an approval
+  // lease, auto_approve_all or file-review capture is never held and carries
+  // false; approval_policy_source names the policy layer that governed the
+  // call either way.
+  //
+  // When true and status == TOOL_CALL_WAITING_APPROVAL, the tool is paused
+  // awaiting user decision via SubmitApproval RPC.
+  bool requires_approval = 10;
+
+  // Human-readable message explaining what approval is being requested.
+  // Written by the approval default from the tool's name and arguments.
+  //
+  // Examples:
+  //   - "Delete repository: my-important-repo"
+  //   - "Force push to branch: main"
+  //   - "Send email to: customer@example.com"
+  //
+  // If no custom message configured, defaults to: "Execute tool: {tool_name}"
+  string approval_message = 11;
+
+  // ISO 8601 timestamp when approval was requested.
+  // Set when status transitions to TOOL_CALL_WAITING_APPROVAL.
+  // Used for tracking approval latency and potential timeout logic.
+  // Example: "2026-01-30T15:30:00Z"
+  string approval_requested_at = 12;
+
+  // ISO 8601 timestamp when approval decision was made.
+  // Set when user submits APPROVE, SKIP, or REJECT via SubmitApproval.
+  // Example: "2026-01-30T15:32:15Z"
+  string approval_decided_at = 13;
+
+  // User ID of who made the approval decision.
+  // Extracted from authentication context when SubmitApproval is called.
+  // Important for audit trails and accountability.
+  // Example: "usr_abc123xyz"
+  string approved_by = 14;
+
+  // The action taken by the user.
+  // Only populated after approval decision is made (approval_decided_at is set).
+  // Determines how the tool execution proceeds:
+  //   - APPROVE: Tool executes normally
+  //   - SKIP: Tool returns skip message, run continues
+  //   - REJECT: Run fails with rejection error
+  ApprovalAction approval_action = 15;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Streaming State Fields
+  //
+  // These two fields together describe what is streaming and whether more
+  // content is expected:
+  //
+  //   is_streaming = true  + streaming_source = INPUT  → LLM generating args
+  //   is_streaming = true  + streaming_source = OUTPUT → tool producing output
+  //   is_streaming = false + streaming_source = *      → not streaming
+  //
+  // Consumers always read `result` for the current content. `is_streaming`
+  // signals whether more content is expected; `streaming_source` tells
+  // consumers what kind of content it is so they render correctly.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // True while the tool is actively producing content, false when complete.
+  // Enables UI to show live output during long-running tool executions or
+  // a typewriter effect during input generation.
+  //
+  // When true, `result` contains partial content accumulated so far.
+  // When false (default), `result` contains the final complete output.
+  // Consumers always read `result` — this flag only signals whether
+  // more content is expected.
+  bool is_streaming = 16;
+
+  // Identifies what is currently being streamed.
+  // Only meaningful when is_streaming is true; reset to UNSPECIFIED when
+  // streaming ends.
+  //
+  // INPUT:  result contains partial content extracted from the in-progress
+  //         argument JSON (e.g., file content for a write tool).
+  // OUTPUT: result contains accumulated output chunks from tool execution
+  //         (e.g., shell command stdout).
+  //
+  // Consumers use this to choose the correct rendering mode — typewriter
+  // for input streaming, live terminal output for output streaming.
+  ToolCallStreamingSource streaming_source = 19;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // MCP Server Origin
+  //
+  // Identifies the MCP server that provides this tool. Empty for built-in
+  // sandbox tools (read, write, shell, etc.). Populated by the worker when
+  // the tool is a tool of an MCP server the run uses.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Name of the MCP server that provides this tool, as its tools are named
+  // (plugin_<plugin>_<server> for a plugin's server).
+  // Empty for built-in sandbox tools.
+  // Populated by the worker using the mcp_tools_config reverse lookup.
+  //
+  // Examples: "plugin_linear_linear", "plugin_github_github"
+  //
+  // Used by CLI/UI to render a qualified tool name (e.g., "planton/search")
+  // so users can distinguish tools with the same name from different servers.
+  string mcp_server_slug = 17;
+
+  // Sanitized preview of tool arguments for UI display.
+  // Sensitive values (passwords, tokens, keys) are redacted.
+  // Populated at tool call creation time by the runner.
+  // Used by the server-side ComputePendingApprovals projection
+  // and by CLI/UI for inline argument visibility.
+  //
+  // Example: '{"repository": "acme/repo", "force": true}'
+  string args_preview = 18;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Tool Classification
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Harness-agnostic category of this tool, set by the runner so clients render
+  // the tool identically regardless of which engine produced it. The native and
+  // Cursor harnesses use different tool-name conventions; tool_kind erases that
+  // difference at the source.
+  //
+  // TOOL_KIND_UNSPECIFIED means unclassified — either the run predates this
+  // field or the tool has no known kind. Clients fall back to a name-based
+  // lookup in that case. See ToolKind.
+  //
+  // Field 20: field 6 is a historical gap and 19 (streaming_source) is the prior
+  // maximum, so this is appended at 20.
+  ToolKind tool_kind = 20;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Offloaded Output (large tool results)
+  //
+  // When a tool's output exceeds a size threshold, the runner spills the full
+  // bytes to artifact storage and records a reference here instead of inlining
+  // megabytes into `result` on every status update. Without this, a single
+  // large result (e.g. a base64 screenshot or a multi-MB accessibility tree)
+  // pushes RunStatus past the gRPC message-size limit, so status
+  // persistence fails silently and the live UI freezes mid-run.
+  //
+  // When set, `result` holds only a short human-readable head/preview (so
+  // consumers that read `result` still render something sensible) and
+  // output_ref points at the full content. Empty for the overwhelming majority
+  // of tool calls — only populated when output crosses the offload threshold.
+  // See ToolCallOutputRef.
+  //
+  // Field 21: appended after tool_kind (20), the prior maximum.
+  ai.stigmer.agentic.run.v1.ToolCallOutputRef output_ref = 21;
+
+  // Field 22 (file_changes) was removed: file review moved to
+  // the apply-then-review FileChangeSet ledger (RunStatus.
+  // file_change_sets + file_review_event_stream), so the tool-call-coupled
+  // FileChange copy is obsolete.
+  reserved 22;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Authorization Provenance (HITL)
+  //
+  // Which policy layer decided this tool call's approval requirement, recorded so
+  // a run's authorizations are auditable. Runner-written and carried
+  // through update_status exactly like tool_kind — not owned by SubmitApproval,
+  // so no preserve logic is needed.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Policy layer that decided this tool call's approval requirement, set by the
+  // runner's approval gate so clients can explain "why was this gated or
+  // auto-approved?".
+  //
+  // APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
+  // or a run that predates this field (clients fall back to no provenance,
+  // exactly as for an unset tool_kind). See ApprovalPolicySource.
+  //
+  // Field 23: appended after file_changes (22), the prior maximum.
+  ApprovalPolicySource approval_policy_source = 23;
+
+  // Identifier of the policy-engine logic that produced approval_policy_source,
+  // bumped when the approval semantics change so decisions made by different
+  // engine versions stay distinguishable in audits.
+  //
+  // @internal
+  // Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
+  //
+  // Field 24: appended after approval_policy_source (23), the prior maximum.
+  string policy_engine_version = 24;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Approval Content Digest (HITL exact-identity)
+  //
+  // Content-identity of an approved mutating tool call, so a resumed re-attempt
+  // is authorized only when its content matches what the user actually approved.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Stable digest of the authoritative edit content (the hook-captured tool
+  // input) for a gated file-mutating tool call, set by the runner's approval
+  // gate. It is the content discriminator the deny-only Cursor harness needs:
+  // approving one edit must not let a DIFFERENT edit to the same file ride the
+  // approval through, so the grant binds to (category, path, content) rather than
+  // (category, path) alone. A resumed re-attempt that differs from the approved
+  // content re-gates (the "what you approve is what gets applied" contract).
+  //
+  // Carried so it survives at resume immune to the size-limit elision that can
+  // drop `args`/`file_changes` for large edits — a recompute-from-args identity
+  // would be unrecoverable in that case. Empty for tools whose other identity is
+  // already content-exact (shell command, delete path), for read-only tools, and
+  // for runs that predate this field (the runner then degrades to the
+  // coarse (category, path) identity).
+  //
+  // @internal
+  // Runner-written and carried through update_status exactly like tool_kind /
+  // approval_policy_source — not owned by SubmitApproval, so no preserve logic is
+  // needed. See the runner's contentDigest() (shared/file-tools.ts).
+  //
+  // Field 25: appended after policy_engine_version (24), the prior maximum.
+  string approval_content_digest = 25;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // File-Review Reference (observational transcript rows)
+  //
+  // A flowed file-edit tool row stays visible in the transcript as an
+  // observational/audit record of WHERE and WHEN the agent edited a file,
+  // while the review itself lives in the FileChangeSet ledger. This is the
+  // research report's "transcript row references change_set_id" — the row is
+  // audit-only; the ledger is the single decision surface.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Id of the FileChangeSet this flowed file-edit contributed to
+  // (`{run_id}:{turn_seq}`), stamped by the runner at the turn-boundary
+  // capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the
+  // set's review state and to position the set's decision surface after the
+  // turn's last edit row. It is NEVER a correlation or enforcement key —
+  // decisions reference FileChangeSet.id / CapturedFileChange.id directly, and
+  // reconcile identity is digest-gated (see filereview.proto's identity rule).
+  //
+  // Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
+  // those rows), rows from runs that predate this field, and turns whose
+  // edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
+  // so there is no change set to reference).
+  //
+  // Field 26: appended after approval_content_digest (25), the prior maximum.
+  string file_change_set_id = 26;
+
+  // Slug of the plugin whose hook decided this call; empty when no hook
+  // decided, or when the agent's own hooks block did.
+  //
+  // @internal
+  // Runner-written beside approval_policy_source, and set only when that
+  // source is HOOK, or when a hook asked and a lease, the run-wide bypass or
+  // the unattended skip resolved its ask. The lease scope of an APPROVE_ALL
+  // row reads it: a hook's lease clears only that hook's asks on that tool.
+  //
+  // Field 27: appended after file_change_set_id (26), the prior maximum.
+  string approval_policy_hook = 27;
+}
+
+// Represents a sub-agent invocation within a run.
+// When the main agent delegates work to a specialized sub-agent, this message
+// tracks the complete lifecycle of that delegation including input, output, and timing.
+message SubAgentRun {
+  // Unique identifier for this sub-agent run.
+  // Matches the tool call ID from the LangGraph "task" tool invocation.
+  string id = 1;
+
+  // Name of the subagent being invoked: a listed agent's slug, a plugin
+  // agent's <plugin>:<agent>, or a built-in (explore, shell,
+  // general-purpose).
+  //
+  // @internal
+  // Extracted from the task tool call's args.subagent_type field.
+  string name = 2;
+
+  // Task/instruction given to the sub-agent.
+  // This is the input prompt that tells the sub-agent what to do.
+  string input = 3;
+
+  // Result returned by the sub-agent when complete.
+  // Only populated when status == SUB_AGENT_COMPLETED.
+  string output = 4;
+
+  // Current lifecycle status of the sub-agent run.
+  SubAgentStatus status = 5;
+
+  // ISO 8601 timestamp when the sub-agent was invoked.
+  // Example: "2025-11-22T10:30:00Z"
+  string started_at = 6;
+
+  // ISO 8601 timestamp when the sub-agent completed or failed.
+  // Only populated for terminal states (completed/failed).
+  string completed_at = 7;
+
+  // Error message if status == SUB_AGENT_FAILED.
+  // Contains the failure reason for debugging and user display.
+  string error = 8;
+
+  // Optional sub-agent run metadata.
+  google.protobuf.Struct metadata = 9;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Internal Run Visibility
+  //
+  // These fields capture what happened inside the sub-agent run,
+  // enabling debugging when sub-agents fail mid-run.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Messages generated by this sub-agent.
+  // Captures AI responses and tool results within the sub-agent context.
+  // Tool calls are embedded in AI messages via AgentMessage.tool_calls.
+  // Ordered chronologically like RunStatus.messages.
+  repeated AgentMessage messages = 11;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Display Metadata
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Concise, human-readable summary of the sub-agent's task (3-10 words).
+  // Populated directly from the task tool's `description` argument — the short
+  // label the invoking LLM provides when calling the "task" tool. No server-side
+  // LLM generation; available instantly when the sub-agent starts.
+  // Used as the primary display label in collapsed and expanded UI views.
+  // Examples: "Explore CLI rendering code", "Fix auth middleware tests"
+  string subject = 13;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Sub-Agent Task Progress
+  //
+  // Mirrors RunStatus.todos for the sub-agent scope.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Todo list tracking multi-step tasks and progress for this sub-agent.
+  // Updated via write_todos tool when called within a sub-agent context.
+  // Snapshot replacement semantics: each update carries the full list.
+  // Key: todo item ID, Value: todo item details
+  map<string, TodoItem> todos = 14;
+}
+
+// Represents a single item in the agent's todo list.
+// Used by the write_todos tool to track multi-step tasks and progress.
+//
+// Shared by both RunStatus (main agent) and SubAgentRun
+// (sub-agent), so it lives in its own file to avoid circular imports.
+message TodoItem {
+  // Unique identifier for this todo item.
+  string id = 1;
+
+  // Description of the task to be completed.
+  string content = 2;
+
+  // Current status of the todo item.
+  TodoStatus status = 3;
+
+  // ISO 8601 timestamp when the todo was created.
+  string created_at = 4;
+
+  // ISO 8601 timestamp when the todo was last updated.
+  string updated_at = 5;
+}
+
+// A pending approval request for a tool call that requires user consent before execution.
+//
+// Each entry represents one tool call waiting for a user decision (approve, skip,
+// or reject). Sub-agent approvals are included with from_sub_agent set to true
+// and sub_agent_name identifying the origin.
+//
+// @internal
+//
+// Computed server-side by the UpdateStatus handlers on every write. The handler
+// scans messages[].tool_calls and sub_agent_runs[].messages[].tool_calls,
+// collecting entries where status == WAITING_APPROVAL && requires_approval == true.
+// Because the list is recomputed rather than merged, it is always consistent
+// with the authoritative tool call state embedded in messages.
+//
+// Lifecycle:
+// 1. Tool with requires_approval=true is about to execute
+// 2. The runner sets ToolCall.status = WAITING_APPROVAL on the message
+// 3. Server recomputes pending_approvals, entry appears
+// 4. User calls SubmitApproval RPC with their decision
+// 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
+message PendingApproval {
+  // ID of the tool call waiting for approval.
+  // Use this when calling SubmitApproval to identify which tool call to resume.
+  // Format: Tool call ID from the agent runtime (e.g., "call_abc123")
+  string tool_call_id = 1;
+
+  // Name of the tool requiring approval.
+  // Matches ToolCall.name for correlation.
+  // Example: "delete_repository", "send_email", "execute_sql"
+  string tool_name = 2;
+
+  // Human-readable approval message for display.
+  // Copied from ToolCall.approval_message for UI convenience.
+  // Contains resolved placeholders (e.g., "Delete repo: my-repo")
+  string message = 3;
+
+  // Sanitized preview of tool arguments for informed decision-making.
+  // Sensitive values (passwords, tokens) are redacted.
+  // Displayed as formatted JSON or key-value pairs in UI.
+  //
+  // Example:
+  //   {
+  //     "repository": "acme/important-repo",
+  //     "force": true,
+  //     "reason": "cleanup"
+  //   }
+  string args_preview = 4;
+
+  // ISO 8601 timestamp when the approval was requested.
+  // Enables UI to show waiting duration: "Waiting for 2 minutes"
+  // Example: "2026-01-30T15:30:00Z"
+  string requested_at = 5;
+
+  // True if this approval originates from a sub-agent.
+  // Enables differentiated UI treatment:
+  //   - false: "Agent needs approval to..."
+  //   - true: "Sub-agent 'name' needs approval to..."
+  bool from_sub_agent = 6;
+
+  // Name of the sub-agent if from_sub_agent is true.
+  // Example: "code-reviewer", "researcher", "debugger"
+  // Empty if from_sub_agent is false.
+  string sub_agent_name = 7;
+
+  // Name of the MCP server that provides this tool, as its tools are named
+  // (plugin_<plugin>_<server> for a plugin's server).
+  // Copied from ToolCall.mcp_server_slug for UI convenience.
+  // Empty for built-in sandbox tools (read, write, shell, etc.).
+  //
+  // Enables the approval card to classify MCP tools and render
+  // structured argument previews (scalar grids, humanized names)
+  // instead of falling back to raw JSON.
+  //
+  // Examples: "plugin_linear_linear", "plugin_github_github"
+  string mcp_server_slug = 8;
+
+  // Concise subject/description of the sub-agent's task (3-10 words).
+  // Copied from SubAgentRun.subject when from_sub_agent is true.
+  // Enables UI to show a meaningful label like "Explore CLI rendering code"
+  // instead of the generic agent type name.
+  // Empty when from_sub_agent is false or subject is not available.
+  string sub_agent_subject = 9;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // HITL Continuation Diagnostics (Cursor Harness)
+  //
+  // Captured at tool-deny time to support intelligent reinvocation after
+  // delayed human approval. When a fresh agent is created for reinvocation,
+  // these fields are included in the HITL continuation prompt so the agent
+  // can verify whether the approved action is still appropriate given
+  // potentially changed workspace state.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Why the agent wanted to execute this tool.
+  //
+  // Extracted from the last assistant message before the tool call.
+  // Gives the reinvocation agent context for the original intent, enabling
+  // it to decide whether the action still makes sense.
+  //
+  // Example: "Need to install the missing dependency to fix the build"
+  // Empty when rationale extraction was not possible.
+  string agent_rationale = 10;
+
+  // Git branch name at the time the tool was denied.
+  //
+  // Diagnostic metadata only — the reinvocation agent inspects the actual
+  // current workspace state rather than relying on this value. Included
+  // in the HITL continuation prompt as a reference point for the agent
+  // to detect whether workspace state has drifted.
+  //
+  // Example: "feature/add-auth"
+  // Empty when the workspace is not git-backed.
+  string branch_at_deny = 11;
+
+  // Git HEAD SHA at the time the tool was denied.
+  //
+  // Diagnostic metadata only — same purpose as branch_at_deny. Allows
+  // the reinvocation agent to compare against current HEAD to understand
+  // whether commits have landed since the tool was proposed.
+  //
+  // Example: "a1b2c3d4e5f6..."
+  // Empty when the workspace is not git-backed.
+  string head_sha_at_deny = 12;
+
+  // Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the
+  // server-side projection (exactly as mcp_server_slug above is). Lets approval
+  // surfaces classify and render the tool without a client-side lookup. See
+  // ToolKind.
+  ToolKind tool_kind = 13;
+
+  // Field 14 (file_changes) was removed. The pre-execution
+  // deny-gate no longer carries a captured diff: file review moved to the
+  // apply-then-review FileChangeSet ledger, and the no-storage deny-gate renders
+  // the proposed change from the tool args instead.
+  reserved 14;
+
+  // Policy layer that gated this tool call, copied from
+  // ToolCall.approval_policy_source by the server-side projection (exactly as
+  // tool_kind above is). Lets the approval surface explain WHY the tool requires
+  // approval (e.g. "required: marked destructive by the server") without a
+  // client-side lookup.
+  // See ApprovalPolicySource.
+  ApprovalPolicySource approval_policy_source = 15;
+
+  // Slug of the plugin whose hook asked for this approval; empty when no
+  // plugin's hook asked. Copied from ToolCall.approval_policy_hook.
+  string approval_policy_hook = 16;
+}
+
+// RecalledMemoriesReport records the semantic retriever's injection outcome
+// for one run.
+//
+// @internal
+// Runner-owned, written at most once per run at prompt build.
+// Selection activates only when the candidate set exceeds the
+// retriever's threshold (k); every other path — at-or-below threshold, no
+// embeddings-capable provider, embed/rank failure — injects the snapshot
+// wholesale and reports selection_active=false. Wholesale is the behavior
+// from before selection existed: selection is an optimization, its
+// absence is not a degradation.
+message RecalledMemoriesReport {
+  // Whether semantic selection was active for this run's prompt.
+  // False means wholesale: the full status.recalled_memories snapshot was
+  // injected.
+  bool selection_active = 1;
+
+  // IDs of the injected memories when selection was active.
+  //
+  // @internal
+  // Always a subset of the status.recalled_memories snapshot's memory_ids,
+  // in SNAPSHOT order (oldest-first): selection is by relevance, but
+  // presentation preserves the stable prompt order both editions pin.
+  // Empty when selection_active is false — readers fall back
+  // to the snapshot, which is exactly correct.
+  repeated string injected_memory_ids = 2;
+
+  // Embedding model that performed the selection.
+  // Example: "text-embedding-3-small". Empty when selection_active is
+  // false.
+  string embedding_model = 3;
+}

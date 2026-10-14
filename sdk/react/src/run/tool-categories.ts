@@ -1,6 +1,6 @@
 import type { JsonObject } from "@bufbuild/protobuf";
 import {
-  ToolKind,
+  type ToolKind,
   isSecretArgKey,
   resolveToolKind,
   resolveToolKindByName,
@@ -229,19 +229,19 @@ interface KindDisplayEntry {
 // @stigmer/sdk; this table only describes how each kind is shown. MCP and
 // unknown are resolved dynamically (label derived from the tool name).
 const KIND_DISPLAY: Partial<Record<ToolKind, KindDisplayEntry>> = {
-  [ToolKind.FILE_READ]:   { category: "read",      label: "Read",      primaryField: "path", fallbackFields: ["file_path", "file"] },
-  [ToolKind.FILE_WRITE]:  { category: "write",     label: "Write",     primaryField: "path", fallbackFields: ["file_path", "file", "filename"] },
-  [ToolKind.FILE_EDIT]:   { category: "edit",      label: "Edit",      primaryField: "path", fallbackFields: ["file_path", "file", "filename"] },
-  [ToolKind.FILE_DELETE]: { category: "delete",    label: "Delete",    primaryField: "path", fallbackFields: ["file_path", "file", "filename"] },
-  [ToolKind.SHELL]:       { category: "shell",     label: "Shell",     primaryField: "command", intentField: "description" },
-  [ToolKind.SEARCH]:      { category: "search",    label: "Search",    primaryField: "pattern", fallbackFields: ["query", "q"] },
-  [ToolKind.LIST]:        { category: "list",      label: "List",      primaryField: "path" },
-  [ToolKind.FETCH]:       { category: "fetch",     label: "Fetch",     primaryField: "url", fallbackFields: ["uri"] },
-  [ToolKind.WEB_SEARCH]:  { category: "web-search", label: "Web Search", primaryField: "query", fallbackFields: ["q", "search_term"] },
-  [ToolKind.THINK]:       { category: "think",     label: "Thinking",  primaryField: "thought" },
-  [ToolKind.SUBAGENT]:    { category: "sub-agent", label: "Sub-agent", primaryField: "description", fallbackFields: ["prompt"] },
-  [ToolKind.TODO]:        { category: "internal",  label: "Todos",     primaryField: "todos" },
-  [ToolKind.MEMORY]:      { category: "memory",    label: "Remember",  primaryField: "fact" },
+  file_read:   { category: "read",      label: "Read",      primaryField: "path", fallbackFields: ["file_path", "file"] },
+  file_write:  { category: "write",     label: "Write",     primaryField: "path", fallbackFields: ["file_path", "file", "filename"] },
+  file_edit:   { category: "edit",      label: "Edit",      primaryField: "path", fallbackFields: ["file_path", "file", "filename"] },
+  file_delete: { category: "delete",    label: "Delete",    primaryField: "path", fallbackFields: ["file_path", "file", "filename"] },
+  shell:       { category: "shell",     label: "Shell",     primaryField: "command", intentField: "description" },
+  search:      { category: "search",    label: "Search",    primaryField: "pattern", fallbackFields: ["query", "q"] },
+  list:        { category: "list",      label: "List",      primaryField: "path" },
+  fetch:       { category: "fetch",     label: "Fetch",     primaryField: "url", fallbackFields: ["uri"] },
+  web_search:  { category: "web-search", label: "Web Search", primaryField: "query", fallbackFields: ["q", "search_term"] },
+  think:       { category: "think",     label: "Thinking",  primaryField: "thought" },
+  subagent:    { category: "sub-agent", label: "Sub-agent", primaryField: "description", fallbackFields: ["prompt"] },
+  todo:        { category: "internal",  label: "Todos",     primaryField: "todos" },
+  memory:      { category: "memory",    label: "Remember",  primaryField: "fact" },
 };
 
 /**
@@ -249,7 +249,7 @@ const KIND_DISPLAY: Partial<Record<ToolKind, KindDisplayEntry>> = {
  * appear in the message thread (todos are rendered through a dedicated surface).
  */
 export function isInternalTool(toolName: string): boolean {
-  return resolveToolKindByName(toolName) === ToolKind.TODO;
+  return resolveToolKindByName(toolName) === "todo";
 }
 
 /** Maps a {@link ToolKind} to its presentation metadata. */
@@ -268,7 +268,7 @@ export function toolKindToCategoryInfo(
     };
   }
 
-  if (kind === ToolKind.MCP) {
+  if (kind === "mcp") {
     return {
       category: "mcp",
       label: humanizeToolName(toolName),
@@ -312,7 +312,7 @@ export function resolveToolCategoryFromCall(toolUse: ToolIdentity): ToolCategory
 /**
  * Resolves presentation metadata from an explicit {@link ToolKind} plus the
  * tool name and MCP slug, for a surface that already holds the kind. Falls
- * back to name-based resolution when the kind is unset.
+ * back to name-based resolution when the kind is `unknown`.
  */
 export function resolveToolCategoryFromKind(
   toolKind: ToolKind,
@@ -320,7 +320,7 @@ export function resolveToolCategoryFromKind(
   mcpServerSlug?: string,
 ): ToolCategoryInfo {
   const kind =
-    toolKind !== ToolKind.UNSPECIFIED
+    toolKind !== "unknown"
       ? toolKind
       : resolveToolKindByName(toolName, mcpServerSlug);
   return toolKindToCategoryInfo(kind, toolName);
@@ -411,7 +411,7 @@ export function extractPrimaryArg(
  *
  * When the caller already holds the tool's kind, pass it so resolution honors
  * the same kind that drives the label and icon. Falls back to name-based
- * resolution when the kind is unset.
+ * resolution when the kind is `unknown`.
  */
 export function extractPrimaryArgFromPreview(
   toolName: string,
@@ -509,10 +509,10 @@ export function extractShellIntentFromPreview(
   if (!argsPreview) return null;
 
   const kind =
-    toolKind !== undefined && toolKind !== ToolKind.UNSPECIFIED
+    toolKind !== undefined && toolKind !== "unknown"
       ? toolKind
       : resolveToolKindByName(toolName, mcpServerSlug);
-  if (kind !== ToolKind.SHELL) return null;
+  if (kind !== "shell") return null;
 
   try {
     const parsed = JSON.parse(argsPreview);

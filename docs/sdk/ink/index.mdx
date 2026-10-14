@@ -96,13 +96,13 @@ function MySessionView({ sessionId, org }: { sessionId: string; org: string }) {
 
   if (conv.isLoading) return <Text>Loading...</Text>;
 
-  const lastMessage = conv.completedRuns
-    .flatMap((run) => run.status?.messages ?? [])
-    .pop();
+  // Each turn is the session's events folded; its answer is the text of the
+  // agent's last message.
+  const lastAnswer = conv.turns.at(-1)?.answer ?? "";
 
   return (
     <Box flexDirection="column">
-      <Text>{lastMessage?.content ?? "No messages yet"}</Text>
+      <Text>{lastAnswer || "No messages yet"}</Text>
     </Box>
   );
 }
@@ -126,7 +126,7 @@ import {
   RunProgress,
   FollowUpInput,
 } from "@stigmer/ink";
-import { useSessionConversation } from "@stigmer/react";
+import { runPhaseOf, useSessionConversation } from "@stigmer/react";
 import { Box } from "ink";
 
 function CustomView({ sessionId, org }: { sessionId: string; org: string }) {
@@ -135,13 +135,13 @@ function CustomView({ sessionId, org }: { sessionId: string; org: string }) {
   return (
     <Box flexDirection="column">
       {conv.activePhase != null && (
-        <RunProgress phase={conv.activePhase} />
+        <RunProgress phase={runPhaseOf(conv.activePhase)} />
       )}
       <MessageThread
-        runs={conv.completedRuns}
-        activeStreamRun={conv.activeStreamRun}
-        onApprovalSubmit={conv.submitApproval}
-        submittingApprovalIds={conv.submittingApprovalIds}
+        turns={conv.turns}
+        runs={conv.runs}
+        onAnswerToolUse={conv.answerToolUse}
+        answeringToolUseIds={conv.answeringToolUseIds}
       />
       <FollowUpInput
         onSubmit={(msg) => conv.sendFollowUp(msg)}

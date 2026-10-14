@@ -60,8 +60,8 @@ service RunCommandController {
   // Update a run's status.
   //
   // @internal
-  // Used by the runner to send progressive status updates (messages,
-  // tool_calls, phase, etc.). The runner authenticates as the triggering user,
+  // Used by the runner to send progressive status updates (phase, usage,
+  // the file record, etc.). The runner authenticates as the triggering user,
   // who owns the run through the session ownership chain.
   // Optimized for frequent status updates and merges status fields with
   // existing state.
@@ -80,87 +80,6 @@ service RunCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete run";
   }
 
-  // Submit an approval decision for a pending tool call.
-  //
-  // ## Preconditions
-  //
-  // - Run must be in RUN_WAITING_FOR_APPROVAL phase
-  // - tool_call_id must match status.pending_approval.tool_call_id
-  // - User must have can_edit permission on the run
-  //
-  // ## Behavior by Action
-  //
-  // - APPROVE: Tool executes normally, run resumes to IN_PROGRESS
-  // - SKIP: Tool returns skip message to LLM, run continues to IN_PROGRESS
-  // - REJECT: Tool is denied and the user's objection is fed back to the LLM;
-  //   the run CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
-  //   stop the whole run, use cancel/terminate)
-  //
-  // @internal
-  //
-  // ## State Transitions
-  //
-  // On success:
-  // - ToolCall.approval_action = submitted action
-  // - ToolCall.approval_decided_at = current timestamp
-  // - ToolCall.approved_by = authenticated user ID
-  // - RunStatus.pending_approval = cleared
-  // - RunPhase = RUN_IN_PROGRESS (for every action, REJECT included)
-  //
-  // ## Error Conditions
-  //
-  // - NOT_FOUND: Run doesn't exist
-  // - FAILED_PRECONDITION: Run not in WAITING_FOR_APPROVAL phase
-  // - INVALID_ARGUMENT: tool_call_id doesn't match pending approval, or action is UNSPECIFIED
-  // - PERMISSION_DENIED: User lacks can_edit permission
-  //
-  // ## Idempotency
-  //
-  // If the same approval is submitted twice (same run, tool_call, action),
-  // the second call is a no-op and returns the current state.
-  rpc submitApproval(SubmitApprovalInput) returns (Run) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = run;
-    option (ai.stigmer.commons.rpc.config).permission = can_edit;
-    option (ai.stigmer.commons.rpc.config).field_path = "run_id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to submit approval for run";
-  }
-
-  // Submit a keep/discard decision on a file change set (or a single file).
-  //
-  // Records a FILE_DECIDED event in the append-only file_review stream;
-  // FileChangeSet.decisions is the derived projection. The runner reconciles
-  // the approved bytes — this RPC records the decision and enforces
-  // that expected_digest still matches the captured content the user reviewed.
-  //
-  // ## Preconditions
-  //
-  // - Run must exist and be non-terminal
-  // - change_set_id must match a status.file_change_sets[].id; for FILE scope,
-  //   file_change_id must match a CapturedFileChange.id within it
-  // - expected_digest must match the target's current digest
-  // - User must have can_edit permission on the run
-  //
-  // @internal
-  //
-  // ## Error Conditions
-  //
-  // - NOT_FOUND: Run doesn't exist
-  // - FAILED_PRECONDITION: Run terminal, or change set/file not found
-  // - INVALID_ARGUMENT: scope/action UNSPECIFIED, missing file_change_id for
-  //   FILE scope, or expected_digest mismatch
-  // - PERMISSION_DENIED: User lacks can_edit permission
-  //
-  // ## Idempotency
-  //
-  // Re-submitting the same decision (same change set, scope, target) is a no-op
-  // and returns the current state — appends are keyed by FileReviewEvent.event_id.
-  rpc submitFileDecision(SubmitFileDecisionInput) returns (Run) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = run;
-    option (ai.stigmer.commons.rpc.config).permission = can_edit;
-    option (ai.stigmer.commons.rpc.config).field_path = "run_id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to submit file decision for run";
-  }
-
   // ─────────────────────────────────────────────────────────────────────────────
   // Lifecycle Control Operations
   //
@@ -169,56 +88,10 @@ service RunCommandController {
   // pause, resume, or recover runs.
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // Cancel a running run gracefully.
-  //
-  // Sends a cancellation signal to the run. The agent can handle
-  // the cancellation signal to save checkpoint and clean up before
-  // transitioning to the CANCELLED phase.
-  //
-  // @internal
-  // Temporal Equivalent: `temporal workflow cancel --workflow-id <id>`
-  //
-  // ## Behavior
-  //
-  // 1. Validates run exists and is in a cancellable phase
-  // 2. Sends cancellation signal to Temporal workflow
-  // 3. Python activity receives cancellation and saves LangGraph checkpoint
-  // 4. Run transitions to RUN_CANCELLED phase
-  // 5. Returns updated Run with new phase
-  //
-  // ## Preconditions
-  //
-  // - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
-  // - Cannot cancel already-terminal runs (COMPLETED, FAILED, CANCELLED, TERMINATED)
-  //
-  // ## State Transitions
-  //
-  // - status.phase: PENDING/IN_PROGRESS → CANCELLED
-  // - status.completed_at: Set to current timestamp
-  // - LangGraph checkpoint: Preserved for potential future reference
-  //
-  // ## Idempotency
-  //
-  // Cancelling an already-cancelled run succeeds as a no-op.
-  // The call returns the current run state without side effects.
-  //
-  // ## Error Cases
-  //
-  // - NOT_FOUND: Run with given ID doesn't exist
-  // - PERMISSION_DENIED: User lacks can_edit permission on the run
-  // - FAILED_PRECONDITION: Run is in a terminal phase
-  // - INVALID_ARGUMENT: ID is empty or malformed
-  rpc cancel(CancelRunInput) returns (Run) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = run;
-    option (ai.stigmer.commons.rpc.config).permission = can_edit;
-    option (ai.stigmer.commons.rpc.config).field_path = "id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to cancel run";
-  }
-
   // Terminate a run immediately.
   //
-  // Force-stops the run without allowing cleanup. Unlike cancel,
-  // the agent cannot respond to termination - it is stopped immediately.
+  // Force-stops the run without allowing cleanup. Unlike the session's
+  // interrupt, the agent cannot respond to termination - it is stopped immediately.
   // Use this for stuck or unresponsive agents.
   //
   // @internal
@@ -245,7 +118,7 @@ service RunCommandController {
   //
   // ## Terminated vs Cancelled
   //
-  // | Aspect | cancel | terminate |
+  // | Aspect | interrupt (session) | terminate |
   // |--------|--------|-----------|
   // | Signal to agent | Yes (can handle) | No |
   // | Checkpoint saved | Yes (graceful) | No |
@@ -323,8 +196,8 @@ service RunCommandController {
 
   // Pause a running run.
   //
-  // Temporarily stops the agent at its current checkpoint. Unlike cancel,
-  // the run is NOT terminal and can be resumed later from where it left off.
+  // Temporarily stops the agent at its current checkpoint. Unlike the
+  // session's interrupt, the run is NOT terminal and can be resumed later from where it left off.
   //
   // @internal
   //
@@ -350,7 +223,7 @@ service RunCommandController {
   //
   // ## Paused vs Cancelled
   //
-  // | Aspect | pause | cancel |
+  // | Aspect | pause | interrupt (session) |
   // |--------|-------|--------|
   // | Terminal state? | No | Yes |
   // | Can resume? | Yes (via resume RPC) | No |

@@ -15,8 +15,8 @@
  * behind, which ends it with RESOURCE_EXHAUSTED so the client resumes from
  * the last seq it has instead of silently missing events (broker.ts).
  *
- * A direct handler, as run subscribe is (ConnectRPC server streams are
- * async generators, which cannot yield from inside the pipeline): an
+ * A direct handler (ConnectRPC server streams are async generators,
+ * which cannot yield from inside the pipeline): an
  * authorizeDirect of the method's annotation (can_view on the session) at
  * the start, before the subscription is registered, and again before the
  * next frame once SESSION_EVENT_STREAM_REAUTHORIZE_MS has passed, so a

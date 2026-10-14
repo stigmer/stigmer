@@ -20,18 +20,15 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RunCommandController_Create_FullMethodName             = "/ai.stigmer.agentic.run.v1.RunCommandController/create"
-	RunCommandController_Update_FullMethodName             = "/ai.stigmer.agentic.run.v1.RunCommandController/update"
-	RunCommandController_UpdateStatus_FullMethodName       = "/ai.stigmer.agentic.run.v1.RunCommandController/updateStatus"
-	RunCommandController_Delete_FullMethodName             = "/ai.stigmer.agentic.run.v1.RunCommandController/delete"
-	RunCommandController_SubmitApproval_FullMethodName     = "/ai.stigmer.agentic.run.v1.RunCommandController/submitApproval"
-	RunCommandController_SubmitFileDecision_FullMethodName = "/ai.stigmer.agentic.run.v1.RunCommandController/submitFileDecision"
-	RunCommandController_Cancel_FullMethodName             = "/ai.stigmer.agentic.run.v1.RunCommandController/cancel"
-	RunCommandController_Terminate_FullMethodName          = "/ai.stigmer.agentic.run.v1.RunCommandController/terminate"
-	RunCommandController_Recover_FullMethodName            = "/ai.stigmer.agentic.run.v1.RunCommandController/recover"
-	RunCommandController_Pause_FullMethodName              = "/ai.stigmer.agentic.run.v1.RunCommandController/pause"
-	RunCommandController_Resume_FullMethodName             = "/ai.stigmer.agentic.run.v1.RunCommandController/resume"
-	RunCommandController_UploadAttachment_FullMethodName   = "/ai.stigmer.agentic.run.v1.RunCommandController/uploadAttachment"
+	RunCommandController_Create_FullMethodName           = "/ai.stigmer.agentic.run.v1.RunCommandController/create"
+	RunCommandController_Update_FullMethodName           = "/ai.stigmer.agentic.run.v1.RunCommandController/update"
+	RunCommandController_UpdateStatus_FullMethodName     = "/ai.stigmer.agentic.run.v1.RunCommandController/updateStatus"
+	RunCommandController_Delete_FullMethodName           = "/ai.stigmer.agentic.run.v1.RunCommandController/delete"
+	RunCommandController_Terminate_FullMethodName        = "/ai.stigmer.agentic.run.v1.RunCommandController/terminate"
+	RunCommandController_Recover_FullMethodName          = "/ai.stigmer.agentic.run.v1.RunCommandController/recover"
+	RunCommandController_Pause_FullMethodName            = "/ai.stigmer.agentic.run.v1.RunCommandController/pause"
+	RunCommandController_Resume_FullMethodName           = "/ai.stigmer.agentic.run.v1.RunCommandController/resume"
+	RunCommandController_UploadAttachment_FullMethodName = "/ai.stigmer.agentic.run.v1.RunCommandController/uploadAttachment"
 )
 
 // RunCommandControllerClient is the client API for RunCommandController service.
@@ -65,47 +62,10 @@ type RunCommandControllerClient interface {
 	UpdateStatus(ctx context.Context, in *RunUpdateStatusInput, opts ...grpc.CallOption) (*UpdateStatusResponse, error)
 	// Delete a run by ID.
 	Delete(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*Run, error)
-	// Submit an approval decision for a pending tool call.
-	//
-	// ## Preconditions
-	//
-	// - Run must be in RUN_WAITING_FOR_APPROVAL phase
-	// - tool_call_id must match status.pending_approval.tool_call_id
-	// - User must have can_edit permission on the run
-	//
-	// ## Behavior by Action
-	//
-	//   - APPROVE: Tool executes normally, run resumes to IN_PROGRESS
-	//   - SKIP: Tool returns skip message to LLM, run continues to IN_PROGRESS
-	//   - REJECT: Tool is denied and the user's objection is fed back to the LLM;
-	//     the run CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
-	//     stop the whole run, use cancel/terminate)
-	SubmitApproval(ctx context.Context, in *SubmitApprovalInput, opts ...grpc.CallOption) (*Run, error)
-	// Submit a keep/discard decision on a file change set (or a single file).
-	//
-	// Records a FILE_DECIDED event in the append-only file_review stream;
-	// FileChangeSet.decisions is the derived projection. The runner reconciles
-	// the approved bytes — this RPC records the decision and enforces
-	// that expected_digest still matches the captured content the user reviewed.
-	//
-	// ## Preconditions
-	//
-	//   - Run must exist and be non-terminal
-	//   - change_set_id must match a status.file_change_sets[].id; for FILE scope,
-	//     file_change_id must match a CapturedFileChange.id within it
-	//   - expected_digest must match the target's current digest
-	//   - User must have can_edit permission on the run
-	SubmitFileDecision(ctx context.Context, in *SubmitFileDecisionInput, opts ...grpc.CallOption) (*Run, error)
-	// Cancel a running run gracefully.
-	//
-	// Sends a cancellation signal to the run. The agent can handle
-	// the cancellation signal to save checkpoint and clean up before
-	// transitioning to the CANCELLED phase.
-	Cancel(ctx context.Context, in *CancelRunInput, opts ...grpc.CallOption) (*Run, error)
 	// Terminate a run immediately.
 	//
-	// Force-stops the run without allowing cleanup. Unlike cancel,
-	// the agent cannot respond to termination - it is stopped immediately.
+	// Force-stops the run without allowing cleanup. Unlike the session's
+	// interrupt, the agent cannot respond to termination - it is stopped immediately.
 	// Use this for stuck or unresponsive agents.
 	Terminate(ctx context.Context, in *TerminateRunInput, opts ...grpc.CallOption) (*Run, error)
 	// Recover a failed run.
@@ -115,8 +75,8 @@ type RunCommandControllerClient interface {
 	Recover(ctx context.Context, in *RecoverRunInput, opts ...grpc.CallOption) (*Run, error)
 	// Pause a running run.
 	//
-	// Temporarily stops the agent at its current checkpoint. Unlike cancel,
-	// the run is NOT terminal and can be resumed later from where it left off.
+	// Temporarily stops the agent at its current checkpoint. Unlike the
+	// session's interrupt, the run is NOT terminal and can be resumed later from where it left off.
 	Pause(ctx context.Context, in *PauseRunInput, opts ...grpc.CallOption) (*Run, error)
 	// Resume a paused run.
 	//
@@ -174,36 +134,6 @@ func (c *runCommandControllerClient) Delete(ctx context.Context, in *apiresource
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Run)
 	err := c.cc.Invoke(ctx, RunCommandController_Delete_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runCommandControllerClient) SubmitApproval(ctx context.Context, in *SubmitApprovalInput, opts ...grpc.CallOption) (*Run, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Run)
-	err := c.cc.Invoke(ctx, RunCommandController_SubmitApproval_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runCommandControllerClient) SubmitFileDecision(ctx context.Context, in *SubmitFileDecisionInput, opts ...grpc.CallOption) (*Run, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Run)
-	err := c.cc.Invoke(ctx, RunCommandController_SubmitFileDecision_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runCommandControllerClient) Cancel(ctx context.Context, in *CancelRunInput, opts ...grpc.CallOption) (*Run, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Run)
-	err := c.cc.Invoke(ctx, RunCommandController_Cancel_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -291,47 +221,10 @@ type RunCommandControllerServer interface {
 	UpdateStatus(context.Context, *RunUpdateStatusInput) (*UpdateStatusResponse, error)
 	// Delete a run by ID.
 	Delete(context.Context, *apiresource.ApiResourceId) (*Run, error)
-	// Submit an approval decision for a pending tool call.
-	//
-	// ## Preconditions
-	//
-	// - Run must be in RUN_WAITING_FOR_APPROVAL phase
-	// - tool_call_id must match status.pending_approval.tool_call_id
-	// - User must have can_edit permission on the run
-	//
-	// ## Behavior by Action
-	//
-	//   - APPROVE: Tool executes normally, run resumes to IN_PROGRESS
-	//   - SKIP: Tool returns skip message to LLM, run continues to IN_PROGRESS
-	//   - REJECT: Tool is denied and the user's objection is fed back to the LLM;
-	//     the run CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
-	//     stop the whole run, use cancel/terminate)
-	SubmitApproval(context.Context, *SubmitApprovalInput) (*Run, error)
-	// Submit a keep/discard decision on a file change set (or a single file).
-	//
-	// Records a FILE_DECIDED event in the append-only file_review stream;
-	// FileChangeSet.decisions is the derived projection. The runner reconciles
-	// the approved bytes — this RPC records the decision and enforces
-	// that expected_digest still matches the captured content the user reviewed.
-	//
-	// ## Preconditions
-	//
-	//   - Run must exist and be non-terminal
-	//   - change_set_id must match a status.file_change_sets[].id; for FILE scope,
-	//     file_change_id must match a CapturedFileChange.id within it
-	//   - expected_digest must match the target's current digest
-	//   - User must have can_edit permission on the run
-	SubmitFileDecision(context.Context, *SubmitFileDecisionInput) (*Run, error)
-	// Cancel a running run gracefully.
-	//
-	// Sends a cancellation signal to the run. The agent can handle
-	// the cancellation signal to save checkpoint and clean up before
-	// transitioning to the CANCELLED phase.
-	Cancel(context.Context, *CancelRunInput) (*Run, error)
 	// Terminate a run immediately.
 	//
-	// Force-stops the run without allowing cleanup. Unlike cancel,
-	// the agent cannot respond to termination - it is stopped immediately.
+	// Force-stops the run without allowing cleanup. Unlike the session's
+	// interrupt, the agent cannot respond to termination - it is stopped immediately.
 	// Use this for stuck or unresponsive agents.
 	Terminate(context.Context, *TerminateRunInput) (*Run, error)
 	// Recover a failed run.
@@ -341,8 +234,8 @@ type RunCommandControllerServer interface {
 	Recover(context.Context, *RecoverRunInput) (*Run, error)
 	// Pause a running run.
 	//
-	// Temporarily stops the agent at its current checkpoint. Unlike cancel,
-	// the run is NOT terminal and can be resumed later from where it left off.
+	// Temporarily stops the agent at its current checkpoint. Unlike the
+	// session's interrupt, the run is NOT terminal and can be resumed later from where it left off.
 	Pause(context.Context, *PauseRunInput) (*Run, error)
 	// Resume a paused run.
 	//
@@ -376,15 +269,6 @@ func (UnimplementedRunCommandControllerServer) UpdateStatus(context.Context, *Ru
 }
 func (UnimplementedRunCommandControllerServer) Delete(context.Context, *apiresource.ApiResourceId) (*Run, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
-}
-func (UnimplementedRunCommandControllerServer) SubmitApproval(context.Context, *SubmitApprovalInput) (*Run, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SubmitApproval not implemented")
-}
-func (UnimplementedRunCommandControllerServer) SubmitFileDecision(context.Context, *SubmitFileDecisionInput) (*Run, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SubmitFileDecision not implemented")
-}
-func (UnimplementedRunCommandControllerServer) Cancel(context.Context, *CancelRunInput) (*Run, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Cancel not implemented")
 }
 func (UnimplementedRunCommandControllerServer) Terminate(context.Context, *TerminateRunInput) (*Run, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Terminate not implemented")
@@ -489,60 +373,6 @@ func _RunCommandController_Delete_Handler(srv interface{}, ctx context.Context, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RunCommandControllerServer).Delete(ctx, req.(*apiresource.ApiResourceId))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RunCommandController_SubmitApproval_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SubmitApprovalInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RunCommandControllerServer).SubmitApproval(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RunCommandController_SubmitApproval_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RunCommandControllerServer).SubmitApproval(ctx, req.(*SubmitApprovalInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RunCommandController_SubmitFileDecision_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SubmitFileDecisionInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RunCommandControllerServer).SubmitFileDecision(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RunCommandController_SubmitFileDecision_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RunCommandControllerServer).SubmitFileDecision(ctx, req.(*SubmitFileDecisionInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RunCommandController_Cancel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CancelRunInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RunCommandControllerServer).Cancel(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RunCommandController_Cancel_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RunCommandControllerServer).Cancel(ctx, req.(*CancelRunInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -659,18 +489,6 @@ var RunCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "delete",
 			Handler:    _RunCommandController_Delete_Handler,
-		},
-		{
-			MethodName: "submitApproval",
-			Handler:    _RunCommandController_SubmitApproval_Handler,
-		},
-		{
-			MethodName: "submitFileDecision",
-			Handler:    _RunCommandController_SubmitFileDecision_Handler,
-		},
-		{
-			MethodName: "cancel",
-			Handler:    _RunCommandController_Cancel_Handler,
 		},
 		{
 			MethodName: "terminate",

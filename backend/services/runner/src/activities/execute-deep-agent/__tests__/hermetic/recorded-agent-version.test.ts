@@ -20,7 +20,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import { AgentVersionEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -42,6 +42,7 @@ import {
   runDeepAgentTurn,
 } from "../../__test-utils__/hermetic-deep-agent.js";
 import { recordedModelBuilds } from "../../__test-utils__/scripted-model-module.js";
+import { MessageType } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const RECORDED_HASH = "3f2a".padEnd(64, "0");
 const RECORDED_INSTRUCTIONS = "You review pull requests. Version the turn recorded.";
@@ -137,8 +138,9 @@ describe("ExecuteDeepAgent hermetic — the recorded agent version", () => {
     expect(invocation.outcome.kind, "a deterministic failure RETURNS").toBe("returned");
     expect(record.persistedPhases).toEqual([RunPhase.RUN_FAILED]);
     const final = record.lastFullStatus!;
+    const finalRows = record.rowsOf(final);
     expect(final.error).toContain(`agent ${agentId}, version ${RECORDED_HASH}`);
-    expect(final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM)).toHaveLength(2);
+    expect(finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM)).toHaveLength(2);
     expect(headRead).not.toHaveBeenCalled();
     expect(recordedModelBuilds(), "no model was built").toHaveLength(0);
     expect(record.setupProgress).toEqual(["Fetching execution", "Resolving agent blueprint"]);

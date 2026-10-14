@@ -37,7 +37,9 @@
  * entry in the row's own transaction, reading the row's triple and bytes
  * itself (store/permission-history.ts): none for a held id or an id not
  * held. Open source keeps none: the record is not passed, and the same
- * facts ride the grant path's log lines.
+ * facts ride the grant path's log lines. `listChanges` is the Store's
+ * `listPermissionHistory`, each entry's bytes decoded back to the row; on
+ * open source the table is empty, so it answers nothing.
  *
  * Store faults follow the store-fault mapping (domain/apikey/lookup.ts): a
  * typed ResourceNotFoundError reads as `undefined`; anything else
@@ -57,7 +59,7 @@ import { kindEnumName } from "../../pipeline/apiresource-meta.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import type { PermissionChange } from "../../store/permission-history.js";
-import type { PolicyChangeRecord } from "./change.js";
+import type { PolicyChange, PolicyChangeRecord } from "./change.js";
 import { USER_GRANT_PRINCIPAL_KINDS, policyIdFor } from "./constants.js";
 import { iamPolicyListIndex } from "./list-index.js";
 import { DuplicatePolicyError } from "./store.js";
@@ -212,6 +214,19 @@ export function newResourceIamPolicyStore(
           policy.spec?.resource?.kind === resourceKind &&
           relationOf(policy) === relation,
       );
+    },
+
+    async listChanges(org, page): Promise<ReadonlyArray<PolicyChange>> {
+      const records = await store.listPermissionHistory(org, page);
+      return records.map((record) => ({
+        sequence: record.sequence,
+        occurredAt: record.occurredAt,
+        change: record.change,
+        actor: { id: record.actorId, callerClass: record.actorClass },
+        cause: record.cause,
+        organizationId: record.org,
+        policy: fromBinary(IamPolicySchema, record.data),
+      }));
     },
 
     async findScopeTuple(resourceKind, resourceId) {

@@ -5,7 +5,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import {
-  ToolKind,
+  type ToolKind,
   resolveToolKind,
   normalizeToolResult,
   extractShellIntent,
@@ -44,22 +44,22 @@ const STATUS_INDICATOR: Record<ToolUse["state"], { symbol: string; color?: strin
 // so Cursor's PascalCase tools render with the same labels as native tools
 // here.
 const KIND_LABEL: Partial<Record<ToolKind, string>> = {
-  [ToolKind.FILE_READ]: "Read",
-  [ToolKind.FILE_WRITE]: "Write",
-  [ToolKind.FILE_EDIT]: "Edit",
-  [ToolKind.FILE_DELETE]: "Delete",
-  [ToolKind.SHELL]: "Shell",
-  [ToolKind.SEARCH]: "Search",
-  [ToolKind.LIST]: "List",
-  [ToolKind.FETCH]: "Fetch",
-  [ToolKind.WEB_SEARCH]: "Web Search",
-  [ToolKind.THINK]: "Thinking",
-  [ToolKind.TODO]: "Todos",
-  [ToolKind.SUBAGENT]: "Sub-agent",
+  file_read: "Read",
+  file_write: "Write",
+  file_edit: "Edit",
+  file_delete: "Delete",
+  shell: "Shell",
+  search: "Search",
+  list: "List",
+  fetch: "Fetch",
+  web_search: "Web Search",
+  think: "Thinking",
+  todo: "Todos",
+  subagent: "Sub-agent",
   // The CLI has no consent chip; the labeled row (with the fact as the
   // primary arg) plus the honest "proposed" result text is the whole story —
   // confirm/reject happen in the console's memory surfaces.
-  [ToolKind.MEMORY]: "Remember",
+  memory: "Remember",
 };
 
 // File-review row badges, mirroring the web console's per-row badge labels and

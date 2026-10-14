@@ -136,7 +136,8 @@ describe("ExecuteDeepAgent hermetic — the cost advisory", () => {
 
     // ── Assert: what the control plane holds never shows it ──────────────────
     const persisted = record.lastFullStatus!;
-    expect(persisted.messages.some((m) => m.content.includes(ADVISORY_LEAD_IN))).toBe(false);
+    const persistedRows = record.rowsOf(persisted);
+    expect(persistedRows.messages.some((m) => m.content.includes(ADVISORY_LEAD_IN))).toBe(false);
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
   });
 
@@ -230,8 +231,9 @@ describe("ExecuteDeepAgent hermetic — the cost advisory", () => {
 
     // ── Assert: what the control plane holds never shows it ──────────────────
     const persisted = record.lastFullStatus!;
-    expect(persisted.messages.some((m) => m.content.includes(ADVISORY_LEAD_IN))).toBe(false);
-    expect(persisted.subAgentRuns).toHaveLength(1);
-    expect(persisted.subAgentRuns[0].messages.some((m) => m.content.includes(ADVISORY_LEAD_IN))).toBe(false);
+    const persistedRows = record.rowsOf(persisted);
+    expect(persistedRows.messages.some((m) => m.content.includes(ADVISORY_LEAD_IN))).toBe(false);
+    expect(persistedRows.subAgentRuns).toHaveLength(1);
+    expect(persistedRows.subAgentRuns[0].messages.some((m) => m.content.includes(ADVISORY_LEAD_IN))).toBe(false);
   });
 });

@@ -11,7 +11,7 @@
 //     `<plugin>:<skill>`, its agents as the sub-agents `<plugin>:<agent>`,
 //     its MCP server's tools by their own names (a call records the server
 //     as `plugin_<plugin>_<server>`), and its hooks decide its tool calls,
-//     the row naming the plugin;
+//     a refusal's result carrying the hook's reason;
 //   - the same holds for an Assistant chat (no agent) that lists the plugin
 //     on its conversation: the built-in assistant gets the plugin's skills,
 //     agents, tools and hooks exactly as an agent does;
@@ -31,7 +31,7 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { readAnthropicRequest } from "@stigmer/test-support/llm-wire";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
@@ -43,8 +43,8 @@ import { ECHO_TOOL_NAME, type McpToolFixture } from "../harness/mcp-server";
 import { agentRefOf, makeAgent } from "../support/agents";
 import { uniqueName } from "../support/naming";
 import { oneServerPlugin, pluginRefOf, pushPlugin, toolServerSegment } from "../support/plugins";
+import { toolUseByCallId, turnOfRun } from "../support/turn";
 import {
-  allToolCalls,
   awaitTerminal,
   makeAgentExecution,
   requireLlmProxy,
@@ -138,9 +138,9 @@ function scriptTurn(): void {
 }
 
 // What one finished turn shows of the plugin: the model's first request
-// names its skill, its agent and its tool, the hook refused the delete
-// naming the plugin, and the echo ran on the plugin's server.
-function expectWholePlugin(plugin: Plugin, final: Run): void {
+// names its skill, its agent and its tool, the hook refused the delete with
+// its own reason, and the echo ran on the plugin's server.
+async function expectWholePlugin(plugin: Plugin, final: Run): Promise<void> {
   const id = final.metadata?.id ?? "";
   const name = plugin.metadata!.name;
   expect(final.status?.phase, `run ${id}: ${final.status?.error || "(no error)"}`).toBe(RunPhase.RUN_COMPLETED);
@@ -155,18 +155,15 @@ function expectWholePlugin(plugin: Plugin, final: Run): void {
     ECHO_TOOL_NAME,
   );
 
-  const calls = allToolCalls(final);
-  const refused = calls.find((call) => call.id === "call_plugin_rm");
-  expect(refused, `run ${id}: the refused delete has a row`).toBeDefined();
-  expect(ToolCallStatus[refused!.status]).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_FAILED]);
-  expect(refused!.error).toContain("recursive deletes are not allowed");
-  expect(refused!.approvalPolicyHook, "the row names the plugin whose hook decided").toBe(plugin.metadata!.slug);
+  const turn = await turnOfRun(clients, final);
+  const refused = toolUseByCallId(turn, "call_plugin_rm");
+  expect(refused, `run ${id}: the refused delete is in the log`).toBeDefined();
+  expect(refused!.state).toBe("failed");
+  expect(refused!.result?.text, "the result carries the plugin hook's reason").toContain("recursive deletes are not allowed");
 
-  const echo = calls.find((call) => call.id === "call_plugin_echo");
-  expect(ToolCallStatus[echo?.status ?? ToolCallStatus.TOOL_CALL_STATUS_UNSPECIFIED]).toBe(
-    ToolCallStatus[ToolCallStatus.TOOL_CALL_COMPLETED],
-  );
-  expect(echo?.mcpServerSlug, "the call names the plugin's server").toBe(toolServerSegment(name));
+  const echo = toolUseByCallId(turn, "call_plugin_echo");
+  expect(echo?.state).toBe("completed");
+  expect(echo?.mcpServerName, "the call names the plugin's server").toBe(toolServerSegment(name));
 }
 
 describe("Run — a turn runs its plugins whole", () => {
@@ -185,7 +182,7 @@ describe("Run — a turn runs its plugins whole", () => {
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
 
-    expectWholePlugin(plugin, await awaitTerminal(clients, executionId));
+    await expectWholePlugin(plugin, await awaitTerminal(clients, executionId));
   });
 
   it("an Assistant chat that lists a plugin on its conversation gets the same parts as an agent does", async () => {
@@ -203,7 +200,7 @@ describe("Run — a turn runs its plugins whole", () => {
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
 
-    expectWholePlugin(plugin, await awaitTerminal(clients, executionId));
+    await expectWholePlugin(plugin, await awaitTerminal(clients, executionId));
   });
 });
 

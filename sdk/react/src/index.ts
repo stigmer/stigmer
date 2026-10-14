@@ -288,9 +288,11 @@ export {
   fileReviewRowState,
   fileReviewRowChange,
   fileChangeKindOf,
-  foldFileReviewEventStream,
   displayFileChangeSets,
+  fileChangeSetOf,
   toDisplayFileChange,
+  type DisplayFileChange,
+  type DisplayFileChangeType,
   RunPhaseBadge,
   InteractionModeBadge,
   SetupProgress,
@@ -348,7 +350,6 @@ export {
   FileChangeProgressBar,
   ApprovalContext,
   useApproval,
-  approvalPolicySourceOf,
   FileReviewContext,
   useFileReviewRowState,
   useFileReviewRowChange,
@@ -1165,6 +1166,7 @@ export {
   useRoleSelector,
   useResourceAccess,
   usePrincipalsCount,
+  useAccessHistory,
   useWhoAmI,
   useCreateIamPolicy,
   useDeleteIamPolicy,
@@ -1183,6 +1185,8 @@ export {
   PermissionGate,
 } from "./iam-policy/index.js";
 export type {
+  UseAccessHistoryOptions,
+  UseAccessHistoryReturn,
   UseGrantableRolesReturn,
   RoleOption,
   UseRoleSelectorReturn,
@@ -1289,6 +1293,7 @@ export {
   useSubscription,
   useEntitlements,
   usePeriodEstimate,
+  useAgentHours,
   useProviderKeys,
   useProviderKeyActions,
   ProviderKeysSection,
@@ -1311,6 +1316,10 @@ export {
   providerKeyRequired,
   PROVIDER_KEY_REQUIRED,
   DEFAULT_PROVIDER_KEYS_HREF,
+  AgentHoursNotice,
+  agentHoursUsedUp,
+  AGENT_HOURS_USED_UP,
+  AgentHoursStanding,
   BillingSection,
   PaymentMethodCard,
   formatUsd,
@@ -1325,6 +1334,8 @@ export type {
   UseEntitlementsReturn,
   UsePeriodEstimateOptions,
   UsePeriodEstimateReturn,
+  UseAgentHoursOptions,
+  UseAgentHoursReturn,
   ProviderKeyProvider,
   UseProviderKeysOptions,
   UseProviderKeysReturn,
@@ -1342,6 +1353,9 @@ export type {
   ChangePlanDialogProps,
   UpgradeNoticeProps,
   ProviderKeyNoticeProps,
+  AgentHoursNoticeProps,
+  AgentHoursUsedUp,
+  AgentHoursStandingProps,
   ProviderKeyRequired,
   UseCreateBillingPortalSessionReturn,
   BillingSectionProps,
@@ -1425,6 +1439,7 @@ export { IdentityProvidersSection } from "./settings/index.js";
 export { PlatformClientsSection } from "./settings/index.js";
 export { ServiceAccountsSection } from "./settings/index.js";
 export { TeamsSection } from "./settings/index.js";
+export { AccessHistorySection } from "./settings/index.js";
 export { OAuthAppsSection } from "./settings/index.js";
 export { ChannelAppsSection } from "./settings/index.js";
 export { UsageSection } from "./settings/index.js";

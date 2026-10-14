@@ -1,0 +1,29 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Starting the suite.",
+      "timestamp": "2026-01-01T00:00:02.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-platformstop-0001",
+          "name": "read",
+          "args": {
+            "path": "package.json"
+          },
+          "result": "{\"name\":\"demo\"}",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:03.000Z",
+          "completedAt": "2026-01-01T00:00:04.000Z",
+          "argsPreview": "{\"path\":\"package.json\"}",
+          "toolKind": "TOOL_KIND_FILE_READ"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_SYSTEM",
+      "content": "Execution stopped by the platform.",
+      "timestamp": "2026-01-01T00:00:04.000Z"
+    }
+  ]
+}

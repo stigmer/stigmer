@@ -77,6 +77,19 @@ What happens at the allowance depends on the plan:
   by the same share as its fee. The estimated invoice in **Settings → Billing**
   shows the line as the hours build up through the period.
 
+### Where to see your hours
+
+**Settings → Billing** shows where your Organization stands this month: the
+hours used against the plan's allowance, when the allowance resets, and what
+happens past it. `stigmer usage hours` prints the same from the CLI. A child
+organization's hours show on its parent's page, with the parent's allowance.
+When Free's hours run out, a refused message shows a notice naming the reset
+date, with a link to the plans.
+
+The [usage reports](#see-your-usage) show each run's working time, which can be
+more than your plan's agent hours: a turn that runs on your own computer, and an
+eval's automatic grading, are working time but never agent hours.
+
 ## Model calls run on your own keys
 
 Every model call a native Agent run makes runs on your Organization's own
@@ -101,13 +114,20 @@ Organization. Each report gives the input, output and cached tokens, the number
 of model calls, and a breakdown by model and harness. It also says who served
 the tokens; today that is always your Organization's own provider keys.
 
+Each report also shows **working time**: how long your Agents worked, thinking,
+calling tools and writing files, counted from the Session's own record of when
+it was working. Waiting for a person is never working time. A stretch of work is
+credited to the run that started it, so a report counts a run's tokens and its
+time together. Working time is a clock, never priced; what a plan includes and
+bills is its [agent hours](#agent-hours).
+
 Where to see it:
 
 - **Organization**: the **Usage** page in your Organization's settings shows the
-  Organization's tokens over a date range, by day, by model, by harness and for
-  the Agents that used the most.
-- **Session**: a Session's **Usage** tab shows each run's tokens and the
-  Session's total.
+  Organization's tokens and working time over a date range, by day, by model, by
+  harness and for the Agents that used the most.
+- **Session**: a Session's **Usage** tab shows each run's tokens and working
+  time, and the Session's total.
 - **Dashboard**: the **Tokens** card shows the Organization's recent token usage
   at a glance.
 - **CLI**: `stigmer usage session <id>`, `stigmer usage agent <id>` and
@@ -218,4 +238,6 @@ Stigmer Cloud at [`app.stigmer.ai`](https://app.stigmer.ai).
 
 Usage reports work the same way on a self-hosted server, each run counted from
 its runner's own report and marked estimated (see
-[See your usage](#see-your-usage)).
+[See your usage](#see-your-usage)). They show each run's working time too. A
+self-hosted server runs its Agents on your own computers, so it counts no agent
+hours and has no allowance to pause at.

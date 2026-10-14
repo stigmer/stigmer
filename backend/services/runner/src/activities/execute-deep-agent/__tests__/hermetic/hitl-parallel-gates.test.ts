@@ -23,9 +23,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  ApprovalAction,
   RunPhase,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -50,6 +48,7 @@ import {
 } from "../../__test-utils__/hermetic-deep-agent.js";
 import { CLOSING_TURN } from "../../__test-utils__/hitl-script.js";
 import type { ScriptedToolCall } from "../../__test-utils__/scripted-model.js";
+import { ApprovalAction, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const USER_MESSAGE = "Run both commands for me.";
 const DECIDED_AT = "2026-01-01T00:00:30.000Z";
@@ -118,7 +117,7 @@ describe("ExecuteDeepAgent hermetic — two gated calls in one round (sqlite)", 
       expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
       expect(record.persistedPhases.filter((p) => p === RunPhase.RUN_WAITING_FOR_APPROVAL)).toHaveLength(1);
 
-      const rows = record.lastFullStatus!.messages.flatMap((m) => m.toolCalls);
+      const rows = record.lastFullRows!.messages.flatMap((m) => m.toolCalls);
       expect(rows.filter((tc) => tc.id === CALL_A.id), "one row per call, never duplicated").toHaveLength(1);
       expect(rows.filter((tc) => tc.id === CALL_B.id)).toHaveLength(1);
       expect(rows.find((tc) => tc.id === CALL_A.id)?.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);

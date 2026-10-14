@@ -82,7 +82,7 @@ describe("migrateAgentRunRow", () => {
     const run = fromBinary(RunSchema, migrated!);
     expect(run.spec?.$unknown).toBeUndefined();
     expect(run.status?.$unknown).toBeUndefined();
-    expect(run.status?.todos["t1"]?.content).toBe("read the ticket");
+    expect(run.status?.startedAt).toBe("2026-09-23T10:00:00Z");
   });
 
   it.each([

@@ -16,7 +16,6 @@ import { render, screen, cleanup } from "@testing-library/react";
 import { renderHook } from "@testing-library/react";
 import type { JsonObject } from "@bufbuild/protobuf";
 import type { ToolUse } from "@stigmer/sdk";
-import { ToolKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   extractIntent,
   extractShellIntent,
@@ -105,7 +104,7 @@ describe("extractShellIntentFromPreview", () => {
         "custom_runner",
         JSON.stringify({ command: "ls", [SHELL_INTENT_ARG_FIELD]: "List files" }),
         "",
-        ToolKind.SHELL,
+        "shell",
       ),
     ).toBe("List files");
   });
@@ -145,7 +144,7 @@ describe("useToolPresentation title precedence", () => {
   });
 
   it("a registered presenter label override outranks the intent", () => {
-    const dispose = registerToolPresenter(ToolKind.SHELL, {
+    const dispose = registerToolPresenter("shell", {
       label: () => "Run command",
     });
     try {

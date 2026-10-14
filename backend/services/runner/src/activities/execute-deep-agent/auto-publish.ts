@@ -7,7 +7,7 @@
  * (e.g., shell commands, race conditions in fire-and-forget publish).
  */
 
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import type { InlinePublisher } from "./inline-publisher.js";
 
 const FILE_MODIFYING_TOOLS = new Set([
@@ -21,19 +21,19 @@ const FILE_MODIFYING_TOOLS = new Set([
 ]);
 
 /**
- * Scan all tool calls in the execution status for file-modifying operations
- * and publish any files that were not already published inline.
+ * Scan the turn's tool calls for file-modifying operations and publish any
+ * files that were not already published inline.
  *
  * Returns the count of additionally published artifacts.
  */
 export async function autoPublishWrittenFiles(
-  status: RunStatus,
+  rows: Pick<TurnRows, "messages">,
   inlinePublisher: InlinePublisher,
 ): Promise<number> {
   const alreadyPublished = inlinePublisher.publishedPaths;
   const pathsToPublish: string[] = [];
 
-  for (const message of status.messages) {
+  for (const message of rows.messages) {
     for (const tc of message.toolCalls) {
       if (!FILE_MODIFYING_TOOLS.has(tc.name)) continue;
 

@@ -5,7 +5,6 @@
 // both.
 import { describe, it, expect } from "vitest";
 import {
-  ApprovalPolicySource,
   describeApprovalPolicySource,
   hookApproveAllLabel,
   isInformativePolicySource,
@@ -13,40 +12,38 @@ import {
 
 describe("describeApprovalPolicySource", () => {
   it("maps each known source to a stable human phrase", () => {
-    expect(describeApprovalPolicySource(ApprovalPolicySource.BUILTIN_CATEGORY)).toBe(
+    expect(describeApprovalPolicySource("builtin_category")).toBe(
       "required by built-in tool policy",
     );
     expect(
-      describeApprovalPolicySource(ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN),
+      describeApprovalPolicySource("annotation_destructive_tighten"),
     ).toBe("required: marked destructive by the server");
-    expect(describeApprovalPolicySource(ApprovalPolicySource.AUTO_APPROVE_ALL)).toBe(
+    expect(describeApprovalPolicySource("auto_approve_all")).toBe(
       "auto-approved by a run-wide bypass",
     );
-    expect(describeApprovalPolicySource(ApprovalPolicySource.APPROVAL_LEASE)).toBe(
+    expect(describeApprovalPolicySource("approval_lease")).toBe(
       "auto-approved by a run lease",
     );
-    expect(describeApprovalPolicySource(ApprovalPolicySource.UNATTENDED_SKIP)).toBe(
+    expect(describeApprovalPolicySource("unattended_skip")).toBe(
       "skipped: approval not available on this surface",
     );
   });
 
   it("names the hook that decided, or the agent's own hooks", () => {
-    expect(describeApprovalPolicySource(ApprovalPolicySource.HOOK, "safety")).toBe(
+    expect(describeApprovalPolicySource("hook", "safety")).toBe(
       "decided by the safety plugin's hook",
     );
-    expect(describeApprovalPolicySource(ApprovalPolicySource.HOOK)).toBe("decided by the agent's hook");
-    expect(isInformativePolicySource(ApprovalPolicySource.HOOK)).toBe(true);
+    expect(describeApprovalPolicySource("hook")).toBe("decided by the agent's hook");
+    expect(isInformativePolicySource("hook")).toBe(true);
   });
 
-  it("returns null for UNSPECIFIED (legacy, or a call that needed no approval)", () => {
-    expect(describeApprovalPolicySource(ApprovalPolicySource.UNSPECIFIED)).toBeNull();
+  it("returns null for an empty source (a call that needed no approval)", () => {
+    expect(describeApprovalPolicySource("")).toBeNull();
   });
 
-  it("returns null for a reserved or unknown wire value", () => {
-    // Values 1 to 3 are reserved on the wire; an old stored run decodes
-    // them as plain numbers, which must render as no provenance.
-    for (const reserved of [1, 2, 3, 99]) {
-      expect(describeApprovalPolicySource(reserved as ApprovalPolicySource)).toBeNull();
+  it("returns null for an unknown word", () => {
+    for (const unknown of ["user_override", "BUILTIN_CATEGORY", "later_rule"]) {
+      expect(describeApprovalPolicySource(unknown)).toBeNull();
     }
   });
 });
@@ -54,27 +51,27 @@ describe("describeApprovalPolicySource", () => {
 describe("isInformativePolicySource", () => {
   it("suppresses the everyday default gating reason", () => {
     // These add nothing beyond "this tool needs approval" — noise at the gate.
-    expect(isInformativePolicySource(ApprovalPolicySource.BUILTIN_CATEGORY)).toBe(false);
-    expect(isInformativePolicySource(ApprovalPolicySource.UNSPECIFIED)).toBe(false);
+    expect(isInformativePolicySource("builtin_category")).toBe(false);
+    expect(isInformativePolicySource("")).toBe(false);
   });
 
   it("surfaces reasons that change the user's understanding of the gate", () => {
     expect(
-      isInformativePolicySource(ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN),
+      isInformativePolicySource("annotation_destructive_tighten"),
     ).toBe(true);
-    expect(isInformativePolicySource(ApprovalPolicySource.AUTO_APPROVE_ALL)).toBe(true);
-    expect(isInformativePolicySource(ApprovalPolicySource.APPROVAL_LEASE)).toBe(true);
-    expect(isInformativePolicySource(ApprovalPolicySource.UNATTENDED_SKIP)).toBe(true);
+    expect(isInformativePolicySource("auto_approve_all")).toBe(true);
+    expect(isInformativePolicySource("approval_lease")).toBe(true);
+    expect(isInformativePolicySource("unattended_skip")).toBe(true);
   });
 
   it("only surfaces a reason that also has a phrase to show", () => {
     // The card renders `isInformative(source) && describe(source) != null`; the
     // two must never disagree for a surfaced source.
     for (const source of [
-      ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN,
-      ApprovalPolicySource.AUTO_APPROVE_ALL,
-      ApprovalPolicySource.APPROVAL_LEASE,
-      ApprovalPolicySource.UNATTENDED_SKIP,
+      "annotation_destructive_tighten",
+      "auto_approve_all",
+      "approval_lease",
+      "unattended_skip",
     ]) {
       expect(describeApprovalPolicySource(source)).not.toBeNull();
     }

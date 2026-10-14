@@ -28,8 +28,8 @@ import { ECHO_TOOL_NAME } from "../harness/mcp-server";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent } from "../support/agents";
+import { toolUsesOf, turnOfRun } from "../support/turn";
 import {
-  allToolCalls,
   awaitTerminal,
   makeAgentExecution,
   pushFixturePlugin,
@@ -129,8 +129,8 @@ describe("Run run_config.max_tool_rounds", () => {
       `execution ${executionId}: exactly ${MAX_TOOL_ROUNDS} rounds reached the tool`,
     ).toHaveLength(MAX_TOOL_ROUNDS);
     expect(
-      allToolCalls(final),
-      `execution ${executionId}: the transcript holds exactly ${MAX_TOOL_ROUNDS} tool rows`,
+      toolUsesOf(await turnOfRun(clients, final)),
+      `execution ${executionId}: the log holds exactly ${MAX_TOOL_ROUNDS} tool uses`,
     ).toHaveLength(MAX_TOOL_ROUNDS);
     expect(mock.consumed(), `execution ${executionId}: the model was asked once per round, never again`).toBe(
       MAX_TOOL_ROUNDS,

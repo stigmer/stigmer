@@ -108,186 +108,12 @@ message UpdateStatusResponse {
   string signal_reason = 2;
 }
 
-// Input for submitting an approval decision.
-//
-// All required fields must be provided. The handler validates:
-// 1. The run exists and is in RUN_WAITING_FOR_APPROVAL phase
-// 2. The tool_call_id matches status.pending_approval.tool_call_id
-// 3. The action is a valid non-UNSPECIFIED enum value
-//
-// Example:
-//   {
-//     "run_id": "run_abc123xyz456",
-//     "tool_call_id": "call_def789",
-//     "action": "APPROVAL_ACTION_APPROVE",
-//     "comment": "Verified safe to execute"
-//   }
-message SubmitApprovalInput {
-  // ID of the run.
-  // Format: "run_abc123xyz456"
-  string run_id = 1 [(buf.validate.field).string.min_len = 1];
-
-  // ID of the tool call to approve/skip/reject.
-  // Must match status.pending_approval.tool_call_id exactly.
-  // Format: Tool call ID from agent runtime (e.g., "call_abc123")
-  string tool_call_id = 2 [(buf.validate.field).string.min_len = 1];
-
-  // User's decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
-  // APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
-  ApprovalAction action = 3 [(buf.validate.field).enum = {
-    defined_only: true
-    not_in: [0]
-  }];
-
-  // Optional reason/comment for the decision.
-  // Stored in audit trail for compliance and debugging.
-  // Examples:
-  //   - "Verified the target repository is safe to delete" (on APPROVE)
-  //   - "Will handle this operation manually" (on SKIP)
-  //   - "Unexpected target - this looks like the wrong repository" (on REJECT)
-  string comment = 4;
-}
-
-// ApprovalDecisionList wraps a batch of approval decisions for Temporal
-// activity transport.
-//
-// Required for polyglot Temporal serialization: a bare repeated field (Go
-// slice / Java List) is NOT a proto.Message, so the SDK falls back to
-// json/plain encoding which the Python worker cannot decode into typed
-// protobuf objects.  Wrapping in a message ensures the SDK uses the
-// json/protobuf payload converter on both sides.
-message ApprovalDecisionList {
-  repeated SubmitApprovalInput decisions = 1;
-}
-
-// SubmitFileDecisionInput is a user's keep/discard decision on a file change
-// set or a single file within it.
-//
-// The decision is recorded in the append-only file_review event stream as a
-// FILE_DECIDED event; FileChangeSet.decisions is the derived projection. The
-// runner reconciles approved bytes; this RPC only records the
-// decision and enforces that expected_digest still matches what the user saw.
-//
-// Example:
-//   {
-//     "run_id": "run_abc123xyz456",
-//     "change_set_id": "fcs_def789",
-//     "scope": "FILE_DECISION_SCOPE_FILE",
-//     "file_change_id": "fc_001",
-//     "action": "FILE_DECISION_ACTION_APPROVE",
-//     "expected_digest": "sha256:…",
-//     "reason": "Looks correct"
-//   }
-message SubmitFileDecisionInput {
-  // ID of the run.
-  string run_id = 1 [(buf.validate.field).string.min_len = 1];
-
-  // ID of the change set this decision targets. Must match
-  // status.file_change_sets[].id.
-  string change_set_id = 2 [(buf.validate.field).string.min_len = 1];
-
-  // Whether the decision applies to the whole change set or one file.
-  // FILE_DECISION_SCOPE_UNSPECIFIED (0) is rejected by validation.
-  FileDecisionScope scope = 3 [(buf.validate.field).enum = {
-    defined_only: true
-    not_in: [0]
-  }];
-
-  // ID of the file change to decide; required when scope is FILE, ignored for
-  // CHANGE_SET (the cross-field rule is enforced in the handler). Must match a
-  // CapturedFileChange.id within the change set.
-  string file_change_id = 4;
-
-  // Keep (APPROVE) or discard (REJECT). FILE_DECISION_ACTION_UNSPECIFIED (0) is
-  // rejected by validation.
-  FileDecisionAction action = 5 [(buf.validate.field).enum = {
-    defined_only: true
-    not_in: [0]
-  }];
-
-  // Digest of the content the user actually saw — the enforcement gate. The
-  // handler rejects the decision if the target's current digest differs, so a
-  // change captured after the user reviewed cannot be silently decided.
-  string expected_digest = 6 [(buf.validate.field).string.min_len = 1];
-
-  // Optional reason/comment for the decision (audit trail).
-  string reason = 7;
-
-  // Set true on an APPROVE to consciously KEEP a change whose diff could not be
-  // fully reviewed. Honored only for a binary file (FileContent.is_binary) at
-  // FILE scope: a binary has no text diff, but its exact bytes are captured and
-  // reconcilable, so a user may acknowledge that and keep it. It NEVER relaxes
-  // the expected_digest gate, and is ignored for CHANGE_SET scope and for any
-  // other incompleteness (secret-withheld / size-elided / uncapturable), which
-  // have no keepable bytes and stay discard-only (fail-closed). Ignored on
-  // REJECT.
-  bool acknowledge_unreviewable = 8;
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Lifecycle Control Input Messages
 //
-// These messages are used by lifecycle control RPCs (cancel, terminate, recover,
+// These messages are used by lifecycle control RPCs (terminate, recover,
 // pause, resume) to manage run state.
 // ─────────────────────────────────────────────────────────────────────────────
-
-// CancelRunInput requests graceful cancellation of a run.
-//
-// Cancellation sends a signal to the run, allowing it to clean up
-// gracefully. The agent can handle the cancellation signal (e.g., save checkpoint,
-// report status) before the run transitions to CANCELLED phase.
-//
-// ## Behavior
-//
-// - Sends cancellation signal to Temporal via CancelWorkflow API
-// - Agent activity receives cancellation and saves checkpoint
-// - Run transitions to RUN_CANCELLED phase after cleanup
-// - LangGraph checkpoint is preserved for potential future recovery
-//
-// ## Preconditions
-//
-// - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
-// - User must have can_edit permission on the run
-//
-// ## Idempotency
-//
-// If the run is already cancelled (phase == RUN_CANCELLED),
-// the call succeeds as a no-op and returns the current run state.
-//
-// ## Use Cases
-//
-// - User realizes they provided incorrect input to the agent
-// - Business decision to stop a long-running agent task
-// - Graceful shutdown before maintenance window
-// - Cancel agent that is taking too long
-//
-// ## Example
-//
-// {
-//   "id": "run_abc123xyz456",
-//   "reason": "User requested cancellation - task no longer needed"
-// }
-message CancelRunInput {
-  // Run ID to cancel.
-  //
-  // Format: "run_{ulid}" (auto-generated unique identifier)
-  // Example: "run_abc123xyz456"
-  //
-  // Validation: Required, cannot be empty
-  string id = 1 [(buf.validate.field).string.min_len = 1];
-
-  // Human-readable reason for cancellation.
-  //
-  // Stored in the audit trail and passed to Temporal for operational debugging.
-  // Optional but strongly recommended for compliance and troubleshooting.
-  //
-  // Examples:
-  // - "User requested cancellation"
-  // - "Incorrect input provided to agent"
-  // - "Superseded by newer run"
-  // - "Pre-maintenance shutdown"
-  string reason = 2;
-}
 
 // TerminateRunInput requests immediate termination of a run.
 //
@@ -315,7 +141,7 @@ message CancelRunInput {
 //
 // ## Terminated vs Cancelled
 //
-// | Aspect | Cancel | Terminate |
+// | Aspect | Interrupt (session) | Terminate |
 // |--------|--------|-----------|
 // | Signal | Agent receives cancellation signal | No signal sent |
 // | Cleanup | Agent can save checkpoint | No cleanup possible |
@@ -411,7 +237,7 @@ message RecoverRunInput {
 
 // PauseRunInput requests temporarily pausing a run.
 //
-// Pauses the agent at its current checkpoint. Unlike cancel, the run
+// Pauses the agent at its current checkpoint. Unlike an interrupt, the run
 // is NOT terminal and can be resumed later from where it left off.
 //
 // ## Behavior
@@ -1092,6 +918,13 @@ message RunUsageSummary {
 
   // Total tokens for this run (cache-inclusive, as the aggregate's).
   int64 total_tokens = 12;
+
+  // Seconds an agent was working (thinking, calling tools, writing files),
+  // counted from the session's status events; waiting for a person is never
+  // working. A stretch of work is credited to the run whose start began it.
+  // This is the clock, never priced; a Stigmer Cloud plan's agent hours are
+  // its subscription's getAgentHours.
+  int64 working_seconds = 13;
 }
 
 // Lightweight view of a session's usage within an agent report.
@@ -1117,6 +950,13 @@ message SessionUsageSummary {
 
   // ISO 8601 timestamp of the most recent run in this session.
   string last_run_at = 6;
+
+  // Seconds an agent was working (thinking, calling tools, writing files),
+  // counted from the session's status events; waiting for a person is never
+  // working. A stretch of work is credited to the run whose start began it.
+  // This is the clock, never priced; a Stigmer Cloud plan's agent hours are
+  // its subscription's getAgentHours.
+  int64 working_seconds = 7;
 }
 
 // Lightweight view of an agent's usage within an org report.
@@ -1139,6 +979,13 @@ message AgentUsageSummary {
   // reserved so neither is ever reused for a different field.
   reserved 5;
   reserved "billable_cost_micros";
+
+  // Seconds an agent was working (thinking, calling tools, writing files),
+  // counted from the session's status events; waiting for a person is never
+  // working. A stretch of work is credited to the run whose start began it.
+  // This is the clock, never priced; a Stigmer Cloud plan's agent hours are
+  // its subscription's getAgentHours.
+  int64 working_seconds = 6;
 }
 
 // Usage for a single UTC day within an org report.

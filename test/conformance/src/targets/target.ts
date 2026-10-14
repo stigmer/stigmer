@@ -277,6 +277,19 @@ export interface CapabilityFlags {
   // the edition sentence, never INTERNAL; where false, the suite PINS that
   // refusal on all four lanes.
   authorizationQueries: boolean;
+  // How listAccessHistory answers the organization's owner here.
+  //
+  // `unimplemented` for the local OSS targets BY DESIGN: open source keeps
+  // no access history, and the controller answers UNIMPLEMENTED with the
+  // edition sentence after authorizing. `plan-upgrade-required` for cloud:
+  // the history is recorded for every organization, but reading it is the
+  // Enterprise plan's, which is quoted and never seeded, so the suite's
+  // organizations meet the plan gate (FAILED_PRECONDITION, reason
+  // PLAN_UPGRADE_REQUIRED, feature access_history). No target here serves
+  // the read itself; Enterprise's composed suite
+  // (ee/server/src/editions/__tests__/enterprise-access-history.postgres.test.ts)
+  // and the handler suite prove it.
+  accessHistory: "unimplemented" | "plan-upgrade-required";
   // The billing ENGINE is served here: the 8 RPCs of BillingCommandController
   // and BillingQueryController (the organization's billing account and its
   // Stripe customer, the usage meter the run reports read, the model catalog's

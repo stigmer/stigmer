@@ -65,9 +65,9 @@
 import { CancelledFailure } from "@temporalio/activity";
 import { clone } from "@bufbuild/protobuf";
 import { RunStatusSchema, type Run, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { RunSpec } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import type { RunConfig } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
-import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
@@ -75,7 +75,8 @@ import type { Config } from "../config.js";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import { scopedRunnerCredential } from "../client/token-claims.js";
 import type { NormalizedActivityInput } from "../shared/activity-input.js";
-import { copyAnswersOntoRows, readApprovalAnswers, NO_APPROVAL_ANSWERS, type ApprovalAsk } from "./approval-answers.js";
+import { APPROVAL_ANSWER_EVENT_TYPES, approvalAnswersOf, copyAnswersOntoRows, type ApprovalAsk } from "./approval-answers.js";
+import { RESUME_SEED_EVENT_TYPES, resumeSeedOf } from "./transcript/resume-seed.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import type { TimingRecorder } from "../shared/cold-start-timing.js";
 import { resolveBlueprint, type ResolvedBlueprint } from "../shared/blueprint-resolver.js";
@@ -153,6 +154,8 @@ import type {
   TurnSubagent,
   TurnWorkspace,
 } from "./types.js";
+import type { ApprovalAction } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import type { RecalledMemoriesReport, TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 // ---------------------------------------------------------------------------
 // What the phases take
@@ -177,19 +180,24 @@ export interface ResolutionDeps {
    */
   readonly config: Config;
   /**
-   * The one execution status this turn folds into. Phases that carry state
-   * across invocations write the runtime's OWN fields here (the file-review
-   * reconcile's events, the memory-selection report, the seeded singletons);
-   * nothing else does.
+   * The one execution status this turn writes. Phases write the runtime's
+   * OWN fields here (the loaded versions, the status outputs a reinvocation
+   * carries over); nothing else does.
    */
   readonly status: RunStatus;
   /**
-   * The one transcript builder over `status`, the caller's, born with the
-   * status. Two phases hand it on: the seed appends a reinvocation's prior
-   * rows through it (so they are indexed as they land), and the workspace
-   * phase gives it to the write-back coordinator as the place a write-back
-   * record is registered. One phase folds a single event of its own: the
-   * MCP phase's system note when the platform's tools are off for the turn
+   * The turn's rows, which the builder folds into and the session's log is
+   * written from. Phases write only the runtime's own fields here (the
+   * memory-selection report); rows arrive through the builder.
+   */
+  readonly rows: TurnRows;
+  /**
+   * The one transcript builder over `rows`, the caller's, born with them.
+   * Two phases hand it on: the seed appends a reinvocation's asks through
+   * it (so they are indexed as they land), and the workspace phase gives it
+   * to the write-back coordinator as the place a write-back record is
+   * registered. One phase folds a single event of its own: the MCP phase's
+   * system note when the platform's tools are off for the turn
    * (`resolveMcpServersAndPolicies`). No engine has run yet.
    */
   readonly transcript: TranscriptBuilder;
@@ -232,9 +240,9 @@ export interface ResolutionDeps {
  * `TurnInput`: `isReinvocation` is the adapter's own derivation from
  * `threadId` (the contract carries no flag by design, `types.ts` header) and
  * the runtime reads it only inside {@link resolveTurnContext}; the decisions
- * and the asks ARE on the input. The seeded rows of every kind are on
- * `sink.status` ({@link seedFromPersistedStatus}), each carrying the log's
- * answer to its call; an adapter wraps them by reference.
+ * and the asks ARE on the input. The seeded asks are on `sink.rows`
+ * (`transcript/resume-seed.ts`), each carrying the log's answer to its call; an
+ * adapter wraps them by reference.
  */
 export interface TurnReinvocation {
   /** The engine already holds state for this execution (derived per {@link isReinvocation}). */
@@ -253,6 +261,10 @@ export interface TurnReinvocation {
   readonly approvalAsks: ReadonlyMap<string, ApprovalAsk>;
   /** The run's grants, by the tool use id each was given on: the leases phase 4b arms. */
   readonly grants: ReadonlyMap<string, LeaseGrant>;
+  /** The run's newest root `agent.message` an earlier invocation wrote: the run's answer when this one writes none. */
+  readonly answerText: string | undefined;
+  /** The memory selection an earlier invocation recorded (`stigmer.memory.recalled`): replayed, never re-selected. */
+  readonly recalledMemoriesReport: RecalledMemoriesReport | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -280,6 +292,10 @@ export interface TurnReinvocation {
  *  - `eval-scaffold-failed`: a plugin-eval try's scaffold exited non-zero or
  *    ran past its limit. TERMINATED with the try stop's sentence, returned:
  *    the eval scores the try 0, and a retry would run the same script.
+ *  - `run-finished`: the run finished while this invocation waited for its
+ *    workspace ({@link runFinishedWhileWaiting}). Returned with the phase
+ *    the server holds, and nothing written: the server takes no more status
+ *    and no more events of a finished run.
  *
  * A REJECTed tool is not a settlement: the run continues without it
  * (`approval-decisions.ts`).
@@ -306,6 +322,11 @@ export type TurnSettlement =
       /** A plugin-eval try's scaffold failed; `message` is the try stop's sentence (`@stigmer/eval-runtime` `formatTryStop`). */
       readonly kind: "eval-scaffold-failed";
       readonly message: string;
+    }
+  | {
+      /** The run finished while the turn waited for its workspace; `status` is the run's as the server holds it. */
+      readonly kind: "run-finished";
+      readonly status: RunStatus;
     };
 
 /** The values phase's answer: the run's values, or the settlement a refused fetch produces. */
@@ -313,9 +334,13 @@ export type ValuesOutcome =
   | { readonly kind: "ready"; readonly values: RunValues }
   | { readonly kind: "settled"; readonly settlement: Extract<TurnSettlement, { kind: "values-refused" }> };
 
-/** The lock phase's answer: the release handle (absent when there is no primary tree), or the one settlement a lock can produce. */
+/**
+ * The lock phase's answer: the release handle (absent when there is no
+ * primary tree) and whether another turn held the tree first, or the one
+ * settlement a lock can produce.
+ */
 export type WorkspaceLockOutcome =
-  | { readonly kind: "acquired"; readonly release: ReleaseWorkspaceLock | undefined }
+  | { readonly kind: "acquired"; readonly release: ReleaseWorkspaceLock | undefined; readonly waited: boolean }
   | { readonly kind: "settled"; readonly settlement: Extract<TurnSettlement, { kind: "workspace-lock-timeout" }> };
 
 // ---------------------------------------------------------------------------
@@ -413,72 +438,27 @@ export function runEventsReader(
 }
 
 /**
- * Seed an in-progress status from the persisted execution on a resume (HITL
- * approval, pause/resume, transient recovery) so the upcoming turn APPENDS
- * onto prior history instead of replacing it.
- *
- * Why the transcript must be seeded: a resumed engine re-issues the
- * previously gated tool calls with brand-new call ids. Without seeding, the
- * harness's transcript builder would rebuild the transcript from empty and emit a
- * status that drops the already-committed tool-call ids. The backend's
- * append-only-at-identity guard rejects any non-terminal update that drops a
- * committed tool-call id, so the resumed progress would never persist: the
- * run stalls in WAITING_FOR_APPROVAL with no pending approvals and the
- * workflow watchdog fails it. Seeding makes the resume status a strict
- * superset; the re-runs are then reconciled in place onto these seeded calls
- * by canonical identity inside the harness's translator (the Cursor translator's
- * seeded-row match; the native builder's by-id flip).
- *
- * Why the OTHER collections must be seeded too — the server's merge rule
- * (`stigmer-server/src/domain/run/update-status.ts`): every list
- * and singleton the runner owns is PRESENCE-GUARDED and then REPLACED
- * wholesale — `subAgentExecutions`, `todos`, `artifacts`,
- * `workspaceWriteBacks` when non-empty (L327-345); `streamingUsage`,
- * `recalledMemoriesReport`, `structuredOutput` when defined (L492-526). So
- * the loss an unseeded resume suffers is not "empty replaces full" (the
- * guard covers that) but "PARTIAL replaces full": a resumed turn that
- * publishes one artifact, delegates one sub-agent, or touches one to-do
- * sends a list holding only that, and the server replaces the prior turn's
- * whole list with it. Seeding every one makes each write a superset again.
- *
- * What is NOT seeded, and why: `fileChangeSets` and `pendingApprovals` are
- * DERIVED by the server from its own ledgers on every write;
- * `fileReviewEventStream` and `approvalEventStream` are server-owned ledgers
- * the runner only APPENDS its own events to; `fileChangeProgress`,
- * `setupProgress` and `contextInfo` are one turn's own or the server's; and
- * `phase`, `startedAt`, `completedAt`, `error` are this turn's fresh
- * terminal, written by the runtime.
- *
- * The transcript half — messages, sub-agent rows, artifacts, write-backs,
- * todos — goes through the builder's `seed()`, which appends every
- * collection IN PLACE (the status's own arrays, so every wrapper of the
- * status keeps seeing every row) and indexes the rows as it appends, so the
- * upcoming turn's re-issued call reconciles onto its seeded row. The three
- * singletons are the runtime's own and are set here. The persisted protos
- * are cloned so the input execution stays immutable.
- *
- * Moved from `execute-cursor/index.ts` `seedCursorTranscriptFromExecution`
- * (messages only) and widened in #1096 to what native's whole-status clone
- * (`execute-deep-agent/index.ts` `seedStatusFromExecution`, retired with its
- * orchestrator) always carried, minus the fields above that it carried by
- * accident. Until #1097 the transcript half was pushed straight
- * onto the status here and the adapters constructed their builders after
- * this ran — an ordering the builder's index depended on and nothing
- * enforced; the seed through the builder makes it a non-question.
+ * Carry the status's own outputs over on a resume (HITL approval,
+ * pause/resume, transient recovery): the artifacts and write-backs earlier
+ * invocations registered, and the streaming usage so far. They are the run's
+ * file outputs and cost, not its transcript, and the server takes each list
+ * a write carries as the whole list, so a resumed turn that publishes one
+ * artifact sends every earlier one too. The persisted protos are cloned so
+ * the input execution stays immutable. Nothing of the transcript is carried:
+ * the asks a resumed engine resumes onto come from the session's log
+ * (`transcript/resume-seed.ts`), and every other row is the invocation's own.
  */
-export function seedFromPersistedStatus(
-  status: RunStatus,
-  transcript: TranscriptBuilder,
-  execution: Run,
-): void {
+export function seedStatusOutputs(status: RunStatus, execution: Run): void {
   const persisted = execution.status;
-  if (!persisted || persisted.messages.length === 0) return;
+  if (!persisted) return;
   const seed = clone(RunStatusSchema, persisted);
-  transcript.seed(seed);
+  status.artifacts.push(...seed.artifacts);
+  status.workspaceWriteBacks.push(...seed.workspaceWriteBacks);
   if (seed.streamingUsage !== undefined) status.streamingUsage = seed.streamingUsage;
-  if (seed.recalledMemoriesReport !== undefined) status.recalledMemoriesReport = seed.recalledMemoriesReport;
-  if (seed.structuredOutput !== undefined) status.structuredOutput = seed.structuredOutput;
 }
+
+/** The log types a reinvocation reads, once: the seed's and the answers'. */
+export const REINVOCATION_EVENT_TYPES: readonly string[] = [...new Set<string>([...RESUME_SEED_EVENT_TYPES, ...APPROVAL_ANSWER_EVENT_TYPES])];
 
 // ---------------------------------------------------------------------------
 // The phases, in the order the turn runs them
@@ -647,10 +627,14 @@ export async function acquireWorkspaceTurnLock(
 ): Promise<WorkspaceLockOutcome> {
   deps.enterPhase("acquire_workspace_lock");
   let release: ReleaseWorkspaceLock | undefined;
+  let waited = false;
   if (primaryDir) {
     try {
       release = await acquireWorkspaceLock(primaryDir, {
-        onWaiting: () => deps.reportProgress("Waiting for workspace — in use by another session"),
+        onWaiting: () => {
+          waited = true;
+          return deps.reportProgress("Waiting for workspace — in use by another session");
+        },
         heartbeat: deps.heartbeat,
         signal: deps.signal,
         timeoutMs: deps.config.workspaceLockTimeoutMs,
@@ -666,7 +650,39 @@ export async function acquireWorkspaceTurnLock(
     }
   }
   deps.timing.mark("acquire_workspace_lock");
-  return { kind: "acquired", release };
+  return { kind: "acquired", release, waited };
+}
+
+/** The phases the server holds as finished: it takes no more status and no more events of such a run. */
+const FINISHED_PHASES: ReadonlySet<RunPhase> = new Set([
+  RunPhase.RUN_COMPLETED,
+  RunPhase.RUN_FAILED,
+  RunPhase.RUN_CANCELLED,
+  RunPhase.RUN_TERMINATED,
+]);
+
+/**
+ * Phase 2c, after the lock: a turn that waited for its workspace reads its
+ * run again, and ends with the run when it finished meanwhile.
+ *
+ * The turn holding the workspace can be an earlier invocation of the same
+ * run. A pause cancels the running activity, but the cancellation reaches
+ * the runner only at its next heartbeat, so the paused invocation can
+ * finish its turn, persist the run finished and only then let the resumed
+ * one have the tree. The server takes nothing more of a finished run (no
+ * status, no event), so an invocation that ran on would spend a model call
+ * whose answer the log refuses, and leave the engine's checkpoint holding a
+ * reply the session never shows. A turn that did not wait read its run
+ * moments ago (phase 1), so only a wait costs the second read.
+ */
+export async function runFinishedWhileWaiting(
+  deps: ResolutionDeps,
+  waited: boolean,
+): Promise<Extract<TurnSettlement, { kind: "run-finished" }> | undefined> {
+  if (!waited) return undefined;
+  const status = (await deps.client.getExecution(deps.input.executionId)).status;
+  if (status === undefined || !FINISHED_PHASES.has(status.phase)) return undefined;
+  return { kind: "run-finished", status };
 }
 
 /** The eval phase's answer: nothing to do, the prepared case, or the settlement a failed scaffold produces. */
@@ -795,17 +811,16 @@ export async function startEvalMocks(
  * Phase 3: what the previous invocation left.
  *
  * Whether this invocation resumes is read first ({@link isReinvocation},
- * with the log's {@link runWroteEngineEvents}). On a reinvocation, seed the
- * in-progress status from the persisted execution
- * ({@link seedFromPersistedStatus}), BEFORE the harness's transcript
- * builder wraps `status.messages`. Tool approvals (shell / MCP / a gated
- * write) resolve from the answers the server appended to the session's log,
- * read here through the one door, `approval-answers.ts`
- * `readApprovalAnswers`, on every reinvocation. The seeded rows are the
- * runtime's working memory of the transcript, so the seed then copies each
- * call's answer from the log onto its row (`copyAnswersOntoRows`, clearing
- * whatever the fetched row carried): every later reader of a row's
- * `approval_action` reads the log's answer, never a server stamp.
+ * with the log's {@link runWroteEngineEvents}). On a reinvocation the run's
+ * events are read once ({@link REINVOCATION_EVENT_TYPES}) and the asks the
+ * engine resumes onto are seeded through the builder (`transcript/resume-seed.ts`),
+ * before any harness runs; the status's own outputs are carried over
+ * ({@link seedStatusOutputs}). Tool approvals (shell / MCP / a gated write)
+ * resolve from the answers the server appended to the session's log, read
+ * through the one door, `approval-answers.ts` `approvalAnswersOf`, and the
+ * seed then copies each call's answer from the log onto its row
+ * (`copyAnswersOntoRows`): every later reader of a row's `approval_action`
+ * reads the log's answer.
  *
  * Any answer runs the agent: an
  * allowed call proceeds; a denied one is refused with the reason given, and
@@ -831,18 +846,33 @@ export async function reconcileReinvocation(
   const runId = deps.input.executionId;
   const runWroteEvents = await runWroteEngineEvents(deps.client, args.sessionId, runId);
   const reinvoked = isReinvocation(args.stateIdSource, deps.input, runWroteEvents);
-  if (reinvoked) seedFromPersistedStatus(deps.status, deps.transcript, args.execution);
-  const answers = reinvoked
-    ? await readApprovalAnswers(deps.client, { sessionId: args.sessionId, runId, status: deps.status })
-    : NO_APPROVAL_ANSWERS;
-  if (reinvoked) copyAnswersOntoRows(runId, deps.status, answers);
+  if (!reinvoked) {
+    return {
+      isReinvocation: false,
+      runWroteEvents,
+      approvalDecisions: new Map(),
+      approvalDenyMessages: new Map(),
+      approvalAsks: new Map(),
+      grants: new Map(),
+      answerText: undefined,
+      recalledMemoriesReport: undefined,
+    };
+  }
+  seedStatusOutputs(deps.status, args.execution);
+  const events = await deps.client.listRunSessionEvents(args.sessionId, runId, REINVOCATION_EVENT_TYPES);
+  const seed = resumeSeedOf(runId, events);
+  deps.transcript.seed(seed.rows);
+  const answers = approvalAnswersOf(runId, deps.rows, events);
+  copyAnswersOntoRows(runId, deps.rows, answers);
   return {
-    isReinvocation: reinvoked,
+    isReinvocation: true,
     runWroteEvents,
     approvalDecisions: answers.decisions,
     approvalDenyMessages: answers.denyMessages,
     approvalAsks: answers.asks,
     grants: answers.grants,
+    answerText: seed.answerText,
+    recalledMemoriesReport: seed.recalledMemoriesReport,
   };
 }
 
@@ -1611,7 +1641,7 @@ export async function applyApprovedWrites(
   }
   deps.enterPhase("apply_approved_writes");
   return applyApprovedWholeFileWrites({
-    messages: deps.status.messages,
+    messages: deps.rows.messages,
     workspaceBackend: new LocalWorkspaceBackend(workspace.primaryDir),
     workspaceDirs: workspace.dirs,
     executionId: deps.input.executionId,
@@ -1650,8 +1680,9 @@ export function structuredOutputSchemaOf(spec: RunSpec): Record<string, unknown>
  * Selection runs against the frozen first message's semantics: above the
  * activation threshold it picks top-k for spec.message, otherwise (and on
  * any failure) it injects the full candidate set. The outcome report is
- * stamped on the turn's status ONCE, picked up by the next persist; a
- * re-invocation replays the report already persisted on the execution
+ * stamped on the turn's rows ONCE, written to the log by the next persist
+ * as `stigmer.memory.recalled`; a re-invocation replays the report an
+ * earlier invocation wrote there (`TurnReinvocation.recalledMemoriesReport`)
  * rather than re-selecting (the written-once rule). Memoized because a
  * resumed-agent primary send carries no memories, but a mid-send
  * poisoned-handle failure rebuilds on a FRESH agent whose recovery prompt
@@ -1659,19 +1690,24 @@ export function structuredOutputSchemaOf(spec: RunSpec): Record<string, unknown>
  */
 export function resolveStandingContext(
   deps: ResolutionDeps,
-  args: { readonly execution: Run; readonly spec: RunSpec; readonly blueprint: ResolvedBlueprint },
+  args: {
+    readonly execution: Run;
+    readonly spec: RunSpec;
+    readonly blueprint: ResolvedBlueprint;
+    readonly priorReport: RecalledMemoriesReport | undefined;
+  },
 ): TurnStandingContext {
-  const { execution, spec, blueprint } = args;
+  const { execution, spec, blueprint, priorReport } = args;
   let memorySelection: Promise<RecalledMemoriesContent | undefined> | undefined;
   const selectRecalledMemories = (): Promise<RecalledMemoriesContent | undefined> => {
     memorySelection ??= selectRecalledFacts(execution.status?.recalledMemories, spec.message, {
       proxyEndpoint: deps.config.proxyEndpoint,
       stigmerToken: deps.config.stigmerTokenRef.current,
       executionId: deps.input.executionId,
-      priorReport: execution.status?.recalledMemoriesReport,
+      priorReport,
     }).then((selection) => {
       if (selection.report !== undefined) {
-        deps.status.recalledMemoriesReport = selection.report;
+        deps.rows.recalledMemoriesReport = selection.report;
       }
       return selection.content;
     });
@@ -1716,6 +1752,12 @@ export interface TurnFrame {
    * session event emitter's `resumed`.
    */
   runWroteEvents: boolean;
+  /**
+   * The run's answer as an earlier invocation wrote it
+   * (`TurnReinvocation.answerText`), set by the reinvocation phase: what the
+   * turn reports when this invocation writes no message.
+   */
+  priorAnswer: string | undefined;
 }
 
 /** What the composer answers: the whole record, or a settlement the caller writes and returns. */
@@ -1769,6 +1811,8 @@ export async function resolveTurnContext(
   const lock = await acquireWorkspaceTurnLock(deps, workspace.primaryDir);
   if (lock.kind === "settled") return { kind: "settled", settlement: lock.settlement };
   frame.releaseWorkspaceLock = lock.release;
+  const finished = await runFinishedWhileWaiting(deps, lock.waited);
+  if (finished !== undefined) return { kind: "settled", settlement: finished };
   await reconcileOwedUndosPhase(deps, { sessionId, workspace, reconcileTurn: false });
 
   const evalCase = await prepareEvalCasePhase(deps, { spec, sessionId, workspace, values });
@@ -1786,6 +1830,7 @@ export async function resolveTurnContext(
     sessionId,
   });
   frame.runWroteEvents = reinvocation.runWroteEvents;
+  frame.priorAnswer = reinvocation.answerText;
 
   const resolvedMcp = await resolveMcpServersAndPolicies(deps, {
     execution,
@@ -1874,7 +1919,7 @@ export async function resolveTurnContext(
       model: resolveModelPreferences(execution.status?.runConfig),
       structuredOutputSchema: structuredOutputSchemaOf(spec),
       appendSystemPrompt: spec.appendSystemPrompt,
-      standing: resolveStandingContext(deps, { execution, spec, blueprint }),
+      standing: resolveStandingContext(deps, { execution, spec, blueprint, priorReport: reinvocation.recalledMemoriesReport }),
       artifactStorage: deps.artifactStorage,
       readRunEvents: runEventsReader(deps.client, sessionId, deps.input.executionId),
       ...(prepared?.case.history !== undefined && { resumedHistory: prepared.case.history }),

@@ -72,13 +72,9 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { create, toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { create } from "@bufbuild/protobuf";
 import {
   RunPhase,
-  MessageType,
-  SubAgentStatus,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -94,6 +90,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import {
@@ -102,6 +101,7 @@ import {
   runDeepAgentTurn,
 } from "../../__test-utils__/hermetic-deep-agent.js";
 import { recordedModelBuilds } from "../../__test-utils__/scripted-model-module.js";
+import { MessageType, SubAgentStatus, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const HELPER_INSTRUCTIONS = "You are the hermetic helper. Answer in one line.";
 const TASK_CALL_ID = "call-hermetic-task-0001";
@@ -175,17 +175,18 @@ describe("ExecuteDeepAgent hermetic — sub-agent delegation", () => {
 
     // ── Assert: the root transcript ──────────────────────────────────────────
     const final = record.lastFullStatus!;
+    const finalRows = record.rowsOf(final);
     const rows = record.toolCalls();
     expect(rows.map((tc) => [tc.id, tc.name, tc.status])).toEqual([[TASK_CALL_ID, "task", ToolCallStatus.TOOL_CALL_COMPLETED]]);
-    expect(final.messages.filter((m) => m.type === MessageType.MESSAGE_AI).map((m) => m.content)).toEqual([
+    expect(finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_AI).map((m) => m.content)).toEqual([
       "Delegating to the helper.",
       ROOT_CLOSING,
     ]);
-    expect(final.messages[0].toolCalls.map((tc) => tc.id), "the task row sits on the text that delegated").toEqual([TASK_CALL_ID]);
+    expect(finalRows.messages[0].toolCalls.map((tc) => tc.id), "the task row sits on the text that delegated").toEqual([TASK_CALL_ID]);
 
     // ── Assert: the sub-agent execution ──────────────────────────────────────
-    expect(final.subAgentRuns).toHaveLength(1);
-    const sub = final.subAgentRuns[0];
+    expect(finalRows.subAgentRuns).toHaveLength(1);
+    const sub = finalRows.subAgentRuns[0];
     expect(sub.id, "keyed by the task call id, never by the namespace uuid").toBe(TASK_CALL_ID);
     expect(sub.name).toBe("helper");
     expect(sub.subject).toBe(TASK_DESCRIPTION);
@@ -203,8 +204,8 @@ describe("ExecuteDeepAgent hermetic — sub-agent delegation", () => {
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/sub-agent-delegation.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/sub-agent-delegation.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/sub-agent-delegation.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/sub-agent-delegation.events.json");
   });
 });

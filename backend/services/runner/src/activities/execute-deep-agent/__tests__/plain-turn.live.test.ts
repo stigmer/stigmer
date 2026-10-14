@@ -19,7 +19,7 @@
  * the prices are the ones users get.
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { RunPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../client/stigmer-client.js", async () =>
   (await import("../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
@@ -31,6 +31,7 @@ import { stubRegistryFetch } from "../../../__test-utils__/model-registry-fixtur
 import { realModelRegistry } from "../../../__test-utils__/real-model-registry.js";
 import { COST_LIMIT_ERROR_PREFIX } from "../../../shared/cost-guard.js";
 import { beginLiveDeepAgentScenario, deepAgentExecutionRecord, runDeepAgentTurn } from "../__test-utils__/hermetic-deep-agent.js";
+import { MessageType, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** The cheapest native model in the registry; the record names it, so the default model is never consulted. */
 const LIVE_MODEL = "claude-haiku-4.5";
@@ -76,7 +77,7 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("ExecuteDeepAgent live — a p
     const rows = record.toolCalls().map((r) => `${r.name}:${ToolCallStatus[r.status]}`).join(", ");
     expect(invocation.outcome.kind, final?.error).toBe("returned");
     expect(record.persistedPhases.at(-1), `${final?.error ?? ""} tool rows: [${rows}]`).toBe(RunPhase.RUN_COMPLETED);
-    const ai = (final?.messages ?? []).filter((m) => m.type === MessageType.MESSAGE_AI);
+    const ai = (record.lastFullRows?.messages ?? []).filter((m) => m.type === MessageType.MESSAGE_AI);
     expect(ai.length, "at least one assistant message").toBeGreaterThan(0);
     expect(ai.at(-1)?.content.trim().length, "the last assistant message carries text").toBeGreaterThan(0);
     expect(final?.streamingUsage?.inputTokens ?? 0n).toBeGreaterThan(0n);

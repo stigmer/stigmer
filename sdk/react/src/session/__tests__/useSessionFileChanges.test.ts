@@ -11,30 +11,18 @@ import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/mes
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
-  FileReviewBaselineCapturedSchema,
-  FileReviewCandidateCapturedSchema,
-  FileReviewEventSchema,
-  FileReviewEventStreamSchema,
   type CapturedFileChange,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import {
-  RunPhase,
-  FileChangeCaptureLevel,
-  FileChangeKind,
-  FileChangeSetStatus,
-  FileChangeType,
-  FileReviewEventType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { useSessionFileChanges } from "../useSessionFileChanges";
 
 // ---------------------------------------------------------------------------
 // Fixtures
 //
-// Under apply-then-review the hook sources exclusively from the file-review
-// ledger (the live `file_change_sets` projection, or the folded
-// `file_review_event_stream` for a terminal run). The tool-call-coupled
-// `ToolCall.file_changes` (message.proto field 22) was removed, so every
-// fixture here is a CapturedFileChange.
+// The hook sources each run's file record (`RunStatus.file_changes`): the
+// change sets the run captured, each a list of CapturedFileChange. What was
+// decided about the files is the session's events, so no fixture carries a
+// decision.
 // ---------------------------------------------------------------------------
 
 function inlineSide(value: string) {
@@ -69,46 +57,10 @@ function execWith(id: string): Run {
   return exec;
 }
 
-/** A run carrying a live server projection of one change set. */
-function execWithProjection(id: string, changes: CapturedFileChange[]): Run {
+/** A run whose file record holds one change set of the given changes. */
+function execWithRecord(id: string, changes: CapturedFileChange[]): Run {
   const exec = execWith(id);
-  exec.status!.fileChangeSets = [
-    create(FileChangeSetSchema, {
-      id: `${id}:0`,
-      status: FileChangeSetStatus.AWAITING_REVIEW,
-      changes,
-    }),
-  ];
-  return exec;
-}
-
-/** A terminal run: empty projection, changes only in the durable ledger. */
-function execWithLedger(id: string, changes: CapturedFileChange[]): Run {
-  const exec = execWith(id);
-  exec.status!.phase = RunPhase.RUN_COMPLETED;
-  exec.status!.fileChangeSets = [];
-  const changeSetId = `${id}:0`;
-  exec.status!.fileReviewEventStream = create(FileReviewEventStreamSchema, {
-    runId: id,
-    events: [
-      create(FileReviewEventSchema, {
-        changeSetId,
-        eventType: FileReviewEventType.BASELINE_CAPTURED,
-        payload: {
-          case: "baselineCaptured",
-          value: create(FileReviewBaselineCapturedSchema, { changeSetId }),
-        },
-      }),
-      create(FileReviewEventSchema, {
-        changeSetId,
-        eventType: FileReviewEventType.CANDIDATE_CAPTURED,
-        payload: {
-          case: "candidateCaptured",
-          value: create(FileReviewCandidateCapturedSchema, { changeSetId, changes }),
-        },
-      }),
-    ],
-  });
+  exec.status!.fileChanges = [create(FileChangeSetSchema, { id: `${id}:0`, changes })];
   return exec;
 }
 
@@ -133,30 +85,20 @@ describe("useSessionFileChanges", () => {
     expect(r.hasFileChanges).toBe(false);
   });
 
-  it("collects a single change from the live projection", () => {
+  it("collects a single change from the run's file record", () => {
     const r = run([
-      execWithProjection("e1", [
+      execWithRecord("e1", [
         captured({ id: "fc1", pathAfter: "src/a.ts", before: "a", after: "b" }),
       ]),
     ]);
     expect(r.fileChangeCount).toBe(1);
     expect(r.fileChanges[0].path).toBe("src/a.ts");
-    expect(r.fileChanges[0].captureLevel).toBe(FileChangeCaptureLevel.WHOLE_FILE);
-  });
-
-  it("collects changes from the durable ledger for a terminal execution", () => {
-    const r = run([
-      execWithLedger("e1", [
-        captured({ id: "fc1", pathAfter: "src/term.ts", before: "a", after: "b" }),
-      ]),
-    ]);
-    expect(r.fileChangeCount).toBe(1);
-    expect(r.fileChanges[0].path).toBe("src/term.ts");
+    expect(r.fileChanges[0].changeType).toBe("modified");
   });
 
   it("net-diffs multiple edits to the same path: first.before -> last.after", () => {
     const r = run([
-      execWithProjection("e1", [
+      execWithRecord("e1", [
         captured({ id: "fc1", pathAfter: "src/a.ts", before: "v0", after: "v1" }),
         captured({ id: "fc2", pathAfter: "src/a.ts", before: "v1", after: "v2" }),
       ]),
@@ -167,63 +109,61 @@ describe("useSessionFileChanges", () => {
     expect(net.after?.body.case === "inline" && net.after.body.value).toBe("v2");
   });
 
-  it("reconciles create-then-modify on the same path to CREATE", () => {
+  it("reconciles add-then-modify on the same path to added", () => {
     const r = run([
-      execWithProjection("e1", [
+      execWithRecord("e1", [
         captured({ id: "fc1", pathAfter: "src/new.ts", after: "first", kind: FileChangeKind.ADD }),
         captured({ id: "fc2", pathAfter: "src/new.ts", before: "first", after: "second", kind: FileChangeKind.MODIFY }),
       ]),
     ]);
-    expect(r.fileChanges[0].changeType).toBe(FileChangeType.CREATE);
+    expect(r.fileChanges[0].changeType).toBe("added");
     expect(r.fileChanges[0].after?.body.case === "inline" && r.fileChanges[0].after.body.value).toBe("second");
   });
 
-  it("reconciles modify-then-delete on the same path to DELETE", () => {
+  it("reconciles modify-then-delete on the same path to deleted", () => {
     const r = run([
-      execWithProjection("e1", [
+      execWithRecord("e1", [
         captured({ id: "fc1", pathAfter: "src/x.ts", before: "a", after: "b" }),
         captured({ id: "fc2", pathBefore: "src/x.ts", pathAfter: "src/x.ts", before: "b", kind: FileChangeKind.DELETE }),
       ]),
     ]);
-    expect(r.fileChanges[0].changeType).toBe(FileChangeType.DELETE);
+    expect(r.fileChanges[0].changeType).toBe("deleted");
   });
 
-  it("reconciles create-then-delete on the same path to DELETE (path is not hidden)", () => {
+  it("reconciles add-then-delete on the same path to deleted (path is not hidden)", () => {
     const r = run([
-      execWithProjection("e1", [
+      execWithRecord("e1", [
         captured({ id: "fc1", pathAfter: "src/tmp.ts", after: "scratch", kind: FileChangeKind.ADD }),
         captured({ id: "fc2", pathBefore: "src/tmp.ts", pathAfter: "src/tmp.ts", before: "scratch", kind: FileChangeKind.DELETE }),
       ]),
     ]);
-    // A file created and removed within one session still surfaces, as a DELETE
+    // A file added and removed within one session still surfaces, as a deletion
     // anchored on the first change's (empty) before — it is not silently dropped.
     expect(r.fileChangeCount).toBe(1);
-    expect(r.fileChanges[0].changeType).toBe(FileChangeType.DELETE);
+    expect(r.fileChanges[0].changeType).toBe("deleted");
   });
 
-  it("reconciles rename-then-modify on the same path to RENAME, preserving rename_from", () => {
+  it("reconciles rename-then-modify on the same path to renamed, preserving renameFrom", () => {
     const r = run([
-      execWithProjection("e1", [
+      execWithRecord("e1", [
         captured({ id: "fc1", pathBefore: "src/old-name.ts", pathAfter: "src/new-name.ts", before: "a", after: "a", kind: FileChangeKind.RENAME }),
         captured({ id: "fc2", pathAfter: "src/new-name.ts", before: "a", after: "b", kind: FileChangeKind.MODIFY }),
       ]),
     ]);
-    expect(r.fileChanges[0].changeType).toBe(FileChangeType.RENAME);
+    expect(r.fileChanges[0].changeType).toBe("renamed");
     expect(r.fileChanges[0].renameFrom).toBe("src/old-name.ts");
     expect(r.fileChanges[0].after?.body.case === "inline" && r.fileChanges[0].after.body.value).toBe("b");
   });
 
-  it("groups changes across change sets by path (the execution-scoped ledger covers sub-agents)", () => {
+  it("groups changes across change sets by path (a run's record covers sub-agents)", () => {
     const exec = execWith("e1");
-    exec.status!.fileChangeSets = [
+    exec.status!.fileChanges = [
       create(FileChangeSetSchema, {
         id: "e1:0",
-        status: FileChangeSetStatus.RECONCILED,
         changes: [captured({ id: "fc1", pathAfter: "src/shared.ts", before: "v0", after: "v1" })],
       }),
       create(FileChangeSetSchema, {
         id: "e1:1",
-        status: FileChangeSetStatus.AWAITING_REVIEW,
         changes: [captured({ id: "fc2", pathAfter: "src/shared.ts", before: "v1", after: "v2" })],
       }),
     ];
@@ -236,7 +176,7 @@ describe("useSessionFileChanges", () => {
 
   it("passes a single change through with its bytes intact (no synthesis)", () => {
     const r = run([
-      execWithProjection("e1", [
+      execWithRecord("e1", [
         captured({ id: "fc1", pathAfter: "src/a.ts", before: "a", after: "b" }),
       ]),
     ]);
@@ -249,7 +189,7 @@ describe("useSessionFileChanges", () => {
 
   it("sorts modified before created/renamed before deleted, then alpha", () => {
     const r = run([
-      execWithProjection("e1", [
+      execWithRecord("e1", [
         captured({ id: "fc1", pathBefore: "z-del.ts", pathAfter: "z-del.ts", before: "x", kind: FileChangeKind.DELETE }),
         captured({ id: "fc2", pathAfter: "a-new.ts", after: "x", kind: FileChangeKind.ADD }),
         captured({ id: "fc3", pathAfter: "m-mod.ts", before: "x", after: "y", kind: FileChangeKind.MODIFY }),
@@ -264,18 +204,16 @@ describe("useSessionFileChanges", () => {
     ]);
   });
 
-  it("net-diffs captures across turns from the ledger", () => {
+  it("net-diffs captures across change sets of one record", () => {
     // Two change sets touching the same path: first.before -> last.after.
     const exec = execWith("e1");
-    exec.status!.fileChangeSets = [
+    exec.status!.fileChanges = [
       create(FileChangeSetSchema, {
         id: "e1:0",
-        status: FileChangeSetStatus.RECONCILED,
         changes: [captured({ id: "fc1", pathAfter: "src/a.ts", before: "v0", after: "v1" })],
       }),
       create(FileChangeSetSchema, {
         id: "e1:1",
-        status: FileChangeSetStatus.AWAITING_REVIEW,
         changes: [captured({ id: "fc2", pathAfter: "src/a.ts", before: "v1", after: "v2" })],
       }),
     ];
@@ -288,7 +226,7 @@ describe("useSessionFileChanges", () => {
 
   it("preserves referential stability across re-renders for the same executions", () => {
     const executions = [
-      execWithProjection("e1", [
+      execWithRecord("e1", [
         captured({ id: "fc1", pathAfter: "src/a.ts", before: "a", after: "b" }),
       ]),
     ];

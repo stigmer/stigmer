@@ -112,8 +112,7 @@ public interface StigmerPermissionAskedEventOrBuilder extends
 
   /**
    * <pre>
-   * Which rule asked or resolved the call, as one word, the run's
-   * ApprovalPolicySource without its prefix: builtin_category (a built-in
+   * Which rule asked or resolved the call, as one word: builtin_category (a built-in
    * tool that writes, deletes or runs a shell), annotation_destructive_tighten
    * (an MCP tool its server marks destructive, or whose server's tools could
    * not be listed), hook (a hook decided), approval_lease (an "approve all"
@@ -128,8 +127,7 @@ public interface StigmerPermissionAskedEventOrBuilder extends
   java.lang.String getPolicySource();
   /**
    * <pre>
-   * Which rule asked or resolved the call, as one word, the run's
-   * ApprovalPolicySource without its prefix: builtin_category (a built-in
+   * Which rule asked or resolved the call, as one word: builtin_category (a built-in
    * tool that writes, deletes or runs a shell), annotation_destructive_tighten
    * (an MCP tool its server marks destructive, or whose server's tools could
    * not be listed), hook (a hook decided), approval_lease (an "approve all"

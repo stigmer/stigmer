@@ -95,7 +95,7 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim build-server protos codegen build-ts-stubs build-libs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check gen-authorization-model gen-authorization-model-check gen-substrate-stubs gen-substrate-stubs-check
+.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim build-server protos codegen build-ts-stubs build-libs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check gen-authorization-model gen-authorization-model-check gen-substrate-stubs gen-substrate-stubs-check gen-runner-turn-stubs gen-runner-turn-stubs-check
 build: build-libs build-web verify-desktop docs-build build-java-sdk build-runner build-server ## Build all project artifacts
 	@echo ""
 	@echo "built: the server ($(SERVER_DIR)/dist) and runner (the CLI ships as the @stigmer/cli npm package)"
@@ -228,6 +228,17 @@ gen-substrate-stubs-check: ## Verify the committed Agent Substrate stubs match t
 	(cd $(SERVER_DIR) && buf generate --template buf.gen.substrate.yaml -o $$tmp) && \
 	if ! diff -r $$tmp/gen $(SERVER_DIR)/src/sandbox/substrate/gen > /dev/null; then \
 		rm -rf $$tmp; echo "error: the Agent Substrate stubs are stale — run 'make gen-substrate-stubs'"; exit 1; \
+	fi; rm -rf $$tmp
+
+gen-runner-turn-stubs: ## Generate the runner's private turn-row stubs (runner-private, from $(RUNNER_DIR)/proto)
+	rm -rf $(RUNNER_DIR)/src/gen/turn
+	node $(RUNNER_DIR)/scripts/gen-turn-stubs.mjs $(RUNNER_DIR)/src/gen
+
+gen-runner-turn-stubs-check: ## Verify the committed runner turn-row stubs match their protos (CI)
+	@tmp=$$(mktemp -d) && \
+	node $(RUNNER_DIR)/scripts/gen-turn-stubs.mjs $$tmp && \
+	if ! diff -r $$tmp/turn $(RUNNER_DIR)/src/gen/turn > /dev/null; then \
+		rm -rf $$tmp; echo "error: the runner turn-row stubs are stale — run 'make gen-runner-turn-stubs'"; exit 1; \
 	fi; rm -rf $$tmp
 
 stubs-internal-check: ## Verify committed stubs carry no @internal comment sections (CI)

@@ -580,7 +580,7 @@ public final class SessionCommandControllerGrpc {
      * the session and run identifiers.
      * Fails with FAILED_PRECONDITION while any run in the
      * session is still active (pending, in progress, waiting for approval,
-     * or paused); cancel it or wait for it to finish first.
+     * or paused); interrupt the session or wait for it to finish first.
      * </pre>
      */
     default void delete(ai.stigmer.agentic.session.v1.SessionId request,
@@ -815,7 +815,7 @@ public final class SessionCommandControllerGrpc {
      * the session and run identifiers.
      * Fails with FAILED_PRECONDITION while any run in the
      * session is still active (pending, in progress, waiting for approval,
-     * or paused); cancel it or wait for it to finish first.
+     * or paused); interrupt the session or wait for it to finish first.
      * </pre>
      */
     public void delete(ai.stigmer.agentic.session.v1.SessionId request,
@@ -1031,7 +1031,7 @@ public final class SessionCommandControllerGrpc {
      * the session and run identifiers.
      * Fails with FAILED_PRECONDITION while any run in the
      * session is still active (pending, in progress, waiting for approval,
-     * or paused); cancel it or wait for it to finish first.
+     * or paused); interrupt the session or wait for it to finish first.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.Session delete(ai.stigmer.agentic.session.v1.SessionId request) throws io.grpc.StatusException {
@@ -1244,7 +1244,7 @@ public final class SessionCommandControllerGrpc {
      * the session and run identifiers.
      * Fails with FAILED_PRECONDITION while any run in the
      * session is still active (pending, in progress, waiting for approval,
-     * or paused); cancel it or wait for it to finish first.
+     * or paused); interrupt the session or wait for it to finish first.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.Session delete(ai.stigmer.agentic.session.v1.SessionId request) {
@@ -1465,7 +1465,7 @@ public final class SessionCommandControllerGrpc {
      * the session and run identifiers.
      * Fails with FAILED_PRECONDITION while any run in the
      * session is still active (pending, in progress, waiting for approval,
-     * or paused); cancel it or wait for it to finish first.
+     * or paused); interrupt the session or wait for it to finish first.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.Session> delete(

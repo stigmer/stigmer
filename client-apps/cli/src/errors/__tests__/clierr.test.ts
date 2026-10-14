@@ -60,6 +60,51 @@ describe("classify — gRPC code to exit code", () => {
   });
 });
 
+describe("classify — an organization that has used its plan's agent hours", () => {
+  const sentence =
+    "Your organization has used the 10 agent hours its Free plan includes this month. New work can start again on 1 November.";
+
+  function refusal(plan: string): ConnectError {
+    return new ConnectError(sentence, Code.FailedPrecondition, undefined, [
+      {
+        desc: ErrorInfoSchema,
+        value: create(ErrorInfoSchema, {
+          reason: "AGENT_HOURS_USED_UP",
+          domain: "stigmer.ai",
+          metadata: { org: "acme", plan, included_hours: "10", resets_at: "2026-11-01T00:00:00.000Z" },
+        }),
+      },
+    ]);
+  }
+
+  it("prints the server's sentence as is and points to the command that shows the hours", () => {
+    expect(classify(refusal("Free"))).toEqual(
+      expect.objectContaining({
+        exitCode: ExitCode.Usage,
+        message: sentence,
+        hints: ["See the organization's agent hours:", "  stigmer usage hours"],
+      }),
+    );
+  });
+
+  it("does the same when the SDK wraps the refusal", () => {
+    const wrapped = new StigmerError("failed-precondition", sentence, Code.FailedPrecondition, {
+      cause: refusal("Free"),
+    });
+    expect(classify(wrapped)?.hints).toEqual(["See the organization's agent hours:", "  stigmer usage hours"]);
+  });
+
+  it("gives a child organization, whose refusal names no plan, no hint", () => {
+    const result = classify(refusal(""));
+    expect(result?.message).toBe(sentence);
+    expect(result?.hints).toBeUndefined();
+  });
+
+  it("leaves every other FailedPrecondition as it was", () => {
+    expect(classify(new ConnectError("nope", Code.FailedPrecondition))?.message).toBe("Precondition failed: nope");
+  });
+});
+
 describe("classify — a key created before sign-in was turned on (stigmer/stigmer#1169)", () => {
   const sentence =
     "this API key was created before sign-in was turned on and no longer authenticates anyone; sign in and create a new key";

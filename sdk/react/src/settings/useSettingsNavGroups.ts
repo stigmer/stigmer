@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useDeploymentMode } from "../deployment-mode.js";
 import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { useOptionalOrg } from "../organization/OrgProvider.js";
 import { useSingleOrg } from "../server-info.js";
@@ -66,9 +67,15 @@ const ORG_ADMIN_ITEMS_AFTER = "/settings/teams";
  */
 export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
   const orgId = useOptionalOrg()?.activeOrg?.metadata?.id ?? "";
+  const deploymentMode = useDeploymentMode();
   const serviceAccounts = useCheckPermission(
     orgId ? { kind: "organization", id: orgId } : null,
     "can_create_identity_account",
+    { fail: "closed" },
+  );
+  const accessHistory = useCheckPermission(
+    orgId ? { kind: "organization", id: orgId } : null,
+    "can_view_access_history",
     { fail: "closed" },
   );
   const pricing = useCheckPermission(
@@ -91,6 +98,8 @@ export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
   const licensesAllowed = licenses.allowed;
   const plansAllowed = plans.allowed;
   const serviceAccountsAllowed = serviceAccounts.allowed;
+  // Open source keeps no access history, so its page would only say so.
+  const accessHistoryAllowed = accessHistory.allowed && deploymentMode !== "local";
   const singleOrg = useSingleOrg();
   const baseGroups =
     singleOrg === undefined
@@ -116,6 +125,7 @@ export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
 
     const orgVerdicts: Record<string, boolean> = {
       can_create_identity_account: serviceAccountsAllowed,
+      can_view_access_history: accessHistoryAllowed,
     };
     const orgItems = ORG_ADMIN_SETTINGS_NAV_ITEMS.filter(
       (item) =>
@@ -144,6 +154,7 @@ export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
     licensesAllowed,
     plansAllowed,
     serviceAccountsAllowed,
+    accessHistoryAllowed,
   ]);
 }
 

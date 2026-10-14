@@ -17,7 +17,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { HookConfigSchema, HookFormat, HookGroupSchema, HookHandlerSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import { ApprovalAction, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -35,6 +35,7 @@ import {
   sessionWorkspaceDir,
 } from "../../__test-utils__/hermetic-deep-agent.js";
 import { CLOSING_TURN } from "../../__test-utils__/hitl-script.js";
+import { ApprovalAction } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const BEFORE = "# Notes\n";
 

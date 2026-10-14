@@ -24,6 +24,60 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// AgentHoursWindow names the month an organization's agent hours are
+// counted over.
+type AgentHoursWindow int32
+
+const (
+	AgentHoursWindow_agent_hours_window_unspecified AgentHoursWindow = 0
+	// The calendar month in UTC, resetting on the 1st: Free, which has no
+	// subscription period.
+	AgentHoursWindow_calendar_month AgentHoursWindow = 1
+	// The subscription's current billing period.
+	AgentHoursWindow_billing_period AgentHoursWindow = 2
+)
+
+// Enum value maps for AgentHoursWindow.
+var (
+	AgentHoursWindow_name = map[int32]string{
+		0: "agent_hours_window_unspecified",
+		1: "calendar_month",
+		2: "billing_period",
+	}
+	AgentHoursWindow_value = map[string]int32{
+		"agent_hours_window_unspecified": 0,
+		"calendar_month":                 1,
+		"billing_period":                 2,
+	}
+)
+
+func (x AgentHoursWindow) Enum() *AgentHoursWindow {
+	p := new(AgentHoursWindow)
+	*p = x
+	return p
+}
+
+func (x AgentHoursWindow) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AgentHoursWindow) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_billing_subscription_v1_io_proto_enumTypes[0].Descriptor()
+}
+
+func (AgentHoursWindow) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_billing_subscription_v1_io_proto_enumTypes[0]
+}
+
+func (x AgentHoursWindow) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AgentHoursWindow.Descriptor instead.
+func (AgentHoursWindow) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_billing_subscription_v1_io_proto_rawDescGZIP(), []int{0}
+}
+
 // PeriodEstimateLineKind names what an estimated invoice line is for.
 type PeriodEstimateLineKind int32
 
@@ -67,11 +121,11 @@ func (x PeriodEstimateLineKind) String() string {
 }
 
 func (PeriodEstimateLineKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_billing_subscription_v1_io_proto_enumTypes[0].Descriptor()
+	return file_ai_stigmer_billing_subscription_v1_io_proto_enumTypes[1].Descriptor()
 }
 
 func (PeriodEstimateLineKind) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_billing_subscription_v1_io_proto_enumTypes[0]
+	return &file_ai_stigmer_billing_subscription_v1_io_proto_enumTypes[1]
 }
 
 func (x PeriodEstimateLineKind) Number() protoreflect.EnumNumber {
@@ -80,7 +134,7 @@ func (x PeriodEstimateLineKind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use PeriodEstimateLineKind.Descriptor instead.
 func (PeriodEstimateLineKind) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_subscription_v1_io_proto_rawDescGZIP(), []int{0}
+	return file_ai_stigmer_billing_subscription_v1_io_proto_rawDescGZIP(), []int{1}
 }
 
 // GetSubscriptionForOrgInput names the organization whose
@@ -490,6 +544,152 @@ func (x *PeriodEstimate) GetWorkingSeconds() int64 {
 	return 0
 }
 
+// GetAgentHoursInput names the organization whose agent hours are read.
+type GetAgentHoursInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The organization's id.
+	Org           string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAgentHoursInput) Reset() {
+	*x = GetAgentHoursInput{}
+	mi := &file_ai_stigmer_billing_subscription_v1_io_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAgentHoursInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAgentHoursInput) ProtoMessage() {}
+
+func (x *GetAgentHoursInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_billing_subscription_v1_io_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAgentHoursInput.ProtoReflect.Descriptor instead.
+func (*GetAgentHoursInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_billing_subscription_v1_io_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GetAgentHoursInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+// AgentHours is where an organization stands against its plan's agent
+// hours: what it has used in the current window and what the plan
+// includes. The fields mirror the plan's own terms, so a client applies
+// the plan's rule (an allowance with no hourly price pauses new work at
+// the allowance) rather than a second statement of it.
+type AgentHours struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The working agent seconds used in the window so far: the
+	// organization's and its child organizations', never an automatic
+	// grade's. The same count as the period estimate's working_seconds.
+	WorkingSeconds int64 `protobuf:"varint,1,opt,name=working_seconds,json=workingSeconds,proto3" json:"working_seconds,omitempty"`
+	// The agent hours the plan includes in each window, its entitlements'
+	// included_agent_hours. Absent is no limit.
+	IncludedHours *int32 `protobuf:"varint,2,opt,name=included_hours,json=includedHours,proto3,oneof" json:"included_hours,omitempty"`
+	// What the plan bills for each agent hour past included_hours, in
+	// micro-USD, its terms' per_agent_hour_micros. Absent with an allowance
+	// means new work pauses at the allowance until the window resets.
+	PerAgentHourMicros *int64 `protobuf:"varint,3,opt,name=per_agent_hour_micros,json=perAgentHourMicros,proto3,oneof" json:"per_agent_hour_micros,omitempty"`
+	// When the window began.
+	WindowStart *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=window_start,json=windowStart,proto3" json:"window_start,omitempty"`
+	// When the window ends: the moment the count resets.
+	WindowEnd *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=window_end,json=windowEnd,proto3" json:"window_end,omitempty"`
+	// Which month the window is.
+	Window        AgentHoursWindow `protobuf:"varint,6,opt,name=window,proto3,enum=ai.stigmer.billing.subscription.v1.AgentHoursWindow" json:"window,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AgentHours) Reset() {
+	*x = AgentHours{}
+	mi := &file_ai_stigmer_billing_subscription_v1_io_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AgentHours) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AgentHours) ProtoMessage() {}
+
+func (x *AgentHours) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_billing_subscription_v1_io_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AgentHours.ProtoReflect.Descriptor instead.
+func (*AgentHours) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_billing_subscription_v1_io_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *AgentHours) GetWorkingSeconds() int64 {
+	if x != nil {
+		return x.WorkingSeconds
+	}
+	return 0
+}
+
+func (x *AgentHours) GetIncludedHours() int32 {
+	if x != nil && x.IncludedHours != nil {
+		return *x.IncludedHours
+	}
+	return 0
+}
+
+func (x *AgentHours) GetPerAgentHourMicros() int64 {
+	if x != nil && x.PerAgentHourMicros != nil {
+		return *x.PerAgentHourMicros
+	}
+	return 0
+}
+
+func (x *AgentHours) GetWindowStart() *timestamppb.Timestamp {
+	if x != nil {
+		return x.WindowStart
+	}
+	return nil
+}
+
+func (x *AgentHours) GetWindowEnd() *timestamppb.Timestamp {
+	if x != nil {
+		return x.WindowEnd
+	}
+	return nil
+}
+
+func (x *AgentHours) GetWindow() AgentHoursWindow {
+	if x != nil {
+		return x.Window
+	}
+	return AgentHoursWindow_agent_hours_window_unspecified
+}
+
 // PeriodEstimateLine is one line of an estimated invoice.
 type PeriodEstimateLine struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -503,7 +703,7 @@ type PeriodEstimateLine struct {
 
 func (x *PeriodEstimateLine) Reset() {
 	*x = PeriodEstimateLine{}
-	mi := &file_ai_stigmer_billing_subscription_v1_io_proto_msgTypes[7]
+	mi := &file_ai_stigmer_billing_subscription_v1_io_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -515,7 +715,7 @@ func (x *PeriodEstimateLine) String() string {
 func (*PeriodEstimateLine) ProtoMessage() {}
 
 func (x *PeriodEstimateLine) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_subscription_v1_io_proto_msgTypes[7]
+	mi := &file_ai_stigmer_billing_subscription_v1_io_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -528,7 +728,7 @@ func (x *PeriodEstimateLine) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeriodEstimateLine.ProtoReflect.Descriptor instead.
 func (*PeriodEstimateLine) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_subscription_v1_io_proto_rawDescGZIP(), []int{7}
+	return file_ai_stigmer_billing_subscription_v1_io_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *PeriodEstimateLine) GetKind() PeriodEstimateLineKind {
@@ -572,10 +772,27 @@ const file_ai_stigmer_billing_subscription_v1_io_proto_rawDesc = "" +
 	"\x0fchild_org_count\x18\x06 \x01(\x05R\rchildOrgCount\x12L\n" +
 	"\x05lines\x18\a \x03(\v26.ai.stigmer.billing.subscription.v1.PeriodEstimateLineR\x05lines\x12!\n" +
 	"\ftotal_micros\x18\b \x01(\x03R\vtotalMicros\x12'\n" +
-	"\x0fworking_seconds\x18\t \x01(\x03R\x0eworkingSecondsJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\x14provider_cost_microsR\x1bcommission_collected_micros\"\x89\x01\n" +
+	"\x0fworking_seconds\x18\t \x01(\x03R\x0eworkingSecondsJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\x14provider_cost_microsR\x1bcommission_collected_micros\".\n" +
+	"\x12GetAgentHoursInput\x12\x18\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\"\x8e\x03\n" +
+	"\n" +
+	"AgentHours\x12'\n" +
+	"\x0fworking_seconds\x18\x01 \x01(\x03R\x0eworkingSeconds\x12*\n" +
+	"\x0eincluded_hours\x18\x02 \x01(\x05H\x00R\rincludedHours\x88\x01\x01\x126\n" +
+	"\x15per_agent_hour_micros\x18\x03 \x01(\x03H\x01R\x12perAgentHourMicros\x88\x01\x01\x12=\n" +
+	"\fwindow_start\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\vwindowStart\x129\n" +
+	"\n" +
+	"window_end\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\twindowEnd\x12L\n" +
+	"\x06window\x18\x06 \x01(\x0e24.ai.stigmer.billing.subscription.v1.AgentHoursWindowR\x06windowB\x11\n" +
+	"\x0f_included_hoursB\x18\n" +
+	"\x16_per_agent_hour_micros\"\x89\x01\n" +
 	"\x12PeriodEstimateLine\x12N\n" +
 	"\x04kind\x18\x01 \x01(\x0e2:.ai.stigmer.billing.subscription.v1.PeriodEstimateLineKindR\x04kind\x12#\n" +
-	"\ramount_micros\x18\x02 \x01(\x03R\famountMicros*\x87\x01\n" +
+	"\ramount_micros\x18\x02 \x01(\x03R\famountMicros*^\n" +
+	"\x10AgentHoursWindow\x12\"\n" +
+	"\x1eagent_hours_window_unspecified\x10\x00\x12\x12\n" +
+	"\x0ecalendar_month\x10\x01\x12\x12\n" +
+	"\x0ebilling_period\x10\x02*\x87\x01\n" +
 	"\x16PeriodEstimateLineKind\x12)\n" +
 	"%period_estimate_line_kind_unspecified\x10\x00\x12\b\n" +
 	"\x04plan\x10\x01\x12\x0e\n" +
@@ -596,32 +813,38 @@ func file_ai_stigmer_billing_subscription_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_billing_subscription_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_billing_subscription_v1_io_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_billing_subscription_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_ai_stigmer_billing_subscription_v1_io_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_ai_stigmer_billing_subscription_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_ai_stigmer_billing_subscription_v1_io_proto_goTypes = []any{
-	(PeriodEstimateLineKind)(0),        // 0: ai.stigmer.billing.subscription.v1.PeriodEstimateLineKind
-	(*GetSubscriptionForOrgInput)(nil), // 1: ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput
-	(*GetEntitlementsInput)(nil),       // 2: ai.stigmer.billing.subscription.v1.GetEntitlementsInput
-	(*GetEntitlementsOutput)(nil),      // 3: ai.stigmer.billing.subscription.v1.GetEntitlementsOutput
-	(*ChangePlanInput)(nil),            // 4: ai.stigmer.billing.subscription.v1.ChangePlanInput
-	(*CancelSubscriptionInput)(nil),    // 5: ai.stigmer.billing.subscription.v1.CancelSubscriptionInput
-	(*GetPeriodEstimateInput)(nil),     // 6: ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput
-	(*PeriodEstimate)(nil),             // 7: ai.stigmer.billing.subscription.v1.PeriodEstimate
-	(*PeriodEstimateLine)(nil),         // 8: ai.stigmer.billing.subscription.v1.PeriodEstimateLine
-	(*v1.Entitlements)(nil),            // 9: ai.stigmer.platform.v1.Entitlements
-	(*timestamppb.Timestamp)(nil),      // 10: google.protobuf.Timestamp
+	(AgentHoursWindow)(0),              // 0: ai.stigmer.billing.subscription.v1.AgentHoursWindow
+	(PeriodEstimateLineKind)(0),        // 1: ai.stigmer.billing.subscription.v1.PeriodEstimateLineKind
+	(*GetSubscriptionForOrgInput)(nil), // 2: ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput
+	(*GetEntitlementsInput)(nil),       // 3: ai.stigmer.billing.subscription.v1.GetEntitlementsInput
+	(*GetEntitlementsOutput)(nil),      // 4: ai.stigmer.billing.subscription.v1.GetEntitlementsOutput
+	(*ChangePlanInput)(nil),            // 5: ai.stigmer.billing.subscription.v1.ChangePlanInput
+	(*CancelSubscriptionInput)(nil),    // 6: ai.stigmer.billing.subscription.v1.CancelSubscriptionInput
+	(*GetPeriodEstimateInput)(nil),     // 7: ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput
+	(*PeriodEstimate)(nil),             // 8: ai.stigmer.billing.subscription.v1.PeriodEstimate
+	(*GetAgentHoursInput)(nil),         // 9: ai.stigmer.billing.subscription.v1.GetAgentHoursInput
+	(*AgentHours)(nil),                 // 10: ai.stigmer.billing.subscription.v1.AgentHours
+	(*PeriodEstimateLine)(nil),         // 11: ai.stigmer.billing.subscription.v1.PeriodEstimateLine
+	(*v1.Entitlements)(nil),            // 12: ai.stigmer.platform.v1.Entitlements
+	(*timestamppb.Timestamp)(nil),      // 13: google.protobuf.Timestamp
 }
 var file_ai_stigmer_billing_subscription_v1_io_proto_depIdxs = []int32{
-	9,  // 0: ai.stigmer.billing.subscription.v1.GetEntitlementsOutput.entitlements:type_name -> ai.stigmer.platform.v1.Entitlements
-	10, // 1: ai.stigmer.billing.subscription.v1.PeriodEstimate.period_start:type_name -> google.protobuf.Timestamp
-	10, // 2: ai.stigmer.billing.subscription.v1.PeriodEstimate.period_end:type_name -> google.protobuf.Timestamp
-	8,  // 3: ai.stigmer.billing.subscription.v1.PeriodEstimate.lines:type_name -> ai.stigmer.billing.subscription.v1.PeriodEstimateLine
-	0,  // 4: ai.stigmer.billing.subscription.v1.PeriodEstimateLine.kind:type_name -> ai.stigmer.billing.subscription.v1.PeriodEstimateLineKind
-	5,  // [5:5] is the sub-list for method output_type
-	5,  // [5:5] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	12, // 0: ai.stigmer.billing.subscription.v1.GetEntitlementsOutput.entitlements:type_name -> ai.stigmer.platform.v1.Entitlements
+	13, // 1: ai.stigmer.billing.subscription.v1.PeriodEstimate.period_start:type_name -> google.protobuf.Timestamp
+	13, // 2: ai.stigmer.billing.subscription.v1.PeriodEstimate.period_end:type_name -> google.protobuf.Timestamp
+	11, // 3: ai.stigmer.billing.subscription.v1.PeriodEstimate.lines:type_name -> ai.stigmer.billing.subscription.v1.PeriodEstimateLine
+	13, // 4: ai.stigmer.billing.subscription.v1.AgentHours.window_start:type_name -> google.protobuf.Timestamp
+	13, // 5: ai.stigmer.billing.subscription.v1.AgentHours.window_end:type_name -> google.protobuf.Timestamp
+	0,  // 6: ai.stigmer.billing.subscription.v1.AgentHours.window:type_name -> ai.stigmer.billing.subscription.v1.AgentHoursWindow
+	1,  // 7: ai.stigmer.billing.subscription.v1.PeriodEstimateLine.kind:type_name -> ai.stigmer.billing.subscription.v1.PeriodEstimateLineKind
+	8,  // [8:8] is the sub-list for method output_type
+	8,  // [8:8] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_billing_subscription_v1_io_proto_init() }
@@ -629,13 +852,14 @@ func file_ai_stigmer_billing_subscription_v1_io_proto_init() {
 	if File_ai_stigmer_billing_subscription_v1_io_proto != nil {
 		return
 	}
+	file_ai_stigmer_billing_subscription_v1_io_proto_msgTypes[8].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_billing_subscription_v1_io_proto_rawDesc), len(file_ai_stigmer_billing_subscription_v1_io_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   8,
+			NumEnums:      2,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
