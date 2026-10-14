@@ -70,12 +70,8 @@ const skillVersionBinding: VersionHistoryBinding<
   },
   input: (req) => req,
   mapEntry: mapSkillToVersionEntry,
-  response: (versions, nextPageToken, totalCount) =>
-    create(ListSkillVersionsResponseSchema, {
-      versions,
-      nextPageToken,
-      totalCount,
-    }),
+  response: (entries, nextPageToken) =>
+    create(ListSkillVersionsResponseSchema, { entries, nextPageToken }),
 };
 
 /** Go LoadSkillByReferenceStep — the reference + version ladder. */

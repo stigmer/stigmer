@@ -64,6 +64,7 @@ import type {
   PendingOAuthStateStore,
   RawResourceDocument,
   ResourceReadForWrite,
+  ScheduleFireCursor,
   ScheduleFireRecord,
   SearchIndexEntry,
   SearchIndexHit,
@@ -1187,20 +1188,54 @@ export class SqliteStore implements Store {
     const db = this.open();
     const rows = db
       .prepare(
-        `SELECT data, version_hash, tag FROM resource_audit
+        `SELECT id, data, version_hash, tag FROM resource_audit
          WHERE kind = ? AND resource_id = ?
          ORDER BY archived_at DESC, id DESC`,
       )
-      .all(apiResourceKindName(kind), resourceId) as Array<{
-      data: Uint8Array;
-      version_hash: string | null;
-      tag: string | null;
-    }>;
-    return rows.map((row) => ({
-      data: row.data,
-      versionHash: row.version_hash ?? "",
-      tag: row.tag ?? "",
-    }));
+      .all(apiResourceKindName(kind), resourceId) as SqliteAuditRow[];
+    return rows.map(auditRecordOf);
+  }
+
+  async listAuditRecordsPage(
+    kind: ApiResourceKind,
+    resourceId: string,
+    after: string | undefined,
+    limit: number,
+  ): Promise<AuditRecord[]> {
+    const db = this.open();
+    const kindName = apiResourceKindName(kind);
+    // The cursor row's own (archived_at, id) bounds the page, so the
+    // instant never travels as text; a row-value comparison matches the
+    // ORDER BY's descending pair exactly.
+    if (after === undefined) {
+      const rows = db
+        .prepare(
+          `SELECT id, data, version_hash, tag FROM resource_audit
+           WHERE kind = ? AND resource_id = ?
+           ORDER BY archived_at DESC, id DESC
+           LIMIT ?`,
+        )
+        .all(kindName, resourceId, limit) as SqliteAuditRow[];
+      return rows.map(auditRecordOf);
+    }
+    const rows = db
+      .prepare(
+        `SELECT id, data, version_hash, tag FROM resource_audit
+         WHERE kind = ? AND resource_id = ? AND (archived_at, id) < (
+           SELECT archived_at, id FROM resource_audit
+           WHERE kind = ? AND resource_id = ? AND id = ?)
+         ORDER BY archived_at DESC, id DESC
+         LIMIT ?`,
+      )
+      .all(
+        kindName,
+        resourceId,
+        kindName,
+        resourceId,
+        BigInt(after),
+        limit,
+      ) as SqliteAuditRow[];
+    return rows.map(auditRecordOf);
   }
 
   async getAuditRecordByHash(
@@ -1213,20 +1248,18 @@ export class SqliteStore implements Store {
     // Duplicates for one hash are legal — newest wins.
     const row = db
       .prepare(
-        `SELECT data, tag FROM resource_audit
+        `SELECT id, data, version_hash, tag FROM resource_audit
          WHERE kind = ? AND resource_id = ? AND version_hash = ?
          ORDER BY archived_at DESC, id DESC
          LIMIT 1`,
       )
-      .get(kindName, resourceId, versionHash) as
-      | { data: Uint8Array; tag: string | null }
-      | undefined;
+      .get(kindName, resourceId, versionHash) as SqliteAuditRow | undefined;
     if (row === undefined) {
       throw new AuditNotFoundError(
         `${kindName}/${resourceId} (hash=${versionHash})`,
       );
     }
-    return { data: row.data, versionHash, tag: row.tag ?? "" };
+    return auditRecordOf(row);
   }
 
   async getAuditRecordByTag(
@@ -1238,18 +1271,16 @@ export class SqliteStore implements Store {
     const kindName = apiResourceKindName(kind);
     const row = db
       .prepare(
-        `SELECT data, version_hash FROM resource_audit
+        `SELECT id, data, version_hash, tag FROM resource_audit
          WHERE kind = ? AND resource_id = ? AND tag = ?
          ORDER BY archived_at DESC, id DESC
          LIMIT 1`,
       )
-      .get(kindName, resourceId, tag) as
-      | { data: Uint8Array; version_hash: string | null }
-      | undefined;
+      .get(kindName, resourceId, tag) as SqliteAuditRow | undefined;
     if (row === undefined) {
       throw new AuditNotFoundError(`${kindName}/${resourceId} (tag=${tag})`);
     }
-    return { data: row.data, versionHash: row.version_hash ?? "", tag };
+    return auditRecordOf(row);
   }
 
   // ---------------------------------------------------------------------------
@@ -1308,54 +1339,53 @@ export class SqliteStore implements Store {
 
   async listScheduleFires(
     scheduleId: string,
-    offset: number,
+    after: ScheduleFireCursor | undefined,
     limit: number,
-  ): Promise<{ fires: ScheduleFireRecord[]; total: number }> {
-    const db = this.open();
-    const effectiveLimit = limit <= 0 ? 50 : limit;
-    const effectiveOffset = offset < 0 ? 0 : offset;
-
-    const totalRow = db
-      .prepare(
-        `SELECT COUNT(*) AS total FROM schedule_runs WHERE schedule_id = ?`,
-      )
-      .get(scheduleId) as { total: number };
-
-    const rows = db
+  ): Promise<ScheduleFireRecord[]> {
+    // The ledger's key orders the read, compared as bytes (BINARY, as
+    // Postgres's COLLATE "C"), and the cursor continues exactly where the
+    // previous read stopped.
+    const rows = this.open()
       .prepare(
         `SELECT schedule_id, org, nominal_fire_time, origin, outcome, reason, execution_id, recorded_at, completed_at
          FROM schedule_runs
          WHERE schedule_id = ?
+           AND (? IS NULL OR (nominal_fire_time, origin) < (?, ?))
          ORDER BY nominal_fire_time DESC, origin DESC
-         LIMIT ? OFFSET ?`,
+         LIMIT ?`,
       )
-      .all(scheduleId, effectiveLimit, effectiveOffset) as Array<{
-      schedule_id: string;
-      org: string;
-      nominal_fire_time: string;
-      origin: string;
-      outcome: string;
-      reason: string;
-      execution_id: string;
-      recorded_at: string;
-      completed_at: string;
-    }>;
+      .all(
+        scheduleId,
+        after?.nominalFireTime ?? null,
+        after?.nominalFireTime ?? null,
+        after?.origin ?? "",
+        limit,
+      ) as
+    Array<{
+          schedule_id: string;
+          org: string;
+          nominal_fire_time: string;
+          origin: string;
+          outcome: string;
+          reason: string;
+          execution_id: string;
+          recorded_at: string;
+          completed_at: string;
+        }>;
 
-    return {
-      total: totalRow.total,
-      fires: rows.map((row) => ({
-        scheduleId: row.schedule_id,
-        org: row.org,
-        nominalFireTime: row.nominal_fire_time,
-        origin: row.origin,
-        outcome: row.outcome,
-        reason: row.reason,
-        executionId: row.execution_id,
-        recordedAt: row.recorded_at,
-        completedAt: row.completed_at,
-      })),
-    };
+    return rows.map((row) => ({
+      scheduleId: row.schedule_id,
+      org: row.org,
+      nominalFireTime: row.nominal_fire_time,
+      origin: row.origin,
+      outcome: row.outcome,
+      reason: row.reason,
+      executionId: row.execution_id,
+      recordedAt: row.recorded_at,
+      completedAt: row.completed_at,
+    }));
   }
+
 
   async deleteScheduleFiresBySchedule(scheduleId: string): Promise<number> {
     const db = this.open();
@@ -2891,4 +2921,25 @@ class SqliteSessionEventStore implements SessionEventStore {
     db.prepare(`DELETE FROM session_event_heads WHERE org = ?`).run(org);
     return Number(result.changes);
   }
+}
+
+/**
+ * An audit row as the audit reads select it: a type alias, not an
+ * interface, so it carries the implicit index signature a driver row cast
+ * needs.
+ */
+type SqliteAuditRow = {
+  readonly id: number | bigint;
+  readonly data: Uint8Array;
+  readonly version_hash: string | null;
+  readonly tag: string | null;
+};
+
+function auditRecordOf(row: SqliteAuditRow): AuditRecord {
+  return {
+    data: row.data,
+    versionHash: row.version_hash ?? "",
+    tag: row.tag ?? "",
+    seq: String(row.id),
+  };
 }

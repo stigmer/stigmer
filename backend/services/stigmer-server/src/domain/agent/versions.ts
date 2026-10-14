@@ -71,8 +71,7 @@ type TagVersionDesc = typeof AgentCommandController.method.tagVersion.input;
 type DeleteDesc = typeof AgentCommandController.method.delete.input;
 
 const headHashOf = (agent: Agent): string => agent.status?.versionHash ?? "";
-const liveTagOf = (agent: Agent): string =>
-  agent.metadata?.version?.tag ?? "";
+const liveTagOf = (agent: Agent): string => agent.metadata?.version?.tag ?? "";
 const overlayTag = (agent: Agent, tag: string): void => {
   agent.metadata ??= create(ApiResourceMetadataSchema);
   agent.metadata.version ??= create(ApiResourceMetadataVersionSchema);
@@ -94,12 +93,8 @@ export const agentVersionBinding: VersionHistoryBinding<
   overlayTag,
   input: (req) => req,
   mapEntry: mapAgentToVersionEntry,
-  response: (versions, nextPageToken, totalCount) =>
-    create(ListAgentVersionsResponseSchema, {
-      versions,
-      nextPageToken,
-      totalCount,
-    }),
+  response: (entries, nextPageToken) =>
+    create(ListAgentVersionsResponseSchema, { entries, nextPageToken }),
 };
 
 const agentTagBinding: VersionTagBinding<AgentDesc, TagVersionDesc> = {
