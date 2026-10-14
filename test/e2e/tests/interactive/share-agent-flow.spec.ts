@@ -1,5 +1,5 @@
 import { create } from "@bufbuild/protobuf";
-import { GetAgentSharesByAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
+import { ListAgentSharesByAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
 import { test, expect } from "../../fixtures";
 import { ensureDefaultOrg } from "../../fixtures/seed-helpers";
 import { assertNoErrorBoundary } from "../../helpers/navigation";
@@ -77,10 +77,10 @@ async function chatPathOf(
   agentId: string,
   shareSlug: string,
 ): Promise<string> {
-  const shares = await client.agentShare.getByAgent(
-    create(GetAgentSharesByAgentRequestSchema, { agentId }),
+  const shares = await client.agentShare.listByAgent(
+    create(ListAgentSharesByAgentRequestSchema, { agentId }),
   );
-  const share = shares.items.find((s) => s.metadata?.slug === shareSlug);
+  const share = shares.entries.find((s) => s.metadata?.slug === shareSlug);
   if (share === undefined) {
     throw new Error(`no share '${shareSlug}' on agent ${agentId}`);
   }
