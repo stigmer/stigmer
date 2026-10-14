@@ -38,9 +38,10 @@ export interface EditResourceYamlDialogProps {
  *    stripped) and seeded into a CodeMirror editor
  * 2. Every edit is validated against the kind's generated proto schema;
  *    errors render inline with the exact schema complaint
- * 3. A live summary states what applying will do ("update X" / "create Y"),
- *    resolved against server state — so a rename reads as a create
- * 4. Apply calls the kind's `apply` RPC (create-or-update by slug)
+ * 3. A live summary states what applying will do ("update X", "create Y",
+ *    "rename X to Y"), resolved by the lookup the apply makes
+ * 4. Apply calls `stigmer.manifest.apply()`: the server finds the resource
+ *    by its id, then its slug, and a changed slug renames it
  *
  * Redacted secret values (`***REDACTED***`) are explained inline: applying
  * them preserves the stored secrets (the server's marker contract).
@@ -173,7 +174,7 @@ export function EditResourceYamlDialog({
         {/* Footer: target summary + actions */}
         <div className="stg:flex stg:items-center stg:justify-between stg:gap-3">
           <p className="stg:text-xs stg:text-muted-foreground" aria-live="polite">
-            {targetSummary(edit.validation.status, edit.isDirty, edit.target)}
+            {targetSummary(edit.validation, edit.isDirty, edit.target)}
           </p>
           <div className="stg:flex stg:gap-2">
             <button
@@ -211,20 +212,28 @@ export function EditResourceYamlDialog({
 }
 
 function targetSummary(
-  validationStatus: "empty" | "invalid" | "valid",
+  validation: ReturnType<typeof useEditResourceYaml>["validation"],
   isDirty: boolean,
   target: ReturnType<typeof useEditResourceYaml>["target"],
 ): string {
-  if (validationStatus !== "valid") return "";
+  if (validation.status !== "valid") return "";
   if (!isDirty) return "No changes yet.";
   if (target === null) return "Checking what applying will do…";
   switch (target.action) {
     case "update":
-      return `Applying will update ${target.slug}.`;
+      return target.slugKept
+        ? `Applying will update ${target.slug}. ${validation.document.handler.displayName} slugs do not change, so it keeps this slug.`
+        : `Applying will update ${target.slug}.`;
     case "create":
-      return `Applying will create ${target.slug} — the name or slug changed.`;
+      return `Applying will create ${target.slug}.`;
+    case "rename":
+      return `Applying will rename ${target.from} to ${target.slug}.`;
     case "unknown":
       return `Applying will create or update ${target.slug}.`;
+    default: {
+      const unhandled: never = target;
+      return String(unhandled);
+    }
   }
 }
 

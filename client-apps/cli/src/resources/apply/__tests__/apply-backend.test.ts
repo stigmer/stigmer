@@ -6,7 +6,9 @@
 // distinguishes an update from a create — must reach the backend intact. We
 // apply an Agent YAML with an id set plus spec fields and assert the server
 // received every one. Also covers dependency ordering, org injection, dry-run,
-// and the created-vs-updated signal.
+// and the created-vs-updated signal. And a file is a desired state: what
+// `get -o yaml` printed whole reaches the server with no etag and its
+// references named by slug alone, so it applies after the resource changed.
 
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Session } from "node:http2";
@@ -15,7 +17,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type ConnectRouter, createClient } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { create } from "@bufbuild/protobuf";
+import { type Agent, AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
@@ -23,6 +27,7 @@ import { createNodeTransport, normalizeEndpoint } from "@stigmer/sdk/node";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { applyItem, marshalItem, requiresOrgContext, resolveApplyItems } from "../apply.js";
 import type { ControllerFn } from "../handlers.js";
+import { renderProtoYaml } from "../../../output/proto.js";
 
 let backend: Http2Server;
 let controllerFn: ControllerFn;
@@ -197,6 +202,40 @@ const SCHEDULE_YAML = [
   "    message: run the reminders",
   "",
 ].join("\n");
+
+describe("file-mode apply — a file is a desired state", () => {
+  it("applies what get -o yaml printed with no etag, and its references by slug alone", async () => {
+    const read = create(AgentSchema, {
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "Agent",
+      metadata: { id: "agt_existing", name: "Reviewer", slug: "reviewer", org: "acme", etag: "etag-when-read" },
+      spec: {
+        instructions: "Review pull requests carefully",
+        skillRefs: [
+          { kind: ApiResourceKind.skill, org: "acme", slug: "refunds-v2", id: "skl_old" },
+          { kind: ApiResourceKind.skill, id: "skl_deleted" },
+        ],
+      },
+    });
+    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
+    try {
+      writeYaml(dir, "agent.yaml", renderProtoYaml(AgentSchema, read));
+      const items = resolveApplyItems(dir);
+
+      await applyItem(controllerFn, items[0], "acme", false);
+
+      expect(appliedAgents).toHaveLength(1);
+      expect(appliedAgents[0].metadata?.id).toBe("agt_existing");
+      expect(appliedAgents[0].metadata?.etag).toBe("");
+      expect(appliedAgents[0].spec?.skillRefs.map((r) => [r.slug, r.id])).toEqual([
+        ["refunds-v2", ""],
+        ["", "skl_deleted"],
+      ]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
 
 describe("file-mode apply — channel app (#353)", () => {
   it("applies a ChannelApp through the raw controller with the redaction markers intact", async () => {

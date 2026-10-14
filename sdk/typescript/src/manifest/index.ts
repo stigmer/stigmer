@@ -24,7 +24,21 @@ export type { ManifestDocument, ParseManifestOptions } from "./parse.js";
 
 export { manifestDocumentForResource } from "./document.js";
 
-export { serializeManifest } from "./serialize.js";
+export { serializeManifest, toDesiredState } from "./serialize.js";
+
+export {
+  applyNamingCurrentSlug,
+  followDeclaredSlug,
+  resolveManifestTarget,
+  SlugChangeRefusedError,
+  SlugRenamedError,
+} from "./slug.js";
+export type {
+  DeclaredSlugOutcome,
+  ManifestTarget,
+  SlugRulesHandler,
+  TargetDocument,
+} from "./slug.js";
 
 export { ManifestClient } from "./client.js";
 export type { AppliedManifest } from "./client.js";

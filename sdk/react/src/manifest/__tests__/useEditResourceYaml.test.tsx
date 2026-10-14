@@ -2,18 +2,38 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
+import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ManifestClient } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { useEditResourceYaml } from "../useEditResourceYaml";
 
 // The hooks run the real manifest engine (serializeManifest/parseManifest
-// from @stigmer/sdk); only the network-facing manifest client is mocked.
+// from @stigmer/sdk) and the real target resolution
+// (ManifestClient.resolveTarget) over an in-memory agent query service:
+// `getByReference` answers each read, or null for not-found. Only apply is
+// mocked.
 function createMockStigmer(overrides: {
   apply?: (...args: unknown[]) => Promise<unknown>;
-  getByReference?: (...args: unknown[]) => Promise<unknown>;
+  getByReference?: (ref: ApiResourceReference) => Promise<unknown>;
 } = {}) {
+  const read = overrides.getByReference ?? (() => Promise.resolve(agent));
+  const engine = new ManifestClient(
+    createRouterTransport(({ service }) => {
+      service(AgentQueryController, {
+        getByReference: async (ref) => {
+          const found = await read(ref);
+          if (found === null) throw new ConnectError("not found", Code.NotFound);
+          return found as typeof agent;
+        },
+      });
+    }),
+  );
   return {
     manifest: {
+      resolveTarget: engine.resolveTarget.bind(engine),
       apply:
         overrides.apply ??
         vi.fn().mockResolvedValue({
@@ -24,8 +44,6 @@ function createMockStigmer(overrides: {
           org: "rakeshreddi098",
           id: "agt_01",
         }),
-      getByReference:
-        overrides.getByReference ?? vi.fn().mockResolvedValue({ metadata: {} }),
     },
   } as never;
 }
@@ -50,7 +68,7 @@ const agent = create(AgentSchema, {
   spec: { instructions: "Short messages." },
 });
 
-// The create-vs-update check debounces across keystrokes.
+// The target check debounces across keystrokes.
 const DEBOUNCE_MS = 400;
 
 describe("useEditResourceYaml", () => {
@@ -122,8 +140,8 @@ describe("useEditResourceYaml", () => {
     });
   });
 
-  it("resolves the target to 'update' when the reference exists", async () => {
-    const getByReference = vi.fn().mockResolvedValue({ metadata: {} });
+  it("resolves the target to 'update' when the id finds the resource under its slug", async () => {
+    const getByReference = vi.fn((_ref: ApiResourceReference) => Promise.resolve(agent));
     const { result } = renderHook(
       () => useEditResourceYaml({ resource: agent }),
       { wrapper: wrapper(createMockStigmer({ getByReference })) },
@@ -139,31 +157,27 @@ describe("useEditResourceYaml", () => {
       await vi.advanceTimersByTimeAsync(DEBOUNCE_MS + 10);
     });
 
-    expect(getByReference).toHaveBeenCalledWith(
-      "Agent",
-      "rakeshreddi098",
-      "clinic-patient-assistant",
-    );
+    expect(getByReference.mock.calls[0][0]).toMatchObject({ id: "agt_01" });
     expect(result.current.target).toEqual({
       action: "update",
       slug: "clinic-patient-assistant",
+      slugKept: false,
     });
   });
 
-  it("resolves the target to 'create' after a rename (honest preview)", async () => {
-    const getByReference = vi.fn().mockResolvedValue(null);
+  it("resolves the target to 'rename' when the slug is edited and the id kept", async () => {
     const { result } = renderHook(
       () => useEditResourceYaml({ resource: agent }),
-      { wrapper: wrapper(createMockStigmer({ getByReference })) },
+      { wrapper: wrapper(createMockStigmer()) },
     );
 
     act(() => {
-      // Rename name AND slug — the slug is the apply routing key, so this
-      // is the edit that would land as a brand-new resource.
+      // The seeded document keeps metadata.id, so the apply finds the agent
+      // by it and renames it to the edited slug.
       result.current.setYaml(
-        result.current.yaml.replaceAll(
-          "clinic-patient-assistant",
-          "renamed-assistant",
+        result.current.yaml.replace(
+          "slug: clinic-patient-assistant",
+          "slug: renamed-assistant",
         ),
       );
     });
@@ -172,14 +186,36 @@ describe("useEditResourceYaml", () => {
       await vi.advanceTimersByTimeAsync(DEBOUNCE_MS + 10);
     });
 
-    expect(getByReference).toHaveBeenCalledWith(
-      "Agent",
-      "rakeshreddi098",
-      "renamed-assistant",
+    expect(result.current.target).toEqual({
+      action: "rename",
+      from: "clinic-patient-assistant",
+      slug: "renamed-assistant",
+    });
+  });
+
+  it("resolves the target to 'create' when the id is removed and the slug is new", async () => {
+    const getByReference = vi.fn((_ref: ApiResourceReference) => Promise.resolve(null));
+    const { result } = renderHook(
+      () => useEditResourceYaml({ resource: agent }),
+      { wrapper: wrapper(createMockStigmer({ getByReference })) },
     );
+
+    act(() => {
+      result.current.setYaml(
+        result.current.yaml
+          .replace("  id: agt_01\n", "")
+          .replaceAll("clinic-patient-assistant", "second-assistant"),
+      );
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(DEBOUNCE_MS + 10);
+    });
+
+    expect(getByReference.mock.calls.map(([ref]) => ref.slug)).toEqual(["second-assistant"]);
     expect(result.current.target).toEqual({
       action: "create",
-      slug: "renamed-assistant",
+      slug: "second-assistant",
     });
   });
 

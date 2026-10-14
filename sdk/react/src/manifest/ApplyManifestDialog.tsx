@@ -45,7 +45,8 @@ export interface ApplyManifestDialogProps {
  * Steps:
  * 1. Paste manifest YAML (or JSON) into the editor, or pick a file
  * 2. Each document is validated against its kind's generated proto schema
- *    and previewed with a create-or-update badge resolved from server state
+ *    and previewed with a create, update or rename badge resolved from
+ *    server state by the apply's own lookup
  * 3. Apply runs the documents sequentially in dependency order with live
  *    per-document status; a failure stops the run and renders inline
  *
@@ -317,8 +318,14 @@ function badgeLabel(entry: ManifestPreviewEntry): string {
           return "Will create";
         case "update":
           return "Will update";
+        case "rename":
+          return "Will rename";
         case "unknown":
           return "Create or update";
+        default: {
+          const unhandled: never = entry.action;
+          return String(unhandled);
+        }
       }
   }
 }
