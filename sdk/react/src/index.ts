@@ -1928,7 +1928,10 @@ export type {
 } from "./empty-state/index.js";
 
 // Search — shared search/list/count infrastructure re-exported for public API surface
+export { createLibraryListFn } from "./search/index.js";
 export type {
+  LibraryClient,
+  LibraryKind,
   UseResourceSearchOptions,
   UseResourceSearchReturn,
 } from "./search/index.js";

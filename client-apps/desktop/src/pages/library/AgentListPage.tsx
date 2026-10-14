@@ -22,7 +22,9 @@ import {
   ConfirmDialog,
   toast,
   type WorkbenchColumnDef,
+  createLibraryListFn,
 } from "@stigmer/react";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { AGENT_DELETE_DESCRIPTION } from "./agent-delete-confirmation";
 
@@ -76,9 +78,10 @@ export default function AgentListPage() {
   // the list in place — no remount flash, pagination and sort preserved.
   const [refetchToken, refreshList] = useReducer((n: number) => n + 1, 0);
 
+  // The organization's agents, newest first, while the search box is
+  // empty; search matches once it holds text.
   const listFn = useMemo(
-    () => (params: Parameters<typeof stigmer.agent.list>[0]) =>
-      stigmer.agent.list(params),
+    () => createLibraryListFn(stigmer, ApiResourceKind.agent),
     [stigmer],
   );
 

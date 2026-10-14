@@ -99,6 +99,7 @@ vi.mock("@stigmer/react", () => {
       );
     },
     OrgSlugText: ({ orgId }: { orgId: string }) => <span data-org-id={orgId} />,
+    createLibraryListFn: () => async () => ({ entries: [], nextPageToken: "" }),
     AddMcpServerDialog: (props: AddServerDialogProps) => {
       page.addServer.push(props);
       return null;
