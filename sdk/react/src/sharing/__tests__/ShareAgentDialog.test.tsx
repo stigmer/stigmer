@@ -917,15 +917,15 @@ describe("ShareAgentDialog", () => {
   });
 
   describe("Developer tab", () => {
-    it("shows the platform client snippet and docs link", () => {
+    it("shows the user-token snippet and docs link", () => {
       renderOpenDialog(createMockStigmer(), {
         share: makeShare({ enabled: true }),
       });
 
       fireEvent.click(screen.getByRole("tab", { name: /Developer/, hidden: true }));
-      expect(screen.getByText(/createPlatformClientAuth/)).toBeTruthy();
-      const link = screen.getByText(/platform client guide/);
-      expect(link.getAttribute("href")).toContain("platform-client");
+      expect(screen.getByText(/mintUserToken/)).toBeTruthy();
+      const link = screen.getByText(/guide to signing your users in/);
+      expect(link.getAttribute("href")).toContain("product-users");
     });
 
     function openDeveloperSnippet(baseUrl?: string): string {
@@ -933,7 +933,7 @@ describe("ShareAgentDialog", () => {
         share: makeShare({ enabled: true }),
       });
       fireEvent.click(screen.getByRole("tab", { name: /Developer/, hidden: true }));
-      return screen.getByText(/createPlatformClientAuth/).textContent ?? "";
+      return screen.getByText(/mintUserToken/).textContent ?? "";
     }
 
     it("targets the server the console is connected to, not Stigmer Cloud", () => {
@@ -958,11 +958,11 @@ describe("ShareAgentDialog", () => {
       });
       fireEvent.click(screen.getByRole("tab", { name: /Developer/, hidden: true }));
 
-      expect(screen.getByText("Platform client integration")).toBeTruthy();
+      expect(screen.getByText("SDK integration")).toBeTruthy();
       expect(
         screen.getByText(/doesn't know your Stigmer server's public address/),
       ).toBeTruthy();
-      expect(screen.queryByText(/createPlatformClientAuth/)).toBeNull();
+      expect(screen.queryByText(/mintUserToken/)).toBeNull();
     });
 
     it("builds the snippet from the host's public base URL behind a relative baseUrl", () => {
@@ -972,7 +972,7 @@ describe("ShareAgentDialog", () => {
       });
       fireEvent.click(screen.getByRole("tab", { name: /Developer/, hidden: true }));
 
-      expect(screen.getByText(/createPlatformClientAuth/).textContent).toContain(
+      expect(screen.getByText(/mintUserToken/).textContent).toContain(
         `baseUrl: "https://api.acme.example",`,
       );
     });

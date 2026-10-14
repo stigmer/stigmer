@@ -16,7 +16,7 @@ import (
 // to interact with the Stigmer platform.
 //
 // All resource clients (Agent, Skill, Organization, etc.) are available
-// via the embedded gen.Client. The Search, GitHub and Billing clients are
+// via the embedded gen.Client. The Search, GitHub, Billing and Tokens clients are
 // added separately (non-resource bounded contexts get handwritten clients).
 //
 // Skill shadows the embedded generated client with a wrapper that routes
@@ -28,6 +28,7 @@ type Client struct {
 	Search  *SearchClient
 	GitHub  *GitHubClient
 	Billing *BillingClient
+	Tokens  *TokenClient
 
 	// DefaultExecutionTarget is applied as the default for session
 	// creation when the per-call input does not specify an explicit
@@ -95,6 +96,7 @@ func NewClient(opts ...ClientOption) (*Client, error) {
 		Search:                 newSearchClient(conn),
 		GitHub:                 newGitHubClient(conn),
 		Billing:                newBillingClient(conn),
+		Tokens:                 newTokenClient(conn),
 		DefaultExecutionTarget: cfg.executionTarget,
 		RunnerAdapter:          cfg.runnerAdapter,
 		conn:                   conn,

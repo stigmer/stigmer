@@ -12,8 +12,8 @@
  * enumeration. That list holds only the organization's roles (owner,
  * admin, member, viewer); the cloud's share-link guests are never on it,
  * so every person offered here is an organization viewer and a valid team
- * member too. Accounts a platform client provisioned are split out of the
- * people (`isPlatformClientAccount`), so a picker labels them rather than
+ * member too. Accounts a mint created for a product's users are split out of the
+ * people (`isAppUserAccount`), so a picker labels them rather than
  * presenting them as the organization's people; a team's picker leaves
  * them out (`includeAppUsers: false`). Service accounts, the accounts the
  * organization's automation acts as, are split out the same way
@@ -29,7 +29,7 @@ import type { ApiResourceRefView } from "@stigmer/protos/ai/stigmer/iam/iampolic
 import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import {
   granteeFromView,
-  isPlatformClientAccount,
+  isAppUserAccount,
   isServiceAccount,
   personGrantee,
   teamGrantee,
@@ -72,8 +72,7 @@ export interface UseGranteeCandidatesOptions {
   /** Offer the organization's teams too. Pass `false` where teams cannot be granted. */
   readonly includeTeams: boolean;
   /**
-   * Offer the accounts a platform client provisioned for an integrator's
-   * own users, in `appUsers`. Defaults to `true`; pass `false` where only
+   * Offer the accounts a mint created for an integrator's own users, in `appUsers`. Defaults to `true`; pass `false` where only
    * the organization's people belong (a team's members).
    */
   readonly includeAppUsers?: boolean;
@@ -90,7 +89,7 @@ export interface UseGranteeCandidatesReturn {
   /** The organization's people, federated sign-ins included. */
   readonly people: readonly PersonCandidate[];
   /**
-   * Accounts a platform client provisioned for an integrator's own users
+   * Accounts a mint created for an integrator's own users
    * ("Users from your product"); empty when `includeAppUsers` is `false`.
    */
   readonly appUsers: readonly PersonCandidate[];
@@ -143,10 +142,10 @@ export function useGranteeCandidates({
     const all = [...byId.values()];
     return {
       people: all.filter(
-        (person) => !isPlatformClientAccount(person.view) && !isServiceAccount(person.view),
+        (person) => !isAppUserAccount(person.view) && !isServiceAccount(person.view),
       ),
       appUsers: includeAppUsers
-        ? all.filter((person) => isPlatformClientAccount(person.view))
+        ? all.filter((person) => isAppUserAccount(person.view))
         : [],
       serviceAccounts: includeServiceAccounts
         ? all.filter((person) => isServiceAccount(person.view))

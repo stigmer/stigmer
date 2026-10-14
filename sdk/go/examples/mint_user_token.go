@@ -1,14 +1,17 @@
-// Example: Minting Stigmer user tokens with PlatformClient credentials.
+// Example: minting Stigmer user tokens with a service account's API key.
 //
-// This example demonstrates how a platform builder's Go backend mints
-// Stigmer-signed JWTs for their users. The tokens are returned to the
-// frontend and passed to the React SDK's StigmerProvider via getAccessToken.
+// This example shows how a product's Go backend mints short-lived user
+// tokens for the people signed in to it. The backend holds the API key of a
+// service account that is an admin of the organization; the tokens are
+// returned to the frontend and passed to the React SDK's StigmerProvider via
+// getAccessToken.
 //
 // This is NOT a runnable program — it shows the API patterns.
 package examples
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -19,28 +22,25 @@ import (
 func MintUserToken() {
 	ctx := context.Background()
 
-	auth, err := stigmer.NewPlatformClientAuth(
-		stigmer.WithPlatformClientCredentials(
-			os.Getenv("STIGMER_CLIENT_ID"),
-			os.Getenv("STIGMER_CLIENT_SECRET"),
-		),
-	)
+	client, err := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")))
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer auth.Close()
+	defer client.Close()
 
-	result, err := auth.MintUserToken(ctx, &stigmer.MintUserTokenInput{
+	result, err := client.Tokens.MintUserToken(ctx, &stigmer.MintUserTokenInput{
+		Org:       "acme",
 		UserID:    "user-123",
 		UserEmail: "jane@acme.com",
 		UserName:  "Jane Doe",
 	})
 	if err != nil {
-		if stigmer.IsUnauthenticated(err) {
-			log.Fatal("Invalid PlatformClient credentials — verify STIGMER_CLIENT_ID and STIGMER_CLIENT_SECRET")
+		if stigmer.IsPermissionDenied(err) {
+			log.Fatal("STIGMER_API_KEY is not an admin service account's key for this organization")
 		}
-		if stigmer.IsNotFound(err) {
-			log.Fatal("User does not have a Stigmer identity account and auto-provisioning is disabled")
+		var sdkErr *stigmer.Error
+		if errors.As(err, &sdkErr) && sdkErr.Code == stigmer.CodeFailedPrecondition {
+			log.Fatal("The person has no Stigmer account and the organization's embedding settings do not create one")
 		}
 		log.Fatal(err)
 	}

@@ -21,8 +21,8 @@ export const PublicBaseUrlContext = createContext<string | undefined>(
 
 /**
  * The server's public base URL for URLs the SDK shows a user to copy (a
- * webhook URL pasted into Slack or Meta, a platform client snippet run by
- * a backend), or `null` when it cannot be known.
+ * webhook URL pasted into Slack or Meta, an SDK snippet run by a
+ * backend), or `null` when it cannot be known.
  *
  * The host owns public addresses, and the SDK never guesses one (the
  * `buildShareUrl` precedent in `ShareAgentDialog`): the provider's

@@ -14,7 +14,7 @@ import {
   getUserMessage,
   iamRoleFromString,
   iamRoleToString,
-  isPlatformClientAccount,
+  isAppUserAccount,
   isServiceAccount,
 } from "@stigmer/sdk";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
@@ -67,8 +67,8 @@ export interface OrgMembersPanelProps {
  * grants the new role before it revokes the old one, so a refused step
  * leaves the member with the role they had.
  *
- * The accounts a PlatformClient provisioned for the organization's own
- * product also hold a role here (a client's sign-in role), but they are that
+ * The accounts a mint created for people of the organization's own
+ * product also hold a role here (the embedding sign-in role), but they are that
  * product's users, not the organization's people. The panel lists them
  * apart, in a collapsed "Users from your product" group, and leaves them
  * out of the member count; the server authorizes the same actions on them.
@@ -110,7 +110,7 @@ export function OrgMembersPanel({
     const productUsers: PrincipalAccess[] = [];
     const serviceAccounts: PrincipalAccess[] = [];
     for (const entry of members) {
-      if (entry.principal && isPlatformClientAccount(entry.principal)) {
+      if (entry.principal && isAppUserAccount(entry.principal)) {
         productUsers.push(entry);
       } else if (entry.principal && isServiceAccount(entry.principal)) {
         serviceAccounts.push(entry);
@@ -191,7 +191,7 @@ export function OrgMembersPanel({
         </div>
       )}
 
-      {/* The product's users: provisioned by a platform client, not members */}
+      {/* The product's users: signed in by a mint, not members */}
       {productUsers.length > 0 && (
         <div className="stg:space-y-2 stg:pt-1">
           <button
@@ -210,8 +210,8 @@ export function OrgMembersPanel({
             </span>
           </button>
           <p className="stg:text-muted-foreground stg:text-xs">
-            Signed in through your platform clients. They use Stigmer through
-            your product and are not members of this organization.
+            Signed in from your product. They use Stigmer through your
+            product and are not members of this organization.
           </p>
           {productUsersOpen && (
             <div
@@ -307,7 +307,7 @@ function ServiceAccountRow({ entry }: { entry: PrincipalAccess }) {
 
 /**
  * Whose row a {@link MemberRow} is: one of the organization's people, or a
- * user of its product that a platform client provisioned. The actions are
+ * user of its product that a mint signed in. The actions are
  * the same; what removing one of them means is not.
  */
 type MemberAudience = "member" | "productUser";

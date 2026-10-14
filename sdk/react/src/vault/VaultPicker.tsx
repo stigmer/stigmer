@@ -2,14 +2,15 @@
 
 /**
  * The ordered vault picker every surface that names vaults uses: a share, a
- * channel, a schedule, a platform client, an agent and a conversation.
+ * channel, a schedule, an organization's embedding settings, an agent and
+ * a conversation.
  *
  * Order matters: the first vault holding a match wins. My vault is named
  * two ways, as the server takes it: a schedule its owner sets up lists it
  * by reference (`allowMyVault`), and a conversation includes it with a flag
  * (`myVault`), shown as a fixed first row that is never reordered, because
  * each person who sends a turn uses their own and it is always read first.
- * A share, a channel and a platform client refuse it on the server, and the
+ * A share, a channel and the embedding settings refuse it on the server, and the
  * picker never offers what the server refuses. The vaults offered are those
  * the caller can see; the server asks again, at save and at every run,
  * whether they may be used.

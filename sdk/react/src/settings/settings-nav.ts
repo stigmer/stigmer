@@ -15,7 +15,6 @@ import {
   Link,
   ListChecks,
   MessageSquare,
-  Plug,
   Scale,
   ShieldCheck,
   SlidersHorizontal,
@@ -89,11 +88,6 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
       "API keys, vaults of logins and secrets, and OAuth app credentials for your integrations.",
     items: [
       { href: "/settings/api-keys", label: "API Keys", icon: KeyRound },
-      {
-        href: "/settings/platform-clients",
-        label: "Platform Clients",
-        icon: Plug,
-      },
       { href: "/settings/vaults", label: "Vaults", icon: Box },
       { href: "/settings/oauth-apps", label: "OAuth Apps", icon: AppWindow },
       {

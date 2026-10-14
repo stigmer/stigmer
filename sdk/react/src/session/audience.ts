@@ -70,7 +70,7 @@ export function includesMyVaultByDefault(audience: SessionAudience): boolean {
  * people and a conversation's reviewers grade runs; that is part of what
  * reviewing is for. An embedding product's end users and a share-link's
  * visitors see neither: the server admits no rating from either (a
- * PlatformClient user or a visitor is not a first-party person who can own
+ * minted user token's person or a visitor is not a first-party person who can own
  * one). Hiding the health flags from them is a display choice of this
  * surface, not a permission: the score lists serve whoever can view the
  * run, as the run itself does.
