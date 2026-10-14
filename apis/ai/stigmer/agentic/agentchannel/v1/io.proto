@@ -3,7 +3,6 @@ syntax = "proto3";
 package ai.stigmer.agentic.agentchannel.v1;
 
 import "ai/stigmer/agentic/agentchannel/v1/api.proto";
-import "ai/stigmer/commons/rpc/pagination.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/field_mask.proto";
 
@@ -14,12 +13,12 @@ message AgentChannelId {
 }
 
 // Input for retrieving all channels of a specific agent.
-message GetAgentChannelsByAgentRequest {
+message ListAgentChannelsByAgentRequest {
   // Identifier of the agent whose channels to retrieve.
   string agent_id = 1 [(buf.validate.field).required = true];
 
-  // Pagination options.
-  ai.stigmer.commons.rpc.PageInfo page_info = 2;
+  reserved 2;
+  reserved "page_info";
 
   // Organization slug to scope the results to.
   //
@@ -29,19 +28,31 @@ message GetAgentChannelsByAgentRequest {
   // organizations spans all of them.
   //
   // @internal
-  // Mirrors the org scoping on the sibling getByAgent request (agent
+  // Mirrors the org scoping on the sibling listByAgent request (agent
   // shares). Handlers
   // implementing this RPC must apply the filter in their query/list step.
   string org = 3;
+
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 4 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 5 [(buf.validate.field).string.max_len = 1024];
 }
 
 // Response containing a paginated list of agent channels.
 message AgentChannelList {
-  // Total number of agent channels matching the query.
-  int32 total_count = 1;
+  reserved 1;
+  reserved "total_count";
 
   // Agent channels in the current page.
-  repeated AgentChannel items = 2;
+  repeated AgentChannel entries = 2;
+
+  // Set when more entries may follow: pass it as page_token to continue.
+  // A page may be short, even empty, and still carry a token.
+  string next_page_token = 3;
 }
 
 // Input for listing agent channels within an organization.
@@ -52,8 +63,16 @@ message ListAgentChannelsRequest {
   // Filter by metadata labels. AND semantics: all labels must match.
   map<string, string> labels = 2;
 
-  // Pagination options.
-  ai.stigmer.commons.rpc.PageInfo page_info = 3;
+  reserved 3;
+  reserved "page_info";
+
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 4 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 5 [(buf.validate.field).string.max_len = 1024];
 }
 
 // Input for starting a provider install flow.

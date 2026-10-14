@@ -34,6 +34,18 @@ service SkillQueryController {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
+  // List an organization's skills, newest first.
+  //
+  // Returns the skills of the input org that the caller may view, one page
+  // at a time. Search finds skills by their words; list browses them.
+  //
+  // @internal
+  // Authorization in-handler: the list read scope keeps the skills the
+  // caller could get by id, as every organization list does.
+  rpc list(ListSkillsRequest) returns (SkillList) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
   // Download skill artifact from storage by its storage key.
   // Returns the ZIP file containing SKILL.md and implementation files.
   //

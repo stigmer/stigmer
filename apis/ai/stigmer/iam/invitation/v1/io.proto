@@ -19,22 +19,23 @@ message Invitations {
   // Invitation entries.
   repeated Invitation entries = 1;
 
-  // Set when more invitations may follow: pass it as page_token to
-  // continue. A page may be short, even empty, and still carry a token.
+  // Set when more entries may follow: pass it as page_token to continue.
+  // A page may be short, even empty, and still carry a token.
   string next_page_token = 2;
 }
 
-// ListInvitationsByOrgInput specifies the organization whose invitations
+// ListInvitationsInput specifies the organization whose invitations
 // should be returned, newest first.
-message ListInvitationsByOrgInput {
+message ListInvitationsInput {
   // Organization slug to list invitations for.
   string org = 1 [(buf.validate.field).string.min_len = 1];
 
-  // The most invitations to return; 0 returns every invitation and no
-  // token. A positive size is capped at 100.
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
   int32 page_size = 2 [(buf.validate.field).int32.gte = 0];
 
-  // The previous response's next_page_token, to continue that list.
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
   string page_token = 3 [(buf.validate.field).string.max_len = 1024];
 }
 

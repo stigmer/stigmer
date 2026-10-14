@@ -2,12 +2,10 @@ syntax = "proto3";
 
 package ai.stigmer.tenancy.organization.v1;
 
-import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
 import "ai/stigmer/tenancy/organization/v1/api.proto";
 import "ai/stigmer/tenancy/organization/v1/io.proto";
-import "google/protobuf/empty.proto";
 
 // OrganizationQueryController handles read operations for organizations.
 service OrganizationQueryController {
@@ -26,20 +24,12 @@ service OrganizationQueryController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view organization";
   }
 
-  // List organizations with pagination and filtering.
-  //
-  // @internal
-  // Authorization: Requires platform admin permission. Administrative use only.
-  rpc find(ai.stigmer.commons.apiresource.FindApiResourcesRequest) returns (OrganizationList) {
-    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
-  }
-
-  // Find organizations the authenticated user is a member of.
+  // List the organizations the authenticated caller is a member of.
   // Returns only organizations the caller has access to.
   //
   // @internal
   // Authorization handled in handler via IAM Policy listAuthorizedResourceIds.
-  rpc findMyOrganizations(google.protobuf.Empty) returns (Organizations) {
+  rpc listMine(ListMyOrganizationsInput) returns (Organizations) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 

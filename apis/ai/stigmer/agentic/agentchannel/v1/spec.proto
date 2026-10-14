@@ -121,7 +121,7 @@ message AgentChannelSpec {
   // Existing channels keep reply-only behavior on deploy. Tuning knobs
   // (rate caps) stay platform config; what owners
   // control is this grant. The runner attaches the send_channel_message
-  // tool only when getByAgent finds an installed + enabled channel with
+  // tool only when listByAgent finds an installed + enabled channel with
   // this flag set — an agent with no proactive channel never sees the
   // tool.
   bool proactive_messaging_enabled = 7;

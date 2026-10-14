@@ -3,7 +3,6 @@ syntax = "proto3";
 package ai.stigmer.agentic.schedule.v1;
 
 import "ai/stigmer/agentic/schedule/v1/api.proto";
-import "ai/stigmer/commons/rpc/pagination.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
@@ -15,12 +14,12 @@ message ScheduleId {
 }
 
 // Input for retrieving all schedules of a specific agent.
-message GetSchedulesByAgentRequest {
+message ListSchedulesByAgentRequest {
   // Identifier of the agent whose schedules to retrieve.
   string agent_id = 1 [(buf.validate.field).required = true];
 
-  // Pagination options.
-  ai.stigmer.commons.rpc.PageInfo page_info = 2;
+  reserved 2;
+  reserved "page_info";
 
   // Organization slug to scope the results to.
   //
@@ -30,19 +29,31 @@ message GetSchedulesByAgentRequest {
   // several organizations spans all of them.
   //
   // @internal
-  // Mirrors the org scoping on the sibling getByAgent requests (agent
+  // Mirrors the org scoping on the sibling listByAgent requests (agent
   // channels, agent shares). Handlers
   // implementing this RPC must apply the filter in their query/list step.
   string org = 3;
+
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 4 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 5 [(buf.validate.field).string.max_len = 1024];
 }
 
 // Response containing a paginated list of schedules.
 message ScheduleList {
-  // Total number of schedules matching the query.
-  int32 total_count = 1;
+  reserved 1;
+  reserved "total_count";
 
   // Schedules in the current page.
-  repeated Schedule items = 2;
+  repeated Schedule entries = 2;
+
+  // Set when more entries may follow: pass it as page_token to continue.
+  // A page may be short, even empty, and still carry a token.
+  string next_page_token = 3;
 }
 
 // Input for listing schedules within an organization.
@@ -53,8 +64,16 @@ message ListSchedulesRequest {
   // Filter by metadata labels. AND semantics: all labels must match.
   map<string, string> labels = 2;
 
-  // Pagination options.
-  ai.stigmer.commons.rpc.PageInfo page_info = 3;
+  reserved 3;
+  reserved "page_info";
+
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 4 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 5 [(buf.validate.field).string.max_len = 1024];
 }
 
 // How a schedule fire was initiated.
@@ -174,17 +193,29 @@ message ListScheduleFiresRequest {
   // Schedule whose fires to list.
   string schedule_id = 1 [(buf.validate.field).required = true];
 
-  // Pagination options. Fires are returned newest first.
-  ai.stigmer.commons.rpc.PageInfo page_info = 2;
+  reserved 2;
+  reserved "page_info";
+
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 3 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 4 [(buf.validate.field).string.max_len = 1024];
 }
 
 // Response containing a paginated list of schedule fires, newest first.
 message ScheduleFireList {
-  // Total number of recorded fires for the schedule.
-  int32 total_count = 1;
+  reserved 1;
+  reserved "total_count";
 
   // Fires in the current page.
-  repeated ScheduleFire items = 2;
+  repeated ScheduleFire entries = 2;
+
+  // Set when more entries may follow: pass it as page_token to continue.
+  // A page may be short, even empty, and still carry a token.
+  string next_page_token = 3;
 }
 
 // The changes an update makes to a schedule: the fields update_mask names,

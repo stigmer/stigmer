@@ -29,7 +29,7 @@ service AgentShareQueryController {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
-  // Get all shares of a specific agent.
+  // List the shares of a specific agent, newest first.
   // Returns only shares the caller has access to, optionally scoped to
   // one organization via the request's org field.
   //
@@ -39,7 +39,7 @@ service AgentShareQueryController {
   // @internal
   // Authorization is handled in-handler: FGA-filtered in cloud, unrestricted
   // in OSS (single-user edition).
-  rpc getByAgent(GetAgentSharesByAgentRequest) returns (AgentShareList) {
+  rpc listByAgent(ListAgentSharesByAgentRequest) returns (AgentShareList) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 

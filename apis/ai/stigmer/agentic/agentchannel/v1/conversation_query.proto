@@ -34,7 +34,20 @@ service ChannelConversationQueryController {
   // the scan (the listByChannel two-stage precedent). A
   // caller who can view no channel receives an empty list, never an
   // error. OSS answers empty (cloud-only runtime).
-  rpc listConversations(ListChannelConversationsInput) returns (ChannelConversationList) {
+  rpc list(ListChannelConversationsInput) returns (ChannelConversationList) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Count an organization's channel conversations that match a filter.
+  //
+  // The number behind a badge such as the inbox's "needs you": the same
+  // predicate list applies, over the same channels, so the count and the
+  // list it opens never disagree.
+  //
+  // @internal
+  // Authorized as list is, in-handler over the channels the caller can
+  // view. OSS answers 0 (cloud-only runtime), as its list answers empty.
+  rpc countConversations(CountChannelConversationsInput) returns (ChannelConversationCount) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
@@ -46,15 +59,15 @@ service ChannelConversationQueryController {
   // until the customer's first message creates the conversation.
   //
   // @internal
-  // The get sibling of listConversations, so
+  // The get sibling of list, so
   // a deep-linked console view or an embedded conversation surface never
   // reconstructs one row by scanning list pages — and the open
   // conversation can poll its own participation state instead of riding
   // the list's slower refresh. Authorization is declarative on the
-  // channel, exactly getTimeline's shape (conversations
+  // channel, exactly listTimeline's shape (conversations
   // carry no per-conversation FGA tuples — the channel is the trust
   // boundary). NOT_FOUND deliberately covers the timeline-without-row
-  // case (a proactive cold-send the customer never answered): getTimeline
+  // case (a proactive cold-send the customer never answered): listTimeline
   // may serve items while this read refuses, the same "the customer
   // wrote first" asymmetry reply's existing-conversation precondition
   // enforces — consoles render that as "controls
@@ -69,7 +82,7 @@ service ChannelConversationQueryController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view conversations on this channel";
   }
 
-  // Get one conversation's timeline, newest first, cursor-paged.
+  // List one conversation's timeline, newest first, one page at a time.
   //
   // The timeline contains customer-visible items only: inbound customer
   // messages (including non-text kinds the platform cannot render),
@@ -84,7 +97,7 @@ service ChannelConversationQueryController {
   // Authorization is declarative on the channel: conversations
   // carry no per-conversation FGA tuples — the channel is
   // the trust boundary.
-  rpc getTimeline(GetConversationTimelineInput) returns (ConversationTimeline) {
+  rpc listTimeline(ListConversationTimelineInput) returns (ConversationTimeline) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent_channel;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
     option (ai.stigmer.commons.rpc.config).field_path = "agent_channel_id";
@@ -102,7 +115,7 @@ service ChannelConversationQueryController {
   // Addressed by (channel, conversation,
   // item_id) so the server resolves the storage key from its own row —
   // the wire never carries blob capabilities, and authorization is
-  // declarative on the channel exactly like getTimeline (the channel is
+  // declarative on the channel exactly like listTimeline (the channel is
   // the trust boundary). Deliberately stricter than the
   // attachments-blob posture (authentication-only, ULID-as-capability)
   // that the runner's download path rides: this is the human-facing

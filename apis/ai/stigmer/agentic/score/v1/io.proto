@@ -12,36 +12,45 @@ message ScoreId {
   string value = 1 [(buf.validate.field).required = true];
 }
 
-// ListScoresByRunRequest lists every score of one run.
-//
-// A run's scores are returned whole: a run has a handful.
+// ListScoresByRunRequest lists the scores of one run, newest first.
 message ListScoresByRunRequest {
   // ID of the run whose scores to list.
   string run_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 2 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
 }
 
-// ListScoresBySessionRequest lists every score of every run in a session.
-//
-// A session's scores are returned whole, as its runs are: a conversation
-// is read as one.
+// ListScoresBySessionRequest lists the scores of every run in a session,
+// newest first.
 message ListScoresBySessionRequest {
   // ID of the session whose runs' scores to list.
   string session_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 2 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
 }
 
 // ScoreList is a list of scores.
 message ScoreList {
-  // Number of scores in this response. On a paged list it counts this page
-  // only; follow next_page_token for the rest.
-  int32 total_count = 1;
+  reserved 1;
+  reserved "total_count";
 
   // The scores, newest first.
-  repeated Score items = 2;
+  repeated Score entries = 2;
 
-  // Set when more scores may follow: pass it as page_token to continue. A
-  // page may hold fewer scores than page_size, even none, and still carry a
-  // token. Empty when the list is complete, and always empty on the lists
-  // of one run or one session, which are returned whole.
+  // Set when more entries may follow: pass it as page_token to continue.
+  // A page may be short, even empty, and still carry a token.
   string next_page_token = 3;
 }
 
@@ -234,18 +243,13 @@ message ListFlaggedScoresByAgentRequest {
     lte: 90
   }];
 
-  // The most scores to return, at most 100; zero returns a page of 100.
-  // Follow next_page_token for the rest.
-  //
-  // @internal
-  // Unlike the other paged lists, zero is not "all": each page reads the
-  // sessions of its scores to narrow them, so every request stays inside
-  // the shared examine budget.
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
   int32 page_size = 4 [(buf.validate.field).int32.gte = 0];
 
   // The previous response's next_page_token, to continue that list; every
   // other field must equal that request's, or the call is refused.
-  string page_token = 5;
+  string page_token = 5 [(buf.validate.field).string.max_len = 1024];
 }
 
 // The changes an update makes to a score: the fields update_mask names,

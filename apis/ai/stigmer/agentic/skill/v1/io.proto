@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.skill.v1;
 
+import "ai/stigmer/agentic/skill/v1/api.proto";
 import "ai/stigmer/agentic/skill/v1/status.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
 import "buf/validate/validate.proto";
@@ -227,13 +228,13 @@ message ListSkillVersionsInput {
   // Skill slug (unique within the organization).
   string slug = 2 [(buf.validate.field).required = true];
 
-  // Opaque token for cursor-based pagination.
-  // Empty string or omitted for the first page.
-  string page_token = 3;
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
 
-  // Maximum number of versions to return per page.
-  // Server may return fewer. Default is 50.
-  int32 page_size = 4;
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 4 [(buf.validate.field).int32.gte = 0];
 }
 
 // SkillVersionEntry represents a single historical version of a skill.
@@ -272,11 +273,36 @@ message SkillVersionEntry {
 // ListSkillVersionsResponse contains a page of skill version history.
 message ListSkillVersionsResponse {
   // Ordered list of versions (newest first).
-  repeated SkillVersionEntry versions = 1;
+  repeated SkillVersionEntry entries = 1;
 
-  // Token for fetching the next page. Empty when no more pages exist.
+  // Set when more entries may follow: pass it as page_token to continue.
+  // A page may be short, even empty, and still carry a token.
   string next_page_token = 2;
 
-  // Total number of versions across all pages.
-  int32 total_count = 3;
+  reserved 3;
+  reserved "total_count";
+}
+
+// Input for listing an organization's skills, newest first.
+message ListSkillsRequest {
+  // Organization whose skills to list, by id or slug.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 2 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+}
+
+// One page of an organization's skills.
+message SkillList {
+  // The skills in this page, newest first.
+  repeated Skill entries = 1;
+
+  // Set when more entries may follow: pass it as page_token to continue.
+  // A page may be short, even empty, and still carry a token.
+  string next_page_token = 2;
 }

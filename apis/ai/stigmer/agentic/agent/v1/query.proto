@@ -36,6 +36,18 @@ service AgentQueryController {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
+  // List an organization's agents, newest first.
+  //
+  // Returns the agents of the input org that the caller may view, one page
+  // at a time. Search finds agents by their words; list browses them.
+  //
+  // @internal
+  // Authorization in-handler: the list read scope keeps the agents the
+  // caller could get by id, as every organization list does.
+  rpc list(ListAgentsRequest) returns (AgentList) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
   // List version history for an agent.
   //
   // Returns all historical versions, newest first. Each entry carries the

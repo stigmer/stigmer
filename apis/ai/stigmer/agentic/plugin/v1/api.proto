@@ -38,15 +38,3 @@ message Plugin {
   // System-managed install state (observed state).
   PluginStatus status = 5;
 }
-
-// PluginList represents a paginated list of plugins.
-message PluginList {
-  // API version for this list type.
-  string api_version = 1;
-
-  // Resource kind identifier for the list.
-  string kind = 2;
-
-  // List of plugin resources.
-  repeated Plugin items = 3;
-}

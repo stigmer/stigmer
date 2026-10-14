@@ -11,6 +11,10 @@ import "google/protobuf/timestamp.proto";
 message ApiKeys {
   // API key entries.
   repeated ApiKey entries = 1;
+
+  // Set when more entries may follow: pass it as page_token to continue.
+  // A page may be short, even empty, and still carry a token.
+  string next_page_token = 2;
 }
 
 // ApiKeyId identifies an API key by its unique identifier.
@@ -25,10 +29,30 @@ message ApiKeyHash {
   string value = 1 [(buf.validate.field).required = true];
 }
 
-// ApiKeyAccountId names the identity account whose keys are listed.
-message ApiKeyAccountId {
-  // Identity account id the keys speak for.
-  string value = 1 [(buf.validate.field).required = true];
+// Input for listing the caller's own API keys, newest first.
+message ListApiKeysInput {
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 1 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+}
+
+// Input for listing the API keys that speak for one identity account,
+// newest first.
+message ListApiKeysByAccountInput {
+  // The identity account whose keys are listed.
+  string account_id = 1 [(buf.validate.field).required = true];
+
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 2 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
 }
 
 // CreateServiceAccountKeyInput is the command for creating an API key that

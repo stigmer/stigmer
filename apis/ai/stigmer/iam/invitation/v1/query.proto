@@ -22,7 +22,7 @@ service InvitationQueryController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view invitation";
   }
 
-  // List all invitations belonging to an organization.
+  // List the invitations belonging to an organization.
   //
   // Returns invitations ordered by creation time (newest first).
   //
@@ -30,7 +30,7 @@ service InvitationQueryController {
   // Authorization: Requires can_view_access permission on the organization.
   // This is intentionally stricter than can_view — only users who can
   // manage org access (admins and owners) should see invitation links.
-  rpc listByOrg(ListInvitationsByOrgInput) returns (Invitations) {
+  rpc list(ListInvitationsInput) returns (Invitations) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_view_access;
     option (ai.stigmer.commons.rpc.config).field_path = "org";
