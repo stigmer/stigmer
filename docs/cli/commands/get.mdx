@@ -10,7 +10,9 @@ Retrieve a resource by type and reference.
 
 `stigmer get` fetches a single resource from the Stigmer backend and displays
 its details. You specify the resource type and a reference — either a slug, an
-`org/slug` qualified name, or a resource ID.
+`org/slug` qualified name, or a resource ID. A slug the resource was renamed
+away from keeps finding it for 30 days after the rename, and the output shows
+the current slug.
 
 ## Usage
 
@@ -112,6 +114,11 @@ produced by the agent.
 ```bash
 stigmer get agent my-agent --output yaml > agent-backup.yaml
 ```
+
+The file holds the whole resource, its `metadata.id` and `metadata.etag`
+included. `stigmer apply -f agent-backup.yaml` later restores it as written,
+however much the agent changed since: an applied file drops the etag. Keep the
+`metadata.id` in the file and edit `metadata.slug` to rename the agent.
 
 ## Global Flags
 
