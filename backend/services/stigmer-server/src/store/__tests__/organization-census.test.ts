@@ -101,10 +101,10 @@ describe("the organization census", () => {
     const change = { cause: "grant", actorId: "ida_1", actorClass: "user", org: "org_a" };
     await store.insertResource(
       ApiResourceKind.grant,
-      "iamp_1",
+      "grt_1",
       GrantSchema,
       create(GrantSchema, {
-        metadata: { id: "iamp_1" },
+        metadata: { id: "grt_1" },
         spec: {
           principal: { kind: "identity_account", id: "ida_2" },
           relation: "member",
@@ -117,10 +117,10 @@ describe("the organization census", () => {
     expect(
       (await organizationCensus(reader, new Set(["org_a"]))).map((finding) => finding.table),
     ).toEqual(["resources"]);
-    await store.deleteResource(ApiResourceKind.grant, "iamp_1", { ...change, cause: "resource_deleted" });
+    await store.deleteResource(ApiResourceKind.grant, "grt_1", { ...change, cause: "resource_deleted" });
     expect(await organizationCensus(reader, new Set(["org_a"]))).toEqual([]);
     expect(
-      (db.prepare(`SELECT COUNT(*) AS count FROM iam_policy_history WHERE org = 'org_a'`).get() as {
+      (db.prepare(`SELECT COUNT(*) AS count FROM grant_history WHERE org = 'org_a'`).get() as {
         count: number;
       }).count,
     ).toBe(2);

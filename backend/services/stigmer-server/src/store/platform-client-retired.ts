@@ -14,7 +14,7 @@
  * organization could hold several clients with different settings, and
  * which to keep is its admins' choice, made once through updateEmbedding.
  * Every IamPolicy row whose resource or principal is a platform client
- * leaves too (`policyNamesRetiredPlatformClient`): a grant on an object
+ * leaves too (`grantNamesRetiredPlatformClient`): a grant on an object
  * that no longer exists would only linger in grant listings. Such a row
  * leaves the way the store deletes a policy, with its list keys and with
  * its history kept. Search entries are boot's rebuild's to drop; clients
@@ -36,7 +36,7 @@ import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 
 /** The `kind` column value of the rows the step removes. */
 export const RETIRED_PLATFORM_CLIENT_KIND = "platform_client";
-/** The `kind` column value of the grant rows the step reads. */
+/** The `kind` column value of the grant rows the step reads: their stored kind at its time, before Postgres v34 and SQLite v38 renamed it `grant`. */
 export const PLATFORM_CLIENT_RETIRED_GRANT_KIND = "iam_policy";
 
 /** How many grant rows the step decodes per page. */

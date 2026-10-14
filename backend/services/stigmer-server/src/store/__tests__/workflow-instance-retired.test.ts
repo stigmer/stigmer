@@ -13,7 +13,7 @@ import {
 } from "../workflow-instance-retired.js";
 import { grantRow } from "./retired-instance-rows.js";
 
-describe("policyNamesRetiredWorkflowInstance", () => {
+describe("grantNamesRetiredWorkflowInstance", () => {
   it.each([
     {
       principal: "identity_account:ida_1",

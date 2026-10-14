@@ -5,8 +5,10 @@
  * (api_version 1, kind 2, metadata 3, spec 4 { agent_id 1, description 2 },
  * status 5) and a Session row whose spec carries the retired
  * agent_instance_id (SessionSpec field 1), with or without the status (its
- * audit) the session had gained by then; and an IamPolicy row, in the live
- * schema, naming whatever principal and resource a test gives it. Shared
+ * audit) the session had gained by then; and a grant row as written before
+ * v34 (kind string `IamPolicy`), in the live schema, naming whatever
+ * principal and resource a test gives it, with the ids its triple derives
+ * before and after v34 and the bytes v34 leaves. Shared
  * by the module's unit test, the frozen-envelope test and both drivers'
  * migration tests, so every one reads the same old shape.
  */
@@ -15,6 +17,7 @@ import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import { GrantSpecSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
@@ -23,6 +26,10 @@ import {
   type ApiResourceMetadata,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import type { MessageInitShape } from "@bufbuild/protobuf";
+
+import { canonicalTripleText } from "../../domain/grant/constants.js";
+import { derivedId } from "../../pipeline/steps/defaults.js";
+import { GRANT_ID_PREFIX_BEFORE_V34, GRANT_ID_PREFIX_V34 } from "../kind-rename.js";
 import { ApiResourceAuditStatusSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 
 /** An AgentInstance row as an earlier release stored it. */
@@ -111,7 +118,7 @@ export function sessionBytes(
   );
 }
 
-/** A stored IamPolicy row: `principal` -relation-> `resource`, each "kind:id". */
+/** A stored grant row as written before v34: `principal` -relation-> `resource`, each "kind:id". */
 export function grantRow(options: {
   readonly id: string;
   readonly principal: string;
@@ -146,4 +153,51 @@ function metadataBytes(
 
 function specBytes(spec: SessionSpec): Uint8Array {
   return toBinary(SessionSpecSchema, spec);
+}
+
+/** A grant fixture's triple, each end "kind:id". */
+export interface GrantTriple {
+  readonly principal: string;
+  readonly relation: string;
+  readonly resource: string;
+}
+
+const tripleSpec = (triple: GrantTriple) => {
+  const ref = (text: string) => {
+    const [kind = "", id = ""] = text.split(":");
+    return { kind, id };
+  };
+  return create(GrantSpecSchema, {
+    principal: ref(triple.principal),
+    resource: ref(triple.resource),
+    relation: triple.relation,
+  });
+};
+
+/** The id a stored grant carried before v34: its triple's, under `iamp_`. */
+export function grantIdBeforeV34(triple: GrantTriple): string {
+  return derivedId(GRANT_ID_PREFIX_BEFORE_V34, canonicalTripleText(tripleSpec(triple)));
+}
+
+/** The id v34 moves that grant to: the same hash under `grt_`. */
+export function grantIdAfterV34(triple: GrantTriple): string {
+  return derivedId(GRANT_ID_PREFIX_V34, canonicalTripleText(tripleSpec(triple)));
+}
+
+/** The bytes v34 leaves of a grant {@link grantRow} wrote: its `grt_` id and the kind string `Grant`. */
+export function grantRowAfterV34(triple: GrantTriple): Uint8Array {
+  return toBinary(
+    GrantSchema,
+    create(GrantSchema, {
+      apiVersion: "iam.stigmer.ai/v1",
+      kind: "Grant",
+      metadata: { id: grantIdAfterV34(triple) },
+      spec: tripleSpec(triple),
+    }),
+  );
+}
+
+/** A grant fixture whose id is the one its triple derived before v34, as every stored grant's was. */
+export function grantBeforeV34<T extends GrantTriple>(triple: T): T & { readonly id: string } {
+  return { ...triple, id: grantIdBeforeV34(triple) };
 }

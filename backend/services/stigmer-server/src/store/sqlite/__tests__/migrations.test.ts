@@ -73,6 +73,14 @@
  * v36 reports the stored labels, tags and annotations the new rules
  * refuse, one warning per kind with its counts and the first ten ids,
  * across keyset pages, and writes nothing.
+ * v38 renames the IAM policy kind to grant, the Postgres driver's v34 in
+ * this engine's terms: every grant takes the kind's names and its grt_ id
+ * with its list keys and history; the history's tables, column and time
+ * index take the kind's name; the store then finds each grant by its
+ * triple, refuses a second row for it, revokes it and lists its history; a
+ * grant whose id is not its triple's fails the step, naming it, and leaves
+ * the database at v37. A grant held before v34 reaches the head carrying
+ * its etag.
  * A schema written by a newer release is refused before any migration or
  * list-index reconciliation, with the failed store's connection closed.
  */
@@ -131,6 +139,7 @@ import {
   SCHEMA_VERSION_35,
   SCHEMA_VERSION_36,
   SCHEMA_VERSION_37,
+  SCHEMA_VERSION_38,
   SCHEMA_VERSION_7,
   getSchemaVersion,
   runMigrations,
@@ -138,7 +147,11 @@ import {
 import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
 import { ENVIRONMENT_RETIRED_PAGE_SIZE } from "../../environment-retired.js";
 import {
+  grantBeforeV34,
+  grantIdAfterV34,
+  grantIdBeforeV34,
   grantRow,
+  grantRowAfterV34,
   retiredInstanceRow,
   retiredSessionRow,
   sessionBytes,
@@ -152,7 +165,7 @@ import { SESSION_VALUES_PAGE_SIZE } from "../../session-values-retired.js";
 import { SESSION_HARNESS_PAGE_SIZE } from "../../session-harness-state-moved.js";
 import { ETAG_STAMP_PAGE_SIZE } from "../../resource-etags-stamped.js";
 import { LABEL_TAG_REPORT_PAGE_SIZE } from "../../label-tag-report.js";
-import { etagOf, stampEtag } from "../../etag.js";
+import { etagOf, stampEtag, storedEtagOf } from "../../etag.js";
 import { currentSessionRow, sessionRowWithValues } from "../../__tests__/retired-session-rows.js";
 import { HISTORY_PAGE_SIZE } from "../../organization-slug-history.js";
 import { PUBLIC_ROW_KINDS_AT_RETIREMENT } from "../../public-visibility-retired.js";
@@ -176,6 +189,8 @@ import {
 import { materializeGoFixture } from "./support.js";
 import { agentExecutionListIndex } from "../../../domain/run/list-index.js";
 import { grantListIndex } from "../../../domain/grant/list-index.js";
+import { newResourceGrantStore } from "../../../domain/grant/resource-store.js";
+import { DuplicateGrantError } from "../../../domain/grant/store.js";
 import { KIND_TABLES, KIND_RENAME_PAGE_SIZE } from "../../kind-rename.js";
 import {
   AGENT_RUN_NAMES,
@@ -184,7 +199,6 @@ import {
   RUN_RENAME_ORG,
   runBytes,
 } from "../../__tests__/run-rename-rows.js";
-import { grantIdFor } from "../../../domain/grant/constants.js";
 
 const cleanups: Array<() => void | Promise<void>> = [];
 
@@ -327,8 +341,8 @@ describe("fresh database", () => {
       "pending_oauth_state",
       "resource_names",
       "organization_deletions",
-      "iam_policy_history",
-      "iam_policy_history_heads",
+      "grant_history",
+      "grant_history_heads",
     ]) {
       expect(tables, `table ${expected} should exist`).toContain(expected);
     }
@@ -352,7 +366,7 @@ describe("fresh database", () => {
       .all() as Array<{ version: number }>;
     expect(rows.map((row) => row.version)).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-      22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37,
+      22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38,
     ]);
   });
 
@@ -1801,12 +1815,11 @@ describe("v18: agent executions are runs", () => {
     relation: "viewer",
     resource: "agent_execution:aex_1",
   };
-  const keptGrant = {
-    id: "iamp_on_agent",
+  const keptGrant = grantBeforeV34({
     principal: "identity_account:ida_3",
     relation: "viewer",
     resource: "agent:agt_1",
-  };
+  });
 
   it("renames the run kind in every table, rewrites the rows that spell it and re-keys grants on runs", async () => {
     const { dbPath, db: setup } = v17Database();
@@ -1863,14 +1876,10 @@ describe("v18: agent executions are runs", () => {
       db.prepare(`SELECT kind, name FROM resource_names WHERE id = 'aex_1'`).all(),
     ).toEqual([{ kind: "agent_run", name: "aex_1" }]);
 
-    // The grant on the run moves to the id its renamed triple derives; its
-    // history stays under the old id. The grant on the agent is untouched.
-    const rekeyedId = grantIdFor(
-      fromBinary(
-        GrantSchema,
-        grantRow({ ...runGrant, resource: "agent_run:aex_1" }),
-      ).spec!,
-    );
+    // The grant on the run moves to the id its renamed triple derived at
+    // the step's time (iamp_); its history stays under the old id. The
+    // grant on the agent is untouched.
+    const rekeyedId = grantIdBeforeV34({ ...runGrant, resource: "agent_run:aex_1" });
     expect(row(db, "iam_policy", runGrant.id)).toBeUndefined();
     const rekeyed = fromBinary(GrantSchema, row(db, "iam_policy", rekeyedId)!.data);
     expect(rekeyed.metadata?.id).toBe(rekeyedId);
@@ -1882,12 +1891,11 @@ describe("v18: agent executions are runs", () => {
         .all(),
     ).toEqual([{ resource_id: runGrant.id }]);
 
-    // The store the server opens (at the head, past v21) finds the run
-    // through the key its list reads, and the grant through its principal
-    // under the id v21 derived for it in turn.
-    const headId = grantIdFor(
-      fromBinary(GrantSchema, grantRow({ ...runGrant, resource: "run:aex_1" })).spec!,
-    );
+    // The store the server opens (at the head, past v21 and v38) finds
+    // the run through the key its list reads, and the grant through its
+    // principal under the id v21 derived for it in turn, which v38 moved
+    // to grt_.
+    const headId = grantIdAfterV34({ ...runGrant, resource: "run:aex_1" });
     const store = SqliteStore.open(dbPath, undefined, {
       listIndexes: [agentExecutionListIndex, grantListIndex],
     });
@@ -1900,7 +1908,7 @@ describe("v18: agent executions are runs", () => {
       (await store.queryResources(index, { anyKey: [{ name, value }] })).map((r) => r.id);
     expect(await ids(agentExecutionListIndex, "session", "ses_1")).toEqual(["aex_1"]);
     expect(await ids(grantListIndex, "principal", "ida_2")).toEqual([headId]);
-    expect(await ids(grantListIndex, "principal", "ida_3")).toEqual([keptGrant.id]);
+    expect(await ids(grantListIndex, "principal", "ida_3")).toEqual([grantIdAfterV34(keptGrant)]);
   });
 
   it("reads runs across keyset pages, missing none past the first page", () => {
@@ -2009,12 +2017,11 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
       status: { agentId: "agt_1" },
     }),
   );
-  const keptGrant = {
-    id: "iam_kept",
+  const keptGrant = grantBeforeV34({
     principal: "identity_account:ida_9",
     relation: "viewer",
     resource: "agent:agt_1",
-  };
+  });
 
   /** The agent, its session and their name, which every arm keeps. */
   function seedAgents(db: DatabaseSync): void {
@@ -2608,14 +2615,14 @@ describe("v21: the agent run is a run", () => {
     relation: "viewer",
     resource: "session:ses_1",
   });
-  const keptGrant = {
-    id: "iamp_on_agent",
+  const keptGrant = grantBeforeV34({
     principal: "identity_account:ida_3",
     relation: "viewer",
     resource: "agent:agt_1",
-  };
-  const headId = (grant: { principal: string; relation: string; resource: string; id: string }) =>
-    grantIdFor(fromBinary(GrantSchema, grantRow(grant)).spec!);
+  });
+  // The id v21 re-keys a grant to: its triple's, under the prefix of the step's time.
+  const stepId = (grant: { principal: string; relation: string; resource: string }) =>
+    grantIdBeforeV34(grant);
 
   /** Seeds one run of `kind` the way that release stored it, with its audit, list key, name and grants. */
   function seedRun(db: DatabaseSync, kind: string, names: typeof AGENT_RUN_NAMES): Uint8Array {
@@ -2660,8 +2667,8 @@ describe("v21: the agent run is a run", () => {
     expect(db.prepare(`SELECT kind, name FROM resource_names WHERE id = 'aex_1'`).all()).toEqual([
       { kind: "run", name: "aex_1" },
     ]);
-    const onRun = headId(runGrant("run"));
-    const ofRun = headId(ownerGrant("run"));
+    const onRun = stepId(runGrant("run"));
+    const ofRun = stepId(ownerGrant("run"));
     const policies = (db.prepare(`SELECT id FROM resources WHERE kind = 'iam_policy' ORDER BY id`).all() as Array<{
       id: string;
     }>).map((p) => p.id);
@@ -2684,8 +2691,9 @@ describe("v21: the agent run is a run", () => {
     const ids = async (index: Parameters<typeof store.queryResources>[0], name: string, value: string) =>
       (await store.queryResources(index, { anyKey: [{ name, value }] })).map((r) => r.id);
     expect(await ids(agentExecutionListIndex, "session", "ses_1")).toEqual(["aex_1"]);
-    expect(await ids(grantListIndex, "principal", "ida_2")).toEqual([onRun]);
-    expect(await ids(grantListIndex, "principal", "ida_3")).toEqual([keptGrant.id]);
+    // The head (v38) moves both to their grt_ ids.
+    expect(await ids(grantListIndex, "principal", "ida_2")).toEqual([grantIdAfterV34(runGrant("run"))]);
+    expect(await ids(grantListIndex, "principal", "ida_3")).toEqual([grantIdAfterV34(keptGrant)]);
   }
 
   it("renames the run kind in every table, rewrites the rows that spell it and re-keys grants on runs, from a store at v20", async () => {
@@ -3565,5 +3573,156 @@ describe("v37: the platform client rows and the grants naming them leave", () =>
       expect(count(db, table, "platform_client"), table).toBe(0);
     }
     expect(count(db, "resources", "iam_policy")).toBe(0);
+  });
+});
+
+describe("v38: the IAM policy is a grant", () => {
+  const ORG = "acme";
+  const SEEDED_AT = "2026-10-15 00:00:00";
+  const orgRole = grantBeforeV34({ principal: "identity_account:ida_alice", relation: "viewer", resource: `organization:${ORG}` });
+  const onAgent = grantBeforeV34({ principal: "identity_account:ida_bob", relation: "editor", resource: "agent:agt_1" });
+  const held = [orgRole, onAgent];
+
+  function insertGrant(db: DatabaseSync, grant: { id: string; principal: string; relation: string; resource: string }): void {
+    db.prepare(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('iam_policy', ?, ?, ?)`).run(
+      grant.id,
+      grantRow(grant),
+      SEEDED_AT,
+    );
+  }
+
+  /** A store at v37 holding both grants as that release wrote them, with their list keys and history. */
+  function seededAtV37(): { dbPath: string; db: DatabaseSync } {
+    const dbPath = tempDbPath();
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_37);
+    for (const [index, grant] of held.entries()) {
+      insertGrant(db, grant);
+      db.prepare(
+        `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('iam_policy', ?, 'principal', ?, '')`,
+      ).run(grant.id, grant.principal.split(":")[1] ?? "");
+      const [principalKind, principalId] = grant.principal.split(":");
+      const [resourceKind, resourceId] = grant.resource.split(":");
+      db.prepare(
+        `INSERT INTO iam_policy_history (org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id,
+           principal_kind, principal_id, relation, resource_kind, resource_id, data)
+         VALUES (?, ?, '2026-10-15T00:00:00.000Z', 'granted', 'grant', 'ida_root', 'user', ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(ORG, index + 1, grant.id, principalKind!, principalId!, grant.relation, resourceKind!, resourceId!, grantRow(grant));
+    }
+    db.prepare(
+      `INSERT INTO iam_policy_history_heads (org, last_sequence, last_occurred_at) VALUES (?, 2, '2026-10-15T00:00:00.000Z')`,
+    ).run(ORG);
+    return { dbPath, db };
+  }
+
+  it("moves every grant, its list keys and its history to the kind's new names and its grt_ id, from a store at v37", () => {
+    const { db } = seededAtV37();
+    runMigrations(db, SCHEMA_VERSION_38);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_38);
+
+    const moved = [...held].sort((a, b) => (grantIdAfterV34(a) < grantIdAfterV34(b) ? -1 : 1));
+    const rows = db
+      .prepare(`SELECT kind, id, data, updated_at FROM resources WHERE kind IN ('iam_policy', 'grant') ORDER BY id`)
+      .all() as Array<{ kind: string; id: string; data: Uint8Array; updated_at: string }>;
+    expect(rows.map((r) => [r.kind, r.id])).toEqual(moved.map((g) => ["grant", grantIdAfterV34(g)]));
+    for (const [index, grant] of moved.entries()) {
+      expect(new Uint8Array(rows[index]!.data)).toEqual(grantRowAfterV34(grant));
+      expect(rows[index]!.updated_at).toBe(SEEDED_AT);
+    }
+    expect(
+      db.prepare(`SELECT kind, id FROM resource_list_keys WHERE kind IN ('iam_policy', 'grant') ORDER BY id`).all(),
+    ).toEqual(moved.map((g) => ({ kind: "grant", id: grantIdAfterV34(g) })));
+
+    const tables = tableNames(db).filter((name) => name.startsWith("grant") || name.startsWith("iam_policy"));
+    expect(tables).toEqual(["grant_history", "grant_history_heads"]);
+    // SQLite renames a table's primary-key autoindex with it; the time index is made again.
+    const indexes = (
+      db.prepare(`SELECT name FROM sqlite_master WHERE type = 'index' ORDER BY name`).all() as Array<{ name: string }>
+    ).map((r) => r.name);
+    expect(indexes).toContain("grant_history_by_time");
+    expect(indexes).toContain("sqlite_autoindex_grant_history_1");
+    expect(indexes.filter((name) => name.includes("iam_policy"))).toEqual([]);
+    expect(
+      (db.prepare(`PRAGMA index_info('grant_history_by_time')`).all() as Array<{ name: string }>).map((c) => c.name),
+    ).toEqual(["occurred_at", "org", "sequence"]);
+
+    const entries = db
+      .prepare(`SELECT sequence, grant_id, data FROM grant_history WHERE org = ? ORDER BY sequence`)
+      .all(ORG) as Array<{ sequence: number; grant_id: string; data: Uint8Array }>;
+    expect(entries.map((e) => [e.sequence, e.grant_id, new Uint8Array(e.data)])).toEqual(
+      held.map((g, index) => [index + 1, grantIdAfterV34(g), grantRowAfterV34(g)]),
+    );
+    expect(db.prepare(`SELECT org, last_sequence FROM grant_history_heads`).all()).toEqual([
+      { org: ORG, last_sequence: 2 },
+    ]);
+  });
+
+  it("leaves the store finding each moved grant by its triple: a second row is refused, a revoke removes it, and the history lists all three", async () => {
+    const { dbPath } = seededAtV37();
+    const store = SqliteStore.open(dbPath, undefined, { listIndexes: [grantListIndex] });
+    cleanups.push(() => store.close());
+    const grants = newResourceGrantStore(store, { keepsHistory: true });
+    const change = (cause: "grant" | "revoke") => ({
+      actor: { id: "ida_root", callerClass: "user" },
+      cause,
+      organizationId: ORG,
+    });
+    const found = await grants.findByResource("organization", ORG);
+    expect(found.map((g) => g.metadata?.id)).toEqual([grantIdAfterV34(orgRole)]);
+    await expect(grants.save(fromBinary(GrantSchema, grantRowAfterV34(orgRole)), change("grant"))).rejects.toBeInstanceOf(
+      DuplicateGrantError,
+    );
+    await grants.deleteById(found[0]!.metadata!.id, change("revoke"));
+    expect(await grants.findByResource("organization", ORG)).toEqual([]);
+    expect((await grants.findByResource("agent", "agt_1")).map((g) => g.metadata?.id)).toEqual([grantIdAfterV34(onAgent)]);
+    const history = await grants.listChanges(ORG, { limit: 10, after: 0n });
+    expect(history.map((h) => [h.sequence, h.change, h.grant.metadata?.id])).toEqual([
+      [1n, "granted", grantIdAfterV34(orgRole)],
+      [2n, "granted", grantIdAfterV34(onAgent)],
+      [3n, "revoked", grantIdAfterV34(orgRole)],
+    ]);
+  });
+
+  it("moves the history's entries across its keyset pages", () => {
+    const { db } = seededAtV37();
+    const insertEntry = db.prepare(
+      `INSERT INTO iam_policy_history (org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id,
+         principal_kind, principal_id, relation, resource_kind, resource_id, data)
+       VALUES (?, ?, '2026-10-15T00:00:00.000Z', 'granted', 'grant', 'ida_root', 'user', ?, 'identity_account', 'ida_alice', 'viewer', 'organization', ?, ?)`,
+    );
+    for (let sequence = 3; sequence <= KIND_RENAME_PAGE_SIZE + 3; sequence++) {
+      insertEntry.run(ORG, sequence, orgRole.id, ORG, grantRow(orgRole));
+    }
+    runMigrations(db, SCHEMA_VERSION_38);
+    expect(db.prepare(`SELECT COUNT(*) AS n FROM grant_history WHERE grant_id LIKE 'iamp\_%' ESCAPE '\\'`).get()).toEqual({ n: 0 });
+    expect(
+      db.prepare(`SELECT grant_id FROM grant_history WHERE org = ? AND sequence = ?`).get(ORG, KIND_RENAME_PAGE_SIZE + 3),
+    ).toEqual({ grant_id: grantIdAfterV34(orgRole) });
+  });
+
+  it("fails on a grant whose id is not the one its triple derives, naming it, and leaves the database at v37", () => {
+    const { db } = seededAtV37();
+    const stray = { id: "iamp_01hzzzzzzzzzzzzzzzzzzzzzzz", principal: "identity_account:ida_carol", relation: "viewer", resource: `organization:${ORG}` };
+    insertGrant(db, stray);
+    expect(() => runMigrations(db, SCHEMA_VERSION_38)).toThrow(
+      `the grant row ${stray.id} cannot be read for the rename of the IAM policy to a grant: its id is not the one its triple derives (${grantIdBeforeV34(stray)})`,
+    );
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_37);
+    expect(db.prepare(`SELECT COUNT(*) AS n FROM resources WHERE kind = 'iam_policy'`).get()).toEqual({ n: 3 });
+  });
+
+  it("a grant a store held before v34 reaches the head carrying its etag (v34 reads the kind by its name then)", async () => {
+    const dbPath = tempDbPath();
+    const setup = new DatabaseSync(dbPath);
+    runMigrations(setup, SCHEMA_VERSION_33);
+    insertGrant(setup, orgRole);
+    setup.close();
+    const store = SqliteStore.open(dbPath);
+    cleanups.push(() => store.close());
+    const grant = await store.getResource(ApiResourceKind.grant, grantIdAfterV34(orgRole), GrantSchema);
+    expect(grant).toBeDefined();
+    expect(storedEtagOf(GrantSchema, grant!)).toBe(etagOf(GrantSchema, grant!));
+    expect(storedEtagOf(GrantSchema, grant!)).not.toBe("");
   });
 });

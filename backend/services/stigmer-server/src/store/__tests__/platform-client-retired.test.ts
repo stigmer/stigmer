@@ -14,7 +14,7 @@ import {
 } from "../platform-client-retired.js";
 import { grantRow } from "./retired-instance-rows.js";
 
-describe("policyNamesRetiredPlatformClient", () => {
+describe("grantNamesRetiredPlatformClient", () => {
   it.each([
     { principal: "identity_account:ida_1", resource: "platform_client:pcl_1", named: true },
     { principal: "platform_client:pcl_1", resource: "organization:org_1", named: true },

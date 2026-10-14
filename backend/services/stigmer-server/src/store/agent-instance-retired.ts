@@ -38,7 +38,7 @@
  * (when the agent belongs to the run's own organization) or from the
  * layers a schedule or a PlatformClient caller supplies.
  * Every IamPolicy row whose resource or principal is an instance leaves too
- * (`policyNamesRetiredInstance`): a grant on an object that no longer
+ * (`grantNamesRetiredInstance`): a grant on an object that no longer
  * exists would only linger in grant listings. Such a row leaves the way the
  * store deletes a policy, with its list keys and with its history kept.
  *
@@ -70,7 +70,7 @@ import { FrozenAgentInstanceEnvelopeSchema } from "./frozen-envelopes.js";
 export const RETIRED_INSTANCE_KIND = "agent_instance";
 export const SESSION_KIND = "session";
 export const AGENT_KIND = "agent";
-/** The `kind` column value of the grant rows the step reads. */
+/** The `kind` column value of the grant rows the step reads: their stored kind at its time, before Postgres v34 and SQLite v38 renamed it `grant`. */
 export const GRANT_KIND_AT_STEP = "iam_policy";
 
 /** How many session rows the step decodes per page. */

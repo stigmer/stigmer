@@ -8,7 +8,7 @@
  *
  * What leaves with the instances. Every instance's `environment_refs` and
  * run visibility are dropped with it. Every IamPolicy row whose resource or
- * principal is an instance leaves too (`policyNamesRetiredWorkflowInstance`):
+ * principal is an instance leaves too (`grantNamesRetiredWorkflowInstance`):
  * a grant on an object that no longer exists would only linger in grant
  * listings. Such a row leaves the way the store deletes a policy, with its
  * list keys and with its history kept. The list keys of the removed rows go
@@ -31,7 +31,7 @@ import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 
 /** The `kind` column value of the rows the step removes. */
 export const RETIRED_WORKFLOW_INSTANCE_KIND = "workflow_instance";
-/** The `kind` column value of the grant rows the step reads. */
+/** The `kind` column value of the grant rows the step reads: their stored kind at its time, before Postgres v34 and SQLite v38 renamed it `grant`. */
 export const WORKFLOW_RETIREMENT_GRANT_KIND = "iam_policy";
 
 /** How many grant rows the step decodes per page. */

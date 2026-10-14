@@ -686,7 +686,7 @@ describe("migrateSessionRow", () => {
   });
 });
 
-describe("policyNamesRetired", () => {
+describe("grantNamesRetired", () => {
   const servers = new Set(["mcp_gh"]);
   const skills = new Set(["skl_review"]);
 

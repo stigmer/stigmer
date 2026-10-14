@@ -7,14 +7,20 @@
  *   - at the last step, the fetched run passes the contract's own
  *     validation, so it can be sent back through `update`;
  *   - a grant naming the step's old kind as resource or principal is
- *     re-keyed to the id its renamed triple derives, keeping the run's id,
- *     and a grant on another kind is not;
+ *     re-keyed to the id its renamed triple derives under the prefix of
+ *     the step's time (`iamp_`, frozen: a live prefix would re-key to an
+ *     id no store of that time held), keeping the run's id, and a grant on
+ *     another kind is not;
  *   - bytes that do not decode throw (the step must not pass over them);
  *   - each step's names are frozen literals, so a later rename cannot
  *     change what an earlier step did;
  *   - at v30, an identity provider's row and the grants naming one become
  *     the federation issuer's, keeping its idp_ id, and the fetched row
- *     passes the contract's validation.
+ *     passes the contract's validation;
+ *   - at v34, a grant's kind string becomes `Grant`, and a grant row or a
+ *     history entry's copy of it moves from its `iamp_` id to the `grt_`
+ *     id with the same hash; one already moved is left alone, and one whose
+ *     id is not its triple's, or that holds no triple, throws.
  */
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import { createValidator } from "@bufbuild/protovalidate";
@@ -24,16 +30,19 @@ import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 
-import { grantIdFor } from "../../domain/grant/constants.js";
+import { canonicalTripleText } from "../../domain/grant/constants.js";
+import { derivedId } from "../../pipeline/steps/defaults.js";
 import {
   FEDERATION_ISSUER_RENAME_V30,
+  GRANT_RENAME_V34,
   RUN_RENAME_V18,
   RUN_RENAME_V21,
+  movedGrant,
   rekeyedGrant,
   renamedKindRow,
   unreadableKindRenameRowError,
 } from "../kind-rename.js";
-import { grantRow } from "./retired-instance-rows.js";
+import { grantIdAfterV34, grantIdBeforeV34, grantRow, grantRowAfterV34 } from "./retired-instance-rows.js";
 import {
   AGENT_RUN_NAMES,
   EXECUTION_NAMES,
@@ -77,7 +86,7 @@ describe.each([
     });
   });
 
-  describe("rekeyedPolicy", () => {
+  describe("rekeyedGrant", () => {
     it("re-keys a grant on a run to the id its renamed triple derives", () => {
       const rekeyed = rekeyedGrant(
         rename,
@@ -91,7 +100,7 @@ describe.each([
       expect(rekeyed).toBeDefined();
       const migrated = fromBinary(GrantSchema, rekeyed!.data);
       expect(migrated.spec?.resource).toMatchObject({ kind: toKind, id: "aex_1" });
-      expect(rekeyed!.id).toBe(grantIdFor(migrated.spec!));
+      expect(rekeyed!.id).toBe(derivedId("iamp", canonicalTripleText(migrated.spec!)));
       expect(migrated.metadata?.id).toBe(rekeyed!.id);
       expect(rekeyed!.id).not.toBe("iamp_old");
     });
@@ -180,6 +189,41 @@ describe("v30", () => {
     );
     const migrated = fromBinary(GrantSchema, rekeyed!.data);
     expect(migrated.spec?.resource).toMatchObject({ kind: "federation_issuer", id: "idp_1" });
-    expect(rekeyed!.id).toBe(grantIdFor(migrated.spec!));
+    expect(rekeyed!.id).toBe(derivedId("iamp", canonicalTripleText(migrated.spec!)));
+  });
+});
+
+describe("v34: the IAM policy is a grant", () => {
+  const triple = { principal: "identity_account:ida_1", relation: "viewer", resource: "agent:agt_1" };
+
+  it("renames the kind and its kind string, frozen", () => {
+    expect(GRANT_RENAME_V34.kind).toEqual(["iam_policy", "grant"]);
+    expect(GRANT_RENAME_V34.kindString).toEqual(["IamPolicy", "Grant"]);
+    const renamed = renamedKindRow(GRANT_RENAME_V34, grantRow({ id: grantIdBeforeV34(triple), ...triple }));
+    expect(fromBinary(GrantSchema, renamed!).kind).toBe("Grant");
+  });
+
+  it("moves a grant from its iamp_ id to the grt_ id with the same hash, its kind string with it", () => {
+    const before = grantIdBeforeV34(triple);
+    const moved = movedGrant(before, grantRow({ id: before, ...triple }));
+    expect(moved!.id).toBe(grantIdAfterV34(triple));
+    expect(moved!.id.slice("grt_".length)).toBe(before.slice("iamp_".length));
+    expect(moved!.data).toEqual(grantRowAfterV34(triple));
+  });
+
+  it("moves a row the kind rename already rewrote, and leaves one already at its grt_ id", () => {
+    const before = grantIdBeforeV34(triple);
+    const renamed = renamedKindRow(GRANT_RENAME_V34, grantRow({ id: before, ...triple }))!;
+    expect(movedGrant(before, renamed)!.data).toEqual(grantRowAfterV34(triple));
+    expect(movedGrant(grantIdAfterV34(triple), grantRowAfterV34(triple))).toBeUndefined();
+  });
+
+  it("refuses a row whose id is not the one its triple derives, and one with no triple", () => {
+    expect(() => movedGrant("iamp_random", grantRow({ id: "iamp_random", ...triple }))).toThrow(
+      `its id is not the one its triple derives (${grantIdBeforeV34(triple)})`,
+    );
+    const empty = toBinary(GrantSchema, create(GrantSchema, { kind: "IamPolicy", metadata: { id: "iamp_x" } }));
+    expect(() => movedGrant("iamp_x", empty)).toThrow("it holds no triple");
+    expect(() => movedGrant("iamp_x", new Uint8Array([0xff, 0xff, 0xff]))).toThrow();
   });
 });

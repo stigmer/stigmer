@@ -233,7 +233,7 @@ export interface SearchIndexQueryResult {
 /**
  * Key-value state for one-shot boot work that must run once per database.
  * Two writers today: the membership rules' reconciliations
- * (`iampolicy/constants.ts` ROLES_RECONCILED_KEY and
+ * (`grant/constants.ts` ROLES_RECONCILED_KEY and
  * SERVER_ORGANIZATION_ROLES_KEY) and the boot step that makes a
  * one-organization server's organization (`domain/organization/limit.ts`
  * SINGLE_ORG_KEY). A database migrated
@@ -679,7 +679,7 @@ export interface Store {
    * Stores a NEW resource: true when the row was written, false when the id
    * is already held, in which case nothing is written. The store's key
    * decides, so of two concurrent inserts of one id exactly one answers
-   * true. With a `change` (iam_policy rows only; permission-history.ts) the
+   * true. With a `change` (grant rows only; permission-history.ts) the
    * written row's permission-history entry commits in the same transaction,
    * and a refused insert records nothing.
    */
@@ -776,7 +776,7 @@ export interface Store {
 
   /**
    * Removes a resource; NO error if it does not exist. Answers whether a row
-   * was removed. With a `change` (iam_policy rows only;
+   * was removed. With a `change` (grant rows only;
    * permission-history.ts) the removal and the removed row's
    * permission-history entry commit in one transaction, and removing
    * nothing records nothing.

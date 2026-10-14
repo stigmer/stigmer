@@ -25,7 +25,9 @@
  * fixes them at their next edit.
  *
  * A row whose kind has no entry ({@link RESOURCE_SCHEMAS}) is not read; a
- * row that does not decode is counted as unreadable in the same line.
+ * row that does not decode is counted as unreadable in the same line. A
+ * kind renamed after the step is read by the name its rows carried then
+ * ({@link KIND_NAMES_AT_STEP}, which the etag step before it shares).
  *
  * Pinned by __tests__/label-tag-report.test.ts and both drivers'
  * migration arms.
@@ -41,7 +43,7 @@ import type { ApiResourceMetadata } from "@stigmer/protos/ai/stigmer/commons/api
 
 import type { StoreLogger } from "./logger.js";
 import { apiResourceKindName } from "./proto-fields.js";
-import { RESOURCE_SCHEMAS } from "./resource-etags-stamped.js";
+import { KIND_NAMES_AT_STEP, RESOURCE_SCHEMAS } from "./resource-etags-stamped.js";
 
 /** How many rows the step reads per page. */
 export const LABEL_TAG_REPORT_PAGE_SIZE = 100;
@@ -53,7 +55,7 @@ export const LABEL_TAG_REPORT_SAMPLE = 10;
 const ANNOTATIONS_FIELD_NUMBER = 7;
 
 const SCHEMAS_BY_KIND_NAME = new Map(
-  [...RESOURCE_SCHEMAS].map(([kind, schema]) => [apiResourceKindName(kind), schema]),
+  [...RESOURCE_SCHEMAS].map(([kind, schema]) => [KIND_NAMES_AT_STEP.get(kind) ?? apiResourceKindName(kind), schema]),
 );
 
 /** The `kind` column values of the rows the step reads. */

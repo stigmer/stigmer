@@ -80,6 +80,7 @@ export const PLUGIN_KIND = "plugin";
 export const SKILL_KIND = "skill";
 export const AGENT_KIND = "agent";
 export const SESSION_KIND = "session";
+/** The `kind` column value of the grant rows the step reads: their stored kind at its time, before Postgres v34 and SQLite v38 renamed it `grant`. */
 export const GRANT_KIND_AT_STEP = "iam_policy";
 
 /** How many rows the step decodes per page. */

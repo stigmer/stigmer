@@ -40,7 +40,7 @@ import type { StoreLogger } from "../logger.js";
 import {
   AGENT_KIND as RETIREMENT_AGENT_KIND,
   PLUGIN_KIND,
-  GRANT_KIND_AT_STEP as RETIREMENT_POLICY_KIND,
+  GRANT_KIND_AT_STEP as RETIREMENT_GRANT_KIND,
   RETIRED_MCP_SERVER_KIND,
   RETIREMENT_PAGE_SIZE as SERVER_RETIREMENT_PAGE_SIZE,
   RetirementFacts,
@@ -116,8 +116,10 @@ import {
   KIND_TABLES,
   KIND_RENAME_PAGE_SIZE,
   KIND_RENAME_GRANT_KIND,
+  GRANT_RENAME_V34,
   RUN_RENAME_V18,
   RUN_RENAME_V21,
+  movedGrant,
   rekeyedGrant,
   renamedKindRow,
   unreadableKindRenameRowError,
@@ -254,8 +256,11 @@ export const SCHEMA_VERSION_36 = 36;
 /** v37: the platform client rows removed, with every grant naming one. */
 export const SCHEMA_VERSION_37 = 37;
 
+/** v38: the IAM policy is a grant: its names, its ids and its history's tables. */
+export const SCHEMA_VERSION_38 = 38;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_37;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_38;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -318,6 +323,7 @@ export function runMigrations(
     [SCHEMA_VERSION_35, migrateToV35],
     [SCHEMA_VERSION_36, (migrating) => migrateToV36(migrating, logger)],
     [SCHEMA_VERSION_37, migrateToV37],
+    [SCHEMA_VERSION_38, migrateToV38],
   ];
 
   for (const [version, migrate] of chain) {
@@ -1094,12 +1100,12 @@ function renameKind(db: DatabaseSync, rename: KindRename): void {
     db.prepare(`UPDATE ${table} SET kind = ? WHERE kind = ?`).run(toKind, fromKind);
   }
 
-  const rekeyed: Array<{ from: string; policy: RekeyedGrant }> = [];
+  const rekeyed: Array<{ from: string; grant: RekeyedGrant }> = [];
   for (const row of resources(KIND_RENAME_GRANT_KIND)) {
     try {
-      const policy = rekeyedGrant(rename, row.data);
-      if (policy !== undefined) {
-        rekeyed.push({ from: row.id, policy });
+      const grant = rekeyedGrant(rename, row.data);
+      if (grant !== undefined) {
+        rekeyed.push({ from: row.id, grant });
       }
     } catch (error) {
       throw unreadableKindRenameRowError(rename, KIND_RENAME_GRANT_KIND, row.id, error);
@@ -1111,11 +1117,11 @@ function renameKind(db: DatabaseSync, rename: KindRename): void {
   const insertGrant = db.prepare(
     `INSERT INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, datetime('now'))`,
   );
-  for (const { from, policy } of rekeyed) {
+  for (const { from, grant } of rekeyed) {
     for (const statement of deleteGrant) {
       statement.run(KIND_RENAME_GRANT_KIND, from);
     }
-    insertGrant.run(KIND_RENAME_GRANT_KIND, policy.id, policy.data);
+    insertGrant.run(KIND_RENAME_GRANT_KIND, grant.id, grant.data);
   }
 }
 
@@ -1535,7 +1541,7 @@ function migrateToV26(db: DatabaseSync, logger: StoreLogger): void {
   const serverIds = facts.serverIds();
   const memberSkillIds = facts.memberSkillIds();
   const retiredGrantIds: string[] = [];
-  forEachRow(RETIREMENT_POLICY_KIND, (row) => {
+  forEachRow(RETIREMENT_GRANT_KIND, (row) => {
     if (grantNamesRetired(row.data, serverIds, memberSkillIds)) {
       retiredGrantIds.push(row.id);
     }
@@ -1545,7 +1551,7 @@ function migrateToV26(db: DatabaseSync, logger: StoreLogger): void {
   );
   for (const id of retiredGrantIds) {
     for (const statement of deleteRow) {
-      statement.run(RETIREMENT_POLICY_KIND, id);
+      statement.run(RETIREMENT_GRANT_KIND, id);
     }
   }
   const deleteAudit = db.prepare(`DELETE FROM resource_audit WHERE kind = ? AND resource_id = ?`);
@@ -2016,5 +2022,99 @@ function migrateToV37(db: DatabaseSync): void {
     db.prepare(`DELETE FROM ${table} WHERE kind = ?`).run(
       RETIRED_PLATFORM_CLIENT_KIND,
     );
+  }
+}
+
+/**
+ * v38: the IAM policy is a grant — the Postgres driver's v34 in this
+ * engine's terms (its header says what moves; kind-rename.ts says why a
+ * grant's id moves when no other kind's does). The kind is renamed by the
+ * v18 transformation (`renameKind`) with this step's frozen names
+ * (`GRANT_RENAME_V34`); every grant row then moves from `iamp_X` to
+ * `grt_X` with its list keys; the history's tables and column take the
+ * kind's name, the time index is dropped and made again under its new name
+ * (SQLite renames no index), and every entry moves the same way. Rows are
+ * collected before any id moves. Runs inside applyInTransaction's BEGIN,
+ * so a throw rolls the whole step back and the boot stops on the row it
+ * names.
+ */
+function migrateToV38(db: DatabaseSync): void {
+  const rename = GRANT_RENAME_V34;
+  const [, grantKind] = rename.kind;
+  renameKind(db, rename);
+
+  const page = db.prepare(
+    `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+  );
+  const moved: Array<{ from: string; grant: RekeyedGrant }> = [];
+  for (let after = ""; ; ) {
+    const rows = page.all(grantKind, after, KIND_RENAME_PAGE_SIZE) as Array<{
+      id: string;
+      data: Uint8Array;
+    }>;
+    for (const row of rows) {
+      let grant: RekeyedGrant | undefined;
+      try {
+        grant = movedGrant(row.id, row.data);
+      } catch (error) {
+        throw unreadableKindRenameRowError(rename, grantKind, row.id, error);
+      }
+      if (grant !== undefined) {
+        moved.push({ from: row.id, grant });
+      }
+    }
+    if (rows.length < KIND_RENAME_PAGE_SIZE) {
+      break;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
+  const moveRow = db.prepare(`UPDATE resources SET id = ?, data = ? WHERE kind = ? AND id = ?`);
+  const moveKeys = db.prepare(`UPDATE resource_list_keys SET id = ? WHERE kind = ? AND id = ?`);
+  for (const { from, grant } of moved) {
+    moveRow.run(grant.id, grant.data, grantKind, from);
+    moveKeys.run(grant.id, grantKind, from);
+  }
+
+  db.exec(`
+    DROP INDEX iam_policy_history_by_time;
+    ALTER TABLE iam_policy_history RENAME TO grant_history;
+    ALTER TABLE grant_history RENAME COLUMN policy_id TO grant_id;
+    ALTER TABLE iam_policy_history_heads RENAME TO grant_history_heads;
+    CREATE INDEX grant_history_by_time
+      ON grant_history (occurred_at, org, sequence);
+  `);
+  const entries = db.prepare(
+    `SELECT org, sequence, grant_id, data FROM grant_history
+     WHERE (org, sequence) > (?, ?)
+     ORDER BY org, sequence
+     LIMIT ?`,
+  );
+  const moveEntry = db.prepare(
+    `UPDATE grant_history SET grant_id = ?, data = ? WHERE org = ? AND sequence = ?`,
+  );
+  for (let afterOrg = "", afterSequence = 0; ; ) {
+    const rows = entries.all(afterOrg, afterSequence, KIND_RENAME_PAGE_SIZE) as Array<{
+      org: string;
+      sequence: number;
+      grant_id: string;
+      data: Uint8Array;
+    }>;
+    for (const row of rows) {
+      let grant: RekeyedGrant | undefined;
+      try {
+        grant = movedGrant(row.grant_id, row.data);
+      } catch (error) {
+        throw unreadableKindRenameRowError(rename, "grant_history", `${row.org}/${row.sequence}`, error);
+      }
+      if (grant !== undefined) {
+        moveEntry.run(grant.id, grant.data, row.org, row.sequence);
+      }
+    }
+    if (rows.length < KIND_RENAME_PAGE_SIZE) {
+      return;
+    }
+    const last = rows[rows.length - 1]!;
+    afterOrg = last.org;
+    afterSequence = Number(last.sequence);
   }
 }

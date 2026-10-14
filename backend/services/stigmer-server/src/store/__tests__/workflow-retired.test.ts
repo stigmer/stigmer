@@ -225,7 +225,7 @@ describe("migrateAgentRunRow", () => {
   });
 });
 
-describe("policyNamesRetiredWorkflowKind", () => {
+describe("grantNamesRetiredWorkflowKind", () => {
   it.each([
     { principal: "identity_account:ida_1", resource: "workflow:wfl_1", named: true },
     {

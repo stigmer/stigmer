@@ -13,7 +13,7 @@
  * history, their list keys and the names they held. No value is moved into
  * a vault: a person saves their keys again, and signs in again, into My
  * vault. Every IamPolicy row whose resource or principal is an environment
- * leaves too (`policyNamesRetiredEnvironment`): a grant on an object that no
+ * leaves too (`grantNamesRetiredEnvironment`): a grant on an object that no
  * longer exists would only linger in grant listings. Such a row leaves the
  * way the store deletes a policy, with its list keys and with its history
  * kept. The `oauth_grant` table, which held each sign-in's renewal
@@ -48,7 +48,7 @@ import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 /** The `kind` column value of the rows the step deletes. */
 export const RETIRED_ENVIRONMENT_KIND = "environment";
 
-/** The `kind` column value of the grant rows the step reads. */
+/** The `kind` column value of the grant rows the step reads: their stored kind at its time, before Postgres v34 and SQLite v38 renamed it `grant`. */
 export const ENVIRONMENT_RETIRED_GRANT_KIND = "iam_policy";
 
 /** The table the step drops. */
