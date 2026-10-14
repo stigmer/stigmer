@@ -406,8 +406,8 @@ answer, or a change in what the Session is doing.
   introductory copy; "event" once the reader reads or streams them.
 - **Capitalize**: No.
 - **API surface**: `SessionEvent` in `session/v1/event.proto`, read with
-  `listEvents` or `streamEvents`. Each event is a Claude Managed Agents session
-  event, named and shaped as Anthropic's SDK types it
+  `listEvents` or `streamEvents`. Each event is a Claude Managed Agents event,
+  named and shaped as Anthropic's SDK types it
   ([Use Anthropic's SDK](/docs/sdk/managed-agents)): `user.message`,
   `agent.message`, `agent.tool_use`, `session.status_idle` and the rest. A type
   that starts with `stigmer.` is Stigmer's own, listed with its reason in
