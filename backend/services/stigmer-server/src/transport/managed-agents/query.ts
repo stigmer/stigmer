@@ -12,7 +12,7 @@
  * unknown type's shape) is the native method's to refuse. Parameters the
  * lane does not read (the SDK's `beta=true`) are ignored.
  *
- * Proven by __tests__/query.test.ts.
+ * Proven by __tests__/rules.test.ts.
  */
 import { isStigmerEventType } from "@stigmer/session-log";
 

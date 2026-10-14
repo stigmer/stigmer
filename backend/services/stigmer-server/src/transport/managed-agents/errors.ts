@@ -13,7 +13,7 @@
  * with FAILED_PRECONDITION and say why), so they read as
  * invalid_request_error with the gate's message.
  *
- * Proven by __tests__/errors.test.ts.
+ * Proven by __tests__/rules.test.ts and __tests__/lane-composed.test.ts.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 

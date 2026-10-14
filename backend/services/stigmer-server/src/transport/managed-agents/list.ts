@@ -16,8 +16,8 @@
  * (SessionQueryController.get, the same can_view), whose refusal is the
  * answer. A session with events costs no extra read.
  *
- * Proven by __tests__/lane.test.ts and the session-events-managed-agents
- * conformance suites.
+ * Proven by __tests__/lane-composed.test.ts and the
+ * session-events-managed-agents conformance suites.
  */
 import { create } from "@bufbuild/protobuf";
 

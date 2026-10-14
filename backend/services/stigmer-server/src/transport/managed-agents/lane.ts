@@ -35,9 +35,9 @@
  * unhandled rejection), and writes one log line: method, route shape,
  * status, request id and duration, never a body or a credential.
  *
- * Proven by __tests__/lane.test.ts, __tests__/stream.test.ts,
- * __tests__/send.test.ts, boot/__tests__/managed-agents-lane.composed.test.ts
- * and the session-events-managed-agents conformance suites.
+ * Proven by __tests__/rules.test.ts (routes and credentials),
+ * __tests__/lane-composed.test.ts (the lane on a composed server, both
+ * postures) and the session-events-managed-agents conformance suites.
  */
 import type { Readable } from "node:stream";
 
