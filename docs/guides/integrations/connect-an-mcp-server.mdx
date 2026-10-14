@@ -281,9 +281,9 @@ address, run the same call once per customer, with a name and address each.
 
 A run finds the server's login the way the contract states it:
 
-- **With an `Authorization` header** that names `${NAME}`, as above, the login
-  is that key, and the run needs it: a run whose vaults do not hold it is
-  refused before it starts, naming the key.
+- **With an `Authorization` header** that names `${NAME}`, as in the example,
+  the login is that key, and the run needs it: a run whose vaults do not hold it
+  is refused before it starts, naming the key.
 - **With no `Authorization` header**, the run uses the login saved in its vaults
   at the server's address, else a secret named `<NAME>_ACCESS_TOKEN` (here
   `TICKETS_ACCESS_TOKEN`: the server's name upper-cased, each other character
