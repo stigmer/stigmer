@@ -234,6 +234,14 @@ implicit Organization automatically. You don't need to think about Organizations
 at all — resources just work. This implicit Organization ensures that the same
 API contracts work identically in both modes.
 
+On a **self-hosted server**, open source holds one Organization, made when the
+server first starts. Stigmer Enterprise holds as many as its license allows:
+anyone signed in may create one, unless the server's operator lists the accounts
+that may (`STIGMER_ORGANIZATION_CREATORS`). The list never stops an
+Organization's admins from creating its child Organizations, which count toward
+the license's number like any other. On every edition, an admin can invite
+anyone signed in to their Organization.
+
 ## Resource visibility
 
 Every resource has a visibility setting that says who inside the platform can

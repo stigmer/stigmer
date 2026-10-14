@@ -517,6 +517,7 @@ export {
   internalError,
   invalidArgumentError,
   notFoundError,
+  permissionDeniedWithReasonError,
   rethrownStatusError,
   unauthenticatedWithReasonError,
   unavailableError,

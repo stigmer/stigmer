@@ -301,8 +301,8 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
-     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED and
-     * LICENSE_RENEWAL_REQUIRED included.
+     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED,
+     * LICENSE_RENEWAL_REQUIRED and ORGANIZATION_CREATOR_NOT_LISTED included.
      * A request that carries metadata.id updates that organization, and its
      * slug changes only through rename. A slug the organization was renamed
      * away from, named without its id, is refused with FAILED_PRECONDITION
@@ -371,6 +371,14 @@ public final class OrganizationCommandControllerGrpc {
      * written:
      *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
      *     organization that exists keeps working. No metadata.
+     * On Stigmer Enterprise, the server's operator may list the accounts that
+     * may create an organization. Any other caller's create of a top-level
+     * organization is refused with PERMISSION_DENIED carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written; a child organization is not refused by it:
+     *   - ORGANIZATION_CREATOR_NOT_LISTED — the caller's account is not one
+     *     the operator listed. Metadata: account (the caller's own account
+     *     id, which the operator lists).
      * </pre>
      */
     default void create(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -518,8 +526,8 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
-     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED and
-     * LICENSE_RENEWAL_REQUIRED included.
+     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED,
+     * LICENSE_RENEWAL_REQUIRED and ORGANIZATION_CREATOR_NOT_LISTED included.
      * A request that carries metadata.id updates that organization, and its
      * slug changes only through rename. A slug the organization was renamed
      * away from, named without its id, is refused with FAILED_PRECONDITION
@@ -589,6 +597,14 @@ public final class OrganizationCommandControllerGrpc {
      * written:
      *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
      *     organization that exists keeps working. No metadata.
+     * On Stigmer Enterprise, the server's operator may list the accounts that
+     * may create an organization. Any other caller's create of a top-level
+     * organization is refused with PERMISSION_DENIED carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written; a child organization is not refused by it:
+     *   - ORGANIZATION_CREATOR_NOT_LISTED — the caller's account is not one
+     *     the operator listed. Metadata: account (the caller's own account
+     *     id, which the operator lists).
      * </pre>
      */
     public void create(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -728,8 +744,8 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
-     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED and
-     * LICENSE_RENEWAL_REQUIRED included.
+     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED,
+     * LICENSE_RENEWAL_REQUIRED and ORGANIZATION_CREATOR_NOT_LISTED included.
      * A request that carries metadata.id updates that organization, and its
      * slug changes only through rename. A slug the organization was renamed
      * away from, named without its id, is refused with FAILED_PRECONDITION
@@ -798,6 +814,14 @@ public final class OrganizationCommandControllerGrpc {
      * written:
      *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
      *     organization that exists keeps working. No metadata.
+     * On Stigmer Enterprise, the server's operator may list the accounts that
+     * may create an organization. Any other caller's create of a top-level
+     * organization is refused with PERMISSION_DENIED carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written; a child organization is not refused by it:
+     *   - ORGANIZATION_CREATOR_NOT_LISTED — the caller's account is not one
+     *     the operator listed. Metadata: account (the caller's own account
+     *     id, which the operator lists).
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization create(ai.stigmer.tenancy.organization.v1.Organization request) throws io.grpc.StatusException {
@@ -931,8 +955,8 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
-     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED and
-     * LICENSE_RENEWAL_REQUIRED included.
+     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED,
+     * LICENSE_RENEWAL_REQUIRED and ORGANIZATION_CREATOR_NOT_LISTED included.
      * A request that carries metadata.id updates that organization, and its
      * slug changes only through rename. A slug the organization was renamed
      * away from, named without its id, is refused with FAILED_PRECONDITION
@@ -1001,6 +1025,14 @@ public final class OrganizationCommandControllerGrpc {
      * written:
      *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
      *     organization that exists keeps working. No metadata.
+     * On Stigmer Enterprise, the server's operator may list the accounts that
+     * may create an organization. Any other caller's create of a top-level
+     * organization is refused with PERMISSION_DENIED carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written; a child organization is not refused by it:
+     *   - ORGANIZATION_CREATOR_NOT_LISTED — the caller's account is not one
+     *     the operator listed. Metadata: account (the caller's own account
+     *     id, which the operator lists).
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization create(ai.stigmer.tenancy.organization.v1.Organization request) {
@@ -1134,8 +1166,8 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
-     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED and
-     * LICENSE_RENEWAL_REQUIRED included.
+     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED,
+     * LICENSE_RENEWAL_REQUIRED and ORGANIZATION_CREATOR_NOT_LISTED included.
      * A request that carries metadata.id updates that organization, and its
      * slug changes only through rename. A slug the organization was renamed
      * away from, named without its id, is refused with FAILED_PRECONDITION
@@ -1205,6 +1237,14 @@ public final class OrganizationCommandControllerGrpc {
      * written:
      *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
      *     organization that exists keeps working. No metadata.
+     * On Stigmer Enterprise, the server's operator may list the accounts that
+     * may create an organization. Any other caller's create of a top-level
+     * organization is refused with PERMISSION_DENIED carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written; a child organization is not refused by it:
+     *   - ORGANIZATION_CREATOR_NOT_LISTED — the caller's account is not one
+     *     the operator listed. Metadata: account (the caller's own account
+     *     id, which the operator lists).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> create(
