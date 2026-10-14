@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
  *   <li>{@link #billing()} billing account, Stripe and model catalog client</li>
  *   <li>Cross-resource {@link #search()} client</li>
  *   <li>{@link #github()} OAuth integration client</li>
+ *   <li>{@link #tokens()} user token minting client</li>
  * </ul>
  *
  * <pre>{@code
@@ -42,6 +43,7 @@ public final class StigmerClient extends GeneratedClient implements AutoCloseabl
     private final BillingClient billing;
     private final SearchClient search;
     private final GitHubClient github;
+    private final TokenClient tokens;
     private final RunnerAdapter runnerAdapter;
 
     private StigmerClient(ManagedChannel channel, RunnerAdapter runnerAdapter) {
@@ -50,6 +52,7 @@ public final class StigmerClient extends GeneratedClient implements AutoCloseabl
         this.billing = new BillingClient(channel);
         this.search = new SearchClient(channel);
         this.github = new GitHubClient(channel);
+        this.tokens = new TokenClient(channel);
         this.runnerAdapter = runnerAdapter;
     }
 
@@ -79,6 +82,13 @@ public final class StigmerClient extends GeneratedClient implements AutoCloseabl
 
     /** Returns the GitHub OAuth integration client. */
     public GitHubClient github() { return github; }
+
+    /**
+     * Returns the token client, which mints user tokens for people signed in
+     * to an organization's own product. Requires this client's API key to
+     * belong to a service account that administers the organization.
+     */
+    public TokenClient tokens() { return tokens; }
 
     /**
      * Returns the runner adapter, or {@code null} if none was configured.

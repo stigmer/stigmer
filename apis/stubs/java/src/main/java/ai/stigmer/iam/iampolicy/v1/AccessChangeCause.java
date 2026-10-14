@@ -107,7 +107,11 @@ public enum AccessChangeCause
   /**
    * <pre>
    * A person who signed in through a platform client was given the
-   * organization role that client grants.
+   * organization role that client granted. No longer written: a minted
+   * user's sign-in role is an ordinary grant made by the service account
+   * whose key minted the token, as federation records its own. It stays
+   * because history entries hold it, and an entry's cause is what
+   * happened then.
    * </pre>
    *
    * <code>platform_client_grant = 11;</code>
@@ -225,7 +229,11 @@ public enum AccessChangeCause
   /**
    * <pre>
    * A person who signed in through a platform client was given the
-   * organization role that client grants.
+   * organization role that client granted. No longer written: a minted
+   * user's sign-in role is an ordinary grant made by the service account
+   * whose key minted the token, as federation records its own. It stays
+   * because history entries hold it, and an entry's cause is what
+   * happened then.
    * </pre>
    *
    * <code>platform_client_grant = 11;</code>

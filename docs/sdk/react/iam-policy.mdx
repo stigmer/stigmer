@@ -262,7 +262,7 @@ function useGranteeCandidates(options: UseGranteeCandidatesOptions): UseGranteeC
 
 <TypeTable
   type={{
-    appUsers: { type: "readonly PersonCandidate[]", description: "Accounts a platform client provisioned for an integrator's own users (\"Users from your product\"); empty when `includeAppUsers` is `false`." },
+    appUsers: { type: "readonly PersonCandidate[]", description: "Accounts a mint created for an integrator's own users (\"Users from your product\"); empty when `includeAppUsers` is `false`." },
     error: { type: "Error | null", description: "The first error either list reported, or `null`." },
     isLoading: { type: "boolean", description: "`true` while either list is loading for the first time." },
     people: { type: "readonly PersonCandidate[]", description: "The organization's people, federated sign-ins included." },
@@ -286,12 +286,12 @@ organization.
 
 Wraps `iamPolicy.getPrincipalsCount()`: every principal of the kind
 that holds a role on the organization. For identity accounts that
-includes the accounts a PlatformClient provisioned for the
-organization's own product, its service accounts and any machine
+includes the accounts a mint created for the organization's own
+product, its service accounts and any machine
 account granted a role, so it is the size of the access list, not the
 number of the organization's people. A member count reads the organization's access
 list ([`useResourceAccess`](#useresourceaccess)) and leaves out the entries
-`isPlatformClientAccount` and `isServiceAccount` (from `@stigmer/sdk`)
+`isAppUserAccount` and `isServiceAccount` (from `@stigmer/sdk`)
 mark, as `OrgMembersPanel` does.
 
 Pass `null` as `org` to skip fetching (stable no-op).
@@ -600,8 +600,8 @@ role picker and no change or removal on an owner's row. A role change
 grants the new role before it revokes the old one, so a refused step
 leaves the member with the role they had.
 
-The accounts a PlatformClient provisioned for the organization's own
-product also hold a role here (a client's sign-in role), but they are that
+The accounts a mint created for people of the organization's own
+product also hold a role here (the embedding sign-in role), but they are that
 product's users, not the organization's people. The panel lists them
 apart, in a collapsed "Users from your product" group, and leaves them
 out of the member count; the server authorizes the same actions on them.
@@ -974,7 +974,7 @@ Options for [`useGranteeCandidates`](#usegranteecandidates).
 
 <TypeTable
   type={{
-    includeAppUsers: { type: "boolean", description: "Offer the accounts a platform client provisioned for an integrator's own users, in `appUsers`. Defaults to `true`; pass `false` where only the organization's people belong (a team's members)." },
+    includeAppUsers: { type: "boolean", description: "Offer the accounts a mint created for an integrator's own users, in `appUsers`. Defaults to `true`; pass `false` where only the organization's people belong (a team's members)." },
     includeServiceAccounts: { type: "boolean", description: "Offer the organization's service accounts, in `serviceAccounts`. Defaults to `true`; pass `false` where only people belong (a team's members)." },
     includeTeams: { type: "boolean", description: "Offer the organization's teams too. Pass `false` where teams cannot be granted.", required: true },
     org: { type: "string | null", description: "The organization whose people (and teams) are offered, or `null` to skip.", required: true },

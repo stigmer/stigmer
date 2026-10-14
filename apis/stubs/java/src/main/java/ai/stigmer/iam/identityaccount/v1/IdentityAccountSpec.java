@@ -12,8 +12,8 @@ package ai.stigmer.iam.identityaccount.v1;
  * An identity account represents a user or machine principal in Stigmer.
  * Accounts can be direct (signed up via Stigmer), federated (provisioned
  * through an external identity provider), machine (service-to-service
- * credentials), platform_client (provisioned via a PlatformClient's
- * mintUserToken endpoint), or service_account (an organization's own
+ * credentials), app_user (signed in from an organization's own product
+ * through TokenService.mintUserToken), or service_account (an organization's own
  * non-person account, created by its admins for automation).
  * </pre>
  *
@@ -82,11 +82,10 @@ private static final long serialVersionUID = 0L;
    * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
    * federation_issuer_ref — the pair (federation_issuer_ref, idp_id) is unique.
    * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
-   * For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
-   * where org is the Stigmer org that owns the PlatformClient(s) and
-   * external_user_id is the platform builder's stable identifier for the user.
-   * Scoping by org (not by PlatformClient) means the same user_id presented
-   * via any PlatformClient in the same org resolves to the same IdentityAccount.
+   * For app_user accounts: composite "stgm_pc|{org}|{external_user_id}" where
+   * org is the organization the minted token is for and external_user_id is
+   * the product's stable identifier for the person, so the same user_id
+   * minted for the same organization resolves to the same IdentityAccount.
    * Globally unique by construction — no additional scope field is needed.
    * For service_account accounts: composite "stgm_sa|{org}|{random}", assigned
    * by the server at createServiceAccount and never supplied by a caller.
@@ -121,11 +120,10 @@ private static final long serialVersionUID = 0L;
    * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
    * federation_issuer_ref — the pair (federation_issuer_ref, idp_id) is unique.
    * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
-   * For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
-   * where org is the Stigmer org that owns the PlatformClient(s) and
-   * external_user_id is the platform builder's stable identifier for the user.
-   * Scoping by org (not by PlatformClient) means the same user_id presented
-   * via any PlatformClient in the same org resolves to the same IdentityAccount.
+   * For app_user accounts: composite "stgm_pc|{org}|{external_user_id}" where
+   * org is the organization the minted token is for and external_user_id is
+   * the product's stable identifier for the person, so the same user_id
+   * minted for the same organization resolves to the same IdentityAccount.
    * Globally unique by construction — no additional scope field is needed.
    * For service_account accounts: composite "stgm_sa|{org}|{random}", assigned
    * by the server at createServiceAccount and never supplied by a caller.
@@ -739,8 +737,8 @@ private static final long serialVersionUID = 0L;
    * An identity account represents a user or machine principal in Stigmer.
    * Accounts can be direct (signed up via Stigmer), federated (provisioned
    * through an external identity provider), machine (service-to-service
-   * credentials), platform_client (provisioned via a PlatformClient's
-   * mintUserToken endpoint), or service_account (an organization's own
+   * credentials), app_user (signed in from an organization's own product
+   * through TokenService.mintUserToken), or service_account (an organization's own
    * non-person account, created by its admins for automation).
    * </pre>
    *
@@ -1026,11 +1024,10 @@ private static final long serialVersionUID = 0L;
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
      * federation_issuer_ref — the pair (federation_issuer_ref, idp_id) is unique.
      * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
-     * For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
-     * where org is the Stigmer org that owns the PlatformClient(s) and
-     * external_user_id is the platform builder's stable identifier for the user.
-     * Scoping by org (not by PlatformClient) means the same user_id presented
-     * via any PlatformClient in the same org resolves to the same IdentityAccount.
+     * For app_user accounts: composite "stgm_pc|{org}|{external_user_id}" where
+     * org is the organization the minted token is for and external_user_id is
+     * the product's stable identifier for the person, so the same user_id
+     * minted for the same organization resolves to the same IdentityAccount.
      * Globally unique by construction — no additional scope field is needed.
      * For service_account accounts: composite "stgm_sa|{org}|{random}", assigned
      * by the server at createServiceAccount and never supplied by a caller.
@@ -1064,11 +1061,10 @@ private static final long serialVersionUID = 0L;
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
      * federation_issuer_ref — the pair (federation_issuer_ref, idp_id) is unique.
      * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
-     * For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
-     * where org is the Stigmer org that owns the PlatformClient(s) and
-     * external_user_id is the platform builder's stable identifier for the user.
-     * Scoping by org (not by PlatformClient) means the same user_id presented
-     * via any PlatformClient in the same org resolves to the same IdentityAccount.
+     * For app_user accounts: composite "stgm_pc|{org}|{external_user_id}" where
+     * org is the organization the minted token is for and external_user_id is
+     * the product's stable identifier for the person, so the same user_id
+     * minted for the same organization resolves to the same IdentityAccount.
      * Globally unique by construction — no additional scope field is needed.
      * For service_account accounts: composite "stgm_sa|{org}|{random}", assigned
      * by the server at createServiceAccount and never supplied by a caller.
@@ -1103,11 +1099,10 @@ private static final long serialVersionUID = 0L;
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
      * federation_issuer_ref — the pair (federation_issuer_ref, idp_id) is unique.
      * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
-     * For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
-     * where org is the Stigmer org that owns the PlatformClient(s) and
-     * external_user_id is the platform builder's stable identifier for the user.
-     * Scoping by org (not by PlatformClient) means the same user_id presented
-     * via any PlatformClient in the same org resolves to the same IdentityAccount.
+     * For app_user accounts: composite "stgm_pc|{org}|{external_user_id}" where
+     * org is the organization the minted token is for and external_user_id is
+     * the product's stable identifier for the person, so the same user_id
+     * minted for the same organization resolves to the same IdentityAccount.
      * Globally unique by construction — no additional scope field is needed.
      * For service_account accounts: composite "stgm_sa|{org}|{random}", assigned
      * by the server at createServiceAccount and never supplied by a caller.
@@ -1138,11 +1133,10 @@ private static final long serialVersionUID = 0L;
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
      * federation_issuer_ref — the pair (federation_issuer_ref, idp_id) is unique.
      * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
-     * For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
-     * where org is the Stigmer org that owns the PlatformClient(s) and
-     * external_user_id is the platform builder's stable identifier for the user.
-     * Scoping by org (not by PlatformClient) means the same user_id presented
-     * via any PlatformClient in the same org resolves to the same IdentityAccount.
+     * For app_user accounts: composite "stgm_pc|{org}|{external_user_id}" where
+     * org is the organization the minted token is for and external_user_id is
+     * the product's stable identifier for the person, so the same user_id
+     * minted for the same organization resolves to the same IdentityAccount.
      * Globally unique by construction — no additional scope field is needed.
      * For service_account accounts: composite "stgm_sa|{org}|{random}", assigned
      * by the server at createServiceAccount and never supplied by a caller.
@@ -1170,11 +1164,10 @@ private static final long serialVersionUID = 0L;
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
      * federation_issuer_ref — the pair (federation_issuer_ref, idp_id) is unique.
      * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
-     * For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
-     * where org is the Stigmer org that owns the PlatformClient(s) and
-     * external_user_id is the platform builder's stable identifier for the user.
-     * Scoping by org (not by PlatformClient) means the same user_id presented
-     * via any PlatformClient in the same org resolves to the same IdentityAccount.
+     * For app_user accounts: composite "stgm_pc|{org}|{external_user_id}" where
+     * org is the organization the minted token is for and external_user_id is
+     * the product's stable identifier for the person, so the same user_id
+     * minted for the same organization resolves to the same IdentityAccount.
      * Globally unique by construction — no additional scope field is needed.
      * For service_account accounts: composite "stgm_sa|{org}|{random}", assigned
      * by the server at createServiceAccount and never supplied by a caller.

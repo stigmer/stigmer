@@ -195,7 +195,6 @@ Rows read `| \`Message.field\` | class |`.
 
 | Field | Class |
 |---|---|
-| `ai.stigmer.commons.apiresource.ApiResourceAuditActor.platform_client_id` | stamped id |
 | `ai.stigmer.commons.apiresource.ApiResourceMetadata.slug` | not a resource: the resource's own name |
 
 ## `ai.stigmer.iam.iampolicy.v1`
@@ -215,12 +214,6 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec.federation_issuer_ref` | stamped reference |
 | `ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput.federation_issuer_ref` | request reference |
 
-## `ai.stigmer.iam.platformclient.v1`
-
-| Field | Class |
-|---|---|
-| `ai.stigmer.iam.platformclient.v1.PlatformClientSpec.vaults` | manifest reference |
-
 ## `ai.stigmer.platform.v1`
 
 | Field | Class |
@@ -235,3 +228,9 @@ Rows read `| \`Message.field\` | class |`.
 |---|---|
 | `ai.stigmer.search.v1.SearchResult.qualified_slug` | display slug |
 | `ai.stigmer.search.v1.SearchResult.slug` | not a resource: the hit's own name |
+
+## `ai.stigmer.tenancy.organization.v1`
+
+| Field | Class |
+|---|---|
+| `ai.stigmer.tenancy.organization.v1.OrganizationEmbedding.vaults` | manifest reference |

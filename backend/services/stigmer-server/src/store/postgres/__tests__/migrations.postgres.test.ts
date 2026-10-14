@@ -102,6 +102,8 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import { HISTORY_PAGE_SIZE } from "../../organization-slug-history.js";
 import { PUBLIC_ROW_KINDS_AT_RETIREMENT } from "../../public-visibility-retired.js";
@@ -130,6 +132,7 @@ import {
   SCHEMA_VERSION_30,
   SCHEMA_VERSION_31,
   SCHEMA_VERSION_32,
+  SCHEMA_VERSION_33,
   runMigrations,
 } from "../migrations.js";
 import { LABEL_TAG_REPORT_PAGE_SIZE } from "../../label-tag-report.js";
@@ -153,6 +156,8 @@ import { etagOf, stampEtag } from "../../etag.js";
 import { currentSessionRow, sessionRowWithValues } from "../../__tests__/retired-session-rows.js";
 import { sessionListIndex } from "../../../domain/session/list-index.js";
 import { WORKFLOW_RETIREMENT_PAGE_SIZE } from "../../workflow-instance-retired.js";
+import { PLATFORM_CLIENT_RETIRED_PAGE_SIZE } from "../../platform-client-retired.js";
+import { retiredPlatformClientRow } from "../../__tests__/retired-platform-client-rows.js";
 import {
   AGENT_RUN_RETIRED_PAGE_SIZE,
   WORKFLOW_CHILD_ENDED_ERROR,
@@ -3630,6 +3635,189 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           for (const row of stored.rows) {
             expect(Buffer.from(seeded.get(row.id)!).equals(row.data), row.id).toBe(true);
           }
+        } finally {
+          await client.end();
+        }
+      });
+    });
+
+    describe("v33: the platform client rows leave, with every grant naming one", () => {
+      const ORG = "org_01jz0000000000000000000000";
+      const seededAt = new Date("2026-10-01T00:00:00Z");
+
+      async function clientAt(target: number): Promise<pg.Client> {
+        await migrateTo(db.databaseUrl, target);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        return client;
+      }
+
+      async function insert(client: pg.Client, kind: string, id: string, data: Uint8Array): Promise<void> {
+        await client.query(
+          `INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, $4)`,
+          [kind, id, Buffer.from(data), seededAt],
+        );
+      }
+
+      async function data(client: pg.Client, kind: string, id: string): Promise<Uint8Array | undefined> {
+        const result = await client.query<{ data: Buffer }>(
+          `SELECT data FROM resources WHERE kind = $1 AND id = $2`,
+          [kind, id],
+        );
+        const found = result.rows[0];
+        return found === undefined ? undefined : new Uint8Array(found.data);
+      }
+
+      async function count(client: pg.Client, table: string, kind: string): Promise<number> {
+        const result = await client.query<{ n: string }>(`SELECT COUNT(*) AS n FROM ${table} WHERE kind = $1`, [kind]);
+        return Number(result.rows[0]!.n);
+      }
+
+      async function version(client: pg.Client): Promise<number> {
+        const result = await client.query(`SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`);
+        return Number(result.rows[0].version);
+      }
+
+      const appUser = toBinary(
+        IdentityAccountSchema,
+        create(IdentityAccountSchema, {
+          apiVersion: "iam.stigmer.ai/v1",
+          kind: "IdentityAccount",
+          metadata: { id: "ida_app_user", org: ORG },
+          spec: { idpId: `stgm_pc|${ORG}|user-7`, provisioningMode: IdentityAccountProvisioningMode.app_user },
+        }),
+      );
+      const keptGrant = {
+        id: "iam_on_org",
+        principal: "identity_account:ida_app_user",
+        relation: "member",
+        resource: `organization:${ORG}`,
+      };
+      const retiredGrants = [
+        { id: "iam_on_client", principal: "identity_account:ida_1", relation: "viewer", resource: "platform_client:pcl_dashboard" },
+        { id: "iam_client_holds", principal: "platform_client:pcl_dashboard", relation: "viewer", resource: "agent:agt_1" },
+      ];
+
+      async function seedClient(client: pg.Client): Promise<void> {
+        await insert(
+          client,
+          "platform_client",
+          "pcl_dashboard",
+          retiredPlatformClientRow({
+            metadata: { id: "pcl_dashboard", org: ORG, slug: "dashboard" },
+            clientId: "stgm_cid_dashboard",
+            allowedOrigins: ["https://app.example"],
+            signInRole: IamRole.member,
+            vaults: [{ kind: ApiResourceKind.vault, org: ORG, id: "vlt_keys" }],
+            vaultAttachers: { vlt_keys: "ida_admin" },
+          }),
+        );
+        await client.query(
+          `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('platform_client', 'pcl_dashboard', $1, '', '')`,
+          [Buffer.from([0x00])],
+        );
+        await client.query(
+          `INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES ('platform_client', $1, 'dashboard', 'pcl_dashboard', 'current', '2026-10-01T00:00:00Z')`,
+          [ORG],
+        );
+      }
+
+      it("removes the client rows from every table and every grant naming one, and keeps the accounts its mints created and their grants", async () => {
+        const client = await clientAt(SCHEMA_VERSION_33 - 1);
+        try {
+          await seedClient(client);
+          for (const grant of [...retiredGrants, keptGrant]) {
+            await insert(client, "iam_policy", grant.id, policyRow(grant));
+          }
+          await insert(client, "identity_account", "ida_app_user", appUser);
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_33);
+          expect(await version(client)).toBe(SCHEMA_VERSION_33);
+          for (const table of KIND_TABLES) {
+            expect(await count(client, table, "platform_client"), table).toBe(0);
+          }
+          const kept = await client.query<{ id: string }>(`SELECT id FROM resources WHERE kind = 'iam_policy' ORDER BY id`);
+          expect(kept.rows.map((r) => r.id)).toEqual([keptGrant.id]);
+          expect(await data(client, "iam_policy", keptGrant.id)).toEqual(policyRow(keptGrant));
+          expect(await data(client, "identity_account", "ida_app_user")).toEqual(appUser);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("reads grants across keyset pages, missing none past the first page", async () => {
+        const client = await clientAt(SCHEMA_VERSION_33 - 1);
+        try {
+          await seedClient(client);
+          for (let i = 0; i <= PLATFORM_CLIENT_RETIRED_PAGE_SIZE; i++) {
+            const id = `iam_page_${String(i).padStart(4, "0")}`;
+            await insert(
+              client,
+              "iam_policy",
+              id,
+              policyRow({
+                id,
+                principal: "identity_account:ida_1",
+                relation: "viewer",
+                resource: i === PLATFORM_CLIENT_RETIRED_PAGE_SIZE ? "platform_client:pcl_dashboard" : "agent:agt_1",
+              }),
+            );
+          }
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_33);
+          expect(await count(client, "resources", "iam_policy")).toBe(PLATFORM_CLIENT_RETIRED_PAGE_SIZE);
+          expect(await count(client, "resources", "platform_client")).toBe(0);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("a grant that does not decode fails the step, names the row, rolls back, and leaves the database at v32", async () => {
+        const client = await clientAt(SCHEMA_VERSION_33 - 1);
+        try {
+          await seedClient(client);
+          await insert(client, "iam_policy", "iam_a_retired", policyRow({ ...retiredGrants[0]!, id: "iam_a_retired" }));
+          await insert(client, "iam_policy", "iam_z_broken", new Uint8Array([0x22, 0xff]));
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_33)).rejects.toThrow(
+            "iam_policy 'iam_z_broken' cannot be read to retire the platform client kind",
+          );
+          expect(await version(client)).toBe(SCHEMA_VERSION_33 - 1);
+          expect(await data(client, "iam_policy", "iam_a_retired")).toEqual(
+            policyRow({ ...retiredGrants[0]!, id: "iam_a_retired" }),
+          );
+          expect(await count(client, "resources", "platform_client")).toBe(1);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("replays every frozen step over a client from before the slug ledger, then removes it", async () => {
+        const client = await clientAt(SCHEMA_VERSION_7 - 1);
+        try {
+          await insert(
+            client,
+            "platform_client",
+            "pcl_early",
+            retiredPlatformClientRow({
+              metadata: { id: "pcl_early", org: "acme", slug: "early" },
+              clientId: "stgm_cid_early",
+              vaults: [{ kind: ApiResourceKind.vault, org: "acme", slug: "product-keys" }],
+            }),
+          );
+          await insert(
+            client,
+            "iam_policy",
+            "iam_on_early",
+            policyRow({ id: "iam_on_early", principal: "identity_account:ida_1", relation: "viewer", resource: "platform_client:pcl_early" }),
+          );
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_33 - 1);
+          // The name backfill read the retired row through its envelope.
+          expect(await count(client, "resource_names", "platform_client")).toBe(1);
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_33);
+          expect(await version(client)).toBe(SCHEMA_VERSION_33);
+          for (const table of KIND_TABLES) {
+            expect(await count(client, table, "platform_client"), table).toBe(0);
+          }
+          expect(await count(client, "resources", "iam_policy")).toBe(0);
         } finally {
           await client.end();
         }

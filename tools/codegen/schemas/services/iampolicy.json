@@ -876,9 +876,9 @@
           "description": "Machine-to-machine client credentials account for inter-service communication."
         },
         {
-          "name": "platform_client",
+          "name": "app_user",
           "number": 4,
-          "description": "Account provisioned via a PlatformClient's mintUserToken endpoint.\n\n The idp_id for these accounts uses the composite encoding\n \"stgm_pc|{org}|{external_user_id}\", where org is the owning organization of\n the PlatformClient that minted the token and external_user_id is the user\n identifier supplied by the platform builder. Every PlatformClient of one\n organization therefore resolves the same user to the same account. The\n \"stgm_pc|\" prefix is reserved: no other provisioning mode may use it.\n\n Unlike federated accounts, PlatformClient is not an ongoing authentication\n authority. Stigmer signs its own JWTs for these users; the PlatformClient\n is the admission credential used at mint time only."
+          "description": "A person who signs in from an organization's own product: the\n product's backend asks for their token with TokenService.mintUserToken,\n and Stigmer signs it. The console calls them App users.\n\n The idp_id uses the composite encoding \"stgm_pc|{org}|{external_user_id}\",\n where org is the organization the token is for and external_user_id is\n the product's own stable identifier for the person, so every mint for\n one organization resolves the same person to the same account. The\n \"stgm_pc|\" prefix is reserved: no other provisioning mode may use it.\n\n Unlike federated accounts, nothing outside Stigmer vouches for the\n person on each request: Stigmer signs its own tokens for them, and the\n service account whose key minted the token stays the admission\n credential while the token lives."
         },
         {
           "name": "service_account",
@@ -962,7 +962,7 @@
         {
           "name": "platform_client_grant",
           "number": 11,
-          "description": "A person who signed in through a platform client was given the\n organization role that client grants."
+          "description": "A person who signed in through a platform client was given the\n organization role that client granted. No longer written: a minted\n user's sign-in role is an ordinary grant made by the service account\n whose key minted the token, as federation records its own. It stays\n because history entries hold it, and an entry's cause is what\n happened then."
         },
         {
           "name": "service_account_created",
@@ -1010,11 +1010,6 @@
           "name": "oauth_app",
           "number": 22,
           "description": "Registered OAuth application with an external vendor for outbound authentication."
-        },
-        {
-          "name": "platform_client",
-          "number": 23,
-          "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
         },
         {
           "name": "team",

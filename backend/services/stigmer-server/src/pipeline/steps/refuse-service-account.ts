@@ -12,14 +12,19 @@
  *   - grant or revoke a role on the organization itself (IamPolicy
  *     `create`, `delete` and `revokeOrgAccess` when the resource is the
  *     organization, domain/iampolicy);
- *   - create or change a platform client, or rotate its secret (its
- *     sign-in role makes members, its secret mints users);
+ *   - change the organization's embedding settings (their sign-in role
+ *     decides which role the key's own mint grants: minting is the one
+ *     act that creates accounts the key may do, and only with the role
+ *     its organization's admins set, domain/token/mint.ts);
  *   - create, change or remove a federated account;
  *   - an edition's own doors of the same kind (the hosted edition's
  *     invitations and federation issuers splice the step).
  *
- * So a leaked key can neither outlive its revocation, by minting another
- * credential, nor widen the organization. The model alone cannot hold this:
+ * So a leaked key, acting as itself, can neither outlive its revocation, by
+ * minting another credential, nor widen the organization. What it reaches
+ * through the mint is its app users' own reach, the trust an organization
+ * gives its product's backend as it gives a federation issuer's key
+ * (domain/token/mint.ts). The model alone cannot hold this:
  * an admin service account is `admin from organization` of its own
  * organization, so it holds `can_manage_keys` on itself and on every other
  * service account there. A share of one resource by an admin service

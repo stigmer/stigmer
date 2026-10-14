@@ -48,8 +48,6 @@ import { newMemoryPurge } from "../domain/memory/purge.js";
 import { newVaultPurge } from "../domain/vault/purge.js";
 import { newOAuthAppPurge } from "../domain/oauthapp/purge.js";
 import type { KindPurge, KindPurgeDeps } from "../domain/organization/purge/kind-purge.js";
-import { newPlatformClientPurge } from "../domain/platformclient/purge.js";
-import type { PlatformClientStore } from "../domain/platformclient/store.js";
 import { newPluginPurge } from "../domain/plugin/purge.js";
 import type { ClockProvider } from "../domain/schedule/clock.js";
 import { newSchedulePurge } from "../domain/schedule/purge.js";
@@ -80,8 +78,6 @@ export interface CoreKindPurgeDeps extends KindPurgeDeps {
   readonly scheduleClock: ClockProvider;
   /** The composed channel runtime; undefined when no unit composes one. */
   readonly channelRuntime: ChannelRuntime | undefined;
-  /** The PlatformClient port the composition bound. */
-  readonly platformClients: PlatformClientStore;
   /** The identity-account port the composition bound. */
   readonly accounts: IdentityAccountStore;
   /** The identity-account controller's lifecycle (the composed driver, or open source's role lifecycle). */
@@ -129,10 +125,9 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
       // What runs and blueprints read, last: a run references its vaults.
       newVaultPurge(deps),
       newOAuthAppPurge(deps),
-      newPlatformClientPurge(deps),
       newApiKeyPurge(deps),
-      // The accounts that belong to the organization (a platform client's
-      // end users), once nothing it owned names them.
+      // The accounts that belong to the organization (its app users and
+      // service accounts), once nothing it owned names them.
       newIdentityAccountPurge(deps),
     ],
   };
@@ -163,7 +158,6 @@ export const CORE_PURGED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.plugin,
   ApiResourceKind.vault,
   ApiResourceKind.oauth_app,
-  ApiResourceKind.platform_client,
   ApiResourceKind.api_key,
   ApiResourceKind.identity_account,
   ApiResourceKind.iam_policy,

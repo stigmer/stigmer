@@ -14,18 +14,16 @@
  *     to rename, and one copied into another organization makes its own;
  *   - a name whose holder is gone is taken by a rename; a failed row write
  *     moves the names back;
- *   - My vault and a system-managed platform client refuse a rename, and a
- *     rename reaches no slug their creates refuse;
+ *   - My vault refuses a rename, and a rename reaches no slug its create
+ *     refuses;
  *   - an archived version read back names its resource by its current slug;
  *   - every other writer of a renamable kind keeps a rename that lands
  *     between its load and its write: the row and the table agree on the
  *     new slug, and the writer's own change lands too (an update loses its
  *     compare-and-swap to the rename and runs again from a fresh read);
  *   - a writer whose row is deleted between its load and its write answers
- *     NotFound rather than writing it back (the agent's visibility, the
- *     platform client's update, whose lost swap reads again and finds no
- *     row, and its rotation, an organization's rename);
- *   - a platform client's create of a renamed-away slug is SLUG_RESERVED.
+ *     NotFound rather than writing it back (the agent's visibility, an
+ *     organization's rename).
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -51,8 +49,6 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/command_pb";
-import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
-import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/command_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 
@@ -125,8 +121,6 @@ describe("renames, through a composed server", () => {
   const schedules = () => createClient(ScheduleCommandController, wire);
   const channelApps = () => createClient(ChannelAppCommandController, wire);
   const oauthApps = () => createClient(OAuthAppCommandController, wire);
-  const platformClients = () =>
-    createClient(PlatformClientCommandController, wire);
   const orgId = (slug: string) => orgs.get(slug) ?? "";
 
   /** The kind's current name for `id`, from the table. */
@@ -491,44 +485,6 @@ describe("renames, through a composed server", () => {
     expect(read.metadata?.slug).toBe("team-secrets");
   });
 
-  it("a system-managed platform client refuses a rename, and no client takes the reserved slug", async () => {
-    const created = await platformClients().create({
-      apiVersion: IAM,
-      kind: "PlatformClient",
-      metadata: { name: "embed", org: ORG },
-      spec: {},
-    });
-    const id = created.platformClient!.metadata!.id;
-    const reserved = await grpcError(() =>
-      platformClients().rename({ resourceId: id, slug: "system-share-client" }),
-    );
-    expect(reserved.code).toBe(Code.InvalidArgument);
-    const renamed = await platformClients().rename({
-      resourceId: id,
-      slug: "embed-renamed",
-    });
-    expect(renamed.metadata?.slug).toBe("embed-renamed");
-    expect(renamed.spec?.clientSecretHash, "the response is redacted").toBe("");
-
-    await server.store.updateResource(
-      ApiResourceKind.platform_client,
-      id,
-      PlatformClientSchema,
-      (row) => {
-        if (row.metadata !== undefined) {
-          row.metadata.labels[SYSTEM_MANAGED_LABEL] = "true";
-        }
-      },
-    );
-    const managed = await grpcError(() =>
-      platformClients().rename({ resourceId: id, slug: "embed-again" }),
-    );
-    expect(managed.code).toBe(Code.FailedPrecondition);
-    expect(managed.rawMessage).toBe(
-      "This platform client is system-managed and cannot be renamed",
-    );
-  });
-
   it("an archived version read back names its agent by its current slug", async () => {
     const created = await agents().create(
       agentInput(ORG, "versioned-old", "first version"),
@@ -863,67 +819,6 @@ describe("renames, through a composed server", () => {
       expect(row.spec?.description).toBe("edited mid-rename");
     });
 
-    it("a platform client update and a secret rotation", async () => {
-      const created = await platformClients().create({
-        apiVersion: IAM,
-        kind: "PlatformClient",
-        metadata: { name: "race-client", org: ORG },
-        spec: {},
-      });
-      const id = created.platformClient!.metadata!.id;
-      await renameMidWrite(
-        ApiResourceKind.platform_client,
-        id,
-        () =>
-          platformClients().rename({
-            resourceId: id,
-            slug: "race-client-renamed",
-          }),
-        () =>
-          platformClients().update({ resource: {
-            apiVersion: IAM,
-            kind: "PlatformClient",
-            metadata: {
-              id,
-              name: "edited mid-rename",
-              org: ORG,
-              slug: "race-client",
-            },
-            spec: {},
-          }, updateMask: { paths: ["*"] } }),
-      );
-      let row = await expectSlugKept(
-        ApiResourceKind.platform_client,
-        PlatformClientSchema,
-        id,
-        "race-client-renamed",
-      );
-      expect(row.metadata?.name).toBe("edited mid-rename");
-
-      const before = row.spec?.clientSecretHash;
-      await renameMidWrite(
-        ApiResourceKind.platform_client,
-        id,
-        () =>
-          platformClients().rename({
-            resourceId: id,
-            slug: "race-client-rotated",
-          }),
-        () => platformClients().rotateSecret({ value: id }),
-      );
-      row = await expectSlugKept(
-        ApiResourceKind.platform_client,
-        PlatformClientSchema,
-        id,
-        "race-client-rotated",
-      );
-      expect(row.spec?.clientSecretHash, "the rotation landed").not.toBe(
-        before,
-      );
-      expect(row.metadata?.name, "the rotation wrote its secret alone").toBe(
-        "edited mid-rename",
-      );
-    });
   });
 
   describe("a row deleted between a writer's load and its write", () => {
@@ -989,43 +884,6 @@ describe("renames, through a composed server", () => {
       expect(missing.rawMessage).toBe(`agent not found: ${id}`);
     });
 
-    it("a platform client's update and rotation answer NotFound", async () => {
-      const writes: ReadonlyArray<
-        readonly [string, (id: string) => Promise<unknown>]
-      > = [
-        [
-          "vanishing-update",
-          (id) =>
-            platformClients().update({ resource: {
-              apiVersion: IAM,
-              kind: "PlatformClient",
-              metadata: { id, name: "gone", org: ORG },
-              spec: {},
-            }, updateMask: { paths: ["*"] } }),
-        ],
-        [
-          "vanishing-rotate",
-          (id) => platformClients().rotateSecret({ value: id }),
-        ],
-      ];
-      for (const [name, write] of writes) {
-        const created = await platformClients().create({
-          apiVersion: IAM,
-          kind: "PlatformClient",
-          metadata: { name, org: ORG },
-          spec: {},
-        });
-        const id = created.platformClient!.metadata!.id;
-        const missing = await deleteMidWrite(
-          ApiResourceKind.platform_client,
-          id,
-          () => write(id),
-        );
-        expect(missing.code).toBe(Code.NotFound);
-        expect(missing.rawMessage).toBe(`PlatformClient not found: ${id}`);
-      }
-    });
-
     it("an organization's rename answers NotFound and leaves the old slug its own", async () => {
       const organizations = createClient(OrganizationCommandController, wire);
       const created = await organizations.create({
@@ -1042,28 +900,5 @@ describe("renames, through a composed server", () => {
       expect(missing.code).toBe(Code.NotFound);
       expect(missing.rawMessage).toBe(`Organization not found: ${id}`);
     });
-  });
-
-  it("a platform client's create of a renamed-away slug is refused with SLUG_RESERVED", async () => {
-    const created = await platformClients().create({
-      apiVersion: IAM,
-      kind: "PlatformClient",
-      metadata: { name: "held-client", org: ORG },
-      spec: {},
-    });
-    await platformClients().rename({
-      resourceId: created.platformClient!.metadata!.id,
-      slug: "held-client-renamed",
-    });
-    const reserved = await grpcError(() =>
-      platformClients().create({
-        apiVersion: IAM,
-        kind: "PlatformClient",
-        metadata: { name: "held-client", org: ORG },
-        spec: {},
-      }),
-    );
-    expect(reserved.code).toBe(Code.AlreadyExists);
-    expect(reasonOf(reserved)?.reason).toBe(SLUG_RESERVED);
   });
 });

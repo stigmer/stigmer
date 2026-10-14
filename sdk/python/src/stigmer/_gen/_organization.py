@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Iterator
 
 import grpc
@@ -16,6 +16,7 @@ from ai.stigmer.commons.apiresource import metadata_pb2
 from google.protobuf import field_mask_pb2
 
 from ._errors import wrap_error
+from ._types import ResourceRef
 
 
 class OrganizationClient:
@@ -48,6 +49,12 @@ class OrganizationClient:
     def update_policies(self, input: io_pb2.UpdateOrganizationPoliciesInput) -> api_pb2.Organization:
         try:
             return self._command.updatePolicies(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def update_embedding(self, input: io_pb2.UpdateOrganizationEmbeddingInput) -> api_pb2.Organization:
+        try:
+            return self._command.updateEmbedding(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -129,6 +136,7 @@ class OrganizationInput:
     preferences: OrganizationPreferencesInput | None = None
     parent_org: str = ""
     policies: OrganizationPoliciesInput | None = None
+    embedding: OrganizationEmbeddingInput | None = None
 
     def _to_proto(self) -> api_pb2.Organization:
         spec = spec_pb2.OrganizationSpec(
@@ -141,6 +149,8 @@ class OrganizationInput:
             spec.preferences.CopyFrom(self.preferences._to_proto())
         if self.policies is not None:
             spec.policies.CopyFrom(self.policies._to_proto())
+        if self.embedding is not None:
+            spec.embedding.CopyFrom(self.embedding._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -186,5 +196,28 @@ class OrganizationPoliciesInput:
         msg = spec_pb2.OrganizationPolicies(
             members_can_create_agents=self.members_can_create_agents,
         )
+        return msg
+
+
+@dataclass
+class OrganizationEmbeddingInput:
+    """SDK input type for OrganizationEmbedding."""
+
+    allowed_origins: list[str] = field(default_factory=list)
+    create_accounts_on_sign_in: bool = False
+    sign_in_role: int = 0
+    vaults: list[ResourceRef] = field(default_factory=list)
+
+    def _to_proto(self) -> spec_pb2.OrganizationEmbedding:
+        msg = spec_pb2.OrganizationEmbedding(
+            create_accounts_on_sign_in=self.create_accounts_on_sign_in,
+            sign_in_role=self.sign_in_role,
+        )
+        if self.allowed_origins:
+            msg.allowed_origins.extend(self.allowed_origins)
+        for ref in self.vaults:
+            _ref = ref._to_proto()
+            _ref.kind = 59
+            msg.vaults.append(_ref)
         return msg
 

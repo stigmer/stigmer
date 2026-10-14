@@ -1076,7 +1076,7 @@ IdentityAccountProvisioningMode defines how an identity account was created.
 | `direct` | User signed up directly via Stigmer's own authentication tenant. |
 | `federated` | Account was created by the platform for federated authentication via a FederationIssuer. |
 | `machine` | Machine-to-machine client credentials account for inter-service communication. |
-| `platform_client` | Account provisioned via a PlatformClient's mintUserToken endpoint. |
+| `app_user` | A person who signs in from an organization's own product: the product's backend asks for their token with TokenService.mintUserToken, and Stigmer signs it. |
 | `service_account` | An organization's own non-person account: the principal its automation (a CI job, a script, an integration) acts as, so the automation keeps working when the person who set it up leaves. |
 
 ### AccessChange
@@ -1104,6 +1104,6 @@ AccessChangeCause says why someone's access changed.
 | `first_sign_in` | A person signed in for the first time and was given the roles the server's membership rules grant. |
 | `role_reconciliation` | The server gave existing accounts the roles its membership rules would have given them. |
 | `operator_ownership` | The server's operator became owner of an organization nobody owned. |
-| `platform_client_grant` | A person who signed in through a platform client was given the organization role that client grants. |
+| `platform_client_grant` | A person who signed in through a platform client was given the organization role that client granted. |
 | `service_account_created` | An administrator created a service account with its role in the organization. |
 

@@ -38,9 +38,9 @@ const (
 	// carry it and an enum value is a wire identifier. A new plan or license
 	// does not list it.
 	Feature_sso_enforcement Feature = 1
-	// Gates nothing: every edition serves PlatformClient credentials to every
-	// customer, so a plan or license that lists it grants nothing more.
-	// It is the one value named before its gate was ruled out, and it stays
+	// No longer used: gates nothing. It named the platform client credential,
+	// which Stigmer no longer has; a product mints its users' tokens with a
+	// service account's key in every edition. It stays
 	// because licenses already issued carry it and an enum value is a wire
 	// identifier. A new plan or license does not list it.
 	Feature_platform_client Feature = 2

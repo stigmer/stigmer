@@ -1,20 +1,18 @@
 /**
- * The post-authentication caller-guard seam — enforcement of the MINTING CLIENT's
+ * The post-authentication caller-guard seam — enforcement of the MINTER's
  * contract, run by the serving chassis after the position-1 identity
- * stamp. The TS rendering of the cloud Java
- * PlatformClientEnforcementInterceptor's home: verification says who the
- * caller IS (the IdentityVerifier chain, deliberately token-only); a
- * guard says whether the client that minted the credential may still be
- * served (deletion-revocation liveness; Origin vs
- * allowed_origins, oss#375). Java separates the two classes the same way.
+ * stamp: verification says who the caller IS (the IdentityVerifier chain,
+ * deliberately token-only); a guard says whether a request bearing the
+ * credential may be served from where it came (Origin vs the minting
+ * organization's allowed_origins, oss#375).
  *
  * List point — guards concatenate in unit order and run in composed
  * order; the first throw wins. Open source's own guards run first (the
- * verifier list's "OSS entries first" rule): today the PlatformClient
- * origin guard (domain/platformclient/origin-guard.ts), composed only
- * under an authentication posture, where PlatformClient tokens exist.
- * Liveness is not a guard in open source: the PlatformClient verifier
- * refuses a deleted client's tokens itself, so verifier-only lanes (the
+ * verifier list's "OSS entries first" rule): today the embedding origin
+ * guard (domain/token/origin-guard.ts), composed only under an
+ * authentication posture, where minted user tokens exist. Liveness is not
+ * a guard in open source: the user-token verifier refuses a token whose
+ * minting service account is gone itself, so verifier-only lanes (the
  * extension HTTP edges) refuse them too. With no posture and no unit
  * guards, the serving chain runs no guard at all.
  *
@@ -46,7 +44,7 @@ import type { DescMethod } from "@bufbuild/protobuf";
 import type { CallerIdentity } from "./identity.js";
 
 export interface CallerGuard {
-  /** Names the guard in refusal and fault logs (e.g. 'platform-client'). */
+  /** Names the guard in refusal and fault logs (e.g. 'embedding-origin'). */
   readonly name: string;
   /**
    * Admits by returning; refuses by throwing a ConnectError (the guard's

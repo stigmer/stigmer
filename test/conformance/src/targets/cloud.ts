@@ -132,10 +132,10 @@ export class CloudTarget implements TargetProfile {
     // The composition admits every run on the organization's own provider
     // keys and refuses a keyless one at create.
     billingGates: true,
-    // The primary founds PlatformClients and mints their user tokens in the
-    // suites that test them; the minting client's contract is enforced on
-    // every serving-edge request by the platform-client caller guard.
-    platformClientTokens: true,
+    // The primary creates minting service accounts and mints user tokens in
+    // the suites that test them; the minter's contract is enforced on every
+    // serving-edge request by the user-token verifier and origin guard.
+    userTokens: true,
     // Every non-public RPC needs a credential: the composition declares the
     // require-authentication registry point, with the same byte-pinned
     // refusal the open-source chassis gives.

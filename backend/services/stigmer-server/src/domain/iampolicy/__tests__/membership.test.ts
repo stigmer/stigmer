@@ -31,7 +31,7 @@
  *     nor `admin`, nor `member` anywhere;
  *   - `isPersonAccount` is an allow-list: a `direct` or legacy
  *     unspecified-mode row that is not a machine account, and nothing
- *     else (machine, platform client, federated, service account), so a
+ *     else (machine, app user, federated, service account), so a
  *     mode added later is not a person until the rule says so.
  *
  *   ensureOperatorOwnership(operator): `owner` on every organization that
@@ -974,10 +974,10 @@ describe("membership rules", () => {
       expect(isPersonAccount(machineMode)).toBe(false);
     });
 
-    it("a platform-client end user is not: the mint grants it its client's role and nothing else", () => {
+    it("an app user is not: the mint grants it the embedding sign-in role and nothing else", () => {
       const endUser = account("stgm_pc|acme|user-7", OPERATOR_EMAIL);
       endUser.spec!.provisioningMode =
-        IdentityAccountProvisioningMode.platform_client;
+        IdentityAccountProvisioningMode.app_user;
       expect(isPersonAccount(endUser)).toBe(false);
     });
 

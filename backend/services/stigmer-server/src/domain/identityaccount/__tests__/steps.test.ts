@@ -135,7 +135,7 @@ describe("AssignBackendFields — the reserved subject namespaces", () => {
     expect(error.rawMessage).toBe(reservedSubjectMessage(subject));
   });
 
-  it("the direct arm still refuses a platform-client subject", async () => {
+  it("the direct arm still refuses an app-user subject", async () => {
     const subject = `stgm_pc|${ORG}|user-1`;
     const error = await refusal(() => assign({ mode: "direct" }, subject));
     expect(error.code).toBe(Code.InvalidArgument);

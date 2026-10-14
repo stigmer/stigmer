@@ -3,7 +3,7 @@
 // Domain: identity and authorization (every edition that signs callers in).
 //
 // One person holds a role in two organizations, A and B. A credential that
-// names A — a user token a PlatformClient of A mints, or an API key limited
+// names A — a user token a service account of A mints, or an API key limited
 // to A — is refused in B even though the person holds a role there, works in
 // A, and names A alone when asked which organizations it may see. A key
 // limited to A cannot found an organization other than a child of A, which
@@ -18,8 +18,8 @@
 //
 // Every arm runs on the target's enforcing lane, where the server signs its
 // callers in and keys authenticate: the primary on the cloud, open source's
-// OIDC sibling on the local targets. The PlatformClient arms need a lane
-// that mints user tokens (`platformClientTokens`); `checkAuthorization`
+// OIDC sibling on the local targets. The minted-token arms need a lane
+// that mints user tokens (`userTokens`); `checkAuthorization`
 // needs a composed query engine (`authorizationQueries`). A target with no
 // enforcing lane (the single-organization target, which binds trivially:
 // it holds one organization) skips visibly.
@@ -49,10 +49,11 @@ import { makeSession } from "../support/sessions";
 import { organizationRole, policyTriple, ref } from "../support/iampolicies";
 import { uniqueName } from "../support/naming";
 import {
-  createPlatformClient,
-  deletePlatformClient,
+  createMinter,
+  deleteMinter,
   mintUserToken,
-} from "../support/platformclients";
+  setEmbedding,
+} from "../support/user-tokens";
 import {
   createTarget,
   enforcingLaneOf,
@@ -251,26 +252,26 @@ async function expectBoundTo(
 }
 
 describe("credential binding — a credential that names an organization works there only", () => {
-  it("[rpc:PlatformClientTokenController.mintUserToken] a PlatformClient user token works in its client's organization alone, though the user holds a role in another", async (ctx) => {
+  it("[rpc:TokenService.mintUserToken] a minted user token works in its organization alone, though the user holds a role in another", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
-    if (!target.capabilities.platformClientTokens) {
+    if (!target.capabilities.userTokens) {
       return ctx.skip(
-        "this target's enforcing lane mints no PlatformClient user tokens",
+        "this target's enforcing lane mints no user tokens",
       );
     }
     const a = await tenancy(on);
     const b = await tenancy(on);
-    const client = await createPlatformClient(on.clients, {
+    const minter = await createMinter(on.clients, {
       org: a.org,
-      name: uniqueName("binding-pc"),
-      signInRole: IamRole.member,
+      name: uniqueName("binding-minter"),
     });
-    fixtures.defer(() => deletePlatformClient(on.clients, client.id));
+    fixtures.defer(() => deleteMinter(on.clients, minter.accountId));
+    await setEmbedding(on.clients, a.org, { signInRole: IamRole.member });
     const asUser = on.clientsPresenting(
       await mintUserToken(
-        on.clients,
-        client.credentials,
+        on.clientsPresenting(minter.key),
+        a.org,
         uniqueName("binding-user"),
       ),
     );

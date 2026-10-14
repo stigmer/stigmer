@@ -1,6 +1,6 @@
 /**
  * The guarded write for a kind kept outside the shared store: the one shape
- * every such port offers (a platform client, an identity account, and
+ * every such port offers (an identity account, and
  * Enterprise's team and federation issuer), and the contract kit every
  * driver of one runs.
  *

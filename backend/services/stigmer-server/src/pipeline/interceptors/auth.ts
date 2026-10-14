@@ -219,11 +219,11 @@ export function trustedLocalIdentityFor(operator: {
  * the one construction of an `internal` caller outside the in-process
  * transport's own stamp. Among its consumers:
  *
- *   - The PlatformClient mint (domain/platformclient/mint.ts): the
- *     request is public and tokenless (so the chain stamped the
- *     trusted-local operator), the client proved itself with its secret,
- *     and the end-user account and role the mint creates must name the
- *     CLIENT as their actor, never the operator.
+ *   - The user-token mint (domain/token/mint.ts): a service account's key
+ *     authenticated the request, and the app-user account and role the
+ *     mint creates must name that SERVICE ACCOUNT as their actor, while a
+ *     service account's own key is refused every account and
+ *     organization-role write on the wire.
  *
  * `internal` because the server is the one acting — Authorize skips it,
  * as for every server-composed request — and never reachable from the
@@ -257,7 +257,7 @@ export function serverActingFor(principalId: string): CallerIdentity {
  * `guards` is REQUIRED, like the identity source on buildInterceptorChain:
  * a serving transport that forgets its guards must be a compile error,
  * never a silently unenforced edge — the exact failure class this seam
- * exists to close (the cloud's platform-client controls went unported
+ * exists to close (the cloud's minting-client controls went unported
  * through five green readouts because nothing forced them).
  */
 export function createVerifierChainInterceptor(

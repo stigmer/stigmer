@@ -214,8 +214,6 @@ const (
 	ApiResourceKind_federation_issuer ApiResourceKind = 21
 	// Registered OAuth application with an external vendor for outbound authentication.
 	ApiResourceKind_oauth_app ApiResourceKind = 22
-	// OAuth2 client credential for platform builders embedding Stigmer into their products.
-	ApiResourceKind_platform_client ApiResourceKind = 23
 	// Named group of an organization's people that access is shared with as one.
 	ApiResourceKind_team ApiResourceKind = 24
 	// The boundary that holds people, Agents, Sessions and secrets
@@ -299,7 +297,6 @@ var (
 		20: "invitation",
 		21: "federation_issuer",
 		22: "oauth_app",
-		23: "platform_client",
 		24: "team",
 		30: "organization",
 		31: "platform",
@@ -331,7 +328,6 @@ var (
 		"invitation":                20,
 		"federation_issuer":         21,
 		"oauth_app":                 22,
-		"platform_client":           23,
 		"team":                      24,
 		"organization":              30,
 		"platform":                  31,
@@ -559,7 +555,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"enterprise\x10\x03*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\xed \n" +
+	"\astigmer\x10\x01*\x88 \n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x12?\n" +
@@ -574,8 +570,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"Invitation\"\n" +
 	"Invitation*\x03inv8\x01@\x03J\x04\b\x02\x10\x04\x12\x85\x01\n" +
 	"\x11federation_issuer\x10\x15\x1an\xaa\xff+j\b\x02\x10\x01\x1a\x10FederationIssuer\"\x11Federation Issuer*\x03fis8\x01@\x03J1\b\x02\x10\x04:\x01\x04J(\b\x04\x12$See its settings; cannot change themR\x03idp\x12i\n" +
-	"\toauth_app\x10\x16\x1aZ\xaa\xff+V\b\x02\x10\x01\x1a\bOAuthApp\"\tOAuth App*\x04oapp8\x01@\x01J1\b\x02\x10\x04:\x01\x04J(\b\x04\x12$See its settings; cannot change them\x12z\n" +
-	"\x0fplatform_client\x10\x17\x1ae\xaa\xff+a\b\x02\x10\x01\x1a\x0ePlatformClient\"\x0fPlatform Client*\x03pcl8\x01@\x01J1\b\x02\x10\x04:\x01\x04J(\b\x04\x12$See its settings; cannot change them\x12o\n" +
+	"\toauth_app\x10\x16\x1aZ\xaa\xff+V\b\x02\x10\x01\x1a\bOAuthApp\"\tOAuth App*\x04oapp8\x01@\x01J1\b\x02\x10\x04:\x01\x04J(\b\x04\x12$See its settings; cannot change them\x12o\n" +
 	"\x04team\x10\x18\x1ae\xaa\xff+a\b\x02\x10\x01\x1a\x04Team\"\x04Team*\x02tm8\x01@\x03JG\b\x02\x10\x04:\x01\x03J>\b\x03\x12:Belongs to the team and holds every role the team is given\x12\xf2\x03\n" +
 	"\forganization\x10\x1e\x1a\xdf\x03\xaa\xff+\xda\x03\b\x03\x10\x01\x1a\fOrganization\"\fOrganization*\x03org@\x01J\xb0\x03\b\x04\x10\x01:\x04\x01\x02\x03\x04JK\b\x01\x12GEverything, including deleting the organization and choosing its ownersJ\x9f\x01\b\x02\x12\x9a\x01Manage people, settings, billing, and the organization's agents and tools; cannot read private conversations, delete the organization or change its ownersJk\b\x03\x12gStart conversations with the agents shared with them, and create agents when the organization allows itJH\b\x04\x12DSee what is shared with the organization; cannot start conversations\x129\n" +
 	"\bplatform\x10\x1f\x1a+\xaa\xff+'\b\x03\x10\x01\x1a\bPlatform\"\bPlatform*\x03plt8\x01@\x03J\x04\b\x05\x10\x04\x12\x80\x02\n" +
@@ -610,7 +605,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\x05agent\x12\x05agent\x1a\bagent_id\x12-\n" +
 	"\x04plan\x10F\x1a#\xaa\xff+\x1f\b\x04\x10\x01\x1a\x04Plan\"\x04Plan*\x03pln8\x01@\x02J\x04\b\x05\x10\x04\x12E\n" +
 	"\fsubscription\x10G\x1a3\xaa\xff+/\b\x04\x10\x01\x1a\fSubscription\"\fSubscription*\x03sub8\x01@\x02J\x04\b\x02\x10\x04\x126\n" +
-	"\alicense\x10H\x1a)\xaa\xff+%\b\x04\x10\x01\x1a\aLicense\"\aLicense*\x03lic8\x01@\x02J\x04\b\x05\x10\x04\"\x04\b,\x10,\"\x04\b-\x10-\"\x04\b1\x101\"\x04\b2\x102\"\x04\b3\x103\"\x04\b4\x104\"\x04\b5\x105\"\x04\b6\x106\"\x04\b7\x107\"\x04\b<\x10<*\n" +
+	"\alicense\x10H\x1a)\xaa\xff+%\b\x04\x10\x01\x1a\aLicense\"\aLicense*\x03lic8\x01@\x02J\x04\b\x05\x10\x04\"\x04\b\x17\x10\x17\"\x04\b,\x10,\"\x04\b-\x10-\"\x04\b1\x101\"\x04\b2\x102\"\x04\b3\x103\"\x04\b4\x104\"\x04\b5\x105\"\x04\b6\x106\"\x04\b7\x107\"\x04\b<\x10<*\x0fplatform_client*\n" +
 	"mcp_server*\x0eagent_instance*\tdatastore*\bworkflow*\x11workflow_instance*\fworkflow_run*\venvironment*\x11execution_context*\bartifact*\aproject:\x85\x01\n" +
 	"\tkind_meta\x12!.google.protobuf.EnumValueOptions\x18\xf5\xbf\x05 \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMetaR\bkindMetaB\x83\x03\n" +
 	"2com.ai.stigmer.commons.apiresource.apiresourcekindB\x14ApiResourceKindProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind\xa2\x02\x05ASCAA\xaa\x02.Ai.Stigmer.Commons.Apiresource.Apiresourcekind\xca\x02.Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\xe2\x02:Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\\GPBMetadata\xea\x022Ai::Stigmer::Commons::Apiresource::Apiresourcekindb\x06proto3"

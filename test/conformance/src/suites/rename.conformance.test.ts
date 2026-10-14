@@ -2,8 +2,8 @@
 // old slug keeps leading to it for reading for 30 days.
 // Domain: conformance suites.
 //
-// One table over the six open-source kinds a person may rename (agent,
-// vault, schedule, channel app, OAuth app, platform client), each pinned the
+// One table over the five open-source kinds a person may rename (agent,
+// vault, schedule, channel app, OAuth app), each pinned the
 // same way:
 //   - rename keeps the id, and a read by the old slug answers the resource
 //     by its new slug;
@@ -14,8 +14,8 @@
 //     slug, because the refusal is answered before the write authorizes its
 //     target. An update authorizes its metadata.id, so a target whose
 //     authorizer enforces refuses one without an id at Authorize, before
-//     its slug is read; the vault's and the platform client's arms (they
-//     have no apply) expect that refusal there.
+//     its slug is read; the vault's arm (it has no apply) expects that
+//     refusal there.
 // Then the references that named a renamed resource (a session's, a
 // schedule's and a channel's agent, a parent's subagent, a channel's app)
 // come back with its new slug, and an apply carrying the id finds the
@@ -231,41 +231,6 @@ const KINDS: readonly RenamableKind[] = [
         ...makeOAuthApp(org, slug),
         metadata: { name: slug, org, slug },
       }),
-  },
-  {
-    title: "[rpc:PlatformClientCommandController.rename] a platform client",
-    writeTitle:
-      "[rpc:PlatformClientCommandController.rename] [rpc:PlatformClientCommandController.update] a platform client's",
-    noun: "Platform client",
-    writeVerb: "update",
-    create: async (org, name) => {
-      const created = await clients.platformClientCommand.create({
-        apiVersion: "iam.stigmer.ai/v1",
-        kind: "PlatformClient",
-        metadata: { name, org },
-        spec: {},
-      });
-      const client = created.platformClient!;
-      fixtures.defer(() =>
-        clients.platformClientCommand
-          .delete({ resourceId: client.metadata!.id })
-          .catch(() => undefined),
-      );
-      return namedOf(client);
-    },
-    rename: async (id, slug) =>
-      namedOf(
-        await clients.platformClientCommand.rename({ resourceId: id, slug }),
-      ),
-    readByReference: async (org, slug) =>
-      namedOf(await clients.platformClientQuery.getByReference({ org, slug })),
-    writeBySlug: (org, slug) =>
-      clients.platformClientCommand.update({ resource: {
-        apiVersion: "iam.stigmer.ai/v1",
-        kind: "PlatformClient",
-        metadata: { name: slug, org, slug },
-        spec: {},
-      }, updateMask: { paths: ["*"] } }),
   },
 ];
 

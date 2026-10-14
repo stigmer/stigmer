@@ -59,7 +59,6 @@ import { config, is_public, is_skip_authorization } from "@stigmer/protos/ai/sti
 import {
   ApiResourceAuditInfoSchema,
   ApiResourceAuditSchema,
-  ApiResourceAuditStatusSchema,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
@@ -78,7 +77,10 @@ import { InvitationQueryController } from "@stigmer/protos/ai/stigmer/iam/invita
 import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import { TeamCommandController } from "@stigmer/protos/ai/stigmer/iam/team/v1/command_pb";
 import { TeamQueryController } from "@stigmer/protos/ai/stigmer/iam/team/v1/query_pb";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import {
+  OrganizationSchema,
+  OrganizationStatusSchema,
+} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 import { createLogger } from "@stigmer/server";
@@ -459,7 +461,7 @@ function repairRig(rows: {
         const stamp = timestampFromDate(ACME_CREATED);
         return create(OrganizationSchema, {
           metadata: create(ApiResourceMetadataSchema, { id: "acme", slug: "acme", name: "Acme" }),
-          status: create(ApiResourceAuditStatusSchema, {
+          status: create(OrganizationStatusSchema, {
             audit: create(ApiResourceAuditSchema, {
               specAudit: create(ApiResourceAuditInfoSchema, { createdAt: stamp, updatedAt: stamp }),
             }),

@@ -71,17 +71,16 @@ export function newKindMetaPolicyGrantScope(): PolicyGrantScope {
  * sandbox family (whose subject is a person, but whose caller is the agent
  * code holding the token), a runner, a machine, and the server itself.
  *
- * Deliberately admitted: a platform client's end user is `user`-class,
- * and its own credential keeps it in its client's organization. The
- * library's platform-client verifier binds every such token to the
- * client's organization or a child of it, and refuses any other
- * (`@stigmer/server`'s `domain/platformclient/verifier.ts`, pinned by its
- * verifier-and-guard suite). Redeem refuses a credential bound elsewhere
- * (`refuseBoundElsewhere` in iam/invitation/handlers.ts, pinned by the
- * handler suite's platform-client case), and the library's organization
+ * Deliberately admitted: an app user is `user`-class, and its own minted
+ * token keeps it in one organization. The library's user-token verifier
+ * binds every such token to the minting service account's organization or
+ * a child of it, and refuses any other (`@stigmer/server`'s
+ * `domain/token/verifier.ts`, pinned by its verifier-and-guard suite).
+ * Redeem refuses a credential bound elsewhere (`refuseBoundElsewhere` in
+ * iam/invitation/handlers.ts, pinned by the handler suite's app-user case), and the library's organization
  * create admits a bound credential only for a child of its own
  * organization (`@stigmer/server`'s `domain/organization/steps.ts`). So
- * such a user joins only its client's organization, or a child, and
+ * such a user joins only its token's organization, or a child, and
  * founds only a child of it.
  * The library's `isPersonAccount` answers another question (which
  * accounts the built-in membership rules derive roles for, federated ones

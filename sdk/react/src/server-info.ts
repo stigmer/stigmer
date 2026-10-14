@@ -20,8 +20,8 @@ export interface UseServerInfoReturn {
  * public RPC every edition answers).
  *
  * Read it where a surface depends on a fact the host app does not pass
- * down — the PlatformClients section asks whether the server can mint
- * user tokens at all, which only a server that authenticates its callers
+ * down — embedding settings ask whether the server can mint user tokens
+ * at all, which only a server that authenticates its callers
  * does. The deployment mode stays a provider prop (`StigmerProvider`'s
  * `deploymentMode`), because every tier gate reads it on first render.
  *

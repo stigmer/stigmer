@@ -44,8 +44,8 @@
  *     record (count, ledger and latch restored), a release that finds
  *     nothing to undo is logged, and a release that fails too is INTERNAL,
  *     logged for a hand;
- *   - a platform client's end user, whose credential the library binds to
- *     its client's organization, redeems only into that organization;
+ *   - an app user, whose minted token the library binds to the
+ *     organization it is for, redeems only into that organization;
  *   - the preview answers the organization's display and the link's
  *     validity, asking what redeem asks before it grants, so a link whose
  *     creator can no longer grant its role previews invalid with redeem's
@@ -119,7 +119,7 @@ const silent: Logger = createLogger({ level: "error", pretty: false, write: () =
 function identityInterceptor(
   callerClass: string,
   boundOrg: string | undefined,
-  platformClientId: string | undefined,
+  mintedBy: string | undefined,
 ): Interceptor {
   return (next) => (request) => {
     request.contextValues.set(callerIdentityKey, {
@@ -128,7 +128,7 @@ function identityInterceptor(
       issuer: "https://issuer.invalid",
       rawToken: "tok",
       ...(boundOrg === undefined ? {} : { boundOrg }),
-      ...(platformClientId === undefined ? {} : { platformClientId }),
+      ...(mintedBy === undefined ? {} : { mintedBy }),
     });
     return next(request);
   };
@@ -171,8 +171,8 @@ function rig(
     callerClass?: string;
     /** The organization the caller's credential is bound to; none unless a case says otherwise. */
     boundOrg?: string;
-    /** The platform client the caller's token was minted for; none unless a case says otherwise. */
-    platformClientId?: string;
+    /** The service account that minted the caller's token; none unless a case says otherwise. */
+    mintedBy?: string;
     /** What the engine answers about a row's creator; every relation held unless a case says otherwise. */
     creatorHolds?: (relation: string) => boolean;
     /** A fault the engine answers every creator question with, over `creatorHolds`. */
@@ -286,7 +286,7 @@ function rig(
     {
       router: {
         interceptors: [
-          identityInterceptor(options.callerClass ?? "user", options.boundOrg, options.platformClientId),
+          identityInterceptor(options.callerClass ?? "user", options.boundOrg, options.mintedBy),
         ],
       },
     },
@@ -690,13 +690,13 @@ describe("redeem", () => {
     },
   );
 
-  it("admits a platform client's end user only into its client's organization", async () => {
+  it("admits an app user only into the organization its token is for", async () => {
     const globex: OrganizationFacts = { ...acme, name: "Globex", slug: "globex" };
     const organization = (org: string): Promise<OrganizationFacts | undefined> =>
       Promise.resolve(org === "acme" ? acme : org === "globex" ? globex : undefined);
-    // The shape the library's platform-client verifier mints: a person
-    // whose token names its client and is bound to the client's organization.
-    const r = rig({ decide: outsider, organization, boundOrg: "globex", platformClientId: "pc_globex" });
+    // The shape the library's user-token verifier stamps: a person whose
+    // token names its minting service account and is bound to one organization.
+    const r = rig({ decide: outsider, organization, boundOrg: "globex", mintedBy: "ida_globex_minter" });
     await r.store.save(stored({ id: "inv_acme", token: "Acme" }));
     await r.store.save(stored({ id: "inv_globex", token: "Globex", org: "globex" }));
 

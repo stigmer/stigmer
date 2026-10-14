@@ -8,6 +8,8 @@ package organizationv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -42,7 +44,13 @@ type OrganizationSpec struct {
 	// agents) and changed only through updatePolicies, so an update or apply
 	// of a manifest written before a policy changed neither fails nor
 	// reverts it: a policy carried by update or apply is ignored.
-	Policies      *OrganizationPolicies `protobuf:"bytes,9,opt,name=policies,proto3" json:"policies,omitempty"`
+	Policies *OrganizationPolicies `protobuf:"bytes,9,opt,name=policies,proto3" json:"policies,omitempty"`
+	// How people sign in to the organization from its own product, when the
+	// product's backend mints their tokens (TokenService.mintUserToken). Set
+	// only through updateEmbedding, so a create, update or apply of a
+	// manifest neither fails on nor changes it: embedding carried by any of
+	// them is ignored.
+	Embedding     *OrganizationEmbedding `protobuf:"bytes,10,opt,name=embedding,proto3" json:"embedding,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -119,6 +127,133 @@ func (x *OrganizationSpec) GetPolicies() *OrganizationPolicies {
 	return nil
 }
 
+func (x *OrganizationSpec) GetEmbedding() *OrganizationEmbedding {
+	if x != nil {
+		return x.Embedding
+	}
+	return nil
+}
+
+// OrganizationEmbedding holds how people sign in to an organization from
+// the organization's own product: which web pages may use their tokens,
+// whether their first sign-in creates their account and with which role,
+// and which vaults their conversations use. Every reader of the
+// organization sees them, its app users included, as it sees the
+// organization's policies: none of it is secret (origins are what browsers
+// send, vaults are named, never opened), and only the organization's
+// admins change it.
+type OrganizationEmbedding struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Web origins allowed for browser requests that bear a minted user token.
+	//
+	// Enforced on every API request bearing a token minted for this
+	// organization's people (never on mintUserToken itself, which is
+	// server-to-server and carries no browser Origin):
+	//   - Empty list: origin validation is not enforced (open mode, suitable
+	//     for development or when the product controls every access point).
+	//   - Non-empty list: the request's Origin header must match an entry
+	//     (case-insensitive, per RFC 6454 origin comparison). Unlisted
+	//     origins, including the opaque-origin serialization "null", are
+	//     refused PERMISSION_DENIED.
+	//   - Requests without an Origin header always pass: only browsers send
+	//     Origin, and only browsers guarantee it is not forgeable by page
+	//     script. This is a browser-context, CORS-class defense-in-depth
+	//     control against a leaked token being replayed from another site's
+	//     browser context; the minting key remains the primary control, and
+	//     non-browser callers are not constrained by it.
+	//
+	// Edits apply to the next request: the organization is read on every
+	// request that bears one of its minted tokens.
+	AllowedOrigins []string `protobuf:"bytes,1,rep,name=allowed_origins,json=allowedOrigins,proto3" json:"allowed_origins,omitempty"`
+	// Whether mintUserToken creates an identity account for a user_id that
+	// has none yet.
+	//
+	// When false (the default), the product creates accounts before minting
+	// tokens, and mintUserToken returns FAILED_PRECONDITION for a person who
+	// has none. When true, Stigmer creates the account on first sign-in from
+	// the user_email and user_name in the mintUserToken request.
+	CreateAccountsOnSignIn bool `protobuf:"varint,2,opt,name=create_accounts_on_sign_in,json=createAccountsOnSignIn,proto3" json:"create_accounts_on_sign_in,omitempty"`
+	// The role an account mintUserToken creates receives on the organization
+	// the token is for.
+	//
+	// An app user's account belongs to that one organization, so its
+	// creation is its first sign-in there: the role is granted once, when the
+	// account is created. Accounts that already exist keep the roles they
+	// hold, and changing this setting later does not reach them. Unspecified
+	// (iam_role_unspecified) grants nothing. Requires
+	// create_accounts_on_sign_in. The owner role is refused: ownership is
+	// assigned explicitly. A role an organization cannot be granted (one its
+	// kind's grantable roles do not list) is refused with INVALID_ARGUMENT.
+	SignInRole v1.IamRole `protobuf:"varint,3,opt,name=sign_in_role,json=signInRole,proto3,enum=ai.stigmer.iam.v1.IamRole" json:"sign_in_role,omitempty"`
+	// Vaults whose logins and secrets every run an app user creates uses, in
+	// order: the first vault holding a match wins. At most 20.
+	//
+	// This is how an embedded assistant reaches tools that need a key: the
+	// organization's embedding settings carry a shared vault holding it, and
+	// its app users' runs use it. A My vault cannot be attached.
+	Vaults        []*apiresource.ApiResourceReference `protobuf:"bytes,4,rep,name=vaults,proto3" json:"vaults,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OrganizationEmbedding) Reset() {
+	*x = OrganizationEmbedding{}
+	mi := &file_ai_stigmer_tenancy_organization_v1_spec_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OrganizationEmbedding) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OrganizationEmbedding) ProtoMessage() {}
+
+func (x *OrganizationEmbedding) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_tenancy_organization_v1_spec_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OrganizationEmbedding.ProtoReflect.Descriptor instead.
+func (*OrganizationEmbedding) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *OrganizationEmbedding) GetAllowedOrigins() []string {
+	if x != nil {
+		return x.AllowedOrigins
+	}
+	return nil
+}
+
+func (x *OrganizationEmbedding) GetCreateAccountsOnSignIn() bool {
+	if x != nil {
+		return x.CreateAccountsOnSignIn
+	}
+	return false
+}
+
+func (x *OrganizationEmbedding) GetSignInRole() v1.IamRole {
+	if x != nil {
+		return x.SignInRole
+	}
+	return v1.IamRole(0)
+}
+
+func (x *OrganizationEmbedding) GetVaults() []*apiresource.ApiResourceReference {
+	if x != nil {
+		return x.Vaults
+	}
+	return nil
+}
+
 // OrganizationPreferences holds organization-declared defaults that apply to
 // every eligible run in the organization.
 type OrganizationPreferences struct {
@@ -136,7 +271,7 @@ type OrganizationPreferences struct {
 
 func (x *OrganizationPreferences) Reset() {
 	*x = OrganizationPreferences{}
-	mi := &file_ai_stigmer_tenancy_organization_v1_spec_proto_msgTypes[1]
+	mi := &file_ai_stigmer_tenancy_organization_v1_spec_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -148,7 +283,7 @@ func (x *OrganizationPreferences) String() string {
 func (*OrganizationPreferences) ProtoMessage() {}
 
 func (x *OrganizationPreferences) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_tenancy_organization_v1_spec_proto_msgTypes[1]
+	mi := &file_ai_stigmer_tenancy_organization_v1_spec_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -161,7 +296,7 @@ func (x *OrganizationPreferences) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OrganizationPreferences.ProtoReflect.Descriptor instead.
 func (*OrganizationPreferences) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDescGZIP(), []int{1}
+	return file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *OrganizationPreferences) GetStandingContext() string {
@@ -194,7 +329,7 @@ type OrganizationPolicies struct {
 
 func (x *OrganizationPolicies) Reset() {
 	*x = OrganizationPolicies{}
-	mi := &file_ai_stigmer_tenancy_organization_v1_spec_proto_msgTypes[2]
+	mi := &file_ai_stigmer_tenancy_organization_v1_spec_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -206,7 +341,7 @@ func (x *OrganizationPolicies) String() string {
 func (*OrganizationPolicies) ProtoMessage() {}
 
 func (x *OrganizationPolicies) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_tenancy_organization_v1_spec_proto_msgTypes[2]
+	mi := &file_ai_stigmer_tenancy_organization_v1_spec_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -219,7 +354,7 @@ func (x *OrganizationPolicies) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OrganizationPolicies.ProtoReflect.Descriptor instead.
 func (*OrganizationPolicies) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *OrganizationPolicies) GetMembersCanCreateAgents() bool {
@@ -233,7 +368,7 @@ var File_ai_stigmer_tenancy_organization_v1_spec_proto protoreflect.FileDescript
 
 const file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/tenancy/organization/v1/spec.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a\x1bbuf/validate/validate.proto\"\xe1\x04\n" +
+	"-ai/stigmer/tenancy/organization/v1/spec.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xba\x05\n" +
 	"\x10OrganizationSpec\x12*\n" +
 	"\vdescription\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xf4\x03R\vdescription\x12#\n" +
 	"\blogo_url\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\alogoUrl\x12)\n" +
@@ -242,8 +377,18 @@ const file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDesc = "" +
 	"\vpreferences\x18\a \x01(\v2;.ai.stigmer.tenancy.organization.v1.OrganizationPreferencesR\vpreferences\x12&\n" +
 	"\n" +
 	"parent_org\x18\b \x01(\tB\a\xbaH\x04r\x02\x18@R\tparentOrg\x12T\n" +
-	"\bpolicies\x18\t \x01(\v28.ai.stigmer.tenancy.organization.v1.OrganizationPoliciesR\bpolicies:\xac\x01\xbaH\xa8\x01\x1a\xa5\x01\n" +
-	",organization.external_id_requires_parent_org\x12Dexternal_id is set only on a child organization: name its parent_org\x1a/this.external_id == '' || this.parent_org != ''J\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x06\x10\aR\x0fmanagement_modeR\x15identity_provider_refR\vis_personal\"u\n" +
+	"\bpolicies\x18\t \x01(\v28.ai.stigmer.tenancy.organization.v1.OrganizationPoliciesR\bpolicies\x12W\n" +
+	"\tembedding\x18\n" +
+	" \x01(\v29.ai.stigmer.tenancy.organization.v1.OrganizationEmbeddingR\tembedding:\xac\x01\xbaH\xa8\x01\x1a\xa5\x01\n" +
+	",organization.external_id_requires_parent_org\x12Dexternal_id is set only on a child organization: name its parent_org\x1a/this.external_id == '' || this.parent_org != ''J\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x06\x10\aR\x0fmanagement_modeR\x15identity_provider_refR\vis_personal\"\x9f\x05\n" +
+	"\x15OrganizationEmbedding\x12'\n" +
+	"\x0fallowed_origins\x18\x01 \x03(\tR\x0eallowedOrigins\x12:\n" +
+	"\x1acreate_accounts_on_sign_in\x18\x02 \x01(\bR\x16createAccountsOnSignIn\x12<\n" +
+	"\fsign_in_role\x18\x03 \x01(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\n" +
+	"signInRole\x12Z\n" +
+	"\x06vaults\x18\x04 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\f\xbaH\x05\x92\x01\x02\x10\x14\xe0\x85,;R\x06vaults:\x86\x03\xbaH\x82\x03\x1a\xe3\x01\n" +
+	"=organization_embedding.sign_in_role_requires_account_creation\x12gsign_in_role requires create_accounts_on_sign_in: only an account the sign-in creates receives the role\x1a9this.sign_in_role == 0 || this.create_accounts_on_sign_in\x1a\x99\x01\n" +
+	"-organization_embedding.sign_in_role_not_owner\x12Psign_in_role cannot be owner; organization ownership must be assigned explicitly\x1a\x16this.sign_in_role != 1\"u\n" +
 	"\x17OrganizationPreferences\x123\n" +
 	"\x10standing_context\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xd0\x0fR\x0fstandingContext\x12%\n" +
 	"\x0ememory_enabled\x18\x02 \x01(\bR\rmemoryEnabled\"Q\n" +
@@ -263,20 +408,26 @@ func file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_tenancy_organization_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_tenancy_organization_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_tenancy_organization_v1_spec_proto_goTypes = []any{
-	(*OrganizationSpec)(nil),        // 0: ai.stigmer.tenancy.organization.v1.OrganizationSpec
-	(*OrganizationPreferences)(nil), // 1: ai.stigmer.tenancy.organization.v1.OrganizationPreferences
-	(*OrganizationPolicies)(nil),    // 2: ai.stigmer.tenancy.organization.v1.OrganizationPolicies
+	(*OrganizationSpec)(nil),                 // 0: ai.stigmer.tenancy.organization.v1.OrganizationSpec
+	(*OrganizationEmbedding)(nil),            // 1: ai.stigmer.tenancy.organization.v1.OrganizationEmbedding
+	(*OrganizationPreferences)(nil),          // 2: ai.stigmer.tenancy.organization.v1.OrganizationPreferences
+	(*OrganizationPolicies)(nil),             // 3: ai.stigmer.tenancy.organization.v1.OrganizationPolicies
+	(v1.IamRole)(0),                          // 4: ai.stigmer.iam.v1.IamRole
+	(*apiresource.ApiResourceReference)(nil), // 5: ai.stigmer.commons.apiresource.ApiResourceReference
 }
 var file_ai_stigmer_tenancy_organization_v1_spec_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.tenancy.organization.v1.OrganizationSpec.preferences:type_name -> ai.stigmer.tenancy.organization.v1.OrganizationPreferences
-	2, // 1: ai.stigmer.tenancy.organization.v1.OrganizationSpec.policies:type_name -> ai.stigmer.tenancy.organization.v1.OrganizationPolicies
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	2, // 0: ai.stigmer.tenancy.organization.v1.OrganizationSpec.preferences:type_name -> ai.stigmer.tenancy.organization.v1.OrganizationPreferences
+	3, // 1: ai.stigmer.tenancy.organization.v1.OrganizationSpec.policies:type_name -> ai.stigmer.tenancy.organization.v1.OrganizationPolicies
+	1, // 2: ai.stigmer.tenancy.organization.v1.OrganizationSpec.embedding:type_name -> ai.stigmer.tenancy.organization.v1.OrganizationEmbedding
+	4, // 3: ai.stigmer.tenancy.organization.v1.OrganizationEmbedding.sign_in_role:type_name -> ai.stigmer.iam.v1.IamRole
+	5, // 4: ai.stigmer.tenancy.organization.v1.OrganizationEmbedding.vaults:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_tenancy_organization_v1_spec_proto_init() }
@@ -290,7 +441,7 @@ func file_ai_stigmer_tenancy_organization_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDesc), len(file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

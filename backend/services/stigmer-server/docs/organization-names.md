@@ -229,15 +229,11 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | OAuthAppQueryController.getByReference | `org` |
 | OAuthAppQueryController.list | `org` |
 
-## `ai.stigmer.iam.platformclient.v1`
+## `ai.stigmer.iam.token.v1`
 
 | Method | Organization fields |
 |---|---|
-| PlatformClientCommandController.create | `metadata.org`, `spec.vaults.org` |
-| PlatformClientCommandController.update | `resource.metadata.org`, `resource.spec.vaults.org` |
-| PlatformClientQueryController.getByReference | `org` |
-| PlatformClientQueryController.list | `org` |
-| PlatformClientTokenController.mintUserToken | `org` |
+| TokenService.mintUserToken | `org` |
 
 ## `ai.stigmer.platform.github.v1`
 
@@ -259,11 +255,12 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| OrganizationCommandController.apply | `metadata.org`, `spec.parent_org` |
-| OrganizationCommandController.create | `metadata.org`, `spec.parent_org` |
+| OrganizationCommandController.apply | `metadata.org`, `spec.parent_org`, `spec.embedding.vaults.org` |
+| OrganizationCommandController.create | `metadata.org`, `spec.parent_org`, `spec.embedding.vaults.org` |
 | OrganizationCommandController.delete | `value (annotation)` |
 | OrganizationCommandController.rename | `resource_id (annotation)` |
-| OrganizationCommandController.update | `resource.metadata.org`, `resource.spec.parent_org`, `resource.metadata.id (annotation)` |
+| OrganizationCommandController.update | `resource.metadata.org`, `resource.spec.parent_org`, `resource.spec.embedding.vaults.org`, `resource.metadata.id (annotation)` |
+| OrganizationCommandController.updateEmbedding | `embedding.vaults.org`, `org_id (annotation)` |
 | OrganizationCommandController.updatePolicies | `org_id (annotation)` |
 | OrganizationQueryController.get | `value (annotation)` |
 | OrganizationQueryController.getByExternalId | `parent_org` |

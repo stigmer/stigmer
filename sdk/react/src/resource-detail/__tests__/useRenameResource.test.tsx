@@ -23,7 +23,6 @@ const KINDS: ReadonlyArray<readonly [RenamableResourceKind, string]> = [
   ["schedule", "schedule"],
   ["channel_app", "channelapp"],
   ["oauth_app", "oauthapp"],
-  ["platform_client", "platformclient"],
   ["team", "team"],
   ["federation_issuer", "federationIssuer"],
 ];

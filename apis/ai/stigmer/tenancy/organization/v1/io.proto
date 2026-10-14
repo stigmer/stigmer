@@ -108,6 +108,19 @@ message UpdateOrganizationPoliciesInput {
   OrganizationPolicies policies = 2 [(buf.validate.field).required = true];
 }
 
+// Input for updateEmbedding: the organization and the whole set of
+// embedding settings it holds from now on.
+message UpdateOrganizationEmbeddingInput {
+  // The organization's id or slug.
+  string org_id = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 64
+  }];
+  // Every embedding setting, as it should stand: a field left at its zero
+  // value clears that setting.
+  OrganizationEmbedding embedding = 2 [(buf.validate.field).required = true];
+}
+
 // The changes an update makes to an organization: the fields update_mask names,
 // taken from resource.
 message UpdateOrganizationInput {

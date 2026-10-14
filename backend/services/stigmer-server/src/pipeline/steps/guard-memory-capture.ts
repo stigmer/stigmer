@@ -4,7 +4,7 @@
  * for a FIRST-PARTY HUMAN OPERATOR
  * — or the remember tool's SESSION-SCOPED sandbox credential acting as
  * its human subject. Machine accounts and
- * every minted-credential lane — PlatformClient user tokens, guest
+ * every minted-credential lane — minted user tokens, guest
  * embeds, channel senders, schedule runs — stay refused; "the label is
  * not authorization; the server refuses."
  *
@@ -13,10 +13,10 @@
  * allow-list recall and the person's declared preferences read on
  * execution create, so the two halves of the memory loop cannot disagree
  * about who a person is (stigmer#1406): a wire `user` that is not
- * server-composed and whose bearer is not a PlatformClient token. Being
+ * server-composed and whose bearer is not a minted user token. Being
  * an allow-list, it refuses a caller class this gate has never heard of
  * — the half that must fail closed is capture (CheckMemoryEnablement's
- * header). The PlatformClient arm reads the VERIFIED token's own claims,
+ * header). The minted-token arm reads the VERIFIED token's own claims,
  * and only on a platform token (stigmer#1312, the predicate's own doc).
  *
  * RUNNER credentials carry neither the machine class nor that claim —

@@ -50,11 +50,12 @@
 //     scope refuses; the server's resolver unit arms pin that the person is
 //     the turn's recorded person.) A run reads only the vaults its
 //     conversation chose: an agent carries none, so a usable team vault
-//     serves a member's run only once the conversation lists it. A user
-//     signed in through a PlatformClient is no person of their run, so
-//     their run reads no My vault, even their own and even when the
-//     conversation includes it: only the conversation's vaults serve it
-//     (an integrator keeps such a user's keys in a vault it names). A schedule's
+//     serves a member's run only once the conversation lists it. An app
+//     user, signed in from the organization's own product by a minted
+//     token, is no person of their run, so their run reads no My vault,
+//     even their own and even when the conversation includes it: only the
+//     conversation's vaults and the organization's embedding vaults serve
+//     it (an integrator keeps such a user's keys in a vault it names). A schedule's
 //     vault stops serving its fires once the account that attached it may
 //     no longer use it. A member's run with memory
 //     on, whose agent calls `remember`, writes a Memory whose subject is the
@@ -88,6 +89,7 @@ import { Code } from "@connectrpc/connect";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { ScheduleFireOutcome } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
@@ -115,10 +117,11 @@ import { makeSchedule } from "../support/schedules";
 import { makeSessionSpec } from "../support/sessions";
 import { organizationRole } from "../support/iampolicies";
 import {
-  createPlatformClient,
-  deletePlatformClient,
+  createMinter,
+  deleteMinter,
   mintUserToken,
-} from "../support/platformclients";
+  setEmbedding,
+} from "../support/user-tokens";
 import { makeSharedVault, myVaultTarget, setSecretsInput, vaultTarget } from "../support/vaults";
 import { RunValueOrigin, agentSourceOf, fetchRunValues, runSourcesOf, sourcesFor } from "../support/run-values";
 import { pollUntil } from "../support/run-poll";
@@ -865,20 +868,24 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(teamSource?.vaultId).toBe(team.metadata!.id);
     });
 
-    it("[rpc:RunCommandController.create] a PlatformClient user's run reads no My vault, their own included, even when the conversation includes it: only its vaults serve the run", async (ctx) => {
+    it("[rpc:RunCommandController.create] an app user's run reads no My vault, their own included, even when the conversation includes it: the conversation's vaults and the organization's embedding vaults serve the run", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
-      if (!target.capabilities.platformClientTokens) {
-        return ctx.skip("this target's enforcing lane mints no PlatformClient user tokens");
+      if (!target.capabilities.userTokens) {
+        return ctx.skip("this target's enforcing lane mints no user tokens");
       }
       const people = await provisionPeople(lane);
-      const client = await createPlatformClient(people.founder, {
+      const minter = await createMinter(people.founder, {
         org: people.org,
-        name: uniqueName("ras-pc"),
-        signInRole: IamRole.member,
+        name: uniqueName("ras-minter"),
       });
-      fixtures.defer(() => deletePlatformClient(people.founder, client.id));
+      fixtures.defer(() => deleteMinter(people.founder, minter.accountId));
+      await setEmbedding(people.founder, people.org, { signInRole: IamRole.member });
       const user = lane.clientsPresenting(
-        await mintUserToken(people.founder, client.credentials, uniqueName("ras-pc-user")),
+        await mintUserToken(
+          lane.clientsPresenting(minter.key),
+          people.org,
+          uniqueName("ras-app-user"),
+        ),
       );
 
       // The user may keep a My vault (the first write creates it), and the
@@ -925,13 +932,13 @@ describe.skipIf(!runnerActsAsRunCreator)(
               name: uniqueName("ras-pc-mine"),
               agentRef: agentRefOf(agent),
               sessionSpec: makeSessionSpec({
-                subject: "platform client user, My vault included",
+                subject: "app user, My vault included",
                 includeMyVault: true,
               }),
             }),
           ),
         Code.FailedPrecondition,
-        "a PlatformClient user's run whose key is only in their own My vault",
+        "an app user's run whose key is only in their own My vault",
       );
       expect(refused.rawMessage).toContain("RAS_PC_KEY");
 
@@ -944,7 +951,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
           name: uniqueName("ras-pc-listed"),
           agentRef: agentRefOf(agent),
           sessionSpec: makeSessionSpec({
-            subject: "platform client user, customer vault listed",
+            subject: "app user, customer vault listed",
             includeMyVault: true,
             vaults: [team.metadata!.slug],
           }),
@@ -963,6 +970,36 @@ describe.skipIf(!runnerActsAsRunCreator)(
         sources.some((entry) => entry.vaultId === userVaultId),
         "nothing is planned from the user's own My vault",
       ).toBe(false);
+
+      // Named by the organization's embedding settings instead, the same
+      // vault serves a run whose conversation lists none.
+      await people.founder.organizationCommand.updateEmbedding({
+        orgId: people.org,
+        embedding: {
+          createAccountsOnSignIn: true,
+          signInRole: IamRole.member,
+          vaults: [{ kind: ApiResourceKind.vault, org: people.org, id: team.metadata!.id }],
+        },
+      });
+      mock.enqueue(anthropicText("Working..."), { delayMs: 30_000 });
+      const embedded = await user.agentExecutionCommand.create(
+        makeAgentExecution({
+          org: people.org,
+          name: uniqueName("ras-app-embedding"),
+          agentRef: agentRefOf(agent),
+          sessionSpec: makeSessionSpec({ subject: "app user, embedding vault" }),
+        }),
+      );
+      fixtures.defer(async () => {
+        mock.releaseHolds();
+        await awaitTerminal(user, embedded.metadata!.id);
+        await user.agentExecutionCommand.delete({ value: embedded.metadata!.id });
+      });
+      const viaEmbedding = agentSourceOf(await runSourcesOf(user, embedded.metadata!.id), "RAS_PC_KEY");
+      expect(viaEmbedding?.origin, "the key comes from the embedding vault, the run's surface").toBe(
+        RunValueOrigin.SURFACE_VAULT,
+      );
+      expect(viaEmbedding?.vaultId).toBe(team.metadata!.id);
     });
 
     it("[rpc:ScheduleCommandController.trigger] a schedule's vault stops serving its fires once the account that attached it may no longer use it", async (ctx) => {

@@ -48,8 +48,8 @@ const SHARE_TABS: readonly TabItem[] = [
   { id: "developer", label: "Developer" },
 ];
 
-const PLATFORM_CLIENT_DOCS_URL =
-  "https://stigmer.ai/docs/guides/authentication/platform-client/overview";
+const PRODUCT_USERS_DOCS_URL =
+  "https://stigmer.ai/docs/guides/authentication/product-users";
 
 /** Props for {@link ShareAgentDialog}. */
 export interface ShareAgentDialogProps {
@@ -95,8 +95,8 @@ export interface ShareAgentDialogProps {
  * The Share dialog for one agent share: create it (name/slug step), then
  * toggle serving, copy the hosted chat link, copy an embeddable snippet,
  * manage allowed embed origins, bind tool credentials for visitors,
- * customize visitor refusal messages, and discover the PlatformClient
- * SDK path.
+ * customize visitor refusal messages, and discover how to sign a
+ * product's own users in through the SDK.
  *
  * Sharing is a distinct consent from marketplace visibility: visibility
  * governs who can *read* the blueprint; sharing governs who can *chat*
@@ -1505,7 +1505,7 @@ function MessageField({
 // ---------------------------------------------------------------------------
 
 /**
- * The platform client snippet, aimed at the server the console is connected
+ * The user-token snippet, aimed at the server the console is connected
  * to — a self-hosted admin copies code for their own server, not Stigmer
  * Cloud. `apiBaseUrl` is the server's public base URL (`usePublicBaseUrl`),
  * the address the channel-app webhook URLs are built from too, JSON-quoted
@@ -1518,16 +1518,17 @@ function buildDeveloperSnippet(
 ): string {
   const baseUrl = JSON.stringify(trimTrailing(apiBaseUrl, "/"));
   return [
-    `import { createPlatformClientAuth } from "@stigmer/sdk/node";`,
+    `import { createNodeClient } from "@stigmer/sdk/node";`,
     ``,
-    `const auth = createPlatformClientAuth({`,
+    `// A key of a service account with the admin role in ${org}`,
+    `const stigmer = createNodeClient({`,
     `  baseUrl: ${baseUrl},`,
-    `  clientId: process.env.STIGMER_CLIENT_ID,`,
-    `  clientSecret: process.env.STIGMER_CLIENT_SECRET,`,
+    `  apiKey: process.env.STIGMER_API_KEY,`,
     `});`,
     ``,
     `// Mint tokens for your own users, then chat with ${org}/${slug}`,
-    `const { accessToken } = await auth.mintUserToken({`,
+    `const { accessToken } = await stigmer.tokens.mintUserToken({`,
+    `  org: ${JSON.stringify(org)},`,
     `  userId: "user-123",`,
     `});`,
   ].join("\n");
@@ -1553,13 +1554,13 @@ function DeveloperTab({
   return (
     <div className="stg:flex stg:flex-col stg:gap-3">
       <p className="stg:text-xs stg:text-muted-foreground">
-        Need your own auth, branding, or UI? Create a platform client and
-        integrate this agent with the Stigmer SDK — the same runtime, full
-        control.
+        Need your own auth, branding, or UI? Sign your product's users in
+        with a service account's key and integrate this agent with the
+        Stigmer SDK — the same runtime, full control.
       </p>
       {snippet !== null ? (
         <CopyField
-          label="Platform client integration"
+          label="SDK integration"
           value={snippet}
           copyLabel="Code"
           multiline
@@ -1567,7 +1568,7 @@ function DeveloperTab({
       ) : (
         <section>
           <h3 className="stg:text-xs stg:font-medium stg:text-muted-foreground">
-            Platform client integration
+            SDK integration
           </h3>
           <div className="stg:mt-1.5">
             <UnknownPublicAddressNotice subject="the integration code" />
@@ -1575,7 +1576,7 @@ function DeveloperTab({
         </section>
       )}
       <a
-        href={PLATFORM_CLIENT_DOCS_URL}
+        href={PRODUCT_USERS_DOCS_URL}
         target="_blank"
         rel="noreferrer"
         className={cn(
@@ -1583,7 +1584,7 @@ function DeveloperTab({
           "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded",
         )}
       >
-        Read the platform client guide →
+        Read the guide to signing your users in →
       </a>
     </div>
   );

@@ -42,7 +42,7 @@ import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/sessi
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { file_ai_stigmer_commons_apiresource_io } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
+import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
@@ -81,7 +81,7 @@ describe("the reference fill, over the interceptor alone", () => {
   it("passes a response that can reach no reference untouched, reading nothing", async () => {
     const names = namesOf({});
     const answer = { anything: true };
-    const response = await unaryThrough(names, OrganizationQueryController.method.get, answer);
+    const response = await unaryThrough(names, PlatformQueryController.method.getServerInfo, answer);
     expect(response.message).toBe(answer);
     expect(names.asked).toEqual([]);
   });

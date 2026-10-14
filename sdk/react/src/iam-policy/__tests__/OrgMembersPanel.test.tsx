@@ -4,8 +4,8 @@
  * to its owner role).
  *
  * Who is a member: the organization's access list also holds the accounts a
- * PlatformClient provisioned for the organization's own product, each with
- * its sign-in role. The panel lists and counts the organization's people
+ * mint created for people of the organization's own product, each with
+ * the embedding sign-in role. The panel lists and counts the organization's people
  * only; those accounts sit apart in a collapsed group that names how many
  * there are, whose Remove says that signing in through the product again
  * does not restore the access. The organization's service accounts sit
@@ -92,14 +92,14 @@ function member(id: string, name: string, role: string): PrincipalAccess {
   });
 }
 
-/** An account a PlatformClient provisioned, holding its sign-in role. */
+/** An account a mint created, holding the embedding sign-in role. */
 function productUser(id: string, name: string, role = "viewer"): PrincipalAccess {
   return create(PrincipalAccessSchema, {
     principal: {
       kind: "identity_account",
       id,
       name,
-      identityOrigin: { provisioningMode: IdentityAccountProvisioningMode.platform_client },
+      identityOrigin: { provisioningMode: IdentityAccountProvisioningMode.app_user },
     },
     roles: [{ role: { code: role, name: role } }],
   });

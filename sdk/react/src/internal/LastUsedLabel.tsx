@@ -15,7 +15,7 @@ export interface LastUsedLabelProps {
 
 /**
  * When a credential was last used, said one way on every surface that
- * lists credentials (API keys, platform clients): "Used 5m" in the SDK's
+ * lists credentials (API keys): "Used 5m" in the SDK's
  * compact relative vocabulary, with the exact instant in a tooltip, or
  * "Never used". The label names what the time is, because it sits beside
  * other dates (created, expires) in the same row.

@@ -107,7 +107,8 @@ export interface KindPurgeSpec<
   ) => boolean;
   /**
    * Reads the organization's rows itself, at most `limit`: a kind whose rows
-   * live behind a port a composition may substitute (a PlatformClient's),
+   * live behind a port a composition may substitute (an identity
+   * account's),
    * so the purge follows the composed store.
    */
   readonly rows?: (

@@ -11,7 +11,7 @@
  * HandlerContext.values (never ambient state — every dependency is
  * explicit).
  */
-import { USER_TOKEN_CLAIMS } from "../domain/platformclient/constants.js";
+import { USER_TOKEN_CLAIMS } from "../domain/token/constants.js";
 import {
   decodeVerifiedPlatformTokenPayload,
   stringClaim,
@@ -30,7 +30,7 @@ import {
  * minted ONLY by server code, in pipeline/interceptors/auth.ts — the
  * in-process chain's identity interceptor (boot/inprocess.ts) and
  * `serverActingFor`, the server acting for a principal it authenticated
- * itself (the PlatformClient mint). No IdentityVerifier may produce it —
+ * itself (the user-token mint). No IdentityVerifier may produce it —
  * the serving chain always overwrites the position-1 identity from the
  * wire, so a spoofed internal class cannot enter through a transport.
  */
@@ -96,26 +96,26 @@ export interface CallerIdentity {
   readonly email?: string;
   readonly displayName?: string;
   /**
-   * The PlatformClient whose minted user token this caller presented,
-   * carried for the audit-actor seam as `email` and `displayName` are:
-   * the audit actor records it (ApiResourceAuditActor.platform_client_id),
-   * and that server-owned record is what later readers key on, never this
-   * field (stigmer/stigmer#1256). Set ONLY by the PlatformClient
-   * user-token verifier (domain/platformclient/verifier.ts), from the
-   * claim it has just verified and whose client it has just found alive;
-   * absent on every other credential. It is provenance, not authorization
-   * data (the account the token names is still the principal), and not a
-   * guard vocabulary: caller guards decode their own skip logic from
-   * `rawToken` (extensions/caller-guards.ts).
+   * The service account whose key minted the user token this caller
+   * presented, carried for the audit-actor seam as `email` and
+   * `displayName` are: the audit actor records it
+   * (ApiResourceAuditActor.minted_by), and that server-owned record is what
+   * later readers key on, never this field. Set ONLY by the user-token
+   * verifier (domain/token/verifier.ts), from the claim it has just
+   * verified and whose account it has just found alive; absent on every
+   * other credential. It is provenance, not authorization data (the account
+   * the token names is still the principal), and not a guard vocabulary:
+   * caller guards decode their own skip logic from `rawToken`
+   * (extensions/caller-guards.ts).
    */
-  readonly platformClientId?: string;
+  readonly mintedBy?: string;
   /**
    * The organization this credential works in; absent means the credential
    * speaks for the person in every organization they hold a role in (a
    * person signed in at a console, the trusted-local operator, a runner's
    * own process credential, the server itself). Set by the verifier that
-   * vouched for a credential naming one organization: a PlatformClient user
-   * token (its `org` claim), an API key limited to one
+   * vouched for a credential naming one organization: a minted user token
+   * (its `org` claim), an API key limited to one
    * (`ApiKeySpec.bound_org`), a run's credential (its run's organization),
    * and a composition's own lanes that name one. Enforced once, where the composition resolves its
    * decision drivers (authorization/credential-binding.ts), so every
@@ -223,7 +223,7 @@ export function boundOrgOf(
  * Whether `caller` is a FIRST-PARTY HUMAN OPERATOR: a person at the
  * console, the CLI or an SDK, speaking for themselves on the wire — the
  * TS rendering of the Java RequestCallerIdentity.isFirstPartyHumanOperator
- * (not machine, not impersonated, no token_type, not a PlatformClient user
+ * (not machine, not impersonated, no token_type, not a minted user
  * token). Stated once for every consumer that must tell the person from a
  * lane acting near them: memory recall and the person's declared
  * preferences on execution create (domain/run/create-steps.ts),
@@ -238,28 +238,30 @@ export function boundOrgOf(
  * own class), the request must come from the wire (the open-source
  * schedule fire acts as its creator with class `user` but rides the
  * in-process transport, which is exactly what `isServerComposedRequest`
- * reads), and the bearer must not be a PlatformClient user token (a
- * person, but spoken for by a third-party client).
+ * reads), and the bearer must not be a minted user token (a person, but
+ * spoken for by an organization's product, whose people the organization
+ * did not admit one by one).
  */
 export function isFirstPartyHumanOperator(caller: CallerIdentity): boolean {
   return (
     caller.callerClass === "user" &&
     !isServerComposedRequest(caller) &&
-    !carriesPlatformClientClaim(caller.rawToken)
+    !carriesMintedByClaim(caller.rawToken)
   );
 }
 
 /**
- * Whether the bearer is a platform token naming a PlatformClient. Anything
+ * Whether the bearer is a platform token naming the service account that
+ * minted it: a user token an organization's product asked for. Anything
  * that is not a platform token (no token, an API key, another issuer's
  * JWT) is not one, whatever claims it carries (stigmer#1312). Read from
- * the raw token, never from `platformClientId`, which is audit provenance
- * set by one verifier and not a guard vocabulary (see its field doc).
+ * the raw token, never from `mintedBy`, which is audit provenance set by
+ * one verifier and not a guard vocabulary (see its field doc).
  */
-export function carriesPlatformClientClaim(rawToken: string): boolean {
+export function carriesMintedByClaim(rawToken: string): boolean {
   const payload = decodeVerifiedPlatformTokenPayload(rawToken);
   return (
     payload !== undefined &&
-    stringClaim(payload, USER_TOKEN_CLAIMS.platformClientId) !== undefined
+    stringClaim(payload, USER_TOKEN_CLAIMS.mintedBy) !== undefined
   );
 }

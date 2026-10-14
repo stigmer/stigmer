@@ -26,7 +26,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "URL-friendly identifier, unique within the organization (an\n Organization's own slug is unique across the server).\n Combined with org, forms the canonical reference: \"org/slug\".\n Update and apply never change it: a kind whose slug may change has a\n rename RPC (organization, agent, vault, schedule, channel app, OAuth\n app, platform client, team and federation issuer), after which the old\n slug leads to the resource for reading for 30 days.\n Format: lowercase alphanumeric characters and hyphens, 2 to 63\n characters, the length every reference to a resource holds; must start\n with a letter and end with a letter or digit. When empty, the server\n derives the slug from the name, and refuses a name whose derived slug\n breaks these rules, never shortening it. A resource the server names\n itself is the exception (an identity account, after its email or\n subject): its slug is made to fit instead (a letter in front, a\n fallback, or a cut with a short hash). An update by id keeps the\n stored slug, so a new name's derived slug is not checked there.",
+          "description": "URL-friendly identifier, unique within the organization (an\n Organization's own slug is unique across the server).\n Combined with org, forms the canonical reference: \"org/slug\".\n Update and apply never change it: a kind whose slug may change has a\n rename RPC (organization, agent, vault, schedule, channel app, OAuth\n app, team and federation issuer), after which the old\n slug leads to the resource for reading for 30 days.\n Format: lowercase alphanumeric characters and hyphens, 2 to 63\n characters, the length every reference to a resource holds; must start\n with a letter and end with a letter or digit. When empty, the server\n derives the slug from the name, and refuses a name whose derived slug\n breaks these rules, never shortening it. A resource the server names\n itself is the exception (an identity account, after its email or\n subject): its slug is made to fit instead (a letter in front, a\n fallback, or a cut with a short hash). An update by id keeps the\n stored slug, so a new name's derived slug is not checked there.",
           "required": false,
           "validation": {
             "minLength": 2,
@@ -314,13 +314,13 @@
           "required": false
         },
         {
-          "name": "PlatformClientId",
-          "jsonName": "platformClientId",
-          "protoField": "platform_client_id",
+          "name": "MintedBy",
+          "jsonName": "mintedBy",
+          "protoField": "minted_by",
           "type": {
             "kind": "string"
           },
-          "description": "The PlatformClient whose minted user token the actor acted through.\n Empty for every other credential, and on an actor that records no act\n (an account's profile lookup).",
+          "description": "The service account whose key minted the user token the actor acted\n through. Empty for every other credential, and on an actor that records\n no act (an account's profile lookup).",
           "required": false
         }
       ]
@@ -366,11 +366,6 @@
           "name": "oauth_app",
           "number": 22,
           "description": "Registered OAuth application with an external vendor for outbound authentication."
-        },
-        {
-          "name": "platform_client",
-          "number": 23,
-          "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
         },
         {
           "name": "team",

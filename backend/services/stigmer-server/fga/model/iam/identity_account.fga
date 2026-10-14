@@ -12,8 +12,8 @@ module iam
 # operator holds neither.
 #
 # A service account is the organization's own, so its organization's
-# current admins manage it and its API keys, as they manage a team or a
-# platform client. Only a service account's row carries the organization
+# current admins manage it and its API keys, as they manage a team or an
+# OAuth app. Only a service account's row carries the organization
 # link; a person's account has none, so nobody but the person reaches a
 # person's account or keys. A service account's own key never manages
 # keys or accounts, its own included: the server refuses that caller

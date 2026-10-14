@@ -13,9 +13,9 @@ public interface RunCredentialsOrBuilder extends
   /**
    * <pre>
    * The person whose turn this is, by identity account id. Absent for a
-   * turn no person sent: a schedule's, a channel's, a share link guest's, a
-   * platform client user's or a machine account's, which use only the
-   * vaults their session and surface name.
+   * turn no person sent: a schedule's, a channel's, a share link guest's, an
+   * app user's or a machine account's, which use only the vaults their
+   * session and surface name.
    * </pre>
    *
    * <code>optional string person = 1 [json_name = "person"];</code>
@@ -25,9 +25,9 @@ public interface RunCredentialsOrBuilder extends
   /**
    * <pre>
    * The person whose turn this is, by identity account id. Absent for a
-   * turn no person sent: a schedule's, a channel's, a share link guest's, a
-   * platform client user's or a machine account's, which use only the
-   * vaults their session and surface name.
+   * turn no person sent: a schedule's, a channel's, a share link guest's, an
+   * app user's or a machine account's, which use only the vaults their
+   * session and surface name.
    * </pre>
    *
    * <code>optional string person = 1 [json_name = "person"];</code>
@@ -37,9 +37,9 @@ public interface RunCredentialsOrBuilder extends
   /**
    * <pre>
    * The person whose turn this is, by identity account id. Absent for a
-   * turn no person sent: a schedule's, a channel's, a share link guest's, a
-   * platform client user's or a machine account's, which use only the
-   * vaults their session and surface name.
+   * turn no person sent: a schedule's, a channel's, a share link guest's, an
+   * app user's or a machine account's, which use only the vaults their
+   * session and surface name.
    * </pre>
    *
    * <code>optional string person = 1 [json_name = "person"];</code>

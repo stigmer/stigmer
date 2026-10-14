@@ -41,7 +41,7 @@ private static final long serialVersionUID = 0L;
     avatar_ = "";
     displayName_ = "";
     email_ = "";
-    platformClientId_ = "";
+    mintedBy_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -254,51 +254,51 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int PLATFORM_CLIENT_ID_FIELD_NUMBER = 5;
+  public static final int MINTED_BY_FIELD_NUMBER = 6;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object platformClientId_ = "";
+  private volatile java.lang.Object mintedBy_ = "";
   /**
    * <pre>
-   * The PlatformClient whose minted user token the actor acted through.
-   * Empty for every other credential, and on an actor that records no act
-   * (an account's profile lookup).
+   * The service account whose key minted the user token the actor acted
+   * through. Empty for every other credential, and on an actor that records
+   * no act (an account's profile lookup).
    * </pre>
    *
-   * <code>string platform_client_id = 5 [json_name = "platformClientId"];</code>
-   * @return The platformClientId.
+   * <code>string minted_by = 6 [json_name = "mintedBy"];</code>
+   * @return The mintedBy.
    */
   @java.lang.Override
-  public java.lang.String getPlatformClientId() {
-    java.lang.Object ref = platformClientId_;
+  public java.lang.String getMintedBy() {
+    java.lang.Object ref = mintedBy_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      platformClientId_ = s;
+      mintedBy_ = s;
       return s;
     }
   }
   /**
    * <pre>
-   * The PlatformClient whose minted user token the actor acted through.
-   * Empty for every other credential, and on an actor that records no act
-   * (an account's profile lookup).
+   * The service account whose key minted the user token the actor acted
+   * through. Empty for every other credential, and on an actor that records
+   * no act (an account's profile lookup).
    * </pre>
    *
-   * <code>string platform_client_id = 5 [json_name = "platformClientId"];</code>
-   * @return The bytes for platformClientId.
+   * <code>string minted_by = 6 [json_name = "mintedBy"];</code>
+   * @return The bytes for mintedBy.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getPlatformClientIdBytes() {
-    java.lang.Object ref = platformClientId_;
+      getMintedByBytes() {
+    java.lang.Object ref = mintedBy_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      platformClientId_ = b;
+      mintedBy_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -331,8 +331,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(email_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 4, email_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(platformClientId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 5, platformClientId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mintedBy_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 6, mintedBy_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -355,8 +355,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(email_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(4, email_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(platformClientId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(5, platformClientId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mintedBy_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(6, mintedBy_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -381,8 +381,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getDisplayName())) return false;
     if (!getEmail()
         .equals(other.getEmail())) return false;
-    if (!getPlatformClientId()
-        .equals(other.getPlatformClientId())) return false;
+    if (!getMintedBy()
+        .equals(other.getMintedBy())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -402,8 +402,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getDisplayName().hashCode();
     hash = (37 * hash) + EMAIL_FIELD_NUMBER;
     hash = (53 * hash) + getEmail().hashCode();
-    hash = (37 * hash) + PLATFORM_CLIENT_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getPlatformClientId().hashCode();
+    hash = (37 * hash) + MINTED_BY_FIELD_NUMBER;
+    hash = (53 * hash) + getMintedBy().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -548,7 +548,7 @@ private static final long serialVersionUID = 0L;
       avatar_ = "";
       displayName_ = "";
       email_ = "";
-      platformClientId_ = "";
+      mintedBy_ = "";
       return this;
     }
 
@@ -595,7 +595,7 @@ private static final long serialVersionUID = 0L;
         result.email_ = email_;
       }
       if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.platformClientId_ = platformClientId_;
+        result.mintedBy_ = mintedBy_;
       }
     }
 
@@ -631,8 +631,8 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000008;
         onChanged();
       }
-      if (!other.getPlatformClientId().isEmpty()) {
-        platformClientId_ = other.platformClientId_;
+      if (!other.getMintedBy().isEmpty()) {
+        mintedBy_ = other.mintedBy_;
         bitField0_ |= 0x00000010;
         onChanged();
       }
@@ -682,11 +682,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000008;
               break;
             } // case 34
-            case 42: {
-              platformClientId_ = input.readStringRequireUtf8();
+            case 50: {
+              mintedBy_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000010;
               break;
-            } // case 42
+            } // case 50
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1082,24 +1082,24 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object platformClientId_ = "";
+    private java.lang.Object mintedBy_ = "";
     /**
      * <pre>
-     * The PlatformClient whose minted user token the actor acted through.
-     * Empty for every other credential, and on an actor that records no act
-     * (an account's profile lookup).
+     * The service account whose key minted the user token the actor acted
+     * through. Empty for every other credential, and on an actor that records
+     * no act (an account's profile lookup).
      * </pre>
      *
-     * <code>string platform_client_id = 5 [json_name = "platformClientId"];</code>
-     * @return The platformClientId.
+     * <code>string minted_by = 6 [json_name = "mintedBy"];</code>
+     * @return The mintedBy.
      */
-    public java.lang.String getPlatformClientId() {
-      java.lang.Object ref = platformClientId_;
+    public java.lang.String getMintedBy() {
+      java.lang.Object ref = mintedBy_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        platformClientId_ = s;
+        mintedBy_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -1107,22 +1107,22 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The PlatformClient whose minted user token the actor acted through.
-     * Empty for every other credential, and on an actor that records no act
-     * (an account's profile lookup).
+     * The service account whose key minted the user token the actor acted
+     * through. Empty for every other credential, and on an actor that records
+     * no act (an account's profile lookup).
      * </pre>
      *
-     * <code>string platform_client_id = 5 [json_name = "platformClientId"];</code>
-     * @return The bytes for platformClientId.
+     * <code>string minted_by = 6 [json_name = "mintedBy"];</code>
+     * @return The bytes for mintedBy.
      */
     public com.google.protobuf.ByteString
-        getPlatformClientIdBytes() {
-      java.lang.Object ref = platformClientId_;
+        getMintedByBytes() {
+      java.lang.Object ref = mintedBy_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        platformClientId_ = b;
+        mintedBy_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -1130,55 +1130,55 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The PlatformClient whose minted user token the actor acted through.
-     * Empty for every other credential, and on an actor that records no act
-     * (an account's profile lookup).
+     * The service account whose key minted the user token the actor acted
+     * through. Empty for every other credential, and on an actor that records
+     * no act (an account's profile lookup).
      * </pre>
      *
-     * <code>string platform_client_id = 5 [json_name = "platformClientId"];</code>
-     * @param value The platformClientId to set.
+     * <code>string minted_by = 6 [json_name = "mintedBy"];</code>
+     * @param value The mintedBy to set.
      * @return This builder for chaining.
      */
-    public Builder setPlatformClientId(
+    public Builder setMintedBy(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      platformClientId_ = value;
+      mintedBy_ = value;
       bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * The PlatformClient whose minted user token the actor acted through.
-     * Empty for every other credential, and on an actor that records no act
-     * (an account's profile lookup).
+     * The service account whose key minted the user token the actor acted
+     * through. Empty for every other credential, and on an actor that records
+     * no act (an account's profile lookup).
      * </pre>
      *
-     * <code>string platform_client_id = 5 [json_name = "platformClientId"];</code>
+     * <code>string minted_by = 6 [json_name = "mintedBy"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearPlatformClientId() {
-      platformClientId_ = getDefaultInstance().getPlatformClientId();
+    public Builder clearMintedBy() {
+      mintedBy_ = getDefaultInstance().getMintedBy();
       bitField0_ = (bitField0_ & ~0x00000010);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * The PlatformClient whose minted user token the actor acted through.
-     * Empty for every other credential, and on an actor that records no act
-     * (an account's profile lookup).
+     * The service account whose key minted the user token the actor acted
+     * through. Empty for every other credential, and on an actor that records
+     * no act (an account's profile lookup).
      * </pre>
      *
-     * <code>string platform_client_id = 5 [json_name = "platformClientId"];</code>
-     * @param value The bytes for platformClientId to set.
+     * <code>string minted_by = 6 [json_name = "mintedBy"];</code>
+     * @param value The bytes for mintedBy to set.
      * @return This builder for chaining.
      */
-    public Builder setPlatformClientIdBytes(
+    public Builder setMintedByBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      platformClientId_ = value;
+      mintedBy_ = value;
       bitField0_ |= 0x00000010;
       onChanged();
       return this;

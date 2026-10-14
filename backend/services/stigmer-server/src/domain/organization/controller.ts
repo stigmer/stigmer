@@ -48,6 +48,7 @@ import type {
   OrganizationExternalLookup,
   OrganizationId,
   Organizations,
+  UpdateOrganizationEmbeddingInput,
   UpdateOrganizationPoliciesInput,
 } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 import type { UpdateOrganizationInput } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
@@ -71,10 +72,24 @@ import {
   newLoadOrganizationForPoliciesStep,
   newPreservePoliciesStep,
 } from "./policies.js";
+import {
+  EMBEDDING_ORGANIZATION_KEY,
+  EMBEDDING_VAULT_ATTACHMENTS,
+  embeddingContext,
+  newBuildEmbeddingStateStep,
+  newClearEmbeddingStep,
+  newPersistEmbeddingStep,
+  newPreserveEmbeddingStep,
+  newValidateSignInRoleStep,
+} from "./embedding.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  newNormalizeReferencesStep,
+  newValidateReferencesStep,
+} from "../../pipeline/steps/references.js";
 import { newRefuseServiceAccountCallerStep } from "../../pipeline/steps/refuse-service-account.js";
 import type { ServiceAccountLookup } from "../../pipeline/steps/refuse-service-account.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
@@ -107,6 +122,7 @@ import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 import { everyPathUpdate, updateContext } from "../../pipeline/steps/update-input.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
+import { newVaultAttachmentsStep } from "../vault/attachments.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
@@ -192,6 +208,7 @@ export function registerOrganizationServices(
     create: (org, ctx) => createOrganization(deps, org, ctx),
     update: (input, ctx) => update(deps, input, ctx),
     updatePolicies: (input, ctx) => updatePolicies(deps, input, ctx),
+    updateEmbedding: (input, ctx) => updateEmbedding(deps, input, ctx),
     rename: (input, ctx) => rename(deps, input, ctx),
     delete: (orgId, ctx) => deleteOrganization(deps, orgId, ctx),
   });
@@ -278,6 +295,7 @@ async function createOrganization(
     .addStep(newRefuseOrganizationOrgStep(newOrganizationNameResolver(deps.store)))
     .addStep(newValidateVisibilityStep())
     .addStep(newDefaultOrganizationPoliciesStep())
+    .addStep(newClearEmbeddingStep())
     .addStep(newCheckOrgDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
@@ -351,6 +369,7 @@ async function createOrganization(
  */
 export const ORGANIZATION_REFUSED_UPDATE_PATHS: ReadonlyArray<RefusedUpdatePath> = [
   { path: "spec.policies", writtenBy: "updatePolicies" },
+  { path: "spec.embedding", writtenBy: "updateEmbedding" },
   { path: "spec.parent_org", writtenBy: "create" },
   { path: "spec.external_id", writtenBy: "create" },
 ];
@@ -384,6 +403,7 @@ async function update(
       .addStep(newValidateProtoStep({ of: "state" }))
       .addStep(newPreserveChildLinkStep())
       .addStep(newPreservePoliciesStep())
+      .addStep(newPreserveEmbeddingStep())
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(newPersistStep(deps.store))
       .addStep(
@@ -428,6 +448,56 @@ async function updatePolicies(
     .build()
     .execute(reqCtx);
   return reqCtx.get(POLICIES_ORGANIZATION_KEY) as Organization;
+}
+
+/** What a service account is refused at updateEmbedding (pipeline/steps/refuse-service-account.ts). */
+const EMBEDDING_ACT = "change the organization's embedding settings";
+
+/**
+ * UpdateEmbedding — the only writer of an organization's embedding
+ * settings (embedding.ts): update and apply keep them. Replaces the whole
+ * message, runs the reference and vault-attachment rules every surface
+ * that names vaults runs, and returns the organization.
+ */
+async function updateEmbedding(
+  deps: OrganizationControllerDeps,
+  input: UpdateOrganizationEmbeddingInput,
+  ctx: HandlerContext,
+): Promise<Organization> {
+  const reqCtx = embeddingContext(input, callerIdentityOf(ctx));
+  await newPipeline<typeof OrganizationSchema>(
+    "organization-update-embedding",
+    deps.logger,
+  )
+    .addStep(
+      newAuthorizeStep(
+        OrganizationCommandController.method.updateEmbedding,
+        deps.authorizer,
+        input,
+      ),
+    )
+    // The settings decide who joins and with which role when a service
+    // account's key mints, so that key never changes them.
+    .addStep(
+      newRefuseServiceAccountCallerStep(EMBEDDING_ACT, deps.accounts),
+    )
+    .addStep(newLoadExistingOrganizationStep(deps.store))
+    .addStep(newBuildEmbeddingStateStep())
+    .addStep(newValidateProtoStep({ of: "state" }))
+    .addStep(newValidateSignInRoleStep())
+    .addStep(newNormalizeReferencesStep(deps.store))
+    .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(
+      newVaultAttachmentsStep(
+        deps.store,
+        deps.authorizer,
+        EMBEDDING_VAULT_ATTACHMENTS,
+      ),
+    )
+    .addStep(newPersistEmbeddingStep(deps.store))
+    .build()
+    .execute(reqCtx);
+  return reqCtx.get(EMBEDDING_ORGANIZATION_KEY) as Organization;
 }
 
 /**

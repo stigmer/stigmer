@@ -159,6 +159,26 @@ service OrganizationCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update organization policies";
   }
 
+  // Change how people sign in to the organization from its own product
+  // (OrganizationEmbedding), the one way to change those settings: update
+  // and apply keep the stored ones. Replaces every embedding setting with
+  // the input's.
+  //
+  // A vault the caller may not use is refused, as is a My vault. A
+  // sign_in_role of owner, or one an organization cannot be granted, is
+  // refused with INVALID_ARGUMENT.
+  //
+  // @internal
+  // Authorization: Requires can_edit permission on the organization (its
+  // admins), as update does. Records who attached each vault it introduces
+  // in status.embedding_vault_attachers.
+  rpc updateEmbedding(UpdateOrganizationEmbeddingInput) returns (Organization) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update organization embedding settings";
+  }
+
   // Rename an organization: change its slug, the name people type.
   //
   // Nothing the organization owns moves, because every resource names it by

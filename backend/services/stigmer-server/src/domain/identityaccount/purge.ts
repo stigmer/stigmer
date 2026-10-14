@@ -5,10 +5,9 @@
  * through the port, its access).
  *
  * Which accounts. An account belongs to an organization when its row names
- * it in `metadata.org`: a platform client's end users (an account a
- * client provisions belongs to the organization, not to the client,
- * platformclient/controller.ts) and a composition's own per-organization
- * accounts. They can sign in nowhere else, so they go with it. A person's
+ * it in `metadata.org`: its app users (an account a mint creates belongs
+ * to the organization the token is for, domain/token/mint.ts), its service
+ * accounts and a composition's own per-organization accounts. They can sign in nowhere else, so they go with it. A person's
  * own account names no organization and is never touched; leaving an
  * organization is the revocation of their rows there, which the delete has
  * done.

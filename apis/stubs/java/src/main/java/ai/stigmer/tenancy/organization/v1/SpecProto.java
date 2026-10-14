@@ -32,6 +32,11 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_tenancy_organization_v1_OrganizationSpec_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_tenancy_organization_v1_OrganizationEmbedding_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_tenancy_organization_v1_OrganizationEmbedding_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_tenancy_organization_v1_OrganizationPreferences_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -52,37 +57,62 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n-ai/stigmer/tenancy/organization/v1/spe" +
       "c.proto\022\"ai.stigmer.tenancy.organization" +
-      ".v1\032\033buf/validate/validate.proto\"\341\004\n\020Org" +
-      "anizationSpec\022*\n\013description\030\001 \001(\tB\010\272H\005r" +
-      "\003\030\364\003R\013description\022#\n\010logo_url\030\002 \001(\tB\010\272H\005" +
-      "r\003\030\200\020R\007logoUrl\022)\n\013external_id\030\005 \001(\tB\010\272H\005" +
-      "r\003\030\200\002R\nexternalId\022]\n\013preferences\030\007 \001(\0132;" +
-      ".ai.stigmer.tenancy.organization.v1.Orga" +
-      "nizationPreferencesR\013preferences\022&\n\npare" +
-      "nt_org\030\010 \001(\tB\007\272H\004r\002\030@R\tparentOrg\022T\n\010poli" +
-      "cies\030\t \001(\01328.ai.stigmer.tenancy.organiza" +
-      "tion.v1.OrganizationPoliciesR\010policies:\254" +
-      "\001\272H\250\001\032\245\001\n,organization.external_id_requi" +
-      "res_parent_org\022Dexternal_id is set only " +
-      "on a child organization: name its parent" +
-      "_org\032/this.external_id == \'\' || this.par" +
-      "ent_org != \'\'J\004\010\003\020\004J\004\010\004\020\005J\004\010\006\020\007R\017managem" +
-      "ent_modeR\025identity_provider_refR\013is_pers" +
-      "onal\"u\n\027OrganizationPreferences\0223\n\020stand" +
-      "ing_context\030\001 \001(\tB\010\272H\005r\003\030\320\017R\017standingCon" +
-      "text\022%\n\016memory_enabled\030\002 \001(\010R\rmemoryEnab" +
-      "led\"Q\n\024OrganizationPolicies\0229\n\031members_c" +
-      "an_create_agents\030\001 \001(\010R\026membersCanCreate" +
-      "AgentsB\270\001B\tSpecProtoP\001\242\002\004ASTO\252\002\"Ai.Stigm" +
-      "er.Tenancy.Organization.V1\312\002\"Ai\\Stigmer\\" +
-      "Tenancy\\Organization\\V1\342\002.Ai\\Stigmer\\Ten" +
-      "ancy\\Organization\\V1\\GPBMetadata\352\002&Ai::S" +
-      "tigmer::Tenancy::Organization::V1b\006proto" +
-      "3"
+      ".v1\0322ai/stigmer/commons/apiresource/fiel" +
+      "d_options.proto\032\'ai/stigmer/commons/apir" +
+      "esource/io.proto\032\034ai/stigmer/iam/v1/enum" +
+      ".proto\032\033buf/validate/validate.proto\"\272\005\n\020" +
+      "OrganizationSpec\022*\n\013description\030\001 \001(\tB\010\272" +
+      "H\005r\003\030\364\003R\013description\022#\n\010logo_url\030\002 \001(\tB\010" +
+      "\272H\005r\003\030\200\020R\007logoUrl\022)\n\013external_id\030\005 \001(\tB\010" +
+      "\272H\005r\003\030\200\002R\nexternalId\022]\n\013preferences\030\007 \001(" +
+      "\0132;.ai.stigmer.tenancy.organization.v1.O" +
+      "rganizationPreferencesR\013preferences\022&\n\np" +
+      "arent_org\030\010 \001(\tB\007\272H\004r\002\030@R\tparentOrg\022T\n\010p" +
+      "olicies\030\t \001(\01328.ai.stigmer.tenancy.organ" +
+      "ization.v1.OrganizationPoliciesR\010policie" +
+      "s\022W\n\tembedding\030\n \001(\01329.ai.stigmer.tenanc" +
+      "y.organization.v1.OrganizationEmbeddingR" +
+      "\tembedding:\254\001\272H\250\001\032\245\001\n,organization.exter" +
+      "nal_id_requires_parent_org\022Dexternal_id " +
+      "is set only on a child organization: nam" +
+      "e its parent_org\032/this.external_id == \'\'" +
+      " || this.parent_org != \'\'J\004\010\003\020\004J\004\010\004\020\005J\004\010" +
+      "\006\020\007R\017management_modeR\025identity_provider_" +
+      "refR\013is_personal\"\237\005\n\025OrganizationEmbeddi" +
+      "ng\022\'\n\017allowed_origins\030\001 \003(\tR\016allowedOrig" +
+      "ins\022:\n\032create_accounts_on_sign_in\030\002 \001(\010R" +
+      "\026createAccountsOnSignIn\022<\n\014sign_in_role\030" +
+      "\003 \001(\0162\032.ai.stigmer.iam.v1.IamRoleR\nsignI" +
+      "nRole\022Z\n\006vaults\030\004 \003(\01324.ai.stigmer.commo" +
+      "ns.apiresource.ApiResourceReferenceB\014\272H\005" +
+      "\222\001\002\020\024\340\205,;R\006vaults:\206\003\272H\202\003\032\343\001\n=organizatio" +
+      "n_embedding.sign_in_role_requires_accoun" +
+      "t_creation\022gsign_in_role requires create" +
+      "_accounts_on_sign_in: only an account th" +
+      "e sign-in creates receives the role\0329thi" +
+      "s.sign_in_role == 0 || this.create_accou" +
+      "nts_on_sign_in\032\231\001\n-organization_embeddin" +
+      "g.sign_in_role_not_owner\022Psign_in_role c" +
+      "annot be owner; organization ownership m" +
+      "ust be assigned explicitly\032\026this.sign_in" +
+      "_role != 1\"u\n\027OrganizationPreferences\0223\n" +
+      "\020standing_context\030\001 \001(\tB\010\272H\005r\003\030\320\017R\017stand" +
+      "ingContext\022%\n\016memory_enabled\030\002 \001(\010R\rmemo" +
+      "ryEnabled\"Q\n\024OrganizationPolicies\0229\n\031mem" +
+      "bers_can_create_agents\030\001 \001(\010R\026membersCan" +
+      "CreateAgentsB\270\001B\tSpecProtoP\001\242\002\004ASTO\252\002\"Ai" +
+      ".Stigmer.Tenancy.Organization.V1\312\002\"Ai\\St" +
+      "igmer\\Tenancy\\Organization\\V1\342\002.Ai\\Stigm" +
+      "er\\Tenancy\\Organization\\V1\\GPBMetadata\352\002" +
+      "&Ai::Stigmer::Tenancy::Organization::V1b" +
+      "\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
+          ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor(),
+          ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
+          ai.stigmer.iam.v1.EnumProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
         });
     internal_static_ai_stigmer_tenancy_organization_v1_OrganizationSpec_descriptor =
@@ -90,23 +120,33 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_tenancy_organization_v1_OrganizationSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_tenancy_organization_v1_OrganizationSpec_descriptor,
-        new java.lang.String[] { "Description", "LogoUrl", "ExternalId", "Preferences", "ParentOrg", "Policies", });
-    internal_static_ai_stigmer_tenancy_organization_v1_OrganizationPreferences_descriptor =
+        new java.lang.String[] { "Description", "LogoUrl", "ExternalId", "Preferences", "ParentOrg", "Policies", "Embedding", });
+    internal_static_ai_stigmer_tenancy_organization_v1_OrganizationEmbedding_descriptor =
       getDescriptor().getMessageType(1);
+    internal_static_ai_stigmer_tenancy_organization_v1_OrganizationEmbedding_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_tenancy_organization_v1_OrganizationEmbedding_descriptor,
+        new java.lang.String[] { "AllowedOrigins", "CreateAccountsOnSignIn", "SignInRole", "Vaults", });
+    internal_static_ai_stigmer_tenancy_organization_v1_OrganizationPreferences_descriptor =
+      getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_tenancy_organization_v1_OrganizationPreferences_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_tenancy_organization_v1_OrganizationPreferences_descriptor,
         new java.lang.String[] { "StandingContext", "MemoryEnabled", });
     internal_static_ai_stigmer_tenancy_organization_v1_OrganizationPolicies_descriptor =
-      getDescriptor().getMessageType(2);
+      getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_tenancy_organization_v1_OrganizationPolicies_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_tenancy_organization_v1_OrganizationPolicies_descriptor,
         new java.lang.String[] { "MembersCanCreateAgents", });
     descriptor.resolveAllFeaturesImmutable();
+    ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();
+    ai.stigmer.commons.apiresource.IoProto.getDescriptor();
+    ai.stigmer.iam.v1.EnumProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
+    registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.referenceKind);
     registry.add(build.buf.validate.ValidateProto.field);
     registry.add(build.buf.validate.ValidateProto.message);
     com.google.protobuf.Descriptors.FileDescriptor

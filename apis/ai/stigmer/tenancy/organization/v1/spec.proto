@@ -2,6 +2,9 @@ syntax = "proto3";
 
 package ai.stigmer.tenancy.organization.v1;
 
+import "ai/stigmer/commons/apiresource/field_options.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/iam/v1/enum.proto";
 import "buf/validate/validate.proto";
 
 // OrganizationSpec defines the configurable properties of an organization.
@@ -76,6 +79,98 @@ message OrganizationSpec {
   // (build-update-state.ts; ResourceAuthorizationLifecycle
   // onOrganizationPoliciesChanged).
   OrganizationPolicies policies = 9;
+
+  // How people sign in to the organization from its own product, when the
+  // product's backend mints their tokens (TokenService.mintUserToken). Set
+  // only through updateEmbedding, so a create, update or apply of a
+  // manifest neither fails on nor changes it: embedding carried by any of
+  // them is ignored.
+  OrganizationEmbedding embedding = 10;
+}
+
+// OrganizationEmbedding holds how people sign in to an organization from
+// the organization's own product: which web pages may use their tokens,
+// whether their first sign-in creates their account and with which role,
+// and which vaults their conversations use. Every reader of the
+// organization sees them, its app users included, as it sees the
+// organization's policies: none of it is secret (origins are what browsers
+// send, vaults are named, never opened), and only the organization's
+// admins change it.
+message OrganizationEmbedding {
+  option (buf.validate.message).cel = {
+    id: "organization_embedding.sign_in_role_requires_account_creation"
+    message: "sign_in_role requires create_accounts_on_sign_in: only an account the sign-in creates receives the role"
+    expression: "this.sign_in_role == 0 || this.create_accounts_on_sign_in"
+  };
+  option (buf.validate.message).cel = {
+    id: "organization_embedding.sign_in_role_not_owner"
+    message: "sign_in_role cannot be owner; organization ownership must be assigned explicitly"
+    expression: "this.sign_in_role != 1"
+  };
+
+  // Web origins allowed for browser requests that bear a minted user token.
+  //
+  // Enforced on every API request bearing a token minted for this
+  // organization's people (never on mintUserToken itself, which is
+  // server-to-server and carries no browser Origin):
+  //   - Empty list: origin validation is not enforced (open mode, suitable
+  //     for development or when the product controls every access point).
+  //   - Non-empty list: the request's Origin header must match an entry
+  //     (case-insensitive, per RFC 6454 origin comparison). Unlisted
+  //     origins, including the opaque-origin serialization "null", are
+  //     refused PERMISSION_DENIED.
+  //   - Requests without an Origin header always pass: only browsers send
+  //     Origin, and only browsers guarantee it is not forgeable by page
+  //     script. This is a browser-context, CORS-class defense-in-depth
+  //     control against a leaked token being replayed from another site's
+  //     browser context; the minting key remains the primary control, and
+  //     non-browser callers are not constrained by it.
+  //
+  // Edits apply to the next request: the organization is read on every
+  // request that bears one of its minted tokens.
+  repeated string allowed_origins = 1;
+
+  // Whether mintUserToken creates an identity account for a user_id that
+  // has none yet.
+  //
+  // When false (the default), the product creates accounts before minting
+  // tokens, and mintUserToken returns FAILED_PRECONDITION for a person who
+  // has none. When true, Stigmer creates the account on first sign-in from
+  // the user_email and user_name in the mintUserToken request.
+  bool create_accounts_on_sign_in = 2;
+
+  // The role an account mintUserToken creates receives on the organization
+  // the token is for.
+  //
+  // An app user's account belongs to that one organization, so its
+  // creation is its first sign-in there: the role is granted once, when the
+  // account is created. Accounts that already exist keep the roles they
+  // hold, and changing this setting later does not reach them. Unspecified
+  // (iam_role_unspecified) grants nothing. Requires
+  // create_accounts_on_sign_in. The owner role is refused: ownership is
+  // assigned explicitly. A role an organization cannot be granted (one its
+  // kind's grantable roles do not list) is refused with INVALID_ARGUMENT.
+  ai.stigmer.iam.v1.IamRole sign_in_role = 3;
+
+  // Vaults whose logins and secrets every run an app user creates uses, in
+  // order: the first vault holding a match wins. At most 20.
+  //
+  // This is how an embedded assistant reaches tools that need a key: the
+  // organization's embedding settings carry a shared vault holding it, and
+  // its app users' runs use it. A My vault cannot be attached.
+  //
+  // @internal
+  // Read by the run's credential resolver for a run whose audit created_by
+  // names a minting service account (ApiResourceAuditActor.minted_by) of
+  // this organization, on create and recover alike. A run in an
+  // organization other than the minting account's receives nothing. A vault
+  // that no longer exists, or that the account recorded in
+  // status.embedding_vault_attachers may no longer use, fails the run's
+  // create. Edits apply to the next run.
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference vaults = 4 [
+    (ai.stigmer.commons.apiresource.reference_kind) = vault,
+    (buf.validate.field).repeated.max_items = 20
+  ];
 }
 
 // OrganizationPreferences holds organization-declared defaults that apply to

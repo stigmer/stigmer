@@ -2,8 +2,8 @@
 // Pins what the serving edge does with the raw access token a console,
 // desktop, CLI or MCP client obtains from the PLATFORM'S OWN identity tenant
 // — the credential every first-party login presents, and the one lane five
-// green readouts never drove because the cloud target authenticates with
-// PlatformClient-minted tokens:
+// green readouts never drove because the cloud target authenticated with
+// tokens minted for its people rather than the tenant's own:
 //   - a token for a subject with NO account is ADMITTED, idp-shaped: whoAmI
 //     answers NOT_FOUND with the byte-pinned copy (the console's signal to
 //     call provisionMyAccount), never UNAUTHENTICATED — the Java mapper's
@@ -129,7 +129,7 @@ describe.skipIf(!directLoginEnabled)(
         ).toBe(subject);
         expect(
           account.spec?.provisioningMode,
-          "a platform-tenant login is a DIRECT account (never federated, never platform_client)",
+          "a platform-tenant login is a DIRECT account (never federated, never an app user)",
         ).toBe(IdentityAccountProvisioningMode.direct);
         expect(
           account.spec?.email,

@@ -65,7 +65,7 @@ private static final long serialVersionUID = 0L;
   private int provisioningMode_ = 0;
   /**
    * <pre>
-   * How the account was provisioned (direct, federated, machine, platform_client).
+   * How the account was provisioned (direct, federated, machine, app_user, service_account).
    * </pre>
    *
    * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode provisioning_mode = 1 [json_name = "provisioningMode"];</code>
@@ -76,7 +76,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * How the account was provisioned (direct, federated, machine, platform_client).
+   * How the account was provisioned (direct, federated, machine, app_user, service_account).
    * </pre>
    *
    * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode provisioning_mode = 1 [json_name = "provisioningMode"];</code>
@@ -468,7 +468,7 @@ private static final long serialVersionUID = 0L;
     private int provisioningMode_ = 0;
     /**
      * <pre>
-     * How the account was provisioned (direct, federated, machine, platform_client).
+     * How the account was provisioned (direct, federated, machine, app_user, service_account).
      * </pre>
      *
      * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode provisioning_mode = 1 [json_name = "provisioningMode"];</code>
@@ -479,7 +479,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * How the account was provisioned (direct, federated, machine, platform_client).
+     * How the account was provisioned (direct, federated, machine, app_user, service_account).
      * </pre>
      *
      * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode provisioning_mode = 1 [json_name = "provisioningMode"];</code>
@@ -495,7 +495,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * How the account was provisioned (direct, federated, machine, platform_client).
+     * How the account was provisioned (direct, federated, machine, app_user, service_account).
      * </pre>
      *
      * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode provisioning_mode = 1 [json_name = "provisioningMode"];</code>
@@ -508,7 +508,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * How the account was provisioned (direct, federated, machine, platform_client).
+     * How the account was provisioned (direct, federated, machine, app_user, service_account).
      * </pre>
      *
      * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode provisioning_mode = 1 [json_name = "provisioningMode"];</code>
@@ -524,7 +524,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * How the account was provisioned (direct, federated, machine, platform_client).
+     * How the account was provisioned (direct, federated, machine, app_user, service_account).
      * </pre>
      *
      * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode provisioning_mode = 1 [json_name = "provisioningMode"];</code>

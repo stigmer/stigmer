@@ -103,10 +103,6 @@ public enum IamPermission
    */
   can_create_oauth_app(23),
   /**
-   * <code>can_create_platform_client = 24;</code>
-   */
-  can_create_platform_client(24),
-  /**
    * <pre>
    * Resource-level create permissions.
    * </pre>
@@ -320,6 +316,16 @@ public enum IamPermission
    * <code>can_view_access_history = 56;</code>
    */
   can_view_access_history(56),
+  /**
+   * <pre>
+   * Whether the caller may mint a user token for an organization:
+   * TokenService.mintUserToken with org naming it. Its administrators, and
+   * a parent organization's administrators for a child.
+   * </pre>
+   *
+   * <code>can_mint_user_tokens = 57;</code>
+   */
+  can_mint_user_tokens(57),
   UNRECOGNIZED(-1),
   ;
 
@@ -410,10 +416,6 @@ public enum IamPermission
    * <code>can_create_oauth_app = 23;</code>
    */
   public static final int can_create_oauth_app_VALUE = 23;
-  /**
-   * <code>can_create_platform_client = 24;</code>
-   */
-  public static final int can_create_platform_client_VALUE = 24;
   /**
    * <pre>
    * Resource-level create permissions.
@@ -628,6 +630,16 @@ public enum IamPermission
    * <code>can_view_access_history = 56;</code>
    */
   public static final int can_view_access_history_VALUE = 56;
+  /**
+   * <pre>
+   * Whether the caller may mint a user token for an organization:
+   * TokenService.mintUserToken with org naming it. Its administrators, and
+   * a parent organization's administrators for a child.
+   * </pre>
+   *
+   * <code>can_mint_user_tokens = 57;</code>
+   */
+  public static final int can_mint_user_tokens_VALUE = 57;
 
 
   public final int getNumber() {
@@ -668,7 +680,6 @@ public enum IamPermission
       case 11: return can_create_federation_issuer;
       case 21: return can_create_identity_account;
       case 23: return can_create_oauth_app;
-      case 24: return can_create_platform_client;
       case 13: return can_create_run_in;
       case 15: return can_execute;
       case 17: return can_bootstrap_iam;
@@ -692,6 +703,7 @@ public enum IamPermission
       case 53: return can_use;
       case 55: return can_manage_keys;
       case 56: return can_view_access_history;
+      case 57: return can_mint_user_tokens;
       default: return null;
     }
   }

@@ -128,19 +128,20 @@ export function isMachineSubject(idpId: string): boolean {
 }
 
 /**
- * The subject namespace of PlatformClient end users:
- * `stgm_pc|<org>|<external_user_id>` (the composite every client of one
- * organization resolves a user to; domain/platformclient/mint.ts builds
- * it). Reserved in both directions, because derived account ids make every
- * subject one namespace: a direct account may not take a `stgm_pc|`
- * subject (an issuer emitting one would otherwise provision an account the
- * mint then resolves), and the mint refuses a `stgm_pc|` account in any
- * other mode.
+ * The subject namespace of app users, the people an organization's product
+ * signs in by minting their tokens: `stgm_pc|<org>|<external_user_id>`
+ * (the composite every mint for one organization resolves a person to;
+ * domain/token/mint.ts builds it). The prefix is a stored id, kept from
+ * when a platform client minted these tokens. Reserved in both directions,
+ * because derived account ids make every subject one namespace: a direct
+ * account may not take a `stgm_pc|` subject (an issuer emitting one would
+ * otherwise provision an account the mint then resolves), and the mint
+ * refuses a `stgm_pc|` account in any other mode.
  */
-export const PLATFORM_CLIENT_SUBJECT_PREFIX = "stgm_pc|";
+export const APP_USER_SUBJECT_PREFIX = "stgm_pc|";
 
-export function isPlatformClientSubject(idpId: string): boolean {
-  return idpId.startsWith(PLATFORM_CLIENT_SUBJECT_PREFIX);
+export function isAppUserSubject(idpId: string): boolean {
+  return idpId.startsWith(APP_USER_SUBJECT_PREFIX);
 }
 
 /**
@@ -231,14 +232,13 @@ export function serviceAccountSubjectFor(org: string): string {
  * The refusal of a subject inside a namespace a provisioning arm reserves
  * (INVALID_ARGUMENT), or undefined when `idpId` is in none. Every arm that
  * takes a caller-chosen subject asks it, so the namespaces stay disjoint.
- * The `stgm_pc|` sentence is existing wire copy, kept byte for byte.
  */
 export function reservedSubjectMessage(idpId: string): string | undefined {
   if (isFederatedSubject(idpId)) {
     return `subject '${idpId}' uses the '${FEDERATED_SUBJECT_PREFIX}' prefix reserved for the addresses of accounts a federation issuer vouches for`;
   }
-  if (isPlatformClientSubject(idpId)) {
-    return `subject '${idpId}' uses the '${PLATFORM_CLIENT_SUBJECT_PREFIX}' prefix reserved for accounts a platform client provisions`;
+  if (isAppUserSubject(idpId)) {
+    return `subject '${idpId}' uses the '${APP_USER_SUBJECT_PREFIX}' prefix reserved for the accounts of people an organization's product signs in`;
   }
   if (isServiceAccountSubject(idpId)) {
     return `subject '${idpId}' uses the '${SERVICE_ACCOUNT_SUBJECT_PREFIX}' prefix reserved for an organization's service accounts`;
@@ -274,7 +274,7 @@ export const NO_IDP_ID_MESSAGE =
 /**
  * provisionMyAccount for a caller the platform's own sign-in did not vouch
  * for (PERMISSION_DENIED): a person of an organization's federation issuer,
- * a platform client's user, a system lane's token, or any caller that is
+ * an app user, a system lane's token, or any caller that is
  * not a person. Names no account: the refusal answers before the store is
  * asked about the credential's subject.
  */

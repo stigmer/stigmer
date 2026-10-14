@@ -162,8 +162,8 @@ class VaultCommandControllerServicer(object):
     def delete(self, request, context):
         """Delete a vault and every value it holds.
 
-        Sessions, schedules, shares, channels and platform clients that name the
-        vault are refused at their next run, naming it.
+        Sessions, schedules, shares, channels and embedding settings that name
+        the vault are refused at their next run, naming it.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

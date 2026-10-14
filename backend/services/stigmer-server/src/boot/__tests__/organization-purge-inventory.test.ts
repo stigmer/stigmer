@@ -23,7 +23,6 @@ import type {
   ResolvedOrganizationPurge,
 } from "../../extensions/organization-purge.js";
 import { newResourceIdentityAccountStore } from "../../domain/identityaccount/resource-store.js";
-import { newResourcePlatformClientStore } from "../../domain/platformclient/resource-store.js";
 import { SecretService } from "../../encryption/encryption.js";
 import { tempStore } from "../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../store/sqlite/__tests__/support.js";
@@ -67,7 +66,6 @@ describe("the core's kind purges", () => {
       secretService: SecretService.create(undefined),
       scheduleClock: () => undefined,
       channelRuntime: undefined,
-      platformClients: newResourcePlatformClientStore(fx.store),
       accounts: newResourceIdentityAccountStore(fx.store),
       accountLifecycle: undefined,
       runScores: { deleteScoresOfRun: async () => {} },

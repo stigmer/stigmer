@@ -131,7 +131,7 @@ export const SCORE_EXISTS_REASON = "SCORE_EXISTS";
  *   - score_source_human only from a first-party person
  *     (`isFirstPartyHumanOperator`, extensions/identity.ts): their sign-in
  *     or their own API key. A rating made with a person's own key is that
- *     person's rating. An integrator's end user (a PlatformClient token),
+ *     person's rating. An integrator's app user (a minted user token),
  *     a runner, a machine account and the server itself are refused: none
  *     is a person who can own a rating.
  *   - score_source_check, score_source_judge and score_source_eval only

@@ -91,8 +91,8 @@
  * class, so its caller is either idp-shaped (no account, and the identity
  * is the subject itself) or the direct account of that subject. Anything
  * else was vouched for by another lane: an organization's identity
- * provider stamps its own federated account, a platform client's user
- * token its own account, a system lane its lane account or raw lane
+ * provider stamps its own federated account, a minted user token its own
+ * account, a system lane its lane account or raw lane
  * subject. Their `sub` is theirs to choose, so provisioning by it would
  * hand them a platform person's row, or create one under the subject with
  * a profile fetched from their own issuer. The trusted-local operator, who

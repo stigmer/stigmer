@@ -46,7 +46,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
           "outputType": "Vault",
           "outputFullType": "ai.stigmer.agentic.vault.v1.Vault",
-          "description": "Delete a vault and every value it holds.\n\n Sessions, schedules, shares, channels and platform clients that name the\n vault are refused at their next run, naming it."
+          "description": "Delete a vault and every value it holds.\n\n Sessions, schedules, shares, channels and embedding settings that name\n the vault are refused at their next run, naming it."
         },
         {
           "name": "SetSecrets",
@@ -976,7 +976,6 @@
               "invitation",
               "federation_issuer",
               "oauth_app",
-              "platform_client",
               "team",
               "organization",
               "platform",
@@ -1384,11 +1383,6 @@
           "name": "oauth_app",
           "number": 22,
           "description": "Registered OAuth application with an external vendor for outbound authentication."
-        },
-        {
-          "name": "platform_client",
-          "number": 23,
-          "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
         },
         {
           "name": "team",

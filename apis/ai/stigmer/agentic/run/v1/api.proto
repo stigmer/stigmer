@@ -388,14 +388,14 @@ message LoadedVersions {
 // RunCredentials records whose logins and secrets a turn uses.
 message RunCredentials {
   // The person whose turn this is, by identity account id. Absent for a
-  // turn no person sent: a schedule's, a channel's, a share link guest's, a
-  // platform client user's or a machine account's, which use only the
-  // vaults their session and surface name.
+  // turn no person sent: a schedule's, a channel's, a share link guest's, an
+  // app user's or a machine account's, which use only the vaults their
+  // session and surface name.
   //
   // @internal
   // Set at create by the platform's one rule for a first-party human
   // operator (isFirstPartyHumanOperator): class user, from the wire, not a
-  // platform client's user token; the trusted-local operator is one. The
+  // minted user token; the trusted-local operator is one. The
   // value is the caller's identity id. Recover reads it and never
   // re-derives it from the recovering caller. Server-only: a client-sent
   // value is discarded at create.

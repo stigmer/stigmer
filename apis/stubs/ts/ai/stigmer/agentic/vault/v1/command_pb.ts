@@ -116,8 +116,8 @@ export const VaultCommandController: GenService<{
   /**
    * Delete a vault and every value it holds.
    *
-   * Sessions, schedules, shares, channels and platform clients that name the
-   * vault are refused at their next run, naming it.
+   * Sessions, schedules, shares, channels and embedding settings that name
+   * the vault are refused at their next run, naming it.
    *
    * @generated from rpc ai.stigmer.agentic.vault.v1.VaultCommandController.delete
    */

@@ -10,6 +10,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import type { MethodSchema, ServiceDefinition, ServiceSchemaFile } from "./gen-common.js";
+import { NON_KIND_PACKAGES } from "./gen-common.js";
 import { generateTSResourceInputMapper, tsHasUpdateRPC } from "./sdk-client-ts-input.js";
 import {
   deriveTSImportBase,
@@ -58,7 +59,7 @@ export function runSDKClientTSGeneration(schemaDir: string, outputDir: string): 
   for (const entry of entries) {
     if (entry.isDirectory() || !entry.name.endsWith(".json")) continue;
     const resource = entry.name.slice(0, -".json".length);
-    if (resource === "search" || resource === "commons") continue;
+    if (NON_KIND_PACKAGES.has(resource)) continue;
 
     const schema = JSON.parse(fs.readFileSync(path.join(servicesDir, entry.name), "utf8")) as ServiceSchemaFile;
     const cfg = deriveResourceConfig(schema, schemaDir);

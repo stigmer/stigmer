@@ -242,7 +242,7 @@ describe("an organization's service account as a caller", () => {
   it("serviceAccountCallerOf answers nothing for a row in any other mode", () => {
     for (const mode of [
       IdentityAccountProvisioningMode.direct,
-      IdentityAccountProvisioningMode.platform_client,
+      IdentityAccountProvisioningMode.app_user,
       IdentityAccountProvisioningMode.federated,
       IdentityAccountProvisioningMode.machine,
       IdentityAccountProvisioningMode.identity_account_provisioning_mode_unspecified,

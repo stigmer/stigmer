@@ -19,7 +19,7 @@
 // conformance user passes the gate (every target today: local OSS in its
 // single-user posture, cloud through a console sign-in) runs the full
 // matrix. The refusal itself is pinned where the target's enforcing lane
-// mints PlatformClient user tokens: such a user is refused even with the
+// mints user tokens: such a user is refused even with the
 // organization's switch on.
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -40,10 +40,11 @@ import {
   memoryDisabledMessage,
 } from "../support/memories";
 import {
-  createPlatformClient,
-  deletePlatformClient,
+  createMinter,
+  deleteMinter,
   mintUserToken,
-} from "../support/platformclients";
+  setEmbedding,
+} from "../support/user-tokens";
 import { createTarget, enforcingLaneOf, type TargetProfile } from "../targets";
 
 const ORG_API_VERSION = "tenancy.stigmer.ai/v1";
@@ -101,14 +102,14 @@ async function createMemory(org: string, content?: string) {
 }
 
 describe("Memory conformance", () => {
-  // A PlatformClient user is outside the gate (see the suite header): even
+  // An app user is outside the gate (see the suite header): even
   // with the org switch ON the gate refuses — client-side context never
   // overrides the control plane's caller classification.
-  it("[rpc:MemoryCommandController.create] create is refused for a PlatformClient user token, outside the first-party-human gate", async (ctx) => {
+  it("[rpc:MemoryCommandController.create] create is refused for a minted user token, outside the first-party-human gate", async (ctx) => {
     const enforcing = await enforcingLaneOf(target);
     if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
-    if (!target.capabilities.platformClientTokens) {
-      return ctx.skip("this target's enforcing lane mints no PlatformClient user tokens");
+    if (!target.capabilities.userTokens) {
+      return ctx.skip("this target's enforcing lane mints no user tokens");
     }
     const on = enforcing.lane;
     const created = await on.clients.organizationCommand.create({
@@ -119,20 +120,17 @@ describe("Memory conformance", () => {
     });
     const org = created.metadata!.id;
     fixtures.defer(() => on.clients.organizationCommand.delete({ value: org }));
-    const client = await createPlatformClient(on.clients, {
-      org,
-      name: uniqueName("memory-pc"),
-      signInRole: IamRole.member,
-    });
-    fixtures.defer(() => deletePlatformClient(on.clients, client.id));
+    const minter = await createMinter(on.clients, { org, name: uniqueName("memory-minter") });
+    fixtures.defer(() => deleteMinter(on.clients, minter.accountId));
+    await setEmbedding(on.clients, org, { signInRole: IamRole.member });
     const asUser = on.clientsPresenting(
-      await mintUserToken(on.clients, client.credentials, uniqueName("memory-user")),
+      await mintUserToken(on.clientsPresenting(minter.key), org, uniqueName("memory-user")),
     );
 
     const refused = await expectGrpcCode(
       () => asUser.memoryCommand.create(makeMemory(org)),
       Code.PermissionDenied,
-      "memory create as a platform-client-minted user",
+      "memory create as an app user",
     );
     expect(refused.rawMessage).toContain(FIRST_PARTY_ONLY_MESSAGE);
   });

@@ -790,7 +790,7 @@ async function rollBackCreated(
  * re-enters this verifier: the in-process interceptor stamps the call
  * `internal` itself, and no verifier runs on it. It is made acting for the
  * federation issuer whose assertion it follows, so the row and the
- * permission history name the provider, the PlatformClient mint's shape.
+ * permission history name the provider, the user-token mint's shape.
  */
 function signInRoleGrant(
   accountId: string,

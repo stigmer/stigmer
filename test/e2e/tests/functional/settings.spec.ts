@@ -60,11 +60,6 @@ const SETTINGS_SECTIONS: readonly {
     oss: { notice: "Federation issuers are not available in local mode." },
   },
   {
-    path: "/settings/platform-clients",
-    headingText: "Platform Clients",
-    oss: { notice: "This server trusts every request, so nothing would verify a platform client's tokens" },
-  },
-  {
     path: "/settings/oauth-apps",
     headingText: "OAuth Apps",
     oss: { works: { role: "button", name: "+ New OAuth app" } },

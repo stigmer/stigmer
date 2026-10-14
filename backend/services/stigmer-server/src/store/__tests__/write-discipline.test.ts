@@ -35,14 +35,11 @@ const SAVE_RESOURCE_CREATES: Readonly<Record<string, string>> = {
     "Persist saves only when its chain loaded no row (a create); an update swaps on the loaded bytes, and a push stores a found row by swap",
   "domain/identityaccount/resource-store.ts":
     "save refuses a held id before it writes; an update swaps",
-  "domain/platformclient/resource-store.ts":
-    "save refuses a held id or client_id before it writes; an update swaps",
 };
 
 /** The ports of kinds kept outside the shared store, and the file each is declared in. */
 const GUARDED_PORTS: ReadonlyArray<readonly [name: string, module: string]> = [
   ["IdentityAccountStore", "domain/identityaccount/store.ts"],
-  ["PlatformClientStore", "domain/platformclient/store.ts"],
 ];
 
 /** A port member that would store a whole row with no compare. */

@@ -211,13 +211,6 @@
       "components": 8
     },
     {
-      "slug": "platform-client",
-      "title": "Platform Client",
-      "description": "Hooks and components for low-level platform API client access and request management.",
-      "hooks": 6,
-      "components": 4
-    },
-    {
       "slug": "plugin",
       "title": "plugin",
       "description": "",
@@ -292,7 +285,7 @@
       "title": "Settings",
       "description": "Pre-composed settings sections for organization console embedding.",
       "hooks": 1,
-      "components": 17
+      "components": 16
     },
     {
       "slug": "sharing",

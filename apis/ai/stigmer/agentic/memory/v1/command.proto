@@ -31,7 +31,7 @@ service MemoryCommandController {
   // does not exist yet and the subject IS the caller. In-handler
   // enforcement instead (both editions where applicable):
   // 1. Capture-eligibility gate (cloud): a first-party human operator
-  //    (no token_type, no platform_client_id, not machine, not
+  //    (no token_type, no minted_by, not machine, not
   //    impersonated) OR the remember tool's session-scoped sandbox
   //    credential (token_type=sandbox — isSessionSandbox(), acting as
   //    its human subject, since 2026-08-22).

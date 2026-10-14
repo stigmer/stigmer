@@ -14,8 +14,8 @@
  *     the Java step's.
  *   - BindApiKeyOrganization: the organization a key is limited to
  *     (spec.bound_org). A credential limited to one organization creates only
- *     keys limited to the same one, so a limited key or a PlatformClient
- *     user can never mint a key that speaks for the person everywhere: an
+ *     keys limited to the same one, so a limited key or an app user can
+ *     never mint a key that speaks for the person everywhere: an
  *     empty spec.bound_org takes the caller's organization, and any other is
  *     refused. For every caller, a key is limited only to an organization
  *     its owner may view. API key create is a skip lane by annotation (any

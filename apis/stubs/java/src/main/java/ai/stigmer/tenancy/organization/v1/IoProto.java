@@ -72,6 +72,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_tenancy_organization_v1_UpdateOrganizationPoliciesInput_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_tenancy_organization_v1_UpdateOrganizationEmbeddingInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_tenancy_organization_v1_UpdateOrganizationEmbeddingInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_tenancy_organization_v1_UpdateOrganizationInput_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -120,21 +125,25 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "Input\022 \n\006org_id\030\001 \001(\tB\t\272H\006r\004\020\001\030@R\005orgId\022" +
       "\\\n\010policies\030\002 \001(\01328.ai.stigmer.tenancy.o" +
       "rganization.v1.OrganizationPoliciesB\006\272H\003" +
-      "\310\001\001R\010policies\"\373\002\n\027UpdateOrganizationInpu" +
-      "t\022T\n\010resource\030\001 \001(\01320.ai.stigmer.tenancy" +
-      ".organization.v1.OrganizationB\006\272H\003\330\001\003R\010r" +
-      "esource\022C\n\013update_mask\030\002 \001(\0132\032.google.pr" +
-      "otobuf.FieldMaskB\006\272H\003\310\001\001R\nupdateMask:\304\001\272" +
-      "H\300\001\032\275\001\n\027update_names_its_target\022Lresourc" +
-      "e.metadata.id is required: an update nam" +
-      "es the organization by its id\032Thas(this." +
-      "resource) && has(this.resource.metadata)" +
-      " && this.resource.metadata.id != \'\'B\266\001B\007" +
-      "IoProtoP\001\242\002\004ASTO\252\002\"Ai.Stigmer.Tenancy.Or" +
-      "ganization.V1\312\002\"Ai\\Stigmer\\Tenancy\\Organ" +
-      "ization\\V1\342\002.Ai\\Stigmer\\Tenancy\\Organiza" +
-      "tion\\V1\\GPBMetadata\352\002&Ai::Stigmer::Tenan" +
-      "cy::Organization::V1b\006proto3"
+      "\310\001\001R\010policies\"\245\001\n UpdateOrganizationEmbe" +
+      "ddingInput\022 \n\006org_id\030\001 \001(\tB\t\272H\006r\004\020\001\030@R\005o" +
+      "rgId\022_\n\tembedding\030\002 \001(\01329.ai.stigmer.ten" +
+      "ancy.organization.v1.OrganizationEmbeddi" +
+      "ngB\006\272H\003\310\001\001R\tembedding\"\373\002\n\027UpdateOrganiza" +
+      "tionInput\022T\n\010resource\030\001 \001(\01320.ai.stigmer" +
+      ".tenancy.organization.v1.OrganizationB\006\272" +
+      "H\003\330\001\003R\010resource\022C\n\013update_mask\030\002 \001(\0132\032.g" +
+      "oogle.protobuf.FieldMaskB\006\272H\003\310\001\001R\nupdate" +
+      "Mask:\304\001\272H\300\001\032\275\001\n\027update_names_its_target\022" +
+      "Lresource.metadata.id is required: an up" +
+      "date names the organization by its id\032Th" +
+      "as(this.resource) && has(this.resource.m" +
+      "etadata) && this.resource.metadata.id !=" +
+      " \'\'B\266\001B\007IoProtoP\001\242\002\004ASTO\252\002\"Ai.Stigmer.Te" +
+      "nancy.Organization.V1\312\002\"Ai\\Stigmer\\Tenan" +
+      "cy\\Organization\\V1\342\002.Ai\\Stigmer\\Tenancy\\" +
+      "Organization\\V1\\GPBMetadata\352\002&Ai::Stigme" +
+      "r::Tenancy::Organization::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -198,8 +207,14 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_tenancy_organization_v1_UpdateOrganizationPoliciesInput_descriptor,
         new java.lang.String[] { "OrgId", "Policies", });
-    internal_static_ai_stigmer_tenancy_organization_v1_UpdateOrganizationInput_descriptor =
+    internal_static_ai_stigmer_tenancy_organization_v1_UpdateOrganizationEmbeddingInput_descriptor =
       getDescriptor().getMessageType(7);
+    internal_static_ai_stigmer_tenancy_organization_v1_UpdateOrganizationEmbeddingInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_tenancy_organization_v1_UpdateOrganizationEmbeddingInput_descriptor,
+        new java.lang.String[] { "OrgId", "Embedding", });
+    internal_static_ai_stigmer_tenancy_organization_v1_UpdateOrganizationInput_descriptor =
+      getDescriptor().getMessageType(8);
     internal_static_ai_stigmer_tenancy_organization_v1_UpdateOrganizationInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_tenancy_organization_v1_UpdateOrganizationInput_descriptor,

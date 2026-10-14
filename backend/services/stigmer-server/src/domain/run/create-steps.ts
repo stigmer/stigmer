@@ -567,7 +567,7 @@ async function loadOrgStandingContext(
  * The person a run is created by, where callers are persons
  * (stigmer#1387): the account a first-party human operator stands for
  * (extensions/identity.ts states who that is, once). `undefined` for every
- * other lane — runner, schedule, channel, guest, machine, a PlatformClient
+ * other lane — runner, schedule, channel, guest, machine, a minted user
  * token, anything server-composed — for a caller no account stands for,
  * and, best-effort, on a store fault (logged at ERROR with the caller's
  * copy: the compose steps degrade, they never fail a create).

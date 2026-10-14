@@ -4,7 +4,10 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
+import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
+import ai.stigmer.iam.v1.IamRole;
 import ai.stigmer.tenancy.organization.v1.Organization;
+import ai.stigmer.tenancy.organization.v1.OrganizationEmbedding;
 import ai.stigmer.tenancy.organization.v1.OrganizationPolicies;
 import ai.stigmer.tenancy.organization.v1.OrganizationPreferences;
 import ai.stigmer.tenancy.organization.v1.OrganizationSpec;
@@ -23,6 +26,7 @@ public final class OrganizationInput {
     private final OrganizationPreferencesInput preferences;
     private final String parentOrg;
     private final OrganizationPoliciesInput policies;
+    private final OrganizationEmbeddingInput embedding;
 
     private OrganizationInput(Builder builder) {
         this.id = builder.id;
@@ -37,6 +41,7 @@ public final class OrganizationInput {
         this.preferences = builder.preferences;
         this.parentOrg = builder.parentOrg;
         this.policies = builder.policies;
+        this.embedding = builder.embedding;
     }
 
     Organization toProto() {
@@ -58,6 +63,9 @@ public final class OrganizationInput {
         }
         if (this.policies != null) {
             spec.setPolicies(this.policies.toProto());
+        }
+        if (this.embedding != null) {
+            spec.setEmbedding(this.embedding.toProto());
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
@@ -99,6 +107,7 @@ public final class OrganizationInput {
         private OrganizationPreferencesInput preferences;
         private String parentOrg;
         private OrganizationPoliciesInput policies;
+        private OrganizationEmbeddingInput embedding;
 
         private Builder() {}
 
@@ -119,6 +128,7 @@ public final class OrganizationInput {
         public Builder preferences(OrganizationPreferencesInput preferences) { this.preferences = preferences; return this; }
         public Builder parentOrg(String parentOrg) { this.parentOrg = parentOrg; return this; }
         public Builder policies(OrganizationPoliciesInput policies) { this.policies = policies; return this; }
+        public Builder embedding(OrganizationEmbeddingInput embedding) { this.embedding = embedding; return this; }
 
         public OrganizationInput build() { return new OrganizationInput(this); }
     }
@@ -181,6 +191,57 @@ public final class OrganizationInput {
             public Builder membersCanCreateAgents(boolean membersCanCreateAgents) { this.membersCanCreateAgents = membersCanCreateAgents; return this; }
 
             public OrganizationPoliciesInput build() { return new OrganizationPoliciesInput(this); }
+        }
+    }
+
+    /** SDK input type for OrganizationEmbedding. */
+    public static final class OrganizationEmbeddingInput {
+        private final java.util.List<String> allowedOrigins;
+        private final boolean createAccountsOnSignIn;
+        private final IamRole signInRole;
+        private final java.util.List<ResourceRef> vaults;
+
+        private OrganizationEmbeddingInput(Builder builder) {
+            this.allowedOrigins = builder.allowedOrigins;
+            this.createAccountsOnSignIn = builder.createAccountsOnSignIn;
+            this.signInRole = builder.signInRole;
+            this.vaults = builder.vaults;
+        }
+
+        OrganizationEmbedding toProto() {
+            OrganizationEmbedding.Builder builder = OrganizationEmbedding.newBuilder();
+            if (this.allowedOrigins != null) {
+                builder.addAllAllowedOrigins(this.allowedOrigins);
+            }
+            builder.setCreateAccountsOnSignIn(this.createAccountsOnSignIn);
+            if (this.signInRole != null) {
+                builder.setSignInRole(this.signInRole);
+            }
+            if (this.vaults != null) {
+                for (ResourceRef item : this.vaults) {
+                    builder.addVaults(item.toProto().toBuilder()
+                        .setKind(ApiResourceKind.vault).build());
+                }
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private java.util.List<String> allowedOrigins;
+            private boolean createAccountsOnSignIn;
+            private IamRole signInRole;
+            private java.util.List<ResourceRef> vaults;
+
+            private Builder() {}
+
+            public Builder allowedOrigins(java.util.List<String> allowedOrigins) { this.allowedOrigins = allowedOrigins; return this; }
+            public Builder createAccountsOnSignIn(boolean createAccountsOnSignIn) { this.createAccountsOnSignIn = createAccountsOnSignIn; return this; }
+            public Builder signInRole(IamRole signInRole) { this.signInRole = signInRole; return this; }
+            public Builder vaults(java.util.List<ResourceRef> vaults) { this.vaults = vaults; return this; }
+
+            public OrganizationEmbeddingInput build() { return new OrganizationEmbeddingInput(this); }
         }
     }
 }

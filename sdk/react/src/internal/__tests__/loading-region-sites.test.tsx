@@ -31,7 +31,6 @@ import { OrgMembersPanel } from "../../iam-policy/OrgMembersPanel.js";
 import { FederationIssuerListPanel } from "../../federation-issuer/FederationIssuerListPanel.js";
 import { InvitationRedemption } from "../../invitation/InvitationRedemption.js";
 import { OAuthAppListPanel } from "../../oauth-app/OAuthAppListPanel.js";
-import { PlatformClientListPanel } from "../../platform-client/PlatformClientListPanel.js";
 import { VaultsSection } from "../../settings/VaultsSection.js";
 import { SkillDetailView } from "../../skill/SkillDetailView.js";
 import { SkillDiffDialog } from "../../skill/SkillDiffDialog.js";
@@ -131,12 +130,6 @@ const SITES: readonly Site[] = [
     label: "Loading OAuth apps",
     client: { oauthapp: { list: pending } },
     ui: <OAuthAppListPanel org="acme" />,
-  },
-  {
-    name: "PlatformClientListPanel",
-    label: "Loading platform clients",
-    client: { platformclient: { list: pending } },
-    ui: <PlatformClientListPanel org="acme" />,
   },
   {
     // My vault's card; the shared vaults' list below it is

@@ -593,107 +593,6 @@
         "relations": {
           "can_delete": {},
           "can_edit": {},
-          "can_grant_access": {},
-          "can_view": {},
-          "can_view_access": {},
-          "organization": {
-            "directly_related_user_types": [
-              {
-                "type": "organization"
-              }
-            ]
-          },
-          "owner": {},
-          "viewer": {
-            "directly_related_user_types": [
-              {
-                "type": "identity_account"
-              }
-            ]
-          }
-        },
-        "source_info": {
-          "file": "iam/platform_client.fga"
-        }
-      },
-      "relations": {
-        "can_delete": {
-          "computedUserset": {
-            "relation": "owner"
-          }
-        },
-        "can_edit": {
-          "computedUserset": {
-            "relation": "owner"
-          }
-        },
-        "can_grant_access": {
-          "computedUserset": {
-            "relation": "owner"
-          }
-        },
-        "can_view": {
-          "computedUserset": {
-            "relation": "viewer"
-          }
-        },
-        "can_view_access": {
-          "computedUserset": {
-            "relation": "viewer"
-          }
-        },
-        "organization": {
-          "this": {}
-        },
-        "owner": {
-          "tupleToUserset": {
-            "computedUserset": {
-              "relation": "admin"
-            },
-            "tupleset": {
-              "relation": "organization"
-            }
-          }
-        },
-        "viewer": {
-          "union": {
-            "child": [
-              {
-                "intersection": {
-                  "child": [
-                    {
-                      "this": {}
-                    },
-                    {
-                      "tupleToUserset": {
-                        "computedUserset": {
-                          "relation": "affiliated"
-                        },
-                        "tupleset": {
-                          "relation": "organization"
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                "computedUserset": {
-                  "relation": "owner"
-                }
-              }
-            ]
-          }
-        }
-      },
-      "type": "platform_client"
-    },
-    {
-      "metadata": {
-        "module": "iam",
-        "relations": {
-          "can_delete": {},
-          "can_edit": {},
           "can_view": {},
           "organization": {
             "directly_related_user_types": [
@@ -921,7 +820,6 @@
           "can_create_federation_issuer": {},
           "can_create_identity_account": {},
           "can_create_oauth_app": {},
-          "can_create_platform_client": {},
           "can_create_plugin": {},
           "can_create_run_in": {},
           "can_create_session": {},
@@ -934,6 +832,7 @@
           "can_grant_access": {},
           "can_manage_billing": {},
           "can_manage_child_orgs": {},
+          "can_mint_user_tokens": {},
           "can_view": {},
           "can_view_access": {},
           "can_view_access_history": {},
@@ -1076,11 +975,6 @@
             "relation": "admin"
           }
         },
-        "can_create_platform_client": {
-          "computedUserset": {
-            "relation": "admin"
-          }
-        },
         "can_create_plugin": {
           "computedUserset": {
             "relation": "admin"
@@ -1194,6 +1088,22 @@
         "can_manage_child_orgs": {
           "computedUserset": {
             "relation": "admin"
+          }
+        },
+        "can_mint_user_tokens": {
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "admin"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "parent_admin"
+                }
+              }
+            ]
           }
         },
         "can_view": {

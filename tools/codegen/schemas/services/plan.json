@@ -216,7 +216,7 @@
         {
           "name": "platform_client",
           "number": 2,
-          "description": "Gates nothing: every edition serves PlatformClient credentials to every\n customer, so a plan or license that lists it grants nothing more.\n It is the one value named before its gate was ruled out, and it stays\n because licenses already issued carry it and an enum value is a wire\n identifier. A new plan or license does not list it."
+          "description": "No longer used: gates nothing. It named the platform client credential,\n which Stigmer no longer has; a product mints its users' tokens with a\n service account's key in every edition. It stays\n because licenses already issued carry it and an enum value is a wire\n identifier. A new plan or license does not list it."
         },
         {
           "name": "byo_provider_keys",
@@ -374,13 +374,13 @@
           "required": false
         },
         {
-          "name": "PlatformClientId",
-          "jsonName": "platformClientId",
-          "protoField": "platform_client_id",
+          "name": "MintedBy",
+          "jsonName": "mintedBy",
+          "protoField": "minted_by",
           "type": {
             "kind": "string"
           },
-          "description": "The PlatformClient whose minted user token the actor acted through.\n Empty for every other credential, and on an actor that records no act\n (an account's profile lookup).",
+          "description": "The service account whose key minted the user token the actor acted\n through. Empty for every other credential, and on an actor that records\n no act (an account's profile lookup).",
           "required": false
         }
       ]

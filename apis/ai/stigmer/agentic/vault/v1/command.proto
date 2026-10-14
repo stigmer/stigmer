@@ -116,8 +116,8 @@ service VaultCommandController {
 
   // Delete a vault and every value it holds.
   //
-  // Sessions, schedules, shares, channels and platform clients that name the
-  // vault are refused at their next run, naming it.
+  // Sessions, schedules, shares, channels and embedding settings that name
+  // the vault are refused at their next run, naming it.
   //
   // @internal
   // Authorization: can_delete on the vault. The delete chain destroys the

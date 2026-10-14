@@ -55,7 +55,12 @@ enum IamPermission {
   can_create_federation_issuer = 11;
   can_create_identity_account = 21;
   can_create_oauth_app = 23;
-  can_create_platform_client = 24;
+
+  // Value 24 was the permission to create a platform client, removed with
+  // the kind: a product now mints its users' tokens with a service
+  // account's key (can_mint_user_tokens).
+  reserved 24;
+  reserved "can_create_platform_client";
 
   // Resource-level create permissions.
   can_create_run_in = 13;
@@ -278,9 +283,9 @@ enum IamPermission {
   //
   // @internal
   // Asked at save, when a session, schedule, share, channel, agent or
-  // platform client names a vault, and again when each run starts: of the
-  // run's person, or of the account that attached the vault when the run
-  // has no person.
+  // organization's embedding settings name a vault, and again when each run
+  // starts: of the run's person, or of the account that attached the vault
+  // when the run has no person.
   can_use = 53;
 
   // Whether the caller may create, list and revoke a service account's API
@@ -296,6 +301,17 @@ enum IamPermission {
   // owners and administrators, and a parent organization's administrators
   // for a child.
   can_view_access_history = 56;
+
+  // Whether the caller may mint a user token for an organization:
+  // TokenService.mintUserToken with org naming it. Its administrators, and
+  // a parent organization's administrators for a child.
+  //
+  // @internal
+  // Asked of a service account's key only; the mint refuses every other
+  // caller. Minting can create the person's account and grant them the
+  // organization's embedding sign-in role, an administrator's act, so no
+  // key mints with more than its account holds.
+  can_mint_user_tokens = 57;
 }
 
 // Display metadata for an IamRole value: the one place a role's name lives,

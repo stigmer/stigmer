@@ -49,8 +49,6 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
-import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
-import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Authorizer, AuthzCheck } from "../../extensions/authorizer.js";
@@ -134,7 +132,6 @@ function fixture(
   rows: ReadonlyArray<{ kind: ApiResourceKind; id: string; row: Message }>,
   ports: {
     policies?: ReadonlyArray<IamPolicy>;
-    clients?: ReadonlyArray<PlatformClient>;
     readers?: ReadonlyMap<
       ApiResourceKind,
       { findById(id: string): Promise<Message | undefined> }
@@ -169,10 +166,6 @@ function fixture(
       policies: {
         findById: (id) =>
           Promise.resolve(ports.policies?.find((p) => p.metadata?.id === id)),
-      },
-      platformClients: {
-        findById: (id) =>
-          Promise.resolve(ports.clients?.find((c) => c.metadata?.id === id)),
       },
       ...(ports.readers === undefined ? {} : { rowReaders: ports.readers }),
       ...(ports.accounts === undefined
@@ -423,7 +416,7 @@ describe("the rule, for a caller bound to one organization", () => {
     ).toBe("outside");
   });
 
-  it("lets a credential bound to a parent manage its children's settings, members and access, see their billing, and read none of their rows", async () => {
+  it("lets a credential bound to a parent manage its children's settings, members and access, mint their people's tokens, see their billing, and read none of their rows", async () => {
     const f = fixture([
       ...ORGANIZATIONS,
       row("session", "ses_child", ALPHA),
@@ -446,6 +439,7 @@ describe("the rule, for a caller bound to one organization", () => {
       IamPermission.can_view_access_history,
       IamPermission.can_assign_roles,
       IamPermission.can_view_billing,
+      IamPermission.can_mint_user_tokens,
     ]) {
       expect(await onChild(permission), IamPermission[permission]).toBe(
         "inside",
@@ -565,14 +559,11 @@ describe("the rule, for a caller bound to one organization", () => {
     expect(f.reads).toHaveLength(3);
   });
 
-  it("reads the two substitutable ports and a unit's reader, never the store, for their kinds", async () => {
+  it("reads the substitutable policy port and a unit's reader, never the store, for their kinds", async () => {
     const team = row("team", "tm_b", BETA);
     const f = fixture([], {
       policies: [
         create(IamPolicySchema, { metadata: { id: "pol_a", org: ALPHA } }),
-      ],
-      clients: [
-        create(PlatformClientSchema, { metadata: { id: "pcl_b", org: BETA } }),
       ],
       readers: new Map([
         [
@@ -593,13 +584,6 @@ describe("the rule, for a caller bound to one organization", () => {
         permission: EDIT,
       }),
     ).toBe("inside");
-    expect(
-      await binding.verdict(caller, {
-        kind: ApiResourceKind.platform_client,
-        id: "pcl_b",
-        permission: VIEW,
-      }),
-    ).toBe("outside");
     expect(
       await binding.verdict(caller, {
         kind: ApiResourceKind.team,

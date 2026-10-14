@@ -33,19 +33,21 @@ const (
 	IdentityAccountProvisioningMode_federated IdentityAccountProvisioningMode = 2
 	// Machine-to-machine client credentials account for inter-service communication.
 	IdentityAccountProvisioningMode_machine IdentityAccountProvisioningMode = 3
-	// Account provisioned via a PlatformClient's mintUserToken endpoint.
+	// A person who signs in from an organization's own product: the
+	// product's backend asks for their token with TokenService.mintUserToken,
+	// and Stigmer signs it. The console calls them App users.
 	//
-	// The idp_id for these accounts uses the composite encoding
-	// "stgm_pc|{org}|{external_user_id}", where org is the owning organization of
-	// the PlatformClient that minted the token and external_user_id is the user
-	// identifier supplied by the platform builder. Every PlatformClient of one
-	// organization therefore resolves the same user to the same account. The
+	// The idp_id uses the composite encoding "stgm_pc|{org}|{external_user_id}",
+	// where org is the organization the token is for and external_user_id is
+	// the product's own stable identifier for the person, so every mint for
+	// one organization resolves the same person to the same account. The
 	// "stgm_pc|" prefix is reserved: no other provisioning mode may use it.
 	//
-	// Unlike federated accounts, PlatformClient is not an ongoing authentication
-	// authority. Stigmer signs its own JWTs for these users; the PlatformClient
-	// is the admission credential used at mint time only.
-	IdentityAccountProvisioningMode_platform_client IdentityAccountProvisioningMode = 4
+	// Unlike federated accounts, nothing outside Stigmer vouches for the
+	// person on each request: Stigmer signs its own tokens for them, and the
+	// service account whose key minted the token stays the admission
+	// credential while the token lives.
+	IdentityAccountProvisioningMode_app_user IdentityAccountProvisioningMode = 4
 	// An organization's own non-person account: the principal its automation
 	// (a CI job, a script, an integration) acts as, so the automation keeps
 	// working when the person who set it up leaves.
@@ -71,7 +73,7 @@ var (
 		1: "direct",
 		2: "federated",
 		3: "machine",
-		4: "platform_client",
+		4: "app_user",
 		5: "service_account",
 	}
 	IdentityAccountProvisioningMode_value = map[string]int32{
@@ -79,7 +81,7 @@ var (
 		"direct":          1,
 		"federated":       2,
 		"machine":         3,
-		"platform_client": 4,
+		"app_user":        4,
 		"service_account": 5,
 	}
 )
@@ -115,14 +117,14 @@ var File_ai_stigmer_iam_identityaccount_v1_enum_proto protoreflect.FileDescripto
 
 const file_ai_stigmer_iam_identityaccount_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	",ai/stigmer/iam/identityaccount/v1/enum.proto\x12!ai.stigmer.iam.identityaccount.v1*\xa7\x01\n" +
+	",ai/stigmer/iam/identityaccount/v1/enum.proto\x12!ai.stigmer.iam.identityaccount.v1*\xa0\x01\n" +
 	"\x1fIdentityAccountProvisioningMode\x122\n" +
 	".identity_account_provisioning_mode_unspecified\x10\x00\x12\n" +
 	"\n" +
 	"\x06direct\x10\x01\x12\r\n" +
 	"\tfederated\x10\x02\x12\v\n" +
-	"\amachine\x10\x03\x12\x13\n" +
-	"\x0fplatform_client\x10\x04\x12\x13\n" +
+	"\amachine\x10\x03\x12\f\n" +
+	"\bapp_user\x10\x04\x12\x13\n" +
 	"\x0fservice_account\x10\x05B\xb9\x02\n" +
 	"%com.ai.stigmer.iam.identityaccount.v1B\tEnumProtoP\x01Z\\github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"
 

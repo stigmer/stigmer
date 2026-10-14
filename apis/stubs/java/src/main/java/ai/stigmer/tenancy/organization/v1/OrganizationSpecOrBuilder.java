@@ -159,4 +159,43 @@ public interface OrganizationSpecOrBuilder extends
    * <code>.ai.stigmer.tenancy.organization.v1.OrganizationPolicies policies = 9 [json_name = "policies"];</code>
    */
   ai.stigmer.tenancy.organization.v1.OrganizationPoliciesOrBuilder getPoliciesOrBuilder();
+
+  /**
+   * <pre>
+   * How people sign in to the organization from its own product, when the
+   * product's backend mints their tokens (TokenService.mintUserToken). Set
+   * only through updateEmbedding, so a create, update or apply of a
+   * manifest neither fails on nor changes it: embedding carried by any of
+   * them is ignored.
+   * </pre>
+   *
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
+   * @return Whether the embedding field is set.
+   */
+  boolean hasEmbedding();
+  /**
+   * <pre>
+   * How people sign in to the organization from its own product, when the
+   * product's backend mints their tokens (TokenService.mintUserToken). Set
+   * only through updateEmbedding, so a create, update or apply of a
+   * manifest neither fails on nor changes it: embedding carried by any of
+   * them is ignored.
+   * </pre>
+   *
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
+   * @return The embedding.
+   */
+  ai.stigmer.tenancy.organization.v1.OrganizationEmbedding getEmbedding();
+  /**
+   * <pre>
+   * How people sign in to the organization from its own product, when the
+   * product's backend mints their tokens (TokenService.mintUserToken). Set
+   * only through updateEmbedding, so a create, update or apply of a
+   * manifest neither fails on nor changes it: embedding carried by any of
+   * them is ignored.
+   * </pre>
+   *
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
+   */
+  ai.stigmer.tenancy.organization.v1.OrganizationEmbeddingOrBuilder getEmbeddingOrBuilder();
 }

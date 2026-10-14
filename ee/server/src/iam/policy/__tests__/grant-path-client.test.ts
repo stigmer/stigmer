@@ -124,13 +124,13 @@ describe("each method is the RPC of the same name, input unchanged, no caller he
   it("cleanupResourcePolicies carries the ref; bootstrapRevokeOrgAccess the account and organization ids", async () => {
     const { received, client } = wired();
     await client.cleanupResourcePolicies(
-      create(ApiResourceRefSchema, { kind: "platform_client", id: "plc_1" }),
+      create(ApiResourceRefSchema, { kind: "oauth_app", id: "oap_1" }),
     );
     await client.bootstrapRevokeOrgAccess("ida_alice", "acme");
     expect(received.calls).toMatchObject([
       {
         rpc: "cleanupResourcePolicies",
-        input: { kind: "platform_client", id: "plc_1" },
+        input: { kind: "oauth_app", id: "oap_1" },
         callerHeader: null,
       },
       {

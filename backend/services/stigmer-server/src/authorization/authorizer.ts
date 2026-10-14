@@ -85,8 +85,8 @@ import { formatObjectRef } from "./tuples.js";
  * src/authorizer/fga-authorizer.ts), the same set. The cloud exempts them
  * because their rows live in its own tables, out of its probe's reach;
  * matching the set here keeps the wire identical across editions (an
- * unknown platform client's id is PERMISSION_DENIED with the annotation's
- * copy in both), so a member cannot learn which provider, invitation or
+ * unknown invitation's id is PERMISSION_DENIED with the annotation's copy
+ * in both), so a member cannot learn which provider, invitation or
  * team ids exist in an organization they may not read. In open source,
  * `platform`, `federation_issuer`, `invitation` and `team` are refused by
  * arm 2 before any row is asked about, so their entries matter only to an
@@ -105,7 +105,6 @@ export const NOT_FOUND_EXEMPT_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.identity_account,
   ApiResourceKind.federation_issuer,
   ApiResourceKind.iam_policy,
-  ApiResourceKind.platform_client,
   ApiResourceKind.invitation,
   ApiResourceKind.team,
 ]);

@@ -102,7 +102,7 @@ export const BOUND_CREDENTIAL_CREATES_NO_ORGANIZATION_MESSAGE =
 
 /**
  * Refuses organization create for a caller whose credential is bound to
- * one organization (a limited API key, a PlatformClient user token, a
+ * one organization (a limited API key, a minted user token, a
  * composition's bound lane), unless the request creates a child of that
  * very organization (`spec.parent_org`, which the edge resolver has turned
  * into an id): managing an organization's children is managing the

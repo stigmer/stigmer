@@ -26,7 +26,6 @@ export type RenamableResourceKind =
   | "schedule"
   | "channel_app"
   | "oauth_app"
-  | "platform_client"
   | "team"
   | "federation_issuer";
 
@@ -114,8 +113,6 @@ function renameOf(
       return stigmer.channelapp.rename(input);
     case "oauth_app":
       return stigmer.oauthapp.rename(input);
-    case "platform_client":
-      return stigmer.platformclient.rename(input);
     case "team":
       return stigmer.team.rename(input);
     case "federation_issuer":

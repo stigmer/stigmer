@@ -43,8 +43,8 @@ type Organization struct {
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// Configurable properties: description, logo, and management mode.
 	Spec *OrganizationSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
-	// System-managed audit state.
-	Status        *apiresource.ApiResourceAuditStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	// System-managed state: the audit, and who attached each embedding vault.
+	Status        *OrganizationStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -107,9 +107,65 @@ func (x *Organization) GetSpec() *OrganizationSpec {
 	return nil
 }
 
-func (x *Organization) GetStatus() *apiresource.ApiResourceAuditStatus {
+func (x *Organization) GetStatus() *OrganizationStatus {
 	if x != nil {
 		return x.Status
+	}
+	return nil
+}
+
+// OrganizationStatus is an organization's server-owned state.
+type OrganizationStatus struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Audit information tracking creation and modification.
+	Audit *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
+	// Who attached each of the embedding settings' vaults, by vault id: the
+	// account whose permission to use the vault each app user's run checks.
+	EmbeddingVaultAttachers map[string]string `protobuf:"bytes,1,rep,name=embedding_vault_attachers,json=embeddingVaultAttachers,proto3" json:"embedding_vault_attachers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
+}
+
+func (x *OrganizationStatus) Reset() {
+	*x = OrganizationStatus{}
+	mi := &file_ai_stigmer_tenancy_organization_v1_api_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OrganizationStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OrganizationStatus) ProtoMessage() {}
+
+func (x *OrganizationStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_tenancy_organization_v1_api_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OrganizationStatus.ProtoReflect.Descriptor instead.
+func (*OrganizationStatus) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_tenancy_organization_v1_api_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *OrganizationStatus) GetAudit() *apiresource.ApiResourceAudit {
+	if x != nil {
+		return x.Audit
+	}
+	return nil
+}
+
+func (x *OrganizationStatus) GetEmbeddingVaultAttachers() map[string]string {
+	if x != nil {
+		return x.EmbeddingVaultAttachers
 	}
 	return nil
 }
@@ -127,7 +183,13 @@ const file_ai_stigmer_tenancy_organization_v1_api_proto_rawDesc = "" +
 	"\fOrganizationR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12H\n" +
 	"\x04spec\x18\x04 \x01(\v24.ai.stigmer.tenancy.organization.v1.OrganizationSpecR\x04spec\x12N\n" +
-	"\x06status\x18\x05 \x01(\v26.ai.stigmer.commons.apiresource.ApiResourceAuditStatusR\x06statusB\xbd\x02\n" +
+	"\x06status\x18\x05 \x01(\v26.ai.stigmer.tenancy.organization.v1.OrganizationStatusR\x06status\"\xba\x02\n" +
+	"\x12OrganizationStatus\x12F\n" +
+	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12\x8f\x01\n" +
+	"\x19embedding_vault_attachers\x18\x01 \x03(\v2S.ai.stigmer.tenancy.organization.v1.OrganizationStatus.EmbeddingVaultAttachersEntryR\x17embeddingVaultAttachers\x1aJ\n" +
+	"\x1cEmbeddingVaultAttachersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\xbd\x02\n" +
 	"&com.ai.stigmer.tenancy.organization.v1B\bApiProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
 
 var (
@@ -142,22 +204,26 @@ func file_ai_stigmer_tenancy_organization_v1_api_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_tenancy_organization_v1_api_proto_rawDescData
 }
 
-var file_ai_stigmer_tenancy_organization_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_ai_stigmer_tenancy_organization_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_ai_stigmer_tenancy_organization_v1_api_proto_goTypes = []any{
-	(*Organization)(nil),                       // 0: ai.stigmer.tenancy.organization.v1.Organization
-	(*apiresource.ApiResourceMetadata)(nil),    // 1: ai.stigmer.commons.apiresource.ApiResourceMetadata
-	(*OrganizationSpec)(nil),                   // 2: ai.stigmer.tenancy.organization.v1.OrganizationSpec
-	(*apiresource.ApiResourceAuditStatus)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceAuditStatus
+	(*Organization)(nil),                    // 0: ai.stigmer.tenancy.organization.v1.Organization
+	(*OrganizationStatus)(nil),              // 1: ai.stigmer.tenancy.organization.v1.OrganizationStatus
+	nil,                                     // 2: ai.stigmer.tenancy.organization.v1.OrganizationStatus.EmbeddingVaultAttachersEntry
+	(*apiresource.ApiResourceMetadata)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceMetadata
+	(*OrganizationSpec)(nil),                // 4: ai.stigmer.tenancy.organization.v1.OrganizationSpec
+	(*apiresource.ApiResourceAudit)(nil),    // 5: ai.stigmer.commons.apiresource.ApiResourceAudit
 }
 var file_ai_stigmer_tenancy_organization_v1_api_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.tenancy.organization.v1.Organization.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
-	2, // 1: ai.stigmer.tenancy.organization.v1.Organization.spec:type_name -> ai.stigmer.tenancy.organization.v1.OrganizationSpec
-	3, // 2: ai.stigmer.tenancy.organization.v1.Organization.status:type_name -> ai.stigmer.commons.apiresource.ApiResourceAuditStatus
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	3, // 0: ai.stigmer.tenancy.organization.v1.Organization.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
+	4, // 1: ai.stigmer.tenancy.organization.v1.Organization.spec:type_name -> ai.stigmer.tenancy.organization.v1.OrganizationSpec
+	1, // 2: ai.stigmer.tenancy.organization.v1.Organization.status:type_name -> ai.stigmer.tenancy.organization.v1.OrganizationStatus
+	5, // 3: ai.stigmer.tenancy.organization.v1.OrganizationStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
+	2, // 4: ai.stigmer.tenancy.organization.v1.OrganizationStatus.embedding_vault_attachers:type_name -> ai.stigmer.tenancy.organization.v1.OrganizationStatus.EmbeddingVaultAttachersEntry
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_tenancy_organization_v1_api_proto_init() }
@@ -172,7 +238,7 @@ func file_ai_stigmer_tenancy_organization_v1_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_tenancy_organization_v1_api_proto_rawDesc), len(file_ai_stigmer_tenancy_organization_v1_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

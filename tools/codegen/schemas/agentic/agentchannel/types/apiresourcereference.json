@@ -33,7 +33,6 @@
           "invitation",
           "federation_issuer",
           "oauth_app",
-          "platform_client",
           "team",
           "organization",
           "platform",

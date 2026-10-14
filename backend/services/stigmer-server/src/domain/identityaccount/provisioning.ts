@@ -80,10 +80,10 @@ export class UserInfoFetchError extends Error {
  * decides its backend-assigned fields (steps.ts AssignBackendFields):
  *   - `direct`: the platform's own subject (a first sign-in, the boot
  *     operator, a machine account created over the RPC). Its subject may
- *     not use the `stgm_pc|` prefix platform-client accounts reserve.
- *   - `platform_client`: an end user a PlatformClient's mint provisioned
- *     (domain/platformclient/mint.ts). Its subject is the reserved
- *     composite, and it belongs to the client's owning organization.
+ *     not use the `stgm_pc|` prefix app-user accounts reserve.
+ *   - `app_user`: a person an organization's product signed in by minting
+ *     their token (domain/token/mint.ts). Its subject is the reserved
+ *     composite, and it belongs to the organization the token is for.
  *   - `federated`: a person an organization's federation issuer vouches
  *     for, provisioned by the edition that serves federation issuers. Its
  *     subject is the provider's to choose, so none of the direct arm's
@@ -98,7 +98,7 @@ export class UserInfoFetchError extends Error {
  */
 export type AccountProvisioning =
   | { readonly mode: "direct" }
-  | { readonly mode: "platform_client"; readonly org: string }
+  | { readonly mode: "app_user"; readonly org: string }
   | {
       readonly mode: "federated";
       readonly provider: FederatedIssuer;
@@ -124,7 +124,7 @@ const OWNING_ORGANIZATION: {
   ) => string;
 } = {
   direct: () => "",
-  platform_client: (provisioning) => provisioning.org,
+  app_user: (provisioning) => provisioning.org,
   federated: (provisioning) => provisioning.provider.org,
   service_account: (provisioning) => provisioning.org,
 };
@@ -156,7 +156,7 @@ export interface CreateAccountInput {
  * The domain's one create path, as its callers see it: runs the create
  * chain AS `caller` and answers the persisted account. Built by the
  * controller (newCreateAccountPath); the provisioner, the operator ensure
- * and the platform-client mint call it, and a unit reaches it through
+ * and the user-token mint call it, and a unit reaches it through
  * `ComposedServices.identityAccounts`; nothing else builds an account.
  */
 export type CreateAccount = (

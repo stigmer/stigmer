@@ -1,7 +1,7 @@
 /**
  * Pins the cap on how many vaults one resource may name: every `vaults`
  * list (a session's, an agent share's, an agent channel's, a schedule's
- * AgentInvocation and a platform client's) holds at most 20
+ * AgentInvocation and an organization's embedding settings) holds at most 20
  * references (`repeated.max_items = 20` on each field), so the resolver's
  * per-run work stays bounded whoever writes the list.
  *
@@ -33,7 +33,7 @@ import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/ses
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { PlatformClientSpecSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/spec_pb";
+import { OrganizationEmbeddingSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
 
 import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";
@@ -87,8 +87,8 @@ const lists: readonly ListRow[] = [
     check: (n) => vaultsViolations(AgentInvocationSchema, { vaults: vaultRefs(n) }),
   },
   {
-    name: "a platform client's",
-    check: (n) => vaultsViolations(PlatformClientSpecSchema, { vaults: vaultRefs(n) }),
+    name: "an organization's embedding settings'",
+    check: (n) => vaultsViolations(OrganizationEmbeddingSchema, { vaults: vaultRefs(n) }),
   },
 ];
 

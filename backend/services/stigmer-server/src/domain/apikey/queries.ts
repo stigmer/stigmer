@@ -26,7 +26,7 @@ import { apiKeyListIndex } from "./list-index.js";
  * only when the subject is the platform's own (a direct account, or a
  * legacy row from before provisioning modes were recorded), the stamp a
  * key minted before the account existed carries. Any other mode's subject
- * was chosen by someone else (a federation issuer, a platform client, the
+ * was chosen by someone else (a federation issuer, a mint, the
  * server for a service account), so it names no key: a provider that
  * asserted another person's subject must not reach that person's keys.
  */

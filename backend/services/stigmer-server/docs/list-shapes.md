@@ -92,7 +92,6 @@ Rows read `| \`package.Service.method\` | class |`.
 | `ai.stigmer.iam.federationissuer.v1.FederationIssuerQueryController.list` | paged |
 | `ai.stigmer.iam.invitation.v1.InvitationQueryController.list` | paged |
 | `ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController.list` | paged |
-| `ai.stigmer.iam.platformclient.v1.PlatformClientQueryController.list` | paged |
 | `ai.stigmer.iam.team.v1.TeamQueryController.list` | paged |
 | `ai.stigmer.platform.github.v1.GitHubQueryController.getTree` | exempt: an outside system's answer, GitHub's tree of one repository at one ref, as GitHub returns it |
 | `ai.stigmer.platform.github.v1.GitHubQueryController.listBranches` | exempt: an outside system's answer, GitHub's branches with GitHub's own paging |

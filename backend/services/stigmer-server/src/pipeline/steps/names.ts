@@ -118,7 +118,6 @@ export const NAMED_KINDS: Readonly<Record<ApiResourceKind, NamedKind>> = {
   // The cloud's chains claim it through the exported steps.
   [ApiResourceKind.federation_issuer]: CLAIMS,
   [ApiResourceKind.oauth_app]: CLAIMS,
-  [ApiResourceKind.platform_client]: CLAIMS,
   // The cloud's chains claim it through the exported steps.
   [ApiResourceKind.team]: CLAIMS,
   // Unique across the server, under its own key (domain/organization/names.ts).

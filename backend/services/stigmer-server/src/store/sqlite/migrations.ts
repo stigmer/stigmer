@@ -106,6 +106,13 @@ import {
   unreadableWorkflowRowError,
 } from "../workflow-instance-retired.js";
 import {
+  PLATFORM_CLIENT_RETIRED_PAGE_SIZE,
+  PLATFORM_CLIENT_RETIRED_POLICY_KIND,
+  RETIRED_PLATFORM_CLIENT_KIND,
+  policyNamesRetiredPlatformClient,
+  unreadablePlatformClientRowError,
+} from "../platform-client-retired.js";
+import {
   KIND_TABLES,
   KIND_RENAME_PAGE_SIZE,
   KIND_RENAME_POLICY_KIND,
@@ -244,8 +251,11 @@ export const SCHEMA_VERSION_35 = 35;
 /** v36: the stored labels, tags and annotations the new rules refuse, reported (nothing rewritten). */
 export const SCHEMA_VERSION_36 = 36;
 
+/** v37: the platform client rows removed, with every grant naming one. */
+export const SCHEMA_VERSION_37 = 37;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_36;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_37;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -307,6 +317,7 @@ export function runMigrations(
     [SCHEMA_VERSION_34, (migrating) => migrateToV34(migrating, logger)],
     [SCHEMA_VERSION_35, migrateToV35],
     [SCHEMA_VERSION_36, (migrating) => migrateToV36(migrating, logger)],
+    [SCHEMA_VERSION_37, migrateToV37],
   ];
 
   for (const [version, migrate] of chain) {
@@ -1951,5 +1962,59 @@ function migrateToV36(db: DatabaseSync, logger: StoreLogger): void {
       after = rows[rows.length - 1]!.id;
     }
     tally.log(logger);
+  }
+}
+
+/**
+ * v37: the platform client kind is removed — the Postgres driver's v33 in
+ * this engine's terms (../platform-client-retired.ts says what leaves, what
+ * stays and why an unreadable row fails the step). Every IamPolicy row
+ * naming a client as resource or principal is found in keyset pages and
+ * deleted with its list keys, its history kept, as the store deletes a
+ * policy. The client rows then leave every table that keys a row by kind.
+ * Runs inside applyInTransaction's BEGIN, so a throw rolls the whole step
+ * back and the boot stops on the row it names.
+ */
+function migrateToV37(db: DatabaseSync): void {
+  const page = db.prepare(
+    `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+  );
+  const retiredPolicies: string[] = [];
+  for (let after = ""; ; ) {
+    const rows = page.all(
+      PLATFORM_CLIENT_RETIRED_POLICY_KIND,
+      after,
+      PLATFORM_CLIENT_RETIRED_PAGE_SIZE,
+    ) as Array<{ id: string; data: Uint8Array }>;
+    for (const row of rows) {
+      try {
+        if (policyNamesRetiredPlatformClient(row.data)) {
+          retiredPolicies.push(row.id);
+        }
+      } catch (error) {
+        throw unreadablePlatformClientRowError(
+          PLATFORM_CLIENT_RETIRED_POLICY_KIND,
+          row.id,
+          error,
+        );
+      }
+    }
+    if (rows.length < PLATFORM_CLIENT_RETIRED_PAGE_SIZE) {
+      break;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
+  const deletePolicy = ["resource_list_keys", "resources"].map((table) =>
+    db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
+  );
+  for (const id of retiredPolicies) {
+    for (const statement of deletePolicy) {
+      statement.run(PLATFORM_CLIENT_RETIRED_POLICY_KIND, id);
+    }
+  }
+  for (const table of KIND_TABLES) {
+    db.prepare(`DELETE FROM ${table} WHERE kind = ?`).run(
+      RETIRED_PLATFORM_CLIENT_KIND,
+    );
   }
 }

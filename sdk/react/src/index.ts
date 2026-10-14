@@ -1437,7 +1437,6 @@ export { MemorySection } from "./settings/index.js";
 export { VaultsSection } from "./settings/index.js";
 export { InvitationsSection } from "./settings/index.js";
 export { FederationIssuersSection } from "./settings/index.js";
-export { PlatformClientsSection } from "./settings/index.js";
 export { ServiceAccountsSection } from "./settings/index.js";
 export { TeamsSection } from "./settings/index.js";
 export { AccessHistorySection } from "./settings/index.js";
@@ -1508,32 +1507,6 @@ export type {
   CreateServiceAccountFormProps,
   CreateServiceAccountKeyFormProps,
 } from "./service-account/index.js";
-
-// Platform Client — data hooks, mutation hooks, and styled components for platform client lifecycle
-export {
-  usePlatformClientList,
-  usePlatformClient,
-  useCreatePlatformClient,
-  useUpdatePlatformClient,
-  useDeletePlatformClient,
-  useRotatePlatformClientSecret,
-  PlatformClientListPanel,
-  CreatePlatformClientForm,
-  PlatformClientDetailPanel,
-  PlatformClientSecretAlert,
-} from "./platform-client/index.js";
-export type {
-  UsePlatformClientListReturn,
-  UsePlatformClientReturn,
-  UseCreatePlatformClientReturn,
-  UseUpdatePlatformClientReturn,
-  UseDeletePlatformClientReturn,
-  UseRotatePlatformClientSecretReturn,
-  PlatformClientListPanelProps,
-  CreatePlatformClientFormProps,
-  PlatformClientDetailPanelProps,
-  PlatformClientSecretAlertProps,
-} from "./platform-client/index.js";
 
 // OAuth App — data hooks, mutation hooks, and styled components for OAuth app management
 export {

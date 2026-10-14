@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { MintGuestTokenResponseSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
+import { MintGuestTokenResponseSchema } from "@stigmer/protos/ai/stigmer/iam/token/v1/token_pb";
 import { ConnectError, Code } from "@connectrpc/connect";
 
 // Intercept the token client so no transport is exercised. The mock

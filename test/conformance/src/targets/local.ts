@@ -89,10 +89,10 @@ export class LocalTarget implements TargetProfile {
     // No meter in this edition: every run's usage is counted from its
     // runner's own report and marked estimated.
     runModelCallsMetered: false,
-    // Open source serves PlatformClient; the minting lane is the OIDC
+    // Open source serves the token service; the minting lane is the OIDC
     // sibling this target lends through enforcingLane(), where the key ring,
-    // the platform-token verifier and the origin guard are composed.
-    platformClientTokens: true,
+    // the user-token verifier and the origin guard are composed.
+    userTokens: true,
     // Single-operator trusted-local posture: no issuer, no declared
     // posture, zero verifiers — a tokenless request IS the operator (the
     // authentication suite pins that admission).

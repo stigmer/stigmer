@@ -11,8 +11,7 @@
  *     its holder's id is never freed;
  *   - on a composed server on both drivers, two creates of one agent slug
  *     racing in one organization: exactly one lands and the other is
- *     refused AlreadyExists (stigmer#2153), and so of two platform clients,
- *     whose rows sit behind a port; the same slug in another
+ *     refused AlreadyExists (stigmer#2153); the same slug in another
  *     organization lands; a lookup by slug reads the winner; a delete
  *     frees the slug for a new agent, which gets a new id, and frees the
  *     names its cascade deletes (its share's slug) at once;
@@ -39,7 +38,6 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/command_pb";
 import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
 import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
 import {
@@ -91,7 +89,6 @@ const CLAIMING_KINDS = [
   ApiResourceKind.identity_account,
   ApiResourceKind.federation_issuer,
   ApiResourceKind.oauth_app,
-  ApiResourceKind.platform_client,
   ApiResourceKind.team,
   ApiResourceKind.organization,
   ApiResourceKind.agent,
@@ -460,25 +457,6 @@ describe.each(COMPOSED_DRIVERS)("one agent slug per organization, raced on a com
       slug: "support",
     });
     expect(found.metadata?.id).toBe(winner.metadata?.id);
-  });
-
-  it.skipIf(driver.skip)("lands one of two racing platform clients of one slug: a kind whose rows sit behind a port claims too", async () => {
-    const clients = createClient(PlatformClientCommandController, transport);
-    const clientInput = () => ({
-      apiVersion: "iam.stigmer.ai/v1",
-      kind: "PlatformClient",
-      metadata: { name: "dashboard", org: "acme" },
-      spec: { createAccountsOnSignIn: true },
-    });
-    const outcomes = await Promise.allSettled([
-      clients.create(clientInput()),
-      clients.create(clientInput()),
-    ]);
-    expect(outcomes.filter((outcome) => outcome.status === "fulfilled")).toHaveLength(1);
-    const refused = outcomes.find(
-      (outcome): outcome is PromiseRejectedResult => outcome.status === "rejected",
-    );
-    expect(ConnectError.from(refused?.reason).code).toBe(Code.AlreadyExists);
   });
 
   it.skipIf(driver.skip)("frees the names an agent's delete cascades to: its share's slug is free at once", async () => {

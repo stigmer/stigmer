@@ -37,14 +37,16 @@ import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/ap
 import {
   ApiResourceAuditInfoSchema,
   ApiResourceAuditSchema,
-  ApiResourceAuditStatusSchema,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
 import { FederationIssuerSpecSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/spec_pb";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import {
+  OrganizationSchema,
+  OrganizationStatusSchema,
+} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 import {
   callerIdentityKey,
@@ -124,7 +126,7 @@ const organizations = createRouterTransport(({ service }) => {
       const stamp = timestampFromDate(new Date("2026-09-01T00:00:00Z"));
       return create(OrganizationSchema, {
         metadata: create(ApiResourceMetadataSchema, { id: "acme", slug: "acme", name: "Acme" }),
-        status: create(ApiResourceAuditStatusSchema, {
+        status: create(OrganizationStatusSchema, {
           audit: create(ApiResourceAuditSchema, {
             specAudit: create(ApiResourceAuditInfoSchema, { createdAt: stamp, updatedAt: stamp }),
           }),

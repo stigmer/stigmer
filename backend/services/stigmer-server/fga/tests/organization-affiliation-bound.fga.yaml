@@ -83,9 +83,6 @@ tuples:
   - {user: organization:acme, relation: organization, object: oauth_app:x}
   - {user: identity_account:stays, relation: viewer, object: oauth_app:x}
   - {user: identity_account:left, relation: viewer, object: oauth_app:x}
-  - {user: organization:acme, relation: organization, object: platform_client:x}
-  - {user: identity_account:stays, relation: viewer, object: platform_client:x}
-  - {user: identity_account:left, relation: viewer, object: platform_client:x}
   - {user: identity_account:left, relation: participant, object: agent_channel:x}
   - {user: identity_account:left, relation: editor, object: agent:x}
   - {user: organization:acme, relation: organization, object: session:guest-chat}
@@ -113,7 +110,6 @@ tests:
       - {user: identity_account:left, object: session:x, assertions: {owner: false, viewer: false, can_view: false}}
       - {user: identity_account:left, object: federation_issuer:x, assertions: {viewer: false, can_view: false}}
       - {user: identity_account:left, object: oauth_app:x, assertions: {viewer: false, can_view: false}}
-      - {user: identity_account:left, object: platform_client:x, assertions: {viewer: false, can_view: false}}
       - {user: identity_account:left, object: agent_channel:x, assertions: {participant: false}}
       - {user: identity_account:left, object: agent:x, assertions: {editor: false, can_edit: false}}
       - {user: identity_account:left, object: memory:left, assertions: {can_view: false, can_edit: false, can_delete: false}}
@@ -131,7 +127,6 @@ tests:
       - {user: identity_account:stays, object: session:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:stays, object: federation_issuer:x, assertions: {viewer: true, can_view: true}}
       - {user: identity_account:stays, object: oauth_app:x, assertions: {viewer: true, can_view: true}}
-      - {user: identity_account:stays, object: platform_client:x, assertions: {viewer: true, can_view: true}}
       - {user: identity_account:stays, object: memory:x, assertions: {can_view: true}}
   - name: rejoining gives back what the person authored
     check:

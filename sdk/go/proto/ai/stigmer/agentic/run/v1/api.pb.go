@@ -474,9 +474,9 @@ func (x *LoadedVersions) GetPlugins() []*apiresource.ApiResourceReference {
 type RunCredentials struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The person whose turn this is, by identity account id. Absent for a
-	// turn no person sent: a schedule's, a channel's, a share link guest's, a
-	// platform client user's or a machine account's, which use only the
-	// vaults their session and surface name.
+	// turn no person sent: a schedule's, a channel's, a share link guest's, an
+	// app user's or a machine account's, which use only the vaults their
+	// session and surface name.
 	Person *string `protobuf:"bytes,1,opt,name=person,proto3,oneof" json:"person,omitempty"`
 	// Where each value the turn uses lives: one entry per key and declarer,
 	// naming a vault and an entry, never a value. A runner fetches the

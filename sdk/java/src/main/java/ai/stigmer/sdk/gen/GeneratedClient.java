@@ -22,7 +22,6 @@ public class GeneratedClient {
     public final OAuthAppClient oauthapp;
     public final OrganizationClient organization;
     public final PlanClient plan;
-    public final PlatformClientClient platformclient;
     public final PluginClient plugin;
     public final PluginEvalClient plugineval;
     public final ProviderKeyClient providerkey;
@@ -52,7 +51,6 @@ public class GeneratedClient {
         this.oauthapp = new OAuthAppClient(channel);
         this.organization = new OrganizationClient(channel);
         this.plan = new PlanClient(channel);
-        this.platformclient = new PlatformClientClient(channel);
         this.plugin = new PluginClient(channel);
         this.plugineval = new PluginEvalClient(channel);
         this.providerkey = new ProviderKeyClient(channel);

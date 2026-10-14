@@ -104,7 +104,7 @@ function sharedNotFoundMessage(shareId: string): string {
 // The open-source edition's answer to a guest mint (no unit composes the
 // capability).
 const GUEST_MINT_UNIMPLEMENTED =
-  "PlatformClientTokenController.mintGuestToken is not implemented: guest tokens for shared agents are served by the Cloud edition";
+  "TokenService.mintGuestToken is not implemented: guest tokens for shared agents are served by the Cloud edition";
 
 // A JWT's payload, decoded without verifying: the arm reads which share
 // and organization the server named, not whether it signed them.
@@ -358,7 +358,7 @@ describe("AgentShare conformance — the anonymous resolution lane", () => {
     expect(profile.agentRef?.org).toBe(share.spec?.agentRef?.org);
   });
 
-  it("[rpc:AgentShareQueryController.getSharedProfile] [rpc:PlatformClientTokenController.mintGuestToken] require a share_id of at most 128 characters (InvalidArgument)", async () => {
+  it("[rpc:AgentShareQueryController.getSharedProfile] [rpc:TokenService.mintGuestToken] require a share_id of at most 128 characters (InvalidArgument)", async () => {
     await expectGrpcCode(
       () => clients.agentShareQuery.getSharedProfile({ shareId: "" }),
       Code.InvalidArgument,
@@ -374,7 +374,7 @@ describe("AgentShare conformance — the anonymous resolution lane", () => {
       "getSharedProfile with a 129-character share_id",
     );
     await expectGrpcCode(
-      () => clients.platformClientToken.mintGuestToken({ shareId: oversized }),
+      () => clients.token.mintGuestToken({ shareId: oversized }),
       Code.InvalidArgument,
       "mintGuestToken with a 129-character share_id",
     );
@@ -621,7 +621,7 @@ describe("AgentShare conformance — the member resolution lane", () => {
 });
 
 describe("AgentShare conformance — the guest path by share id", () => {
-  it("[rpc:PlatformClientTokenController.mintGuestToken] mints a guest token naming the share and its organization, or pins open source's refusal", async () => {
+  it("[rpc:TokenService.mintGuestToken] mints a guest token naming the share and its organization, or pins open source's refusal", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const share = await createShareFixture(org, agent.metadata!.slug);
@@ -629,7 +629,7 @@ describe("AgentShare conformance — the guest path by share id", () => {
 
     if (!target.capabilities.guestMinting) {
       const err = await expectGrpcCode(
-        () => clients.platformClientToken.mintGuestToken({ shareId }),
+        () => clients.token.mintGuestToken({ shareId }),
         Code.Unimplemented,
         "mintGuestToken on an edition that mints no guest tokens",
       );
@@ -637,7 +637,7 @@ describe("AgentShare conformance — the guest path by share id", () => {
       return;
     }
 
-    const minted = await clients.platformClientToken.mintGuestToken({ shareId });
+    const minted = await clients.token.mintGuestToken({ shareId });
     expect(minted.tokenType).toBe("Bearer");
     expect(minted.guestCookieId, "a fresh visitor gets a server-issued id").not.toBe("");
     const claims = jwtPayload(minted.accessToken);
@@ -645,13 +645,13 @@ describe("AgentShare conformance — the guest path by share id", () => {
     expect(claims.org, "and the share's organization, which the link never named").toBe(org);
   });
 
-  it("[rpc:PlatformClientTokenController.mintGuestToken] refuses an unknown share id with the uniform NotFound", async (ctx) => {
+  it("[rpc:TokenService.mintGuestToken] refuses an unknown share id with the uniform NotFound", async (ctx) => {
     if (!target.capabilities.guestMinting) {
       return ctx.skip("guestMinting is false: the open-source refusal is pinned by the arm above");
     }
     const missingId = "ash_01confnevercreated";
     const err = await expectGrpcCode(
-      () => clients.platformClientToken.mintGuestToken({ shareId: missingId }),
+      () => clients.token.mintGuestToken({ shareId: missingId }),
       Code.NotFound,
       "mintGuestToken for a nonexistent share",
     );

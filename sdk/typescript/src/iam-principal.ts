@@ -15,10 +15,10 @@
  * revoke built from the returned grantee names the exact row the list
  * showed, because the server's revoke matches the qualifier exactly.
  *
- * `isPlatformClientAccount` reads the other thing a client needs from an
- * entry: whether the person is one the organization's own product brought
- * in through a PlatformClient. Such an account holds a real role on the
- * organization (a client's auto-grant), yet it is a user of that product,
+ * `isAppUserAccount` reads the other thing a client needs from an
+ * entry: whether the person is one the organization's own product signed
+ * in by minting their token. Such an account holds a real role on the
+ * organization (the embedding sign-in role), yet it is a user of that product,
  * not a person of the organization, and the server's own membership rules
  * skip it for that reason. A members view lists and counts the
  * organization's people without these accounts; an access audit still
@@ -104,16 +104,17 @@ export function granteeFromView(
 }
 
 /**
- * Whether an access-list entry is an account a PlatformClient provisioned:
- * a person kind whose identity origin is `platform_client`. An entry the
- * server could not resolve carries no origin and reads `false`.
+ * Whether an access-list entry is an app user, a person signed in from the
+ * organization's own product through a minted user token: a person kind
+ * whose identity origin is `app_user`. An entry the server could not
+ * resolve carries no origin and reads `false`.
  */
-export function isPlatformClientAccount(
+export function isAppUserAccount(
   view: Pick<ApiResourceRefView, "kind" | "identityOrigin">,
 ): boolean {
   return (
     view.kind === PERSON_KIND &&
-    view.identityOrigin?.provisioningMode === IdentityAccountProvisioningMode.platform_client
+    view.identityOrigin?.provisioningMode === IdentityAccountProvisioningMode.app_user
   );
 }
 

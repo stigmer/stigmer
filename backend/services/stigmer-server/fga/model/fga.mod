@@ -9,7 +9,6 @@ contents:
   - iam/iam_policy.fga
   - iam/api_key.fga
   - iam/oauth_app.fga
-  - iam/platform_client.fga
   - iam/invitation.fga
   - iam/team.fga
   

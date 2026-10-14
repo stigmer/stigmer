@@ -41,6 +41,14 @@
           "description": "Change what the organization lets its members do (OrganizationPolicies),\n the one way to change a policy: update and apply keep the stored\n policies. Replaces every policy with the input's."
         },
         {
+          "name": "UpdateEmbedding",
+          "inputType": "UpdateOrganizationEmbeddingInput",
+          "inputFullType": "ai.stigmer.tenancy.organization.v1.UpdateOrganizationEmbeddingInput",
+          "outputType": "Organization",
+          "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
+          "description": "Change how people sign in to the organization from its own product\n (OrganizationEmbedding), the one way to change those settings: update\n and apply keep the stored ones. Replaces every embedding setting with\n the input's.\n\n A vault the caller may not use is refused, as is a My vault. A\n sign_in_role of owner, or one an organization cannot be granted, is\n refused with INVALID_ARGUMENT."
+        },
+        {
           "name": "Rename",
           "inputType": "RenameInput",
           "inputFullType": "ai.stigmer.commons.apiresource.RenameInput",
@@ -161,6 +169,42 @@
             "messageType": "OrganizationPolicies"
           },
           "description": "Every policy, as it should stand: a field left at its zero value\n turns that policy off.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "UpdateOrganizationEmbeddingInput",
+      "description": "Input for updateEmbedding: the organization and the whole set of\n embedding settings it holds from now on.",
+      "protoType": "ai.stigmer.tenancy.organization.v1.UpdateOrganizationEmbeddingInput",
+      "protoFile": "apis/ai/stigmer/tenancy/organization/v1/io.proto",
+      "fields": [
+        {
+          "name": "OrgId",
+          "jsonName": "orgId",
+          "protoField": "org_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The organization's id or slug.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 64
+          }
+        },
+        {
+          "name": "Embedding",
+          "jsonName": "embedding",
+          "protoField": "embedding",
+          "type": {
+            "kind": "message",
+            "messageType": "OrganizationEmbedding"
+          },
+          "description": "Every embedding setting, as it should stand: a field left at its zero\n value clears that setting.",
           "required": true,
           "validation": {
             "required": true
@@ -441,7 +485,381 @@
           "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and vaults are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
         }
       ]
+    },
+    {
+      "name": "IamRole",
+      "description": "IamRole defines the roles that can be assigned to principals on resources\n via IAM policies.\n\n Roles are human-assigned and represent a principal's relationship to a\n resource. They are distinct from permissions (which are computed from roles\n and checked by the authorization interceptor) and structural relations\n (which are internal FGA wiring like organization or session links).\n\n Each ApiResourceKind declares which of these roles are grantable via\n the grantable_roles field in its AuthorizationConfig, and what each one\n means there in role_descriptions.",
+      "protoType": "ai.stigmer.iam.v1.IamRole",
+      "values": [
+        {
+          "name": "owner",
+          "number": 1,
+          "description": "Full control of the resource, including deleting it and deciding who\n has access. Typically assigned to the creator."
+        },
+        {
+          "name": "admin",
+          "number": 2,
+          "description": "Administers an organization: its people, settings and resources, short\n of its owners, its deletion and its private conversations."
+        },
+        {
+          "name": "member",
+          "number": 3,
+          "description": "Belongs to an organization or a team. In an organization, a member\n starts conversations with what is shared with them and creates agents\n while the organization allows it; in a team, a member holds what the\n team is given."
+        },
+        {
+          "name": "viewer",
+          "number": 4,
+          "description": "Sees the resource and changes nothing. What seeing allows is the kind's\n own (role_descriptions): an agent's viewer runs it in the conversations\n they may start, a conversation's viewer sends no message, and an\n organization's viewer starts no conversation, since starting one needs\n the organization's member role or higher."
+        },
+        {
+          "name": "participant",
+          "number": 5,
+          "description": "A person who takes part in a conversation: reads it and sends messages.\n On a conversation (session), a participant's messages run in the\n conversation's own workspace, as its creator, using only the vaults the\n conversation names; stopping and approving stay with its owners. On an\n agent channel, a participant reads the channel's conversations and\n speaks to its customers as the business (reply, take over, hand back,\n clear attention), and is not a channel configurator."
+        },
+        {
+          "name": "editor",
+          "number": 6,
+          "description": "Editor of a blueprint (an agent): may change\n its definition and do whatever a viewer can, and may not delete it,\n change its visibility, publish it on a share link or a channel, or decide\n who else has access."
+        },
+        {
+          "name": "user",
+          "number": 7,
+          "description": "May use a shared vault: the runs of a person who holds it use the\n vault's logins and secrets. Shown as \"Can use\"."
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer.",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Immutable version record tracking changes to an API resource."
+        },
+        {
+          "name": "iam_policy",
+          "number": 10,
+          "description": "Role-based access control policy for granting permissions on resources."
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": "User account in the identity system."
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
+        },
+        {
+          "name": "federation_issuer",
+          "number": 21,
+          "description": "An outside issuer whose tokens Stigmer accepts for its own users\n (identity federation): its keys, its audience, and what its tokens get."
+        },
+        {
+          "name": "oauth_app",
+          "number": 22,
+          "description": "Registered OAuth application with an external vendor for outbound authentication."
+        },
+        {
+          "name": "team",
+          "number": 24,
+          "description": "Named group of an organization's people that access is shared with as one."
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "The boundary that holds people, Agents, Sessions and secrets\n together; nothing outside it sees them.\n\n Its id is a minted org_\u003culid\u003e that never changes; every organization-scoped\n resource names it by that id (metadata.org). Its slug is unique across the\n server and may change through rename; requests may name the organization\n by either."
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": "Singleton platform instance representing the Stigmer deployment."
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
+        },
+        {
+          "name": "run",
+          "number": 41,
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": "Conversation thread between a user and an agent."
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": "Knowledge resource that provides domain-specific context to an agent."
+        },
+        {
+          "name": "agent_share",
+          "number": 46,
+          "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
+        },
+        {
+          "name": "agent_channel",
+          "number": 47,
+          "description": "Connection binding an agent to an external messaging platform workspace."
+        },
+        {
+          "name": "channel_app",
+          "number": 48,
+          "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
+        },
+        {
+          "name": "schedule",
+          "number": 56,
+          "description": "Recurring trigger that runs an agent on a cron schedule."
+        },
+        {
+          "name": "memory",
+          "number": 57,
+          "description": "Agent-proposed, user-confirmed fact the platform remembers about a person."
+        },
+        {
+          "name": "plugin",
+          "number": 58,
+          "description": "An installed Agent Plugins package: one thing holding skills, agents,\n hooks and MCP servers, which agents and conversations list whole."
+        },
+        {
+          "name": "vault",
+          "number": 59,
+          "description": "A person's or an organization's box of logins (matched by a tool's\n address) and secrets (matched by name) that runs use."
+        },
+        {
+          "name": "score",
+          "number": 61,
+          "description": "One grade of a finished run: a person's thumbs or a free run-health\n check."
+        },
+        {
+          "name": "evaluator",
+          "number": 62,
+          "description": "AI grading switched on for one agent: its sample rate, monthly spending\n limit and judge model."
+        },
+        {
+          "name": "plugin_eval",
+          "number": 63,
+          "description": "One run of a plugin's own evals/ cases: every case tried with and\n without the plugin, on the models the eval names."
+        },
+        {
+          "name": "agent_eval",
+          "number": 64,
+          "description": "One run of the eval cases of the plugins an agent attaches, on the\n agent itself: each plugin's cases at the version the agent attaches,\n on the models the eval names, stamped with the agent's version."
+        },
+        {
+          "name": "plan",
+          "number": 70,
+          "description": "Catalog entry naming a bundle of entitlements and the terms that buy it.\n\n Platform-level: a plan belongs to no organization, so it carries no\n authorization scope and no owner. Immutable once created; a change of\n terms is a new Plan and the old one retires."
+        },
+        {
+          "name": "subscription",
+          "number": 71,
+          "description": "An organization's binding to a Plan; at most one active per organization.\n\n System-created: the payment system drives its lifecycle, so it has no\n owner and grants no roles. Its reads and writes authorize on the\n organization through the billing permissions."
+        },
+        {
+          "name": "license",
+          "number": 72,
+          "description": "A signed grant of entitlements to a self-hosting customer for a term.\n\n Platform-level: issued by the cloud's operators and verified offline by\n the Enterprise server, so the customer is a value inside the license\n (which may or may not name a cloud organization) and the kind has no\n authorization scope and no owner. Claims are immutable once signed; a\n renewal is a new License."
+        }
+      ]
     }
   ],
-  "resourceDescription": "Organization is the top-level container for all Stigmer resources.\n\n An Organization has a permanent id (org_\u003culid\u003e), minted when it is\n created, and a slug: the unique name people type in URLs, manifests and\n --org. Every resource the organization owns names it by id in\n metadata.org, so renaming the slug moves nothing. Requests may name an\n organization by either; the server answers with the id.\n\n An Organization belongs to no organization: its own metadata.org is\n always empty."
+  "resourceDescription": "Organization is the top-level container for all Stigmer resources.\n\n An Organization has a permanent id (org_\u003culid\u003e), minted when it is\n created, and a slug: the unique name people type in URLs, manifests and\n --org. Every resource the organization owns names it by id in\n metadata.org, so renaming the slug moves nothing. Requests may name an\n organization by either; the server answers with the id.\n\n An Organization belongs to no organization: its own metadata.org is\n always empty.",
+  "statusType": {
+    "name": "OrganizationStatus",
+    "description": "OrganizationStatus is an organization's server-owned state.",
+    "protoType": "ai.stigmer.tenancy.organization.v1.OrganizationStatus",
+    "protoFile": "apis/ai/stigmer/tenancy/organization/v1/api.proto",
+    "fields": [
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Audit information tracking creation and modification.",
+        "required": false
+      },
+      {
+        "name": "EmbeddingVaultAttachers",
+        "jsonName": "embeddingVaultAttachers",
+        "protoField": "embedding_vault_attachers",
+        "type": {
+          "kind": "map",
+          "keyType": {
+            "kind": "string"
+          },
+          "valueType": {
+            "kind": "string"
+          }
+        },
+        "description": "Who attached each of the embedding settings' vaults, by vault id: the\n account whose permission to use the vault each app user's run checks.",
+        "required": false
+      }
+    ]
+  },
+  "statusNestedTypes": [
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.\n\n This is the platform's single actor vocabulary: every \"who did this\"\n reference (created_by / updated_by, version-history applied_by / pushed_by,\n approval resolved_by_actor) uses this message, so actor rendering is\n uniform across all surfaces.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        },
+        {
+          "name": "DisplayName",
+          "jsonName": "displayName",
+          "protoField": "display_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable display name (e.g. \"Ada Lovelace\"). Empty when unknown;\n renderers fall back to email, then id.",
+          "required": false
+        },
+        {
+          "name": "Email",
+          "jsonName": "email",
+          "protoField": "email",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Email address of the actor. Empty when unknown or not applicable\n (e.g. machine accounts).",
+          "required": false
+        },
+        {
+          "name": "MintedBy",
+          "jsonName": "mintedBy",
+          "protoField": "minted_by",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The service account whose key minted the user token the actor acted\n through. Empty for every other credential, and on an actor that records\n no act (an account's profile lookup).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    }
+  ]
 }

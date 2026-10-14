@@ -1,11 +1,11 @@
 /**
  * Attachments: what the reference rule cannot say about a vault a surface
  * names, said once for every surface that names vaults (a session, a
- * schedule, a share, a channel, a platform client).
+ * schedule, a share, a channel, an organization's embedding settings).
  *
  *   - A My vault serves only its own person's runs. A surface that runs
  *     for someone else (a conversation several people may send turns to, a
- *     share link, a channel, a platform client's users) refuses one. A schedule may carry its owner's own My vault: the owner
+ *     share link, a channel, an organization's app users) refuses one. A schedule may carry its owner's own My vault: the owner
  *     attaches it, and its runs use it as theirs.
  *   - Who attached each vault is recorded, as a server-observed fact in the
  *     surface's status (`vault_attachers`, vault id to account): the
@@ -52,7 +52,7 @@ import {
   referenceKey,
 } from "../../pipeline/steps/references.js";
 import type { SpecReference } from "../../pipeline/steps/references.js";
-import { metadataOf } from "../../pipeline/steps/shapes.js";
+import { owningOrgOf } from "../../pipeline/steps/shapes.js";
 import type { Store } from "../../store/interface.js";
 
 import { personOf } from "./service.js";
@@ -132,7 +132,7 @@ export function newVaultAttachmentsStep<Desc extends DescMessage>(
       const rejudgeAll =
         existing !== undefined && options.rejudgeAllWhen?.(existing, next) === true;
       const caller = ctx.callerIdentity;
-      const org = metadataOf(next)?.org ?? "";
+      const org = owningOrgOf(ctx.schema, next);
 
       const named: Array<{ ref: SpecReference; vault: Vault | undefined; kept: boolean }> = [];
       for (const ref of refs) {

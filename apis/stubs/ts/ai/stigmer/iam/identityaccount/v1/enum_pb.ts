@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/iam/identityaccount/v1/enum.proto.
  */
 export const file_ai_stigmer_iam_identityaccount_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvZW51bS5wcm90bxIhYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxKqcBCh9JZGVudGl0eUFjY291bnRQcm92aXNpb25pbmdNb2RlEjIKLmlkZW50aXR5X2FjY291bnRfcHJvdmlzaW9uaW5nX21vZGVfdW5zcGVjaWZpZWQQABIKCgZkaXJlY3QQARINCglmZWRlcmF0ZWQQAhILCgdtYWNoaW5lEAMSEwoPcGxhdGZvcm1fY2xpZW50EAQSEwoPc2VydmljZV9hY2NvdW50EAViBnByb3RvMw");
+  fileDesc("CixhaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvZW51bS5wcm90bxIhYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxKqABCh9JZGVudGl0eUFjY291bnRQcm92aXNpb25pbmdNb2RlEjIKLmlkZW50aXR5X2FjY291bnRfcHJvdmlzaW9uaW5nX21vZGVfdW5zcGVjaWZpZWQQABIKCgZkaXJlY3QQARINCglmZWRlcmF0ZWQQAhILCgdtYWNoaW5lEAMSDAoIYXBwX3VzZXIQBBITCg9zZXJ2aWNlX2FjY291bnQQBWIGcHJvdG8z");
 
 /**
  * IdentityAccountProvisioningMode defines how an identity account was created.
@@ -46,22 +46,24 @@ export enum IdentityAccountProvisioningMode {
   machine = 3,
 
   /**
-   * Account provisioned via a PlatformClient's mintUserToken endpoint.
+   * A person who signs in from an organization's own product: the
+   * product's backend asks for their token with TokenService.mintUserToken,
+   * and Stigmer signs it. The console calls them App users.
    *
-   * The idp_id for these accounts uses the composite encoding
-   * "stgm_pc|{org}|{external_user_id}", where org is the owning organization of
-   * the PlatformClient that minted the token and external_user_id is the user
-   * identifier supplied by the platform builder. Every PlatformClient of one
-   * organization therefore resolves the same user to the same account. The
+   * The idp_id uses the composite encoding "stgm_pc|{org}|{external_user_id}",
+   * where org is the organization the token is for and external_user_id is
+   * the product's own stable identifier for the person, so every mint for
+   * one organization resolves the same person to the same account. The
    * "stgm_pc|" prefix is reserved: no other provisioning mode may use it.
    *
-   * Unlike federated accounts, PlatformClient is not an ongoing authentication
-   * authority. Stigmer signs its own JWTs for these users; the PlatformClient
-   * is the admission credential used at mint time only.
+   * Unlike federated accounts, nothing outside Stigmer vouches for the
+   * person on each request: Stigmer signs its own tokens for them, and the
+   * service account whose key minted the token stays the admission
+   * credential while the token lives.
    *
-   * @generated from enum value: platform_client = 4;
+   * @generated from enum value: app_user = 4;
    */
-  platform_client = 4,
+  app_user = 4,
 
   /**
    * An organization's own non-person account: the principal its automation

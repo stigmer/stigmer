@@ -9,24 +9,24 @@ import { createConnectRouter } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
 import { OAuthAppQueryController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/query_pb";
-import { PlatformClientQueryController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/query_pb";
-import { PlatformClientTokenController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
+import { TeamQueryController } from "@stigmer/protos/ai/stigmer/iam/team/v1/query_pb";
+import { TokenService } from "@stigmer/protos/ai/stigmer/iam/token/v1/token_pb";
 
 import { registerExtensionServicesUnshadowed } from "../route-shadowing.js";
 
 describe("registerExtensionServicesUnshadowed", () => {
   it("refuses an extension service the core already serves, naming the unit and the path", () => {
     const router = createConnectRouter();
-    router.service(PlatformClientTokenController, {});
+    router.service(TokenService, {});
     expect(() =>
       registerExtensionServicesUnshadowed(router, [
         {
           unit: "cloud-iam",
-          register: (r) => void r.service(PlatformClientTokenController, {}),
+          register: (r) => void r.service(TokenService, {}),
         },
       ]),
     ).toThrow(
-      /extension 'cloud-iam' registers \/ai\.stigmer\.iam\.platformclient\.v1\.PlatformClientTokenController\/mintUserToken, which the core already serves/,
+      /extension 'cloud-iam' registers \/ai\.stigmer\.iam\.token\.v1\.TokenService\/mintUserToken, which the core already serves/,
     );
   });
 
@@ -57,11 +57,11 @@ describe("registerExtensionServicesUnshadowed", () => {
     registerExtensionServicesUnshadowed(router, [
       {
         unit: "billing",
-        register: (r) => void r.service(PlatformClientQueryController, {}),
+        register: (r) => void r.service(TeamQueryController, {}),
       },
     ]);
     expect(router.handlers.map((handler) => handler.requestPath)).toContain(
-      "/ai.stigmer.iam.platformclient.v1.PlatformClientQueryController/list",
+      "/ai.stigmer.iam.team.v1.TeamQueryController/list",
     );
   });
 });

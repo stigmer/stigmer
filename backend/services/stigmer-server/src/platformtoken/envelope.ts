@@ -1,6 +1,6 @@
 /**
  * The platform-token envelope: the RS256 JWT every token the server signs
- * for itself rides — the PlatformClient user token in open source, and in
+ * for itself rides — the minted user token in open source, and in
  * the cloud its typed lanes (guest, schedule, channel, the sandbox family)
  * as well. One envelope, byte-compatible with the tokens Stigmer Cloud has
  * signed since the Java issuer, so a token minted before the cloud serves
@@ -10,8 +10,8 @@
  * `exp`, `jti`, plus `aud` when the ring carries an audience) and the
  * signature. It does not know lanes: a lane's vocabulary (its claims, its
  * `token_type`, the caller class it stamps) belongs to the verifier that
- * claims it — open source verifies only the untyped PlatformClient lane
- * (domain/platformclient/verifier.ts); the typed lanes stay the cloud's.
+ * claims it — open source verifies only the untyped user-token lane
+ * (domain/token/verifier.ts); the typed lanes stay the cloud's.
  *
  * A token's lifetime is the lane's to choose: the ring carries the default
  * (the user token's), and a lane that lives longer or shorter — the cloud's
@@ -46,7 +46,7 @@ import type {
 /** The `iss` of every platform token (the cloud's STIGMER_ISSUER). */
 export const PLATFORM_TOKEN_ISSUER = "stigmer";
 
-/** The claim a typed lane names itself by; absent on the PlatformClient user token. */
+/** The claim a typed lane names itself by; absent on the minted user token. */
 export const TOKEN_TYPE_CLAIM = "token_type";
 
 /** A lane claim's value: the token carries JSON scalars only. */

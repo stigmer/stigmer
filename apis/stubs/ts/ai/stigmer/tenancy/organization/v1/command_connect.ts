@@ -5,7 +5,7 @@
 
 import { Organization } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { OrganizationId, UpdateOrganizationInput, UpdateOrganizationPoliciesInput } from "./io_pbjs";
+import { OrganizationId, UpdateOrganizationEmbeddingInput, UpdateOrganizationInput, UpdateOrganizationPoliciesInput } from "./io_pbjs";
 import { RenameInput } from "../../../commons/apiresource/io_pbjs";
 
 /**
@@ -159,6 +159,24 @@ export const OrganizationCommandController = {
     updatePolicies: {
       name: "updatePolicies",
       I: UpdateOrganizationPoliciesInput,
+      O: Organization,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Change how people sign in to the organization from its own product
+     * (OrganizationEmbedding), the one way to change those settings: update
+     * and apply keep the stored ones. Replaces every embedding setting with
+     * the input's.
+     *
+     * A vault the caller may not use is refused, as is a My vault. A
+     * sign_in_role of owner, or one an organization cannot be granted, is
+     * refused with INVALID_ARGUMENT.
+     *
+     * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationCommandController.updateEmbedding
+     */
+    updateEmbedding: {
+      name: "updateEmbedding",
+      I: UpdateOrganizationEmbeddingInput,
       O: Organization,
       kind: MethodKind.Unary,
     },

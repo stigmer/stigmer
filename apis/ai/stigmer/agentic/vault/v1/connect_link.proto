@@ -16,8 +16,8 @@ import "buf/validate/validate.proto";
 //
 // @internal
 // A service of its own, apart from the vault's commands, so the anonymous
-// surface is one file to audit (as PlatformClientTokenController keeps token
-// minting apart). The link's creator must still be able to edit the vault
+// surface is one file to audit (as TokenService keeps token minting
+// apart). The link's creator must still be able to edit the vault
 // when the link is started and when it completes.
 service ConnectLinkController {
   // Get what a Connect link is for, to show before the customer continues.

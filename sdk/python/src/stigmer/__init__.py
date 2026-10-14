@@ -20,6 +20,7 @@ from ._client import StigmerClient
 from ._runner_adapter import RunnerAdapter
 from ._github import GitHubClient, GitHubRepoParams
 from ._search import ApiResourceKind, SearchClient, SearchParams, SearchResponse
+from ._tokens import MintUserTokenResult, TokenClient
 
 # --- Resource clients and input types (generated) --------------------------
 
@@ -77,14 +78,6 @@ from ._gen._errors import (
     is_unauthenticated,
 )
 
-# --- PlatformClient token minting ------------------------------------------
-
-from .platform_client_auth import (
-    MintUserTokenInput,
-    MintUserTokenResult,
-    PlatformClientAuth,
-    platform_client_auth,
-)
 
 __all__ = [
     # Client
@@ -105,6 +98,9 @@ __all__ = [
     "SearchClient",
     "SearchParams",
     "SearchResponse",
+    # User tokens
+    "MintUserTokenResult",
+    "TokenClient",
     # Resource clients
     "AgentClient",
     "ApiKeyClient",
@@ -153,9 +149,4 @@ __all__ = [
     "is_permission_denied",
     "is_retryable",
     "is_unauthenticated",
-    # PlatformClient token minting
-    "MintUserTokenInput",
-    "MintUserTokenResult",
-    "PlatformClientAuth",
-    "platform_client_auth",
 ]

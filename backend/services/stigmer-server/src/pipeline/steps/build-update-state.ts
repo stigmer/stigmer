@@ -127,12 +127,9 @@ function takeVersionArguments(merged: Message, request: Message): void {
 /**
  * Go updateAuditFieldsReflect: spec_audit keeps the existing creation
  * identity with a fresh update stamp; status_audit is fully current (the
- * status was rebuilt); both carry event "updated". Exported for the one
- * write that changes a stored resource outside this step — a
- * PlatformClient secret rotation (domain/platformclient/steps.ts) — so an
- * update's audit has one shape whichever step writes it.
+ * status was rebuilt); both carry event "updated".
  */
-export function updateAuditFields(
+function updateAuditFields(
   schema: DescMessage,
   resource: Message,
   existing: Message,

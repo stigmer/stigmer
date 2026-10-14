@@ -141,7 +141,7 @@ describe("federatedAccountIdFor — the address of a federated account", () => {
 
   it("the refusal of a direct subject names the prefix it took", () => {
     expect(reservedSubjectMessage("stgm_pc|acme|user-7")).toBe(
-      "subject 'stgm_pc|acme|user-7' uses the 'stgm_pc|' prefix reserved for accounts a platform client provisions",
+      "subject 'stgm_pc|acme|user-7' uses the 'stgm_pc|' prefix reserved for the accounts of people an organization's product signs in",
     );
     expect(reservedSubjectMessage("stgm_fed|acme|okta|dana")).toBe(
       "subject 'stgm_fed|acme|okta|dana' uses the 'stgm_fed|' prefix reserved for the addresses of accounts a federation issuer vouches for",
@@ -253,7 +253,7 @@ describe("the service-account subject namespace", () => {
 
   it("reservedSubjectMessage refuses both reserved prefixes with their own copy", () => {
     expect(reservedSubjectMessage("stgm_pc|org|user")).toBe(
-      "subject 'stgm_pc|org|user' uses the 'stgm_pc|' prefix reserved for accounts a platform client provisions",
+      "subject 'stgm_pc|org|user' uses the 'stgm_pc|' prefix reserved for the accounts of people an organization's product signs in",
     );
     expect(reservedSubjectMessage("stgm_sa|org|abc")).toBe(
       "subject 'stgm_sa|org|abc' uses the 'stgm_sa|' prefix reserved for an organization's service accounts",

@@ -6,7 +6,7 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { Organization } from "./api_pb.js";
 import { file_ai_stigmer_tenancy_organization_v1_api } from "./api_pb.js";
-import type { OrganizationPolicies } from "./spec_pb.js";
+import type { OrganizationEmbedding, OrganizationPolicies } from "./spec_pb.js";
 import { file_ai_stigmer_tenancy_organization_v1_spec } from "./spec_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import type { FieldMask } from "@bufbuild/protobuf/wkt";
@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/tenancy/organization/v1/io.proto.
  */
 export const file_ai_stigmer_tenancy_organization_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxImsKDU9yZ2FuaXphdGlvbnMSQQoHZW50cmllcxgBIAMoCzIwLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSLdAQoYTGlzdE15T3JnYW5pemF0aW9uc0lucHV0EhoKCXBhZ2Vfc2l6ZRgBIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAIgASgJQgi6SAVyAxiACBJYCgZsYWJlbHMYAyADKAsySC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLkxpc3RNeU9yZ2FuaXphdGlvbnNJbnB1dC5MYWJlbHNFbnRyeRotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIioKDk9yZ2FuaXphdGlvbklkEhgKBXZhbHVlGAEgASgJQgm6SAZyBBABGEAieQoaT3JnYW5pemF0aW9uRXh0ZXJuYWxMb29rdXASHwoLZXh0ZXJuYWxfaWQYAiABKAlCCrpIB3IFEAEYgAISHQoKcGFyZW50X29yZxgDIAEoCUIJukgGcgQQARhASgQIARACUhVpZGVudGl0eV9wcm92aWRlcl9yZWYi6QEKEkxpc3RDaGlsZE9yZ3NJbnB1dBIWCgNvcmcYASABKAlCCbpIBnIEEAEYQBIaCglwYWdlX3NpemUYAiABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgSUgoGbGFiZWxzGAQgAygLMkIuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5MaXN0Q2hpbGRPcmdzSW5wdXQuTGFiZWxzRW50cnkaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJqCgxDaGlsZE9yZ0xpc3QSQQoHZW50cmllcxgBIAMoCzIwLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSKQAQofVXBkYXRlT3JnYW5pemF0aW9uUG9saWNpZXNJbnB1dBIZCgZvcmdfaWQYASABKAlCCbpIBnIEEAEYQBJSCghwb2xpY2llcxgCIAEoCzI4LmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uUG9saWNpZXNCBrpIA8gBASLlAgoXVXBkYXRlT3JnYW5pemF0aW9uSW5wdXQSSgoIcmVzb3VyY2UYASABKAsyMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbkIGukgD2AEDEjcKC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFza0IGukgDyAEBOsQBukjAARq9AQoXdXBkYXRlX25hbWVzX2l0c190YXJnZXQSTHJlc291cmNlLm1ldGFkYXRhLmlkIGlzIHJlcXVpcmVkOiBhbiB1cGRhdGUgbmFtZXMgdGhlIG9yZ2FuaXphdGlvbiBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJ2IGcHJvdG8z", [file_ai_stigmer_tenancy_organization_v1_api, file_ai_stigmer_tenancy_organization_v1_spec, file_buf_validate_validate, file_google_protobuf_field_mask]);
+  fileDesc("CithaS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxImsKDU9yZ2FuaXphdGlvbnMSQQoHZW50cmllcxgBIAMoCzIwLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSLdAQoYTGlzdE15T3JnYW5pemF0aW9uc0lucHV0EhoKCXBhZ2Vfc2l6ZRgBIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAIgASgJQgi6SAVyAxiACBJYCgZsYWJlbHMYAyADKAsySC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLkxpc3RNeU9yZ2FuaXphdGlvbnNJbnB1dC5MYWJlbHNFbnRyeRotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIioKDk9yZ2FuaXphdGlvbklkEhgKBXZhbHVlGAEgASgJQgm6SAZyBBABGEAieQoaT3JnYW5pemF0aW9uRXh0ZXJuYWxMb29rdXASHwoLZXh0ZXJuYWxfaWQYAiABKAlCCrpIB3IFEAEYgAISHQoKcGFyZW50X29yZxgDIAEoCUIJukgGcgQQARhASgQIARACUhVpZGVudGl0eV9wcm92aWRlcl9yZWYi6QEKEkxpc3RDaGlsZE9yZ3NJbnB1dBIWCgNvcmcYASABKAlCCbpIBnIEEAEYQBIaCglwYWdlX3NpemUYAiABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgSUgoGbGFiZWxzGAQgAygLMkIuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5MaXN0Q2hpbGRPcmdzSW5wdXQuTGFiZWxzRW50cnkaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJqCgxDaGlsZE9yZ0xpc3QSQQoHZW50cmllcxgBIAMoCzIwLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSKQAQofVXBkYXRlT3JnYW5pemF0aW9uUG9saWNpZXNJbnB1dBIZCgZvcmdfaWQYASABKAlCCbpIBnIEEAEYQBJSCghwb2xpY2llcxgCIAEoCzI4LmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uUG9saWNpZXNCBrpIA8gBASKTAQogVXBkYXRlT3JnYW5pemF0aW9uRW1iZWRkaW5nSW5wdXQSGQoGb3JnX2lkGAEgASgJQgm6SAZyBBABGEASVAoJZW1iZWRkaW5nGAIgASgLMjkuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5Pcmdhbml6YXRpb25FbWJlZGRpbmdCBrpIA8gBASLlAgoXVXBkYXRlT3JnYW5pemF0aW9uSW5wdXQSSgoIcmVzb3VyY2UYASABKAsyMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbkIGukgD2AEDEjcKC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFza0IGukgDyAEBOsQBukjAARq9AQoXdXBkYXRlX25hbWVzX2l0c190YXJnZXQSTHJlc291cmNlLm1ldGFkYXRhLmlkIGlzIHJlcXVpcmVkOiBhbiB1cGRhdGUgbmFtZXMgdGhlIG9yZ2FuaXphdGlvbiBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJ2IGcHJvdG8z", [file_ai_stigmer_tenancy_organization_v1_api, file_ai_stigmer_tenancy_organization_v1_spec, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * List of organizations.
@@ -243,6 +243,36 @@ export const UpdateOrganizationPoliciesInputSchema: GenMessage<UpdateOrganizatio
   messageDesc(file_ai_stigmer_tenancy_organization_v1_io, 6);
 
 /**
+ * Input for updateEmbedding: the organization and the whole set of
+ * embedding settings it holds from now on.
+ *
+ * @generated from message ai.stigmer.tenancy.organization.v1.UpdateOrganizationEmbeddingInput
+ */
+export type UpdateOrganizationEmbeddingInput = Message<"ai.stigmer.tenancy.organization.v1.UpdateOrganizationEmbeddingInput"> & {
+  /**
+   * The organization's id or slug.
+   *
+   * @generated from field: string org_id = 1;
+   */
+  orgId: string;
+
+  /**
+   * Every embedding setting, as it should stand: a field left at its zero
+   * value clears that setting.
+   *
+   * @generated from field: ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 2;
+   */
+  embedding?: OrganizationEmbedding;
+};
+
+/**
+ * Describes the message ai.stigmer.tenancy.organization.v1.UpdateOrganizationEmbeddingInput.
+ * Use `create(UpdateOrganizationEmbeddingInputSchema)` to create a new message.
+ */
+export const UpdateOrganizationEmbeddingInputSchema: GenMessage<UpdateOrganizationEmbeddingInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_tenancy_organization_v1_io, 7);
+
+/**
  * The changes an update makes to an organization: the fields update_mask names,
  * taken from resource.
  *
@@ -273,5 +303,5 @@ export type UpdateOrganizationInput = Message<"ai.stigmer.tenancy.organization.v
  * Use `create(UpdateOrganizationInputSchema)` to create a new message.
  */
 export const UpdateOrganizationInputSchema: GenMessage<UpdateOrganizationInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_tenancy_organization_v1_io, 7);
+  messageDesc(file_ai_stigmer_tenancy_organization_v1_io, 8);
 

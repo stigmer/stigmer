@@ -14,7 +14,8 @@
 //   - its key is refused in every other organization;
 //   - its key is refused every act that decides who belongs to the
 //     organization or what credentials exist: creating keys, service
-//     accounts, organizations or platform clients, deleting its
+//     accounts or organizations, changing the organization's embedding
+//     settings, deleting its
 //     organization, changing an identity account, granting or revoking a
 //     role on the organization;
 //   - deleting it ends every key at once, and it is no longer listed.
@@ -357,13 +358,11 @@ describe("Service account conformance", () => {
         call: () => asKey.iamPolicyCommand.revokeOrgAccess({ identityAccountId: colleagueId, org: org.org }),
       },
       {
-        act: "create or change platform clients",
+        act: "change the organization's embedding settings",
         call: () =>
-          asKey.platformClientCommand.create({
-            apiVersion: "iam.stigmer.ai/v1",
-            kind: "PlatformClient",
-            metadata: { name: uniqueName("sa-portal"), org: org.org },
-            spec: { createAccountsOnSignIn: true, signInRole: IamRole.admin },
+          asKey.organizationCommand.updateEmbedding({
+            orgId: org.org,
+            embedding: { createAccountsOnSignIn: true, signInRole: IamRole.admin },
           }),
       },
     ];

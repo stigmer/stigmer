@@ -191,7 +191,7 @@ export async function validateIssuer(
   }
 }
 
-/** A sign-in role no organization grants: the platform client's copy in `@stigmer/server`, word for word. */
+/** A sign-in role no organization grants: the embedding settings' copy in `@stigmer/server`, word for word. */
 function signInRoleNotGrantableError(role: IamRole): ConnectError {
   const offered = grantableRolesFor(ApiResourceKind.organization)
     .filter((grantable) => grantable !== IamRole.owner)

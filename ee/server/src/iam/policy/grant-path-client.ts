@@ -15,8 +15,8 @@
  *     role check; admitted for in-process, `internal` and `machine` callers
  *     only (the OSS controller's admission rule). Every row the lifecycle
  *     seeds, the guest and self-owner
- *     rows, a child organization's `parent_org` and `child_org` edges and
- *     the platform-client links. One principal is
+ *     rows, and a child organization's `parent_org` and `child_org` edges.
+ *     One principal is
  *     refused here, before any RPC: a TEAM. A grant to a team rides
  *     `IamPolicy.create` so the team grant gate on
  *     `iam-policy-create:pre-side-effect-gate` checks the team belongs to

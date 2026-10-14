@@ -277,42 +277,12 @@ enum ApiResourceKind {
     }
   }];
 
-  // IAM - Platform client credentials for inbound authentication
-
-  // OAuth2 client credential for platform builders embedding Stigmer into their products.
-  platform_client = 23 [(kind_meta) = {
-    group: iam
-    version: v1
-    name: "PlatformClient"
-    display_name: "Platform Client"
-    id_prefix: "pcl"
-    is_versioned: false
-    not_search_indexed: true
-    // The open-source server serves this kind in every edition: its own
-    // domain over a store port the cloud fills with its own table. Minting
-    // user tokens needs a server that authenticates its callers; a server
-    // that trusts every request refuses the mint, not the kind. The guest
-    // mint on the same token service is an edition capability that degrades
-    // by probe (UNIMPLEMENTED), not by this tier.
-    tier: open_source
-    authorization: {
-      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
-      // No owner: a platform client mints tokens into its organization and is
-      // managed by the organization's current administrators, so a creator
-      // who loses admin loses control of it. The creator is recorded in the
-      // audit trail.
-      owner_type: OWNER_ATTRIBUTION_TYPE_NONE
-      // A direct grant can only let someone read the client; managing it is
-      // its organization's admins' alone.
-      grantable_roles: [viewer]
-      role_descriptions: [
-        {
-          role: viewer
-          description: "See its settings; cannot change them"
-        }
-      ]
-    }
-  }];
+  // Value 23 was the platform client (id prefix "pcl"), a credential a
+  // product's backend minted its users' tokens with, removed when a
+  // service account's key became the way to mint them. Stored rows of the
+  // retired kind are removed by the store migration that retired it.
+  reserved 23;
+  reserved "platform_client";
 
   // IAM - Teams
 

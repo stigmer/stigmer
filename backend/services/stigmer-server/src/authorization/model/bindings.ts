@@ -49,7 +49,6 @@ import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityac
 import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { InvitationSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
-import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -86,7 +85,6 @@ export const KIND_BINDINGS: ReadonlyMap<ApiResourceKind, KindBinding> = new Map<
   [ApiResourceKind.iam_policy, { schema: IamPolicySchema }],
   [ApiResourceKind.api_key, { schema: ApiKeySchema }],
   [ApiResourceKind.oauth_app, { schema: OAuthAppSchema }],
-  [ApiResourceKind.platform_client, { schema: PlatformClientSchema }],
   [ApiResourceKind.invitation, { schema: InvitationSchema }],
   [ApiResourceKind.team, { schema: TeamSchema }],
   [

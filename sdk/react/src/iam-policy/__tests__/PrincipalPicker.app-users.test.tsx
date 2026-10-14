@@ -62,7 +62,7 @@ const ORG_PEOPLE = [
   person("ida_ana", "Ana Direct", IdentityAccountProvisioningMode.direct),
   person("ida_fay", "Fay Federated", IdentityAccountProvisioningMode.federated),
 ];
-const PRODUCT_USER = person("ida_pat", "Pat Product", IdentityAccountProvisioningMode.platform_client);
+const PRODUCT_USER = person("ida_pat", "Pat Product", IdentityAccountProvisioningMode.app_user);
 const SERVICE_ACCOUNT = person("ida_sa_ci", "ci-deploy", IdentityAccountProvisioningMode.service_account);
 
 function openPicker(

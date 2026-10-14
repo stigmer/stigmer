@@ -12,6 +12,7 @@ import ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup;
 import ai.stigmer.tenancy.organization.v1.OrganizationId;
 import ai.stigmer.tenancy.organization.v1.OrganizationQueryControllerGrpc;
 import ai.stigmer.tenancy.organization.v1.Organizations;
+import ai.stigmer.tenancy.organization.v1.UpdateOrganizationEmbeddingInput;
 import ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput;
 import ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput;
 import com.google.protobuf.FieldMask;
@@ -52,6 +53,12 @@ public final class OrganizationClient {
     public Organization updatePolicies(UpdateOrganizationPoliciesInput input) {
         try {
             return command.updatePolicies(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public Organization updateEmbedding(UpdateOrganizationEmbeddingInput input) {
+        try {
+            return command.updateEmbedding(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

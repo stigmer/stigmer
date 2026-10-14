@@ -13,13 +13,13 @@
 // tenant, then the first-login provisioning a console runs
 // (provisionConsolePerson).
 //
-// Why a console sign-in and not a PlatformClient user token: a token a
-// PlatformClient mints works in its client's organization only, so a person
+// Why a console sign-in and not a minted user token: a minted token works
+// in one organization only, so a person
 // made that way could neither found the organizations the suites provision
 // nor act in them. A console person speaks for themselves in every
 // organization they hold a role in, which is what the suites' founder,
-// member and outsider are. PlatformClient tokens appear only in the suites
-// that test PlatformClient.
+// member and outsider are. Minted user tokens appear only in the suites
+// that test them.
 import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 import type { DirectLoginTenant } from "../targets/target";
 import type { ConformanceClients } from "./clients";

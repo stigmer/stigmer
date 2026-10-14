@@ -838,7 +838,7 @@ export enum RunValueOrigin {
 
   /**
    * A vault of the surface a turn with no person came through (its
-   * schedule, share, channel or platform client).
+   * schedule, share, channel or its organization's embedding settings).
    *
    * @generated from enum value: RUN_VALUE_ORIGIN_SURFACE_VAULT = 4;
    */

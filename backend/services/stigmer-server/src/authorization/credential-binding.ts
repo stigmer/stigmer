@@ -1,7 +1,7 @@
 /**
  * The credential binding: a credential that names an organization works in
- * that organization only. A PlatformClient user token names its client's
- * organization, an API key may be limited to one, and a composition's
+ * that organization only. A minted user token names the organization it
+ * is for, an API key may be limited to one, and a composition's
  * verifiers bind the tokens they vouch for the same way; each sets
  * `CallerIdentity.boundOrg`. A person signed in at a console names none and
  * keeps every organization they hold a role in.
@@ -76,7 +76,7 @@
  *
  * Rows are read where the built-in authorizer reads them: a unit's
  * registered reader for the kinds a unit keeps itself, the IamPolicy and
- * PlatformClient ports a composition may substitute (their rows are not
+ * identity-account ports a composition may substitute (their rows are not
  * the generic store's when it does), and the generic store with the model's
  * schema for every other kind.
  *
@@ -101,7 +101,6 @@ import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { IamPolicyStore } from "../domain/iampolicy/store.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
-import type { PlatformClientStore } from "../domain/platformclient/store.js";
 import type {
   Authorizer,
   AuthzCheck,
@@ -165,7 +164,9 @@ const READ_OR_RUN_PERMISSIONS: ReadonlySet<string> = new Set([
  * The permissions that manage an organization without reading what it
  * holds: the ones the model gives a parent's admins on a child
  * (`parent_admin`, fga/model/tenancy/organization.fga), and the only ones
- * a credential bound to the parent reaches on a child.
+ * a credential bound to the parent reaches on a child. Minting a user
+ * token for a child is one: it admits a person to the child, as granting
+ * them a role there would.
  */
 const MANAGEMENT_PERMISSIONS: ReadonlySet<string> = new Set(
   [
@@ -177,6 +178,7 @@ const MANAGEMENT_PERMISSIONS: ReadonlySet<string> = new Set(
     IamPermission.can_view_access_history,
     IamPermission.can_assign_roles,
     IamPermission.can_view_billing,
+    IamPermission.can_mint_user_tokens,
   ].map((permission) => IamPermission[permission]),
 );
 
@@ -186,8 +188,6 @@ export interface CredentialBindingDeps {
   readonly rowReaders?: ReadonlyMap<ApiResourceKind, ResourceRowReader>;
   /** The IamPolicy port the composition bound (a composition may keep the rows in its own table). */
   readonly policies: Pick<IamPolicyStore, "findById">;
-  /** The PlatformClient port the composition bound, for the same reason. */
-  readonly platformClients: Pick<PlatformClientStore, "findById">;
   /**
    * The identity-account port the composition bound, for the same reason:
    * a service account belongs to an organization, so a bound credential
@@ -244,9 +244,6 @@ export function newCredentialBinding(
     }
     if (kind === ApiResourceKind.iam_policy) {
       return deps.policies.findById(id);
-    }
-    if (kind === ApiResourceKind.platform_client) {
-      return deps.platformClients.findById(id);
     }
     if (kind === ApiResourceKind.identity_account && deps.identityAccounts !== undefined) {
       return deps.identityAccounts.findById(id);

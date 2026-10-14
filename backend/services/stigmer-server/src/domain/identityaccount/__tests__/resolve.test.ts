@@ -57,7 +57,7 @@
  *
  * And provisionMyAccount's admission, `mayProvisionDirectAccount`: did the
  * platform's own sign-in vouch for this caller? Over a store whose direct
- * read answers no federated and no platform-client row, as the port says:
+ * read answers no federated and no app-user row, as the port says:
  *
  *   - the trusted-local operator (no issuer, no token) is admitted;
  *   - an idp-shaped `user` caller (no account, identity = subject) is;
@@ -65,7 +65,7 @@
  *   - a caller whose account is a federated one is not, whether or not a
  *     platform person holds the direct account of the subject its token
  *     names: that subject is the provider's to choose;
- *   - a platform client's user is not, nor a system lane's token (its
+ *   - an app user is not, nor a system lane's token (its
  *     identity is its lane account, whose id no direct row carries as a
  *     subject), nor any caller that is not of class `user`, nor a
  *     credential naming no subject.
@@ -437,7 +437,7 @@ describe("mayProvisionDirectAccount — provisionMyAccount's admission", () => {
     });
   }
 
-  /** The port's semantics: the direct read answers no federated and no platform-client row. */
+  /** The port's semantics: the direct read answers no federated and no app-user row. */
   function accountsOf(...rows: ReturnType<typeof row>[]): AccountsByCaller {
     return {
       findById: (id) =>
@@ -450,7 +450,7 @@ describe("mayProvisionDirectAccount — provisionMyAccount's admission", () => {
               r.spec.provisioningMode !==
                 IdentityAccountProvisioningMode.federated &&
               r.spec.provisioningMode !==
-                IdentityAccountProvisioningMode.platform_client,
+                IdentityAccountProvisioningMode.app_user,
           ),
         ),
     };
@@ -469,7 +469,7 @@ describe("mayProvisionDirectAccount — provisionMyAccount's admission", () => {
   const endUser = row(
     accountIdFor("stgm_pc|acme|user-7"),
     "stgm_pc|acme|user-7",
-    IdentityAccountProvisioningMode.platform_client,
+    IdentityAccountProvisioningMode.app_user,
   );
   const lane = row(
     "ida_guestlane",
@@ -518,7 +518,7 @@ describe("mayProvisionDirectAccount — provisionMyAccount's admission", () => {
       PERSON,
     ],
     [
-      "a platform client's user",
+      "an app user",
       accountsOf(endUser),
       caller({
         identityId: endUser.metadata!.id,

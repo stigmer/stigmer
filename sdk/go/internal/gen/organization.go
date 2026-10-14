@@ -7,6 +7,8 @@ import (
 	"iter"
 
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	iamv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/v1"
 	organizationv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/tenancy/organization/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
@@ -54,6 +56,11 @@ func (o *OrganizationClient) Update(ctx context.Context, resource *organizationv
 
 func (o *OrganizationClient) UpdatePolicies(ctx context.Context, input *organizationv1.UpdateOrganizationPoliciesInput) (*organizationv1.Organization, error) {
 	resp, err := o.command.UpdatePolicies(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (o *OrganizationClient) UpdateEmbedding(ctx context.Context, input *organizationv1.UpdateOrganizationEmbeddingInput) (*organizationv1.Organization, error) {
+	resp, err := o.command.UpdateEmbedding(ctx, input)
 	return resp, wrapErr(err)
 }
 
@@ -163,6 +170,7 @@ type OrganizationInput struct {
 	Preferences *OrganizationPreferencesInput
 	ParentOrg   string
 	Policies    *OrganizationPoliciesInput
+	Embedding   *OrganizationEmbeddingInput
 }
 
 // OrganizationPreferencesInput is the SDK input type for OrganizationPreferences.
@@ -174,6 +182,14 @@ type OrganizationPreferencesInput struct {
 // OrganizationPoliciesInput is the SDK input type for OrganizationPolicies.
 type OrganizationPoliciesInput struct {
 	MembersCanCreateAgents bool
+}
+
+// OrganizationEmbeddingInput is the SDK input type for OrganizationEmbedding.
+type OrganizationEmbeddingInput struct {
+	AllowedOrigins         []string
+	CreateAccountsOnSignIn bool
+	SignInRole             iamv1.IamRole
+	Vaults                 []ResourceRef
 }
 
 func (i *OrganizationInput) toProto() (*organizationv1.Organization, error) {
@@ -208,6 +224,13 @@ func (i *OrganizationInput) toProto() (*organizationv1.Organization, error) {
 		}
 		resource.Spec.Policies = v
 	}
+	if i.Embedding != nil {
+		v, err := i.Embedding.toProto()
+		if err != nil {
+			return nil, fieldErr("Embedding", err)
+		}
+		resource.Spec.Embedding = v
+	}
 	return resource, nil
 }
 
@@ -222,6 +245,19 @@ func (i *OrganizationPoliciesInput) toProto() (*organizationv1.OrganizationPolic
 	return &organizationv1.OrganizationPolicies{
 		MembersCanCreateAgents: i.MembersCanCreateAgents,
 	}, nil
+}
+
+func (i *OrganizationEmbeddingInput) toProto() (*organizationv1.OrganizationEmbedding, error) {
+	p := &organizationv1.OrganizationEmbedding{}
+	p.AllowedOrigins = i.AllowedOrigins
+	p.CreateAccountsOnSignIn = i.CreateAccountsOnSignIn
+	p.SignInRole = i.SignInRole
+	for _, r := range i.Vaults {
+		ref := r.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_vault
+		p.Vaults = append(p.Vaults, ref)
+	}
+	return p, nil
 }
 
 // OrganizationInputFromProto creates a OrganizationInput from a proto Organization resource.
@@ -245,6 +281,7 @@ func OrganizationInputFromProto(p *organizationv1.Organization) *OrganizationInp
 		input.Preferences = organizationPreferencesInputFromProto(s.GetPreferences())
 		input.ParentOrg = s.GetParentOrg()
 		input.Policies = organizationPoliciesInputFromProto(s.GetPolicies())
+		input.Embedding = organizationEmbeddingInputFromProto(s.GetEmbedding())
 	}
 	return input
 }
@@ -265,5 +302,19 @@ func organizationPoliciesInputFromProto(p *organizationv1.OrganizationPolicies) 
 	}
 	input := &OrganizationPoliciesInput{}
 	input.MembersCanCreateAgents = p.GetMembersCanCreateAgents()
+	return input
+}
+
+func organizationEmbeddingInputFromProto(p *organizationv1.OrganizationEmbedding) *OrganizationEmbeddingInput {
+	if p == nil {
+		return nil
+	}
+	input := &OrganizationEmbeddingInput{}
+	input.AllowedOrigins = p.GetAllowedOrigins()
+	input.CreateAccountsOnSignIn = p.GetCreateAccountsOnSignIn()
+	input.SignInRole = p.GetSignInRole()
+	for _, r := range p.GetVaults() {
+		input.Vaults = append(input.Vaults, resourceRefFromProto(r))
+	}
 	return input
 }

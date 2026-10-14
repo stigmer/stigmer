@@ -507,14 +507,14 @@ describe("caller-guard walk", () => {
 
   it("a guard's ConnectError is its own wire mapping (propagated untouched)", async () => {
     const refusal = new ConnectError(
-      "platform client was deleted",
+      "the minting service account was deleted",
       Code.Unauthenticated,
     );
     await expect(
       runInterceptor(
         createVerifierChainInterceptor(
           [],
-          [guard("platform-client", () => Promise.reject(refusal))],
+          [guard("embedding-origin", () => Promise.reject(refusal))],
           silentLogger,
         ),
       ),
@@ -526,7 +526,7 @@ describe("caller-guard walk", () => {
       createVerifierChainInterceptor(
         [],
         [
-          guard("platform-client", () =>
+          guard("embedding-origin", () =>
             Promise.reject(new Error("postgres unreachable")),
           ),
         ],
@@ -619,7 +619,7 @@ describe("caller-guard walk", () => {
       createVerifierChainInterceptor(
         [],
         [
-          guard("platform-client", () =>
+          guard("embedding-origin", () =>
             Promise.reject(new ConnectError("no", Code.PermissionDenied)),
           ),
         ],
@@ -628,7 +628,7 @@ describe("caller-guard walk", () => {
     ).catch(() => undefined);
     expect(warned).toHaveLength(1);
     expect(warned[0]).toMatchObject({
-      guard: "platform-client",
+      guard: "embedding-origin",
       code: "PermissionDenied",
     });
   });

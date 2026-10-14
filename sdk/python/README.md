@@ -46,6 +46,7 @@ Every resource type has a typed client accessible as a property on `StigmerClien
 | `skills`               | Skill              |
 | `vaults`               | Vault              |
 | `search`               | Cross-resource search |
+| `tokens`               | User-token minting (service-account keys) |
 
 ## Common Operations
 
@@ -98,6 +99,28 @@ with StigmerClient("sk_live_abc123") as client:
         org="my-org",
         query="customer support",
     ))
+```
+
+## User Tokens
+
+A product that embeds Stigmer mints a short-lived token for each person
+signed in to it, from its own backend, with an ordinary client built on a
+service account's API key. The account must be an admin of the organization
+the token is for, or of its parent organization; a person's key is refused.
+Pass `access_token` to the React SDK's `StigmerProvider` through
+`getAccessToken`:
+
+```python
+from stigmer import StigmerClient
+
+with StigmerClient(os.environ["STIGMER_API_KEY"]) as client:
+    result = client.tokens.mint_user_token(
+        org="acme",
+        user_id=user.id,
+        user_email=user.email,
+        user_name=user.name,
+    )
+    print(result.access_token, result.expires_at)
 ```
 
 ## Billing
@@ -170,4 +193,4 @@ cd sdk/python
 make codegen
 ```
 
-Handwritten code lives in `src/stigmer/` (outside `_gen/`): `_client.py`, `_transport.py`, `_interceptors.py`, `_search.py`, and `__init__.py`.
+Handwritten code lives in `src/stigmer/` (outside `_gen/`): `_client.py`, `_transport.py`, `_interceptors.py`, `_search.py`, `_tokens.py`, and `__init__.py`.

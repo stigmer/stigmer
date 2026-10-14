@@ -1505,11 +1505,6 @@
           "description": "Registered OAuth application with an external vendor for outbound authentication."
         },
         {
-          "name": "platform_client",
-          "number": 23,
-          "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
-        },
-        {
           "name": "team",
           "number": 24,
           "description": "Named group of an organization's people that access is shared with as one."
@@ -1825,7 +1820,7 @@
         {
           "name": "RUN_VALUE_ORIGIN_SURFACE_VAULT",
           "number": 4,
-          "description": "A vault of the surface a turn with no person came through (its\n schedule, share, channel or platform client)."
+          "description": "A vault of the surface a turn with no person came through (its\n schedule, share, channel or its organization's embedding settings)."
         },
         {
           "name": "RUN_VALUE_ORIGIN_DECLARATION",
@@ -2373,13 +2368,13 @@
           "required": false
         },
         {
-          "name": "PlatformClientId",
-          "jsonName": "platformClientId",
-          "protoField": "platform_client_id",
+          "name": "MintedBy",
+          "jsonName": "mintedBy",
+          "protoField": "minted_by",
           "type": {
             "kind": "string"
           },
-          "description": "The PlatformClient whose minted user token the actor acted through.\n Empty for every other credential, and on an actor that records no act\n (an account's profile lookup).",
+          "description": "The service account whose key minted the user token the actor acted\n through. Empty for every other credential, and on an actor that records\n no act (an account's profile lookup).",
           "required": false
         }
       ]
@@ -2479,7 +2474,6 @@
               "invitation",
               "federation_issuer",
               "oauth_app",
-              "platform_client",
               "team",
               "organization",
               "platform",
@@ -3490,7 +3484,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The person whose turn this is, by identity account id. Absent for a\n turn no person sent: a schedule's, a channel's, a share link guest's, a\n platform client user's or a machine account's, which use only the\n vaults their session and surface name.",
+          "description": "The person whose turn this is, by identity account id. Absent for a\n turn no person sent: a schedule's, a channel's, a share link guest's, an\n app user's or a machine account's, which use only the vaults their\n session and surface name.",
           "required": false,
           "oneofGroup": "_person"
         },

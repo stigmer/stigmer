@@ -56,8 +56,8 @@ import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityac
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
-import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 
+import { FrozenPlatformClientEnvelopeSchema } from "./frozen-envelopes.js";
 import type { StoreLogger } from "./logger.js";
 
 /** How many rows a keyset page of the backfill reads. */
@@ -89,7 +89,7 @@ export const NAMED_KINDS_AT_BACKFILL: ReadonlyArray<NamedKindAtBackfill> = [
   },
   { kind: "memory", schema: MemorySchema },
   { kind: "oauth_app", schema: OAuthAppSchema },
-  { kind: "platform_client", schema: PlatformClientSchema },
+  { kind: "platform_client", schema: FrozenPlatformClientEnvelopeSchema },
   { kind: "plugin", schema: PluginSchema },
   { kind: "plugin_eval", schema: PluginEvalSchema },
   { kind: "schedule", schema: ScheduleSchema },

@@ -27,7 +27,6 @@ import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1
 import { VaultSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
 import { ApiKeySpecSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/spec_pb";
 import { OAuthAppSpecSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
-import { PlatformClientSpecSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/spec_pb";
 import { OrganizationSpecSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -40,7 +39,6 @@ import { makeAgentShare } from "../support/agentshares";
 import { makeSlackChannelApp } from "../support/channelapps";
 import { uniqueName } from "../support/naming";
 import { makeOAuthApp } from "../support/oauthapps";
-import { createPlatformClient } from "../support/platformclients";
 import { makeSchedule } from "../support/schedules";
 import { makeSession } from "../support/sessions";
 import { makeSharedVault } from "../support/vaults";
@@ -165,22 +163,6 @@ const KINDS: ReadonlyArray<UpdatableKind> = [
     read: async (id) => snapshotOf(ApiKeySpecSchema, await clients.apiKeyQuery.get({ value: id })),
     update: async (metadata, paths) =>
       snapshotOf(ApiKeySpecSchema, await clients.apiKeyCommand.update({ resource: { metadata }, updateMask: { paths } })),
-  },
-  {
-    noun: "PlatformClient",
-    rpc: "PlatformClientCommandController.update",
-    refused: { path: "spec.client_secret_hash", writtenBy: "create and rotateSecret" },
-    create: async (org) => {
-      const client = await createPlatformClient(clients, { org, name: uniqueName("upd-client") });
-      fixtures.defer(() => clients.platformClientCommand.delete({ resourceId: client.id }));
-      return client.id;
-    },
-    read: async (id) => snapshotOf(PlatformClientSpecSchema, await clients.platformClientQuery.get({ value: id })),
-    update: async (metadata, paths) =>
-      snapshotOf(
-        PlatformClientSpecSchema,
-        await clients.platformClientCommand.update({ resource: { metadata }, updateMask: { paths } }),
-      ),
   },
   {
     noun: "Organization",

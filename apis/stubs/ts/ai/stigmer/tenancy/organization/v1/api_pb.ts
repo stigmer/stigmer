@@ -6,7 +6,7 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ApiResourceMetadata } from "../../../commons/apiresource/metadata_pb.js";
 import { file_ai_stigmer_commons_apiresource_metadata } from "../../../commons/apiresource/metadata_pb.js";
-import type { ApiResourceAuditStatus } from "../../../commons/apiresource/status_pb.js";
+import type { ApiResourceAudit } from "../../../commons/apiresource/status_pb.js";
 import { file_ai_stigmer_commons_apiresource_status } from "../../../commons/apiresource/status_pb.js";
 import type { OrganizationSpec } from "./spec_pb.js";
 import { file_ai_stigmer_tenancy_organization_v1_spec } from "./spec_pb.js";
@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/tenancy/organization/v1/api.proto.
  */
 export const file_ai_stigmer_tenancy_organization_v1_api: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL2FwaS5wcm90bxIiYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MSK/AgoMT3JnYW5pemF0aW9uEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVdGVuYW5jeS5zdGlnbWVyLmFpL3YxEiEKBGtpbmQYAiABKAlCE7pIEHIOCgxPcmdhbml6YXRpb24STQoIbWV0YWRhdGEYAyABKAsyMy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VNZXRhZGF0YUIGukgDyAEBEkIKBHNwZWMYBCABKAsyNC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvblNwZWMSRgoGc3RhdHVzGAUgASgLMjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXRTdGF0dXNiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_ai_stigmer_tenancy_organization_v1_spec, file_buf_validate_validate]);
+  fileDesc("CixhaS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL2FwaS5wcm90bxIiYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MSK/AgoMT3JnYW5pemF0aW9uEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVdGVuYW5jeS5zdGlnbWVyLmFpL3YxEiEKBGtpbmQYAiABKAlCE7pIEHIOCgxPcmdhbml6YXRpb24STQoIbWV0YWRhdGEYAyABKAsyMy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VNZXRhZGF0YUIGukgDyAEBEkIKBHNwZWMYBCABKAsyNC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvblNwZWMSRgoGc3RhdHVzGAUgASgLMjYuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5Pcmdhbml6YXRpb25TdGF0dXMijQIKEk9yZ2FuaXphdGlvblN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0EnYKGWVtYmVkZGluZ192YXVsdF9hdHRhY2hlcnMYASADKAsyUy5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvblN0YXR1cy5FbWJlZGRpbmdWYXVsdEF0dGFjaGVyc0VudHJ5Gj4KHEVtYmVkZGluZ1ZhdWx0QXR0YWNoZXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AWIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_ai_stigmer_tenancy_organization_v1_spec, file_buf_validate_validate]);
 
 /**
  * Organization is the top-level container for all Stigmer resources.
@@ -63,11 +63,11 @@ export type Organization = Message<"ai.stigmer.tenancy.organization.v1.Organizat
   spec?: OrganizationSpec;
 
   /**
-   * System-managed audit state.
+   * System-managed state: the audit, and who attached each embedding vault.
    *
-   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
+   * @generated from field: ai.stigmer.tenancy.organization.v1.OrganizationStatus status = 5;
    */
-  status?: ApiResourceAuditStatus;
+  status?: OrganizationStatus;
 };
 
 /**
@@ -76,4 +76,33 @@ export type Organization = Message<"ai.stigmer.tenancy.organization.v1.Organizat
  */
 export const OrganizationSchema: GenMessage<Organization> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_tenancy_organization_v1_api, 0);
+
+/**
+ * OrganizationStatus is an organization's server-owned state.
+ *
+ * @generated from message ai.stigmer.tenancy.organization.v1.OrganizationStatus
+ */
+export type OrganizationStatus = Message<"ai.stigmer.tenancy.organization.v1.OrganizationStatus"> & {
+  /**
+   * Audit information tracking creation and modification.
+   *
+   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+   */
+  audit?: ApiResourceAudit;
+
+  /**
+   * Who attached each of the embedding settings' vaults, by vault id: the
+   * account whose permission to use the vault each app user's run checks.
+   *
+   * @generated from field: map<string, string> embedding_vault_attachers = 1;
+   */
+  embeddingVaultAttachers: { [key: string]: string };
+};
+
+/**
+ * Describes the message ai.stigmer.tenancy.organization.v1.OrganizationStatus.
+ * Use `create(OrganizationStatusSchema)` to create a new message.
+ */
+export const OrganizationStatusSchema: GenMessage<OrganizationStatus> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_tenancy_organization_v1_api, 1);
 

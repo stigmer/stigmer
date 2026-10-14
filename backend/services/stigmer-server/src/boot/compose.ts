@@ -151,11 +151,9 @@ import type {
   ScoreRecorder,
 } from "../domain/score/ports.js";
 import { registerOAuthAppServices } from "../domain/oauthapp/controller.js";
-import { registerPlatformClientServices } from "../domain/platformclient/controller.js";
-import { newPlatformClientOriginGuard } from "../domain/platformclient/origin-guard.js";
-import { newResourcePlatformClientStore } from "../domain/platformclient/resource-store.js";
-import { registerPlatformClientTokenService } from "../domain/platformclient/token-controller.js";
-import { newPlatformClientTokenVerifier } from "../domain/platformclient/verifier.js";
+import { registerTokenService } from "../domain/token/controller.js";
+import { newEmbeddingOriginGuard } from "../domain/token/origin-guard.js";
+import { newUserTokenVerifier } from "../domain/token/verifier.js";
 import { newChildOrganizations } from "../domain/organization/children.js";
 import { registerOrganizationServices } from "../domain/organization/controller.js";
 import {
@@ -570,14 +568,6 @@ export async function composeServer(
     newResourceIamPolicyStore(store, {
       keepsHistory: extensions.edition !== ServerEdition.oss,
     });
-  // The PlatformClient store PORT, bound the same way
-  // (`drivers.platformClientStore`; open source's adapter over `store`
-  // when absent): the chains, the mint and the verifier's liveness read all
-  // go through this one binding, so a composed driver is followed
-  // everywhere by construction.
-  const platformClients =
-    extensions.drivers.platformClientStore ??
-    newResourcePlatformClientStore(store);
   // A person's departure from an organization deletes their My vault there
   // (domain/iampolicy/departure.ts). The handler needs the vault service,
   // which needs the secret facade built further down, so it is bound once
@@ -741,14 +731,13 @@ export async function composeServer(
   // construction; only the raw drivers above are unbound, and nothing
   // past this point sees them. It reads a target's organization from the
   // row where the built-in authorizer would (the IamPolicy and
-  // PlatformClient ports a composition may substitute, then the units'
+  // identity-account ports a composition may substitute, then the units'
   // row readers, then the generic store), which is why every posture, not
   // only the built-in one, refuses a served kind no reader can read.
   const credentialBinding = newCredentialBinding({
     store,
     rowReaders: extensions.drivers.resourceRowReaders,
     policies: iamPolicies,
-    platformClients,
     identityAccounts,
     lifecycle: organizationLifecycle,
   });
@@ -970,7 +959,7 @@ export async function composeServer(
   });
   // The platform-token key ring joins the FATAL side of the asymmetry:
   // under an authentication posture a server that cannot sign or verify
-  // its own tokens would refuse every PlatformClient-minted caller, and an
+  // its own tokens would refuse every minted user token's caller, and an
   // explicitly configured key that does not load is configuration the
   // operator meant (the ladder's rule). No posture, no ring
   // (resolvePlatformTokenKeys carries the four arms).
@@ -1596,7 +1585,7 @@ export async function composeServer(
     authorizer,
     secretService,
     vaults: vaultService,
-    platformClients,
+    accounts: identityAccounts,
     freshener: signInFreshener,
   });
   // The SAME `routes` function registers every service on BOTH the serving
@@ -1625,7 +1614,6 @@ export async function composeServer(
     secretService,
     scheduleClock: () => scheduleSyncer,
     channelRuntime: extensions.drivers.channelRuntime,
-    platformClients,
     accounts: identityAccounts,
     accountLifecycle: roleLifecycle,
     runScores,
@@ -1831,27 +1819,16 @@ export async function composeServer(
       authorizationLifecycle,
       listReadScope,
     });
-    // PlatformClient, OAuthApp's inbound counterpart: served in every
-    // composition over the store PORT bound above. The token service is
-    // registered here too — mintGuestToken dispatches to the composed
-    // capability — so nothing else may register it (route-shadowing.ts).
-    // The mint writes end users through the identity-account create path
-    // and the one grant path, as the platform client (mint.ts), and signs
-    // with the ring the keys stage resolved (none without a posture: the
-    // mint then refuses).
-    registerPlatformClientServices(router, {
-      clients: platformClients,
-      store,
-      logger,
-      authorizer,
-      authorizationLifecycle,
-      listReadScope,
-      accounts: identityAccounts,
-    });
-    registerPlatformClientTokenService(router, {
+    // The token service, served in every composition, so nothing else may
+    // register it (route-shadowing.ts): mintGuestToken dispatches to the
+    // composed capability. The mint writes app users through the
+    // identity-account create path and the one grant path, as the minting
+    // service account (domain/token/mint.ts), and signs with the ring the
+    // keys stage resolved (none without a posture: the mint then refuses).
+    registerTokenService(router, {
       mint: {
-        clients: platformClients,
         store,
+        authorizer,
         accounts: identityAccounts,
         createAccount: createIdentityAccount,
         grantPath: iamPolicyGrantPath,
@@ -2169,15 +2146,15 @@ export async function composeServer(
           }),
         ]
       : []),
-    // The PlatformClient user-token lane rides the ring, which the keys
-    // stage resolves only under an authentication posture. It sits before
-    // `oidc` for the runner-subject verifier's reason (stigmer#1137): the
-    // OIDC verifier would claim the platform token and throw on it.
+    // The user-token lane rides the ring, which the keys stage resolves
+    // only under an authentication posture. It sits before `oidc` for the
+    // runner-subject verifier's reason (stigmer#1137): the OIDC verifier
+    // would claim the platform token and throw on it.
     ...(platformTokenKeys !== undefined
       ? [
-          newPlatformClientTokenVerifier({
+          newUserTokenVerifier({
             keys: platformTokenKeys,
-            clients: platformClients,
+            accounts: identityAccounts,
             store,
           }),
         ]
@@ -2226,11 +2203,17 @@ export async function composeServer(
   ];
   // Caller guards: open source's own first, then the extensions' — the
   // rule the verifier list follows ("OSS entries first"). The origin guard
-  // exists only where PlatformClient tokens can be presented, under the
+  // exists only where minted user tokens can be presented, under the
   // posture that verifies them.
   const callerGuards = [
     ...(platformTokenKeys !== undefined
-      ? [newPlatformClientOriginGuard({ clients: platformClients, logger })]
+      ? [
+          newEmbeddingOriginGuard({
+            accounts: identityAccounts,
+            store,
+            logger,
+          }),
+        ]
       : []),
     ...extensions.callerGuards,
   ];

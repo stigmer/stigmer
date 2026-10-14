@@ -10,7 +10,7 @@
  *     `can_manage_keys`) and, through the key's owner, on the keys that
  *     speak for it.
  *
- * A person's account, a platform client's end user and every other mode
+ * A person's account, an app user and every other mode
  * answer nothing, even when the row names an organization: only a service
  * account is administered by its organization. A service-account row with
  * no organization answers nothing too, so nobody manages it but itself.

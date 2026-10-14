@@ -126,7 +126,7 @@ export const ApiResourceRefViewSchema: GenMessage<ApiResourceRefView> = /*@__PUR
  */
 export type IdentityOrigin = Message<"ai.stigmer.iam.iampolicy.v1.IdentityOrigin"> & {
   /**
-   * How the account was provisioned (direct, federated, machine, platform_client).
+   * How the account was provisioned (direct, federated, machine, app_user, service_account).
    *
    * @generated from field: ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode provisioning_mode = 1;
    */
@@ -1083,7 +1083,11 @@ export enum AccessChangeCause {
 
   /**
    * A person who signed in through a platform client was given the
-   * organization role that client grants.
+   * organization role that client granted. No longer written: a minted
+   * user's sign-in role is an ordinary grant made by the service account
+   * whose key minted the token, as federation records its own. It stays
+   * because history entries hold it, and an entry's cause is what
+   * happened then.
    *
    * @generated from enum value: platform_client_grant = 11;
    */

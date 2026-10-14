@@ -1018,6 +1018,6 @@ IdentityAccountProvisioningMode defines how an identity account was created.
 | `direct` | User signed up directly via Stigmer's own authentication tenant. |
 | `federated` | Account was created by the platform for federated authentication via a FederationIssuer. |
 | `machine` | Machine-to-machine client credentials account for inter-service communication. |
-| `platform_client` | Account provisioned via a PlatformClient's mintUserToken endpoint. |
+| `app_user` | A person who signs in from an organization's own product: the product's backend asks for their token with TokenService.mintUserToken, and Stigmer signs it. |
 | `service_account` | An organization's own non-person account: the principal its automation (a CI job, a script, an integration) acts as, so the automation keeps working when the person who set it up leaves. |
 

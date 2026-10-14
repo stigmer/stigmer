@@ -95,10 +95,10 @@ export class LocalExecutionTarget implements TargetProfile {
     cursorRunsAdmitted: true,
     // No meter, as on `local`: every run is counted from its runner's report.
     runModelCallsMetered: false,
-    // Open source serves PlatformClient; the minting lane is the OIDC
+    // Open source serves the token service; the minting lane is the OIDC
     // sibling this target lends through enforcingLane(), where the key ring,
-    // the platform-token verifier and the origin guard are composed.
-    platformClientTokens: true,
+    // the user-token verifier and the origin guard are composed.
+    userTokens: true,
     // Single-operator trusted-local posture, as on `local` — the runner's
     // STIGMER_TOKEN is a proxy bearer the server never verifies.
     requiresAuthentication: false,
