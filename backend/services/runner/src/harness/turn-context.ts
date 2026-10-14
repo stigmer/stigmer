@@ -65,6 +65,7 @@
 import { CancelledFailure } from "@temporalio/activity";
 import { clone } from "@bufbuild/protobuf";
 import { RunStatusSchema, type Run, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { RunSpec } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import type { RunConfig } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -291,6 +292,10 @@ export interface TurnReinvocation {
  *  - `eval-scaffold-failed`: a plugin-eval try's scaffold exited non-zero or
  *    ran past its limit. TERMINATED with the try stop's sentence, returned:
  *    the eval scores the try 0, and a retry would run the same script.
+ *  - `run-finished`: the run finished while this invocation waited for its
+ *    workspace ({@link runFinishedWhileWaiting}). Returned with the phase
+ *    the server holds, and nothing written: the server takes no more status
+ *    and no more events of a finished run.
  *
  * A REJECTed tool is not a settlement: the run continues without it
  * (`approval-decisions.ts`).
@@ -317,6 +322,11 @@ export type TurnSettlement =
       /** A plugin-eval try's scaffold failed; `message` is the try stop's sentence (`@stigmer/eval-runtime` `formatTryStop`). */
       readonly kind: "eval-scaffold-failed";
       readonly message: string;
+    }
+  | {
+      /** The run finished while the turn waited for its workspace; `status` is the run's as the server holds it. */
+      readonly kind: "run-finished";
+      readonly status: RunStatus;
     };
 
 /** The values phase's answer: the run's values, or the settlement a refused fetch produces. */
@@ -324,9 +334,13 @@ export type ValuesOutcome =
   | { readonly kind: "ready"; readonly values: RunValues }
   | { readonly kind: "settled"; readonly settlement: Extract<TurnSettlement, { kind: "values-refused" }> };
 
-/** The lock phase's answer: the release handle (absent when there is no primary tree), or the one settlement a lock can produce. */
+/**
+ * The lock phase's answer: the release handle (absent when there is no
+ * primary tree) and whether another turn held the tree first, or the one
+ * settlement a lock can produce.
+ */
 export type WorkspaceLockOutcome =
-  | { readonly kind: "acquired"; readonly release: ReleaseWorkspaceLock | undefined }
+  | { readonly kind: "acquired"; readonly release: ReleaseWorkspaceLock | undefined; readonly waited: boolean }
   | { readonly kind: "settled"; readonly settlement: Extract<TurnSettlement, { kind: "workspace-lock-timeout" }> };
 
 // ---------------------------------------------------------------------------
@@ -613,10 +627,14 @@ export async function acquireWorkspaceTurnLock(
 ): Promise<WorkspaceLockOutcome> {
   deps.enterPhase("acquire_workspace_lock");
   let release: ReleaseWorkspaceLock | undefined;
+  let waited = false;
   if (primaryDir) {
     try {
       release = await acquireWorkspaceLock(primaryDir, {
-        onWaiting: () => deps.reportProgress("Waiting for workspace — in use by another session"),
+        onWaiting: () => {
+          waited = true;
+          return deps.reportProgress("Waiting for workspace — in use by another session");
+        },
         heartbeat: deps.heartbeat,
         signal: deps.signal,
         timeoutMs: deps.config.workspaceLockTimeoutMs,
@@ -632,7 +650,39 @@ export async function acquireWorkspaceTurnLock(
     }
   }
   deps.timing.mark("acquire_workspace_lock");
-  return { kind: "acquired", release };
+  return { kind: "acquired", release, waited };
+}
+
+/** The phases the server holds as finished: it takes no more status and no more events of such a run. */
+const FINISHED_PHASES: ReadonlySet<RunPhase> = new Set([
+  RunPhase.RUN_COMPLETED,
+  RunPhase.RUN_FAILED,
+  RunPhase.RUN_CANCELLED,
+  RunPhase.RUN_TERMINATED,
+]);
+
+/**
+ * Phase 2c, after the lock: a turn that waited for its workspace reads its
+ * run again, and ends with the run when it finished meanwhile.
+ *
+ * The turn holding the workspace can be an earlier invocation of the same
+ * run. A pause cancels the running activity, but the cancellation reaches
+ * the runner only at its next heartbeat, so the paused invocation can
+ * finish its turn, persist the run finished and only then let the resumed
+ * one have the tree. The server takes nothing more of a finished run (no
+ * status, no event), so an invocation that ran on would spend a model call
+ * whose answer the log refuses, and leave the engine's checkpoint holding a
+ * reply the session never shows. A turn that did not wait read its run
+ * moments ago (phase 1), so only a wait costs the second read.
+ */
+export async function runFinishedWhileWaiting(
+  deps: ResolutionDeps,
+  waited: boolean,
+): Promise<Extract<TurnSettlement, { kind: "run-finished" }> | undefined> {
+  if (!waited) return undefined;
+  const status = (await deps.client.getExecution(deps.input.executionId)).status;
+  if (status === undefined || !FINISHED_PHASES.has(status.phase)) return undefined;
+  return { kind: "run-finished", status };
 }
 
 /** The eval phase's answer: nothing to do, the prepared case, or the settlement a failed scaffold produces. */
@@ -1761,6 +1811,8 @@ export async function resolveTurnContext(
   const lock = await acquireWorkspaceTurnLock(deps, workspace.primaryDir);
   if (lock.kind === "settled") return { kind: "settled", settlement: lock.settlement };
   frame.releaseWorkspaceLock = lock.release;
+  const finished = await runFinishedWhileWaiting(deps, lock.waited);
+  if (finished !== undefined) return { kind: "settled", settlement: finished };
   await reconcileOwedUndosPhase(deps, { sessionId, workspace, reconcileTurn: false });
 
   const evalCase = await prepareEvalCasePhase(deps, { spec, sessionId, workspace, values });

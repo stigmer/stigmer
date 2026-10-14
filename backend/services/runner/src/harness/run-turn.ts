@@ -355,6 +355,18 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
         console.warn(`${activityName} could not fetch the run's values: execution=${executionId}, ${settlement.message}`);
         return settleWith(failedArm(settlement.message, "actionable"));
       }
+      case "run-finished": {
+        // The run ended while this invocation waited for its workspace: its
+        // stored phase is the turn's outcome, and nothing is written, as
+        // the server takes no more of a finished run. No engine ran.
+        console.warn(
+          `${activityName} run already finished while the turn waited for its workspace; running nothing: ` +
+            `execution=${executionId}, phase=${RunPhase[settlement.status.phase]}`,
+        );
+        status.phase = settlement.status.phase;
+        status.error = settlement.status.error;
+        return { kind: "return", value: slimStatus(settlement.status) };
+      }
       case "eval-scaffold-failed": {
         // A plugin-eval try's scaffold failed before the engine started:
         // the eval reads the sentence back (`parseTryStop`) and scores the

@@ -88,7 +88,6 @@ import {
   sessionIdOf,
 } from "../support/runs";
 import { messagesOf, turnById } from "../support/turn";
-import { pollUntil } from "../support/run-poll";
 import { foreignId, uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -542,26 +541,32 @@ describe("Run conformance — lifecycle (running execution)", () => {
     // loudly downstream, it just cannot silently pass.
     await new Promise((resolve) => setTimeout(resolve, 2_000));
 
-    // Releasing the held turn lets BOTH turns finish: the superseded one
-    // writes its stale "Working..." and the resumed one its own "Working
-    // RESUMED..." — in EITHER order (stigmer#869: neither edition guards
-    // stale writes yet). The session's log is append-only, so the resumed
-    // re-invocation's message is in it whichever lands last; polling the log
-    // also FENCES the resumed turn's queue consumption inside this test
-    // (ending earlier would let the still-running resumed activity steal the
-    // NEXT test's enqueued response).
+    // Releasing the held turn ends the run one of two ways, both right. The
+    // resumed re-invocation waits behind the session workspace lock the
+    // superseded turn holds. When the pause's cancellation reaches the
+    // superseded turn first (at its next heartbeat), it stops, and the
+    // resumed invocation runs and answers "Working RESUMED...". When the
+    // superseded turn's answer is ready first, it completes the run with
+    // "Working..."; the resumed invocation then finds the run finished once
+    // it has the workspace and runs nothing (runner
+    // harness/turn-context.ts `runFinishedWhileWaiting`), as the server takes
+    // no more events of a finished run. Either way the run ends COMPLETED,
+    // and its log's answer is the invocation that finished it. The resumed
+    // invocation writes COMPLETED only after its model call, so the terminal
+    // read below also fences the queue: no activity of this run is left to
+    // take the next test's enqueued response.
     mock.releaseHolds();
-    const sessionId = sessionIdOf(await clients.agentExecutionQuery.get({ value: id }));
-    await pollUntil(
-      () => turnById(clients, sessionId, id),
-      (turn) => messagesOf(turn).some((message) => message.text === "Working RESUMED..."),
-      (last, timeoutMs) =>
-        `run ${id}: the resumed turn's message was not in the log within ${timeoutMs}ms ` +
-        `(messages: ${JSON.stringify(last === undefined ? [] : messagesOf(last).map((message) => message.text))})`,
-      { timeoutMs: 60_000 },
-    );
     const settled = await awaitTerminal(clients, id);
     expect(settled.status?.phase).toBe(RunPhase.RUN_COMPLETED);
+    const answers = messagesOf(await turnById(clients, sessionIdOf(settled), id)).map((message) => message.text);
+    expect(["Working...", "Working RESUMED..."], `the run's answer (messages: ${JSON.stringify(answers)})`).toContain(
+      answers.at(-1),
+    );
+    if (answers.at(-1) === "Working...") {
+      expect(answers, "a run the superseded turn finished holds nothing of the resumed one").not.toContain(
+        "Working RESUMED...",
+      );
+    }
   });
 });
 
