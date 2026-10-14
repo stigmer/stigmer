@@ -97,8 +97,11 @@ describe("accountIdFor — the derived account id", () => {
 });
 
 describe("federatedAccountIdFor — the address of a federated account", () => {
-  const OKTA = "fis_01hzacmeokta00000000000000";
-  const AZURE = "fis_01hzacmeazure0000000000000";
+  // Issuers minted before the kind's rename hold idp_ ids, and the accounts
+  // they vouch for are stored at addresses those ids derived: the vector
+  // pins one of them.
+  const OKTA = "idp_01hzacmeokta00000000000000";
+  const AZURE = "idp_01hzacmeazure0000000000000";
 
   it("pins the golden vector (a change re-addresses every federated account)", () => {
     expect(federatedAccountIdFor(OKTA, "okta|dana")).toBe("ida_7s3y6pmj0eqn8m1gf7nr48dekc");
