@@ -501,6 +501,48 @@ describe("service accounts with sign-in on (built-in Authorizer)", () => {
       expect(second.nextPageToken).toBe("");
     });
 
+    it("walks only the service accounts carrying every label named, a page at a time", async () => {
+      const labels = { team: "billing-bots", tier: "gold" };
+      const relabel = async (id: string, rowLabels: Record<string, string>) => {
+        const row = await at.server.store.getResource(
+          ApiResourceKind.identity_account,
+          id,
+          IdentityAccountSchema,
+        );
+        row.metadata!.labels = rowLabels;
+        await at.server.store.saveResource(
+          ApiResourceKind.identity_account,
+          id,
+          IdentityAccountSchema,
+          row,
+        );
+      };
+      await relabel(made[0] ?? "", labels);
+      await relabel(made[1] ?? "", { team: "billing-bots" });
+      await relabel(made[2] ?? "", { ...labels, extra: "x" });
+      const query = createClient(
+        IdentityAccountQueryController,
+        at.as(FOUNDER),
+      );
+      const walked: string[] = [];
+      let pageToken = "";
+      do {
+        const page = await query.listServiceAccounts({
+          org: listed,
+          labels,
+          pageSize: 1,
+          pageToken,
+        });
+        expect(page.entries.length).toBeLessThanOrEqual(1);
+        walked.push(...page.entries.map((a) => a.metadata?.id ?? ""));
+        pageToken = page.nextPageToken;
+      } while (pageToken !== "");
+      expect(walked).toEqual([made[2], made[0]]);
+      await relabel(made[0] ?? "", {});
+      await relabel(made[1] ?? "", {});
+      await relabel(made[2] ?? "", {});
+    });
+
     it("refuses a member of the organization", async () => {
       const error = await refusal(
         createClient(

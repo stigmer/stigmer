@@ -6,7 +6,7 @@ This document is the inventory of the paths each kind's update refuses, one row 
 
 ## The rule
 
-- **May be named**: `spec`, or any field under it at any depth through message fields; `metadata.name`, `metadata.labels`, `metadata.tags` and `metadata.annotations`; and `*`, every one of those. A path is the proto field names joined by dots (`spec.instructions`).
+- **May be named**: `spec`, or any field under it at any depth through message fields; `metadata.name`, `metadata.labels` and `metadata.tags`; and `*`, every one of those. A path is the proto field names joined by dots (`spec.instructions`).
 - **Replaced whole**: a list or a map at a named path. A path never goes through one.
 - **Taken whenever set**: `metadata.version.message` and `metadata.version.tag`, which are a save's arguments, not stored state.
 - **Refused with `INVALID_ARGUMENT` naming the path**: an empty mask, a path the kind does not have, a path through a list or a map, any other metadata path, and a path a kind refuses below. A refused field under a broader path (`spec`, `*`) is not refused: it keeps its stored value, so a whole desired state still applies.

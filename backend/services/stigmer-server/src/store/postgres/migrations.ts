@@ -177,6 +177,11 @@ import {
   logUnreadableEtagRows,
   stampEtagRow,
 } from "../resource-etags-stamped.js";
+import {
+  LABEL_TAG_REPORT_KIND_NAMES,
+  LABEL_TAG_REPORT_PAGE_SIZE,
+  LabelTagTally,
+} from "../label-tag-report.js";
 
 export const SCHEMA_VERSION_1 = 1;
 export const SCHEMA_VERSION_2 = 2;
@@ -250,11 +255,14 @@ export const SCHEMA_VERSION_30 = 30;
 /** v31: the permission history indexed by time, for retention (DDL only). */
 export const SCHEMA_VERSION_31 = 31;
 
-/** v32: the platform client rows removed, with every grant naming one. */
+/** v32: the stored labels, tags and annotations the new rules refuse, reported (nothing rewritten). */
 export const SCHEMA_VERSION_32 = 32;
 
+/** v33: the platform client rows removed, with every grant naming one. */
+export const SCHEMA_VERSION_33 = 33;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_32;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_33;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -326,7 +334,8 @@ export async function runMigrations(
       [SCHEMA_VERSION_29, (migrating) => migrateToV29(migrating, logger)],
       [SCHEMA_VERSION_30, migrateToV30],
       [SCHEMA_VERSION_31, migrateToV31],
-      [SCHEMA_VERSION_32, migrateToV32],
+      [SCHEMA_VERSION_32, (migrating) => migrateToV32(migrating, logger)],
+      [SCHEMA_VERSION_33, migrateToV33],
     ];
 
     for (const [version, migrate] of chain) {
@@ -2060,7 +2069,39 @@ async function migrateToV31(client: PoolClient): Promise<void> {
 }
 
 /**
- * v32: the platform client kind is removed (../platform-client-retired.ts
+ * v32: labels and tags gain their rules and annotations leave resource
+ * metadata (../label-tag-report.ts says what a row is found to hold). Each
+ * kind's rows are read in keyset pages on `(kind, id)`, and the ones whose
+ * stored labels, tags or annotations the rules refuse are named in one
+ * warning per kind. Nothing is written: the step only reports.
+ */
+async function migrateToV32(client: PoolClient, logger: StoreLogger): Promise<void> {
+  for (const kind of LABEL_TAG_REPORT_KIND_NAMES) {
+    const tally = new LabelTagTally(kind);
+    for (let after = ""; ; ) {
+      const rows = (
+        await client.query<{ id: string; data: Buffer }>(
+          `SELECT id, data FROM resources
+           WHERE kind = $1 AND id > $2
+           ORDER BY id
+           LIMIT $3`,
+          [kind, after, LABEL_TAG_REPORT_PAGE_SIZE],
+        )
+      ).rows;
+      for (const row of rows) {
+        tally.add(row.id, new Uint8Array(row.data));
+      }
+      if (rows.length < LABEL_TAG_REPORT_PAGE_SIZE) {
+        break;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+    tally.log(logger);
+  }
+}
+
+/**
+ * v33: the platform client kind is removed (../platform-client-retired.ts
  * says what leaves, what stays and why an unreadable row fails the step).
  *
  * - Every IamPolicy row is read in keyset pages, and the ones naming a
@@ -2073,7 +2114,7 @@ async function migrateToV31(client: PoolClient): Promise<void> {
  * key serves it. The chain's advisory lock keeps a second instance's boot
  * out of the step, and the transaction makes it whole or nothing.
  */
-async function migrateToV32(client: PoolClient): Promise<void> {
+async function migrateToV33(client: PoolClient): Promise<void> {
   const retiredPolicies: string[] = [];
   for (let after = ""; ; ) {
     const rows = (

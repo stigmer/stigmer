@@ -219,18 +219,28 @@ public interface ApiResourceMetadataOrBuilder extends
 
   /**
    * <pre>
-   * Key-value labels for organization and filtering.
+   * Key-value labels for organizing and filtering resources, in the
+   * Kubernetes form, so a label is always a valid selector.
+   * A key is an optional DNS subdomain prefix of at most 253 characters and
+   * a slash, then a name of at most 63 characters that starts and ends with
+   * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+   * value is empty or follows the name rule. At most 64 labels.
    * </pre>
    *
-   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels", (.buf.validate.field) = { ... }</code>
    */
   int getLabelsCount();
   /**
    * <pre>
-   * Key-value labels for organization and filtering.
+   * Key-value labels for organizing and filtering resources, in the
+   * Kubernetes form, so a label is always a valid selector.
+   * A key is an optional DNS subdomain prefix of at most 253 characters and
+   * a slash, then a name of at most 63 characters that starts and ends with
+   * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+   * value is empty or follows the name rule. At most 64 labels.
    * </pre>
    *
-   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels", (.buf.validate.field) = { ... }</code>
    */
   boolean containsLabels(
       java.lang.String key);
@@ -242,19 +252,29 @@ public interface ApiResourceMetadataOrBuilder extends
   getLabels();
   /**
    * <pre>
-   * Key-value labels for organization and filtering.
+   * Key-value labels for organizing and filtering resources, in the
+   * Kubernetes form, so a label is always a valid selector.
+   * A key is an optional DNS subdomain prefix of at most 253 characters and
+   * a slash, then a name of at most 63 characters that starts and ends with
+   * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+   * value is empty or follows the name rule. At most 64 labels.
    * </pre>
    *
-   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels", (.buf.validate.field) = { ... }</code>
    */
   java.util.Map<java.lang.String, java.lang.String>
   getLabelsMap();
   /**
    * <pre>
-   * Key-value labels for organization and filtering.
+   * Key-value labels for organizing and filtering resources, in the
+   * Kubernetes form, so a label is always a valid selector.
+   * A key is an optional DNS subdomain prefix of at most 253 characters and
+   * a slash, then a name of at most 63 characters that starts and ends with
+   * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+   * value is empty or follows the name rule. At most 64 labels.
    * </pre>
    *
-   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels", (.buf.validate.field) = { ... }</code>
    */
   /* nullable */
 java.lang.String getLabelsOrDefault(
@@ -263,103 +283,62 @@ java.lang.String getLabelsOrDefault(
 java.lang.String defaultValue);
   /**
    * <pre>
-   * Key-value labels for organization and filtering.
+   * Key-value labels for organizing and filtering resources, in the
+   * Kubernetes form, so a label is always a valid selector.
+   * A key is an optional DNS subdomain prefix of at most 253 characters and
+   * a slash, then a name of at most 63 characters that starts and ends with
+   * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+   * value is empty or follows the name rule. At most 64 labels.
    * </pre>
    *
-   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels", (.buf.validate.field) = { ... }</code>
    */
   java.lang.String getLabelsOrThrow(
       java.lang.String key);
 
   /**
    * <pre>
-   * Key-value annotations for additional metadata.
+   * Search words for the resource, in GitHub's topic form: lowercase
+   * letters, digits and hyphens, starting with a letter or digit, at most 50
+   * characters each. At most 20, each once.
    * </pre>
    *
-   * <code>map&lt;string, string&gt; annotations = 7 [json_name = "annotations"];</code>
-   */
-  int getAnnotationsCount();
-  /**
-   * <pre>
-   * Key-value annotations for additional metadata.
-   * </pre>
-   *
-   * <code>map&lt;string, string&gt; annotations = 7 [json_name = "annotations"];</code>
-   */
-  boolean containsAnnotations(
-      java.lang.String key);
-  /**
-   * Use {@link #getAnnotationsMap()} instead.
-   */
-  @java.lang.Deprecated
-  java.util.Map<java.lang.String, java.lang.String>
-  getAnnotations();
-  /**
-   * <pre>
-   * Key-value annotations for additional metadata.
-   * </pre>
-   *
-   * <code>map&lt;string, string&gt; annotations = 7 [json_name = "annotations"];</code>
-   */
-  java.util.Map<java.lang.String, java.lang.String>
-  getAnnotationsMap();
-  /**
-   * <pre>
-   * Key-value annotations for additional metadata.
-   * </pre>
-   *
-   * <code>map&lt;string, string&gt; annotations = 7 [json_name = "annotations"];</code>
-   */
-  /* nullable */
-java.lang.String getAnnotationsOrDefault(
-      java.lang.String key,
-      /* nullable */
-java.lang.String defaultValue);
-  /**
-   * <pre>
-   * Key-value annotations for additional metadata.
-   * </pre>
-   *
-   * <code>map&lt;string, string&gt; annotations = 7 [json_name = "annotations"];</code>
-   */
-  java.lang.String getAnnotationsOrThrow(
-      java.lang.String key);
-
-  /**
-   * <pre>
-   * Tags for categorization.
-   * </pre>
-   *
-   * <code>repeated string tags = 8 [json_name = "tags"];</code>
+   * <code>repeated string tags = 8 [json_name = "tags", (.buf.validate.field) = { ... }</code>
    * @return A list containing the tags.
    */
   java.util.List<java.lang.String>
       getTagsList();
   /**
    * <pre>
-   * Tags for categorization.
+   * Search words for the resource, in GitHub's topic form: lowercase
+   * letters, digits and hyphens, starting with a letter or digit, at most 50
+   * characters each. At most 20, each once.
    * </pre>
    *
-   * <code>repeated string tags = 8 [json_name = "tags"];</code>
+   * <code>repeated string tags = 8 [json_name = "tags", (.buf.validate.field) = { ... }</code>
    * @return The count of tags.
    */
   int getTagsCount();
   /**
    * <pre>
-   * Tags for categorization.
+   * Search words for the resource, in GitHub's topic form: lowercase
+   * letters, digits and hyphens, starting with a letter or digit, at most 50
+   * characters each. At most 20, each once.
    * </pre>
    *
-   * <code>repeated string tags = 8 [json_name = "tags"];</code>
+   * <code>repeated string tags = 8 [json_name = "tags", (.buf.validate.field) = { ... }</code>
    * @param index The index of the element to return.
    * @return The tags at the given index.
    */
   java.lang.String getTags(int index);
   /**
    * <pre>
-   * Tags for categorization.
+   * Search words for the resource, in GitHub's topic form: lowercase
+   * letters, digits and hyphens, starting with a letter or digit, at most 50
+   * characters each. At most 20, each once.
    * </pre>
    *
-   * <code>repeated string tags = 8 [json_name = "tags"];</code>
+   * <code>repeated string tags = 8 [json_name = "tags", (.buf.validate.field) = { ... }</code>
    * @param index The index of the value to return.
    * @return The bytes of the tags at the given index.
    */
@@ -396,7 +375,7 @@ java.lang.String defaultValue);
   /**
    * <pre>
    * A fingerprint of what a person edits on the resource: its spec, name,
-   * labels, tags and annotations, as stored.
+   * labels and tags, as stored.
    *
    * Send it back on update or apply to refuse the write with ABORTED
    * (ETAG_MISMATCH) when the resource changed since it was read; leave it
@@ -410,7 +389,7 @@ java.lang.String defaultValue);
   /**
    * <pre>
    * A fingerprint of what a person edits on the resource: its spec, name,
-   * labels, tags and annotations, as stored.
+   * labels and tags, as stored.
    *
    * Send it back on update or apply to refuse the write with ABORTED
    * (ETAG_MISMATCH) when the resource changed since it was read; leave it

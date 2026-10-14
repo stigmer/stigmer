@@ -41,7 +41,8 @@
  *     database with this chain
  *   - the page loop every paged lane runs (readPage, listPageFingerprint,
  *     LIST_PAGE_MAX_SIZE and their types), for an extension that pages
- *     its own table
+ *     its own table, and the label filter every list applies
+ *     (matchesAllLabels, sortedLabels)
  *
  * The package publishes to npm in lockstep with every other @stigmer/*
  * package: this file
@@ -777,6 +778,10 @@ export type {
   ListPageSource,
   ReadPageParams,
 } from "./pipeline/steps/list-page.js";
+// The label filter every list of resources applies: an exact AND match as
+// the lane's per-row keep, and the filter as a page token's fingerprint
+// holds it, so an extension's list filters the same way.
+export { matchesAllLabels, sortedLabels } from "./pipeline/steps/helpers.js";
 // The maintenance-surface row shape:
 // what findResourcesRawOrderedAfter pages and what
 // replaceResourceDataIfUnchanged guards on — the secret-convergence

@@ -38,7 +38,9 @@ async function createTestSchedule(
   options?: { enabled?: boolean },
 ) {
   await ensureOrg(stigmerClient, SCHEDULES_ORG, "E2E schedules");
-  const stamp = Date.now();
+  // Cases run on parallel workers in one organization, so the millisecond
+  // alone can repeat; the random suffix keeps two seeds' slugs apart.
+  const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   const agent = await stigmerClient.agent.create({
     name: `e2e-sched-agent-${stamp}`,
     org: SCHEDULES_ORG,

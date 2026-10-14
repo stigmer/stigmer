@@ -60,8 +60,6 @@ private static final long serialVersionUID = 0L;
     switch (number) {
       case 6:
         return internalGetLabels();
-      case 7:
-        return internalGetAnnotations();
       default:
         throw new RuntimeException(
             "Invalid map field number: " + number);
@@ -426,10 +424,15 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Key-value labels for organization and filtering.
+   * Key-value labels for organizing and filtering resources, in the
+   * Kubernetes form, so a label is always a valid selector.
+   * A key is an optional DNS subdomain prefix of at most 253 characters and
+   * a slash, then a name of at most 63 characters that starts and ends with
+   * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+   * value is empty or follows the name rule. At most 64 labels.
    * </pre>
    *
-   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
   public boolean containsLabels(
@@ -447,10 +450,15 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Key-value labels for organization and filtering.
+   * Key-value labels for organizing and filtering resources, in the
+   * Kubernetes form, so a label is always a valid selector.
+   * A key is an optional DNS subdomain prefix of at most 253 characters and
+   * a slash, then a name of at most 63 characters that starts and ends with
+   * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+   * value is empty or follows the name rule. At most 64 labels.
    * </pre>
    *
-   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
   public java.util.Map<java.lang.String, java.lang.String> getLabelsMap() {
@@ -458,10 +466,15 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Key-value labels for organization and filtering.
+   * Key-value labels for organizing and filtering resources, in the
+   * Kubernetes form, so a label is always a valid selector.
+   * A key is an optional DNS subdomain prefix of at most 253 characters and
+   * a slash, then a name of at most 63 characters that starts and ends with
+   * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+   * value is empty or follows the name rule. At most 64 labels.
    * </pre>
    *
-   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
   public /* nullable */
@@ -476,10 +489,15 @@ java.lang.String defaultValue) {
   }
   /**
    * <pre>
-   * Key-value labels for organization and filtering.
+   * Key-value labels for organizing and filtering resources, in the
+   * Kubernetes form, so a label is always a valid selector.
+   * A key is an optional DNS subdomain prefix of at most 253 characters and
+   * a slash, then a name of at most 63 characters that starts and ends with
+   * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+   * value is empty or follows the name rule. At most 64 labels.
    * </pre>
    *
-   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
   public java.lang.String getLabelsOrThrow(
@@ -493,111 +511,18 @@ java.lang.String defaultValue) {
     return map.get(key);
   }
 
-  public static final int ANNOTATIONS_FIELD_NUMBER = 7;
-  private static final class AnnotationsDefaultEntryHolder {
-    static final com.google.protobuf.MapEntry<
-        java.lang.String, java.lang.String> defaultEntry =
-            com.google.protobuf.MapEntry
-            .<java.lang.String, java.lang.String>newDefaultInstance(
-                ai.stigmer.commons.apiresource.MetadataProto.internal_static_ai_stigmer_commons_apiresource_ApiResourceMetadata_AnnotationsEntry_descriptor, 
-                com.google.protobuf.WireFormat.FieldType.STRING,
-                "",
-                com.google.protobuf.WireFormat.FieldType.STRING,
-                "");
-  }
-  @SuppressWarnings("serial")
-  private com.google.protobuf.MapField<
-      java.lang.String, java.lang.String> annotations_;
-  private com.google.protobuf.MapField<java.lang.String, java.lang.String>
-  internalGetAnnotations() {
-    if (annotations_ == null) {
-      return com.google.protobuf.MapField.emptyMapField(
-          AnnotationsDefaultEntryHolder.defaultEntry);
-    }
-    return annotations_;
-  }
-  public int getAnnotationsCount() {
-    return internalGetAnnotations().getMap().size();
-  }
-  /**
-   * <pre>
-   * Key-value annotations for additional metadata.
-   * </pre>
-   *
-   * <code>map&lt;string, string&gt; annotations = 7 [json_name = "annotations"];</code>
-   */
-  @java.lang.Override
-  public boolean containsAnnotations(
-      java.lang.String key) {
-    if (key == null) { throw new NullPointerException("map key"); }
-    return internalGetAnnotations().getMap().containsKey(key);
-  }
-  /**
-   * Use {@link #getAnnotationsMap()} instead.
-   */
-  @java.lang.Override
-  @java.lang.Deprecated
-  public java.util.Map<java.lang.String, java.lang.String> getAnnotations() {
-    return getAnnotationsMap();
-  }
-  /**
-   * <pre>
-   * Key-value annotations for additional metadata.
-   * </pre>
-   *
-   * <code>map&lt;string, string&gt; annotations = 7 [json_name = "annotations"];</code>
-   */
-  @java.lang.Override
-  public java.util.Map<java.lang.String, java.lang.String> getAnnotationsMap() {
-    return internalGetAnnotations().getMap();
-  }
-  /**
-   * <pre>
-   * Key-value annotations for additional metadata.
-   * </pre>
-   *
-   * <code>map&lt;string, string&gt; annotations = 7 [json_name = "annotations"];</code>
-   */
-  @java.lang.Override
-  public /* nullable */
-java.lang.String getAnnotationsOrDefault(
-      java.lang.String key,
-      /* nullable */
-java.lang.String defaultValue) {
-    if (key == null) { throw new NullPointerException("map key"); }
-    java.util.Map<java.lang.String, java.lang.String> map =
-        internalGetAnnotations().getMap();
-    return map.containsKey(key) ? map.get(key) : defaultValue;
-  }
-  /**
-   * <pre>
-   * Key-value annotations for additional metadata.
-   * </pre>
-   *
-   * <code>map&lt;string, string&gt; annotations = 7 [json_name = "annotations"];</code>
-   */
-  @java.lang.Override
-  public java.lang.String getAnnotationsOrThrow(
-      java.lang.String key) {
-    if (key == null) { throw new NullPointerException("map key"); }
-    java.util.Map<java.lang.String, java.lang.String> map =
-        internalGetAnnotations().getMap();
-    if (!map.containsKey(key)) {
-      throw new java.lang.IllegalArgumentException();
-    }
-    return map.get(key);
-  }
-
   public static final int TAGS_FIELD_NUMBER = 8;
   @SuppressWarnings("serial")
   private com.google.protobuf.LazyStringArrayList tags_ =
       com.google.protobuf.LazyStringArrayList.emptyList();
   /**
    * <pre>
-   * Tags for categorization.
+   * Search words for the resource, in GitHub's topic form: lowercase
+   * letters, digits and hyphens, starting with a letter or digit, at most 50
+   * characters each. At most 20, each once.
    * </pre>
    *
-   * <code>repeated string tags = 8 [json_name = "tags"];</code>
+   * <code>repeated string tags = 8 [json_name = "tags", (.buf.validate.field) = { ... }</code>
    * @return A list containing the tags.
    */
   public com.google.protobuf.ProtocolStringList
@@ -606,10 +531,12 @@ java.lang.String defaultValue) {
   }
   /**
    * <pre>
-   * Tags for categorization.
+   * Search words for the resource, in GitHub's topic form: lowercase
+   * letters, digits and hyphens, starting with a letter or digit, at most 50
+   * characters each. At most 20, each once.
    * </pre>
    *
-   * <code>repeated string tags = 8 [json_name = "tags"];</code>
+   * <code>repeated string tags = 8 [json_name = "tags", (.buf.validate.field) = { ... }</code>
    * @return The count of tags.
    */
   public int getTagsCount() {
@@ -617,10 +544,12 @@ java.lang.String defaultValue) {
   }
   /**
    * <pre>
-   * Tags for categorization.
+   * Search words for the resource, in GitHub's topic form: lowercase
+   * letters, digits and hyphens, starting with a letter or digit, at most 50
+   * characters each. At most 20, each once.
    * </pre>
    *
-   * <code>repeated string tags = 8 [json_name = "tags"];</code>
+   * <code>repeated string tags = 8 [json_name = "tags", (.buf.validate.field) = { ... }</code>
    * @param index The index of the element to return.
    * @return The tags at the given index.
    */
@@ -629,10 +558,12 @@ java.lang.String defaultValue) {
   }
   /**
    * <pre>
-   * Tags for categorization.
+   * Search words for the resource, in GitHub's topic form: lowercase
+   * letters, digits and hyphens, starting with a letter or digit, at most 50
+   * characters each. At most 20, each once.
    * </pre>
    *
-   * <code>repeated string tags = 8 [json_name = "tags"];</code>
+   * <code>repeated string tags = 8 [json_name = "tags", (.buf.validate.field) = { ... }</code>
    * @param index The index of the value to return.
    * @return The bytes of the tags at the given index.
    */
@@ -685,7 +616,7 @@ java.lang.String defaultValue) {
   /**
    * <pre>
    * A fingerprint of what a person edits on the resource: its spec, name,
-   * labels, tags and annotations, as stored.
+   * labels and tags, as stored.
    *
    * Send it back on update or apply to refuse the write with ABORTED
    * (ETAG_MISMATCH) when the resource changed since it was read; leave it
@@ -711,7 +642,7 @@ java.lang.String defaultValue) {
   /**
    * <pre>
    * A fingerprint of what a person edits on the resource: its spec, name,
-   * labels, tags and annotations, as stored.
+   * labels and tags, as stored.
    *
    * Send it back on update or apply to refuse the write with ABORTED
    * (ETAG_MISMATCH) when the resource changed since it was read; leave it
@@ -771,12 +702,6 @@ java.lang.String defaultValue) {
         internalGetLabels(),
         LabelsDefaultEntryHolder.defaultEntry,
         6);
-    com.google.protobuf.GeneratedMessage
-      .serializeStringMapTo(
-        output,
-        internalGetAnnotations(),
-        AnnotationsDefaultEntryHolder.defaultEntry,
-        7);
     for (int i = 0; i < tags_.size(); i++) {
       com.google.protobuf.GeneratedMessage.writeString(output, 8, tags_.getRaw(i));
     }
@@ -821,16 +746,6 @@ java.lang.String defaultValue) {
       size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(6, labels__);
     }
-    for (java.util.Map.Entry<java.lang.String, java.lang.String> entry
-         : internalGetAnnotations().getMap().entrySet()) {
-      com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
-      annotations__ = AnnotationsDefaultEntryHolder.defaultEntry.newBuilderForType()
-          .setKey(entry.getKey())
-          .setValue(entry.getValue())
-          .buildPartial();
-      size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(7, annotations__);
-    }
     {
       int dataSize = 0;
       for (int i = 0; i < tags_.size(); i++) {
@@ -872,8 +787,6 @@ java.lang.String defaultValue) {
     if (visibility_ != other.visibility_) return false;
     if (!internalGetLabels().equals(
         other.internalGetLabels())) return false;
-    if (!internalGetAnnotations().equals(
-        other.internalGetAnnotations())) return false;
     if (!getTagsList()
         .equals(other.getTagsList())) return false;
     if (hasVersion() != other.hasVersion()) return false;
@@ -907,10 +820,6 @@ java.lang.String defaultValue) {
     if (!internalGetLabels().getMap().isEmpty()) {
       hash = (37 * hash) + LABELS_FIELD_NUMBER;
       hash = (53 * hash) + internalGetLabels().hashCode();
-    }
-    if (!internalGetAnnotations().getMap().isEmpty()) {
-      hash = (37 * hash) + ANNOTATIONS_FIELD_NUMBER;
-      hash = (53 * hash) + internalGetAnnotations().hashCode();
     }
     if (getTagsCount() > 0) {
       hash = (37 * hash) + TAGS_FIELD_NUMBER;
@@ -1042,8 +951,6 @@ java.lang.String defaultValue) {
       switch (number) {
         case 6:
           return internalGetLabels();
-        case 7:
-          return internalGetAnnotations();
         default:
           throw new RuntimeException(
               "Invalid map field number: " + number);
@@ -1055,8 +962,6 @@ java.lang.String defaultValue) {
       switch (number) {
         case 6:
           return internalGetMutableLabels();
-        case 7:
-          return internalGetMutableAnnotations();
         default:
           throw new RuntimeException(
               "Invalid map field number: " + number);
@@ -1096,7 +1001,6 @@ java.lang.String defaultValue) {
       org_ = "";
       visibility_ = 0;
       internalGetMutableLabels().clear();
-      internalGetMutableAnnotations().clear();
       tags_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
       version_ = null;
@@ -1158,21 +1062,17 @@ java.lang.String defaultValue) {
         result.labels_.makeImmutable();
       }
       if (((from_bitField0_ & 0x00000040) != 0)) {
-        result.annotations_ = internalGetAnnotations();
-        result.annotations_.makeImmutable();
-      }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
         tags_.makeImmutable();
         result.tags_ = tags_;
       }
       int to_bitField0_ = 0;
-      if (((from_bitField0_ & 0x00000100) != 0)) {
+      if (((from_bitField0_ & 0x00000080) != 0)) {
         result.version_ = versionBuilder_ == null
             ? version_
             : versionBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
+      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.etag_ = etag_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -1216,13 +1116,10 @@ java.lang.String defaultValue) {
       internalGetMutableLabels().mergeFrom(
           other.internalGetLabels());
       bitField0_ |= 0x00000020;
-      internalGetMutableAnnotations().mergeFrom(
-          other.internalGetAnnotations());
-      bitField0_ |= 0x00000040;
       if (!other.tags_.isEmpty()) {
         if (tags_.isEmpty()) {
           tags_ = other.tags_;
-          bitField0_ |= 0x00000080;
+          bitField0_ |= 0x00000040;
         } else {
           ensureTagsIsMutable();
           tags_.addAll(other.tags_);
@@ -1234,7 +1131,7 @@ java.lang.String defaultValue) {
       }
       if (!other.getEtag().isEmpty()) {
         etag_ = other.etag_;
-        bitField0_ |= 0x00000200;
+        bitField0_ |= 0x00000100;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -1297,15 +1194,6 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00000020;
               break;
             } // case 50
-            case 58: {
-              com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
-              annotations__ = input.readMessage(
-                  AnnotationsDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
-              internalGetMutableAnnotations().getMutableMap().put(
-                  annotations__.getKey(), annotations__.getValue());
-              bitField0_ |= 0x00000040;
-              break;
-            } // case 58
             case 66: {
               ensureTagsIsMutable();
               tags_.add(input.readStringRequireUtf8());
@@ -1315,12 +1203,12 @@ java.lang.String defaultValue) {
               input.readMessage(
                   internalGetVersionFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000080;
               break;
             } // case 74
             case 82: {
               etag_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000100;
               break;
             } // case 82
             default: {
@@ -2078,10 +1966,15 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Key-value labels for organization and filtering.
+     * Key-value labels for organizing and filtering resources, in the
+     * Kubernetes form, so a label is always a valid selector.
+     * A key is an optional DNS subdomain prefix of at most 253 characters and
+     * a slash, then a name of at most 63 characters that starts and ends with
+     * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+     * value is empty or follows the name rule. At most 64 labels.
      * </pre>
      *
-     * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+     * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels", (.buf.validate.field) = { ... }</code>
      */
     @java.lang.Override
     public boolean containsLabels(
@@ -2099,10 +1992,15 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Key-value labels for organization and filtering.
+     * Key-value labels for organizing and filtering resources, in the
+     * Kubernetes form, so a label is always a valid selector.
+     * A key is an optional DNS subdomain prefix of at most 253 characters and
+     * a slash, then a name of at most 63 characters that starts and ends with
+     * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+     * value is empty or follows the name rule. At most 64 labels.
      * </pre>
      *
-     * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+     * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels", (.buf.validate.field) = { ... }</code>
      */
     @java.lang.Override
     public java.util.Map<java.lang.String, java.lang.String> getLabelsMap() {
@@ -2110,10 +2008,15 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Key-value labels for organization and filtering.
+     * Key-value labels for organizing and filtering resources, in the
+     * Kubernetes form, so a label is always a valid selector.
+     * A key is an optional DNS subdomain prefix of at most 253 characters and
+     * a slash, then a name of at most 63 characters that starts and ends with
+     * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+     * value is empty or follows the name rule. At most 64 labels.
      * </pre>
      *
-     * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+     * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels", (.buf.validate.field) = { ... }</code>
      */
     @java.lang.Override
     public /* nullable */
@@ -2128,10 +2031,15 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Key-value labels for organization and filtering.
+     * Key-value labels for organizing and filtering resources, in the
+     * Kubernetes form, so a label is always a valid selector.
+     * A key is an optional DNS subdomain prefix of at most 253 characters and
+     * a slash, then a name of at most 63 characters that starts and ends with
+     * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+     * value is empty or follows the name rule. At most 64 labels.
      * </pre>
      *
-     * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+     * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels", (.buf.validate.field) = { ... }</code>
      */
     @java.lang.Override
     public java.lang.String getLabelsOrThrow(
@@ -2152,10 +2060,15 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Key-value labels for organization and filtering.
+     * Key-value labels for organizing and filtering resources, in the
+     * Kubernetes form, so a label is always a valid selector.
+     * A key is an optional DNS subdomain prefix of at most 253 characters and
+     * a slash, then a name of at most 63 characters that starts and ends with
+     * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+     * value is empty or follows the name rule. At most 64 labels.
      * </pre>
      *
-     * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+     * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels", (.buf.validate.field) = { ... }</code>
      */
     public Builder removeLabels(
         java.lang.String key) {
@@ -2175,10 +2088,15 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Key-value labels for organization and filtering.
+     * Key-value labels for organizing and filtering resources, in the
+     * Kubernetes form, so a label is always a valid selector.
+     * A key is an optional DNS subdomain prefix of at most 253 characters and
+     * a slash, then a name of at most 63 characters that starts and ends with
+     * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+     * value is empty or follows the name rule. At most 64 labels.
      * </pre>
      *
-     * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+     * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels", (.buf.validate.field) = { ... }</code>
      */
     public Builder putLabels(
         java.lang.String key,
@@ -2192,10 +2110,15 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Key-value labels for organization and filtering.
+     * Key-value labels for organizing and filtering resources, in the
+     * Kubernetes form, so a label is always a valid selector.
+     * A key is an optional DNS subdomain prefix of at most 253 characters and
+     * a slash, then a name of at most 63 characters that starts and ends with
+     * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+     * value is empty or follows the name rule. At most 64 labels.
      * </pre>
      *
-     * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+     * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels", (.buf.validate.field) = { ... }</code>
      */
     public Builder putAllLabels(
         java.util.Map<java.lang.String, java.lang.String> values) {
@@ -2205,175 +2128,22 @@ java.lang.String defaultValue) {
       return this;
     }
 
-    private com.google.protobuf.MapField<
-        java.lang.String, java.lang.String> annotations_;
-    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
-        internalGetAnnotations() {
-      if (annotations_ == null) {
-        return com.google.protobuf.MapField.emptyMapField(
-            AnnotationsDefaultEntryHolder.defaultEntry);
-      }
-      return annotations_;
-    }
-    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
-        internalGetMutableAnnotations() {
-      if (annotations_ == null) {
-        annotations_ = com.google.protobuf.MapField.newMapField(
-            AnnotationsDefaultEntryHolder.defaultEntry);
-      }
-      if (!annotations_.isMutable()) {
-        annotations_ = annotations_.copy();
-      }
-      bitField0_ |= 0x00000040;
-      onChanged();
-      return annotations_;
-    }
-    public int getAnnotationsCount() {
-      return internalGetAnnotations().getMap().size();
-    }
-    /**
-     * <pre>
-     * Key-value annotations for additional metadata.
-     * </pre>
-     *
-     * <code>map&lt;string, string&gt; annotations = 7 [json_name = "annotations"];</code>
-     */
-    @java.lang.Override
-    public boolean containsAnnotations(
-        java.lang.String key) {
-      if (key == null) { throw new NullPointerException("map key"); }
-      return internalGetAnnotations().getMap().containsKey(key);
-    }
-    /**
-     * Use {@link #getAnnotationsMap()} instead.
-     */
-    @java.lang.Override
-    @java.lang.Deprecated
-    public java.util.Map<java.lang.String, java.lang.String> getAnnotations() {
-      return getAnnotationsMap();
-    }
-    /**
-     * <pre>
-     * Key-value annotations for additional metadata.
-     * </pre>
-     *
-     * <code>map&lt;string, string&gt; annotations = 7 [json_name = "annotations"];</code>
-     */
-    @java.lang.Override
-    public java.util.Map<java.lang.String, java.lang.String> getAnnotationsMap() {
-      return internalGetAnnotations().getMap();
-    }
-    /**
-     * <pre>
-     * Key-value annotations for additional metadata.
-     * </pre>
-     *
-     * <code>map&lt;string, string&gt; annotations = 7 [json_name = "annotations"];</code>
-     */
-    @java.lang.Override
-    public /* nullable */
-java.lang.String getAnnotationsOrDefault(
-        java.lang.String key,
-        /* nullable */
-java.lang.String defaultValue) {
-      if (key == null) { throw new NullPointerException("map key"); }
-      java.util.Map<java.lang.String, java.lang.String> map =
-          internalGetAnnotations().getMap();
-      return map.containsKey(key) ? map.get(key) : defaultValue;
-    }
-    /**
-     * <pre>
-     * Key-value annotations for additional metadata.
-     * </pre>
-     *
-     * <code>map&lt;string, string&gt; annotations = 7 [json_name = "annotations"];</code>
-     */
-    @java.lang.Override
-    public java.lang.String getAnnotationsOrThrow(
-        java.lang.String key) {
-      if (key == null) { throw new NullPointerException("map key"); }
-      java.util.Map<java.lang.String, java.lang.String> map =
-          internalGetAnnotations().getMap();
-      if (!map.containsKey(key)) {
-        throw new java.lang.IllegalArgumentException();
-      }
-      return map.get(key);
-    }
-    public Builder clearAnnotations() {
-      bitField0_ = (bitField0_ & ~0x00000040);
-      internalGetMutableAnnotations().getMutableMap()
-          .clear();
-      return this;
-    }
-    /**
-     * <pre>
-     * Key-value annotations for additional metadata.
-     * </pre>
-     *
-     * <code>map&lt;string, string&gt; annotations = 7 [json_name = "annotations"];</code>
-     */
-    public Builder removeAnnotations(
-        java.lang.String key) {
-      if (key == null) { throw new NullPointerException("map key"); }
-      internalGetMutableAnnotations().getMutableMap()
-          .remove(key);
-      return this;
-    }
-    /**
-     * Use alternate mutation accessors instead.
-     */
-    @java.lang.Deprecated
-    public java.util.Map<java.lang.String, java.lang.String>
-        getMutableAnnotations() {
-      bitField0_ |= 0x00000040;
-      return internalGetMutableAnnotations().getMutableMap();
-    }
-    /**
-     * <pre>
-     * Key-value annotations for additional metadata.
-     * </pre>
-     *
-     * <code>map&lt;string, string&gt; annotations = 7 [json_name = "annotations"];</code>
-     */
-    public Builder putAnnotations(
-        java.lang.String key,
-        java.lang.String value) {
-      if (key == null) { throw new NullPointerException("map key"); }
-      if (value == null) { throw new NullPointerException("map value"); }
-      internalGetMutableAnnotations().getMutableMap()
-          .put(key, value);
-      bitField0_ |= 0x00000040;
-      return this;
-    }
-    /**
-     * <pre>
-     * Key-value annotations for additional metadata.
-     * </pre>
-     *
-     * <code>map&lt;string, string&gt; annotations = 7 [json_name = "annotations"];</code>
-     */
-    public Builder putAllAnnotations(
-        java.util.Map<java.lang.String, java.lang.String> values) {
-      internalGetMutableAnnotations().getMutableMap()
-          .putAll(values);
-      bitField0_ |= 0x00000040;
-      return this;
-    }
-
     private com.google.protobuf.LazyStringArrayList tags_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
     private void ensureTagsIsMutable() {
       if (!tags_.isModifiable()) {
         tags_ = new com.google.protobuf.LazyStringArrayList(tags_);
       }
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
     }
     /**
      * <pre>
-     * Tags for categorization.
+     * Search words for the resource, in GitHub's topic form: lowercase
+     * letters, digits and hyphens, starting with a letter or digit, at most 50
+     * characters each. At most 20, each once.
      * </pre>
      *
-     * <code>repeated string tags = 8 [json_name = "tags"];</code>
+     * <code>repeated string tags = 8 [json_name = "tags", (.buf.validate.field) = { ... }</code>
      * @return A list containing the tags.
      */
     public com.google.protobuf.ProtocolStringList
@@ -2383,10 +2153,12 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Tags for categorization.
+     * Search words for the resource, in GitHub's topic form: lowercase
+     * letters, digits and hyphens, starting with a letter or digit, at most 50
+     * characters each. At most 20, each once.
      * </pre>
      *
-     * <code>repeated string tags = 8 [json_name = "tags"];</code>
+     * <code>repeated string tags = 8 [json_name = "tags", (.buf.validate.field) = { ... }</code>
      * @return The count of tags.
      */
     public int getTagsCount() {
@@ -2394,10 +2166,12 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Tags for categorization.
+     * Search words for the resource, in GitHub's topic form: lowercase
+     * letters, digits and hyphens, starting with a letter or digit, at most 50
+     * characters each. At most 20, each once.
      * </pre>
      *
-     * <code>repeated string tags = 8 [json_name = "tags"];</code>
+     * <code>repeated string tags = 8 [json_name = "tags", (.buf.validate.field) = { ... }</code>
      * @param index The index of the element to return.
      * @return The tags at the given index.
      */
@@ -2406,10 +2180,12 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Tags for categorization.
+     * Search words for the resource, in GitHub's topic form: lowercase
+     * letters, digits and hyphens, starting with a letter or digit, at most 50
+     * characters each. At most 20, each once.
      * </pre>
      *
-     * <code>repeated string tags = 8 [json_name = "tags"];</code>
+     * <code>repeated string tags = 8 [json_name = "tags", (.buf.validate.field) = { ... }</code>
      * @param index The index of the value to return.
      * @return The bytes of the tags at the given index.
      */
@@ -2419,10 +2195,12 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Tags for categorization.
+     * Search words for the resource, in GitHub's topic form: lowercase
+     * letters, digits and hyphens, starting with a letter or digit, at most 50
+     * characters each. At most 20, each once.
      * </pre>
      *
-     * <code>repeated string tags = 8 [json_name = "tags"];</code>
+     * <code>repeated string tags = 8 [json_name = "tags", (.buf.validate.field) = { ... }</code>
      * @param index The index to set the value at.
      * @param value The tags to set.
      * @return This builder for chaining.
@@ -2432,16 +2210,18 @@ java.lang.String defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       ensureTagsIsMutable();
       tags_.set(index, value);
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Tags for categorization.
+     * Search words for the resource, in GitHub's topic form: lowercase
+     * letters, digits and hyphens, starting with a letter or digit, at most 50
+     * characters each. At most 20, each once.
      * </pre>
      *
-     * <code>repeated string tags = 8 [json_name = "tags"];</code>
+     * <code>repeated string tags = 8 [json_name = "tags", (.buf.validate.field) = { ... }</code>
      * @param value The tags to add.
      * @return This builder for chaining.
      */
@@ -2450,16 +2230,18 @@ java.lang.String defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       ensureTagsIsMutable();
       tags_.add(value);
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Tags for categorization.
+     * Search words for the resource, in GitHub's topic form: lowercase
+     * letters, digits and hyphens, starting with a letter or digit, at most 50
+     * characters each. At most 20, each once.
      * </pre>
      *
-     * <code>repeated string tags = 8 [json_name = "tags"];</code>
+     * <code>repeated string tags = 8 [json_name = "tags", (.buf.validate.field) = { ... }</code>
      * @param values The tags to add.
      * @return This builder for chaining.
      */
@@ -2468,31 +2250,35 @@ java.lang.String defaultValue) {
       ensureTagsIsMutable();
       com.google.protobuf.AbstractMessageLite.Builder.addAll(
           values, tags_);
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Tags for categorization.
+     * Search words for the resource, in GitHub's topic form: lowercase
+     * letters, digits and hyphens, starting with a letter or digit, at most 50
+     * characters each. At most 20, each once.
      * </pre>
      *
-     * <code>repeated string tags = 8 [json_name = "tags"];</code>
+     * <code>repeated string tags = 8 [json_name = "tags", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
     public Builder clearTags() {
       tags_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00000080);;
+      bitField0_ = (bitField0_ & ~0x00000040);;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Tags for categorization.
+     * Search words for the resource, in GitHub's topic form: lowercase
+     * letters, digits and hyphens, starting with a letter or digit, at most 50
+     * characters each. At most 20, each once.
      * </pre>
      *
-     * <code>repeated string tags = 8 [json_name = "tags"];</code>
+     * <code>repeated string tags = 8 [json_name = "tags", (.buf.validate.field) = { ... }</code>
      * @param value The bytes of the tags to add.
      * @return This builder for chaining.
      */
@@ -2502,7 +2288,7 @@ java.lang.String defaultValue) {
       checkByteStringIsUtf8(value);
       ensureTagsIsMutable();
       tags_.add(value);
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -2519,7 +2305,7 @@ java.lang.String defaultValue) {
      * @return Whether the version field is set.
      */
     public boolean hasVersion() {
-      return ((bitField0_ & 0x00000100) != 0);
+      return ((bitField0_ & 0x00000080) != 0);
     }
     /**
      * <pre>
@@ -2552,7 +2338,7 @@ java.lang.String defaultValue) {
       } else {
         versionBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -2570,7 +2356,7 @@ java.lang.String defaultValue) {
       } else {
         versionBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -2583,7 +2369,7 @@ java.lang.String defaultValue) {
      */
     public Builder mergeVersion(ai.stigmer.commons.apiresource.ApiResourceMetadataVersion value) {
       if (versionBuilder_ == null) {
-        if (((bitField0_ & 0x00000100) != 0) &&
+        if (((bitField0_ & 0x00000080) != 0) &&
           version_ != null &&
           version_ != ai.stigmer.commons.apiresource.ApiResourceMetadataVersion.getDefaultInstance()) {
           getVersionBuilder().mergeFrom(value);
@@ -2594,7 +2380,7 @@ java.lang.String defaultValue) {
         versionBuilder_.mergeFrom(value);
       }
       if (version_ != null) {
-        bitField0_ |= 0x00000100;
+        bitField0_ |= 0x00000080;
         onChanged();
       }
       return this;
@@ -2607,7 +2393,7 @@ java.lang.String defaultValue) {
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadataVersion version = 9 [json_name = "version"];</code>
      */
     public Builder clearVersion() {
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000080);
       version_ = null;
       if (versionBuilder_ != null) {
         versionBuilder_.dispose();
@@ -2624,7 +2410,7 @@ java.lang.String defaultValue) {
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadataVersion version = 9 [json_name = "version"];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceMetadataVersion.Builder getVersionBuilder() {
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return internalGetVersionFieldBuilder().getBuilder();
     }
@@ -2668,7 +2454,7 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * A fingerprint of what a person edits on the resource: its spec, name,
-     * labels, tags and annotations, as stored.
+     * labels and tags, as stored.
      *
      * Send it back on update or apply to refuse the write with ABORTED
      * (ETAG_MISMATCH) when the resource changed since it was read; leave it
@@ -2693,7 +2479,7 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * A fingerprint of what a person edits on the resource: its spec, name,
-     * labels, tags and annotations, as stored.
+     * labels and tags, as stored.
      *
      * Send it back on update or apply to refuse the write with ABORTED
      * (ETAG_MISMATCH) when the resource changed since it was read; leave it
@@ -2719,7 +2505,7 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * A fingerprint of what a person edits on the resource: its spec, name,
-     * labels, tags and annotations, as stored.
+     * labels and tags, as stored.
      *
      * Send it back on update or apply to refuse the write with ABORTED
      * (ETAG_MISMATCH) when the resource changed since it was read; leave it
@@ -2734,14 +2520,14 @@ java.lang.String defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       etag_ = value;
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
     /**
      * <pre>
      * A fingerprint of what a person edits on the resource: its spec, name,
-     * labels, tags and annotations, as stored.
+     * labels and tags, as stored.
      *
      * Send it back on update or apply to refuse the write with ABORTED
      * (ETAG_MISMATCH) when the resource changed since it was read; leave it
@@ -2753,14 +2539,14 @@ java.lang.String defaultValue) {
      */
     public Builder clearEtag() {
       etag_ = getDefaultInstance().getEtag();
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000100);
       onChanged();
       return this;
     }
     /**
      * <pre>
      * A fingerprint of what a person edits on the resource: its spec, name,
-     * labels, tags and annotations, as stored.
+     * labels and tags, as stored.
      *
      * Send it back on update or apply to refuse the write with ABORTED
      * (ETAG_MISMATCH) when the resource changed since it was read; leave it
@@ -2776,7 +2562,7 @@ java.lang.String defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       etag_ = value;
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }

@@ -171,6 +171,7 @@ import {
   newStampSharedOwnerStep,
   undoExternalIdMoveAfterFailure,
 } from "./steps.js";
+import { matchesAllLabels, sortedLabels } from "../../pipeline/steps/helpers.js";
 
 export interface VaultControllerDeps {
   readonly store: Store;
@@ -814,9 +815,16 @@ async function list(
     declaration: vaultListIndex,
     query: { org: req.org },
     request: req,
-    fingerprint: listPageFingerprint({ lane: "vault.list", org: req.org }),
+    fingerprint: listPageFingerprint({
+      lane: "vault.list",
+      org: req.org,
+      labels: sortedLabels(req.labels),
+    }),
     decode: (data) => decodeVaultRows([{ data }])[0],
     keep: (vault) => {
+      if (!matchesAllLabels(vault.metadata?.labels ?? {}, req.labels)) {
+        return false;
+      }
       const person = personOf(vault);
       return (
         person === undefined ||

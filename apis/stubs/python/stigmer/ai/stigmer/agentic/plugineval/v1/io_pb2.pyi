@@ -15,14 +15,23 @@ class PluginEvalId(_message.Message):
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
 class ListPluginEvalsByPluginRequest(_message.Message):
-    __slots__ = ("plugin_id", "page_size", "page_token")
+    __slots__ = ("plugin_id", "page_size", "page_token", "labels")
+    class LabelsEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
     PLUGIN_ID_FIELD_NUMBER: _ClassVar[int]
     PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
     PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    LABELS_FIELD_NUMBER: _ClassVar[int]
     plugin_id: str
     page_size: int
     page_token: str
-    def __init__(self, plugin_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
+    labels: _containers.ScalarMap[str, str]
+    def __init__(self, plugin_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ...) -> None: ...
 
 class PluginEvalList(_message.Message):
     __slots__ = ("entries", "next_page_token")

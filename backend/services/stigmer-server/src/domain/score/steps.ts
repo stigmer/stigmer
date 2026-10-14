@@ -101,6 +101,7 @@ import { isTerminalExecutionPhase } from "../run/phases.js";
 import { sessionIdOf } from "../run/target.js";
 import { scoreListIndex } from "./list-index.js";
 import { listRunScores, listSessionScores } from "./queries.js";
+import { matchesAllLabels, sortedLabels } from "../../pipeline/steps/helpers.js";
 
 /** Context key for a list lane's result. */
 export const LIST_RESULT_KEY = "listResult";
@@ -641,7 +642,7 @@ export function newListScoresBySessionStep(
 async function readParentScorePage(
   store: Store,
   logger: Logger,
-  request: ListPageRequest,
+  request: ListPageRequest & { readonly labels: Readonly<Record<string, string>> },
   parent: {
     readonly key: "run" | "session";
     readonly value: string;
@@ -658,13 +659,16 @@ async function readParentScorePage(
     fingerprint: listPageFingerprint({
       lane: parent.lane,
       [parent.key]: parent.value,
+      labels: sortedLabels(request.labels),
     }),
     decode: decodeOrSkip(ScoreSchema, {
       logger,
       message: "Failed to unmarshal score, skipping",
       fields: { [parent.key]: parent.value },
     }),
-    keep: parent.keep,
+    keep: (score: Score) =>
+      parent.keep(score) &&
+      matchesAllLabels(score.metadata?.labels ?? {}, request.labels),
     scope: (scores) => Promise.resolve(scores),
     failure: parent.failure,
   });

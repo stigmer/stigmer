@@ -37,6 +37,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_schedule_v1_ListSchedulesByAgentRequest_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_schedule_v1_ListSchedulesByAgentRequest_LabelsEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_schedule_v1_ListSchedulesByAgentRequest_LabelsEntry_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_schedule_v1_ScheduleList_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -91,73 +96,76 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "/validate/validate.proto\032 google/protobu" +
       "f/field_mask.proto\032\037google/protobuf/time" +
       "stamp.proto\"*\n\nScheduleId\022\034\n\005value\030\001 \001(\t" +
-      "B\006\272H\003\310\001\001R\005value\"\262\001\n\033ListSchedulesByAgent" +
+      "B\006\272H\003\310\001\001R\005value\"\316\002\n\033ListSchedulesByAgent" +
       "Request\022!\n\010agent_id\030\001 \001(\tB\006\272H\003\310\001\001R\007agent" +
       "Id\022\020\n\003org\030\003 \001(\tR\003org\022$\n\tpage_size\030\004 \001(\005B" +
       "\007\272H\004\032\002(\000R\010pageSize\022\'\n\npage_token\030\005 \001(\tB\010" +
-      "\272H\005r\003\030\200\010R\tpageTokenJ\004\010\002\020\003R\tpage_info\"\215\001\n" +
-      "\014ScheduleList\022B\n\007entries\030\002 \003(\0132(.ai.stig" +
-      "mer.agentic.schedule.v1.ScheduleR\007entrie" +
-      "s\022&\n\017next_page_token\030\003 \001(\tR\rnextPageToke" +
-      "nJ\004\010\001\020\002R\013total_count\"\246\002\n\024ListSchedulesRe" +
-      "quest\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022X\n\006labe" +
-      "ls\030\002 \003(\0132@.ai.stigmer.agentic.schedule.v" +
-      "1.ListSchedulesRequest.LabelsEntryR\006labe" +
-      "ls\022$\n\tpage_size\030\004 \001(\005B\007\272H\004\032\002(\000R\010pageSize" +
-      "\022\'\n\npage_token\030\005 \001(\tB\010\272H\005r\003\030\200\010R\tpageToke" +
-      "n\0329\n\013LabelsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005va" +
-      "lue\030\002 \001(\tR\005value:\0028\001J\004\010\003\020\004R\tpage_info\"\352\001" +
-      "\n\025ScheduleTriggerResult\022D\n\010schedule\030\001 \001(" +
-      "\0132(.ai.stigmer.agentic.schedule.v1.Sched" +
-      "uleR\010schedule\022M\n\007outcome\030\002 \001(\01623.ai.stig" +
-      "mer.agentic.schedule.v1.ScheduleFireOutc" +
-      "omeR\007outcome\022\025\n\006run_id\030\003 \001(\tR\005runId\022%\n\016r" +
-      "efusal_reason\030\004 \001(\tR\rrefusalReason\"\317\003\n\014S" +
-      "cheduleFire\022\037\n\013schedule_id\030\001 \001(\tR\nschedu" +
-      "leId\022\020\n\003org\030\002 \001(\tR\003org\022F\n\021nominal_fire_t" +
-      "ime\030\003 \001(\0132\032.google.protobuf.TimestampR\017n" +
-      "ominalFireTime\022J\n\006origin\030\004 \001(\01622.ai.stig" +
-      "mer.agentic.schedule.v1.ScheduleFireOrig" +
-      "inR\006origin\022M\n\007outcome\030\005 \001(\01623.ai.stigmer" +
-      ".agentic.schedule.v1.ScheduleFireOutcome" +
-      "R\007outcome\022\026\n\006reason\030\006 \001(\tR\006reason\022\025\n\006run" +
-      "_id\030\007 \001(\tR\005runId\022;\n\013recorded_at\030\010 \001(\0132\032." +
-      "google.protobuf.TimestampR\nrecordedAt\022=\n" +
-      "\014completed_at\030\t \001(\0132\032.google.protobuf.Ti" +
-      "mestampR\013completedAt\"\243\001\n\030ListScheduleFir" +
-      "esRequest\022\'\n\013schedule_id\030\001 \001(\tB\006\272H\003\310\001\001R\n" +
-      "scheduleId\022$\n\tpage_size\030\003 \001(\005B\007\272H\004\032\002(\000R\010" +
-      "pageSize\022\'\n\npage_token\030\004 \001(\tB\010\272H\005r\003\030\200\010R\t" +
-      "pageTokenJ\004\010\002\020\003R\tpage_info\"\225\001\n\020ScheduleF" +
-      "ireList\022F\n\007entries\030\002 \003(\0132,.ai.stigmer.ag" +
-      "entic.schedule.v1.ScheduleFireR\007entries\022" +
-      "&\n\017next_page_token\030\003 \001(\tR\rnextPageTokenJ" +
-      "\004\010\001\020\002R\013total_count\"\353\002\n\023UpdateScheduleInp" +
-      "ut\022L\n\010resource\030\001 \001(\0132(.ai.stigmer.agenti" +
-      "c.schedule.v1.ScheduleB\006\272H\003\330\001\003R\010resource" +
-      "\022C\n\013update_mask\030\002 \001(\0132\032.google.protobuf." +
-      "FieldMaskB\006\272H\003\310\001\001R\nupdateMask:\300\001\272H\274\001\032\271\001\n" +
-      "\027update_names_its_target\022Hresource.metad" +
-      "ata.id is required: an update names the " +
-      "schedule by its id\032Thas(this.resource) &" +
-      "& has(this.resource.metadata) && this.re" +
-      "source.metadata.id != \'\'*z\n\022ScheduleFire" +
-      "Origin\022$\n SCHEDULE_FIRE_ORIGIN_UNSPECIFI" +
-      "ED\020\000\022\035\n\031SCHEDULE_FIRE_ORIGIN_CRON\020\001\022\037\n\033S" +
-      "CHEDULE_FIRE_ORIGIN_MANUAL\020\002*\273\002\n\023Schedul" +
-      "eFireOutcome\022%\n!SCHEDULE_FIRE_OUTCOME_UN" +
-      "SPECIFIED\020\000\022!\n\035SCHEDULE_FIRE_OUTCOME_STA" +
-      "RTED\020\001\022!\n\035SCHEDULE_FIRE_OUTCOME_REFUSED\020" +
-      "\002\022(\n$SCHEDULE_FIRE_OUTCOME_TARGET_MISSIN" +
-      "G\020\003\022!\n\035SCHEDULE_FIRE_OUTCOME_SKIPPED\020\004\022#" +
-      "\n\037SCHEDULE_FIRE_OUTCOME_COMPLETED\020\005\022 \n\034S" +
-      "CHEDULE_FIRE_OUTCOME_FAILED\020\006\022#\n\037SCHEDUL" +
-      "E_FIRE_OUTCOME_TIMED_OUT\020\007B\246\001B\007IoProtoP\001" +
-      "\242\002\004ASAS\252\002\036Ai.Stigmer.Agentic.Schedule.V1" +
-      "\312\002\036Ai\\Stigmer\\Agentic\\Schedule\\V1\342\002*Ai\\S" +
-      "tigmer\\Agentic\\Schedule\\V1\\GPBMetadata\352\002" +
-      "\"Ai::Stigmer::Agentic::Schedule::V1b\006pro" +
-      "to3"
+      "\272H\005r\003\030\200\010R\tpageToken\022_\n\006labels\030\006 \003(\0132G.ai" +
+      ".stigmer.agentic.schedule.v1.ListSchedul" +
+      "esByAgentRequest.LabelsEntryR\006labels\0329\n\013" +
+      "LabelsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002" +
+      " \001(\tR\005value:\0028\001J\004\010\002\020\003R\tpage_info\"\215\001\n\014Sch" +
+      "eduleList\022B\n\007entries\030\002 \003(\0132(.ai.stigmer." +
+      "agentic.schedule.v1.ScheduleR\007entries\022&\n" +
+      "\017next_page_token\030\003 \001(\tR\rnextPageTokenJ\004\010" +
+      "\001\020\002R\013total_count\"\246\002\n\024ListSchedulesReques" +
+      "t\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022X\n\006labels\030\002" +
+      " \003(\0132@.ai.stigmer.agentic.schedule.v1.Li" +
+      "stSchedulesRequest.LabelsEntryR\006labels\022$" +
+      "\n\tpage_size\030\004 \001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'\n\n" +
+      "page_token\030\005 \001(\tB\010\272H\005r\003\030\200\010R\tpageToken\0329\n" +
+      "\013LabelsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030" +
+      "\002 \001(\tR\005value:\0028\001J\004\010\003\020\004R\tpage_info\"\352\001\n\025Sc" +
+      "heduleTriggerResult\022D\n\010schedule\030\001 \001(\0132(." +
+      "ai.stigmer.agentic.schedule.v1.ScheduleR" +
+      "\010schedule\022M\n\007outcome\030\002 \001(\01623.ai.stigmer." +
+      "agentic.schedule.v1.ScheduleFireOutcomeR" +
+      "\007outcome\022\025\n\006run_id\030\003 \001(\tR\005runId\022%\n\016refus" +
+      "al_reason\030\004 \001(\tR\rrefusalReason\"\317\003\n\014Sched" +
+      "uleFire\022\037\n\013schedule_id\030\001 \001(\tR\nscheduleId" +
+      "\022\020\n\003org\030\002 \001(\tR\003org\022F\n\021nominal_fire_time\030" +
+      "\003 \001(\0132\032.google.protobuf.TimestampR\017nomin" +
+      "alFireTime\022J\n\006origin\030\004 \001(\01622.ai.stigmer." +
+      "agentic.schedule.v1.ScheduleFireOriginR\006" +
+      "origin\022M\n\007outcome\030\005 \001(\01623.ai.stigmer.age" +
+      "ntic.schedule.v1.ScheduleFireOutcomeR\007ou" +
+      "tcome\022\026\n\006reason\030\006 \001(\tR\006reason\022\025\n\006run_id\030" +
+      "\007 \001(\tR\005runId\022;\n\013recorded_at\030\010 \001(\0132\032.goog" +
+      "le.protobuf.TimestampR\nrecordedAt\022=\n\014com" +
+      "pleted_at\030\t \001(\0132\032.google.protobuf.Timest" +
+      "ampR\013completedAt\"\243\001\n\030ListScheduleFiresRe" +
+      "quest\022\'\n\013schedule_id\030\001 \001(\tB\006\272H\003\310\001\001R\nsche" +
+      "duleId\022$\n\tpage_size\030\003 \001(\005B\007\272H\004\032\002(\000R\010page" +
+      "Size\022\'\n\npage_token\030\004 \001(\tB\010\272H\005r\003\030\200\010R\tpage" +
+      "TokenJ\004\010\002\020\003R\tpage_info\"\225\001\n\020ScheduleFireL" +
+      "ist\022F\n\007entries\030\002 \003(\0132,.ai.stigmer.agenti" +
+      "c.schedule.v1.ScheduleFireR\007entries\022&\n\017n" +
+      "ext_page_token\030\003 \001(\tR\rnextPageTokenJ\004\010\001\020" +
+      "\002R\013total_count\"\353\002\n\023UpdateScheduleInput\022L" +
+      "\n\010resource\030\001 \001(\0132(.ai.stigmer.agentic.sc" +
+      "hedule.v1.ScheduleB\006\272H\003\330\001\003R\010resource\022C\n\013" +
+      "update_mask\030\002 \001(\0132\032.google.protobuf.Fiel" +
+      "dMaskB\006\272H\003\310\001\001R\nupdateMask:\300\001\272H\274\001\032\271\001\n\027upd" +
+      "ate_names_its_target\022Hresource.metadata." +
+      "id is required: an update names the sche" +
+      "dule by its id\032Thas(this.resource) && ha" +
+      "s(this.resource.metadata) && this.resour" +
+      "ce.metadata.id != \'\'*z\n\022ScheduleFireOrig" +
+      "in\022$\n SCHEDULE_FIRE_ORIGIN_UNSPECIFIED\020\000" +
+      "\022\035\n\031SCHEDULE_FIRE_ORIGIN_CRON\020\001\022\037\n\033SCHED" +
+      "ULE_FIRE_ORIGIN_MANUAL\020\002*\273\002\n\023ScheduleFir" +
+      "eOutcome\022%\n!SCHEDULE_FIRE_OUTCOME_UNSPEC" +
+      "IFIED\020\000\022!\n\035SCHEDULE_FIRE_OUTCOME_STARTED" +
+      "\020\001\022!\n\035SCHEDULE_FIRE_OUTCOME_REFUSED\020\002\022(\n" +
+      "$SCHEDULE_FIRE_OUTCOME_TARGET_MISSING\020\003\022" +
+      "!\n\035SCHEDULE_FIRE_OUTCOME_SKIPPED\020\004\022#\n\037SC" +
+      "HEDULE_FIRE_OUTCOME_COMPLETED\020\005\022 \n\034SCHED" +
+      "ULE_FIRE_OUTCOME_FAILED\020\006\022#\n\037SCHEDULE_FI" +
+      "RE_OUTCOME_TIMED_OUT\020\007B\246\001B\007IoProtoP\001\242\002\004A" +
+      "SAS\252\002\036Ai.Stigmer.Agentic.Schedule.V1\312\002\036A" +
+      "i\\Stigmer\\Agentic\\Schedule\\V1\342\002*Ai\\Stigm" +
+      "er\\Agentic\\Schedule\\V1\\GPBMetadata\352\002\"Ai:" +
+      ":Stigmer::Agentic::Schedule::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -178,7 +186,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_schedule_v1_ListSchedulesByAgentRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_schedule_v1_ListSchedulesByAgentRequest_descriptor,
-        new java.lang.String[] { "AgentId", "Org", "PageSize", "PageToken", });
+        new java.lang.String[] { "AgentId", "Org", "PageSize", "PageToken", "Labels", });
+    internal_static_ai_stigmer_agentic_schedule_v1_ListSchedulesByAgentRequest_LabelsEntry_descriptor =
+      internal_static_ai_stigmer_agentic_schedule_v1_ListSchedulesByAgentRequest_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_agentic_schedule_v1_ListSchedulesByAgentRequest_LabelsEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_schedule_v1_ListSchedulesByAgentRequest_LabelsEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
     internal_static_ai_stigmer_agentic_schedule_v1_ScheduleList_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_schedule_v1_ScheduleList_fieldAccessorTable = new

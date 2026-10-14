@@ -382,9 +382,13 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Labels to set on the skill, replacing any stored labels: a push is the
    * skill's definition, so the labels it carries are the labels it has.
+   * A key is an optional DNS subdomain prefix of at most 253 characters and
+   * a slash, then a name of at most 63 characters that starts and ends with
+   * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+   * value is empty or follows the name rule. At most 64 labels.
    * </pre>
    *
-   * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+   * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
   public boolean containsLabels(
@@ -404,9 +408,13 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Labels to set on the skill, replacing any stored labels: a push is the
    * skill's definition, so the labels it carries are the labels it has.
+   * A key is an optional DNS subdomain prefix of at most 253 characters and
+   * a slash, then a name of at most 63 characters that starts and ends with
+   * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+   * value is empty or follows the name rule. At most 64 labels.
    * </pre>
    *
-   * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+   * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
   public java.util.Map<java.lang.String, java.lang.String> getLabelsMap() {
@@ -416,9 +424,13 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Labels to set on the skill, replacing any stored labels: a push is the
    * skill's definition, so the labels it carries are the labels it has.
+   * A key is an optional DNS subdomain prefix of at most 253 characters and
+   * a slash, then a name of at most 63 characters that starts and ends with
+   * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+   * value is empty or follows the name rule. At most 64 labels.
    * </pre>
    *
-   * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+   * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
   public /* nullable */
@@ -435,9 +447,13 @@ java.lang.String defaultValue) {
    * <pre>
    * Labels to set on the skill, replacing any stored labels: a push is the
    * skill's definition, so the labels it carries are the labels it has.
+   * A key is an optional DNS subdomain prefix of at most 253 characters and
+   * a slash, then a name of at most 63 characters that starts and ends with
+   * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+   * value is empty or follows the name rule. At most 64 labels.
    * </pre>
    *
-   * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+   * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
   public java.lang.String getLabelsOrThrow(
@@ -1642,9 +1658,13 @@ java.lang.String defaultValue) {
      * <pre>
      * Labels to set on the skill, replacing any stored labels: a push is the
      * skill's definition, so the labels it carries are the labels it has.
+     * A key is an optional DNS subdomain prefix of at most 253 characters and
+     * a slash, then a name of at most 63 characters that starts and ends with
+     * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+     * value is empty or follows the name rule. At most 64 labels.
      * </pre>
      *
-     * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+     * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels", (.buf.validate.field) = { ... }</code>
      */
     @java.lang.Override
     public boolean containsLabels(
@@ -1664,9 +1684,13 @@ java.lang.String defaultValue) {
      * <pre>
      * Labels to set on the skill, replacing any stored labels: a push is the
      * skill's definition, so the labels it carries are the labels it has.
+     * A key is an optional DNS subdomain prefix of at most 253 characters and
+     * a slash, then a name of at most 63 characters that starts and ends with
+     * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+     * value is empty or follows the name rule. At most 64 labels.
      * </pre>
      *
-     * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+     * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels", (.buf.validate.field) = { ... }</code>
      */
     @java.lang.Override
     public java.util.Map<java.lang.String, java.lang.String> getLabelsMap() {
@@ -1676,9 +1700,13 @@ java.lang.String defaultValue) {
      * <pre>
      * Labels to set on the skill, replacing any stored labels: a push is the
      * skill's definition, so the labels it carries are the labels it has.
+     * A key is an optional DNS subdomain prefix of at most 253 characters and
+     * a slash, then a name of at most 63 characters that starts and ends with
+     * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+     * value is empty or follows the name rule. At most 64 labels.
      * </pre>
      *
-     * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+     * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels", (.buf.validate.field) = { ... }</code>
      */
     @java.lang.Override
     public /* nullable */
@@ -1695,9 +1723,13 @@ java.lang.String defaultValue) {
      * <pre>
      * Labels to set on the skill, replacing any stored labels: a push is the
      * skill's definition, so the labels it carries are the labels it has.
+     * A key is an optional DNS subdomain prefix of at most 253 characters and
+     * a slash, then a name of at most 63 characters that starts and ends with
+     * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+     * value is empty or follows the name rule. At most 64 labels.
      * </pre>
      *
-     * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+     * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels", (.buf.validate.field) = { ... }</code>
      */
     @java.lang.Override
     public java.lang.String getLabelsOrThrow(
@@ -1720,9 +1752,13 @@ java.lang.String defaultValue) {
      * <pre>
      * Labels to set on the skill, replacing any stored labels: a push is the
      * skill's definition, so the labels it carries are the labels it has.
+     * A key is an optional DNS subdomain prefix of at most 253 characters and
+     * a slash, then a name of at most 63 characters that starts and ends with
+     * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+     * value is empty or follows the name rule. At most 64 labels.
      * </pre>
      *
-     * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+     * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels", (.buf.validate.field) = { ... }</code>
      */
     public Builder removeLabels(
         java.lang.String key) {
@@ -1744,9 +1780,13 @@ java.lang.String defaultValue) {
      * <pre>
      * Labels to set on the skill, replacing any stored labels: a push is the
      * skill's definition, so the labels it carries are the labels it has.
+     * A key is an optional DNS subdomain prefix of at most 253 characters and
+     * a slash, then a name of at most 63 characters that starts and ends with
+     * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+     * value is empty or follows the name rule. At most 64 labels.
      * </pre>
      *
-     * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+     * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels", (.buf.validate.field) = { ... }</code>
      */
     public Builder putLabels(
         java.lang.String key,
@@ -1762,9 +1802,13 @@ java.lang.String defaultValue) {
      * <pre>
      * Labels to set on the skill, replacing any stored labels: a push is the
      * skill's definition, so the labels it carries are the labels it has.
+     * A key is an optional DNS subdomain prefix of at most 253 characters and
+     * a slash, then a name of at most 63 characters that starts and ends with
+     * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+     * value is empty or follows the name rule. At most 64 labels.
      * </pre>
      *
-     * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
+     * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels", (.buf.validate.field) = { ... }</code>
      */
     public Builder putAllLabels(
         java.util.Map<java.lang.String, java.lang.String> values) {

@@ -675,6 +675,71 @@ describe("ValidateProto", () => {
   );
 });
 
+describe("ValidateProto of the state a write builds", () => {
+  // A row stored before the label and tag rules may hold values they
+  // refuse. A write that leaves them as stored keeps them; a write that
+  // changes them is held to the rules, and every other rule still binds.
+  const BREAKING = { labels: { "team name": "x" }, tags: ["Prod"] };
+
+  function stateCtx(
+    state: ReturnType<typeof org>,
+    stored: ReturnType<typeof org> | undefined,
+  ): RequestContext<typeof OrganizationSchema> {
+    const ctx = orgCtx(state);
+    if (stored !== undefined) {
+      ctx.set(EXISTING_RESOURCE_KEY, stored);
+    }
+    return ctx;
+  }
+
+  function withMetadata(
+    base: ReturnType<typeof org>,
+    metadata: { labels?: Record<string, string>; tags?: string[] },
+  ): ReturnType<typeof org> {
+    const out = clone(OrganizationSchema, base);
+    if (metadata.labels !== undefined) out.metadata!.labels = { ...metadata.labels };
+    if (metadata.tags !== undefined) out.metadata!.tags = [...metadata.tags];
+    return out;
+  }
+
+  async function refusal(ctx: RequestContext<typeof OrganizationSchema>): Promise<unknown> {
+    return Promise.resolve()
+      .then(() => newValidateProtoStep<typeof OrganizationSchema>({ of: "state" }).execute(ctx))
+      .then(
+        () => undefined,
+        (e: unknown) => e,
+      );
+  }
+
+  it("keeps stored labels and tags the rules refuse when the write leaves them as stored", async () => {
+    const stored = withMetadata(org({ slug: "acme" }), BREAKING);
+    const state = withMetadata(org({ slug: "acme", name: "Acme Renamed" }), BREAKING);
+    expect(await refusal(stateCtx(state, stored))).toBeUndefined();
+  });
+
+  it("refuses labels or tags the write changes to values the rules refuse", async () => {
+    const stored = withMetadata(org({ slug: "acme" }), { labels: { team: "x" }, tags: ["prod"] });
+    for (const changed of [{ labels: { "team name": "x" } }, { tags: ["Prod"] }]) {
+      const error = await refusal(stateCtx(withMetadata(org({ slug: "acme" }), changed), stored));
+      expect((error as ConnectError).code).toBe(Code.InvalidArgument);
+    }
+  });
+
+  it("still refuses any other rule a stored row with unchanged labels breaks", async () => {
+    const stored = withMetadata(org({ slug: "acme" }), BREAKING);
+    const error = await refusal(stateCtx(withMetadata(org({ slug: "BadSlug" }), BREAKING), stored));
+    expect((error as ConnectError).code).toBe(Code.InvalidArgument);
+    expect((error as ConnectError).rawMessage).toContain("metadata.slug");
+    // The labels and tags the write left as stored are not among them.
+    expect((error as ConnectError).rawMessage).not.toMatch(/more violation/);
+  });
+
+  it("holds a create, which has no stored row, to every rule", async () => {
+    const error = await refusal(stateCtx(withMetadata(org({ slug: "acme" }), BREAKING), undefined));
+    expect((error as ConnectError).code).toBe(Code.InvalidArgument);
+  });
+});
+
 describe("ValidateVisibility", () => {
   it("rejects an unsupported level with the cloud-identical copy", async () => {
     const input = org();

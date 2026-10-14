@@ -171,6 +171,7 @@ import {
   newRefuseOrganizationOrgStep,
   newRevokeOrganizationPoliciesStep,
 } from "./steps.js";
+import { matchesAllLabels, sortedLabels } from "../../pipeline/steps/helpers.js";
 
 export interface OrganizationControllerDeps {
   readonly store: Store;
@@ -730,7 +731,9 @@ async function listMine(
   }
   const request = { pageSize: input.pageSize, pageToken: input.pageToken };
   const keep = (org: Organization): boolean =>
-    !deleting.has(org.metadata?.id ?? "");
+    !deleting.has(org.metadata?.id ?? "") &&
+    matchesAllLabels(org.metadata?.labels ?? {}, input.labels);
+  const fingerprint = listPageFingerprint({ labels: sortedLabels(input.labels) });
   const directory = deps.organizationDirectory;
   if (directory !== undefined) {
     const authorized = await directory.listMyOrganizationIds(
@@ -760,7 +763,7 @@ async function listMine(
       const page = await readPage({
         source: inHandListPageSource(OrganizationSchema, loaded),
         request,
-        fingerprint: listPageFingerprint({}),
+        fingerprint,
         decode: decodeOrganization,
         keep,
         scope: (rows) => Promise.resolve(rows),
@@ -777,7 +780,7 @@ async function listMine(
     declaration: organizationListIndex,
     query: {},
     request,
-    fingerprint: listPageFingerprint({}),
+    fingerprint,
     decode: decodeOrganization,
     keep,
     scope: (rows) => Promise.resolve(rows),
@@ -872,11 +875,15 @@ async function listChildOrgs(
     declaration: organizationListIndex,
     query: { anyKey: [{ name: "parent_org", value: input.org }] },
     request: { pageSize: input.pageSize, pageToken: input.pageToken },
-    fingerprint: input.org,
+    fingerprint: listPageFingerprint({
+      org: input.org,
+      labels: sortedLabels(input.labels),
+    }),
     decode: decodeOrganization,
     keep: (child) =>
       parentOrgOf(child) === input.org &&
-      !deleting.has(child.metadata?.id ?? ""),
+      !deleting.has(child.metadata?.id ?? "") &&
+      matchesAllLabels(child.metadata?.labels ?? {}, input.labels),
     scope: (rows) => Promise.resolve(rows),
     failure: "failed to list child organizations",
   });

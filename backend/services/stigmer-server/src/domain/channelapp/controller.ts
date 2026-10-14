@@ -118,6 +118,7 @@ import {
   secretValuesOfChannelApp,
 } from "./steps.js";
 import { channelAppListIndex } from "./list-index.js";
+import { matchesAllLabels, sortedLabels } from "../../pipeline/steps/helpers.js";
 
 export interface ChannelAppControllerDeps {
   readonly store: Store;
@@ -520,12 +521,17 @@ function newListStep(
           pageSize: ctx.input.pageSize,
           pageToken: ctx.input.pageToken,
         },
-        fingerprint: listPageFingerprint({ org }),
+        fingerprint: listPageFingerprint({
+          org,
+          labels: sortedLabels(ctx.input.labels),
+        }),
         decode: decodeOrSkip<ChannelApp>(ChannelAppSchema, {
           logger,
           message: "Failed to unmarshal ChannelApp, skipping",
         }),
-        keep: (app) => (app.metadata?.org ?? "") === org,
+        keep: (app) =>
+          (app.metadata?.org ?? "") === org &&
+          matchesAllLabels(app.metadata?.labels ?? {}, ctx.input.labels),
         scope: (rows) =>
           restrictListByReadScope(
             listReadScope,

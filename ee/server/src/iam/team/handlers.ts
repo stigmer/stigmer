@@ -65,6 +65,8 @@ import {
   callerIdentityOf,
   internalError,
   listPageFingerprint,
+  matchesAllLabels,
+  sortedLabels,
   readPage,
   loadedTargetAsMethod,
   newAuthorizeResolvedTargetStep,
@@ -245,12 +247,13 @@ export function teamQueries(deps: TeamLaneDeps): Queries {
         ctx,
         deps,
         async (reqCtx) => {
-          const { org, pageSize, pageToken } = reqCtx.input;
+          const { org, pageSize, pageToken, labels } = reqCtx.input;
           const page = await readPage<Team>({
             source: (after, limit) => deps.teams.pageByOrg(org, after, limit),
             request: { pageSize, pageToken },
-            fingerprint: listPageFingerprint({ org }),
+            fingerprint: listPageFingerprint({ org, labels: sortedLabels(labels) }),
             decode: (data) => fromBinary(TeamSchema, data),
+            keep: (row) => matchesAllLabels(row.metadata?.labels ?? {}, labels),
             scope: (rows) => Promise.resolve(rows),
             failure: "failed to list teams",
           });

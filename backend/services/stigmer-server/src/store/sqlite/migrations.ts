@@ -172,6 +172,11 @@ import {
   logUnreadableEtagRows,
   stampEtagRow,
 } from "../resource-etags-stamped.js";
+import {
+  LABEL_TAG_REPORT_KIND_NAMES,
+  LABEL_TAG_REPORT_PAGE_SIZE,
+  LabelTagTally,
+} from "../label-tag-report.js";
 
 export const SCHEMA_VERSION_1 = 1;
 export const SCHEMA_VERSION_2 = 2;
@@ -243,11 +248,14 @@ export const SCHEMA_VERSION_34 = 34;
 /** v35: the permission history indexed by time, for retention (DDL only). */
 export const SCHEMA_VERSION_35 = 35;
 
-/** v36: the platform client rows removed, with every grant naming one. */
+/** v36: the stored labels, tags and annotations the new rules refuse, reported (nothing rewritten). */
 export const SCHEMA_VERSION_36 = 36;
 
+/** v37: the platform client rows removed, with every grant naming one. */
+export const SCHEMA_VERSION_37 = 37;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_36;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_37;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -308,7 +316,8 @@ export function runMigrations(
     [SCHEMA_VERSION_33, migrateToV33],
     [SCHEMA_VERSION_34, (migrating) => migrateToV34(migrating, logger)],
     [SCHEMA_VERSION_35, migrateToV35],
-    [SCHEMA_VERSION_36, migrateToV36],
+    [SCHEMA_VERSION_36, (migrating) => migrateToV36(migrating, logger)],
+    [SCHEMA_VERSION_37, migrateToV37],
   ];
 
   for (const [version, migrate] of chain) {
@@ -1926,7 +1935,38 @@ function migrateToV35(db: DatabaseSync): void {
 }
 
 /**
- * v36: the platform client kind is removed — the Postgres driver's v32 in
+ * v36: labels and tags gain their rules and annotations leave resource
+ * metadata — the Postgres driver's v32 in this engine's terms
+ * (../label-tag-report.ts says what a row is found to hold). Each kind's
+ * rows are read in keyset pages, and the ones whose stored labels, tags or
+ * annotations the rules refuse are named in one warning per kind. Nothing
+ * is written: the step only reports.
+ */
+function migrateToV36(db: DatabaseSync, logger: StoreLogger): void {
+  const page = db.prepare(
+    `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+  );
+  for (const kind of LABEL_TAG_REPORT_KIND_NAMES) {
+    const tally = new LabelTagTally(kind);
+    for (let after = ""; ; ) {
+      const rows = page.all(kind, after, LABEL_TAG_REPORT_PAGE_SIZE) as Array<{
+        id: string;
+        data: Uint8Array;
+      }>;
+      for (const row of rows) {
+        tally.add(row.id, row.data);
+      }
+      if (rows.length < LABEL_TAG_REPORT_PAGE_SIZE) {
+        break;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+    tally.log(logger);
+  }
+}
+
+/**
+ * v37: the platform client kind is removed — the Postgres driver's v33 in
  * this engine's terms (../platform-client-retired.ts says what leaves, what
  * stays and why an unreadable row fails the step). Every IamPolicy row
  * naming a client as resource or principal is found in keyset pages and
@@ -1935,7 +1975,7 @@ function migrateToV35(db: DatabaseSync): void {
  * Runs inside applyInTransaction's BEGIN, so a throw rolls the whole step
  * back and the boot stops on the row it names.
  */
-function migrateToV36(db: DatabaseSync): void {
+function migrateToV37(db: DatabaseSync): void {
   const page = db.prepare(
     `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
   );

@@ -41,6 +41,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_billing_plan_v1_ListPlansInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_billing_plan_v1_ListPlansInput_LabelsEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_billing_plan_v1_ListPlansInput_LabelsEntry_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -57,14 +62,18 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "H\006r\004\020\001\030@R\005value\"k\n\005Plans\022:\n\007entries\030\001 \003(" +
       "\0132 .ai.stigmer.billing.plan.v1.PlanR\007ent" +
       "ries\022&\n\017next_page_token\030\002 \001(\tR\rnextPageT" +
-      "oken\"\210\001\n\016ListPlansInput\022\'\n\017include_retir" +
+      "oken\"\223\002\n\016ListPlansInput\022\'\n\017include_retir" +
       "ed\030\001 \001(\010R\016includeRetired\022$\n\tpage_size\030\002 " +
       "\001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'\n\npage_token\030\003 \001" +
-      "(\tB\010\272H\005r\003\030\200\010R\tpageTokenB\226\001B\007IoProtoP\001\242\002\004" +
-      "ASBP\252\002\032Ai.Stigmer.Billing.Plan.V1\312\002\032Ai\\S" +
-      "tigmer\\Billing\\Plan\\V1\342\002&Ai\\Stigmer\\Bill" +
-      "ing\\Plan\\V1\\GPBMetadata\352\002\036Ai::Stigmer::B" +
-      "illing::Plan::V1b\006proto3"
+      "(\tB\010\272H\005r\003\030\200\010R\tpageToken\022N\n\006labels\030\004 \003(\0132" +
+      "6.ai.stigmer.billing.plan.v1.ListPlansIn" +
+      "put.LabelsEntryR\006labels\0329\n\013LabelsEntry\022\020" +
+      "\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\002" +
+      "8\001B\226\001B\007IoProtoP\001\242\002\004ASBP\252\002\032Ai.Stigmer.Bil" +
+      "ling.Plan.V1\312\002\032Ai\\Stigmer\\Billing\\Plan\\V" +
+      "1\342\002&Ai\\Stigmer\\Billing\\Plan\\V1\\GPBMetada" +
+      "ta\352\002\036Ai::Stigmer::Billing::Plan::V1b\006pro" +
+      "to3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -89,7 +98,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_billing_plan_v1_ListPlansInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_plan_v1_ListPlansInput_descriptor,
-        new java.lang.String[] { "IncludeRetired", "PageSize", "PageToken", });
+        new java.lang.String[] { "IncludeRetired", "PageSize", "PageToken", "Labels", });
+    internal_static_ai_stigmer_billing_plan_v1_ListPlansInput_LabelsEntry_descriptor =
+      internal_static_ai_stigmer_billing_plan_v1_ListPlansInput_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_billing_plan_v1_ListPlansInput_LabelsEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_billing_plan_v1_ListPlansInput_LabelsEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.billing.plan.v1.ApiProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

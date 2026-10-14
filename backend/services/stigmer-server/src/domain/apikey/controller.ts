@@ -122,6 +122,7 @@ import {
   newPreserveKeyMaterialStep,
   newReplaceHashWithPlainTextStep,
 } from "./steps.js";
+import { matchesAllLabels, sortedLabels } from "../../pipeline/steps/helpers.js";
 
 export interface ApiKeyControllerDeps {
   readonly store: Store;
@@ -490,7 +491,7 @@ async function list(
     identity,
     ownerNamesOf(identity.identityId, account),
     input,
-    listPageFingerprint({}),
+    listPageFingerprint({ labels: sortedLabels(input.labels) }),
   );
 }
 
@@ -518,7 +519,10 @@ async function listByAccount(
     identity,
     ownerNamesOf(input.accountId, account),
     input,
-    listPageFingerprint({ accountId: input.accountId }),
+    listPageFingerprint({
+      accountId: input.accountId,
+      labels: sortedLabels(input.labels),
+    }),
   );
 }
 
@@ -532,7 +536,7 @@ async function readOwnedKeysPage(
   deps: ApiKeyControllerDeps,
   identity: CallerIdentity,
   owners: ReadonlyArray<string>,
-  request: ListPageRequest,
+  request: ListPageRequest & { readonly labels: Readonly<Record<string, string>> },
   fingerprint: string,
 ): Promise<ApiKeys> {
   const names = [...new Set(owners.filter((owner) => owner !== ""))];
@@ -546,7 +550,9 @@ async function readOwnedKeysPage(
     request: { pageSize: request.pageSize, pageToken: request.pageToken },
     fingerprint,
     decode: decodeApiKey,
-    keep: (key) => names.includes(ownerOfKey(key)),
+    keep: (key) =>
+      names.includes(ownerOfKey(key)) &&
+      matchesAllLabels(key.metadata?.labels ?? {}, request.labels),
     scope: (rows) =>
       restrictListByReadScope(
         deps.listReadScope,

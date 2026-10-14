@@ -42,6 +42,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agent_v1_ListAgentsRequest_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agent_v1_ListAgentsRequest_LabelsEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agent_v1_ListAgentsRequest_LabelsEntry_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_agent_v1_AgentList_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -69,17 +74,20 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "d: an update names the agent by its id\032T" +
       "has(this.resource) && has(this.resource." +
       "metadata) && this.resource.metadata.id !" +
-      "= \'\'\"}\n\021ListAgentsRequest\022\031\n\003org\030\001 \001(\tB\007" +
-      "\272H\004r\002\020\001R\003org\022$\n\tpage_size\030\002 \001(\005B\007\272H\004\032\002(\000" +
-      "R\010pageSize\022\'\n\npage_token\030\003 \001(\tB\010\272H\005r\003\030\200\010" +
-      "R\tpageToken\"q\n\tAgentList\022<\n\007entries\030\001 \003(" +
-      "\0132\".ai.stigmer.agentic.agent.v1.AgentR\007e" +
-      "ntries\022&\n\017next_page_token\030\002 \001(\tR\rnextPag" +
-      "eTokenB\232\001B\007IoProtoP\001\242\002\004ASAA\252\002\033Ai.Stigmer" +
-      ".Agentic.Agent.V1\312\002\033Ai\\Stigmer\\Agentic\\A" +
-      "gent\\V1\342\002\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GP" +
-      "BMetadata\352\002\037Ai::Stigmer::Agentic::Agent:" +
-      ":V1b\006proto3"
+      "= \'\'\"\214\002\n\021ListAgentsRequest\022\031\n\003org\030\001 \001(\tB" +
+      "\007\272H\004r\002\020\001R\003org\022$\n\tpage_size\030\002 \001(\005B\007\272H\004\032\002(" +
+      "\000R\010pageSize\022\'\n\npage_token\030\003 \001(\tB\010\272H\005r\003\030\200" +
+      "\010R\tpageToken\022R\n\006labels\030\004 \003(\0132:.ai.stigme" +
+      "r.agentic.agent.v1.ListAgentsRequest.Lab" +
+      "elsEntryR\006labels\0329\n\013LabelsEntry\022\020\n\003key\030\001" +
+      " \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\"q\n\tA" +
+      "gentList\022<\n\007entries\030\001 \003(\0132\".ai.stigmer.a" +
+      "gentic.agent.v1.AgentR\007entries\022&\n\017next_p" +
+      "age_token\030\002 \001(\tR\rnextPageTokenB\232\001B\007IoPro" +
+      "toP\001\242\002\004ASAA\252\002\033Ai.Stigmer.Agentic.Agent.V" +
+      "1\312\002\033Ai\\Stigmer\\Agentic\\Agent\\V1\342\002\'Ai\\Sti" +
+      "gmer\\Agentic\\Agent\\V1\\GPBMetadata\352\002\037Ai::" +
+      "Stigmer::Agentic::Agent::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -105,7 +113,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agent_v1_ListAgentsRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_ListAgentsRequest_descriptor,
-        new java.lang.String[] { "Org", "PageSize", "PageToken", });
+        new java.lang.String[] { "Org", "PageSize", "PageToken", "Labels", });
+    internal_static_ai_stigmer_agentic_agent_v1_ListAgentsRequest_LabelsEntry_descriptor =
+      internal_static_ai_stigmer_agentic_agent_v1_ListAgentsRequest_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_agentic_agent_v1_ListAgentsRequest_LabelsEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agent_v1_ListAgentsRequest_LabelsEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
     internal_static_ai_stigmer_agentic_agent_v1_AgentList_descriptor =
       getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_agentic_agent_v1_AgentList_fieldAccessorTable = new

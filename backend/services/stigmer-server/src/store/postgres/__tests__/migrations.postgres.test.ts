@@ -69,6 +69,9 @@
  * is re-keyed to the id its new triple derives, so a revoke finds it; the
  * permission history's entries for those grants take the kind's new name
  * and the re-keyed id, and every other entry keeps its bytes.
+ * v32 reports the stored labels, tags and annotations the new rules
+ * refuse, one warning per kind with its counts and the first ten ids,
+ * across keyset pages, and writes nothing.
  * A step's starting database is built by running the chain up to the step
  * before it.
  * Newer schemas are refused without writes or reconciliation; refusal
@@ -83,6 +86,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import pg from "pg";
 
 import { create, fromBinary, fromJson, toBinary } from "@bufbuild/protobuf";
+import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 import type { DescMessage } from "@bufbuild/protobuf";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -128,8 +132,10 @@ import {
   SCHEMA_VERSION_30,
   SCHEMA_VERSION_31,
   SCHEMA_VERSION_32,
+  SCHEMA_VERSION_33,
   runMigrations,
 } from "../migrations.js";
+import { LABEL_TAG_REPORT_PAGE_SIZE } from "../../label-tag-report.js";
 import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
 import { ENVIRONMENT_RETIRED_PAGE_SIZE } from "../../environment-retired.js";
 import {
@@ -3550,7 +3556,92 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       });
     });
 
-    describe("v32: the platform client rows leave, with every grant naming one", () => {
+    describe("v32: the stored labels, tags and annotations the new rules refuse are reported", () => {
+      const ORG = "org_01jz0000000000000000000000";
+      const reviewer = (id: string, metadata: { labels?: Record<string, string>; tags?: string[] } = {}) =>
+        create(AgentSchema, {
+          metadata: { id, org: ORG, slug: id, name: "Reviewer", ...metadata },
+          spec: { instructions: "Review every pull request." },
+        });
+
+      /** An agent's bytes whose metadata also carries field 7, as a row written before annotations were removed. */
+      function withStoredAnnotations(id: string): Uint8Array {
+        const resource = reviewer(id);
+        const entry = new BinaryWriter()
+          .tag(1, WireType.LengthDelimited)
+          .string("note")
+          .tag(2, WireType.LengthDelimited)
+          .string("kept")
+          .finish();
+        resource.metadata!.$unknown = [
+          { no: 7, wireType: WireType.LengthDelimited, data: new BinaryWriter().bytes(entry).finish() },
+        ];
+        return toBinary(AgentSchema, resource);
+      }
+
+      it("names each kind's offenders once, with counts across pages, and leaves every row byte for byte", async () => {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_31);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        try {
+          const seeded = new Map<string, Uint8Array>();
+          const plant = async (id: string, data: Uint8Array) => {
+            seeded.set(id, data);
+            await client.query(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('agent', $1, $2, now())`, [
+              id,
+              Buffer.from(data),
+            ]);
+          };
+          await plant("agt_0_clean", toBinary(AgentSchema, reviewer("agt_0_clean", { labels: { team: "support" }, tags: ["prod"] })));
+          await plant("agt_1_label", toBinary(AgentSchema, reviewer("agt_1_label", { labels: { "-team": "support" } })));
+          await plant("agt_2_note", withStoredAnnotations("agt_2_note"));
+          for (let i = 0; i <= LABEL_TAG_REPORT_PAGE_SIZE; i++) {
+            const id = `agt_3_tag_${String(i).padStart(4, "0")}`;
+            await plant(id, toBinary(AgentSchema, reviewer(id, { tags: ["SEC filings"] })));
+          }
+          const warned: Array<{ message: string; fields?: Record<string, unknown> }> = [];
+          const pool = new pg.Pool({ connectionString: db.databaseUrl, max: 1 });
+          const migrating = await pool.connect();
+          try {
+            await runMigrations(migrating, SCHEMA_VERSION_32, {
+              debug() {},
+              info() {},
+              warn(message, fields) {
+                warned.push({ message, fields });
+              },
+            });
+          } finally {
+            migrating.release();
+            await pool.end();
+          }
+
+          const reached = await client.query<{ version: number }>(`SELECT MAX(version) AS version FROM schema_version`);
+          expect(Number(reached.rows[0]!.version)).toBe(SCHEMA_VERSION_32);
+          expect(warned).toHaveLength(1);
+          expect(warned[0]!.fields).toEqual({
+            kind: "agent",
+            labels: 1,
+            tags: LABEL_TAG_REPORT_PAGE_SIZE + 1,
+            annotations: 1,
+            unreadable: 0,
+            ids: [
+              "agt_1_label",
+              "agt_2_note",
+              ...Array.from({ length: 8 }, (_, i) => `agt_3_tag_${String(i).padStart(4, "0")}`),
+            ],
+          });
+          const stored = await client.query<{ id: string; data: Buffer }>(`SELECT id, data FROM resources WHERE kind = 'agent'`);
+          expect(stored.rows).toHaveLength(seeded.size);
+          for (const row of stored.rows) {
+            expect(Buffer.from(seeded.get(row.id)!).equals(row.data), row.id).toBe(true);
+          }
+        } finally {
+          await client.end();
+        }
+      });
+    });
+
+    describe("v33: the platform client rows leave, with every grant naming one", () => {
       const ORG = "org_01jz0000000000000000000000";
       const seededAt = new Date("2026-10-01T00:00:00Z");
 
@@ -3632,7 +3723,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       }
 
       it("removes the client rows from every table and every grant naming one, and keeps the accounts its mints created and their grants", async () => {
-        const client = await clientAt(SCHEMA_VERSION_32 - 1);
+        const client = await clientAt(SCHEMA_VERSION_33 - 1);
         try {
           await seedClient(client);
           for (const grant of [...retiredGrants, keptGrant]) {
@@ -3640,8 +3731,8 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           }
           await insert(client, "identity_account", "ida_app_user", appUser);
 
-          await migrateTo(db.databaseUrl, SCHEMA_VERSION_32);
-          expect(await version(client)).toBe(SCHEMA_VERSION_32);
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_33);
+          expect(await version(client)).toBe(SCHEMA_VERSION_33);
           for (const table of KIND_TABLES) {
             expect(await count(client, table, "platform_client"), table).toBe(0);
           }
@@ -3655,7 +3746,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       });
 
       it("reads grants across keyset pages, missing none past the first page", async () => {
-        const client = await clientAt(SCHEMA_VERSION_32 - 1);
+        const client = await clientAt(SCHEMA_VERSION_33 - 1);
         try {
           await seedClient(client);
           for (let i = 0; i <= PLATFORM_CLIENT_RETIRED_PAGE_SIZE; i++) {
@@ -3672,7 +3763,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
               }),
             );
           }
-          await migrateTo(db.databaseUrl, SCHEMA_VERSION_32);
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_33);
           expect(await count(client, "resources", "iam_policy")).toBe(PLATFORM_CLIENT_RETIRED_PAGE_SIZE);
           expect(await count(client, "resources", "platform_client")).toBe(0);
         } finally {
@@ -3680,16 +3771,16 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         }
       });
 
-      it("a grant that does not decode fails the step, names the row, rolls back, and leaves the database at v31", async () => {
-        const client = await clientAt(SCHEMA_VERSION_32 - 1);
+      it("a grant that does not decode fails the step, names the row, rolls back, and leaves the database at v32", async () => {
+        const client = await clientAt(SCHEMA_VERSION_33 - 1);
         try {
           await seedClient(client);
           await insert(client, "iam_policy", "iam_a_retired", policyRow({ ...retiredGrants[0]!, id: "iam_a_retired" }));
           await insert(client, "iam_policy", "iam_z_broken", new Uint8Array([0x22, 0xff]));
-          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_32)).rejects.toThrow(
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_33)).rejects.toThrow(
             "iam_policy 'iam_z_broken' cannot be read to retire the platform client kind",
           );
-          expect(await version(client)).toBe(SCHEMA_VERSION_32 - 1);
+          expect(await version(client)).toBe(SCHEMA_VERSION_33 - 1);
           expect(await data(client, "iam_policy", "iam_a_retired")).toEqual(
             policyRow({ ...retiredGrants[0]!, id: "iam_a_retired" }),
           );
@@ -3718,11 +3809,11 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             "iam_on_early",
             policyRow({ id: "iam_on_early", principal: "identity_account:ida_1", relation: "viewer", resource: "platform_client:pcl_early" }),
           );
-          await migrateTo(db.databaseUrl, SCHEMA_VERSION_32 - 1);
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_33 - 1);
           // The name backfill read the retired row through its envelope.
           expect(await count(client, "resource_names", "platform_client")).toBe(1);
-          await migrateTo(db.databaseUrl, SCHEMA_VERSION_32);
-          expect(await version(client)).toBe(SCHEMA_VERSION_32);
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_33);
+          expect(await version(client)).toBe(SCHEMA_VERSION_33);
           for (const table of KIND_TABLES) {
             expect(await count(client, table, "platform_client"), table).toBe(0);
           }

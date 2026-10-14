@@ -91,11 +91,12 @@ afterAll(async () => {
 function organization(
   slug: string,
   spec: { parentOrg?: string; externalId?: string; description?: string } = {},
+  labels: Record<string, string> = {},
 ): Organization {
   return create(OrganizationSchema, {
     apiVersion: "tenancy.stigmer.ai/v1",
     kind: "Organization",
-    metadata: { name: slug, slug },
+    metadata: { name: slug, slug, labels },
     spec: {
       description: spec.description ?? "created by the children test",
       parentOrg: spec.parentOrg ?? "",
@@ -270,6 +271,26 @@ describe("finding and listing a parent's children", () => {
     );
     const none = await query.listChildOrgs({ org: "par-nine-a" });
     expect(none.entries).toEqual([]);
+  });
+
+  it("listChildOrgs walks only the children carrying every label named, a page at a time", async () => {
+    await command.create(organization("par-labelled"));
+    const labels = { region: "emea", tier: "gold" };
+    const child = (suffix: string, childLabels: Record<string, string>) =>
+      command.create(organization(`par-labelled-${suffix}`, { parentOrg: "par-labelled" }, childLabels));
+    await child("a", {});
+    await child("b", labels);
+    await child("c", { region: "emea" });
+    await child("d", { ...labels, extra: "x" });
+    const walked: string[] = [];
+    let pageToken = "";
+    do {
+      const page = await query.listChildOrgs({ org: "par-labelled", labels, pageSize: 1, pageToken });
+      expect(page.entries.length).toBeLessThanOrEqual(1);
+      walked.push(...page.entries.map((org) => org.metadata?.slug ?? ""));
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
+    expect(walked).toEqual(["par-labelled-d", "par-labelled-b"]);
   });
 });
 

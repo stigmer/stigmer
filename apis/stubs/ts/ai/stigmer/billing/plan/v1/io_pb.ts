@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/plan/v1/io.proto.
  */
 export const file_ai_stigmer_billing_plan_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiNhaS9zdGlnbWVyL2JpbGxpbmcvcGxhbi92MS9pby5wcm90bxIaYWkuc3RpZ21lci5iaWxsaW5nLnBsYW4udjEiIgoGUGxhbklkEhgKBXZhbHVlGAEgASgJQgm6SAZyBBABGEAiUwoFUGxhbnMSMQoHZW50cmllcxgBIAMoCzIgLmFpLnN0aWdtZXIuYmlsbGluZy5wbGFuLnYxLlBsYW4SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJImMKDkxpc3RQbGFuc0lucHV0EhcKD2luY2x1ZGVfcmV0aXJlZBgBIAEoCBIaCglwYWdlX3NpemUYAiABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAhiBnByb3RvMw", [file_ai_stigmer_billing_plan_v1_api, file_buf_validate_validate]);
+  fileDesc("CiNhaS9zdGlnbWVyL2JpbGxpbmcvcGxhbi92MS9pby5wcm90bxIaYWkuc3RpZ21lci5iaWxsaW5nLnBsYW4udjEiIgoGUGxhbklkEhgKBXZhbHVlGAEgASgJQgm6SAZyBBABGEAiUwoFUGxhbnMSMQoHZW50cmllcxgBIAMoCzIgLmFpLnN0aWdtZXIuYmlsbGluZy5wbGFuLnYxLlBsYW4SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJItoBCg5MaXN0UGxhbnNJbnB1dBIXCg9pbmNsdWRlX3JldGlyZWQYASABKAgSGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhwKCnBhZ2VfdG9rZW4YAyABKAlCCLpIBXIDGIAIEkYKBmxhYmVscxgEIAMoCzI2LmFpLnN0aWdtZXIuYmlsbGluZy5wbGFuLnYxLkxpc3RQbGFuc0lucHV0LkxhYmVsc0VudHJ5Gi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFiBnByb3RvMw", [file_ai_stigmer_billing_plan_v1_api, file_buf_validate_validate]);
 
 /**
  * PlanId identifies a plan by its unique identifier.
@@ -94,6 +94,15 @@ export type ListPlansInput = Message<"ai.stigmer.billing.plan.v1.ListPlansInput"
    * @generated from field: string page_token = 3;
    */
   pageToken: string;
+
+  /**
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   *
+   * @generated from field: map<string, string> labels = 4;
+   */
+  labels: { [key: string]: string };
 };
 
 /**

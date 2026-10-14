@@ -70,6 +70,9 @@
  * field kept, across keyset pages; a session without them, and every other
  * kind's row, keeps its bytes; a session it cannot decode fails the step,
  * naming the row, and leaves the database at v22.
+ * v36 reports the stored labels, tags and annotations the new rules
+ * refuse, one warning per kind with its counts and the first ten ids,
+ * across keyset pages, and writes nothing.
  * A schema written by a newer release is refused before any migration or
  * list-index reconciliation, with the failed store's connection closed.
  */
@@ -81,6 +84,7 @@ import { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { create, fromBinary, fromJson, toBinary } from "@bufbuild/protobuf";
+import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -126,6 +130,7 @@ import {
   SCHEMA_VERSION_34,
   SCHEMA_VERSION_35,
   SCHEMA_VERSION_36,
+  SCHEMA_VERSION_37,
   SCHEMA_VERSION_7,
   getSchemaVersion,
   runMigrations,
@@ -146,6 +151,7 @@ import { EXECUTION_CONFIG_PAGE_SIZE } from "../../execution-config-retired.js";
 import { SESSION_VALUES_PAGE_SIZE } from "../../session-values-retired.js";
 import { SESSION_HARNESS_PAGE_SIZE } from "../../session-harness-state-moved.js";
 import { ETAG_STAMP_PAGE_SIZE } from "../../resource-etags-stamped.js";
+import { LABEL_TAG_REPORT_PAGE_SIZE } from "../../label-tag-report.js";
 import { etagOf, stampEtag } from "../../etag.js";
 import { currentSessionRow, sessionRowWithValues } from "../../__tests__/retired-session-rows.js";
 import { HISTORY_PAGE_SIZE } from "../../organization-slug-history.js";
@@ -3263,16 +3269,95 @@ describe("v33 and v34: a session's harness state moves to its status, and every 
   });
 });
 
-describe("v36: the platform client rows and the grants naming them leave", () => {
+describe("v36: the stored labels, tags and annotations the new rules refuse are reported", () => {
+  const ORG = "org_01jz0000000000000000000000";
+  const reviewer = (id: string, metadata: { labels?: Record<string, string>; tags?: string[] } = {}) =>
+    create(AgentSchema, {
+      metadata: { id, org: ORG, slug: id, name: "Reviewer", ...metadata },
+      spec: { instructions: "Review every pull request." },
+    });
+
+  /** An agent's bytes whose metadata also carries field 7, as a row written before annotations were removed. */
+  function withStoredAnnotations(id: string): Uint8Array {
+    const resource = reviewer(id);
+    const entry = new BinaryWriter()
+      .tag(1, WireType.LengthDelimited)
+      .string("note")
+      .tag(2, WireType.LengthDelimited)
+      .string("kept")
+      .finish();
+    resource.metadata!.$unknown = [
+      { no: 7, wireType: WireType.LengthDelimited, data: new BinaryWriter().bytes(entry).finish() },
+    ];
+    return toBinary(AgentSchema, resource);
+  }
+
+  it("names each kind's offenders once, with counts across pages, and leaves every row byte for byte", () => {
+    const dbPath = tempDbPath();
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_35);
+    const seeded = new Map<string, Uint8Array>();
+    const insert = db.prepare(
+      `INSERT INTO resources (kind, id, data, updated_at) VALUES ('agent', ?, ?, '2026-10-14 00:00:00')`,
+    );
+    const plant = (id: string, data: Uint8Array) => {
+      seeded.set(id, data);
+      insert.run(id, data);
+    };
+    plant("agt_0_clean", toBinary(AgentSchema, reviewer("agt_0_clean", { labels: { team: "support" }, tags: ["prod"] })));
+    plant("agt_1_label", toBinary(AgentSchema, reviewer("agt_1_label", { labels: { "-team": "support" } })));
+    plant("agt_2_note", withStoredAnnotations("agt_2_note"));
+    plant("agt_2_unreadable", new Uint8Array([0xff, 0xff, 0xff]));
+    for (let i = 0; i <= LABEL_TAG_REPORT_PAGE_SIZE; i++) {
+      const id = `agt_3_tag_${String(i).padStart(4, "0")}`;
+      plant(id, toBinary(AgentSchema, reviewer(id, { tags: ["SEC filings"] })));
+    }
+    const warned: Array<{ message: string; fields?: Record<string, unknown> }> = [];
+    runMigrations(db, SCHEMA_VERSION_36, {
+      debug() {},
+      info() {},
+      warn(message, fields) {
+        warned.push({ message, fields });
+      },
+    });
+
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_36);
+    expect(warned).toHaveLength(1);
+    expect(warned[0]!.fields).toEqual({
+      kind: "agent",
+      labels: 1,
+      tags: LABEL_TAG_REPORT_PAGE_SIZE + 1,
+      annotations: 1,
+      unreadable: 1,
+      ids: [
+        "agt_1_label",
+        "agt_2_note",
+        "agt_2_unreadable",
+        ...Array.from({ length: 7 }, (_, i) => `agt_3_tag_${String(i).padStart(4, "0")}`),
+      ],
+    });
+    const stored = db.prepare(`SELECT id, data FROM resources WHERE kind = 'agent'`).all() as Array<{
+      id: string;
+      data: Uint8Array;
+    }>;
+    expect(stored).toHaveLength(seeded.size);
+    for (const row of stored) {
+      expect(Buffer.from(seeded.get(row.id)!).equals(Buffer.from(row.data)), row.id).toBe(true);
+    }
+  });
+});
+
+describe("v37: the platform client rows and the grants naming them leave", () => {
   const ORG = "org_01jz0000000000000000000000";
   const SEEDED_AT = "2026-10-01 00:00:00";
 
-  /** A v35 database: the chain replayed up to the step before v36. */
-  function v35Database(): { dbPath: string; db: DatabaseSync } {
+  /** A v36 database: the chain replayed up to the step before v37. */
+  function v36Database(): { dbPath: string; db: DatabaseSync } {
     const dbPath = tempDbPath();
     const setup = new DatabaseSync(dbPath);
-    runMigrations(setup, SCHEMA_VERSION_36 - 1);
-    expect(getSchemaVersion(setup)).toBe(SCHEMA_VERSION_36 - 1);
+    runMigrations(setup, SCHEMA_VERSION_37 - 1);
+    expect(getSchemaVersion(setup)).toBe(SCHEMA_VERSION_37 - 1);
     return { dbPath, db: setup };
   }
 
@@ -3366,7 +3451,7 @@ describe("v36: the platform client rows and the grants naming them leave", () =>
   }
 
   it("removes the client rows from every table and every grant naming one, its history kept, and keeps the accounts its mints created and their grants", () => {
-    const { dbPath, db: setup } = v35Database();
+    const { dbPath, db: setup } = v36Database();
     seedClient(setup);
     seedGrants(setup);
     insert(setup, "identity_account", "ida_app_user", appUser);
@@ -3374,8 +3459,8 @@ describe("v36: the platform client rows and the grants naming them leave", () =>
 
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());
-    runMigrations(db, SCHEMA_VERSION_36);
-    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_36);
+    runMigrations(db, SCHEMA_VERSION_37);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_37);
 
     for (const table of KIND_TABLES) {
       expect(count(db, table, "platform_client"), table).toBe(0);
@@ -3392,7 +3477,7 @@ describe("v36: the platform client rows and the grants naming them leave", () =>
   });
 
   it("reads grants across keyset pages, missing none past the first page", () => {
-    const { dbPath, db: setup } = v35Database();
+    const { dbPath, db: setup } = v36Database();
     seedClient(setup);
     setup.exec("BEGIN");
     for (let i = 0; i <= PLATFORM_CLIENT_RETIRED_PAGE_SIZE; i++) {
@@ -3414,7 +3499,7 @@ describe("v36: the platform client rows and the grants naming them leave", () =>
 
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());
-    runMigrations(db, SCHEMA_VERSION_36);
+    runMigrations(db, SCHEMA_VERSION_37);
 
     expect(count(db, "resources", "iam_policy")).toBe(PLATFORM_CLIENT_RETIRED_PAGE_SIZE);
     const last = `iam_page_${String(PLATFORM_CLIENT_RETIRED_PAGE_SIZE).padStart(4, "0")}`;
@@ -3422,8 +3507,8 @@ describe("v36: the platform client rows and the grants naming them leave", () =>
     expect(count(db, "resources", "platform_client")).toBe(0);
   });
 
-  it("a grant that does not decode fails the step, names the row, rolls back, and leaves the database at v35", () => {
-    const { dbPath, db: setup } = v35Database();
+  it("a grant that does not decode fails the step, names the row, rolls back, and leaves the database at v36", () => {
+    const { dbPath, db: setup } = v36Database();
     seedClient(setup);
     insert(setup, "iam_policy", "iam_a_retired", policyRow({ ...retiredGrants[0]!, id: "iam_a_retired" }));
     insert(setup, "iam_policy", "iam_z_broken", new Uint8Array([0x22, 0xff]));
@@ -3431,10 +3516,10 @@ describe("v36: the platform client rows and the grants naming them leave", () =>
 
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());
-    expect(() => runMigrations(db, SCHEMA_VERSION_36)).toThrow(
+    expect(() => runMigrations(db, SCHEMA_VERSION_37)).toThrow(
       "iam_policy 'iam_z_broken' cannot be read to retire the platform client kind",
     );
-    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_36 - 1);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_37 - 1);
     expect(row(db, "iam_policy", "iam_a_retired").data).toEqual(
       policyRow({ ...retiredGrants[0]!, id: "iam_a_retired" }),
     );
@@ -3470,12 +3555,12 @@ describe("v36: the platform client rows and the grants naming them leave", () =>
 
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());
-    runMigrations(db, SCHEMA_VERSION_36 - 1);
+    runMigrations(db, SCHEMA_VERSION_37 - 1);
     // The name backfill read the retired row through its envelope.
     expect(count(db, "resource_names", "platform_client")).toBe(1);
 
-    runMigrations(db, SCHEMA_VERSION_36);
-    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_36);
+    runMigrations(db, SCHEMA_VERSION_37);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_37);
     for (const table of KIND_TABLES) {
       expect(count(db, table, "platform_client"), table).toBe(0);
     }
