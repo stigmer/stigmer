@@ -13,11 +13,11 @@ import { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/s
 import { EvalRunPartialReason, EvalRunPhase, EvalRunTryState } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
 import { describe, expect, it } from "vitest";
 import { EvalExit, evalExitCode, finishedTries, renderEvalReport, renderEvalTables, renderNotRun } from "../report.js";
-import { finishedAgentEvalRun } from "./fixtures.js";
+import { finishedEvalRunOnAgent } from "./fixtures.js";
 
 describe("finishedTries about an agent", () => {
   it("names each try's case by its plugin, and keys two plugins' same-named cases apart", () => {
-    const tries = finishedTries(finishedAgentEvalRun());
+    const tries = finishedTries(finishedEvalRunOnAgent());
     expect(tries.map((attempt) => attempt.line)).toEqual([
       "refund-policy/refund-window · native/claude-sonnet-4-6 · with · try 1/1 · 1.00",
       "tracker/refund-window · native/claude-sonnet-4-6 · with · try 1/1 · 1.00",
@@ -28,7 +28,7 @@ describe("finishedTries about an agent", () => {
 
 describe("renderEvalTables about an agent", () => {
   it("prints a one-arm block per plugin and target under the agent's and plugin's versions, and a plugin not run with its reason", () => {
-    const lines = renderEvalTables(finishedAgentEvalRun(), "support-desk").split("\n");
+    const lines = renderEvalTables(finishedEvalRunOnAgent(), "support-desk").split("\n");
     expect(lines[0]).toBe("support-desk@0123456789ab · refund-policy@c0ffee111111 · native/claude-sonnet-4-6");
     expect(lines[1]).toMatch(/^CASE\s+SCORE\s+PASS%\s+PASS\^k\s+RUNS\s+COST\s+NOTES$/);
     expect(lines[3]).toMatch(/^refund-window\s+1\.00\s+100%\s+yes\s+1\s+\$0\.20$/);
@@ -40,7 +40,7 @@ describe("renderEvalTables about an agent", () => {
   });
 
   it("heads with the requested version before the eval run stamps one, and the slug alone with none", () => {
-    const evalRun = finishedAgentEvalRun();
+    const evalRun = finishedEvalRunOnAgent();
     evalRun.status!.agentVersionHash = "";
     evalRun.spec!.agentVersion = "stable";
     expect(renderEvalTables(evalRun, "support-desk").split("\n")[0]).toMatch(/^support-desk@stable · /);
@@ -49,7 +49,7 @@ describe("renderEvalTables about an agent", () => {
   });
 
   it("keeps a plugin's reason and slug on one line", () => {
-    const evalRun = finishedAgentEvalRun();
+    const evalRun = finishedEvalRunOnAgent();
     evalRun.status!.plugins[2]!.notRunReason = "no eval cases\n\u001b[2Jat this version";
     expect(renderEvalTables(evalRun, "support-desk")).toContain("  not run: no eval cases [2Jat this version");
   });
@@ -57,7 +57,7 @@ describe("renderEvalTables about an agent", () => {
 
 describe("renderEvalTables comparing a plugin on an agent", () => {
   it("prints the two-arm table, the compared plugin marked", () => {
-    const evalRun = finishedAgentEvalRun();
+    const evalRun = finishedEvalRunOnAgent();
     evalRun.spec!.comparedPluginId = "plg_refund";
     evalRun.spec!.ablation = EvalRunAblation.with_without;
     evalRun.status!.plugins[0]!.compared = true;
@@ -68,7 +68,7 @@ describe("renderEvalTables comparing a plugin on an agent", () => {
   });
 
   it("prints the one-arm table when the comparison's ablation is none", () => {
-    const evalRun = finishedAgentEvalRun();
+    const evalRun = finishedEvalRunOnAgent();
     evalRun.spec!.comparedPluginId = "plg_refund";
     evalRun.spec!.ablation = EvalRunAblation.none;
     expect(renderEvalTables(evalRun, "support-desk").split("\n")[1]).toMatch(/^CASE\s+SCORE\s+PASS%/);
@@ -77,13 +77,13 @@ describe("renderEvalTables comparing a plugin on an agent", () => {
 
 describe("renderNotRun about an agent", () => {
   it("names each case a plugin listed and did not run, by its plugin", () => {
-    expect(renderNotRun(finishedAgentEvalRun())).toBe("Not run:\n  tracker/needs-fixture: not run: plugins\n");
+    expect(renderNotRun(finishedEvalRunOnAgent())).toBe("Not run:\n  tracker/needs-fixture: not run: plugins\n");
   });
 });
 
 describe("renderEvalReport about an agent", () => {
   it("prints the tables, the summary with no mean Δ, and the cases not run", () => {
-    const out = renderEvalReport(finishedAgentEvalRun(), {
+    const out = renderEvalReport(finishedEvalRunOnAgent(), {
       subjectSlug: "support-desk",
       interrupted: false,
       durationSeconds: 42,
@@ -96,7 +96,7 @@ describe("renderEvalReport about an agent", () => {
   });
 
   it("says why the eval run stopped, or that it may still be running", () => {
-    const evalRun = finishedAgentEvalRun(EvalRunPhase.partial);
+    const evalRun = finishedEvalRunOnAgent(EvalRunPhase.partial);
     evalRun.status!.partialReason = EvalRunPartialReason.cost_ceiling;
     const opts = { subjectSlug: "support-desk", interrupted: false, durationSeconds: 1, stillRunning: "" };
     expect(renderEvalReport(evalRun, opts)).toContain("Stopped at the spending limit: 2 of 2 tries ran.");
@@ -108,33 +108,33 @@ describe("renderEvalReport about an agent", () => {
 
 describe("evalExitCode about an agent", () => {
   it("is 0 when every case that ran on every plugin passed", () => {
-    expect(evalExitCode(finishedAgentEvalRun(), { interrupted: false, loadFindings: 0 })).toBe(EvalExit.Passed);
+    expect(evalExitCode(finishedEvalRunOnAgent(), { interrupted: false, loadFindings: 0 })).toBe(EvalExit.Passed);
   });
 
   it("is 1 when a case on any plugin is below the threshold", () => {
-    const evalRun = finishedAgentEvalRun();
+    const evalRun = finishedEvalRunOnAgent();
     evalRun.status!.aggregates!.casesPassed = 1;
     expect(evalExitCode(evalRun, { interrupted: false, loadFindings: 0 })).toBe(EvalExit.Failed);
   });
 
   it("is 1 when no case ran", () => {
-    const evalRun = finishedAgentEvalRun();
+    const evalRun = finishedEvalRunOnAgent();
     evalRun.status!.aggregates!.casesTotal = 0;
     evalRun.status!.aggregates!.casesPassed = 0;
     expect(evalExitCode(evalRun, { interrupted: false, loadFindings: 0 })).toBe(EvalExit.Failed);
   });
 
   it("is 1 when a plugin's case was never graded on its target", () => {
-    const evalRun = finishedAgentEvalRun();
+    const evalRun = finishedEvalRunOnAgent();
     const attempt = evalRun.status!.plugins[1]!.cases[0]!.targets[0]!.withPlugin!.tries[0]!;
     attempt.state = EvalRunTryState.not_graded;
     expect(evalExitCode(evalRun, { interrupted: false, loadFindings: 0 })).toBe(EvalExit.Failed);
   });
 
   it("is 2 for a partial eval run and 130 when cancelled", () => {
-    const partial = finishedAgentEvalRun(EvalRunPhase.partial);
+    const partial = finishedEvalRunOnAgent(EvalRunPhase.partial);
     partial.status!.partialReason = EvalRunPartialReason.cost_ceiling;
     expect(evalExitCode(partial, { interrupted: false, loadFindings: 0 })).toBe(EvalExit.Partial);
-    expect(evalExitCode(finishedAgentEvalRun(), { interrupted: true, loadFindings: 0 })).toBe(EvalExit.Interrupted);
+    expect(evalExitCode(finishedEvalRunOnAgent(), { interrupted: true, loadFindings: 0 })).toBe(EvalExit.Interrupted);
   });
 });

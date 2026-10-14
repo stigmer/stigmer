@@ -26,7 +26,7 @@ import { CliExitError } from "../../../errors/index.js";
 import type { EvalIo } from "../follow.js";
 import { readEvalRunOptions, type EvalRunFlags } from "../options.js";
 import { cancelEvalRun, runEvalRun } from "../run.js";
-import { VERSION_HASH, finishedAgentEvalRun } from "./fixtures.js";
+import { VERSION_HASH, finishedEvalRunOnAgent } from "./fixtures.js";
 
 const agent = create(AgentSchema, {
   metadata: { id: "agt_1", org: "org_acme", name: "Support desk", slug: "support-desk" },
@@ -44,9 +44,9 @@ const refundPolicy = create(PluginSchema, {
 });
 
 function pending(): EvalRun {
-  const agentEval = finishedAgentEvalRun(EvalRunPhase.pending);
-  for (const plugin of agentEval.status!.plugins) plugin.cases = [];
-  return agentEval;
+  const evalRun = finishedEvalRunOnAgent(EvalRunPhase.pending);
+  for (const plugin of evalRun.status!.plugins) plugin.cases = [];
+  return evalRun;
 }
 
 /** A server whose eval reads as each of `reads` in turn, then the last one forever. */
@@ -99,7 +99,7 @@ function fakeServer(
       cancel: async (id: string) => {
         calls.push(`cancel ${id}`);
         if (opts.cancelError !== undefined) throw opts.cancelError;
-        const result = finishedAgentEvalRun(EvalRunPhase.partial);
+        const result = finishedEvalRunOnAgent(EvalRunPhase.partial);
         result.status!.partialReason = EvalRunPartialReason.cancelled;
         return result;
       },
@@ -150,7 +150,7 @@ function run(client: Stigmer, org: string, flags: EvalRunFlags, io: EvalIo) {
 
 describe("runEvalRun about an agent", () => {
   it("creates the eval in the agent's organization with every option, follows it, and prints the report", async () => {
-    const server = fakeServer([finishedAgentEvalRun(EvalRunPhase.running), finishedAgentEvalRun()]);
+    const server = fakeServer([finishedEvalRunOnAgent(EvalRunPhase.running), finishedEvalRunOnAgent()]);
     const fake = fakeIo();
     const code = await run(
       server.client,
@@ -202,7 +202,7 @@ describe("runEvalRun about an agent", () => {
   });
 
   it("reads an agent given by id, and sends the named models as targets", async () => {
-    const server = fakeServer([finishedAgentEvalRun()]);
+    const server = fakeServer([finishedEvalRunOnAgent()]);
     const code = await run(server.client, "", { agent: "agt_1", model: ["native/claude-opus-4-1"] }, fakeIo().io);
     expect(code).toBe(0);
     expect(server.calls[0]).toBe("agent.get agt_1");
@@ -210,7 +210,7 @@ describe("runEvalRun about an agent", () => {
   });
 
   it("writes the result document with the agent's slug under --json, and prints nothing else", async () => {
-    const server = fakeServer([finishedAgentEvalRun()]);
+    const server = fakeServer([finishedEvalRunOnAgent()]);
     const fake = fakeIo();
     const code = await run(server.client, "acme", { json: "out.json" }, fake.io);
     expect(code).toBe(0);
@@ -232,7 +232,7 @@ describe("runEvalRun about an agent", () => {
   });
 
   it("prints the id and returns under --no-wait, naming get eval-run", async () => {
-    const server = fakeServer([finishedAgentEvalRun()]);
+    const server = fakeServer([finishedEvalRunOnAgent()]);
     const fake = fakeIo();
     const code = await run(server.client, "acme", { wait: false }, fake.io);
     expect(code).toBe(0);
@@ -242,7 +242,7 @@ describe("runEvalRun about an agent", () => {
   });
 
   it("cancels on Ctrl+C and exits 130", async () => {
-    const server = fakeServer([finishedAgentEvalRun(EvalRunPhase.running)]);
+    const server = fakeServer([finishedEvalRunOnAgent(EvalRunPhase.running)]);
     const fake = fakeIo({ interruptAfterSleeps: 1 });
     const code = await run(server.client, "acme", {}, fake.io);
     expect(code).toBe(130);
@@ -251,7 +251,7 @@ describe("runEvalRun about an agent", () => {
   });
 
   it("names eval cancel on a second Ctrl+C", async () => {
-    const server = fakeServer([finishedAgentEvalRun(EvalRunPhase.running)]);
+    const server = fakeServer([finishedEvalRunOnAgent(EvalRunPhase.running)]);
     const fake = fakeIo();
     // Two Ctrl+Cs while the command waits to read the eval again.
     const io: EvalIo = {
@@ -282,14 +282,14 @@ describe("runEvalRun about an agent", () => {
     ["the compared plugin's read", { pluginError: new StigmerError("not-found", "plugin not found", Code.NotFound) }],
     ["create", { createError: new StigmerError("failed-precondition", "the agent uses no plugin", Code.FailedPrecondition) }],
   ])("exits 1 when %s is refused", async (_name, opts) => {
-    const server = fakeServer([finishedAgentEvalRun()], opts);
+    const server = fakeServer([finishedEvalRunOnAgent()], opts);
     const error = await run(server.client, "acme", { plugin: "refund-policy" }, fakeIo().io).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(CliExitError);
     expect((error as CliExitError).exitCode).toBe(1);
   });
 
   it("compares a plugin read in the agent's organization, sent by id, its load findings printed", async () => {
-    const server = fakeServer([finishedAgentEvalRun()]);
+    const server = fakeServer([finishedEvalRunOnAgent()]);
     const fake = fakeIo();
     const code = await run(server.client, "acme", { plugin: "refund-policy", ablation: "none" }, fake.io);
     expect(code).toBe(1);
@@ -300,7 +300,7 @@ describe("runEvalRun about an agent", () => {
   });
 
   it("asks for an organization before reading an agent by slug on a server that needs one", async () => {
-    const server = fakeServer([finishedAgentEvalRun()]);
+    const server = fakeServer([finishedEvalRunOnAgent()]);
     const error = await run(server.client, "", {}, fakeIo().io).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(CliExitError);
     expect((error as CliExitError).exitCode).toBe(1);

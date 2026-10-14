@@ -72,8 +72,8 @@ class SessionQueryControllerServicer(object):
     def listByAgent(self, request, context):
         """List the conversations on one agent, whichever version each runs.
 
-        Results are filtered to the sessions the caller can view. A plugin
-        eval's tries are left out, as in list.
+        Results are filtered to the sessions the caller can view. An eval
+        run's tries are left out, as in list.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

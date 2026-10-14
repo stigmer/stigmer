@@ -31,7 +31,7 @@ import { newEvalContextLoader } from "../context.js";
 import type { EvalContext } from "../context.js";
 import { SKIP_WRITE } from "../status-book.js";
 import {
-  AGENT_EVAL_RUN_ID,
+  EVAL_RUN_ON_AGENT_ID,
   MODEL,
   SUITE_FILES,
   catalog,
@@ -65,13 +65,13 @@ function storeFailing(method: "getResource" | "updateResource"): Store {
   });
 }
 
-/** The seeded agent eval run's context, over `files` as the plugin's suite. */
+/** The seeded eval run on an agent's context, over `files` as the plugin's suite. */
 async function contextOf(files = SUITE_FILES): Promise<EvalContext> {
   const context = await newEvalContextLoader({
     store: temp.store,
     suites: suiteSource(suiteFiles(files)),
     catalog,
-  })(AGENT_EVAL_RUN_ID);
+  })(EVAL_RUN_ON_AGENT_ID);
   if (context === undefined) {
     throw new Error("expected the eval run's context");
   }
@@ -87,16 +87,16 @@ async function seeded(options: Parameters<typeof seedEvalRunOnAgent>[1] = {}): P
 describe("the eval run status book's read", () => {
   it("answers the phase and the threshold, the default when the spec names none", async () => {
     await seeded({ phase: EvalRunPhase.running });
-    expect(await evalRunStatusBook.read(temp.store, AGENT_EVAL_RUN_ID)).toEqual({
+    expect(await evalRunStatusBook.read(temp.store, EVAL_RUN_ON_AGENT_ID)).toEqual({
       phase: EvalRunPhase.running,
       threshold: DEFAULT_THRESHOLD,
     });
   });
 
   it("answers undefined for a row gone, and throws any other store fault", async () => {
-    expect(await evalRunStatusBook.read(temp.store, AGENT_EVAL_RUN_ID)).toBeUndefined();
+    expect(await evalRunStatusBook.read(temp.store, EVAL_RUN_ON_AGENT_ID)).toBeUndefined();
     await seeded();
-    await expect(evalRunStatusBook.read(storeFailing("getResource"), AGENT_EVAL_RUN_ID)).rejects.toThrow(
+    await expect(evalRunStatusBook.read(storeFailing("getResource"), EVAL_RUN_ON_AGENT_ID)).rejects.toThrow(
       "the database is unreachable",
     );
   });
@@ -106,7 +106,7 @@ describe("the eval run status book's write", () => {
   it("leaves the row as it was when the write answers SKIP_WRITE", async () => {
     await seeded();
     const before = await readEvalRunOnAgent(temp.store);
-    await evalRunStatusBook.write(temp.store, AGENT_EVAL_RUN_ID, ({ status }) => {
+    await evalRunStatusBook.write(temp.store, EVAL_RUN_ON_AGENT_ID, ({ status }) => {
       status.phase = EvalRunPhase.failed;
       return SKIP_WRITE;
     });
@@ -115,12 +115,12 @@ describe("the eval run status book's write", () => {
 
   it("writes nothing to a row gone, and throws any other store fault", async () => {
     await expect(
-      evalRunStatusBook.write(temp.store, AGENT_EVAL_RUN_ID, ({ status }) => {
+      evalRunStatusBook.write(temp.store, EVAL_RUN_ON_AGENT_ID, ({ status }) => {
         status.phase = EvalRunPhase.failed;
       }),
     ).resolves.toBeUndefined();
     await seeded();
-    await expect(evalRunStatusBook.write(storeFailing("updateResource"), AGENT_EVAL_RUN_ID, () => undefined)).rejects.toThrow(
+    await expect(evalRunStatusBook.write(storeFailing("updateResource"), EVAL_RUN_ON_AGENT_ID, () => undefined)).rejects.toThrow(
       "the database is unreachable",
     );
   });
@@ -129,7 +129,7 @@ describe("the eval run status book's write", () => {
     await seeded();
     const context = await contextOf();
     const planned: boolean[] = [];
-    await evalRunStatusBook.write(temp.store, AGENT_EVAL_RUN_ID, (view) => {
+    await evalRunStatusBook.write(temp.store, EVAL_RUN_ON_AGENT_ID, (view) => {
       planned.push(view.planned());
       view.skeleton(context);
       planned.push(view.planned());
@@ -150,7 +150,7 @@ describe("the eval run's skeleton", () => {
   it("notes that the agent's own model ran on a case that names one, while no target is named", async () => {
     await seeded();
     const context = await contextOf(NAMES_A_MODEL);
-    await evalRunStatusBook.write(temp.store, AGENT_EVAL_RUN_ID, (view) => view.skeleton(context));
+    await evalRunStatusBook.write(temp.store, EVAL_RUN_ON_AGENT_ID, (view) => view.skeleton(context));
     const cases = (await readEvalRunOnAgent(temp.store)).status?.plugins[0]?.cases ?? [];
     expect(cases[0]?.notes).toContain(agentModelNote(MODEL));
     expect(agentModelNote(MODEL)).toBe(`model '${MODEL}' is the case's; the eval run runs the agent's own model`);
@@ -160,7 +160,7 @@ describe("the eval run's skeleton", () => {
   it("writes both arms' pending tries when it compares a plugin, and only the with arm otherwise", async () => {
     await seeded({ compared: true });
     const compared = await contextOf();
-    await evalRunStatusBook.write(temp.store, AGENT_EVAL_RUN_ID, (view) => view.skeleton(compared));
+    await evalRunStatusBook.write(temp.store, EVAL_RUN_ON_AGENT_ID, (view) => view.skeleton(compared));
     const target = (await readEvalRunOnAgent(temp.store)).status?.plugins[0]?.cases[0]?.targets[0];
     expect(target?.withPlugin?.tries.length).toBeGreaterThan(0);
     expect(target?.withoutPlugin?.tries.length).toBe(target?.withPlugin?.tries.length);
@@ -169,7 +169,7 @@ describe("the eval run's skeleton", () => {
   it("carries no such note once the eval names a target", async () => {
     await seeded({ targets: [{ harness: Harness.NATIVE, modelName: MODEL }] });
     const context = await contextOf(NAMES_A_MODEL);
-    await evalRunStatusBook.write(temp.store, AGENT_EVAL_RUN_ID, (view) => view.skeleton(context));
+    await evalRunStatusBook.write(temp.store, EVAL_RUN_ON_AGENT_ID, (view) => view.skeleton(context));
     const cases = (await readEvalRunOnAgent(temp.store)).status?.plugins[0]?.cases ?? [];
     expect(cases[0]?.notes).not.toContain(agentModelNote(MODEL));
   });
@@ -178,7 +178,7 @@ describe("the eval run's skeleton", () => {
     await seeded();
     const context = await contextOf();
     const sourceless: EvalContext = { ...context, caseSources: [0] };
-    await evalRunStatusBook.write(temp.store, AGENT_EVAL_RUN_ID, (view) => view.skeleton(sourceless));
+    await evalRunStatusBook.write(temp.store, EVAL_RUN_ON_AGENT_ID, (view) => view.skeleton(sourceless));
     const status = (await readEvalRunOnAgent(temp.store)).status;
     expect(status?.plugins[0]?.cases.map((evalCase) => evalCase.caseName)).toEqual(["first-case"]);
     expect(status?.triesTotal).toBe(context.matrix.cells.length);

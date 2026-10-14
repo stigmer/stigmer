@@ -107,7 +107,7 @@ export const TRACKER_DIGEST = "beef00".padEnd(64, "2");
 export const NOTES_DIGEST = "abcdef".padEnd(64, "3");
 
 /** A finished eval run about an agent: two plugins' cases passed, a case and a plugin not run. */
-export function finishedAgentEvalRun(phase: EvalRunPhase = EvalRunPhase.completed): EvalRun {
+export function finishedEvalRunOnAgent(phase: EvalRunPhase = EvalRunPhase.completed): EvalRun {
   return create(EvalRunSchema, {
     metadata: { id: "evr_2", org: "org_acme" },
     spec: { subject: { case: "agentId", value: "agt_1" }, agentVersion: "", maxCostUsd: 5 },

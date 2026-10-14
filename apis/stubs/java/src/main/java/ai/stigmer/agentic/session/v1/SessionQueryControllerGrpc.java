@@ -292,8 +292,8 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List the conversations on one agent, whichever version each runs.
-     * Results are filtered to the sessions the caller can view. A plugin
-     * eval's tries are left out, as in list.
+     * Results are filtered to the sessions the caller can view. An eval
+     * run's tries are left out, as in list.
      * </pre>
      */
     default void listByAgent(ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest request,
@@ -404,8 +404,8 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List the conversations on one agent, whichever version each runs.
-     * Results are filtered to the sessions the caller can view. A plugin
-     * eval's tries are left out, as in list.
+     * Results are filtered to the sessions the caller can view. An eval
+     * run's tries are left out, as in list.
      * </pre>
      */
     public void listByAgent(ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest request,
@@ -504,8 +504,8 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List the conversations on one agent, whichever version each runs.
-     * Results are filtered to the sessions the caller can view. A plugin
-     * eval's tries are left out, as in list.
+     * Results are filtered to the sessions the caller can view. An eval
+     * run's tries are left out, as in list.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.SessionList listByAgent(ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest request) throws io.grpc.StatusException {
@@ -602,8 +602,8 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List the conversations on one agent, whichever version each runs.
-     * Results are filtered to the sessions the caller can view. A plugin
-     * eval's tries are left out, as in list.
+     * Results are filtered to the sessions the caller can view. An eval
+     * run's tries are left out, as in list.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.SessionList listByAgent(ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest request) {
@@ -701,8 +701,8 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List the conversations on one agent, whichever version each runs.
-     * Results are filtered to the sessions the caller can view. A plugin
-     * eval's tries are left out, as in list.
+     * Results are filtered to the sessions the caller can view. An eval
+     * run's tries are left out, as in list.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.SessionList> listByAgent(

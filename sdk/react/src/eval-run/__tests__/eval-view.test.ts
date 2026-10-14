@@ -11,7 +11,7 @@
  * differently to two decimals. Also the pieces every subject shares: the
  * targets the run settings send, the allowed tools as typed and as the
  * API's pattern judges them, and a case list read and compared alone.
- * agent-eval-view.test.ts pins the rules of an eval run about an agent.
+ * eval-view.agent.test.ts pins the rules of an eval run about an agent.
  */
 import { describe, expect, it } from "vitest";
 import { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";

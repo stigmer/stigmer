@@ -35,7 +35,7 @@
  * whose digest differs between the two eval runs, because its cases then
  * changed with it. A phase, reason or try state a newer server added reads
  * in words, never as a bare number. Pinned by `__tests__/eval-view.test.ts`
- * and `__tests__/agent-eval-view.test.ts`.
+ * and `__tests__/eval-view.agent.test.ts`.
  */
 import { ALLOW_TOOL_PATTERN } from "@stigmer/sdk";
 import { timestampDate } from "@bufbuild/protobuf/wkt";

@@ -30,7 +30,7 @@ import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import { attachmentOf, newEvalContextLoader, otherServersOf } from "../context.js";
 import { tryToolsOf } from "../../../domain/eval-run/try-run.js";
 import {
-  AGENT_EVAL_RUN_ID,
+  EVAL_RUN_ON_AGENT_ID,
   AGENT_HASH,
   DIGEST,
   MODEL,
@@ -80,7 +80,7 @@ describe("an eval run's context about an agent", () => {
     await seedPlugin(temp.store);
     await seedEvalRunOnAgent(temp.store);
     const source = suiteSource();
-    const context = await loader(source)(AGENT_EVAL_RUN_ID);
+    const context = await loader(source)(EVAL_RUN_ON_AGENT_ID);
     if (context === undefined) throw new Error("no context");
     expect(context.agent).toEqual({ org: ORG, id: "agt_1", slug: "support-desk", versionHash: AGENT_HASH });
     expect(context.sources.map((entry) => [entry.digest, entry.pluginIndex])).toEqual([[DIGEST, 0]]);
@@ -95,7 +95,7 @@ describe("an eval run's context about an agent", () => {
     await seedAgent(temp.store);
     await seedPlugin(temp.store);
     await seedEvalRunOnAgent(temp.store, { compared: true });
-    const context = await loader()(AGENT_EVAL_RUN_ID);
+    const context = await loader()(EVAL_RUN_ON_AGENT_ID);
     if (context === undefined) throw new Error("no context");
     expect([context.comparedPluginId, context.twoArms]).toEqual([PLUGIN_ID, true]);
     expect(new Set(context.matrix.cells.map((cell) => cell.arm))).toEqual(new Set(["with", "without"]));
@@ -111,7 +111,7 @@ describe("an eval run's context about an agent", () => {
     await seedAgent(temp.store, { mcpServers: [{ name: "zendesk", url: "https://acme-co.zendesk.com/mcp" }] });
     await seedPlugin(temp.store);
     await seedEvalRunOnAgent(temp.store);
-    const context = await loader()(AGENT_EVAL_RUN_ID);
+    const context = await loader()(EVAL_RUN_ON_AGENT_ID);
     if (context === undefined) throw new Error("no context");
     expect(context.ownServers).toEqual([{ slug: "zendesk", key: "zendesk" }]);
     const others = otherServersOf(context, 0);
@@ -128,12 +128,12 @@ describe("an eval run's context about an agent", () => {
     await seedPlugin(temp.store);
     await temp.store.saveResource(
       ApiResourceKind.eval_run,
-      AGENT_EVAL_RUN_ID,
+      EVAL_RUN_ON_AGENT_ID,
       EvalRunSchema,
-      create(EvalRunSchema, { metadata: { id: AGENT_EVAL_RUN_ID, org: ORG, name: AGENT_EVAL_RUN_ID } }),
+      create(EvalRunSchema, { metadata: { id: EVAL_RUN_ON_AGENT_ID, org: ORG, name: EVAL_RUN_ON_AGENT_ID } }),
     );
     const source = suiteSource();
-    expect(await loader(source)(AGENT_EVAL_RUN_ID)).toBeUndefined();
+    expect(await loader(source)(EVAL_RUN_ON_AGENT_ID)).toBeUndefined();
     expect(source.reads).toBe(0);
   });
 
@@ -142,7 +142,7 @@ describe("an eval run's context about an agent", () => {
     await seedPlugin(temp.store);
     await seedEvalRunOnAgent(temp.store, { pluginDigest: "9".repeat(64) });
     const source = suiteSource();
-    expect(await loader(source)(AGENT_EVAL_RUN_ID)).toBeUndefined();
+    expect(await loader(source)(EVAL_RUN_ON_AGENT_ID)).toBeUndefined();
     expect(source.reads).toBe(0);
   });
 
@@ -150,7 +150,7 @@ describe("an eval run's context about an agent", () => {
     await seedAgent(temp.store);
     await seedPlugin(temp.store);
     await seedEvalRunOnAgent(temp.store);
-    const thrown = await loader(suiteSource(), faultyReadsOf(ApiResourceKind.agent))(AGENT_EVAL_RUN_ID).then(
+    const thrown = await loader(suiteSource(), faultyReadsOf(ApiResourceKind.agent))(EVAL_RUN_ON_AGENT_ID).then(
       () => undefined,
       (error: unknown) => error,
     );

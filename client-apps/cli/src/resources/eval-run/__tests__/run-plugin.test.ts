@@ -48,9 +48,9 @@ const plugin = create(PluginSchema, {
 });
 
 function pending(): EvalRun {
-  const pluginEval = finishedEval(EvalRunPhase.pending);
-  casesOf(pluginEval).length = 0;
-  return pluginEval;
+  const evalRun = finishedEval(EvalRunPhase.pending);
+  casesOf(evalRun).length = 0;
+  return evalRun;
 }
 
 function running(): EvalRun {

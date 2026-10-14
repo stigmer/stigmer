@@ -32,8 +32,8 @@ service SessionQueryController {
 
   // List the conversations on one agent, whichever version each runs.
   //
-  // Results are filtered to the sessions the caller can view. A plugin
-  // eval's tries are left out, as in list.
+  // Results are filtered to the sessions the caller can view. An eval
+  // run's tries are left out, as in list.
   //
   // @internal
   // Authorization is handled in handler via FGA query for authorized

@@ -170,7 +170,7 @@ export async function readEval(store: Store) {
 
 export const AGENT_ID = "agt_1";
 export const AGENT_HASH = "a".repeat(64);
-export const AGENT_EVAL_RUN_ID = "evr_agent";
+export const EVAL_RUN_ON_AGENT_ID = "evr_agent";
 
 /** The agent under eval at AGENT_HASH, attaching the seeded plugin and running MODEL. */
 export async function seedAgent(
@@ -211,10 +211,10 @@ export async function seedEvalRunOnAgent(
 ): Promise<void> {
   await store.saveResource(
     ApiResourceKind.eval_run,
-    AGENT_EVAL_RUN_ID,
+    EVAL_RUN_ON_AGENT_ID,
     EvalRunSchema,
     create(EvalRunSchema, {
-      metadata: { id: AGENT_EVAL_RUN_ID, org: ORG, name: AGENT_EVAL_RUN_ID },
+      metadata: { id: EVAL_RUN_ON_AGENT_ID, org: ORG, name: EVAL_RUN_ON_AGENT_ID },
       spec: {
         subject: { case: "agentId", value: AGENT_ID },
         agentVersion: AGENT_HASH,
@@ -242,7 +242,7 @@ export async function seedEvalRunOnAgent(
 }
 
 export async function readEvalRunOnAgent(store: Store) {
-  return store.getResource(ApiResourceKind.eval_run, AGENT_EVAL_RUN_ID, EvalRunSchema);
+  return store.getResource(ApiResourceKind.eval_run, EVAL_RUN_ON_AGENT_ID, EvalRunSchema);
 }
 
 /** What the lane was asked, and how it answers. */

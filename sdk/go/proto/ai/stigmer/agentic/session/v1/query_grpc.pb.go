@@ -42,8 +42,8 @@ type SessionQueryControllerClient interface {
 	List(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*SessionList, error)
 	// List the conversations on one agent, whichever version each runs.
 	//
-	// Results are filtered to the sessions the caller can view. A plugin
-	// eval's tries are left out, as in list.
+	// Results are filtered to the sessions the caller can view. An eval
+	// run's tries are left out, as in list.
 	ListByAgent(ctx context.Context, in *ListSessionsByAgentRequest, opts ...grpc.CallOption) (*SessionList, error)
 	// List the conversations an agent channel created.
 	//
@@ -160,8 +160,8 @@ type SessionQueryControllerServer interface {
 	List(context.Context, *ListSessionsRequest) (*SessionList, error)
 	// List the conversations on one agent, whichever version each runs.
 	//
-	// Results are filtered to the sessions the caller can view. A plugin
-	// eval's tries are left out, as in list.
+	// Results are filtered to the sessions the caller can view. An eval
+	// run's tries are left out, as in list.
 	ListByAgent(context.Context, *ListSessionsByAgentRequest) (*SessionList, error)
 	// List the conversations an agent channel created.
 	//
