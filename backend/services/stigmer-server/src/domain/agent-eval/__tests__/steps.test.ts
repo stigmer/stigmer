@@ -317,7 +317,7 @@ describe("ResolveAgentEvalDefaults", () => {
     expect(refused.rawMessage).toBe(PLUGIN_EVAL_REAL_SERVERS_CONFLICT_MESSAGE);
   });
 
-  it("keeps an entry naming one of the version's own servers and refuses one naming a server it has neither of", async () => {
+  it("keeps an entry naming one of the version's own servers and refuses one naming a server it does not write", async () => {
     const withServer = clone(AgentSchema, AGENT);
     withServer.spec!.mcpServers = [create(AgentMcpServerSchema, { name: "zendesk", url: "https://acme-co.zendesk.com/mcp" })];
     await temp.store.saveResource(ApiResourceKind.agent, AGENT_ID, AgentSchema, withServer);
@@ -332,7 +332,7 @@ describe("ResolveAgentEvalDefaults", () => {
     const refused = await failure(() => newResolveAgentEvalDefaultsStep(temp.store).execute(evaluated(other)));
     expect(refused.code).toBe(Code.InvalidArgument);
     expect(refused.rawMessage).toBe(
-      "allow_tools entry 'mcp__github__*' names MCP server 'github', which is none of the agent's own servers or its plugins'",
+      "allow_tools entry 'mcp__github__*' names MCP server 'github', which is none of the servers the agent or its subagents write",
     );
   });
 

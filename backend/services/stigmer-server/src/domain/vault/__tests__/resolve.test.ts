@@ -3079,6 +3079,24 @@ describe("an agent's own MCP server", () => {
     }
   });
 
+  it("keeps its login key from the agent's shell, as every key a tool reads, though the agent declares it", () => {
+    const requirements = runRequirements({
+      execution: runOf(),
+      session: sessionOf(),
+      agentSpec: writing({}, { ZENDESK_ACCESS_TOKEN: KEY, OWN: KEY }),
+      agentName: "Helper",
+      agentId: "agt_helper",
+      agentVersion: "",
+      agentOrg: ORG,
+      subagents: [],
+      plugins: [],
+    });
+    expect(requirements.map((requirement) => [requirement.key, requirement.declarer.kind])).toEqual([
+      ["OWN", "agent"],
+      ["ZENDESK_ACCESS_TOKEN", "tool"],
+    ]);
+  });
+
   it("takes the login its own Authorization header names, required, and adds no optional one", () => {
     const requirements = runRequirements({
       execution: runOf(),

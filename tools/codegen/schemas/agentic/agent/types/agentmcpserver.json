@@ -11,7 +11,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "The server's name in this agent, which names its tools\n mcp__\u003cname\u003e__\u003ctool\u003e: lowercase letters, digits and hyphens, starting\n with a letter and not ending with a hyphen.",
+      "description": "The server's name in this agent, which names its tools\n mcp__\u003cname\u003e__\u003ctool\u003e: 2 to 63 lowercase letters, digits and hyphens,\n starting with a letter and not ending with a hyphen.",
       "required": false,
       "validation": {
         "maxLength": 63,

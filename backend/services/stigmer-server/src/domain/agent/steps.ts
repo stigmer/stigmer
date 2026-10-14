@@ -93,8 +93,9 @@ export function newValidatePluginListStep(
 // proto's per-field rules cannot reach: across entries, and against the
 // rules a plugin's HTTP server is held to at install, so a server written
 // in an agent starts in a run exactly when the same server in a plugin
-// would. A name is used once, and never one of the platform's or any name
-// starting "stigmer", so `mcp__<name>__<tool>` always names one server. The
+// would. A name is used once, and never one of the platform's, any name
+// starting "stigmer", or "plugin" (`isReservedMcpServerName`), so
+// `mcp__<name>__<tool>` always names one server, never a plugin's. The
 // address is the plugin reader's (https, or http on a loopback host; no
 // credentials or fragment) and holds no `${...}`: where a run dials is
 // fixed when the agent is saved. A header is named once in any letter case,
@@ -120,7 +121,7 @@ export function newValidateMcpServersStep(): PipelineStep<AgentDesc> {
         if (names.has(server.name)) refuse("is listed more than once; give each server its own name");
         names.add(server.name);
         if (isReservedMcpServerName(server.name)) {
-          refuse("takes a name the platform keeps for its own servers; names starting with stigmer are reserved");
+          refuse("takes a reserved name: names starting with stigmer are the platform's, and plugin names a plugin's servers");
         }
         if (server.url.includes("${")) {
           refuse("names a variable in its url; the address is fixed when the agent is saved, so write it out");

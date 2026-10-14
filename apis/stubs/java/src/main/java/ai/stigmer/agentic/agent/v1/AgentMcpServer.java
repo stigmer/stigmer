@@ -72,8 +72,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The server's name in this agent, which names its tools
-   * mcp__&lt;name&gt;__&lt;tool&gt;: lowercase letters, digits and hyphens, starting
-   * with a letter and not ending with a hyphen.
+   * mcp__&lt;name&gt;__&lt;tool&gt;: 2 to 63 lowercase letters, digits and hyphens,
+   * starting with a letter and not ending with a hyphen.
    * </pre>
    *
    * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -95,8 +95,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The server's name in this agent, which names its tools
-   * mcp__&lt;name&gt;__&lt;tool&gt;: lowercase letters, digits and hyphens, starting
-   * with a letter and not ending with a hyphen.
+   * mcp__&lt;name&gt;__&lt;tool&gt;: 2 to 63 lowercase letters, digits and hyphens,
+   * starting with a letter and not ending with a hyphen.
    * </pre>
    *
    * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -650,8 +650,8 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * The server's name in this agent, which names its tools
-     * mcp__&lt;name&gt;__&lt;tool&gt;: lowercase letters, digits and hyphens, starting
-     * with a letter and not ending with a hyphen.
+     * mcp__&lt;name&gt;__&lt;tool&gt;: 2 to 63 lowercase letters, digits and hyphens,
+     * starting with a letter and not ending with a hyphen.
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -672,8 +672,8 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * The server's name in this agent, which names its tools
-     * mcp__&lt;name&gt;__&lt;tool&gt;: lowercase letters, digits and hyphens, starting
-     * with a letter and not ending with a hyphen.
+     * mcp__&lt;name&gt;__&lt;tool&gt;: 2 to 63 lowercase letters, digits and hyphens,
+     * starting with a letter and not ending with a hyphen.
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -695,8 +695,8 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * The server's name in this agent, which names its tools
-     * mcp__&lt;name&gt;__&lt;tool&gt;: lowercase letters, digits and hyphens, starting
-     * with a letter and not ending with a hyphen.
+     * mcp__&lt;name&gt;__&lt;tool&gt;: 2 to 63 lowercase letters, digits and hyphens,
+     * starting with a letter and not ending with a hyphen.
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -714,8 +714,8 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * The server's name in this agent, which names its tools
-     * mcp__&lt;name&gt;__&lt;tool&gt;: lowercase letters, digits and hyphens, starting
-     * with a letter and not ending with a hyphen.
+     * mcp__&lt;name&gt;__&lt;tool&gt;: 2 to 63 lowercase letters, digits and hyphens,
+     * starting with a letter and not ending with a hyphen.
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -730,8 +730,8 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * The server's name in this agent, which names its tools
-     * mcp__&lt;name&gt;__&lt;tool&gt;: lowercase letters, digits and hyphens, starting
-     * with a letter and not ending with a hyphen.
+     * mcp__&lt;name&gt;__&lt;tool&gt;: 2 to 63 lowercase letters, digits and hyphens,
+     * starting with a letter and not ending with a hyphen.
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>

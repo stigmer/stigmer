@@ -40,6 +40,7 @@ describe("checkAllowTools", () => {
       ok: false,
       entry: "mcp__plugin_other_github__*",
       server: "plugin_other_github",
+      names: "plugin",
     });
   });
 
@@ -50,11 +51,13 @@ describe("checkAllowTools", () => {
       ok: false,
       entry: "mcp__plugin_thermos_github",
       server: "plugin_thermos_github",
+      names: "plugin",
     });
     expect(checkAllowTools(["mcp__plugin_Thermos_jira__search"], [plugin])).toEqual({
       ok: false,
       entry: "mcp__plugin_Thermos_jira__search",
       server: "plugin_Thermos_jira",
+      names: "plugin",
     });
   });
 
@@ -74,6 +77,7 @@ describe("checkAllowTools", () => {
       ok: false,
       entry: "mcp__plugin_other_ledger__post",
       server: "plugin_other_ledger",
+      names: "plugin",
     });
   });
 
@@ -84,11 +88,13 @@ describe("checkAllowTools", () => {
       ok: false,
       entry: "mcp__github__*",
       server: "github",
+      names: "agent",
     });
     expect(checkAllowTools(["mcp__github__*"], [plugin], [])).toEqual({
       ok: false,
       entry: "mcp__github__*",
       server: "github",
+      names: "agent",
     });
   });
 });

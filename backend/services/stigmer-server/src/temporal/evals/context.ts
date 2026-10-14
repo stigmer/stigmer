@@ -97,7 +97,7 @@ export interface AgentEvalContext {
   readonly agent: AgentAttachmentFacts;
   /** Every plugin the agent version attaches, in the eval's status order. */
   readonly attached: ReadonlyArray<AttachedPlugin>;
-  /** The MCP servers the agent version writes itself, as a try names them (`mcp__<name>`). */
+  /** The MCP servers the agent version and its subagents write themselves, as a try names them (`mcp__<name>`). */
   readonly ownServers: ReadonlyArray<PluginServer>;
   /** The plugins whose cases run, each with its index into `attached` (and the status's plugins). */
   readonly sources: ReadonlyArray<EvalCaseSource & { readonly pluginIndex: number }>;
@@ -237,8 +237,9 @@ export function attachmentOf(context: EvalContext, arm: EvalArm, source: EvalCas
 /**
  * The MCP servers a try runs beside the case's own plugin's, which the try
  * turns off unless the eval runs real servers (domain/plugin-eval/try-run.ts
- * tryToolsOf): none in a plugin eval; in an agent eval the agent's own
- * servers, which no case mocks, and every other attached plugin's.
+ * tryToolsOf): none in a plugin eval; in an agent eval the servers the
+ * agent and its subagents write themselves, which no case mocks, and every
+ * other attached plugin's.
  */
 export function otherServersOf(context: EvalContext, caseIndex: number): PluginServer[] {
   if (context.kind === "plugin") {

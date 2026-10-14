@@ -25,7 +25,7 @@ const PLUGIN_MCP_PREFIX = "mcp__plugin_";
 /** The check's outcome: the entries as written, or the first that names a server of another plugin. */
 export type AllowToolsOutcome =
   | { readonly ok: true; readonly tools: readonly string[] }
-  | { readonly ok: false; readonly entry: string; readonly server: string };
+  | { readonly ok: false; readonly entry: string; readonly server: string; readonly names: "plugin" | "agent" };
 
 /** The server part of a plugin MCP entry: everything between `mcp__` and the next `__`. */
 function serverPartOf(entry: string): string {
@@ -52,7 +52,7 @@ export function checkAllowTools(
     if (entry.startsWith(PLUGIN_MCP_PREFIX)) {
       const server = serverPartOf(entry);
       if (!own.has(server)) {
-        return { ok: false, entry, server };
+        return { ok: false, entry, server, names: "plugin" };
       }
       continue;
     }
@@ -61,7 +61,7 @@ export function checkAllowTools(
     }
     const server = serverPartOf(entry);
     if (server !== "*" && !written.has(server)) {
-      return { ok: false, entry, server };
+      return { ok: false, entry, server, names: "agent" };
     }
   }
   return { ok: true, tools: [...tools] };

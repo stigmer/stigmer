@@ -993,7 +993,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * or headers; anyone who may edit the agent may keep or remove them. A
    * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
    * disallowed_tools. A run logs in with the vault connection saved at the
-   * server's address, or calls it with no login when there is none; a
+   * server's address, else a vault secret named &lt;NAME&gt;_ACCESS_TOKEN (the
+   * server's name upper-cased, each other character written as _), which is
+   * sent to this server, or calls it with no login when there is neither; a
    * header that names Authorization itself takes that login from its
    * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
    * value is filled from the run's values and sent to this server only,
@@ -1016,7 +1018,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * or headers; anyone who may edit the agent may keep or remove them. A
    * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
    * disallowed_tools. A run logs in with the vault connection saved at the
-   * server's address, or calls it with no login when there is none; a
+   * server's address, else a vault secret named &lt;NAME&gt;_ACCESS_TOKEN (the
+   * server's name upper-cased, each other character written as _), which is
+   * sent to this server, or calls it with no login when there is neither; a
    * header that names Authorization itself takes that login from its
    * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
    * value is filled from the run's values and sent to this server only,
@@ -1040,7 +1044,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * or headers; anyone who may edit the agent may keep or remove them. A
    * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
    * disallowed_tools. A run logs in with the vault connection saved at the
-   * server's address, or calls it with no login when there is none; a
+   * server's address, else a vault secret named &lt;NAME&gt;_ACCESS_TOKEN (the
+   * server's name upper-cased, each other character written as _), which is
+   * sent to this server, or calls it with no login when there is neither; a
    * header that names Authorization itself takes that login from its
    * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
    * value is filled from the run's values and sent to this server only,
@@ -1063,7 +1069,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * or headers; anyone who may edit the agent may keep or remove them. A
    * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
    * disallowed_tools. A run logs in with the vault connection saved at the
-   * server's address, or calls it with no login when there is none; a
+   * server's address, else a vault secret named &lt;NAME&gt;_ACCESS_TOKEN (the
+   * server's name upper-cased, each other character written as _), which is
+   * sent to this server, or calls it with no login when there is neither; a
    * header that names Authorization itself takes that login from its
    * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
    * value is filled from the run's values and sent to this server only,
@@ -1086,7 +1094,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * or headers; anyone who may edit the agent may keep or remove them. A
    * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
    * disallowed_tools. A run logs in with the vault connection saved at the
-   * server's address, or calls it with no login when there is none; a
+   * server's address, else a vault secret named &lt;NAME&gt;_ACCESS_TOKEN (the
+   * server's name upper-cased, each other character written as _), which is
+   * sent to this server, or calls it with no login when there is neither; a
    * header that names Authorization itself takes that login from its
    * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
    * value is filled from the run's values and sent to this server only,
@@ -4993,7 +5003,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * or headers; anyone who may edit the agent may keep or remove them. A
      * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
      * disallowed_tools. A run logs in with the vault connection saved at the
-     * server's address, or calls it with no login when there is none; a
+     * server's address, else a vault secret named &lt;NAME&gt;_ACCESS_TOKEN (the
+     * server's name upper-cased, each other character written as _), which is
+     * sent to this server, or calls it with no login when there is neither; a
      * header that names Authorization itself takes that login from its
      * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
      * value is filled from the run's values and sent to this server only,
@@ -5019,7 +5031,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * or headers; anyone who may edit the agent may keep or remove them. A
      * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
      * disallowed_tools. A run logs in with the vault connection saved at the
-     * server's address, or calls it with no login when there is none; a
+     * server's address, else a vault secret named &lt;NAME&gt;_ACCESS_TOKEN (the
+     * server's name upper-cased, each other character written as _), which is
+     * sent to this server, or calls it with no login when there is neither; a
      * header that names Authorization itself takes that login from its
      * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
      * value is filled from the run's values and sent to this server only,
@@ -5045,7 +5059,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * or headers; anyone who may edit the agent may keep or remove them. A
      * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
      * disallowed_tools. A run logs in with the vault connection saved at the
-     * server's address, or calls it with no login when there is none; a
+     * server's address, else a vault secret named &lt;NAME&gt;_ACCESS_TOKEN (the
+     * server's name upper-cased, each other character written as _), which is
+     * sent to this server, or calls it with no login when there is neither; a
      * header that names Authorization itself takes that login from its
      * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
      * value is filled from the run's values and sent to this server only,
@@ -5071,7 +5087,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * or headers; anyone who may edit the agent may keep or remove them. A
      * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
      * disallowed_tools. A run logs in with the vault connection saved at the
-     * server's address, or calls it with no login when there is none; a
+     * server's address, else a vault secret named &lt;NAME&gt;_ACCESS_TOKEN (the
+     * server's name upper-cased, each other character written as _), which is
+     * sent to this server, or calls it with no login when there is neither; a
      * header that names Authorization itself takes that login from its
      * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
      * value is filled from the run's values and sent to this server only,
@@ -5104,7 +5122,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * or headers; anyone who may edit the agent may keep or remove them. A
      * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
      * disallowed_tools. A run logs in with the vault connection saved at the
-     * server's address, or calls it with no login when there is none; a
+     * server's address, else a vault secret named &lt;NAME&gt;_ACCESS_TOKEN (the
+     * server's name upper-cased, each other character written as _), which is
+     * sent to this server, or calls it with no login when there is neither; a
      * header that names Authorization itself takes that login from its
      * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
      * value is filled from the run's values and sent to this server only,
@@ -5134,7 +5154,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * or headers; anyone who may edit the agent may keep or remove them. A
      * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
      * disallowed_tools. A run logs in with the vault connection saved at the
-     * server's address, or calls it with no login when there is none; a
+     * server's address, else a vault secret named &lt;NAME&gt;_ACCESS_TOKEN (the
+     * server's name upper-cased, each other character written as _), which is
+     * sent to this server, or calls it with no login when there is neither; a
      * header that names Authorization itself takes that login from its
      * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
      * value is filled from the run's values and sent to this server only,
@@ -5166,7 +5188,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * or headers; anyone who may edit the agent may keep or remove them. A
      * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
      * disallowed_tools. A run logs in with the vault connection saved at the
-     * server's address, or calls it with no login when there is none; a
+     * server's address, else a vault secret named &lt;NAME&gt;_ACCESS_TOKEN (the
+     * server's name upper-cased, each other character written as _), which is
+     * sent to this server, or calls it with no login when there is neither; a
      * header that names Authorization itself takes that login from its
      * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
      * value is filled from the run's values and sent to this server only,
@@ -5199,7 +5223,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * or headers; anyone who may edit the agent may keep or remove them. A
      * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
      * disallowed_tools. A run logs in with the vault connection saved at the
-     * server's address, or calls it with no login when there is none; a
+     * server's address, else a vault secret named &lt;NAME&gt;_ACCESS_TOKEN (the
+     * server's name upper-cased, each other character written as _), which is
+     * sent to this server, or calls it with no login when there is neither; a
      * header that names Authorization itself takes that login from its
      * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
      * value is filled from the run's values and sent to this server only,
@@ -5229,7 +5255,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * or headers; anyone who may edit the agent may keep or remove them. A
      * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
      * disallowed_tools. A run logs in with the vault connection saved at the
-     * server's address, or calls it with no login when there is none; a
+     * server's address, else a vault secret named &lt;NAME&gt;_ACCESS_TOKEN (the
+     * server's name upper-cased, each other character written as _), which is
+     * sent to this server, or calls it with no login when there is neither; a
      * header that names Authorization itself takes that login from its
      * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
      * value is filled from the run's values and sent to this server only,
@@ -5259,7 +5287,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * or headers; anyone who may edit the agent may keep or remove them. A
      * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
      * disallowed_tools. A run logs in with the vault connection saved at the
-     * server's address, or calls it with no login when there is none; a
+     * server's address, else a vault secret named &lt;NAME&gt;_ACCESS_TOKEN (the
+     * server's name upper-cased, each other character written as _), which is
+     * sent to this server, or calls it with no login when there is neither; a
      * header that names Authorization itself takes that login from its
      * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
      * value is filled from the run's values and sent to this server only,
@@ -5290,7 +5320,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * or headers; anyone who may edit the agent may keep or remove them. A
      * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
      * disallowed_tools. A run logs in with the vault connection saved at the
-     * server's address, or calls it with no login when there is none; a
+     * server's address, else a vault secret named &lt;NAME&gt;_ACCESS_TOKEN (the
+     * server's name upper-cased, each other character written as _), which is
+     * sent to this server, or calls it with no login when there is neither; a
      * header that names Authorization itself takes that login from its
      * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
      * value is filled from the run's values and sent to this server only,
@@ -5319,7 +5351,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * or headers; anyone who may edit the agent may keep or remove them. A
      * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
      * disallowed_tools. A run logs in with the vault connection saved at the
-     * server's address, or calls it with no login when there is none; a
+     * server's address, else a vault secret named &lt;NAME&gt;_ACCESS_TOKEN (the
+     * server's name upper-cased, each other character written as _), which is
+     * sent to this server, or calls it with no login when there is neither; a
      * header that names Authorization itself takes that login from its
      * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
      * value is filled from the run's values and sent to this server only,
@@ -5348,7 +5382,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * or headers; anyone who may edit the agent may keep or remove them. A
      * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
      * disallowed_tools. A run logs in with the vault connection saved at the
-     * server's address, or calls it with no login when there is none; a
+     * server's address, else a vault secret named &lt;NAME&gt;_ACCESS_TOKEN (the
+     * server's name upper-cased, each other character written as _), which is
+     * sent to this server, or calls it with no login when there is neither; a
      * header that names Authorization itself takes that login from its
      * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
      * value is filled from the run's values and sent to this server only,
@@ -5371,7 +5407,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * or headers; anyone who may edit the agent may keep or remove them. A
      * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
      * disallowed_tools. A run logs in with the vault connection saved at the
-     * server's address, or calls it with no login when there is none; a
+     * server's address, else a vault secret named &lt;NAME&gt;_ACCESS_TOKEN (the
+     * server's name upper-cased, each other character written as _), which is
+     * sent to this server, or calls it with no login when there is neither; a
      * header that names Authorization itself takes that login from its
      * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
      * value is filled from the run's values and sent to this server only,
@@ -5397,7 +5435,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * or headers; anyone who may edit the agent may keep or remove them. A
      * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
      * disallowed_tools. A run logs in with the vault connection saved at the
-     * server's address, or calls it with no login when there is none; a
+     * server's address, else a vault secret named &lt;NAME&gt;_ACCESS_TOKEN (the
+     * server's name upper-cased, each other character written as _), which is
+     * sent to this server, or calls it with no login when there is neither; a
      * header that names Authorization itself takes that login from its
      * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
      * value is filled from the run's values and sent to this server only,
@@ -5424,7 +5464,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * or headers; anyone who may edit the agent may keep or remove them. A
      * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
      * disallowed_tools. A run logs in with the vault connection saved at the
-     * server's address, or calls it with no login when there is none; a
+     * server's address, else a vault secret named &lt;NAME&gt;_ACCESS_TOKEN (the
+     * server's name upper-cased, each other character written as _), which is
+     * sent to this server, or calls it with no login when there is neither; a
      * header that names Authorization itself takes that login from its
      * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
      * value is filled from the run's values and sent to this server only,
@@ -5447,7 +5489,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * or headers; anyone who may edit the agent may keep or remove them. A
      * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
      * disallowed_tools. A run logs in with the vault connection saved at the
-     * server's address, or calls it with no login when there is none; a
+     * server's address, else a vault secret named &lt;NAME&gt;_ACCESS_TOKEN (the
+     * server's name upper-cased, each other character written as _), which is
+     * sent to this server, or calls it with no login when there is neither; a
      * header that names Authorization itself takes that login from its
      * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
      * value is filled from the run's values and sent to this server only,
@@ -5471,7 +5515,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * or headers; anyone who may edit the agent may keep or remove them. A
      * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
      * disallowed_tools. A run logs in with the vault connection saved at the
-     * server's address, or calls it with no login when there is none; a
+     * server's address, else a vault secret named &lt;NAME&gt;_ACCESS_TOKEN (the
+     * server's name upper-cased, each other character written as _), which is
+     * sent to this server, or calls it with no login when there is neither; a
      * header that names Authorization itself takes that login from its
      * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
      * value is filled from the run's values and sent to this server only,
