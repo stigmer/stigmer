@@ -10,7 +10,7 @@ import { DeploymentModeContext } from "../../deployment-mode";
 import { useShareToolReadiness } from "../useShareToolReadiness";
 import type { AgentShareDraft, SharingAudience } from "../useSaveAgentShare";
 
-function toolAgent(overrides?: { plugins?: boolean }): Agent {
+function toolAgent(overrides?: { plugins?: boolean; mcpServers?: boolean }): Agent {
   return create(AgentSchema, {
     metadata: { id: "agt_1", org: "acme", slug: "helper" },
     spec: {
@@ -19,6 +19,9 @@ function toolAgent(overrides?: { plugins?: boolean }): Agent {
         (overrides?.plugins ?? true)
           ? [{ org: "acme", slug: "github" }]
           : [],
+      mcpServers: overrides?.mcpServers
+        ? [{ name: "zendesk", url: "https://acme-co.zendesk.com/mcp", headers: { "X-Api-Key": "${ZENDESK_KEY}" } }]
+        : [],
     },
   });
 }
@@ -170,7 +173,15 @@ describe("useShareToolReadiness", () => {
     );
   });
 
-  it("is n/a for agents that list no plugins — no lookups fire", async () => {
+  it("reports needs-credentials for an agent whose only tools are its own MCP servers", () => {
+    const { result } = renderHook(
+      () => useShareToolReadiness(toolAgent({ plugins: false, mcpServers: true }), makeDraft()),
+      { wrapper: wrapper(mockStigmer({})) },
+    );
+    expect(result.current).toEqual({ status: "needs-credentials" });
+  });
+
+  it("is n/a for agents that dial no MCP server — no lookups fire", async () => {
     const client = mockStigmer({});
     const { result } = renderHook(
       () =>

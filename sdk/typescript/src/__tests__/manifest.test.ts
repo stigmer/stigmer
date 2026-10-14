@@ -185,7 +185,7 @@ describe("parseManifest", () => {
   it("refuses a retired McpServer document with the way forward", () => {
     expect(() =>
       parseManifest("kind: McpServer\nmetadata:\n  name: github\nspec: {}\n"),
-    ).toThrow(/Unsupported resource kind "McpServer".*stigmer mcp add <name> <url>.*`plugins`/s);
+    ).toThrow(/Unsupported resource kind "McpServer".*`mcp_servers`.*stigmer mcp add <name> <url>/s);
   });
 
   it("refuses an agent listing mcp_server_usages with the way forward", () => {
@@ -194,7 +194,7 @@ describe("parseManifest", () => {
       "spec:\n  mcp_server_usages:\n    - mcp_server_ref:\n        slug: github",
     );
     expect(() => parseManifest(yaml)).toThrow(
-      /Invalid Agent.*stigmer mcp add <name> <url>.*`plugins`/s,
+      /Invalid Agent.*`mcp_servers`.*stigmer mcp add <name> <url>/s,
     );
   });
 

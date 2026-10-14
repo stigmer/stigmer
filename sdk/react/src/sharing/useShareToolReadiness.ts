@@ -7,6 +7,7 @@ import {
   type ToolCredentialsReadiness,
 } from "../vault/useToolCredentialsReadiness.js";
 import type { AgentShareDraft } from "./useSaveAgentShare.js";
+import { agentUsesTools } from "../agent/runServers.js";
 
 /**
  * Readiness of a share's tool credentials for visitor runs.
@@ -25,19 +26,19 @@ export type ShareToolReadiness = ToolCredentialsReadiness;
  * The check runs only when the share is enabled with a public audience
  * (org-audience shares reject bindings at the proto boundary), the
  * deployment is cloud (local mode has no guest runtime or secret
- * gating), and the agent lists plugins (whose servers read keys).
+ * gating), and the agent dials MCP servers (its own or its plugins', which read keys).
  */
 export function useShareToolReadiness(
   agent: Agent,
   draft: AgentShareDraft,
 ): ShareToolReadiness {
   const deploymentMode = useDeploymentMode();
-  const usesPlugins = (agent.spec?.plugins?.length ?? 0) > 0;
+  const usesTools = agentUsesTools(agent.spec);
   const applicable =
     draft.enabled &&
     draft.audience === "public" &&
     deploymentMode === "cloud" &&
-    usesPlugins;
+    usesTools;
 
   return useToolCredentialsReadiness(applicable, draft.vaults);
 }

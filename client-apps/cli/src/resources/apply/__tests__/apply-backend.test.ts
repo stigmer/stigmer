@@ -310,19 +310,19 @@ describe("file-mode apply — kinds the registry does not know", () => {
     }
   });
 
-  it("refuses an McpServer manifest, naming mcp add and an agent's plugins", () => {
+  it("refuses an McpServer manifest, naming an agent's own mcp_servers and mcp add", () => {
     const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
     try {
       writeYaml(dir, "server.yaml", ["kind: McpServer", "metadata:", "  name: github", ""].join("\n"));
       expect(() => resolveApplyItems(dir)).toThrow(
-        /kind 'McpServer' in .*server\.yaml is no longer a Stigmer resource\. An MCP server is now part of a plugin: run `stigmer mcp add <name> <url>`.*`plugins`/,
+        /kind 'McpServer' in .*server\.yaml is no longer a Stigmer resource\. An agent lists its own MCP servers under `mcp_servers`.*`stigmer mcp add <name> <url>`/,
       );
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
   });
 
-  it("refuses an agent listing mcp_server_usages, naming mcp add and the agent's plugins", () => {
+  it("refuses an agent listing mcp_server_usages, naming the agent's own mcp_servers and mcp add", () => {
     const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
     try {
       writeYaml(
@@ -331,7 +331,7 @@ describe("file-mode apply — kinds the registry does not know", () => {
         AGENT_WITH_ID + ["  mcp_server_usages:", "    - mcp_server_ref:", "        slug: github", ""].join("\n"),
       );
       const [item] = resolveApplyItems(dir);
-      expect(() => marshalItem(item)).toThrow(/invalid Agent in .*agent\.yaml: .*\n.*stigmer mcp add <name> <url>.*`plugins`/s);
+      expect(() => marshalItem(item)).toThrow(/invalid Agent in .*agent\.yaml: .*\n.*`mcp_servers`.*stigmer mcp add <name> <url>/s);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -425,6 +425,32 @@ describe("file-mode apply — orchestration", () => {
       const outcome = await applyItem(controllerFn, items[0], "acme", true);
       expect(outcome.result.message).toBe("Dry run: Reviewer is valid");
       expect(appliedAgents.length).toBe(before);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it.each(["mcp_servers", "mcpServers"])("parses an agent writing its own MCP servers under %s, strictly", (field) => {
+    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
+    try {
+      writeYaml(
+        dir,
+        "agent.yaml",
+        AGENT_WITH_ID +
+          [
+            `  ${field}:`,
+            "    - name: zendesk",
+            "      url: https://acme-co.zendesk.com/mcp",
+            "      headers:",
+            "        X-Api-Key: ${ZENDESK_KEY}",
+            "",
+          ].join("\n"),
+      );
+      const [item] = resolveApplyItems(dir);
+      const agent = marshalItem(item) as Agent;
+      expect(agent.spec?.mcpServers.map((server) => ({ name: server.name, url: server.url, headers: { ...server.headers } }))).toEqual([
+        { name: "zendesk", url: "https://acme-co.zendesk.com/mcp", headers: { "X-Api-Key": "${ZENDESK_KEY}" } },
+      ]);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

@@ -10,9 +10,9 @@
  * lists its tools like any plugin's.
  *
  * A form dialog, like the connect dialog: no light dismiss on the
- * backdrop, so what was typed is never lost to a stray click. A header's
- * value may name a key as `${NAME}`; the form says so once, under the
- * headers, rather than validating names the reader checks anyway.
+ * backdrop, so what was typed is never lost to a stray click. The headers
+ * are `HeaderRowsEditor`'s, which says once that a value names a key as
+ * `${NAME}` rather than validating names the reader checks anyway.
  */
 
 import { type FormEvent, useId, useState } from "react";
@@ -22,6 +22,7 @@ import { Button } from "../button/Button.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { DialogShell } from "../internal/DialogShell.js";
 import { INPUT_CLASS } from "../vault/styles.js";
+import { type HeaderRow, HeaderRowsEditor } from "./HeaderRowsEditor.js";
 import { PrepareRefusal } from "./InstallPreview.js";
 import { PluginReadRefusal } from "./sources/read.js";
 import { useAddMcpServer } from "./useAddMcpServer.js";
@@ -35,12 +36,6 @@ export interface AddMcpServerDialogProps {
   /** Called with the installed plugin; the host usually opens its page. */
   readonly onAdded?: (plugin: Plugin) => void;
   readonly className?: string;
-}
-
-interface HeaderRow {
-  readonly id: number;
-  readonly key: string;
-  readonly value: string;
 }
 
 /**
@@ -91,7 +86,6 @@ function AddMcpServerForm({
   const [url, setUrl] = useState("");
   const [description, setDescription] = useState("");
   const [headers, setHeaders] = useState<readonly HeaderRow[]>([]);
-  const [nextId, setNextId] = useState(1);
   const canSubmit = name.trim() !== "" && url.trim() !== "" && !isAdding;
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -170,61 +164,7 @@ function AddMcpServerForm({
         />
       </div>
 
-      <fieldset className="stg:space-y-1.5">
-        <legend className="stg:text-xs stg:font-medium stg:text-muted-foreground">
-          Headers <span className="stg:text-muted-foreground-subtle">(optional)</span>
-        </legend>
-        {headers.map((row) => (
-          <div key={row.id} className="stg:flex stg:items-center stg:gap-2">
-            <input
-              aria-label="Header name"
-              value={row.key}
-              onChange={(event) => setHeaders(headers.map((h) => (h.id === row.id ? { ...h, key: event.target.value } : h)))}
-              placeholder="Authorization"
-              autoComplete="off"
-              spellCheck={false}
-              disabled={isAdding}
-              className={INPUT_CLASS}
-            />
-            <input
-              aria-label="Header value"
-              value={row.value}
-              onChange={(event) => setHeaders(headers.map((h) => (h.id === row.id ? { ...h, value: event.target.value } : h)))}
-              placeholder="Bearer ${LINEAR_API_KEY}"
-              autoComplete="off"
-              spellCheck={false}
-              disabled={isAdding}
-              className={INPUT_CLASS}
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="xs"
-              disabled={isAdding}
-              onClick={() => setHeaders(headers.filter((h) => h.id !== row.id))}
-              aria-label={`Remove header ${row.key || "row"}`}
-            >
-              Remove
-            </Button>
-          </div>
-        ))}
-        <Button
-          type="button"
-          variant="outline"
-          size="xs"
-          disabled={isAdding}
-          onClick={() => {
-            setHeaders([...headers, { id: nextId, key: "", value: "" }]);
-            setNextId(nextId + 1);
-          }}
-        >
-          Add header
-        </Button>
-        <p className="stg:text-xs stg:text-muted-foreground">
-          Write a key as <code className="stg:font-mono">{"${NAME}"}</code>, never its value: each conversation that uses the server asks for it and
-          reads it from a vault.
-        </p>
-      </fieldset>
+      <HeaderRowsEditor rows={headers} onChange={setHeaders} disabled={isAdding} />
 
       {error instanceof PluginReadRefusal ? (
         <PrepareRefusal error={error} />

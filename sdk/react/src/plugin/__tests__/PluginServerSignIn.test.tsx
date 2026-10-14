@@ -10,8 +10,14 @@
  * which asks once, can be cancelled, removes the login at the address, and
  * shows a refused removal; a login that serves the server from elsewhere
  * (the github.com login) reads Signed in without Sign out; a key-taking
- * server names its keys; an open server renders nothing; and the hook held
- * idle (no org or no server) reads as loading and signs in nothing.
+ * server names its keys, leaving out a name the runner fills; an open
+ * server renders nothing; and the hook held idle (no org or no server)
+ * reads as loading and signs in nothing.
+ *
+ * An agent's own server (`optionalSignIn`): with no Authorization header
+ * it offers Sign in quietly, as optional, at its address, and reads Signed
+ * in from a login there; one that sends its own Authorization names its
+ * key; without the option a bare server stays open.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -83,10 +89,20 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
-function renderCell(server: McpServerEntry, onSignedIn = vi.fn()) {
-  const view = render(<PluginServerSignIn org={ORG} server={server} onSignedIn={onSignedIn} className="host-class" />);
+function renderCell(server: McpServerEntry, onSignedIn = vi.fn(), optionalSignIn = false) {
+  const view = render(
+    <PluginServerSignIn org={ORG} server={server} onSignedIn={onSignedIn} optionalSignIn={optionalSignIn} className="host-class" />,
+  );
   return { onSignedIn, view };
 }
+
+const ZENDESK_URL = "https://acme-co.zendesk.com/mcp";
+/** An agent's own server: HTTP, no sign-in record, a key header and no Authorization. */
+const ZENDESK = create(McpServerEntrySchema, {
+  name: "zendesk",
+  transport: { case: "http", value: { url: ZENDESK_URL, headers: { "X-Api-Key": "${ZENDESK_KEY}" } } },
+  env: ["ZENDESK_KEY"],
+});
 
 describe("PluginServerSignIn: reading My vault", () => {
   it("reads Reading… while My vault is read", () => {
@@ -216,6 +232,55 @@ describe("PluginServerSignIn: servers that do not sign in", () => {
 
   it("renders nothing for an open server", () => {
     const { view } = renderCell(OPEN);
+    expect(view.container.innerHTML).toBe("");
+  });
+
+  it("leaves a name the runner fills out of a key-taking server's keys", () => {
+    renderCell(
+      create(McpServerEntrySchema, {
+        name: "crm",
+        transport: { case: "stdio", value: { command: "crm", args: [] } },
+        env: ["CRM_KEY", "STIGMER_CALLER_IDENTITY_VALUE"],
+      }),
+    );
+    expect(screen.getByText("CRM_KEY")).toBeTruthy();
+  });
+});
+
+describe("PluginServerSignIn: an agent's own server", () => {
+  it("offers Sign in as optional, at the server's address, and tells the host when it lands", async () => {
+    const { onSignedIn } = renderCell(ZENDESK, vi.fn(), true);
+
+    expect(screen.getByText("Sign in only if this server asks for one.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Sign in to zendesk" }));
+
+    await waitFor(() => expect(stubs.signIn.signIn).toHaveBeenCalledWith(ZENDESK_URL, { org: ORG }));
+    await waitFor(() => expect(onSignedIn).toHaveBeenCalledWith(ZENDESK_URL));
+  });
+
+  it("reads Signed in from a login at the server's address", () => {
+    stubs.myVault.vault = vaultWithLogins([ZENDESK_URL]);
+    renderCell(ZENDESK, vi.fn(), true);
+    expect(screen.getByText("Signed in")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sign out of zendesk" })).toBeTruthy();
+  });
+
+  it("names the key of a server that sends its own Authorization, offering no sign-in", () => {
+    renderCell(
+      create(McpServerEntrySchema, {
+        name: "zendesk",
+        transport: { case: "http", value: { url: ZENDESK_URL, headers: { authorization: "Bearer ${ZENDESK_TOKEN}" } } },
+        env: ["ZENDESK_TOKEN"],
+      }),
+      vi.fn(),
+      true,
+    );
+    expect(screen.getByText("ZENDESK_TOKEN")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Sign in to zendesk" })).toBeNull();
+  });
+
+  it("offers no sign-in to a bare server without the option", () => {
+    const { view } = renderCell(create(McpServerEntrySchema, { name: "docs", transport: { case: "http", value: { url: ZENDESK_URL } } }));
     expect(view.container.innerHTML).toBe("");
   });
 });
