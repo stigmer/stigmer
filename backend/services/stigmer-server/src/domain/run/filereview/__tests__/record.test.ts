@@ -1,8 +1,9 @@
 /**
  * Pins the run's file record (../record.ts): a status write's sets are
- * merged by set id — a held set the write carries is replaced where it
- * stands, a new one is added after the others, a held set the write does
- * not carry is kept, and a set with no id is passed over; a set is
+ * merged by set id — a held set still being captured is replaced where it
+ * stands, a captured one is never replaced by a different capture, a new
+ * one is added after the others, a held set the write does not carry is
+ * kept, and a set with no id or another run's id is passed over; a set is
  * captured once its candidate is; and the gates a keep is checked against
  * (the target's digest, the completeness rule and its one exception, an
  * acknowledged binary).
@@ -28,24 +29,41 @@ describe("upsertFileChanges", () => {
   it("keeps every stored set a write does not carry, and adds a new one after them", () => {
     const first = capturedSet("run_a:0");
     const second = capturedSet("run_a:1");
-    expect(upsertFileChanges([first], [second]).map((cs) => cs.id)).toEqual(["run_a:0", "run_a:1"]);
+    expect(upsertFileChanges("run_a", [first], [second]).map((cs) => cs.id)).toEqual(["run_a:0", "run_a:1"]);
   });
 
-  it("replaces a held set by its id where it stands, never moving or duplicating it", () => {
-    const first = capturedSet("run_a:0");
+  it("replaces a set still being captured by its capture, where it stands, never moving or duplicating it", () => {
+    const pinned = capturedSet("run_a:0", [], false);
     const second = capturedSet("run_a:1");
-    const recaptured = capturedSet("run_a:0", [reviewableChange(), { ...reviewableChange(), id: "fc-2" }]);
-    const merged = upsertFileChanges([first, second], [recaptured]);
+    const captured = capturedSet("run_a:0", [reviewableChange(), { ...reviewableChange(), id: "fc-2" }]);
+    const merged = upsertFileChanges("run_a", [pinned, second], [captured]);
     expect(merged.map((cs) => cs.id)).toEqual(["run_a:0", "run_a:1"]);
-    expect(merged[0]).toBe(recaptured);
+    expect(merged[0]).toBe(captured);
     expect(merged[1]).toBe(second);
+  });
+
+  it("never replaces a captured set with a different capture, nor uncaptures it with a late baseline", () => {
+    const captured = capturedSet("run_a:0");
+    const swapped = capturedSet("run_a:0", [reviewableChange(), { ...reviewableChange(), id: "fc-2" }]);
+    const lateBaseline = capturedSet("run_a:0", [], false);
+    expect(upsertFileChanges("run_a", [captured], [swapped])[0]).toBe(captured);
+    expect(upsertFileChanges("run_a", [captured], [lateBaseline])[0]).toBe(captured);
+    const retried = capturedSet("run_a:0");
+    expect(upsertFileChanges("run_a", [captured], [retried])[0], "an identical retry is taken").toBe(retried);
+  });
+
+  it("passes over a set whose id names another run", () => {
+    const own = capturedSet("run_a:0");
+    expect(upsertFileChanges("run_a", [own], [capturedSet("run_b:0"), capturedSet("run_ab:0")]).map((cs) => cs.id)).toEqual([
+      "run_a:0",
+    ]);
   });
 
   it("passes over a set with no id, and leaves the stored list itself untouched", () => {
     const stored = [capturedSet("run_a:0")];
-    const merged = upsertFileChanges(stored, [create(FileChangeSetSchema, {})]);
+    const merged = upsertFileChanges("run_a", stored, [create(FileChangeSetSchema, {})]);
     expect(merged.map((cs) => cs.id)).toEqual(["run_a:0"]);
-    upsertFileChanges(stored, [capturedSet("run_a:1")]);
+    upsertFileChanges("run_a", stored, [capturedSet("run_a:1")]);
     expect(stored).toHaveLength(1);
   });
 });

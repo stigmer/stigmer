@@ -10,7 +10,16 @@
  *                   added after the others, and a held set the write does
  *                   not carry is kept. Nothing is ever removed, so a write
  *                   that carries only the newest set never loses an older
- *                   one. A set with no id names nothing and is passed over.
+ *                   one. A set with no id names nothing and is passed over,
+ *                   and so is one whose id names another run: a set id is
+ *                   `<run id>:<turn>`, and a run's record holds its own
+ *                   turns' sets alone, so no write to one run can put a set
+ *                   (and the keeps it would draw) under another's id.
+ *   frozen ........ a captured set is what a person reviews, so once the
+ *                   record holds it captured no write replaces it: a
+ *                   different capture under its id is passed over, and a
+ *                   late retry of its baseline-only write cannot uncapture
+ *                   it. Only a set still being captured is replaced.
  *   captured ...... a set is offered for review once its candidate (the
  *                   workspace at the turn's end) is captured. A set the
  *                   record holds with its baseline alone is still being
@@ -25,30 +34,40 @@
  * Proven by __tests__/record.test.ts, and through every reader in
  * autokeep.test.ts and ../../session/filereview/__tests__/decide.test.ts.
  */
+import { equals } from "@bufbuild/protobuf";
 import { DiffCompleteness } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type {
-  CapturedFileChange,
-  FileChangeSet,
+import {
+  FileChangeSetSchema,
+  type CapturedFileChange,
+  type FileChangeSet,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 
 import type { ScopeWord } from "../../session/filereview/words.js";
 
-/** The record after a write carrying `incoming`: merged by set id (module header). */
+/**
+ * The record of run `runId` after a write carrying `incoming`: merged by
+ * set id, its own sets alone, a captured set frozen (module header).
+ */
 export function upsertFileChanges(
+  runId: string,
   stored: ReadonlyArray<FileChangeSet>,
   incoming: ReadonlyArray<FileChangeSet>,
 ): FileChangeSet[] {
   const merged = [...stored];
   for (const set of incoming) {
-    if (set.id === "") {
+    if (set.id === "" || !set.id.startsWith(`${runId}:`)) {
       continue;
     }
     const at = merged.findIndex((held) => held.id === set.id);
     if (at === -1) {
       merged.push(set);
-    } else {
-      merged[at] = set;
+      continue;
     }
+    const held = merged[at]!;
+    if (isCaptured(held) && !equals(FileChangeSetSchema, held, set)) {
+      continue;
+    }
+    merged[at] = set;
   }
   return merged;
 }

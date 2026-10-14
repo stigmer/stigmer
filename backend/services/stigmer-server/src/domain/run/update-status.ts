@@ -439,7 +439,7 @@ export function applyUpdateStatusMerge(
   // The file record, merged by change set id: nothing stored is removed
   // (module header).
   if (requestStatus.fileChanges.length > 0) {
-    status.fileChanges = upsertFileChanges(status.fileChanges, requestStatus.fileChanges);
+    status.fileChanges = upsertFileChanges(input.runId, status.fileChanges, requestStatus.fileChanges);
   }
 
   // The policy keeps run in the write that carries a captured set, which

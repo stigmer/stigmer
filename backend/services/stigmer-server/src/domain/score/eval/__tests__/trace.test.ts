@@ -36,7 +36,6 @@ import type { CapturedFileChange, FileChangeSet } from "@stigmer/protos/ai/stigm
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
 import { capturedSet } from "../../../run/__tests__/file-review-seed.js";
-import { upsertFileChanges } from "../../../run/filereview/record.js";
 
 import {
   PluginEvalCaseContextSchema,
@@ -89,9 +88,10 @@ function runOf(
     metadata: { id: "run_try", org: "acme" },
     spec: { message: "rename getUser" },
     status: create(RunStatusSchema, {
-      // Each write of the record is merged by change set id, as the
-      // status merge does: the last capture of a set stands.
-      fileChanges: events.reduce<FileChangeSet[]>((record, set) => upsertFileChanges(record, [set]), []),
+      // The record as the trace reads it: one entry per change set id,
+      // its newest write standing (the status merge's own rules are
+      // record.test.ts's).
+      fileChanges: [...new Map(events.map((set) => [set.id, set])).values()],
     }),
   });
   return {
