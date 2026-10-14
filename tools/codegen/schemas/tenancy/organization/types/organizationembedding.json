@@ -1,0 +1,69 @@
+{
+  "name": "OrganizationEmbedding",
+  "description": "OrganizationEmbedding holds how people sign in to an organization from\n the organization's own product: which web pages may use their tokens,\n whether their first sign-in creates their account and with which role,\n and which vaults their conversations use.",
+  "protoType": "ai.stigmer.tenancy.organization.v1.OrganizationEmbedding",
+  "protoFile": "apis/ai/stigmer/tenancy/organization/v1/spec.proto",
+  "fields": [
+    {
+      "name": "AllowedOrigins",
+      "jsonName": "allowedOrigins",
+      "protoField": "allowed_origins",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Web origins allowed for browser requests that bear a minted user token.\n\n Enforced on every API request bearing a token minted for this\n organization's people (never on mintUserToken itself, which is\n server-to-server and carries no browser Origin):\n   - Empty list: origin validation is not enforced (open mode, suitable\n     for development or when the product controls every access point).\n   - Non-empty list: the request's Origin header must match an entry\n     (case-insensitive, per RFC 6454 origin comparison). Unlisted\n     origins, including the opaque-origin serialization \"null\", are\n     refused PERMISSION_DENIED.\n   - Requests without an Origin header always pass: only browsers send\n     Origin, and only browsers guarantee it is not forgeable by page\n     script. This is a browser-context, CORS-class defense-in-depth\n     control against a leaked token being replayed from another site's\n     browser context; the minting key remains the primary control, and\n     non-browser callers are not constrained by it.\n\n Edits apply to the next request: the organization is read on every\n request that bears one of its minted tokens.",
+      "required": false
+    },
+    {
+      "name": "CreateAccountsOnSignIn",
+      "jsonName": "createAccountsOnSignIn",
+      "protoField": "create_accounts_on_sign_in",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether mintUserToken creates an identity account for a user_id that\n has none yet.\n\n When false (the default), the product creates accounts before minting\n tokens, and mintUserToken returns FAILED_PRECONDITION for a person who\n has none. When true, Stigmer creates the account on first sign-in from\n the user_email and user_name in the mintUserToken request.",
+      "required": false
+    },
+    {
+      "name": "SignInRole",
+      "jsonName": "signInRole",
+      "protoField": "sign_in_role",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.iam.v1.IamRole",
+        "enumValues": [
+          "owner",
+          "admin",
+          "member",
+          "viewer",
+          "participant",
+          "editor",
+          "user"
+        ]
+      },
+      "description": "The role an account mintUserToken creates receives on the organization\n the token is for.\n\n An app user's account belongs to that one organization, so its\n creation is its first sign-in there: the role is granted once, when the\n account is created. Accounts that already exist keep the roles they\n hold, and changing this setting later does not reach them. Unspecified\n (iam_role_unspecified) grants nothing. Requires\n create_accounts_on_sign_in. The owner role is refused: ownership is\n assigned explicitly. A role an organization cannot be granted (one its\n kind's grantable roles do not list) is refused with INVALID_ARGUMENT.",
+      "required": false
+    },
+    {
+      "name": "Vaults",
+      "jsonName": "vaults",
+      "protoField": "vaults",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "ApiResourceReference"
+        }
+      },
+      "description": "Vaults whose logins and secrets every run an app user creates uses, in\n order: the first vault holding a match wins. At most 20.\n\n This is how an embedded assistant reaches tools that need a key: the\n organization's embedding settings carry a shared vault holding it, and\n its app users' runs use it. A My vault cannot be attached.",
+      "required": false,
+      "referenceKind": 59,
+      "validation": {
+        "maxItems": 20
+      }
+    }
+  ]
+}

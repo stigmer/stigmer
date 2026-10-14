@@ -12,7 +12,7 @@ public interface IdentityOriginOrBuilder extends
 
   /**
    * <pre>
-   * How the account was provisioned (direct, federated, machine, platform_client).
+   * How the account was provisioned (direct, federated, machine, app_user, service_account).
    * </pre>
    *
    * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode provisioning_mode = 1 [json_name = "provisioningMode"];</code>
@@ -21,7 +21,7 @@ public interface IdentityOriginOrBuilder extends
   int getProvisioningModeValue();
   /**
    * <pre>
-   * How the account was provisioned (direct, federated, machine, platform_client).
+   * How the account was provisioned (direct, federated, machine, app_user, service_account).
    * </pre>
    *
    * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode provisioning_mode = 1 [json_name = "provisioningMode"];</code>

@@ -437,13 +437,13 @@
           "required": false
         },
         {
-          "name": "PlatformClientId",
-          "jsonName": "platformClientId",
-          "protoField": "platform_client_id",
+          "name": "MintedBy",
+          "jsonName": "mintedBy",
+          "protoField": "minted_by",
           "type": {
             "kind": "string"
           },
-          "description": "The PlatformClient whose minted user token the actor acted through.\n Empty for every other credential, and on an actor that records no act\n (an account's profile lookup).",
+          "description": "The service account whose key minted the user token the actor acted\n through. Empty for every other credential, and on an actor that records\n no act (an account's profile lookup).",
           "required": false
         }
       ]

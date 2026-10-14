@@ -32,7 +32,6 @@ import { file_ai_stigmer_iam_identityaccount_v1_api } from "@stigmer/protos/ai/s
 import { file_ai_stigmer_iam_identityprovider_v1_api } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { file_ai_stigmer_iam_invitation_v1_api } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
 import { file_ai_stigmer_iam_oauthapp_v1_api } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
-import { file_ai_stigmer_iam_platformclient_v1_api } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { file_ai_stigmer_iam_team_v1_api } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import { file_ai_stigmer_tenancy_organization_v1_api } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
@@ -61,7 +60,6 @@ const ROOT_FILES: DescFile[] = [
   file_ai_stigmer_iam_identityprovider_v1_api,
   file_ai_stigmer_iam_invitation_v1_api,
   file_ai_stigmer_iam_oauthapp_v1_api,
-  file_ai_stigmer_iam_platformclient_v1_api,
   file_ai_stigmer_iam_team_v1_api,
   file_ai_stigmer_tenancy_organization_v1_api,
 ];

@@ -337,6 +337,56 @@ private static final long serialVersionUID = 0L;
     return policies_ == null ? ai.stigmer.tenancy.organization.v1.OrganizationPolicies.getDefaultInstance() : policies_;
   }
 
+  public static final int EMBEDDING_FIELD_NUMBER = 10;
+  private ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding_;
+  /**
+   * <pre>
+   * How people sign in to the organization from its own product, when the
+   * product's backend mints their tokens (TokenService.mintUserToken). Set
+   * only through updateEmbedding, so an update or apply of a manifest
+   * neither fails on nor reverts it: embedding carried by update or apply
+   * is ignored.
+   * </pre>
+   *
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
+   * @return Whether the embedding field is set.
+   */
+  @java.lang.Override
+  public boolean hasEmbedding() {
+    return ((bitField0_ & 0x00000004) != 0);
+  }
+  /**
+   * <pre>
+   * How people sign in to the organization from its own product, when the
+   * product's backend mints their tokens (TokenService.mintUserToken). Set
+   * only through updateEmbedding, so an update or apply of a manifest
+   * neither fails on nor reverts it: embedding carried by update or apply
+   * is ignored.
+   * </pre>
+   *
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
+   * @return The embedding.
+   */
+  @java.lang.Override
+  public ai.stigmer.tenancy.organization.v1.OrganizationEmbedding getEmbedding() {
+    return embedding_ == null ? ai.stigmer.tenancy.organization.v1.OrganizationEmbedding.getDefaultInstance() : embedding_;
+  }
+  /**
+   * <pre>
+   * How people sign in to the organization from its own product, when the
+   * product's backend mints their tokens (TokenService.mintUserToken). Set
+   * only through updateEmbedding, so an update or apply of a manifest
+   * neither fails on nor reverts it: embedding carried by update or apply
+   * is ignored.
+   * </pre>
+   *
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.tenancy.organization.v1.OrganizationEmbeddingOrBuilder getEmbeddingOrBuilder() {
+    return embedding_ == null ? ai.stigmer.tenancy.organization.v1.OrganizationEmbedding.getDefaultInstance() : embedding_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -369,6 +419,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(9, getPolicies());
     }
+    if (((bitField0_ & 0x00000004) != 0)) {
+      output.writeMessage(10, getEmbedding());
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -397,6 +450,10 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(9, getPolicies());
+    }
+    if (((bitField0_ & 0x00000004) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(10, getEmbedding());
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -431,6 +488,11 @@ private static final long serialVersionUID = 0L;
       if (!getPolicies()
           .equals(other.getPolicies())) return false;
     }
+    if (hasEmbedding() != other.hasEmbedding()) return false;
+    if (hasEmbedding()) {
+      if (!getEmbedding()
+          .equals(other.getEmbedding())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -457,6 +519,10 @@ private static final long serialVersionUID = 0L;
     if (hasPolicies()) {
       hash = (37 * hash) + POLICIES_FIELD_NUMBER;
       hash = (53 * hash) + getPolicies().hashCode();
+    }
+    if (hasEmbedding()) {
+      hash = (37 * hash) + EMBEDDING_FIELD_NUMBER;
+      hash = (53 * hash) + getEmbedding().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -594,6 +660,7 @@ private static final long serialVersionUID = 0L;
               .alwaysUseFieldBuilders) {
         internalGetPreferencesFieldBuilder();
         internalGetPoliciesFieldBuilder();
+        internalGetEmbeddingFieldBuilder();
       }
     }
     @java.lang.Override
@@ -613,6 +680,11 @@ private static final long serialVersionUID = 0L;
       if (policiesBuilder_ != null) {
         policiesBuilder_.dispose();
         policiesBuilder_ = null;
+      }
+      embedding_ = null;
+      if (embeddingBuilder_ != null) {
+        embeddingBuilder_.dispose();
+        embeddingBuilder_ = null;
       }
       return this;
     }
@@ -672,6 +744,12 @@ private static final long serialVersionUID = 0L;
             : policiesBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.embedding_ = embeddingBuilder_ == null
+            ? embedding_
+            : embeddingBuilder_.build();
+        to_bitField0_ |= 0x00000004;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -712,6 +790,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasPolicies()) {
         mergePolicies(other.getPolicies());
+      }
+      if (other.hasEmbedding()) {
+        mergeEmbedding(other.getEmbedding());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -773,6 +854,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000020;
               break;
             } // case 74
+            case 82: {
+              input.readMessage(
+                  internalGetEmbeddingFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 82
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1516,6 +1604,199 @@ private static final long serialVersionUID = 0L;
         policies_ = null;
       }
       return policiesBuilder_;
+    }
+
+    private ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.tenancy.organization.v1.OrganizationEmbedding, ai.stigmer.tenancy.organization.v1.OrganizationEmbedding.Builder, ai.stigmer.tenancy.organization.v1.OrganizationEmbeddingOrBuilder> embeddingBuilder_;
+    /**
+     * <pre>
+     * How people sign in to the organization from its own product, when the
+     * product's backend mints their tokens (TokenService.mintUserToken). Set
+     * only through updateEmbedding, so an update or apply of a manifest
+     * neither fails on nor reverts it: embedding carried by update or apply
+     * is ignored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
+     * @return Whether the embedding field is set.
+     */
+    public boolean hasEmbedding() {
+      return ((bitField0_ & 0x00000040) != 0);
+    }
+    /**
+     * <pre>
+     * How people sign in to the organization from its own product, when the
+     * product's backend mints their tokens (TokenService.mintUserToken). Set
+     * only through updateEmbedding, so an update or apply of a manifest
+     * neither fails on nor reverts it: embedding carried by update or apply
+     * is ignored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
+     * @return The embedding.
+     */
+    public ai.stigmer.tenancy.organization.v1.OrganizationEmbedding getEmbedding() {
+      if (embeddingBuilder_ == null) {
+        return embedding_ == null ? ai.stigmer.tenancy.organization.v1.OrganizationEmbedding.getDefaultInstance() : embedding_;
+      } else {
+        return embeddingBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * How people sign in to the organization from its own product, when the
+     * product's backend mints their tokens (TokenService.mintUserToken). Set
+     * only through updateEmbedding, so an update or apply of a manifest
+     * neither fails on nor reverts it: embedding carried by update or apply
+     * is ignored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
+     */
+    public Builder setEmbedding(ai.stigmer.tenancy.organization.v1.OrganizationEmbedding value) {
+      if (embeddingBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        embedding_ = value;
+      } else {
+        embeddingBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * How people sign in to the organization from its own product, when the
+     * product's backend mints their tokens (TokenService.mintUserToken). Set
+     * only through updateEmbedding, so an update or apply of a manifest
+     * neither fails on nor reverts it: embedding carried by update or apply
+     * is ignored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
+     */
+    public Builder setEmbedding(
+        ai.stigmer.tenancy.organization.v1.OrganizationEmbedding.Builder builderForValue) {
+      if (embeddingBuilder_ == null) {
+        embedding_ = builderForValue.build();
+      } else {
+        embeddingBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * How people sign in to the organization from its own product, when the
+     * product's backend mints their tokens (TokenService.mintUserToken). Set
+     * only through updateEmbedding, so an update or apply of a manifest
+     * neither fails on nor reverts it: embedding carried by update or apply
+     * is ignored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
+     */
+    public Builder mergeEmbedding(ai.stigmer.tenancy.organization.v1.OrganizationEmbedding value) {
+      if (embeddingBuilder_ == null) {
+        if (((bitField0_ & 0x00000040) != 0) &&
+          embedding_ != null &&
+          embedding_ != ai.stigmer.tenancy.organization.v1.OrganizationEmbedding.getDefaultInstance()) {
+          getEmbeddingBuilder().mergeFrom(value);
+        } else {
+          embedding_ = value;
+        }
+      } else {
+        embeddingBuilder_.mergeFrom(value);
+      }
+      if (embedding_ != null) {
+        bitField0_ |= 0x00000040;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * How people sign in to the organization from its own product, when the
+     * product's backend mints their tokens (TokenService.mintUserToken). Set
+     * only through updateEmbedding, so an update or apply of a manifest
+     * neither fails on nor reverts it: embedding carried by update or apply
+     * is ignored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
+     */
+    public Builder clearEmbedding() {
+      bitField0_ = (bitField0_ & ~0x00000040);
+      embedding_ = null;
+      if (embeddingBuilder_ != null) {
+        embeddingBuilder_.dispose();
+        embeddingBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * How people sign in to the organization from its own product, when the
+     * product's backend mints their tokens (TokenService.mintUserToken). Set
+     * only through updateEmbedding, so an update or apply of a manifest
+     * neither fails on nor reverts it: embedding carried by update or apply
+     * is ignored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
+     */
+    public ai.stigmer.tenancy.organization.v1.OrganizationEmbedding.Builder getEmbeddingBuilder() {
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return internalGetEmbeddingFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * How people sign in to the organization from its own product, when the
+     * product's backend mints their tokens (TokenService.mintUserToken). Set
+     * only through updateEmbedding, so an update or apply of a manifest
+     * neither fails on nor reverts it: embedding carried by update or apply
+     * is ignored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
+     */
+    public ai.stigmer.tenancy.organization.v1.OrganizationEmbeddingOrBuilder getEmbeddingOrBuilder() {
+      if (embeddingBuilder_ != null) {
+        return embeddingBuilder_.getMessageOrBuilder();
+      } else {
+        return embedding_ == null ?
+            ai.stigmer.tenancy.organization.v1.OrganizationEmbedding.getDefaultInstance() : embedding_;
+      }
+    }
+    /**
+     * <pre>
+     * How people sign in to the organization from its own product, when the
+     * product's backend mints their tokens (TokenService.mintUserToken). Set
+     * only through updateEmbedding, so an update or apply of a manifest
+     * neither fails on nor reverts it: embedding carried by update or apply
+     * is ignored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.tenancy.organization.v1.OrganizationEmbedding, ai.stigmer.tenancy.organization.v1.OrganizationEmbedding.Builder, ai.stigmer.tenancy.organization.v1.OrganizationEmbeddingOrBuilder> 
+        internalGetEmbeddingFieldBuilder() {
+      if (embeddingBuilder_ == null) {
+        embeddingBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.tenancy.organization.v1.OrganizationEmbedding, ai.stigmer.tenancy.organization.v1.OrganizationEmbedding.Builder, ai.stigmer.tenancy.organization.v1.OrganizationEmbeddingOrBuilder>(
+                getEmbedding(),
+                getParentForChildren(),
+                isClean());
+        embedding_ = null;
+      }
+      return embeddingBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.tenancy.organization.v1.OrganizationSpec)

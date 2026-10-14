@@ -77,6 +77,17 @@
       },
       "description": "What the organization lets its members do. Set when the organization is\n created (an omitted message means the defaults: members may create\n agents) and changed only through updatePolicies, so an update or apply\n of a manifest written before a policy changed neither fails nor\n reverts it: a policy carried by update or apply is ignored.",
       "required": false
+    },
+    {
+      "name": "Embedding",
+      "jsonName": "embedding",
+      "protoField": "embedding",
+      "type": {
+        "kind": "message",
+        "messageType": "OrganizationEmbedding"
+      },
+      "description": "How people sign in to the organization from its own product, when the\n product's backend mints their tokens (TokenService.mintUserToken). Set\n only through updateEmbedding, so an update or apply of a manifest\n neither fails on nor reverts it: embedding carried by update or apply\n is ignored.",
+      "required": false
     }
   ]
 }

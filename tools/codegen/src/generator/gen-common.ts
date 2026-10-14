@@ -16,6 +16,18 @@ import { readDirSorted } from "./schema.js";
 // Service schema JSON shape (services/*.json)
 // ---------------------------------------------------------------------
 
+/**
+ * Service packages that are not kinds: shared types, and services that
+ * manage no resource (search across kinds; the token service). The
+ * per-kind emitters skip them; a hand-written SDK module serves each
+ * service (search, tokens).
+ */
+export const NON_KIND_PACKAGES: ReadonlySet<string> = new Set([
+  "commons",
+  "search",
+  "token",
+]);
+
 export interface ServiceSchemaFile {
   resource: string;
   package: string;

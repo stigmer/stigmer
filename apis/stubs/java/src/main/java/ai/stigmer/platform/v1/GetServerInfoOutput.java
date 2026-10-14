@@ -136,8 +136,8 @@ private static final long serialVersionUID = 0L;
    *
    * False when the server trusts every request (no identity verifier is
    * configured, the default single-operator posture). Features that hand out
-   * credentials only a verifying server honours — minting PlatformClient user
-   * tokens — are unavailable then.
+   * credentials only a verifying server honours — minting user tokens — are
+   * unavailable then.
    *
    * Every server that knows the field sets it, true or false. Absent means
    * the server predates it and its posture is unknown: a client offers the
@@ -158,8 +158,8 @@ private static final long serialVersionUID = 0L;
    *
    * False when the server trusts every request (no identity verifier is
    * configured, the default single-operator posture). Features that hand out
-   * credentials only a verifying server honours — minting PlatformClient user
-   * tokens — are unavailable then.
+   * credentials only a verifying server honours — minting user tokens — are
+   * unavailable then.
    *
    * Every server that knows the field sets it, true or false. Absent means
    * the server predates it and its posture is unknown: a client offers the
@@ -779,8 +779,8 @@ private static final long serialVersionUID = 0L;
      *
      * False when the server trusts every request (no identity verifier is
      * configured, the default single-operator posture). Features that hand out
-     * credentials only a verifying server honours — minting PlatformClient user
-     * tokens — are unavailable then.
+     * credentials only a verifying server honours — minting user tokens — are
+     * unavailable then.
      *
      * Every server that knows the field sets it, true or false. Absent means
      * the server predates it and its posture is unknown: a client offers the
@@ -801,8 +801,8 @@ private static final long serialVersionUID = 0L;
      *
      * False when the server trusts every request (no identity verifier is
      * configured, the default single-operator posture). Features that hand out
-     * credentials only a verifying server honours — minting PlatformClient user
-     * tokens — are unavailable then.
+     * credentials only a verifying server honours — minting user tokens — are
+     * unavailable then.
      *
      * Every server that knows the field sets it, true or false. Absent means
      * the server predates it and its posture is unknown: a client offers the
@@ -823,8 +823,8 @@ private static final long serialVersionUID = 0L;
      *
      * False when the server trusts every request (no identity verifier is
      * configured, the default single-operator posture). Features that hand out
-     * credentials only a verifying server honours — minting PlatformClient user
-     * tokens — are unavailable then.
+     * credentials only a verifying server honours — minting user tokens — are
+     * unavailable then.
      *
      * Every server that knows the field sets it, true or false. Absent means
      * the server predates it and its posture is unknown: a client offers the
@@ -849,8 +849,8 @@ private static final long serialVersionUID = 0L;
      *
      * False when the server trusts every request (no identity verifier is
      * configured, the default single-operator posture). Features that hand out
-     * credentials only a verifying server honours — minting PlatformClient user
-     * tokens — are unavailable then.
+     * credentials only a verifying server honours — minting user tokens — are
+     * unavailable then.
      *
      * Every server that knows the field sets it, true or false. Absent means
      * the server predates it and its posture is unknown: a client offers the

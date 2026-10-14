@@ -16,7 +16,6 @@ import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 export const GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole[]> = new Map([
   [ApiResourceKind.identity_provider, [IamRole.viewer]],
   [ApiResourceKind.oauth_app, [IamRole.viewer]],
-  [ApiResourceKind.platform_client, [IamRole.viewer]],
   [ApiResourceKind.team, [IamRole.member]],
   [ApiResourceKind.organization, [IamRole.owner, IamRole.admin, IamRole.member, IamRole.viewer]],
   [ApiResourceKind.agent, [IamRole.owner, IamRole.editor, IamRole.viewer]],
@@ -61,9 +60,6 @@ export const ROLE_DESCRIPTIONS: ReadonlyMap<ApiResourceKind, ReadonlyMap<IamRole
     [IamRole.viewer, "See its settings; cannot change them"],
   ])],
   [ApiResourceKind.oauth_app, new Map<IamRole, string>([
-    [IamRole.viewer, "See its settings; cannot change them"],
-  ])],
-  [ApiResourceKind.platform_client, new Map<IamRole, string>([
     [IamRole.viewer, "See its settings; cannot change them"],
   ])],
   [ApiResourceKind.team, new Map<IamRole, string>([

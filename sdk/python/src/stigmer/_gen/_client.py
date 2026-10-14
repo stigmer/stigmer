@@ -20,7 +20,6 @@ from ._memory import MemoryClient
 from ._oauthapp import OAuthAppClient
 from ._organization import OrganizationClient
 from ._plan import PlanClient
-from ._platformclient import PlatformClientClient
 from ._plugin import PluginClient
 from ._plugineval import PluginEvalClient
 from ._providerkey import ProviderKeyClient
@@ -54,7 +53,6 @@ class GeneratedClient:
         self.oauthapps = OAuthAppClient(channel)
         self.organizations = OrganizationClient(channel)
         self.plans = PlanClient(channel)
-        self.platformclients = PlatformClientClient(channel)
         self.plugins = PluginClient(channel)
         self.pluginevals = PluginEvalClient(channel)
         self.providerkeys = ProviderKeyClient(channel)

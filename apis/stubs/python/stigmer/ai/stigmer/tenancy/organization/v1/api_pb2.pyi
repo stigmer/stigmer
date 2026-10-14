@@ -2,6 +2,7 @@ from ai.stigmer.commons.apiresource import metadata_pb2 as _metadata_pb2
 from ai.stigmer.commons.apiresource import status_pb2 as _status_pb2
 from ai.stigmer.tenancy.organization.v1 import spec_pb2 as _spec_pb2
 from buf.validate import validate_pb2 as _validate_pb2
+from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from collections.abc import Mapping as _Mapping
@@ -20,5 +21,20 @@ class Organization(_message.Message):
     kind: str
     metadata: _metadata_pb2.ApiResourceMetadata
     spec: _spec_pb2.OrganizationSpec
-    status: _status_pb2.ApiResourceAuditStatus
-    def __init__(self, api_version: _Optional[str] = ..., kind: _Optional[str] = ..., metadata: _Optional[_Union[_metadata_pb2.ApiResourceMetadata, _Mapping]] = ..., spec: _Optional[_Union[_spec_pb2.OrganizationSpec, _Mapping]] = ..., status: _Optional[_Union[_status_pb2.ApiResourceAuditStatus, _Mapping]] = ...) -> None: ...
+    status: OrganizationStatus
+    def __init__(self, api_version: _Optional[str] = ..., kind: _Optional[str] = ..., metadata: _Optional[_Union[_metadata_pb2.ApiResourceMetadata, _Mapping]] = ..., spec: _Optional[_Union[_spec_pb2.OrganizationSpec, _Mapping]] = ..., status: _Optional[_Union[OrganizationStatus, _Mapping]] = ...) -> None: ...
+
+class OrganizationStatus(_message.Message):
+    __slots__ = ("audit", "embedding_vault_attachers")
+    class EmbeddingVaultAttachersEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+    AUDIT_FIELD_NUMBER: _ClassVar[int]
+    EMBEDDING_VAULT_ATTACHERS_FIELD_NUMBER: _ClassVar[int]
+    audit: _status_pb2.ApiResourceAudit
+    embedding_vault_attachers: _containers.ScalarMap[str, str]
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., embedding_vault_attachers: _Optional[_Mapping[str, str]] = ...) -> None: ...

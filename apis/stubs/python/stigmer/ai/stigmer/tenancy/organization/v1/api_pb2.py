@@ -28,7 +28,7 @@ from ai.stigmer.tenancy.organization.v1 import spec_pb2 as ai_dot_stigmer_dot_te
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n,ai/stigmer/tenancy/organization/v1/api.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a-ai/stigmer/tenancy/organization/v1/spec.proto\x1a\x1b\x62uf/validate/validate.proto\"\xe9\x02\n\x0cOrganization\x12=\n\x0b\x61pi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n\x15tenancy.stigmer.ai/v1R\napiVersion\x12\'\n\x04kind\x18\x02 \x01(\tB\x13\xbaH\x10r\x0e\n\x0cOrganizationR\x04kind\x12W\n\x08metadata\x18\x03 \x01(\x0b\x32\x33.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\x08metadata\x12H\n\x04spec\x18\x04 \x01(\x0b\x32\x34.ai.stigmer.tenancy.organization.v1.OrganizationSpecR\x04spec\x12N\n\x06status\x18\x05 \x01(\x0b\x32\x36.ai.stigmer.commons.apiresource.ApiResourceAuditStatusR\x06statusB\xdf\x01\n&com.ai.stigmer.tenancy.organization.v1B\x08\x41piProtoP\x01\xa2\x02\x04\x41STO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n,ai/stigmer/tenancy/organization/v1/api.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a-ai/stigmer/tenancy/organization/v1/spec.proto\x1a\x1b\x62uf/validate/validate.proto\"\xe9\x02\n\x0cOrganization\x12=\n\x0b\x61pi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n\x15tenancy.stigmer.ai/v1R\napiVersion\x12\'\n\x04kind\x18\x02 \x01(\tB\x13\xbaH\x10r\x0e\n\x0cOrganizationR\x04kind\x12W\n\x08metadata\x18\x03 \x01(\x0b\x32\x33.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\x08metadata\x12H\n\x04spec\x18\x04 \x01(\x0b\x32\x34.ai.stigmer.tenancy.organization.v1.OrganizationSpecR\x04spec\x12N\n\x06status\x18\x05 \x01(\x0b\x32\x36.ai.stigmer.tenancy.organization.v1.OrganizationStatusR\x06status\"\xba\x02\n\x12OrganizationStatus\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61udit\x12\x8f\x01\n\x19\x65mbedding_vault_attachers\x18\x01 \x03(\x0b\x32S.ai.stigmer.tenancy.organization.v1.OrganizationStatus.EmbeddingVaultAttachersEntryR\x17\x65mbeddingVaultAttachers\x1aJ\n\x1c\x45mbeddingVaultAttachersEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\x42\xdf\x01\n&com.ai.stigmer.tenancy.organization.v1B\x08\x41piProtoP\x01\xa2\x02\x04\x41STO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -42,6 +42,12 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_ORGANIZATION'].fields_by_name['kind']._serialized_options = b'\272H\020r\016\n\014Organization'
   _globals['_ORGANIZATION'].fields_by_name['metadata']._loaded_options = None
   _globals['_ORGANIZATION'].fields_by_name['metadata']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_ORGANIZATIONSTATUS_EMBEDDINGVAULTATTACHERSENTRY']._loaded_options = None
+  _globals['_ORGANIZATIONSTATUS_EMBEDDINGVAULTATTACHERSENTRY']._serialized_options = b'8\001'
   _globals['_ORGANIZATION']._serialized_start=253
   _globals['_ORGANIZATION']._serialized_end=614
+  _globals['_ORGANIZATIONSTATUS']._serialized_start=617
+  _globals['_ORGANIZATIONSTATUS']._serialized_end=931
+  _globals['_ORGANIZATIONSTATUS_EMBEDDINGVAULTATTACHERSENTRY']._serialized_start=857
+  _globals['_ORGANIZATIONSTATUS_EMBEDDINGVAULTATTACHERSENTRY']._serialized_end=931
 # @@protoc_insertion_point(module_scope)

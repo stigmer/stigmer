@@ -56,7 +56,7 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "er.iam.v1\032 google/protobuf/descriptor.pr" +
       "oto\"R\n\013IamRoleMeta\022!\n\014display_name\030\001 \001(\t" +
       "R\013displayName\022 \n\013description\030\002 \001(\tR\013desc" +
-      "ription*\204\013\n\rIamPermission\022\017\n\013unspecified" +
+      "ription*\240\013\n\rIamPermission\022\017\n\013unspecified" +
       "\020\000\022\014\n\010can_view\020\001\022\014\n\010can_edit\020\002\022\016\n\ncan_de" +
       "lete\020\003\022\024\n\020can_grant_access\020\004\022\023\n\017can_view" +
       "_access\020\005\022\024\n\020can_assign_roles\020/\022\027\n\023can_m" +
@@ -64,54 +64,55 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "\n\022can_create_session\020\010\022\024\n\020can_create_ski" +
       "ll\020\t\022\022\n\016can_create_idp\020\013\022\037\n\033can_create_i" +
       "dentity_account\020\025\022\030\n\024can_create_oauth_ap" +
-      "p\020\027\022\036\n\032can_create_platform_client\020\030\022\025\n\021c" +
-      "an_create_run_in\020\r\022\017\n\013can_execute\020\017\022\025\n\021c" +
-      "an_bootstrap_iam\020\021\022\024\n\020can_view_billing\020\033" +
-      "\022\026\n\022can_manage_billing\020\034\022\033\n\027can_execute_" +
-      "billing_ops\020\035\022\032\n\026can_create_agent_share\020" +
-      "\036\022\034\n\030can_create_agent_channel\0206\022\032\n\026can_c" +
-      "reate_channel_app\020\037\022\034\n\030can_manage_model_" +
-      "pricing\020 \022\023\n\017can_participate\020$\022\035\n\031can_wr" +
-      "ite_reserved_labels\020%\022\025\n\021can_create_plug" +
-      "in\020(\022\024\n\020can_manage_plans\020)\022\025\n\021can_issue_" +
-      "license\020*\022\023\n\017can_create_team\020-\022\031\n\025can_ma" +
-      "nage_child_orgs\0201\022\025\n\021can_view_settings\0202" +
-      "\022\024\n\020can_create_vault\0203\022\033\n\027can_create_sha" +
-      "red_vault\0204\022\013\n\007can_use\0205\022\023\n\017can_manage_k" +
-      "eys\0207\022\033\n\027can_view_access_history\0208\"\004\010\016\020\016" +
+      "p\020\027\022\025\n\021can_create_run_in\020\r\022\017\n\013can_execut" +
+      "e\020\017\022\025\n\021can_bootstrap_iam\020\021\022\024\n\020can_view_b" +
+      "illing\020\033\022\026\n\022can_manage_billing\020\034\022\033\n\027can_" +
+      "execute_billing_ops\020\035\022\032\n\026can_create_agen" +
+      "t_share\020\036\022\034\n\030can_create_agent_channel\0206\022" +
+      "\032\n\026can_create_channel_app\020\037\022\034\n\030can_manag" +
+      "e_model_pricing\020 \022\023\n\017can_participate\020$\022\035" +
+      "\n\031can_write_reserved_labels\020%\022\025\n\021can_cre" +
+      "ate_plugin\020(\022\024\n\020can_manage_plans\020)\022\025\n\021ca" +
+      "n_issue_license\020*\022\023\n\017can_create_team\020-\022\031" +
+      "\n\025can_manage_child_orgs\0201\022\025\n\021can_view_se" +
+      "ttings\0202\022\024\n\020can_create_vault\0203\022\033\n\027can_cr" +
+      "eate_shared_vault\0204\022\013\n\007can_use\0205\022\023\n\017can_" +
+      "manage_keys\0207\022\033\n\027can_view_access_history" +
+      "\0208\022\030\n\024can_mint_user_tokens\0209\"\004\010\030\020\030\"\004\010\016\020\016" +
       "\"\004\010\007\020\007\"\004\010\014\020\014\"\004\010\020\020\020\"\004\010\026\020\026\"\004\010\022\020\022\"\004\010\024\020\024\"\004\010\031" +
       "\020\031\"\004\010\032\020\032\"\004\010!\020!\"\004\010\"\020\"\"\004\010\n\020\n\"\004\010#\020#\"\004\010&\020&\"\004" +
-      "\010\'\020\'\"\004\010+\020+\"\004\010,\020,\"\004\010.\020.*\023can_create_insta" +
-      "nce*\023can_create_workflow*\026can_create_env" +
-      "ironment*\020can_read_secrets*\013can_connect*" +
-      "\034can_manage_identity_accounts*\024login_to_" +
-      "back_office*\021can_create_runner*\022can_dele" +
-      "te_session*\017can_use_records*\024can_create_" +
-      "datastore*\022can_create_project*\032can_manag" +
-      "e_cursor_accounts*\032can_view_provider_sta" +
-      "nding*\031can_set_public_visibility*\025can_cr" +
-      "eate_mcp_server*\031can_create_agent_instan" +
-      "ce*\022can_manage_credits*\267\004\n\007IamRole\022\030\n\024ia" +
-      "m_role_unspecified\020\000\022U\n\005owner\020\001\032J\212\304,F\n\005O" +
-      "wner\022=Everything, including deleting it " +
-      "and deciding who has access\022P\n\005admin\020\002\032E" +
-      "\212\304,A\n\005Admin\0228Manage the organization\'s p" +
-      "eople, settings and resources\022B\n\006member\020" +
-      "\003\0326\212\304,2\n\006Member\022(Belongs to it and holds" +
-      " what it is given\0223\n\006viewer\020\004\032\'\212\304,#\n\006Vie" +
-      "wer\022\031Read it; cannot change it\022L\n\013partic" +
-      "ipant\020\005\032;\212\304,7\n\013Participant\022(Read the con" +
-      "versations and send messages\022V\n\006editor\020\006" +
-      "\032J\212\304,F\n\006Editor\022<Change and use it; canno" +
-      "t delete it or decide who has access\022J\n\004" +
-      "user\020\007\032@\212\304,<\n\007Can use\0221Use this vault\'s " +
-      "logins and secrets in their runs:`\n\trole" +
-      "_meta\022!.google.protobuf.EnumValueOptions" +
-      "\030\301\310\005 \001(\0132\036.ai.stigmer.iam.v1.IamRoleMeta" +
-      "R\010roleMetaBrB\tEnumProtoP\001\242\002\003ASI\252\002\021Ai.Sti" +
-      "gmer.Iam.V1\312\002\021Ai\\Stigmer\\Iam\\V1\342\002\035Ai\\Sti" +
-      "gmer\\Iam\\V1\\GPBMetadata\352\002\024Ai::Stigmer::I" +
-      "am::V1b\006proto3"
+      "\010\'\020\'\"\004\010+\020+\"\004\010,\020,\"\004\010.\020.*\032can_create_platf" +
+      "orm_client*\023can_create_instance*\023can_cre" +
+      "ate_workflow*\026can_create_environment*\020ca" +
+      "n_read_secrets*\013can_connect*\034can_manage_" +
+      "identity_accounts*\024login_to_back_office*" +
+      "\021can_create_runner*\022can_delete_session*\017" +
+      "can_use_records*\024can_create_datastore*\022c" +
+      "an_create_project*\032can_manage_cursor_acc" +
+      "ounts*\032can_view_provider_standing*\031can_s" +
+      "et_public_visibility*\025can_create_mcp_ser" +
+      "ver*\031can_create_agent_instance*\022can_mana" +
+      "ge_credits*\267\004\n\007IamRole\022\030\n\024iam_role_unspe" +
+      "cified\020\000\022U\n\005owner\020\001\032J\212\304,F\n\005Owner\022=Everyt" +
+      "hing, including deleting it and deciding" +
+      " who has access\022P\n\005admin\020\002\032E\212\304,A\n\005Admin\022" +
+      "8Manage the organization\'s people, setti" +
+      "ngs and resources\022B\n\006member\020\003\0326\212\304,2\n\006Mem" +
+      "ber\022(Belongs to it and holds what it is " +
+      "given\0223\n\006viewer\020\004\032\'\212\304,#\n\006Viewer\022\031Read it" +
+      "; cannot change it\022L\n\013participant\020\005\032;\212\304," +
+      "7\n\013Participant\022(Read the conversations a" +
+      "nd send messages\022V\n\006editor\020\006\032J\212\304,F\n\006Edit" +
+      "or\022<Change and use it; cannot delete it " +
+      "or decide who has access\022J\n\004user\020\007\032@\212\304,<" +
+      "\n\007Can use\0221Use this vault\'s logins and s" +
+      "ecrets in their runs:`\n\trole_meta\022!.goog" +
+      "le.protobuf.EnumValueOptions\030\301\310\005 \001(\0132\036.a" +
+      "i.stigmer.iam.v1.IamRoleMetaR\010roleMetaBr" +
+      "B\tEnumProtoP\001\242\002\003ASI\252\002\021Ai.Stigmer.Iam.V1\312" +
+      "\002\021Ai\\Stigmer\\Iam\\V1\342\002\035Ai\\Stigmer\\Iam\\V1\\" +
+      "GPBMetadata\352\002\024Ai::Stigmer::Iam::V1b\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

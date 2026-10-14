@@ -12,8 +12,8 @@ import "buf/validate/validate.proto";
 // An identity account represents a user or machine principal in Stigmer.
 // Accounts can be direct (signed up via Stigmer), federated (provisioned
 // through an external identity provider), machine (service-to-service
-// credentials), platform_client (provisioned via a PlatformClient's
-// mintUserToken endpoint), or service_account (an organization's own
+// credentials), app_user (signed in from an organization's own product
+// through TokenService.mintUserToken), or service_account (an organization's own
 // non-person account, created by its admins for automation).
 //
 // @internal
@@ -26,12 +26,11 @@ import "buf/validate/validate.proto";
 // - federated: raw OIDC sub claim (e.g., "google-oauth2|109876543210"),
 //   scoped by identity_provider_ref
 // - machine: Auth0 client ID with "@clients" suffix
-// - platform_client: composite "stgm_pc|{org}|{external_user_id}" where org
-//   is the Stigmer org that owns the PlatformClient(s) and external_user_id
-//   is the platform builder's stable identifier for the user. Scoping by org
-//   (not by PlatformClient) means a customer's end user resolves to a single
-//   IdentityAccount across all of that customer's PlatformClients. Globally
-//   unique by construction.
+// - app_user: composite "stgm_pc|{org}|{external_user_id}" where org is the
+//   organization the minted token is for and external_user_id is the
+//   product's stable identifier for the person. Scoping by org means one
+//   person resolves to a single IdentityAccount in that organization,
+//   whichever key minted the token. Globally unique by construction.
 // - service_account: composite "stgm_sa|{org}|{random}" where org is the
 //   owning organization's id and random is drawn at creation; the account's
 //   one name is metadata.name and its person fields stay empty.
@@ -47,11 +46,10 @@ message IdentityAccountSpec {
   // provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
   // identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
   // For machine accounts: the Auth0 client ID with "@clients" suffix.
-  // For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
-  // where org is the Stigmer org that owns the PlatformClient(s) and
-  // external_user_id is the platform builder's stable identifier for the user.
-  // Scoping by org (not by PlatformClient) means the same user_id presented
-  // via any PlatformClient in the same org resolves to the same IdentityAccount.
+  // For app_user accounts: composite "stgm_pc|{org}|{external_user_id}" where
+  // org is the organization the minted token is for and external_user_id is
+  // the product's stable identifier for the person, so the same user_id
+  // minted for the same organization resolves to the same IdentityAccount.
   // Globally unique by construction — no additional scope field is needed.
   // For service_account accounts: composite "stgm_sa|{org}|{random}", assigned
   // by the server at createServiceAccount and never supplied by a caller.
@@ -102,8 +100,8 @@ message IdentityAccountSpec {
 // Self-service: mutable through the existing update RPC under FGA can_edit
 // (owner, via the self-ownership tuple written at account creation) — zero
 // new IAM. Grows along the user scope's taxonomy path (memory opt-in is
-// one such field). Never composed for machine accounts or platform-client
-// user tokens.
+// one such field). Never composed for machine accounts or minted user
+// tokens.
 //
 // The structured default fields (default_harness, default_*_model) are
 // CLIENT-READ seeds: clients read them

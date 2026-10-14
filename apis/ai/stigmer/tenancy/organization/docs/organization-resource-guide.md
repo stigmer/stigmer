@@ -91,7 +91,7 @@ spec:
 
 - Nobody owns a new child: the parent's admins grant its first members and its owner.
 - Blueprints the parent shares at `visibility_child_orgs` appear in every child's catalog, children created later included.
-- A sign-in through the parent's identity provider whose `external_id_claim` carries `cust-4411` is bound to this child, as is a PlatformClient token the parent mints with `org` naming it.
+- A sign-in through the parent's identity provider whose `external_id_claim` carries `cust-4411` is bound to this child, as is a user token the parent's service account mints with `org` naming it.
 - One level deep: a child cannot have children, and a parent that still has children cannot be deleted.
 
 ## Status Fields

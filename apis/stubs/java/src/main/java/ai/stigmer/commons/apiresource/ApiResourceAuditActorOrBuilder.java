@@ -96,25 +96,25 @@ public interface ApiResourceAuditActorOrBuilder extends
 
   /**
    * <pre>
-   * The PlatformClient whose minted user token the actor acted through.
-   * Empty for every other credential, and on an actor that records no act
-   * (an account's profile lookup).
+   * The service account whose key minted the user token the actor acted
+   * through. Empty for every other credential, and on an actor that records
+   * no act (an account's profile lookup).
    * </pre>
    *
-   * <code>string platform_client_id = 5 [json_name = "platformClientId"];</code>
-   * @return The platformClientId.
+   * <code>string minted_by = 6 [json_name = "mintedBy"];</code>
+   * @return The mintedBy.
    */
-  java.lang.String getPlatformClientId();
+  java.lang.String getMintedBy();
   /**
    * <pre>
-   * The PlatformClient whose minted user token the actor acted through.
-   * Empty for every other credential, and on an actor that records no act
-   * (an account's profile lookup).
+   * The service account whose key minted the user token the actor acted
+   * through. Empty for every other credential, and on an actor that records
+   * no act (an account's profile lookup).
    * </pre>
    *
-   * <code>string platform_client_id = 5 [json_name = "platformClientId"];</code>
-   * @return The bytes for platformClientId.
+   * <code>string minted_by = 6 [json_name = "mintedBy"];</code>
+   * @return The bytes for mintedBy.
    */
   com.google.protobuf.ByteString
-      getPlatformClientIdBytes();
+      getMintedByBytes();
 }

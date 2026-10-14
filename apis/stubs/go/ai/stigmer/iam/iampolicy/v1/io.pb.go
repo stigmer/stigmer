@@ -108,7 +108,11 @@ const (
 	// The server's operator became owner of an organization nobody owned.
 	AccessChangeCause_operator_ownership AccessChangeCause = 10
 	// A person who signed in through a platform client was given the
-	// organization role that client grants.
+	// organization role that client granted. No longer written: a minted
+	// user's sign-in role is an ordinary grant made by the service account
+	// whose key minted the token, as federation records its own. It stays
+	// because history entries hold it, and an entry's cause is what
+	// happened then.
 	AccessChangeCause_platform_client_grant AccessChangeCause = 11
 	// An administrator created a service account with its role in the
 	// organization.
@@ -318,7 +322,7 @@ func (x *ApiResourceRefView) GetIdentityOrigin() *IdentityOrigin {
 // account IDs.
 type IdentityOrigin struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// How the account was provisioned (direct, federated, machine, platform_client).
+	// How the account was provisioned (direct, federated, machine, app_user, service_account).
 	ProvisioningMode v1.IdentityAccountProvisioningMode `protobuf:"varint,1,opt,name=provisioning_mode,json=provisioningMode,proto3,enum=ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode" json:"provisioning_mode,omitempty"`
 	// Human-readable label for the identity source: "Stigmer" for direct
 	// accounts, or the owning IdentityProvider's display name for federated

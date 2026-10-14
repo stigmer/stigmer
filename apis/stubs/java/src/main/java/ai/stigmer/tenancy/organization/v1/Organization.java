@@ -235,13 +235,13 @@ private static final long serialVersionUID = 0L;
   }
 
   public static final int STATUS_FIELD_NUMBER = 5;
-  private ai.stigmer.commons.apiresource.ApiResourceAuditStatus status_;
+  private ai.stigmer.tenancy.organization.v1.OrganizationStatus status_;
   /**
    * <pre>
-   * System-managed audit state.
+   * System-managed state: the audit, and who attached each embedding vault.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationStatus status = 5 [json_name = "status"];</code>
    * @return Whether the status field is set.
    */
   @java.lang.Override
@@ -250,26 +250,26 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * System-managed audit state.
+   * System-managed state: the audit, and who attached each embedding vault.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationStatus status = 5 [json_name = "status"];</code>
    * @return The status.
    */
   @java.lang.Override
-  public ai.stigmer.commons.apiresource.ApiResourceAuditStatus getStatus() {
-    return status_ == null ? ai.stigmer.commons.apiresource.ApiResourceAuditStatus.getDefaultInstance() : status_;
+  public ai.stigmer.tenancy.organization.v1.OrganizationStatus getStatus() {
+    return status_ == null ? ai.stigmer.tenancy.organization.v1.OrganizationStatus.getDefaultInstance() : status_;
   }
   /**
    * <pre>
-   * System-managed audit state.
+   * System-managed state: the audit, and who attached each embedding vault.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationStatus status = 5 [json_name = "status"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.commons.apiresource.ApiResourceAuditStatusOrBuilder getStatusOrBuilder() {
-    return status_ == null ? ai.stigmer.commons.apiresource.ApiResourceAuditStatus.getDefaultInstance() : status_;
+  public ai.stigmer.tenancy.organization.v1.OrganizationStatusOrBuilder getStatusOrBuilder() {
+    return status_ == null ? ai.stigmer.tenancy.organization.v1.OrganizationStatus.getDefaultInstance() : status_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -1222,15 +1222,15 @@ private static final long serialVersionUID = 0L;
       return specBuilder_;
     }
 
-    private ai.stigmer.commons.apiresource.ApiResourceAuditStatus status_;
+    private ai.stigmer.tenancy.organization.v1.OrganizationStatus status_;
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.commons.apiresource.ApiResourceAuditStatus, ai.stigmer.commons.apiresource.ApiResourceAuditStatus.Builder, ai.stigmer.commons.apiresource.ApiResourceAuditStatusOrBuilder> statusBuilder_;
+        ai.stigmer.tenancy.organization.v1.OrganizationStatus, ai.stigmer.tenancy.organization.v1.OrganizationStatus.Builder, ai.stigmer.tenancy.organization.v1.OrganizationStatusOrBuilder> statusBuilder_;
     /**
      * <pre>
-     * System-managed audit state.
+     * System-managed state: the audit, and who attached each embedding vault.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationStatus status = 5 [json_name = "status"];</code>
      * @return Whether the status field is set.
      */
     public boolean hasStatus() {
@@ -1238,27 +1238,27 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed audit state.
+     * System-managed state: the audit, and who attached each embedding vault.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationStatus status = 5 [json_name = "status"];</code>
      * @return The status.
      */
-    public ai.stigmer.commons.apiresource.ApiResourceAuditStatus getStatus() {
+    public ai.stigmer.tenancy.organization.v1.OrganizationStatus getStatus() {
       if (statusBuilder_ == null) {
-        return status_ == null ? ai.stigmer.commons.apiresource.ApiResourceAuditStatus.getDefaultInstance() : status_;
+        return status_ == null ? ai.stigmer.tenancy.organization.v1.OrganizationStatus.getDefaultInstance() : status_;
       } else {
         return statusBuilder_.getMessage();
       }
     }
     /**
      * <pre>
-     * System-managed audit state.
+     * System-managed state: the audit, and who attached each embedding vault.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationStatus status = 5 [json_name = "status"];</code>
      */
-    public Builder setStatus(ai.stigmer.commons.apiresource.ApiResourceAuditStatus value) {
+    public Builder setStatus(ai.stigmer.tenancy.organization.v1.OrganizationStatus value) {
       if (statusBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
@@ -1273,13 +1273,13 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed audit state.
+     * System-managed state: the audit, and who attached each embedding vault.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationStatus status = 5 [json_name = "status"];</code>
      */
     public Builder setStatus(
-        ai.stigmer.commons.apiresource.ApiResourceAuditStatus.Builder builderForValue) {
+        ai.stigmer.tenancy.organization.v1.OrganizationStatus.Builder builderForValue) {
       if (statusBuilder_ == null) {
         status_ = builderForValue.build();
       } else {
@@ -1291,16 +1291,16 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed audit state.
+     * System-managed state: the audit, and who attached each embedding vault.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationStatus status = 5 [json_name = "status"];</code>
      */
-    public Builder mergeStatus(ai.stigmer.commons.apiresource.ApiResourceAuditStatus value) {
+    public Builder mergeStatus(ai.stigmer.tenancy.organization.v1.OrganizationStatus value) {
       if (statusBuilder_ == null) {
         if (((bitField0_ & 0x00000010) != 0) &&
           status_ != null &&
-          status_ != ai.stigmer.commons.apiresource.ApiResourceAuditStatus.getDefaultInstance()) {
+          status_ != ai.stigmer.tenancy.organization.v1.OrganizationStatus.getDefaultInstance()) {
           getStatusBuilder().mergeFrom(value);
         } else {
           status_ = value;
@@ -1316,10 +1316,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed audit state.
+     * System-managed state: the audit, and who attached each embedding vault.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationStatus status = 5 [json_name = "status"];</code>
      */
     public Builder clearStatus() {
       bitField0_ = (bitField0_ & ~0x00000010);
@@ -1333,44 +1333,44 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed audit state.
+     * System-managed state: the audit, and who attached each embedding vault.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationStatus status = 5 [json_name = "status"];</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceAuditStatus.Builder getStatusBuilder() {
+    public ai.stigmer.tenancy.organization.v1.OrganizationStatus.Builder getStatusBuilder() {
       bitField0_ |= 0x00000010;
       onChanged();
       return internalGetStatusFieldBuilder().getBuilder();
     }
     /**
      * <pre>
-     * System-managed audit state.
+     * System-managed state: the audit, and who attached each embedding vault.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationStatus status = 5 [json_name = "status"];</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceAuditStatusOrBuilder getStatusOrBuilder() {
+    public ai.stigmer.tenancy.organization.v1.OrganizationStatusOrBuilder getStatusOrBuilder() {
       if (statusBuilder_ != null) {
         return statusBuilder_.getMessageOrBuilder();
       } else {
         return status_ == null ?
-            ai.stigmer.commons.apiresource.ApiResourceAuditStatus.getDefaultInstance() : status_;
+            ai.stigmer.tenancy.organization.v1.OrganizationStatus.getDefaultInstance() : status_;
       }
     }
     /**
      * <pre>
-     * System-managed audit state.
+     * System-managed state: the audit, and who attached each embedding vault.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
+     * <code>.ai.stigmer.tenancy.organization.v1.OrganizationStatus status = 5 [json_name = "status"];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.commons.apiresource.ApiResourceAuditStatus, ai.stigmer.commons.apiresource.ApiResourceAuditStatus.Builder, ai.stigmer.commons.apiresource.ApiResourceAuditStatusOrBuilder> 
+        ai.stigmer.tenancy.organization.v1.OrganizationStatus, ai.stigmer.tenancy.organization.v1.OrganizationStatus.Builder, ai.stigmer.tenancy.organization.v1.OrganizationStatusOrBuilder> 
         internalGetStatusFieldBuilder() {
       if (statusBuilder_ == null) {
         statusBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.commons.apiresource.ApiResourceAuditStatus, ai.stigmer.commons.apiresource.ApiResourceAuditStatus.Builder, ai.stigmer.commons.apiresource.ApiResourceAuditStatusOrBuilder>(
+            ai.stigmer.tenancy.organization.v1.OrganizationStatus, ai.stigmer.tenancy.organization.v1.OrganizationStatus.Builder, ai.stigmer.tenancy.organization.v1.OrganizationStatusOrBuilder>(
                 getStatus(),
                 getParentForChildren(),
                 isClean());

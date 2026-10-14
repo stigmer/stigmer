@@ -4,6 +4,11 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
+import type { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
+import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
+import type { IamRole } from "../../../iam/v1/enum_pb.js";
+import { file_ai_stigmer_iam_v1_enum } from "../../../iam/v1/enum_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -11,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/tenancy/organization/v1/spec.proto.
  */
 export const file_ai_stigmer_tenancy_organization_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEinQQKEE9yZ2FuaXphdGlvblNwZWMSHQoLZGVzY3JpcHRpb24YASABKAlCCLpIBXIDGPQDEhoKCGxvZ29fdXJsGAIgASgJQgi6SAVyAxiAEBIdCgtleHRlcm5hbF9pZBgFIAEoCUIIukgFcgMYgAISUAoLcHJlZmVyZW5jZXMYByABKAsyOy5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvblByZWZlcmVuY2VzEhsKCnBhcmVudF9vcmcYCCABKAlCB7pIBHICGEASSgoIcG9saWNpZXMYCSABKAsyOC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvblBvbGljaWVzOqwBukioARqlAQosb3JnYW5pemF0aW9uLmV4dGVybmFsX2lkX3JlcXVpcmVzX3BhcmVudF9vcmcSRGV4dGVybmFsX2lkIGlzIHNldCBvbmx5IG9uIGEgY2hpbGQgb3JnYW5pemF0aW9uOiBuYW1lIGl0cyBwYXJlbnRfb3JnGi90aGlzLmV4dGVybmFsX2lkID09ICcnIHx8IHRoaXMucGFyZW50X29yZyAhPSAnJ0oECAMQBEoECAQQBUoECAYQB1IPbWFuYWdlbWVudF9tb2RlUhVpZGVudGl0eV9wcm92aWRlcl9yZWZSC2lzX3BlcnNvbmFsIlUKF09yZ2FuaXphdGlvblByZWZlcmVuY2VzEiIKEHN0YW5kaW5nX2NvbnRleHQYASABKAlCCLpIBXIDGNAPEhYKDm1lbW9yeV9lbmFibGVkGAIgASgIIjkKFE9yZ2FuaXphdGlvblBvbGljaWVzEiEKGW1lbWJlcnNfY2FuX2NyZWF0ZV9hZ2VudHMYASABKAhiBnByb3RvMw", [file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEi6wQKEE9yZ2FuaXphdGlvblNwZWMSHQoLZGVzY3JpcHRpb24YASABKAlCCLpIBXIDGPQDEhoKCGxvZ29fdXJsGAIgASgJQgi6SAVyAxiAEBIdCgtleHRlcm5hbF9pZBgFIAEoCUIIukgFcgMYgAISUAoLcHJlZmVyZW5jZXMYByABKAsyOy5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvblByZWZlcmVuY2VzEhsKCnBhcmVudF9vcmcYCCABKAlCB7pIBHICGEASSgoIcG9saWNpZXMYCSABKAsyOC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvblBvbGljaWVzEkwKCWVtYmVkZGluZxgKIAEoCzI5LmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uRW1iZWRkaW5nOqwBukioARqlAQosb3JnYW5pemF0aW9uLmV4dGVybmFsX2lkX3JlcXVpcmVzX3BhcmVudF9vcmcSRGV4dGVybmFsX2lkIGlzIHNldCBvbmx5IG9uIGEgY2hpbGQgb3JnYW5pemF0aW9uOiBuYW1lIGl0cyBwYXJlbnRfb3JnGi90aGlzLmV4dGVybmFsX2lkID09ICcnIHx8IHRoaXMucGFyZW50X29yZyAhPSAnJ0oECAMQBEoECAQQBUoECAYQB1IPbWFuYWdlbWVudF9tb2RlUhVpZGVudGl0eV9wcm92aWRlcl9yZWZSC2lzX3BlcnNvbmFsIuMEChVPcmdhbml6YXRpb25FbWJlZGRpbmcSFwoPYWxsb3dlZF9vcmlnaW5zGAEgAygJEiIKGmNyZWF0ZV9hY2NvdW50c19vbl9zaWduX2luGAIgASgIEjAKDHNpZ25faW5fcm9sZRgDIAEoDjIaLmFpLnN0aWdtZXIuaWFtLnYxLklhbVJvbGUSUgoGdmF1bHRzGAQgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgy6SAWSAQIQFOCFLDs6hgO6SIIDGuMBCj1vcmdhbml6YXRpb25fZW1iZWRkaW5nLnNpZ25faW5fcm9sZV9yZXF1aXJlc19hY2NvdW50X2NyZWF0aW9uEmdzaWduX2luX3JvbGUgcmVxdWlyZXMgY3JlYXRlX2FjY291bnRzX29uX3NpZ25faW46IG9ubHkgYW4gYWNjb3VudCB0aGUgc2lnbi1pbiBjcmVhdGVzIHJlY2VpdmVzIHRoZSByb2xlGjl0aGlzLnNpZ25faW5fcm9sZSA9PSAwIHx8IHRoaXMuY3JlYXRlX2FjY291bnRzX29uX3NpZ25faW4amQEKLW9yZ2FuaXphdGlvbl9lbWJlZGRpbmcuc2lnbl9pbl9yb2xlX25vdF9vd25lchJQc2lnbl9pbl9yb2xlIGNhbm5vdCBiZSBvd25lcjsgb3JnYW5pemF0aW9uIG93bmVyc2hpcCBtdXN0IGJlIGFzc2lnbmVkIGV4cGxpY2l0bHkaFnRoaXMuc2lnbl9pbl9yb2xlICE9IDEiVQoXT3JnYW5pemF0aW9uUHJlZmVyZW5jZXMSIgoQc3RhbmRpbmdfY29udGV4dBgBIAEoCUIIukgFcgMY0A8SFgoObWVtb3J5X2VuYWJsZWQYAiABKAgiOQoUT3JnYW5pemF0aW9uUG9saWNpZXMSIQoZbWVtYmVyc19jYW5fY3JlYXRlX2FnZW50cxgBIAEoCGIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_iam_v1_enum, file_buf_validate_validate]);
 
 /**
  * OrganizationSpec defines the configurable properties of an organization.
@@ -66,6 +71,17 @@ export type OrganizationSpec = Message<"ai.stigmer.tenancy.organization.v1.Organ
    * @generated from field: ai.stigmer.tenancy.organization.v1.OrganizationPolicies policies = 9;
    */
   policies?: OrganizationPolicies;
+
+  /**
+   * How people sign in to the organization from its own product, when the
+   * product's backend mints their tokens (TokenService.mintUserToken). Set
+   * only through updateEmbedding, so an update or apply of a manifest
+   * neither fails on nor reverts it: embedding carried by update or apply
+   * is ignored.
+   *
+   * @generated from field: ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10;
+   */
+  embedding?: OrganizationEmbedding;
 };
 
 /**
@@ -74,6 +90,91 @@ export type OrganizationSpec = Message<"ai.stigmer.tenancy.organization.v1.Organ
  */
 export const OrganizationSpecSchema: GenMessage<OrganizationSpec> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_tenancy_organization_v1_spec, 0);
+
+/**
+ * OrganizationEmbedding holds how people sign in to an organization from
+ * the organization's own product: which web pages may use their tokens,
+ * whether their first sign-in creates their account and with which role,
+ * and which vaults their conversations use.
+ *
+ * @generated from message ai.stigmer.tenancy.organization.v1.OrganizationEmbedding
+ */
+export type OrganizationEmbedding = Message<"ai.stigmer.tenancy.organization.v1.OrganizationEmbedding"> & {
+  /**
+   * Web origins allowed for browser requests that bear a minted user token.
+   *
+   * Enforced on every API request bearing a token minted for this
+   * organization's people (never on mintUserToken itself, which is
+   * server-to-server and carries no browser Origin):
+   *   - Empty list: origin validation is not enforced (open mode, suitable
+   *     for development or when the product controls every access point).
+   *   - Non-empty list: the request's Origin header must match an entry
+   *     (case-insensitive, per RFC 6454 origin comparison). Unlisted
+   *     origins, including the opaque-origin serialization "null", are
+   *     refused PERMISSION_DENIED.
+   *   - Requests without an Origin header always pass: only browsers send
+   *     Origin, and only browsers guarantee it is not forgeable by page
+   *     script. This is a browser-context, CORS-class defense-in-depth
+   *     control against a leaked token being replayed from another site's
+   *     browser context; the minting key remains the primary control, and
+   *     non-browser callers are not constrained by it.
+   *
+   * Edits apply to the next request: the organization is read on every
+   * request that bears one of its minted tokens.
+   *
+   * @generated from field: repeated string allowed_origins = 1;
+   */
+  allowedOrigins: string[];
+
+  /**
+   * Whether mintUserToken creates an identity account for a user_id that
+   * has none yet.
+   *
+   * When false (the default), the product creates accounts before minting
+   * tokens, and mintUserToken returns FAILED_PRECONDITION for a person who
+   * has none. When true, Stigmer creates the account on first sign-in from
+   * the user_email and user_name in the mintUserToken request.
+   *
+   * @generated from field: bool create_accounts_on_sign_in = 2;
+   */
+  createAccountsOnSignIn: boolean;
+
+  /**
+   * The role an account mintUserToken creates receives on the organization
+   * the token is for.
+   *
+   * An app user's account belongs to that one organization, so its
+   * creation is its first sign-in there: the role is granted once, when the
+   * account is created. Accounts that already exist keep the roles they
+   * hold, and changing this setting later does not reach them. Unspecified
+   * (iam_role_unspecified) grants nothing. Requires
+   * create_accounts_on_sign_in. The owner role is refused: ownership is
+   * assigned explicitly. A role an organization cannot be granted (one its
+   * kind's grantable roles do not list) is refused with INVALID_ARGUMENT.
+   *
+   * @generated from field: ai.stigmer.iam.v1.IamRole sign_in_role = 3;
+   */
+  signInRole: IamRole;
+
+  /**
+   * Vaults whose logins and secrets every run an app user creates uses, in
+   * order: the first vault holding a match wins. At most 20.
+   *
+   * This is how an embedded assistant reaches tools that need a key: the
+   * organization's embedding settings carry a shared vault holding it, and
+   * its app users' runs use it. A My vault cannot be attached.
+   *
+   * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference vaults = 4;
+   */
+  vaults: ApiResourceReference[];
+};
+
+/**
+ * Describes the message ai.stigmer.tenancy.organization.v1.OrganizationEmbedding.
+ * Use `create(OrganizationEmbeddingSchema)` to create a new message.
+ */
+export const OrganizationEmbeddingSchema: GenMessage<OrganizationEmbedding> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_tenancy_organization_v1_spec, 1);
 
 /**
  * OrganizationPreferences holds organization-declared defaults that apply to
@@ -105,7 +206,7 @@ export type OrganizationPreferences = Message<"ai.stigmer.tenancy.organization.v
  * Use `create(OrganizationPreferencesSchema)` to create a new message.
  */
 export const OrganizationPreferencesSchema: GenMessage<OrganizationPreferences> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_tenancy_organization_v1_spec, 1);
+  messageDesc(file_ai_stigmer_tenancy_organization_v1_spec, 2);
 
 /**
  * OrganizationPolicies holds what an organization lets its members do.
@@ -131,5 +232,5 @@ export type OrganizationPolicies = Message<"ai.stigmer.tenancy.organization.v1.O
  * Use `create(OrganizationPoliciesSchema)` to create a new message.
  */
 export const OrganizationPoliciesSchema: GenMessage<OrganizationPolicies> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_tenancy_organization_v1_spec, 2);
+  messageDesc(file_ai_stigmer_tenancy_organization_v1_spec, 3);
 

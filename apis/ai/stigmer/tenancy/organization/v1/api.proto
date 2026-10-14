@@ -37,6 +37,22 @@ message Organization {
   // Configurable properties: description, logo, and management mode.
   OrganizationSpec spec = 4;
 
-  // System-managed audit state.
-  ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
+  // System-managed state: the audit, and who attached each embedding vault.
+  OrganizationStatus status = 5;
+}
+
+// OrganizationStatus is an organization's server-owned state.
+message OrganizationStatus {
+  // Audit information tracking creation and modification.
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+
+  // Who attached each of the embedding settings' vaults, by vault id: the
+  // account whose permission to use the vault each app user's run checks.
+  //
+  // @internal
+  // Server-owned. updateEmbedding records the writer for each vault it
+  // introduces, keeps the entry for each vault it keeps, and drops entries
+  // for removed vaults, so an editor's unrelated edit never re-attributes
+  // someone else's attachment.
+  map<string, string> embedding_vault_attachers = 1;
 }

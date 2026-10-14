@@ -139,6 +139,37 @@ public final class OrganizationCommandControllerGrpc {
     return getUpdatePoliciesMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.UpdateOrganizationEmbeddingInput,
+      ai.stigmer.tenancy.organization.v1.Organization> getUpdateEmbeddingMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "updateEmbedding",
+      requestType = ai.stigmer.tenancy.organization.v1.UpdateOrganizationEmbeddingInput.class,
+      responseType = ai.stigmer.tenancy.organization.v1.Organization.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.UpdateOrganizationEmbeddingInput,
+      ai.stigmer.tenancy.organization.v1.Organization> getUpdateEmbeddingMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.UpdateOrganizationEmbeddingInput, ai.stigmer.tenancy.organization.v1.Organization> getUpdateEmbeddingMethod;
+    if ((getUpdateEmbeddingMethod = OrganizationCommandControllerGrpc.getUpdateEmbeddingMethod) == null) {
+      synchronized (OrganizationCommandControllerGrpc.class) {
+        if ((getUpdateEmbeddingMethod = OrganizationCommandControllerGrpc.getUpdateEmbeddingMethod) == null) {
+          OrganizationCommandControllerGrpc.getUpdateEmbeddingMethod = getUpdateEmbeddingMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.tenancy.organization.v1.UpdateOrganizationEmbeddingInput, ai.stigmer.tenancy.organization.v1.Organization>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "updateEmbedding"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.tenancy.organization.v1.UpdateOrganizationEmbeddingInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.tenancy.organization.v1.Organization.getDefaultInstance()))
+              .setSchemaDescriptor(new OrganizationCommandControllerMethodDescriptorSupplier("updateEmbedding"))
+              .build();
+        }
+      }
+    }
+    return getUpdateEmbeddingMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.RenameInput,
       ai.stigmer.tenancy.organization.v1.Organization> getRenameMethod;
 
@@ -383,6 +414,22 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
+     * Change how people sign in to the organization from its own product
+     * (OrganizationEmbedding), the one way to change those settings: update
+     * and apply keep the stored ones. Replaces every embedding setting with
+     * the input's.
+     * A vault the caller may not use is refused, as is a My vault. A
+     * sign_in_role of owner, or one an organization cannot be granted, is
+     * refused with INVALID_ARGUMENT.
+     * </pre>
+     */
+    default void updateEmbedding(ai.stigmer.tenancy.organization.v1.UpdateOrganizationEmbeddingInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.Organization> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateEmbeddingMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Rename an organization: change its slug, the name people type.
      * Nothing the organization owns moves, because every resource names it by
      * id. The old slug keeps resolving to the organization for 30 days, during
@@ -588,6 +635,23 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
+     * Change how people sign in to the organization from its own product
+     * (OrganizationEmbedding), the one way to change those settings: update
+     * and apply keep the stored ones. Replaces every embedding setting with
+     * the input's.
+     * A vault the caller may not use is refused, as is a My vault. A
+     * sign_in_role of owner, or one an organization cannot be granted, is
+     * refused with INVALID_ARGUMENT.
+     * </pre>
+     */
+    public void updateEmbedding(ai.stigmer.tenancy.organization.v1.UpdateOrganizationEmbeddingInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.Organization> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getUpdateEmbeddingMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Rename an organization: change its slug, the name people type.
      * Nothing the organization owns moves, because every resource names it by
      * id. The old slug keeps resolving to the organization for 30 days, during
@@ -777,6 +841,22 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
+     * Change how people sign in to the organization from its own product
+     * (OrganizationEmbedding), the one way to change those settings: update
+     * and apply keep the stored ones. Replaces every embedding setting with
+     * the input's.
+     * A vault the caller may not use is refused, as is a My vault. A
+     * sign_in_role of owner, or one an organization cannot be granted, is
+     * refused with INVALID_ARGUMENT.
+     * </pre>
+     */
+    public ai.stigmer.tenancy.organization.v1.Organization updateEmbedding(ai.stigmer.tenancy.organization.v1.UpdateOrganizationEmbeddingInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getUpdateEmbeddingMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Rename an organization: change its slug, the name people type.
      * Nothing the organization owns moves, because every resource names it by
      * id. The old slug keeps resolving to the organization for 30 days, during
@@ -960,6 +1040,22 @@ public final class OrganizationCommandControllerGrpc {
     public ai.stigmer.tenancy.organization.v1.Organization updatePolicies(ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdatePoliciesMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Change how people sign in to the organization from its own product
+     * (OrganizationEmbedding), the one way to change those settings: update
+     * and apply keep the stored ones. Replaces every embedding setting with
+     * the input's.
+     * A vault the caller may not use is refused, as is a My vault. A
+     * sign_in_role of owner, or one an organization cannot be granted, is
+     * refused with INVALID_ARGUMENT.
+     * </pre>
+     */
+    public ai.stigmer.tenancy.organization.v1.Organization updateEmbedding(ai.stigmer.tenancy.organization.v1.UpdateOrganizationEmbeddingInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getUpdateEmbeddingMethod(), getCallOptions(), request);
     }
 
     /**
@@ -1155,6 +1251,23 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
+     * Change how people sign in to the organization from its own product
+     * (OrganizationEmbedding), the one way to change those settings: update
+     * and apply keep the stored ones. Replaces every embedding setting with
+     * the input's.
+     * A vault the caller may not use is refused, as is a My vault. A
+     * sign_in_role of owner, or one an organization cannot be granted, is
+     * refused with INVALID_ARGUMENT.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> updateEmbedding(
+        ai.stigmer.tenancy.organization.v1.UpdateOrganizationEmbeddingInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getUpdateEmbeddingMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Rename an organization: change its slug, the name people type.
      * Nothing the organization owns moves, because every resource names it by
      * id. The old slug keeps resolving to the organization for 30 days, during
@@ -1213,8 +1326,9 @@ public final class OrganizationCommandControllerGrpc {
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_UPDATE_POLICIES = 3;
-  private static final int METHODID_RENAME = 4;
-  private static final int METHODID_DELETE = 5;
+  private static final int METHODID_UPDATE_EMBEDDING = 4;
+  private static final int METHODID_RENAME = 5;
+  private static final int METHODID_DELETE = 6;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1247,6 +1361,10 @@ public final class OrganizationCommandControllerGrpc {
           break;
         case METHODID_UPDATE_POLICIES:
           serviceImpl.updatePolicies((ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.Organization>) responseObserver);
+          break;
+        case METHODID_UPDATE_EMBEDDING:
+          serviceImpl.updateEmbedding((ai.stigmer.tenancy.organization.v1.UpdateOrganizationEmbeddingInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.Organization>) responseObserver);
           break;
         case METHODID_RENAME:
@@ -1303,6 +1421,13 @@ public final class OrganizationCommandControllerGrpc {
               ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput,
               ai.stigmer.tenancy.organization.v1.Organization>(
                 service, METHODID_UPDATE_POLICIES)))
+        .addMethod(
+          getUpdateEmbeddingMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.tenancy.organization.v1.UpdateOrganizationEmbeddingInput,
+              ai.stigmer.tenancy.organization.v1.Organization>(
+                service, METHODID_UPDATE_EMBEDDING)))
         .addMethod(
           getRenameMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1369,6 +1494,7 @@ public final class OrganizationCommandControllerGrpc {
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
               .addMethod(getUpdatePoliciesMethod())
+              .addMethod(getUpdateEmbeddingMethod())
               .addMethod(getRenameMethod())
               .addMethod(getDeleteMethod())
               .build();

@@ -66,6 +66,14 @@ class UpdateOrganizationPoliciesInput(_message.Message):
     policies: _spec_pb2.OrganizationPolicies
     def __init__(self, org_id: _Optional[str] = ..., policies: _Optional[_Union[_spec_pb2.OrganizationPolicies, _Mapping]] = ...) -> None: ...
 
+class UpdateOrganizationEmbeddingInput(_message.Message):
+    __slots__ = ("org_id", "embedding")
+    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    EMBEDDING_FIELD_NUMBER: _ClassVar[int]
+    org_id: str
+    embedding: _spec_pb2.OrganizationEmbedding
+    def __init__(self, org_id: _Optional[str] = ..., embedding: _Optional[_Union[_spec_pb2.OrganizationEmbedding, _Mapping]] = ...) -> None: ...
+
 class UpdateOrganizationInput(_message.Message):
     __slots__ = ("resource", "update_mask")
     RESOURCE_FIELD_NUMBER: _ClassVar[int]

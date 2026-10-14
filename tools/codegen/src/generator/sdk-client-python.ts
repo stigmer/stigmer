@@ -8,7 +8,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import type { MethodSchema, ServiceDefinition, ServiceSchemaFile } from "./gen-common.js";
-import { firstMemberWinsOrder, goQuote, hasExplicitPresence, indefiniteArticle, isEmptyType, isIDType, isRealOneofMember, isSpecialType, isUpdateInputType, isValuedOneofScalar, assertUniqueSdkMethodNames, pageIteratorName, pagedListOf, protoFileOfMessage, sdkMethodName } from "./gen-common.js";
+import { NON_KIND_PACKAGES, firstMemberWinsOrder, goQuote, hasExplicitPresence, indefiniteArticle, isEmptyType, isIDType, isRealOneofMember, isSpecialType, isUpdateInputType, isValuedOneofScalar, assertUniqueSdkMethodNames, pageIteratorName, pagedListOf, protoFileOfMessage, sdkMethodName } from "./gen-common.js";
 import { isPythonKeyword, pyClientFieldName, pyFieldName, pyMethodName, pyProtoFileToModule, pyProtoImportLine, pyProtoModuleAlias, pyStubMethodName } from "./lang-names.js";
 import type { ResourceGenInfo, SdkResourceConfig } from "./sdk-resource-config.js";
 import { deriveResourceConfig, loadSpecSchemaWithTypes, META_FIELD_NAMES } from "./sdk-resource-config.js";
@@ -349,7 +349,7 @@ export function runSDKClientPythonGeneration(schemaDir: string, outputDir: strin
   for (const entry of entries) {
     if (entry.isDirectory() || !entry.name.endsWith(".json")) continue;
     const resource = entry.name.slice(0, -".json".length);
-    if (resource === "search" || resource === "commons") continue;
+    if (NON_KIND_PACKAGES.has(resource)) continue;
 
     const schema = JSON.parse(fs.readFileSync(path.join(servicesDir, entry.name), "utf8")) as ServiceSchemaFile;
     const cfg = deriveResourceConfig(schema, schemaDir);

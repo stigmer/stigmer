@@ -33,7 +33,6 @@
           "invitation",
           "identity_provider",
           "oauth_app",
-          "platform_client",
           "team",
           "organization",
           "platform",

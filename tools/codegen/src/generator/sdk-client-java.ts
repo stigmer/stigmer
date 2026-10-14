@@ -9,7 +9,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import type { MethodSchema, ServiceDefinition, ServiceSchemaFile } from "./gen-common.js";
-import { firstMemberWinsOrder, goQuote, hasExplicitPresence, isEmptyType, isIDType, isRealOneofMember, isSpecialType, isUpdateInputType, isValuedOneofScalar, assertUniqueSdkMethodNames, pageIteratorName, pagedListOf, sdkMethodName, tsClientFieldName } from "./gen-common.js";
+import { NON_KIND_PACKAGES, firstMemberWinsOrder, goQuote, hasExplicitPresence, isEmptyType, isIDType, isRealOneofMember, isSpecialType, isUpdateInputType, isValuedOneofScalar, assertUniqueSdkMethodNames, pageIteratorName, pagedListOf, sdkMethodName, tsClientFieldName } from "./gen-common.js";
 import { javaCamel, javaCapCamel } from "./lang-names.js";
 import { apiResourceKindEnumNames } from "./resource-kind.js";
 import type { ResourceGenInfo, SdkResourceConfig } from "./sdk-resource-config.js";
@@ -212,7 +212,7 @@ export function runSDKClientJavaGeneration(schemaDir: string, outputDir: string)
   for (const entry of entries) {
     if (entry.isDirectory() || !entry.name.endsWith(".json")) continue;
     const resource = entry.name.slice(0, -".json".length);
-    if (resource === "search" || resource === "commons") continue;
+    if (NON_KIND_PACKAGES.has(resource)) continue;
 
     const schema = JSON.parse(fs.readFileSync(path.join(servicesDir, entry.name), "utf8")) as ServiceSchemaFile;
     const cfg = deriveResourceConfig(schema, schemaDir);

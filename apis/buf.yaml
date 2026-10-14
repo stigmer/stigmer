@@ -29,3 +29,31 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # One pull request removes the PlatformClient kind: a product's backend
+  # mints its users' tokens with a service account's key on the new
+  # TokenService (iam/token/v1), and the sign-in settings move to the
+  # organization's embedding settings, whose status replaces the generic
+  # audit status with the same audit field number. The kind's value, its
+  # create permission and the audit actor's platform_client_id are
+  # reserved; the provisioning mode platform_client keeps its number as
+  # app_user. It is made before launch: the release notes name it under
+  # Upgrading. This block exists for that one pull request. While it stays,
+  # buf breaking does not report these rules on the listed files, so the
+  # pull request that removes it lands straight after the merge.
+  ignore_only:
+    ENUM_VALUE_NO_DELETE:
+      - ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto
+      - ai/stigmer/iam/v1/enum.proto
+    ENUM_VALUE_SAME_NAME:
+      - ai/stigmer/iam/identityaccount/v1/enum.proto
+    FIELD_NO_DELETE:
+      - ai/stigmer/commons/apiresource/status.proto
+    FIELD_SAME_TYPE:
+      - ai/stigmer/tenancy/organization/v1/api.proto
+    FILE_NO_DELETE:
+      - ai/stigmer/iam/platformclient/v1/api.proto
+      - ai/stigmer/iam/platformclient/v1/command.proto
+      - ai/stigmer/iam/platformclient/v1/io.proto
+      - ai/stigmer/iam/platformclient/v1/query.proto
+      - ai/stigmer/iam/platformclient/v1/spec.proto
+      - ai/stigmer/iam/platformclient/v1/token.proto

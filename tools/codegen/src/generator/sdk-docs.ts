@@ -12,6 +12,7 @@ import * as path from "node:path";
 import { marshalIndent } from "../gojson.js";
 import { goTrimSpace } from "../internalcomment/internalcomment.js";
 import type { EnumSchema, MethodSchema, ServiceSchemaFile } from "./gen-common.js";
+import { NON_KIND_PACKAGES } from "./gen-common.js";
 import {
   hasExplicitPresence,
   indefiniteArticle,
@@ -66,7 +67,7 @@ export function runSDKDocsGeneration(schemaDir: string, outputDir: string, apisD
   for (const entry of entries) {
     if (entry.isDirectory() || !entry.name.endsWith(".json")) continue;
     const resource = entry.name.slice(0, -".json".length);
-    if (resource === "search" || resource === "commons") continue;
+    if (NON_KIND_PACKAGES.has(resource)) continue;
 
     const schema = JSON.parse(fs.readFileSync(path.join(servicesDir, entry.name), "utf8")) as ServiceSchemaFile;
 

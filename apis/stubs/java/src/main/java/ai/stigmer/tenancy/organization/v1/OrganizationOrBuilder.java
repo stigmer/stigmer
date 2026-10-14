@@ -106,28 +106,28 @@ public interface OrganizationOrBuilder extends
 
   /**
    * <pre>
-   * System-managed audit state.
+   * System-managed state: the audit, and who attached each embedding vault.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationStatus status = 5 [json_name = "status"];</code>
    * @return Whether the status field is set.
    */
   boolean hasStatus();
   /**
    * <pre>
-   * System-managed audit state.
+   * System-managed state: the audit, and who attached each embedding vault.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationStatus status = 5 [json_name = "status"];</code>
    * @return The status.
    */
-  ai.stigmer.commons.apiresource.ApiResourceAuditStatus getStatus();
+  ai.stigmer.tenancy.organization.v1.OrganizationStatus getStatus();
   /**
    * <pre>
-   * System-managed audit state.
+   * System-managed state: the audit, and who attached each embedding vault.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
+   * <code>.ai.stigmer.tenancy.organization.v1.OrganizationStatus status = 5 [json_name = "status"];</code>
    */
-  ai.stigmer.commons.apiresource.ApiResourceAuditStatusOrBuilder getStatusOrBuilder();
+  ai.stigmer.tenancy.organization.v1.OrganizationStatusOrBuilder getStatusOrBuilder();
 }

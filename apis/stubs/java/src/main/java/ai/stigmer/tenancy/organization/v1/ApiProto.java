@@ -31,6 +31,16 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_tenancy_organization_v1_Organization_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_tenancy_organization_v1_OrganizationStatus_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_tenancy_organization_v1_OrganizationStatus_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_tenancy_organization_v1_OrganizationStatus_EmbeddingVaultAttachersEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_tenancy_organization_v1_OrganizationStatus_EmbeddingVaultAttachersEntry_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -54,13 +64,21 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "taB\006\272H\003\310\001\001R\010metadata\022H\n\004spec\030\004 \001(\01324.ai." +
       "stigmer.tenancy.organization.v1.Organiza" +
       "tionSpecR\004spec\022N\n\006status\030\005 \001(\01326.ai.stig" +
-      "mer.commons.apiresource.ApiResourceAudit" +
-      "StatusR\006statusB\267\001B\010ApiProtoP\001\242\002\004ASTO\252\002\"A" +
-      "i.Stigmer.Tenancy.Organization.V1\312\002\"Ai\\S" +
-      "tigmer\\Tenancy\\Organization\\V1\342\002.Ai\\Stig" +
-      "mer\\Tenancy\\Organization\\V1\\GPBMetadata\352" +
-      "\002&Ai::Stigmer::Tenancy::Organization::V1" +
-      "b\006proto3"
+      "mer.tenancy.organization.v1.Organization" +
+      "StatusR\006status\"\272\002\n\022OrganizationStatus\022F\n" +
+      "\005audit\030c \001(\01320.ai.stigmer.commons.apires" +
+      "ource.ApiResourceAuditR\005audit\022\217\001\n\031embedd" +
+      "ing_vault_attachers\030\001 \003(\0132S.ai.stigmer.t" +
+      "enancy.organization.v1.OrganizationStatu" +
+      "s.EmbeddingVaultAttachersEntryR\027embeddin" +
+      "gVaultAttachers\032J\n\034EmbeddingVaultAttache" +
+      "rsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\t" +
+      "R\005value:\0028\001B\267\001B\010ApiProtoP\001\242\002\004ASTO\252\002\"Ai.S" +
+      "tigmer.Tenancy.Organization.V1\312\002\"Ai\\Stig" +
+      "mer\\Tenancy\\Organization\\V1\342\002.Ai\\Stigmer" +
+      "\\Tenancy\\Organization\\V1\\GPBMetadata\352\002&A" +
+      "i::Stigmer::Tenancy::Organization::V1b\006p" +
+      "roto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -76,6 +94,18 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_tenancy_organization_v1_Organization_descriptor,
         new java.lang.String[] { "ApiVersion", "Kind", "Metadata", "Spec", "Status", });
+    internal_static_ai_stigmer_tenancy_organization_v1_OrganizationStatus_descriptor =
+      getDescriptor().getMessageType(1);
+    internal_static_ai_stigmer_tenancy_organization_v1_OrganizationStatus_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_tenancy_organization_v1_OrganizationStatus_descriptor,
+        new java.lang.String[] { "Audit", "EmbeddingVaultAttachers", });
+    internal_static_ai_stigmer_tenancy_organization_v1_OrganizationStatus_EmbeddingVaultAttachersEntry_descriptor =
+      internal_static_ai_stigmer_tenancy_organization_v1_OrganizationStatus_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_tenancy_organization_v1_OrganizationStatus_EmbeddingVaultAttachersEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_tenancy_organization_v1_OrganizationStatus_EmbeddingVaultAttachersEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.MetadataProto.getDescriptor();
     ai.stigmer.commons.apiresource.StatusProto.getDescriptor();

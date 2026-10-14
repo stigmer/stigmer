@@ -22,7 +22,6 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     can_create_idp: _ClassVar[IamPermission]
     can_create_identity_account: _ClassVar[IamPermission]
     can_create_oauth_app: _ClassVar[IamPermission]
-    can_create_platform_client: _ClassVar[IamPermission]
     can_create_run_in: _ClassVar[IamPermission]
     can_execute: _ClassVar[IamPermission]
     can_bootstrap_iam: _ClassVar[IamPermission]
@@ -46,6 +45,7 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     can_use: _ClassVar[IamPermission]
     can_manage_keys: _ClassVar[IamPermission]
     can_view_access_history: _ClassVar[IamPermission]
+    can_mint_user_tokens: _ClassVar[IamPermission]
 
 class IamRole(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -71,7 +71,6 @@ can_create_skill: IamPermission
 can_create_idp: IamPermission
 can_create_identity_account: IamPermission
 can_create_oauth_app: IamPermission
-can_create_platform_client: IamPermission
 can_create_run_in: IamPermission
 can_execute: IamPermission
 can_bootstrap_iam: IamPermission
@@ -95,6 +94,7 @@ can_create_shared_vault: IamPermission
 can_use: IamPermission
 can_manage_keys: IamPermission
 can_view_access_history: IamPermission
+can_mint_user_tokens: IamPermission
 iam_role_unspecified: IamRole
 owner: IamRole
 admin: IamRole

@@ -11,7 +11,7 @@ Every IdentityAccount is created in one of five provisioning modes. The mode is 
 | Direct | `direct` | Auth0 authentication (JIT on first login) | `auth0\|{subject}` |
 | Federated | `federated` | The platform via API, or Stigmer on the first sign-in when the IdentityProvider provisions accounts | Raw OIDC sub (e.g., `google-oauth2\|109876543210`) |
 | Machine | `machine` | Platform bootstrap / M2M setup | `{client_id}@clients` |
-| Platform client | `platform_client` | A PlatformClient's `mintUserToken` | `stgm_pc\|{org}\|{external_user_id}` |
+| App user | `app_user` | `TokenService.mintUserToken`, called with a service account's key | `stgm_pc\|{org}\|{external_user_id}` |
 | Service account | `service_account` | An organization admin, through `createServiceAccount` | `stgm_sa\|{org id}\|{random}` |
 | Legacy | `identity_account_provisioning_mode_unspecified` | Pre-dates the provisioning_mode field | Varies |
 
@@ -125,7 +125,8 @@ A service account is an organization's own non-person account: the principal its
 - `idp_id`: the reserved `stgm_sa|` composite, assigned by the server; no sign-in ever resolves to it
 - `metadata.name`: its one name, unique among the organization's service accounts; `email`, `first_name`, `last_name` and `picture_url` stay empty
 - Managed by the organization's admins: they rename it, change its role, list, create and revoke its keys, and delete it, which ends every key at once
-- It is never a person: whatever credential speaks for it, it is refused creating or changing keys, service accounts and platform clients, creating or deleting organizations, changing any identity account, granting or revoking a role on the organization, creating invitations, identity providers or federated accounts; it is never a team member
+- It is never a person: whatever credential speaks for it, it is refused creating or changing keys and service accounts, creating or deleting organizations, changing any identity account, granting or revoking a role on the organization, creating invitations, identity providers or federated accounts; it is never a team member
+- The one exception is minting: an administrator's service account may mint user tokens for its organization and its child organizations (`TokenService.mintUserToken`), which creates a person's App user account on first sign-in and grants the organization's embedding sign-in role when one is set
 - Deleted and created again under the same name, it is a new principal: the random part of its subject is never reissued
 
 ## Related Documentation
