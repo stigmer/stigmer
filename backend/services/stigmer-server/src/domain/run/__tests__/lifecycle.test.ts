@@ -1485,7 +1485,8 @@ describe("recover runs one at a time per execution (stigmer#1672)", () => {
 // The lifecycle persist must go through the store's atomic row-locked
 // write, never the whole-resource saveResource it replaced (Go
 // TestLifecyclePersist_UsesUpdateResource): a saveResource here is the
-// regression that lets a concurrent SubmitApproval append be clobbered.
+// regression that lets a concurrent write to the run (its file record, as
+// the race test below writes) be clobbered.
 // The atomic write is writeResourceAppendingEvents since a transition
 // commits with its session's events (session/events/run-writes.ts). The
 // mechanism pin complements the race test below — it pinpoints the

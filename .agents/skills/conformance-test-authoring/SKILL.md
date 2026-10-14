@@ -63,17 +63,20 @@ expect(mock.consumed(), "exactly the scripted turns").toBe(2);
 `test/support/src/llm-wire.ts`; `makeAgentExecution` and `awaitTerminal` in
 `test/conformance/src/support/runs.ts`.
 
-**An approval gate.** Every submit goes through `submitApprovalPerContract`
-(`test/conformance/src/support/runs.ts`), which asserts the contract's pre- and
-post-conditions around the call. Never a bare submit followed by an expectation
-on pending approvals: that shape passed while the contract was broken, which is
-why the helper exists.
+**An approval gate.** Wait for the ask with `awaitRequiresAction`, then answer
+through `confirmPerContract` (`test/conformance/src/support/answers.ts`): it
+gives the answer (the session's `confirmToolUse` or `grantPermission`) and
+asserts how many of the turn's asks the session's log still holds open. Never a
+bare answer followed by an expectation on what waits: that shape passed while
+the contract was broken, which is why the helper exists. `answersOf` reads the
+answers the log recorded.
 
 **A file-review turn.** Attach a `GitWorkspace`
 (`test/conformance/src/harness/git-workspace.ts`) as the session's local
-workspace, script write and edit turns, `awaitFileReview`, decide with
-`submitFileDecisionByPath` or `submitChangeSetDecision`, then read the tree back
-(`test/conformance/src/support/file-review.ts`).
+workspace, script write and edit turns, `awaitFileReview`, decide through the
+session's `reviewFileChanges` with `reviewFileByPath` or `reviewChangeSet`, read
+the decisions back from the log with `readFileReviewLog` and `reviewSetNow`, then
+read the tree back (`test/conformance/src/support/file-review.ts`).
 
 For a schedule: `makeSchedule` in `test/conformance/src/support/schedules.ts`.
 For anything else that advances on its own: `pollUntil` in

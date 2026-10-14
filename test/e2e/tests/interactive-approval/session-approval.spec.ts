@@ -169,14 +169,14 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
   // from scratch (the checkpoint is recreated empty), so on resume past gate A
   // the runner used to rebuild its status from an empty proto and emit a single
   // turn-message carrying ONLY gate B — dropping gate A's committed tool-call id.
-  // The append-only-at-identity guard (controller/update_status.go
-  // nonTerminalTranscriptRegression) then rejected the update, and gate B landed
-  // as WAITING_FOR_APPROVAL with pending_approvals_count=0 and auto-resumed with
-  // no approval. The fix seeds status from the persisted transcript whenever the
-  // run already has history (the turn runtime's seed,
-  // harness/turn-context.ts `seedFromPersistedStatus`), so gate B's update is a
-  // superset of gate A rather than a replacement. Pinned by the native hermetic
-  // golden execute-deep-agent/__tests__/hermetic/hitl-sequential-gates.test.ts.
+  // The server's append-only guard on the transcript then rejected the
+  // update, and gate B landed as WAITING_FOR_APPROVAL with nothing to approve
+  // and auto-resumed with no approval. The run's transcript now lives in the
+  // session's event log: a resumed invocation seeds only the asks still open
+  // from the log (runner harness/transcript/resume-seed.ts) and numbers its own
+  // events on from the log's highest index, so gate B is a new ask beside gate
+  // A's answered one. Pinned by the native hermetic golden
+  // execute-deep-agent/__tests__/hermetic/hitl-sequential-gates.test.ts.
   test("Multi-step: approve gate A, then a fresh gate B, then the run completes", async ({
     page,
     stigmerClient,

@@ -12,15 +12,15 @@
  * scripted clock) to the status — a mid-turn publish the Cursor harness never
  * performs. The model then proposes a gated `execute`; WAITING_FOR_APPROVAL.
  *
- * Turn 2: after APPROVE, the reinvocation seeds its status from the persisted
- * one. On this harness `seedStatusFromExecution` clones the WHOLE status, so
- * the artifact list arrives intact and the run's final status still lists the
+ * Turn 2: after APPROVE, the reinvocation carries the persisted status's own
+ * outputs over (`harness/turn-context.ts` `seedStatusOutputs`), so the
+ * artifact list arrives intact and the run's final status still lists the
  * report. The server replaces `artifacts` wholesale whenever the request's
- * list is non-empty (`update-status.ts`), so a runtime that seeded messages
- * only and then published nothing new would carry an empty list — and the
+ * list is non-empty (`update-status.ts`), so a runtime that carried nothing
+ * over and then published nothing new would carry an empty list — and the
  * server would keep the old one, but a runtime that published one NEW
  * artifact from an empty list would ERASE the prior one.
- * `seedFromPersistedStatus` carries `artifacts` for exactly this reason;
+ * `seedStatusOutputs` carries `artifacts` for exactly this reason;
  * this pair of goldens (`inline-artifact.turn1`, `inline-artifact.turn2`) is
  * what proves it did.
  *
