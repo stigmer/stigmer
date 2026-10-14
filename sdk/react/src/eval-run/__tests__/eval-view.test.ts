@@ -32,6 +32,7 @@ import {
   caseSourceRowsOf,
   caseSourceTargetLabelsOf,
   compareCaseSources,
+  comparedPluginOf,
   evalCaseSourceOf,
   evalTargetsOf,
   parseAllowTools,
@@ -483,6 +484,7 @@ describe("the pieces every subject shares", () => {
     expect(section?.rows).toEqual(rowsOf(before));
     expect(section?.labels).toEqual(labelsOf(before));
     expect(section).toMatchObject({ slug: "thermos", compared: true, attached: false });
+    expect(comparedPluginOf(before), "an eval run about a plugin compares no plugin of an agent").toBeUndefined();
     expect(compareCaseSources(sourceOf(before), sourceOf(after))).toEqual(
       compareRows(before, after),
     );
