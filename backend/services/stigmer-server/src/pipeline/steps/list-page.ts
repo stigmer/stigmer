@@ -8,9 +8,11 @@
  *   lane's per-row filter runs on each batch, then the read scope, which
  *   stays the last per-row predicate (extensions/list-read-scope.ts);
  *   neither reorders, so a page is in the store's order.
- * - `page_size` 0 reads every matching row and returns no token, the
- *   behaviour every list lane had before it paged; a positive size is
- *   capped at `LIST_PAGE_MAX_SIZE`.
+ * - `listPageSizeOf` is the only reader of `page_size`: 0 asks for
+ *   `LIST_PAGE_DEFAULT_SIZE`, a size above `LIST_PAGE_MAX_SIZE` is read as
+ *   that maximum (coerced, never refused: AIP-158), and a negative size is
+ *   refused. No request reads every row; a caller that needs the whole list
+ *   walks its tokens with `readEveryPage`, which refuses past a cap.
  * - A page fills batch by batch until it is full, the rows run out, or
  *   `examineBudgetOf(size)` rows have been examined. A caller who may see
  *   few of the organization's rows gets a short page, possibly empty, with
@@ -42,10 +44,17 @@ import type {
   ListIndexQuery,
   ListIndexRow,
 } from "../../store/list-index.js";
-import { internalError, invalidArgumentError } from "../errors.js";
+import {
+  failedPreconditionError,
+  internalError,
+  invalidArgumentError,
+} from "../errors.js";
 
 /** The most entries one page returns, the contract's word on every paged request. */
 export const LIST_PAGE_MAX_SIZE = 100;
+
+/** The entries a page returns when the request names no size (`page_size` 0). */
+export const LIST_PAGE_DEFAULT_SIZE = 50;
 
 /**
  * The most rows one request examines for a page of `size`: five pages'
@@ -61,6 +70,22 @@ export function examineBudgetOf(size: number): number {
 export interface ListPageRequest {
   readonly pageSize: number;
   readonly pageToken: string;
+}
+
+/**
+ * The size of the page a request asks for: the default at 0, the maximum
+ * above it. The one reader of `page_size`, so no lane grows a default of
+ * its own. The edge validator refuses a negative size before a handler
+ * runs; this refuses one again for in-process callers that skip it.
+ */
+export function listPageSizeOf(request: Pick<ListPageRequest, "pageSize">): number {
+  if (request.pageSize < 0) {
+    throw invalidArgumentError("page_size must not be negative");
+  }
+  if (request.pageSize === 0) {
+    return LIST_PAGE_DEFAULT_SIZE;
+  }
+  return Math.min(request.pageSize, LIST_PAGE_MAX_SIZE);
 }
 
 /**
@@ -115,7 +140,7 @@ export interface ListPage<T> {
   readonly nextPageToken: string;
 }
 
-/** Reads one page (or, at `page_size` 0, the whole list) through the list index. */
+/** Reads one page through the list index. */
 export function readListPage<T, K extends string>(
   params: ListPageParams<T, K>,
 ): Promise<ListPage<T>> {
@@ -131,28 +156,17 @@ export function readListPage<T, K extends string>(
   });
 }
 
-/** Reads one page (or, at `page_size` 0, the whole list) from `source`. */
+/** Reads one page from `source`. */
 export async function readPage<T>(
   params: ReadPageParams<T>,
 ): Promise<ListPage<T>> {
   const { request } = params;
-  if (request.pageSize < 0) {
-    throw invalidArgumentError("page_size must not be negative");
-  }
+  const size = listPageSizeOf(request);
   let after =
     request.pageToken === ""
       ? undefined
       : decodeListPageToken(request.pageToken, params.fingerprint).cursor;
 
-  if (request.pageSize === 0) {
-    const rows = await queryOrFail(params, after, undefined);
-    return {
-      entries: await admit(params, rows).then((a) => a.map((e) => e.row)),
-      nextPageToken: "",
-    };
-  }
-
-  const size = Math.min(request.pageSize, LIST_PAGE_MAX_SIZE);
   const budget = examineBudgetOf(size);
   const kept: Array<Admitted<T>> = [];
   let examined = 0;
@@ -193,6 +207,39 @@ export async function readPage<T>(
         nextPageToken: encodeListPageToken(after!, params.fingerprint),
       };
     }
+  }
+}
+
+/** The most entries `readEveryPage` gathers before it refuses. */
+export const READ_EVERY_PAGE_DEFAULT_CAP = 1000;
+
+/**
+ * Every entry of a list, read page by page through its tokens: for an
+ * in-process reader that needs the whole set (the channels that gate an
+ * inbox, a parent's children). `read` returns the page a token names, ""
+ * naming the first. Past `cap` entries it refuses rather than return a
+ * cut list a caller would mistake for the whole; the default cap is the
+ * one the authorization enumeration refuses past.
+ */
+export async function readEveryPage<T>(
+  read: (pageToken: string) => Promise<ListPage<T>>,
+  options: { readonly what: string; readonly cap?: number },
+): Promise<T[]> {
+  const cap = options.cap ?? READ_EVERY_PAGE_DEFAULT_CAP;
+  const entries: T[] = [];
+  let token = "";
+  for (;;) {
+    const page = await read(token);
+    entries.push(...page.entries);
+    if (entries.length > cap) {
+      throw failedPreconditionError(
+        `${options.what} holds more than ${cap} entries; read it a page at a time`,
+      );
+    }
+    if (page.nextPageToken === "") {
+      return entries;
+    }
+    token = page.nextPageToken;
   }
 }
 
