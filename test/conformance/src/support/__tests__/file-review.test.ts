@@ -9,6 +9,9 @@
 //   set (one with a candidate snapshot), and is red, naming the record, when
 //   the turn ended with none; a set the record only pinned mid-turn is not
 //   captured, and the recorded-set read refuses it;
+// - the mid-run progress wait answers a snapshot that converged while the
+//   turn still works and its record holds no captured set, and is red,
+//   naming the snapshots it saw, when the turn ends first;
 // - the log readers split the three file-review event types out of a log in
 //   order, name who decided each decision, fold a set's file states from the
 //   log, and the reconcile wait returns a change set's reconciled event only
@@ -18,7 +21,7 @@
 // Domain: conformance support (execution engine).
 import { create } from "@bufbuild/protobuf";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, SnapshotKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileChangeKind, RunPhase, SnapshotKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { FileChangeSetSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import { type SessionEvent, SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { ReviewFileChangesResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
@@ -26,6 +29,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
 import {
   awaitFileReview,
+  awaitProgressEntries,
   awaitReconciled,
   fileReviewersOf,
   fileReviewLogOf,
@@ -199,6 +203,39 @@ describe("recordedSet", () => {
   it("refuses a set still being captured, and an unknown id", () => {
     expect(() => recordedSet(run, "aex_unit:1")).toThrow("change set aex_unit:1 is still being captured");
     expect(() => recordedSet(run, "aex_unit:9")).toThrow("has no change set aex_unit:9");
+  });
+});
+
+describe("awaitProgressEntries", () => {
+  const row = { pathAfter: "a.txt", kind: FileChangeKind.ADD, linesAdded: 3, linesRemoved: 0 };
+  const expected = [{ path: "a.txt", kind: FileChangeKind.ADD, linesAdded: 3, linesRemoved: 0 }];
+  const working = (entries: Array<typeof row>) =>
+    create(RunSchema, {
+      metadata: { id: "aex_unit" },
+      status: { phase: RunPhase.RUN_IN_PROGRESS, fileChangeProgress: { filesChanged: entries.length, entries } },
+    });
+
+  it("answers the mid-run snapshot that carries every expected row while the turn still works", async () => {
+    const halfWritten = working([{ ...row, linesAdded: 1 }]);
+    const converged = working([row]);
+    const q = queryClient([create(RunSchema, { status: { phase: RunPhase.RUN_IN_PROGRESS } }), halfWritten, converged]);
+    expect(await awaitProgressEntries(q.clients, "aex_unit", expected, { pollMs: 1 })).toBe(converged);
+    expect(q.get).toHaveBeenCalledTimes(3);
+  });
+
+  it("is red, naming the snapshots it saw, when the record captured the set or the turn ended first", async () => {
+    const captured = create(RunSchema, {
+      metadata: { id: "aex_unit" },
+      status: {
+        phase: RunPhase.RUN_IN_PROGRESS,
+        fileChangeProgress: { filesChanged: 1, entries: [row] },
+        fileChanges: [{ id: "aex_unit:1", candidateSnapshot: { kind: SnapshotKind.GIT_TREE_REF }, changes: [{ id: "fc_1", pathAfter: "a.txt" }] }],
+      },
+    });
+    const ended = create(RunSchema, { metadata: { id: "aex_unit" }, status: { phase: RunPhase.RUN_COMPLETED } });
+    await expect(awaitProgressEntries(queryClient([captured, ended]).clients, "aex_unit", expected, { pollMs: 1 })).rejects.toThrow(
+      /execution aex_unit reached terminal phase before a mid-run file_change_progress snapshot satisfied the predicate; observed progress: \+\d+\.\ds files=1 \[a\.txt ADD \+3\/-0\] -> \+\d+\.\ds none/,
+    );
   });
 });
 

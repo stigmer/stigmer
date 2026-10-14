@@ -8,7 +8,9 @@
 // watch goes on to the turn's end; the end-to-end stamp is the arrival of
 // the turn's end; every axis is relative to the create call's start; another
 // turn's events stamp nothing; a stream that never ends the turn reports a
-// timeout with a null end-to-end and keeps what it did see.
+// timeout with a null end-to-end and keeps what it did see. The default
+// stream reads the session's whole log, then its live events, with message
+// and thinking previews.
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
@@ -16,8 +18,9 @@ import {
   StreamSessionEventsResponseSchema,
   type StreamSessionEventsResponse,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { describe, expect, it } from "vitest";
-import { watchTurn } from "../stream-watch";
+import { describe, expect, it, vi } from "vitest";
+import type { ConformanceClients } from "../../harness/clients";
+import { streamSessionEvents, watchTurn } from "../stream-watch";
 import { RUN, offered, phase, said, thought, userMessage } from "./turn-events";
 
 type FrameInit = MessageInitShape<typeof StreamSessionEventsResponseSchema>["frame"];
@@ -126,5 +129,19 @@ describe("watchTurn", () => {
     expect(watched.turn).toBeUndefined();
     expect(watched.client_first_visible_token_ms).toBeNull();
     expect(watched.outcome).toBe("closed");
+  });
+});
+
+describe("streamSessionEvents", () => {
+  it("opens the session's stream from the start of its log with message and thinking previews", () => {
+    const frames = scripted([])(new AbortController().signal);
+    const streamEvents = vi.fn(() => frames);
+    const clients = { sessionQuery: { streamEvents } } as unknown as ConformanceClients;
+    const signal = new AbortController().signal;
+    expect(streamSessionEvents(clients, "ses_1")(signal)).toBe(frames);
+    expect(streamEvents).toHaveBeenCalledWith(
+      { sessionId: "ses_1", afterSeq: 0n, eventDeltas: ["agent.message", "agent.thinking"] },
+      { signal },
+    );
   });
 });

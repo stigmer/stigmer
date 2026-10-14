@@ -7,6 +7,7 @@
 //   lists that one server at the surface's URL with no sign-in; anything
 //   else is red at the helper, and the plugin's delete is deferred either
 //   way.
+// - interruptRunSession: it interrupts the session the run's target names.
 // Pure: hand-built resources and stubbed clients, no target.
 // Domain: conformance support (execution engine).
 import { create } from "@bufbuild/protobuf";
@@ -18,7 +19,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
 import { FixtureTracker } from "../../harness/fixtures";
 import { DESTRUCTIVE_ECHO_TOOL_NAME, ECHO_TOOL_NAME, type McpToolFixture } from "../../harness/mcp-server";
-import { awaitPhase, pollExecution, pushFixturePlugin } from "../runs";
+import { awaitPhase, interruptRunSession, pollExecution, pushFixturePlugin } from "../runs";
 
 // A plugin as push answers it: one server entry at `url`, signed in or not.
 function installed(url: string, oauthOnly = false): Plugin {
@@ -138,5 +139,17 @@ describe("awaitPhase", () => {
     await expect(
       awaitPhase(clients, "aex_unit", RunPhase.RUN_WAITING_FOR_APPROVAL, { timeoutMs: 1, pollMs: 1 }),
     ).rejects.toThrow("did not satisfy phase RUN_WAITING_FOR_APPROVAL within 1ms");
+  });
+});
+
+describe("interruptRunSession", () => {
+  it("interrupts the session the run's target names", async () => {
+    const run = create(RunSchema, { metadata: { id: "aex_unit" }, spec: { target: { case: "sessionId", value: "ses_unit" } } });
+    const get = vi.fn(async () => run);
+    const interrupt = vi.fn(async () => ({}));
+    const clients = { agentExecutionQuery: { get }, sessionCommand: { interrupt } } as unknown as ConformanceClients;
+    await interruptRunSession(clients, "aex_unit");
+    expect(get).toHaveBeenCalledWith({ value: "aex_unit" });
+    expect(interrupt).toHaveBeenCalledWith({ sessionId: "ses_unit" });
   });
 });
