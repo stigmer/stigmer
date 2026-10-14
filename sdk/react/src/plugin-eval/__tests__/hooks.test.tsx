@@ -1,7 +1,8 @@
 /**
  * Pins the plugin-eval hooks: the list asks `listByPlugin` for the plugin
- * and skips an empty id, and lists again while any eval it holds is
- * pending or running, no more once all have finished; one eval is read again while it runs and no more
+ * and skips an empty id, and lists again while an eval on its first page is
+ * pending or running, no more once all there have finished (an older page
+ * loaded with Load more, which a poll does not refresh, starts none); one eval is read again while it runs and no more
  * once it has finished, nor once a read answers NotFound or
  * PermissionDenied, while a transient failure keeps the polling; start and cancel call the client and keep a
  * refusal as their error, which clearError or the next call resets.
@@ -76,6 +77,28 @@ describe("usePluginEvals", () => {
       await vi.advanceTimersByTimeAsync(PLUGIN_EVAL_POLL_MS * 3);
     });
     expect(listByPlugin.mock.calls.length, "no list once all finished").toBe(calls);
+  });
+
+  it("polls only for the first page, which is all a poll refreshes", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const older = evalWith([], undefined, "pev_old");
+    older.status!.phase = PluginEvalPhase.running;
+    const listByPlugin = vi.fn(async (req: { pageToken: string }) =>
+      req.pageToken === ""
+        ? { entries: [evalWith([], undefined, "pev_new")], nextPageToken: "page-2" }
+        : { entries: [older], nextPageToken: "" },
+    );
+    const { result } = renderHook(() => usePluginEvals("plg_1"), {
+      wrapper: wrap({ plugineval: { listByPlugin } }),
+    });
+    await waitFor(() => expect(result.current.hasMore).toBe(true));
+    act(() => result.current.loadMore());
+    await waitFor(() => expect(result.current.evals).toHaveLength(2));
+    const calls = listByPlugin.mock.calls.length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(PLUGIN_EVAL_POLL_MS * 3);
+    });
+    expect(listByPlugin.mock.calls.length, "a poll would not refresh the older page").toBe(calls);
   });
 });
 

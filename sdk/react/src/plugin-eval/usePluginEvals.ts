@@ -7,10 +7,11 @@
  * The list is a summary: the server returns each eval with its aggregates,
  * per-target scores and notes but its cases' tries emptied, so a long
  * history stays small; a view that shows tries reads the one eval through
- * `usePluginEval`. While any listed eval is pending or running the list is
- * read again every {@link PLUGIN_EVAL_POLL_MS}, so a row shows the eval
- * finished once it has; it stops once all have finished. An empty plugin
- * id asks nothing. Pinned by `__tests__/hooks.test.tsx`.
+ * `usePluginEval`. While an eval on the first page is pending or running
+ * that page is read again every {@link PLUGIN_EVAL_POLL_MS}, so a row shows
+ * the eval finished once it has; it stops once all there have finished. A
+ * poll refreshes only the first page, so only its rows start one (a new
+ * eval lands there, newest first). An empty plugin id asks nothing. Pinned by `__tests__/hooks.test.tsx`.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -74,10 +75,11 @@ export function usePluginEvals(pluginId: string): UsePluginEvalsReturn {
     { refetchInterval: polling ? PLUGIN_EVAL_POLL_MS : false },
   );
   const data = pages.items;
+  const firstPage = pages.firstPage;
 
   useEffect(() => {
-    setPolling(data.some(isEvalActive));
-  }, [data]);
+    setPolling(firstPage?.entries.some(isEvalActive) ?? false);
+  }, [firstPage]);
 
   const { hasMore, loadMore, isLoadingMore, loadMoreError, isLoading, error, refetch } = pages;
   return useMemo(

@@ -32,7 +32,6 @@ import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import type { AgentQualityReport } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
 import { cn } from "@stigmer/theme";
-import { useAgentEvals } from "../agent-eval/useAgentEvals.js";
 import { agentVersionLabel, useAgentVersions } from "../agent/useAgentVersions.js";
 import { TrendChart } from "../charts/TrendChart.js";
 import type { TrendMarker } from "../charts/trend-layout.js";
@@ -55,7 +54,6 @@ import {
   flaggedWhatOf,
   formatPassRate,
   formatPercent,
-  latestFinishedEvalByVersion,
   metricLabelOf,
   metricRateOf,
   metricTallyOf,
@@ -66,6 +64,7 @@ import {
 import { FEEDBACK_METRIC, JUDGE_METRIC, RUN_HEALTH_METRIC } from "./score-view.js";
 import { useAgentQualityReport } from "./useAgentQualityReport.js";
 import { useFlaggedRuns } from "./useFlaggedRuns.js";
+import { useLatestFinishedEvals } from "./useLatestFinishedEvals.js";
 
 /** Props for {@link AgentQualityReportView}. */
 export interface AgentQualityReportViewProps {
@@ -393,8 +392,10 @@ function VersionTable({
   readonly rubrics: readonly string[];
   readonly onOpenEval?: (evalId: string) => void;
 }) {
-  const { evals } = useAgentEvals(agentId);
-  const latestEval = latestFinishedEvalByVersion(evals);
+  const latestEval = useLatestFinishedEvals(
+    agentId,
+    report.versions.map((version) => version.agentVersionHash),
+  );
   return (
     <div className="stg:overflow-x-auto">
       <table className="stg:w-full stg:text-xs">

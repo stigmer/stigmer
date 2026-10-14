@@ -92,7 +92,7 @@ Two settings control what `mintUserToken` does with a user it meets:
 | Delete | `delete` | `can_delete` | PlatformClient |
 | Rotate secret | `rotateSecret` | `can_edit` | PlatformClient |
 | View | `get` | `can_view` | PlatformClient |
-| List | `listByOrg` | `can_view` | Organization |
+| List | `list` | `can_view` | Organization |
 | Mint token | `mintUserToken` | N/A (client_id + client_secret auth) | N/A |
 | Mint guest token | `mintGuestToken` | N/A (public; gated on an enabled AgentShare) | N/A |
 

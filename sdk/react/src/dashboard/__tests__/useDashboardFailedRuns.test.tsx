@@ -61,6 +61,23 @@ describe("useDashboardFailedRuns", () => {
     expect(agentList).not.toHaveBeenCalled();
   });
 
+  it("follows tokens past a short page until it holds five, and reads no further", async () => {
+    const failed = (n: number) => ({ metadata: { id: `aex_${n}`, name: `run ${n}` }, status: { error: "boom" } });
+    const pages: Record<string, { entries: ReturnType<typeof failed>[]; nextPageToken: string }> = {
+      "": { entries: [], nextPageToken: "p2" },
+      p2: { entries: [failed(1), failed(2)], nextPageToken: "p3" },
+      p3: { entries: [failed(3), failed(4), failed(5)], nextPageToken: "p4" },
+      p4: { entries: [failed(6)], nextPageToken: "" },
+    };
+    const agentList = vi.fn(async (...args: unknown[]) => pages[(args[0] as { pageToken: string }).pageToken]!);
+    const { result } = renderHook(() => useDashboardFailedRuns("acme"), {
+      wrapper: wrapper(createMockStigmer({ agentList })),
+    });
+
+    await waitFor(() => expect(result.current.failedRuns).toHaveLength(5));
+    expect(agentList).toHaveBeenCalledTimes(3);
+  });
+
   it("orders failures newest-first and names the agent each ran", async () => {
     const ts = (secs: number) => ({ seconds: BigInt(secs), nanos: 0 });
     const agentEntries = [2, 5, 1, 4, 3].map((n) => ({

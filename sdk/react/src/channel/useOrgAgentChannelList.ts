@@ -4,7 +4,7 @@ import { create } from "@bufbuild/protobuf";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { ListAgentChannelsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
 import { useStigmer } from "../hooks.js";
-import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
+import { LIST_PAGE_MAX, readWholeList } from "../internal/everyPage.js";
 import { useFetch } from "../internal/useFetch.js";
 
 /** Return value of {@link useOrgAgentChannelList}. */
@@ -36,7 +36,8 @@ export interface UseOrgAgentChannelListReturn {
  * the database uniqueness index remains the arbiter.
  *
  * The connect flow and the conversation filter need every channel, so the
- * hook walks every page of the list.
+ * hook walks every page of the list, with no cap: an organization may hold
+ * more channels than a picker's cap.
  *
  * Pass `null` for `org` to skip fetching (stable no-op).
  */
@@ -47,7 +48,7 @@ export function useOrgAgentChannelList(
 
   const fetchFn = org
     ? () =>
-        readEveryPage((pageToken) =>
+        readWholeList((pageToken) =>
           stigmer.agentChannel.list(
             create(ListAgentChannelsRequestSchema, { org, pageSize: LIST_PAGE_MAX, pageToken }),
           ),

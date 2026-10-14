@@ -833,8 +833,8 @@ re-query after a new run is created within the same session
 (needed by the follow-up conversation loop).
 
 A conversation renders all of its turns, so the hook walks every page
-of the session's runs (refusing past the SDK's walk cap rather than
-showing a cut conversation).
+of the session's runs, with no cap: a long-lived session's runs grow
+without bound, and the view needs them whole.
 
 **Signature**
 

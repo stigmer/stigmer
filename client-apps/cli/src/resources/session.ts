@@ -17,6 +17,7 @@ import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1
 import { ListSessionEventsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { CliExitError, ExitCode } from "../errors/index.js";
+import { readCursorPages } from "./cursor-pages.js";
 
 /** Fetch a single session by ID (Go's session.GetFromBackend). */
 export async function getSessionById(client: Stigmer, sessionId: string): Promise<Session> {
@@ -25,12 +26,13 @@ export async function getSessionById(client: Stigmer, sessionId: string): Promis
 
 /**
  * List a session's runs, newest-first (the backend's order). The RPC
- * returns a session's runs whole, so one call is the complete set.
- * Returns the raw entries for resume to inspect.
+ * answers a page at a time, so every page is read: the result is the
+ * complete set. Returns the raw entries for resume to inspect.
  */
 export async function listRunsBySession(client: Stigmer, sessionId: string): Promise<Run[]> {
-  const list = await client.run.listBySession(create(ListRunsBySessionRequestSchema, { sessionId }));
-  return list.entries;
+  return readCursorPages(0, (pageSize, pageToken) =>
+    client.run.listBySession(create(ListRunsBySessionRequestSchema, { sessionId, pageSize, pageToken })),
+  );
 }
 
 

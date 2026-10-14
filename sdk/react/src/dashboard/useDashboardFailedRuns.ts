@@ -6,6 +6,7 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ListRunsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { everyEntry } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 import type { DashboardFailedRun } from "./types.js";
@@ -38,14 +39,24 @@ export function useDashboardFailedRuns(
     () =>
       orgVal
         ? async () => {
-            const resp = await stigmer.run.list(
-              create(ListRunsRequestSchema, {
-                pageSize: PAGE_SIZE,
-                phase: RunPhase.RUN_FAILED,
-                org: orgVal,
-              }),
-            );
-            return [...resp.entries] as readonly Run[];
+            // The phase filter runs per row, so a page can come back short,
+            // even empty, with a token while failed runs sit further on:
+            // follow the tokens until the widget holds its five.
+            const runs: Run[] = [];
+            for await (const run of everyEntry((pageToken) =>
+              stigmer.run.list(
+                create(ListRunsRequestSchema, {
+                  pageSize: PAGE_SIZE,
+                  pageToken,
+                  phase: RunPhase.RUN_FAILED,
+                  org: orgVal,
+                }),
+              ),
+            )) {
+              runs.push(run);
+              if (runs.length === PAGE_SIZE) break;
+            }
+            return runs as readonly Run[];
           }
         : null,
     [stigmer, orgVal],

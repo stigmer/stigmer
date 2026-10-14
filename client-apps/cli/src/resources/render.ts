@@ -103,7 +103,7 @@ export function tableOrganizations(
  *
  * Unlike `renderCollection`, which serializes a bare slice, this mirrors Go's
  * `DisplayProto(list, ...)`: json/yaml emit the whole list envelope (including
- * `total_pages`), while table projects the nested `entries` into a grid.
+ * `next_page_token`), while table projects the nested `entries` into a grid.
  */
 export function renderListMessage(
   schema: DescMessage,

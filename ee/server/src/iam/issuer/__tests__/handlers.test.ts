@@ -40,7 +40,9 @@
  *     organization's admins, and `get`'s denial to anyone else, a viewer of
  *     the organization included;
  *   - list offers the organization's rows, newest first, to the list
- *     read scope and answers only what it allows;
+ *     read scope and answers only what it allows, a page and a token at a
+ *     time to the end, 50 at size 0, and refuses a token issued for another
+ *     organization;
  *   - a provider whose delete did not finish refuses an update and an
  *     apply, FAILED_PRECONDITION, with copy that says to delete it again,
  *     after the caller's authorization and with nothing written;
@@ -928,6 +930,53 @@ describe("reads", () => {
     ]);
   });
 
+  /** Seeds `count` of acme's providers a minute apart; their ids, newest first. */
+  async function seedProviders(r: ReturnType<typeof rig>, count: number): Promise<string[]> {
+    const ids: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const id = `fis_${String(i).padStart(3, "0")}`;
+      await r.store.insert(
+        storedIssuer({ id, org: "acme", slug: `issuer-${i}`, createdAt: new Date(Date.UTC(2026, 8, 25, 10, i)) }),
+      );
+      ids.push(id);
+    }
+    return ids.reverse();
+  }
+
+  it("list answers a page and a token that continues it, newest first, to the end", async () => {
+    const r = rig();
+    const newestFirst = await seedProviders(r, 5);
+    const read: string[] = [];
+    const tokens: string[] = [];
+    let pageToken = "";
+    do {
+      const page = await r.queries.list({ org: "acme", pageSize: 2, pageToken });
+      read.push(...page.entries.map((row) => row.metadata?.id ?? ""));
+      pageToken = page.nextPageToken;
+      tokens.push(pageToken);
+    } while (pageToken !== "");
+    expect(read).toEqual(newestFirst);
+    expect(tokens.map((token) => token !== "")).toEqual([true, true, false]);
+  });
+
+  it("list answers the default page of 50 and a token at size 0, never every provider", async () => {
+    const r = rig();
+    const newestFirst = await seedProviders(r, 55);
+    const first = await r.queries.list({ org: "acme", pageSize: 0, pageToken: "" });
+    expect(first.entries.map((row) => row.metadata?.id)).toEqual(newestFirst.slice(0, 50));
+    const rest = await r.queries.list({ org: "acme", pageSize: 0, pageToken: first.nextPageToken });
+    expect(rest.entries.map((row) => row.metadata?.id)).toEqual(newestFirst.slice(50));
+    expect(rest.nextPageToken).toBe("");
+  });
+
+  it("list refuses a token issued for another organization's list", async () => {
+    const r = rig();
+    await seedProviders(r, 3);
+    const { nextPageToken } = await r.queries.list({ org: "acme", pageSize: 1, pageToken: "" });
+    const error = await failure(r.queries.list({ org: "globex", pageSize: 1, pageToken: nextPageToken }));
+    expect(error.code).toBe(Code.InvalidArgument);
+    expect(error.rawMessage).toBe("page_token was issued for a different request");
+  });
 });
 
 describe("a provider whose delete did not finish", () => {

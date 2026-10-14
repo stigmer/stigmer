@@ -63,7 +63,7 @@ status: {}  # System-managed, never set by users
 | Delete | `FederationIssuerCommandController.delete` | `can_delete` on the FederationIssuer. |
 | Get by ID | `FederationIssuerQueryController.get` | `can_view` on the FederationIssuer |
 | Get by reference | `FederationIssuerQueryController.getByReference` | `can_view` on the resolved FederationIssuer, exactly as Get by ID |
-| List by organization | `FederationIssuerQueryController.listByOrg` | `can_view` on the organization; the answer holds only the issuers the caller may view |
+| List | `FederationIssuerQueryController.list` | `can_view` on the organization; a page holds only the issuers the caller may view |
 
 The organization's admins view, edit and delete its federation issuers. An admin can grant a person in the organization view of one provider; other members of the organization see none of them. A provider's creator manages it only while they remain an admin of the organization.
 

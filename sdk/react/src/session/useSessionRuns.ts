@@ -5,7 +5,7 @@ import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ListRunsBySessionRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { sortChronologically } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
-import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
+import { LIST_PAGE_MAX, readWholeList } from "../internal/everyPage.js";
 import { useFetch } from "../internal/useFetch.js";
 
 // The ordering rule lives in @stigmer/sdk with the other shared
@@ -51,8 +51,8 @@ export interface UseSessionRunsReturn {
  * (needed by the follow-up conversation loop).
  *
  * A conversation renders all of its turns, so the hook walks every page
- * of the session's runs (refusing past the SDK's walk cap rather than
- * showing a cut conversation).
+ * of the session's runs, with no cap: a long-lived session's runs grow
+ * without bound, and the view needs them whole.
  *
  * @example
  * ```tsx
@@ -81,7 +81,7 @@ export function useSessionRuns(
   const { data: executions, isLoading, isRefetching, error, refetch } = useFetch(
     sessionId
       ? () =>
-          readEveryPage((pageToken) =>
+          readWholeList((pageToken) =>
             stigmer.run.listBySession(
               create(ListRunsBySessionRequestSchema, {
                 sessionId,
