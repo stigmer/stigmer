@@ -15,8 +15,10 @@
  *     asks only for what came after the last entry it holds: every entry
  *     once, numbered with no gap;
  *   - a member may see who has access but not read how it changed;
- *   - Acme's admins read its child organization's history; the child's
- *     member does not;
+ *   - Acme's admins read its child organization's history, but only the
+ *     entries about the child itself, never its private agent or who
+ *     holds it; the child's own admin reads all of it, and its member
+ *     none;
  *   - a deleted resource is named deleted (its slug empty), the
  *     organization's own entries still named. (Its rows are not removed
  *     with it on this posture yet, so its removal is not recorded:
@@ -113,9 +115,11 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history on a licens
   let raj: Person;
   let mia: Person;
   let kim: Person;
+  let lee: Person;
   let acme = "";
   let acmeEu = "";
   let agentId = "";
+  let euSecretId = "";
 
   beforeAll(async () => {
     issuer = await startLoopbackIssuer();
@@ -166,7 +170,22 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history on a licens
     });
     acmeEu = child.metadata?.id ?? "";
     kim = await signIn(booted, issuer, "operator|kim");
-    await policies.create(grant(ref("identity_account", kim.accountId), "member", ref("organization", acmeEu)));
+    // Kim administers the child; Lee is a member of it.
+    await policies.create(grant(ref("identity_account", kim.accountId), "admin", ref("organization", acmeEu)));
+    lee = await signIn(booted, issuer, "operator|lee");
+    await policies.create(grant(ref("identity_account", lee.accountId), "member", ref("organization", acmeEu)));
+    // Something the child holds that its parent's admins do not see: a
+    // private agent, and Lee's role on it.
+    const secret = await createClient(AgentCommandController, kim.transport).create({
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "Agent",
+      metadata: { name: "eu-secret", org: acmeEu, visibility: ApiResourceVisibility.visibility_private },
+      spec: { description: "eu", instructions: "You are private." },
+    });
+    euSecretId = secret.metadata?.id ?? "";
+    await createClient(IamPolicyCommandController, kim.transport).create(
+      grant(ref("identity_account", lee.accountId), "editor", ref("agent", euSecretId)),
+    );
   }, 120_000);
 
   afterAll(async () => {
@@ -256,15 +275,33 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history on a licens
 
   it("the parent's admins read a child organization's history, and the child's member does not", async () => {
     const entries = await newestFirst(bob.transport, acmeEu);
-    expect(entries[0]).toMatchObject({
-      change: AccessChange.granted,
-      principal: { id: kim.accountId },
-      resource: { kind: ApiResourceKind.organization, id: acmeEu, slug: "acme-eu" },
+    // Only the entries about the child itself: its private agent, and who
+    // holds it, stay out of sight of the parent's admins.
+    expect(entries.length).toBeGreaterThan(0);
+    for (const entry of entries) {
+      expect(entry.resource, `entry ${entry.sequence}`).toMatchObject({
+        kind: ApiResourceKind.organization,
+        id: acmeEu,
+      });
+    }
+    expect(entries.map((entry) => [entry.principal?.id, entry.role?.code])).toEqual([
+      [lee.accountId, "member"],
+      [kim.accountId, "admin"],
+    ]);
+
+    // The child's own admin reads the whole of it, the private agent included.
+    const insider = await newestFirst(kim.transport, acmeEu);
+    expect(insider[0]).toMatchObject({
+      principal: { id: lee.accountId },
+      role: { code: "editor" },
+      resource: { kind: ApiResourceKind.agent, id: euSecretId, slug: "eu-secret" },
     });
-    const error = await refusal(
-      createClient(IamPolicyQueryController, kim.transport).listAccessHistory({ org: acmeEu }),
+    expect(insider.length).toBe(entries.length + 1);
+
+    const member = await refusal(
+      createClient(IamPolicyQueryController, lee.transport).listAccessHistory({ org: acmeEu }),
     );
-    expect(error.code).toBe(Code.PermissionDenied);
+    expect(member.code).toBe(Code.PermissionDenied);
     const upward = await refusal(
       createClient(IamPolicyQueryController, kim.transport).listAccessHistory({ org: acme }),
     );

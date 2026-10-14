@@ -121,6 +121,8 @@ async function harness(options: {
   gate?: PipelineStep<DescMessage>;
   policies?: IamPolicyStore;
   principalDisplay?: PrincipalDisplay;
+  /** The answer to `can_view` on the organization: who sees what it holds (a parent's admin does not). */
+  canView?: AuthzDecision;
 } = {}): Promise<Harness> {
   const policies = fakeIamPolicyStore();
   const accounts = fakeIdentityAccountStore();
@@ -145,6 +147,9 @@ async function harness(options: {
   const authorizer: Authorizer = {
     authorize(_caller, check) {
       checks.push(check);
+      if (check.permission === IamPermission.can_view) {
+        return Promise.resolve(options.canView ?? { kind: "allow" });
+      }
       return Promise.resolve(options.decision ?? { kind: "allow" });
     },
   };
@@ -353,6 +358,40 @@ describe("listAccessHistory's read", () => {
     expect(member?.cause).toBe(AccessChangeCause.grant);
     const times = page.entries.map((entry) => timestampDate(entry.occurredAt!).getTime());
     expect([...times].sort((a, b) => b - a)).toEqual(times);
+  });
+
+  it("shows a parent's admin only the entries about the organization itself, in short pages that keep their token", async () => {
+    const h = await harness({ canView: { kind: "deny", reason: "a parent's admin" } });
+    const agent = { kind: "agent", id: "agt_private" };
+    await h.grant(orgRole(RAJ, "member", ACME));
+    await h.grant(triple({ kind: "identity_account", id: RAJ }, "editor", agent));
+    await h.grant(triple({ kind: "identity_account", id: ANA }, "owner", agent));
+    await h.revoke(orgRole(RAJ, "member", ACME), { cause: "organization_access_revoked" });
+
+    const first = await h.query.listAccessHistory({ org: ACME, pageSize: 2 });
+    expect(sequences(first.entries)).toEqual([4]);
+    expect(first.nextPageToken).not.toBe("");
+    const second = await h.query.listAccessHistory({ org: ACME, pageSize: 2, pageToken: first.nextPageToken });
+    expect(sequences(second.entries)).toEqual([1]);
+    expect(second.nextPageToken).toBe("");
+    for (const entry of [...first.entries, ...second.entries]) {
+      expect(entry.resource).toMatchObject({ kind: ApiResourceKind.organization, id: ACME });
+    }
+    expect(h.checks.filter((check) => check.permission === IamPermission.can_view)).toEqual([
+      expect.objectContaining({ resourceKind: ApiResourceKind.organization, resourceId: ACME }),
+      expect.objectContaining({ resourceKind: ApiResourceKind.organization, resourceId: ACME }),
+    ]);
+
+    const follow = await h.query.listAccessHistory({ org: ACME, afterSequence: 0n });
+    expect(sequences(follow.entries)).toEqual([1, 4]);
+  });
+
+  it("answers an outage deciding what the caller may see as INTERNAL, never a smaller history", async () => {
+    const h = await harness({ canView: { kind: "unavailable", cause: new Error("engine down") } });
+    await h.grant(orgRole(RAJ, "member", ACME));
+    const error = await rejection(h.query.listAccessHistory({ org: ACME }));
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe("failed to authorize the access history");
   });
 
   it("reads only the organization asked about", async () => {

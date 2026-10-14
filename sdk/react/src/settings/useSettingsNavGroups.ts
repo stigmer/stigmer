@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useDeploymentMode } from "../deployment-mode.js";
 import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { useOptionalOrg } from "../organization/OrgProvider.js";
 import { useSingleOrg } from "../server-info.js";
@@ -66,6 +67,7 @@ const ORG_ADMIN_ITEMS_AFTER = "/settings/teams";
  */
 export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
   const orgId = useOptionalOrg()?.activeOrg?.metadata?.id ?? "";
+  const deploymentMode = useDeploymentMode();
   const serviceAccounts = useCheckPermission(
     orgId ? { kind: "organization", id: orgId } : null,
     "can_create_identity_account",
@@ -96,7 +98,8 @@ export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
   const licensesAllowed = licenses.allowed;
   const plansAllowed = plans.allowed;
   const serviceAccountsAllowed = serviceAccounts.allowed;
-  const accessHistoryAllowed = accessHistory.allowed;
+  // Open source keeps no access history, so its page would only say so.
+  const accessHistoryAllowed = accessHistory.allowed && deploymentMode !== "local";
   const singleOrg = useSingleOrg();
   const baseGroups =
     singleOrg === undefined
