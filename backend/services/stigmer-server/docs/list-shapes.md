@@ -11,6 +11,11 @@ a person sees is its own answer (search's `counts_by_kind`, the inbox's
 `countConversations`). The rule is `listPageSizeOf` and the page loop in
 `src/pipeline/steps/list-page.ts`.
 
+A list of resources (entries carrying `ApiResourceMetadata`) also takes a
+`labels` map: only resources carrying every label given, each matched exactly.
+The filter runs inside the page loop, so a selective filter answers short
+pages, even empty ones, that still carry a token.
+
 This document is the inventory of every list-shaped method of the contract, in
 every edition, classed `paged` or `exempt` with why. It is held equal to the
 contract by `src/pipeline/steps/__tests__/list-shapes-inventory.test.ts`, which
