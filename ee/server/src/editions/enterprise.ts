@@ -71,8 +71,11 @@
  *     so the library's own policy store serves, and the edition this host
  *     declares opens it to record every access row change in the row's
  *     transaction (the library's `iam_policy_history`, beside its rows).
- *     A lapsed license keeps its edition, so it keeps recording
- *     (editions/__tests__/enterprise-permission-history.postgres.test.ts).
+ *     The same edition serves the history back (the library's
+ *     `listAccessHistory`), so no unit serves a reader either. A lapsed
+ *     license keeps its edition, so it keeps recording and reading
+ *     (editions/__tests__/enterprise-permission-history.postgres.test.ts,
+ *     editions/__tests__/enterprise-access-history.postgres.test.ts).
  *
  * The pool closes with the process: the library has no unit stop hook, and
  * a process exit ends its connections. A test passes its own pool and owns

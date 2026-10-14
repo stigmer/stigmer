@@ -123,11 +123,16 @@ import {
 } from "../proto-fields.js";
 import {
   assertPermissionChangeKind,
+  PERMISSION_HISTORY_COLUMNS,
+  permissionHistoryBounds,
   permissionHistoryEntryOf,
+  permissionHistoryRecordOf,
 } from "../permission-history.js";
 import type {
   PermissionChange,
   PermissionHistoryEntry,
+  PermissionHistoryPage,
+  PermissionHistoryRecord,
 } from "../permission-history.js";
 import { instantNotBefore, rfc3339Seconds } from "../rfc3339.js";
 import { stampEtag } from "../etag.js";
@@ -1225,6 +1230,22 @@ export class PostgresStore implements Store {
         );
       }
     });
+  }
+
+  async listPermissionHistory(
+    org: string,
+    page: PermissionHistoryPage,
+  ): Promise<PermissionHistoryRecord[]> {
+    const { ascending, bound, limit } = permissionHistoryBounds(page);
+    const comparison = ascending ? ">" : "<";
+    const result = await this.open().query(
+      `SELECT ${PERMISSION_HISTORY_COLUMNS} FROM iam_policy_history
+       WHERE org = $1 AND ($2::bigint IS NULL OR sequence ${comparison} $2::bigint)
+       ORDER BY sequence ${ascending ? "ASC" : "DESC"}
+       LIMIT $3`,
+      [org, bound === undefined ? null : bound.toString(), limit],
+    );
+    return (result.rows as Array<Record<string, unknown>>).map(permissionHistoryRecordOf);
   }
 
   async listAuditRecords(

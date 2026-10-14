@@ -168,9 +168,10 @@ They can change a child's settings, rename or delete it, manage its members,
 roles and invitations, and see its billing; they cannot see its Agents,
 Sessions, Vaults or files, its usage reports, or run anything in it. A parent
 admin who needs to look inside adds themselves as a member of the child, through
-its ordinary members screen; the child's member list and access history show it,
-and the child's own admins can remove them. Nobody owns a child when it is
-created: the parent's admins grant its first members and owner.
+its ordinary members screen; the child's member list and
+[access history](/docs/guides/authentication/access-history) show it, and the
+child's own admins can remove them. Nobody owns a child when it is created: the
+parent's admins grant its first members and owner.
 
 A child's people sign in through the parent's Identity Provider, whose
 `external_id_claim` names each token's child by its `external_id`, or with

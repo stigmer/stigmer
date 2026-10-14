@@ -3,6 +3,7 @@
   "pages": [
     "overview",
     "service-accounts",
+    "access-history",
     "federation",
     "platform-client",
     "customer-keys"

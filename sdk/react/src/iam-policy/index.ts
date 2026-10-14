@@ -22,6 +22,12 @@ export {
 } from "./usePrincipalsCount.js";
 
 export {
+  useAccessHistory,
+  type UseAccessHistoryOptions,
+  type UseAccessHistoryReturn,
+} from "./useAccessHistory.js";
+
+export {
   useWhoAmI,
   type UseWhoAmIOptions,
   type UseWhoAmIReturn,

@@ -614,6 +614,15 @@ pages:
       Creating a service account and its first key is a console procedure the
       reader follows at their own pace; the CLI path sits beside each step.
 
+  guides/authentication/access-history:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Read an Organization's access history in the Console and with the CLI,
+      what each entry and cause says, and export it as JSON Lines to a tool
+      that keeps its copy current with --after.
+    medium: none
+
   guides/authentication/federation/overview:
     fate: keep
     diataxis: landing

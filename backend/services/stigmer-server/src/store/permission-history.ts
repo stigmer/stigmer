@@ -25,6 +25,12 @@
  *
  * The table is append-only here: no member of the Store updates or deletes
  * an entry, and an organization's purge leaves its history in place.
+ *
+ * Reading. `Store.listPermissionHistory` reads one organization's entries
+ * on the primary key, newest first below a number or oldest first above
+ * one, a bounded page at a time (`PermissionHistoryPage`). Because numbers
+ * are assigned in commit order with no gaps, "everything after N" read now
+ * and again later never skips an entry.
  */
 import { fromBinary } from "@bufbuild/protobuf";
 
@@ -64,6 +70,67 @@ export interface PermissionHistoryEntry {
   readonly resourceId: string;
   readonly data: Uint8Array;
 }
+
+/**
+ * Which entries of an organization one read returns: newest first, below
+ * `before` when given; or, with `after`, oldest first, above it. At most
+ * `limit` (a positive integer) either way.
+ */
+export type PermissionHistoryPage =
+  | { readonly limit: number; readonly before?: bigint }
+  | { readonly limit: number; readonly after: bigint };
+
+/** One stored entry as a reader gets it: its columns, with the number and time the driver assigned. */
+export interface PermissionHistoryRecord extends PermissionHistoryEntry {
+  readonly sequence: bigint;
+  readonly occurredAt: string;
+}
+
+/** A page's bound and direction in the drivers' terms, its limit refused when it is not a positive integer. */
+export function permissionHistoryBounds(page: PermissionHistoryPage): {
+  readonly ascending: boolean;
+  readonly bound: bigint | undefined;
+  readonly limit: number;
+} {
+  if (!Number.isSafeInteger(page.limit) || page.limit <= 0) {
+    throw new Error(
+      `permission history limit must be a positive integer, got ${page.limit}`,
+    );
+  }
+  if ("after" in page) {
+    return { ascending: true, bound: page.after, limit: page.limit };
+  }
+  return { ascending: false, bound: page.before, limit: page.limit };
+}
+
+/** A stored row, as either driver's client returns it, in the reader's shape. */
+export function permissionHistoryRecordOf(
+  row: Record<string, unknown>,
+): PermissionHistoryRecord {
+  const text = (column: string): string => String(row[column]);
+  return {
+    org: text("org"),
+    sequence: BigInt(row.sequence as string | number | bigint),
+    occurredAt: text("occurred_at"),
+    change: text("change") as PermissionHistoryChange,
+    cause: text("cause"),
+    actorId: text("actor_id"),
+    actorClass: text("actor_class"),
+    policyId: text("policy_id"),
+    principalKind: text("principal_kind"),
+    principalId: text("principal_id"),
+    principalRelation: text("principal_relation"),
+    relation: text("relation"),
+    resourceKind: text("resource_kind"),
+    resourceId: text("resource_id"),
+    data: new Uint8Array(row.data as Uint8Array),
+  };
+}
+
+/** The columns a read selects, in one place for both drivers. */
+export const PERMISSION_HISTORY_COLUMNS =
+  "org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id, " +
+  "principal_kind, principal_id, principal_relation, relation, resource_kind, resource_id, data";
 
 /** Refuses a change for a kind other than the access row's, before anything is written. */
 export function assertPermissionChangeKind(

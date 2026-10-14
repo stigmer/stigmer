@@ -36,6 +36,7 @@
     "---Server Commands---",
     "mcp-server",
     "---Configuration---",
+    "access-history",
     "apikey",
     "auth",
     "completion",

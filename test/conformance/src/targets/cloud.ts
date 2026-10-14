@@ -154,6 +154,7 @@ export class CloudTarget implements TargetProfile {
     // grants are admitted and the tuple-half queries answer.
     perResourceGrants: true,
     authorizationQueries: true,
+    accessHistory: "plan-upgrade-required",
     // The three cloud-capability surfaces, all served by the composition (the
     // flag is the edition's contract; the lane address is CLOUD_ENV's).
     billingEngine: true,

@@ -51,6 +51,11 @@ export const FEATURE_COPY: Readonly<
     description: "Create organizations for your own customers under this one.",
     plural: true,
   },
+  [Feature.access_history]: {
+    label: "Access history",
+    description: "Read and export who gave whom access to what, and when.",
+    plural: false,
+  },
 };
 
 /** Whether a stored feature value is one the vocabulary names. */

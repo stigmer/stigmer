@@ -443,6 +443,7 @@ describe("the rule, for a caller bound to one organization", () => {
       IamPermission.can_delete,
       IamPermission.can_grant_access,
       IamPermission.can_view_access,
+      IamPermission.can_view_access_history,
       IamPermission.can_assign_roles,
       IamPermission.can_view_billing,
     ]) {

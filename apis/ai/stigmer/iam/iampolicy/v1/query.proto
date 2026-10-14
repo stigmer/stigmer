@@ -191,4 +191,36 @@ service IamPolicyQueryController {
     option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view principals count";
   }
+
+  // List an organization's access history: every time someone was given
+  // or lost access to the organization or to a resource in it, who did it,
+  // why, and when.
+  //
+  // Without after_sequence the entries come newest first, for people
+  // reading what happened lately. With after_sequence they come oldest
+  // first, starting just after that entry, for a tool that keeps its own
+  // copy: it asks for what came after the last entry it holds. Each
+  // organization numbers its entries from 1 in the order they happened,
+  // with no gaps, so a reader that resumes after entry N never misses one.
+  //
+  // Only the organization's owners and administrators may read it, and a
+  // parent organization's administrators for a child. A parent's
+  // administrators manage a child without reading what it holds, so they
+  // read only the entries about the child organization itself (who holds
+  // which role in it), never the child's resources or who was given access
+  // to them. The Enterprise and
+  // Cloud editions keep the history; an open-source server keeps none and
+  // answers UNIMPLEMENTED. A host may refuse the read for its own reasons,
+  // such as a plan that does not include it.
+  //
+  // @internal
+  // Authorization: can_view_access_history on the organization named by
+  // org. Then, on open source, UNIMPLEMENTED; then the
+  // iam-policy-list-access-history:pre-read gate slot; then the read.
+  rpc listAccessHistory(ListAccessHistoryInput) returns (AccessHistoryPage) {
+    option (ai.stigmer.commons.rpc.config).permission = can_view_access_history;
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view the access history";
+  }
 }

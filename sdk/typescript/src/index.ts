@@ -40,6 +40,15 @@ export {
   type ReturnedReference,
 } from "./references.js";
 
+// An organization's access history, exported as JSON Lines (one format
+// for the CLI and the console)
+export {
+  exportAccessHistory,
+  accessHistoryJsonLine,
+  type AccessHistoryEntry,
+  type ExportAccessHistoryOptions,
+} from "./access-history.js";
+
 // Error handling
 export {
   StigmerError,

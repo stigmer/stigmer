@@ -199,6 +199,7 @@ Rows read `| \`Message.field\` | class |`.
 
 | Field | Class |
 |---|---|
+| `ai.stigmer.iam.iampolicy.v1.AccessHistoryEntry.resource` | stamped reference |
 | `ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput.identity_account_id` | stamped id |
 
 ## `ai.stigmer.iam.identityaccount.v1`

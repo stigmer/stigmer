@@ -2,10 +2,12 @@ syntax = "proto3";
 
 package ai.stigmer.iam.iampolicy.v1;
 
+import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/iam/iampolicy/v1/api.proto";
 import "ai/stigmer/iam/iampolicy/v1/spec.proto";
 import "ai/stigmer/iam/identityaccount/v1/enum.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
 
 // ApiResourceRefView represents a reference to ANY API resource in the system
 // WITH display fields for UI rendering. This is used in view/query responses.
@@ -299,4 +301,145 @@ message GetPrincipalsCountInput {
 message PrincipalsCount {
   // Number of principals matching the query.
   int32 count = 1;
+}
+
+// ListAccessHistoryInput names the organization whose access history to
+// read, and where to start.
+message ListAccessHistoryInput {
+  // The organization, by slug or id.
+  string org = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // The most entries to return; 0 returns 50. At most 100. A history only
+  // grows, so there is no size that returns every entry at once: follow
+  // next_page_token.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 100
+  }];
+
+  // The previous response's next_page_token, to continue that read.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+
+  // Read oldest first, starting just after this entry's sequence; 0 reads
+  // from the first entry. Unset reads newest first. A tool that keeps its
+  // own copy passes the last sequence it holds.
+  optional int64 after_sequence = 4 [(buf.validate.field).int64.gte = 0];
+}
+
+// AccessHistoryPage is one page of an organization's access history.
+message AccessHistoryPage {
+  // The entries, newest first, or oldest first when the request named
+  // after_sequence.
+  repeated AccessHistoryEntry entries = 1;
+
+  // Set when more entries may follow: pass it as page_token, with the same
+  // request otherwise, to continue. Empty when this page reached the end.
+  // A page may be short, even empty, and still carry a token: a parent
+  // organization's administrators are not shown the entries about a child's
+  // resources.
+  string next_page_token = 2;
+}
+
+// AccessHistoryEntry is one change to who has access to what: someone was
+// given access, or lost it.
+message AccessHistoryEntry {
+  // The entry's number in its organization's history: 1 for the first, and
+  // one more for each entry after it, in the order they happened.
+  int64 sequence = 1;
+
+  // When the change happened. Never before the entry numbered before it.
+  google.protobuf.Timestamp occurred_at = 2;
+
+  // Whether access was given or taken away.
+  AccessChange change = 3;
+
+  // Why the change happened.
+  AccessChangeCause cause = 4;
+
+  // Who made the change: a person or service account, named as their
+  // account reads today (display name, email and avatar), whether or not
+  // they still belong to the organization, so a security team can tell who
+  // a past member was. An account that no longer exists, or the server
+  // acting on its own, carries only its id.
+  ApiResourceRefView actor = 5;
+
+  // How the actor made the change: "user" for a person, "service_account"
+  // for a service account's key, "internal" for the server acting on the
+  // actor's behalf (an invitation's redemption, a removal's sweep). An
+  // edition may add its own.
+  string actor_class = 6;
+
+  // Who was given or lost access: a person, named as the actor is, or a
+  // group written with its relation (the members of a team, the viewers of
+  // an organization).
+  ApiResourceRefView principal = 7;
+
+  // The role given or taken away, as the access list shows it.
+  RoleInfo role = 8;
+
+  // What the access is to. Its slug is the resource's current name, and
+  // empty when the resource has been deleted.
+  ai.stigmer.commons.apiresource.ApiResourceReference resource = 9;
+}
+
+// AccessChange says what happened to someone's access.
+enum AccessChange {
+  access_change_unspecified = 0;
+
+  // Access was given.
+  granted = 1;
+
+  // Access was taken away.
+  revoked = 2;
+}
+
+// AccessChangeCause says why someone's access changed. A cause is added,
+// never renamed or reused.
+enum AccessChangeCause {
+  access_change_cause_unspecified = 0;
+
+  // Someone gave a person, a team or a group a role.
+  grant = 1;
+
+  // Someone took a role away.
+  revoke = 2;
+
+  // The server recorded what creating a resource implies: its creator's
+  // ownership, or the audience its visibility opens it to.
+  structural = 3;
+
+  // Someone removed a person from the organization.
+  organization_access_revoked = 4;
+
+  // A person left the organization, and the server took away what they
+  // still held on its resources.
+  left_organization = 5;
+
+  // A resource was deleted, and its access with it.
+  resource_deleted = 6;
+
+  // A person created the organization and became its owner.
+  organization_created = 7;
+
+  // A person signed in for the first time and was given the roles the
+  // server's membership rules grant.
+  first_sign_in = 8;
+
+  // The server gave existing accounts the roles its membership rules would
+  // have given them.
+  role_reconciliation = 9;
+
+  // The server's operator became owner of an organization nobody owned.
+  operator_ownership = 10;
+
+  // A person who signed in through a platform client was given the
+  // organization role that client grants.
+  platform_client_grant = 11;
+
+  // An administrator created a service account with its role in the
+  // organization.
+  service_account_created = 12;
 }

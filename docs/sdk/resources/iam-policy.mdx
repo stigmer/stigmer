@@ -56,6 +56,7 @@ IamPolicy iamPolicy = client.iamPolicies().get("iamp_01j5q3k7m8r2s4tnz2hfp0q0c3"
 | [`get`](#get) | Get an IAM policy by its unique identifier. |
 | [`getPrincipalResourceRoles`](#getprincipalresourceroles) | Get all roles a specific principal has on a specific resource. |
 | [`getPrincipalsCount`](#getprincipalscount) | Count distinct principals that have access to a resource. |
+| [`listAccessHistory`](#listaccesshistory) | List an organization's access history: every time someone was given or lost access to the organization or to a resource in it, who did it, why, and when. |
 | [`listAuthorizedPrincipalIds`](#listauthorizedprincipalids) | List all principal IDs of a specific kind that are authorized to access a resource. |
 | [`listAuthorizedResourceIds`](#listauthorizedresourceids) | List all resource IDs of a specific kind that a principal is authorized to access. |
 | [`listResourceAccessByPrincipal`](#listresourceaccessbyprincipal) | List all principals and their roles on a resource, grouped by principal. |
@@ -202,6 +203,61 @@ PrincipalsCount principalsCount = client.iamPolicies().getPrincipalsCount(GetPri
 **Parameters**: [`GetPrincipalsCountInput`](#getprincipalscountinput)
 
 **Returns**: [`PrincipalsCount`](#principalscount)
+
+### listAccessHistory
+
+List an organization's access history: every time someone was given or lost access to the organization or to a resource in it, who did it, why, and when.
+
+Without after_sequence the entries come newest first, for people reading what happened lately. With after_sequence they come oldest first, starting just after that entry, for a tool that keeps its own copy: it asks for what came after the last entry it holds. Each organization numbers its entries from 1 in the order they happened, with no gaps, so a reader that resumes after entry N never misses one.
+
+Only the organization's owners and administrators may read it, and a parent organization's administrators for a child. A parent's administrators manage a child without reading what it holds, so they read only the entries about the child organization itself (who holds which role in it), never the child's resources or who was given access to them. The Enterprise and Cloud editions keep the history; an open-source server keeps none and answers UNIMPLEMENTED. A host may refuse the read for its own reasons, such as a plan that does not include it.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const accessHistoryPage = await stigmer.iamPolicy.listAccessHistory({
+  org: "...",
+  pageSize: 0,
+  pageToken: "...",
+  afterSequence: 0,
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+accessHistoryPage, err := client.IamPolicy.ListAccessHistory(ctx, &stigmer.ListAccessHistoryInput{
+  Org:           "...",
+  PageSize:      0,
+  PageToken:     "...",
+  AfterSequence: 0,
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+access_history_page = client.iam_policies.list_access_history(ListAccessHistoryInput(
+    org="...",
+    page_size=0,
+    page_token="...",
+    after_sequence=0,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+AccessHistoryPage accessHistoryPage = client.iamPolicies().listAccessHistory(ListAccessHistoryInput.builder()
+    .org("...")
+    .pageSize(0)
+    .pageToken("...")
+    .afterSequence(0)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListAccessHistoryInput`](#listaccesshistoryinput)
+
+**Returns**: [`AccessHistoryPage`](#accesshistorypage)
 
 ### listAuthorizedPrincipalIds
 
@@ -967,6 +1023,30 @@ PrincipalsCount contains the count of principals.
   }}
 />
 
+### ListAccessHistoryInput
+
+ListAccessHistoryInput names the organization whose access history to read, and where to start.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "The organization, by slug or id.", required: true },
+    pageSize: { type: "number", description: "The most entries to return; 0 returns 50." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that read." },
+    afterSequence: { type: "number", description: "Read oldest first, starting just after this entry's sequence; 0 reads from the first entry." },
+  }}
+/>
+
+### AccessHistoryPage
+
+AccessHistoryPage is one page of an organization's access history.
+
+<TypeTable
+  type={{
+    entries: { type: "AccessHistoryEntryInput[]", description: "The entries, newest first, or oldest first when the request named after_sequence." },
+    nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token, with the same request otherwise, to continue." },
+  }}
+/>
+
 ### IamPolicy
 
 IamPolicy represents a binding between a principal (who), a resource (what), and a relation/permission (how).
@@ -992,4 +1072,32 @@ IdentityAccountProvisioningMode defines how an identity account was created.
 | `machine` | Machine-to-machine client credentials account for inter-service communication. |
 | `platform_client` | Account provisioned via a PlatformClient's mintUserToken endpoint. |
 | `service_account` | An organization's own non-person account: the principal its automation (a CI job, a script, an integration) acts as, so the automation keeps working when the person who set it up leaves. |
+
+### AccessChange
+
+AccessChange says what happened to someone's access.
+
+| Value | Description |
+|-------|-------------|
+| `granted` | Access was given. |
+| `revoked` | Access was taken away. |
+
+### AccessChangeCause
+
+AccessChangeCause says why someone's access changed.
+
+| Value | Description |
+|-------|-------------|
+| `grant` | Someone gave a person, a team or a group a role. |
+| `revoke` | Someone took a role away. |
+| `structural` | The server recorded what creating a resource implies: its creator's ownership, or the audience its visibility opens it to. |
+| `organization_access_revoked` | Someone removed a person from the organization. |
+| `left_organization` | A person left the organization, and the server took away what they still held on its resources. |
+| `resource_deleted` | A resource was deleted, and its access with it. |
+| `organization_created` | A person created the organization and became its owner. |
+| `first_sign_in` | A person signed in for the first time and was given the roles the server's membership rules grant. |
+| `role_reconciliation` | The server gave existing accounts the roles its membership rules would have given them. |
+| `operator_ownership` | The server's operator became owner of an organization nobody owned. |
+| `platform_client_grant` | A person who signed in through a platform client was given the organization role that client grants. |
+| `service_account_created` | An administrator created a service account with its role in the organization. |
 
