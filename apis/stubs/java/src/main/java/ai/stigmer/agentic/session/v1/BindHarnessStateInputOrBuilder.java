@@ -32,7 +32,7 @@ public interface BindHarnessStateInputOrBuilder extends
 
   /**
    * <pre>
-   * The harness's conversation id (a LangGraph thread id, a Cursor agent id).
+   * The harness's own conversation id.
    * </pre>
    *
    * <code>string harness_state_id = 2 [json_name = "harnessStateId", (.buf.validate.field) = { ... }</code>
@@ -41,7 +41,7 @@ public interface BindHarnessStateInputOrBuilder extends
   java.lang.String getHarnessStateId();
   /**
    * <pre>
-   * The harness's conversation id (a LangGraph thread id, a Cursor agent id).
+   * The harness's own conversation id.
    * </pre>
    *
    * <code>string harness_state_id = 2 [json_name = "harnessStateId", (.buf.validate.field) = { ... }</code>

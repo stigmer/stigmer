@@ -23,7 +23,7 @@ import { CursorEngineToolViews, rowNameOf } from "../hook-views.js";
 
 const views = new CursorEngineToolViews({
   workspaceRoot: "/w",
-  pluginServers: new Map([["plugin_safety_checks", { plugin: "safety", server: "checks" }]]),
+  serverNames: new Map([["plugin_safety_checks", { name: "plugin:safety:checks", source: "plugin" }]]),
   platformServerSlugs: new Set(["channel"]),
 });
 const call = (name: string, args: Record<string, unknown>, serverSlug = "") => ({ name, args, serverSlug });

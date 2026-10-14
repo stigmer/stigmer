@@ -116,7 +116,7 @@ func (x *Run) GetStatus() *RunStatus {
 // RunStatus contains all run results and state.
 // Everything populated during or after the run goes here, not in spec.
 // The conversation itself (messages, tool calls, approvals, todos,
-// sub-agents, structured output and file-review decisions) is the session's
+// subagents, structured output and file-review decisions) is the session's
 // event log (SessionEvent), not a field here.
 type RunStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`

@@ -51,7 +51,7 @@ import type { TimingRecorderWire } from "../shared/cold-start-timing.js";
 import type { TelemetrySettings } from "../otel-export.js";
 import type { RuntimeFieldsWire, WireOffload, WireProjection, WireTurnInput } from "./codec.js";
 
-export const AGENT_HOST_PROTOCOL_VERSION = 7;
+export const AGENT_HOST_PROTOCOL_VERSION = 8;
 
 /**
  * The largest single message either side sends or accepts. A turn's input

@@ -80,9 +80,8 @@ type RunCommandControllerClient interface {
 	Pause(ctx context.Context, in *PauseRunInput, opts ...grpc.CallOption) (*Run, error)
 	// Resume a paused run.
 	//
-	// Continues the run from the checkpoint where it was paused. The agent
-	// re-invokes with the same thread_id, loading from LangGraph checkpoint
-	// and continuing from where it left off.
+	// Continues the run from where it was paused. How a turn's state is saved
+	// is the harness's ([Harnesses](/docs/concepts/harnesses)).
 	Resume(ctx context.Context, in *ResumeRunInput, opts ...grpc.CallOption) (*Run, error)
 	// Upload a file attachment for use in a run.
 	//
@@ -239,9 +238,8 @@ type RunCommandControllerServer interface {
 	Pause(context.Context, *PauseRunInput) (*Run, error)
 	// Resume a paused run.
 	//
-	// Continues the run from the checkpoint where it was paused. The agent
-	// re-invokes with the same thread_id, loading from LangGraph checkpoint
-	// and continuing from where it left off.
+	// Continues the run from where it was paused. How a turn's state is saved
+	// is the harness's ([Harnesses](/docs/concepts/harnesses)).
 	Resume(context.Context, *ResumeRunInput) (*Run, error)
 	// Upload a file attachment for use in a run.
 	//

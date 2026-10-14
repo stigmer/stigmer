@@ -165,8 +165,10 @@ export async function listServerTools(server: ResolvedMcpServer): Promise<Listed
 }
 
 /**
- * Lists every plugin server of a turn in parallel, for an engine that does
- * not bind the tools itself. The platform's own servers are never listed:
+ * Lists every server of a turn in parallel, the agent's own and its
+ * plugins', for an engine that does not bind the tools itself, so a tool
+ * either marks destructive asks first whichever kind of server holds it.
+ * The platform's own servers are never listed:
  * none of their tools asks. A server whose listing fails is named in
  * `unlisted`, with the reason logged.
  */
@@ -176,7 +178,7 @@ export async function listTurnTools(
 ): Promise<McpToolListing> {
   const listed = await Promise.all(
     servers
-      .filter((server) => server.pluginOrigin !== null)
+      .filter((server) => server.home.kind !== "platform")
       .map(async (server) => {
         try {
           return { server: server.slug, tools: await list(server) };

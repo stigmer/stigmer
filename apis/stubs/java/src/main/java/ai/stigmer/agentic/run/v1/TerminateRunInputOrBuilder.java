@@ -44,7 +44,7 @@ public interface TerminateRunInputOrBuilder extends
    * <pre>
    * Human-readable reason for termination.
    *
-   * Stored in the audit trail and passed to Temporal for operational debugging.
+   * Stored in the audit trail for operational debugging.
    * Optional but strongly recommended - termination is a drastic action
    * and the reason helps with post-incident analysis.
    *
@@ -63,7 +63,7 @@ public interface TerminateRunInputOrBuilder extends
    * <pre>
    * Human-readable reason for termination.
    *
-   * Stored in the audit trail and passed to Temporal for operational debugging.
+   * Stored in the audit trail for operational debugging.
    * Optional but strongly recommended - termination is a drastic action
    * and the reason helps with post-incident analysis.
    *

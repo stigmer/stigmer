@@ -204,7 +204,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object rootRunId_ = "";
   /**
    * <pre>
-   * For sub-agent rollups: root run of the tree.
+   * For subagent rollups: root run of the tree.
    * </pre>
    *
    * <code>string root_run_id = 3 [json_name = "rootRunId"];</code>
@@ -225,7 +225,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * For sub-agent rollups: root run of the tree.
+   * For subagent rollups: root run of the tree.
    * </pre>
    *
    * <code>string root_run_id = 3 [json_name = "rootRunId"];</code>
@@ -2658,7 +2658,7 @@ java.lang.String defaultValue) {
     private java.lang.Object rootRunId_ = "";
     /**
      * <pre>
-     * For sub-agent rollups: root run of the tree.
+     * For subagent rollups: root run of the tree.
      * </pre>
      *
      * <code>string root_run_id = 3 [json_name = "rootRunId"];</code>
@@ -2678,7 +2678,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * For sub-agent rollups: root run of the tree.
+     * For subagent rollups: root run of the tree.
      * </pre>
      *
      * <code>string root_run_id = 3 [json_name = "rootRunId"];</code>
@@ -2699,7 +2699,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * For sub-agent rollups: root run of the tree.
+     * For subagent rollups: root run of the tree.
      * </pre>
      *
      * <code>string root_run_id = 3 [json_name = "rootRunId"];</code>
@@ -2716,7 +2716,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * For sub-agent rollups: root run of the tree.
+     * For subagent rollups: root run of the tree.
      * </pre>
      *
      * <code>string root_run_id = 3 [json_name = "rootRunId"];</code>
@@ -2730,7 +2730,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * For sub-agent rollups: root run of the tree.
+     * For subagent rollups: root run of the tree.
      * </pre>
      *
      * <code>string root_run_id = 3 [json_name = "rootRunId"];</code>

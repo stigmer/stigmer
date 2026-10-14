@@ -11,7 +11,8 @@
  *   - `agent`: the agent's own keys, for its shell and its own hooks. Never
  *     a tool's or a plugin's key, a login or a repository's token: the
  *     server plans none of those for the agent.
- *   - `tools`: each MCP server's keys, by its plugin and its name there
+ *   - `tools`: each MCP server's keys, by its home (the plugin it is part
+ *     of, or the agent that writes it) and its name there
  *     (`toolValuesKey`), with the URL whose address the server checked
  *     against each login it hands over. A server is filled only from its own
  *     group, and only while it still dials that URL (shared/mcp-resolver.ts).
@@ -70,9 +71,12 @@ export interface RunValues {
 /** A run with no values: nothing declared anything, or nothing was found for an optional key. */
 export const NO_RUN_VALUES: RunValues = { agent: {}, tools: new Map(), plugins: new Map(), subagents: new Map(), repositories: [] };
 
-/** The key a tool's values are grouped by: its plugin, and its server's name in that plugin. */
-export function toolValuesKey(pluginId: string, server: string): string {
-  return `${pluginId}\u0000${server}`;
+/** Which kind of saved resource holds a tool: a plugin, or an agent that writes the server itself. */
+export type ToolHolderKind = "plugin" | "agent";
+
+/** The key a tool's values are grouped by: its holder's kind and id, and its server's name there. */
+export function toolValuesKey(holder: ToolHolderKind, holderId: string, server: string): string {
+  return `${holder}\u0000${holderId}\u0000${server}`;
 }
 
 /** The server refused the fetch for a reason the person fixes; `message` is the server's, naming what and where. */
@@ -87,7 +91,9 @@ export class RunValuesRefusedError extends Error {
 export function runValuesOf(answer: ExecutionValues): RunValues {
   const tools = new Map<string, ToolValueGroup>();
   for (const tool of answer.tools) {
-    tools.set(toolValuesKey(tool.pluginId, tool.server), { url: tool.url, values: { ...tool.values } });
+    const key =
+      tool.agentId !== "" ? toolValuesKey("agent", tool.agentId, tool.server) : toolValuesKey("plugin", tool.pluginId, tool.server);
+    tools.set(key, { url: tool.url, values: { ...tool.values } });
   }
   return {
     agent: { ...answer.agent },

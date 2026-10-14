@@ -1,10 +1,12 @@
 /**
  * Pins the runtime's subagent phase (`turn-context.ts` `resolveSubagents`):
  * each saved agent the turn's agent lists, resolved as an agent of its own.
- *  - Its servers are its plugins' alone: none of the conversation's own
- *    plugins and none of the platform's servers (channel, conversation,
- *    memory), even on a turn that gets them; a server it shares with the
- *    conversation keeps its slug, so the engine connects it once.
+ *  - Its servers are the ones it writes itself, under its own home, then
+ *    its plugins': none of the conversation's own plugins and none of the
+ *    platform's servers (channel, conversation, memory), even on a turn
+ *    that gets them; a server it shares with the conversation keeps its
+ *    slug, so the engine connects it once; one it writes under a name the
+ *    main agent's server already has refuses the turn.
  *  - Its skills are its own refs and its plugins' skills, mounted where the
  *    main agent's are; a skill the main agent also has is mounted once; a
  *    ref that fails costs the subagent that skill alone, warned; a scope
@@ -31,7 +33,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { AgentSpecSchema, HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentMcpServerSchema, AgentSpecSchema, HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { HookConfigSchema, HookFormat, HookGroupSchema, HookHandlerSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { GetArtifactResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
@@ -52,7 +54,7 @@ import { TimingRecorder } from "../../shared/cold-start-timing.js";
 import { CHANNEL_ID_LABEL } from "../../shared/conversation-attachment.js";
 import { _resetRegistryCache } from "../../shared/model-registry.js";
 import { toolServerSegment } from "../../shared/plugin-servers.js";
-import { DuplicateServerNameError, resolvePluginServers } from "../../shared/mcp-resolver.js";
+import { DuplicateServerNameError, resolveTurnServers } from "../../shared/mcp-resolver.js";
 import { resolveMcpTransportPosture } from "../../shared/mcp-transport-guard.js";
 import { NO_RUN_VALUES, toolValuesKey, type RunValues } from "../../shared/run-values.js";
 import { ToolScope } from "../../shared/tool-lists.js";
@@ -202,6 +204,8 @@ async function run(
     readonly values?: RunValues;
     readonly runSpec?: { tools?: string[]; disallowedTools?: string[] };
     readonly capabilities?: { harness: Harness.NATIVE | Harness.CURSOR; subAgents: boolean };
+    /** Servers the main agent writes itself. */
+    readonly mainAgentServers?: { name: string; url: string }[];
   } = {},
 ) {
   const base = turnInputFixture({ sessionId }).blueprint;
@@ -226,13 +230,21 @@ async function run(
     primaryDir,
     capabilities: options.capabilities ?? { harness: Harness.NATIVE, subAgents: true },
     // The main agent's servers, as the MCP phase resolves them from the conversation's plugins.
-    mainServers: resolvePluginServers(
-      blueprint.plugins,
-      (options.values ?? NO_RUN_VALUES).tools,
-      {},
-      resolveMcpTransportPosture(deps.config.mode),
-      deps.config,
-    ).resolvedServers,
+    mainServers: resolveTurnServers({
+      agent:
+        options.mainAgentServers === undefined
+          ? undefined
+          : {
+              agentId: "agt_main",
+              subagent: null,
+              servers: options.mainAgentServers.map((server) => create(AgentMcpServerSchema, server)),
+            },
+      plugins: blueprint.plugins,
+      tools: (options.values ?? NO_RUN_VALUES).tools,
+      platformValues: {},
+      transportPosture: resolveMcpTransportPosture(deps.config.mode),
+      platformEndpoints: deps.config,
+    }).resolvedServers,
   });
   return { result, labels };
 }
@@ -265,7 +277,7 @@ describe("resolveSubagents: what a subagent runs with", () => {
     const own = plugin("changelog", { hooks: false });
     const values: RunValues = {
       ...NO_RUN_VALUES,
-      tools: new Map([[toolValuesKey("plg_changelog", "api"), { url: "https://changelog.example.com/mcp", values: { TOKEN: "t-changelog" } }]]),
+      tools: new Map([[toolValuesKey("plugin", "plg_changelog", "api"), { url: "https://changelog.example.com/mcp", values: { TOKEN: "t-changelog" } }]]),
     };
     const { result, labels } = await run([saved("release-notes", { plugins: [ref("changelog")] }, [own])], {
       conversationPlugins: [plugin("github", { hooks: false })],
@@ -273,7 +285,7 @@ describe("resolveSubagents: what a subagent runs with", () => {
     });
     const [subagent] = ready(result);
     expect(subagent!.servers.map((s) => s.slug)).toEqual([toolServerSegment("changelog", "api")]);
-    expect(subagent!.servers[0]!.pluginOrigin).toEqual({ pluginId: "plg_changelog", plugin: "changelog", server: "api" });
+    expect(subagent!.servers[0]!.home).toEqual({ kind: "plugin", pluginId: "plg_changelog", plugin: "changelog", server: "api" });
     expect(labels).toEqual(["Resolving subagents"]);
   });
 
@@ -281,7 +293,7 @@ describe("resolveSubagents: what a subagent runs with", () => {
     const shared = plugin("github", { hooks: false });
     const values: RunValues = {
       ...NO_RUN_VALUES,
-      tools: new Map([[toolValuesKey("plg_github", "api"), { url: "https://github.example.com/mcp", values: { TOKEN: "t-github" } }]]),
+      tools: new Map([[toolValuesKey("plugin", "plg_github", "api"), { url: "https://github.example.com/mcp", values: { TOKEN: "t-github" } }]]),
     };
     const { result } = await run([saved("release-notes", { plugins: [ref("github")] }, [shared])], { conversationPlugins: [shared], values });
     expect(ready(result)[0]!.servers.map((s) => s.slug)).toEqual([toolServerSegment("github", "api")]);
@@ -294,13 +306,39 @@ describe("resolveSubagents: what a subagent runs with", () => {
     const values: RunValues = {
       ...NO_RUN_VALUES,
       tools: new Map([
-        [toolValuesKey("plg_github", "api"), group],
-        [toolValuesKey("plg_github_other_org", "api"), group],
+        [toolValuesKey("plugin", "plg_github", "api"), group],
+        [toolValuesKey("plugin", "plg_github_other_org", "api"), group],
       ]),
     };
     await expect(
       run([saved("release-notes", { plugins: [ref("github")] }, [other])], { conversationPlugins: [theirs], values }),
     ).rejects.toThrow(DuplicateServerNameError);
+  });
+
+  it("resolves the servers it writes itself under its own home, and says it brings them", async () => {
+    const values: RunValues = {
+      ...NO_RUN_VALUES,
+      tools: new Map([[toolValuesKey("agent", "agt_triage", "crm"), { url: "https://crm.example.com/mcp", values: {} }]]),
+    };
+    const { result } = await run(
+      [saved("triage", { mcpServers: [{ name: "crm", url: "https://crm.example.com/mcp" }] })],
+      { values },
+    );
+    const [triage] = ready(result);
+    expect(triage!.servers.map((server) => [server.slug, server.home])).toEqual([
+      ["crm", { kind: "agent", agentId: "agt_triage", subagent: "triage", server: "crm" }],
+    ]);
+    expect(triage!.bringsOwn.mcpServers).toBe(true);
+  });
+
+  it("refuses the turn when a subagent writes a server under a name the main agent's server has", async () => {
+    await expect(
+      run([saved("triage", { mcpServers: [{ name: "crm", url: "https://other.example.com/mcp" }] })], {
+        mainAgentServers: [{ name: "crm", url: "https://crm.example.com/mcp" }],
+      }),
+    ).rejects.toThrow(
+      new DuplicateServerNameError("crm", "the agent's own server 'crm'", "subagent 'triage''s own server 'crm'"),
+    );
   });
 
   it("refuses the turn when two subagents' servers would take one name from different plugins", async () => {
@@ -310,8 +348,8 @@ describe("resolveSubagents: what a subagent runs with", () => {
     const values: RunValues = {
       ...NO_RUN_VALUES,
       tools: new Map([
-        [toolValuesKey("plg_github", "api"), group],
-        [toolValuesKey("plg_github_other_org", "api"), group],
+        [toolValuesKey("plugin", "plg_github", "api"), group],
+        [toolValuesKey("plugin", "plg_github_other_org", "api"), group],
       ]),
     };
     await expect(
@@ -408,9 +446,9 @@ describe("resolveSubagents: what a subagent runs with", () => {
     const [notes, triage, plain] = ready(result);
     expect(notes!.values).toEqual({ NOTES_KEY: "n" });
     expect(triage!.values, "never the agent's").toEqual({});
-    expect(notes!.bringsOwn).toEqual({ plugins: true, hooks: false, lists: true });
-    expect(triage!.bringsOwn).toEqual({ plugins: false, hooks: true, lists: false });
-    expect(plain!.bringsOwn).toEqual({ plugins: false, hooks: false, lists: false });
+    expect(notes!.bringsOwn).toEqual({ plugins: true, hooks: false, lists: true, mcpServers: false });
+    expect(triage!.bringsOwn).toEqual({ plugins: false, hooks: true, lists: false, mcpServers: false });
+    expect(plain!.bringsOwn).toEqual({ plugins: false, hooks: false, lists: false, mcpServers: false });
     expect(plain!).toMatchObject({ name: "plain", description: "plain agent", instructions: "You are plain." });
   });
 

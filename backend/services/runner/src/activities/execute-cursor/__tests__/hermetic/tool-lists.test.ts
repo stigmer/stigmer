@@ -107,12 +107,16 @@ function systemRows(status: { messages: { type: MessageType; content: string }[]
 }
 
 /** A saved agent the record's agent lists as a subagent, with these lists of its own. */
-function subAgent(name: string, lists: { tools?: string[]; disallowedTools?: string[] } = {}): Agent {
+function subAgent(
+  name: string,
+  lists: { tools?: string[]; disallowedTools?: string[]; mcpServers?: { name: string; url: string }[] } = {},
+): Agent {
   return savedAgentFixture(name, {
     description: `${name} sub-agent`,
     instructions: "Do the delegated thing thoroughly.",
     tools: lists.tools ?? [],
     disallowedTools: lists.disallowedTools ?? [],
+    mcpServers: lists.mcpServers ?? [],
   });
 }
 
@@ -218,6 +222,18 @@ describe("ExecuteCursor hermetic — tool lists", () => {
     expect(final.error, "the refusal's own sentence, unprefixed").toBe(subagentBringsOwnMessage("helper"));
     expect(final.error).not.toContain("plain");
     expect(systemRows(finalRows)).toEqual([`Execution failed: ${final.error}`]);
+    expect(scenario.sdk.resolutions, "the SDK was never reached").toHaveLength(0);
+  });
+
+  it("refuses the turn when a sub-agent writes its own MCP server, naming it, before any agent exists", async () => {
+    const neverUsed = new ScriptedCursorAgent({ agentId: "agent-servers-never-1", turns: [] });
+    const { scenario, phase, final } = await run(
+      { message: USER_MESSAGE, subagents: [subAgent("triage", { mcpServers: [{ name: "crm", url: "https://crm.example.com/mcp" }] }), subAgent("plain")] },
+      neverUsed,
+    );
+    expect(phase).toBe("RUN_FAILED");
+    expect(final.error, "the refusal's own sentence, unprefixed").toBe(subagentBringsOwnMessage("triage"));
+    expect(final.error).toContain("MCP servers");
     expect(scenario.sdk.resolutions, "the SDK was never reached").toHaveLength(0);
   });
 

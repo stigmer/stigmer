@@ -4,7 +4,8 @@
  * is a typed refusal the adapter settles on the `actionable` surface with its
  * own sentence (`turn.ts`), never the internal-error copy, for the agent's
  * lists and a turn's over them alike, a plugin subagent's own lists, and a
- * saved subagent that brings its own plugins, hooks or tool lists (one
+ * saved subagent that brings its own plugins, hooks, MCP servers or tool
+ * lists (one
  * sentence, naming it). Also the read root an excluded `Read`
  * is confined to (`platformReadRoot`) and the root a hidden skill's read is
  * refused under (`platformRealRoot`). The hermetic
@@ -43,7 +44,7 @@ function saved(name: string, own: TurnSubagent["bringsOwn"]): TurnSubagent {
   };
 }
 
-const BRINGS_NOTHING = { plugins: false, hooks: false, lists: false } as const;
+const BRINGS_NOTHING = { plugins: false, hooks: false, lists: false, mcpServers: false } as const;
 
 /** The fields `checkToolScope` reads, as a turn input: plugin subagents `sub-<i>` with these lists, and saved subagents. */
 function input(
@@ -93,6 +94,7 @@ describe("checkToolScope", () => {
     ["its own plugins", { ...BRINGS_NOTHING, plugins: true }],
     ["its own hooks", { ...BRINGS_NOTHING, hooks: true }],
     ["its own tool lists", { ...BRINGS_NOTHING, lists: true }],
+    ["its own MCP servers", { ...BRINGS_NOTHING, mcpServers: true }],
   ])("refuses a saved subagent that brings %s, in one sentence naming it", (_label, own) => {
     const run = () =>
       checkToolScope(input({ tools: [], disallowedTools: [] }, [], [], [], [saved("plain", BRINGS_NOTHING), saved("release-notes", own)]), {
@@ -101,12 +103,12 @@ describe("checkToolScope", () => {
     expect(run).toThrow(CursorToolListRefusal);
     expect(run).toThrow(
       new CursorToolListRefusal(
-        "Subagent 'release-notes' brings its own plugins, hooks or tool lists, which the Cursor engine cannot keep to it: " +
+        "Subagent 'release-notes' brings its own plugins, hooks, MCP servers or tool lists, which the Cursor engine cannot keep to it: " +
           "it cannot tell a subagent's tool call from the main agent's. Run this agent on the native engine, or remove them from 'release-notes'.",
       ),
     );
     expect(subagentBringsOwnMessage("release-notes")).toBe(
-      "Subagent 'release-notes' brings its own plugins, hooks or tool lists, which the Cursor engine cannot keep to it: " +
+      "Subagent 'release-notes' brings its own plugins, hooks, MCP servers or tool lists, which the Cursor engine cannot keep to it: " +
         "it cannot tell a subagent's tool call from the main agent's. Run this agent on the native engine, or remove them from 'release-notes'.",
     );
   });
