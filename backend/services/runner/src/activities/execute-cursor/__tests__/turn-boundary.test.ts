@@ -26,20 +26,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import {
-  AgentMessageSchema,
-  ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { isToolCallRowHidden } from "../../../shared/tool-row.js";
 import { denialLedgerPath } from "../approval-state.js";
 import { toolCallIdentityToken } from "../approval-state.js";
 import { UNRESOLVED_TOOL_CALL_ERROR } from "../boundary-rows.js";
 import { runTurnBoundary, type TurnBoundaryOptions } from "../turn-boundary.js";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
+import { AgentMessageSchema, ToolCallSchema, type AgentMessage, TurnRowsSchema, type TurnRows } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { MessageType, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 
 const EXEC_ID = "exec-boundary-1";
 
@@ -50,8 +45,8 @@ async function write(rel: string, content: string): Promise<void> {
   await writeFile(join(repo, rel), content, "utf-8");
 }
 
-function newStatus(): RunStatus {
-  return create(RunStatusSchema, {});
+function newStatus(): TurnRows {
+  return create(TurnRowsSchema, {});
 }
 
 /** A streamed (COMPLETED) file-edit tool call, as the SDK would have recorded. */
@@ -70,10 +65,10 @@ function streamedEdit(id: string, path: string, content: string): AgentMessage {
 }
 
 /** Boundary options for this turn; overrides layer the per-test shape. */
-function boundaryOpts(status: RunStatus, overrides?: Partial<TurnBoundaryOptions>): TurnBoundaryOptions {
+function boundaryOpts(status: TurnRows, overrides?: Partial<TurnBoundaryOptions>): TurnBoundaryOptions {
   return {
-    status,
-    transcript: new TranscriptBuilder(EXEC_ID, status),
+    rows: status,
+    transcript: new TranscriptBuilder(EXEC_ID, status, create(RunStatusSchema)),
     executionId: EXEC_ID,
     hitlDir,
     primaryWorkspaceDir: repo,

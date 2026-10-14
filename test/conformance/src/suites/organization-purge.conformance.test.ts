@@ -131,7 +131,7 @@ describe("Organization purge conformance", () => {
 
     const next = await nextHolder(doomed.slug);
     expect(next.metadata?.id, "a new organization").not.toBe(doomed.id);
-    expect((await clients.vaultQuery.list({ org: doomed.slug })).items).toEqual([]);
+    expect((await clients.vaultQuery.list({ org: doomed.slug })).entries).toEqual([]);
     await expectGrpcCode(
       () => clients.vaultQuery.getByReference({ org: doomed.slug, slug: doomed.vault.metadata!.slug }),
       Code.NotFound,
@@ -157,7 +157,7 @@ describe("Organization purge conformance", () => {
     await nextHolder(parent.slug);
   });
 
-  it("[rpc:ApiKeyCommandController.create] [rpc:OrganizationQueryController.findMyOrganizations] a key limited to a deleted organization reaches nothing, and goes with it", async (ctx) => {
+  it("[rpc:ApiKeyCommandController.create] [rpc:OrganizationQueryController.listMine] a key limited to a deleted organization reaches nothing, and goes with it", async (ctx) => {
     const enforcing = await enforcingLaneOf(target);
     if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
     const lane = enforcing.lane;
@@ -186,7 +186,7 @@ describe("Organization purge conformance", () => {
     }
     await nextHolder(doomed.slug, lane.clients);
     await expectGrpcCode(
-      () => asKey.organizationQuery.findMyOrganizations({}),
+      () => asKey.organizationQuery.listMine({}),
       Code.Unauthenticated,
       "the key, once the purge removed it",
     );

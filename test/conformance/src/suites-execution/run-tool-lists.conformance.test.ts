@@ -39,11 +39,7 @@
 // resolves to nothing, the `.stigmer/` read that survives a list without
 // Read, and the Cursor engine (the gateway contract,
 // approval-gateway-contract.test.ts, runs the lists on both engines).
-import {
-  RunPhase,
-  SubAgentStatus,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -51,8 +47,8 @@ import { DESTRUCTIVE_ECHO_TOOL_NAME, ECHO_TOOL_NAME, FAIL_TOOL_NAME, type McpToo
 import { readAnthropicRequest } from "@stigmer/test-support/llm-wire";
 import { anthropicText, anthropicToolUse, anthropicToolUses, type MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent } from "../support/agents";
+import { threadsOf, toolUseByCallId, toolUsesOf, turnOfRun } from "../support/turn";
 import {
-  allToolCalls,
   awaitTerminal,
   isTerminalPhase,
   makeAgentExecution,
@@ -147,7 +143,7 @@ describe("Run tool lists — out of scope is refused, never gated", () => {
       RunPhase[settled.status?.phase ?? 0],
       `execution ${executionId} completes without a gate (error: ${settled.status?.error ?? ""})`,
     ).toBe(RunPhase[RunPhase.RUN_COMPLETED]);
-    expect(settled.status?.pendingApprovals ?? [], "no approval is pending").toEqual([]);
+    expect((await turnOfRun(clients, settled)).asks, "nothing waits for a person").toEqual([]);
     const asked = (
       await clients.sessionQuery.listEvents({
         sessionId: sessionIdOf(settled),
@@ -181,22 +177,22 @@ describe("Run tool lists — out of scope is refused, never gated", () => {
       "only the in-scope call reached the MCP server",
     ).toHaveLength(1);
 
-    // On the transcript: each out-of-scope call is a failed tool call
-    // carrying the message; the in-scope call ran.
-    const calls = allToolCalls(settled);
-    const byName = (name: string) => calls.find((tc) => tc.name === name);
+    // In the log: each out-of-scope call is a failed tool use whose result
+    // carries the message; the in-scope call ran.
+    const calls = toolUsesOf(await turnOfRun(clients, settled));
+    const byName = (name: string) => calls.find((use) => use.name === name);
     const inScope = byName(ECHO_TOOL_NAME);
-    expect(inScope, "the in-scope echo is on the transcript").toBeDefined();
-    expect(ToolCallStatus[inScope!.status], "the in-scope echo ran").toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_COMPLETED]);
-    expect(inScope!.result).toContain("in scope");
+    expect(inScope, "the in-scope echo is in the log").toBeDefined();
+    expect(inScope!.state, "the in-scope echo ran").toBe("completed");
+    expect(inScope!.result?.text).toContain("in scope");
     for (const name of [NATIVE_SHELL_TOOL, DESTRUCTIVE_ECHO_TOOL_NAME]) {
       const refused = byName(name);
       expect(
         refused,
-        `the refused ${name} call is on the transcript (calls: ${calls.map((tc) => `${tc.name}:${ToolCallStatus[tc.status]}`).join(", ")})`,
+        `the refused ${name} call is in the log (calls: ${calls.map((use) => `${use.name}:${use.state}`).join(", ")})`,
       ).toBeDefined();
-      expect(ToolCallStatus[refused!.status], `${name} is a failed tool call`).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_FAILED]);
-      expect(refused!.error, `${name} carries the out-of-scope message`).toContain(`${name} ${OUT_OF_SCOPE}`);
+      expect(refused!.state, `${name} is a failed tool use`).toBe("failed");
+      expect(refused!.result?.text, `${name} carries the out-of-scope message`).toContain(`${name} ${OUT_OF_SCOPE}`);
     }
   });
 });
@@ -272,9 +268,10 @@ describe("Run tool lists — a plugin's agent is scoped by its own list", () => 
     ).toBe(RunPhase[RunPhase.RUN_COMPLETED]);
     expect(mock.remaining(), "parent, child, child, parent: every scripted turn was consumed").toBe(0);
 
-    const child = (final.status?.subAgentRuns ?? []).find((run) => run.name === subAgent);
+    const turn = await turnOfRun(clients, final);
+    const child = threadsOf(turn).find((thread) => thread.agentName === subAgent);
     expect(child, `the plugin's agent ran as ${subAgent}`).toBeDefined();
-    expect(SubAgentStatus[child!.status]).toBe(SubAgentStatus[SubAgentStatus.SUB_AGENT_COMPLETED]);
+    expect(child!.state).toBe("completed");
 
     // Offered: the child's first request carries the named tool and not the other.
     const childRequest = mock.scriptedRequests()[1];
@@ -283,15 +280,12 @@ describe("Run tool lists — a plugin's agent is scoped by its own list", () => 
     expect(offered, "the tool its list names is offered").toContain(ECHO_TOOL_NAME);
     expect(offered, "a tool its list does not name is not offered").not.toContain(FAIL_TOOL_NAME);
 
-    const calls = allToolCalls(final);
-    const echo = calls.find((tc) => tc.id === "call_desk_echo");
-    expect(ToolCallStatus[echo?.status ?? 0], "the named tool ran").toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_COMPLETED]);
-    expect(echo!.result).toContain("ORD-4821");
-    const refused = calls.find((tc) => tc.id === "call_desk_fail");
-    expect(ToolCallStatus[refused?.status ?? 0], "the unnamed tool is a failed call").toBe(
-      ToolCallStatus[ToolCallStatus.TOOL_CALL_FAILED],
-    );
-    expect(refused!.error).toContain(`${FAIL_TOOL_NAME} ${OUT_OF_SCOPE}`);
+    const echo = toolUseByCallId(turn, "call_desk_echo");
+    expect(echo?.state, "the named tool ran").toBe("completed");
+    expect(echo!.result?.text).toContain("ORD-4821");
+    const refused = toolUseByCallId(turn, "call_desk_fail");
+    expect(refused?.state, "the unnamed tool is a failed call").toBe("failed");
+    expect(refused!.result?.text).toContain(`${FAIL_TOOL_NAME} ${OUT_OF_SCOPE}`);
     expect(
       mcp.capturedRequests().filter((request) => request.method === "tools/call"),
       "only the named call reached the server",

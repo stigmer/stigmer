@@ -149,7 +149,7 @@ public enum PeriodEstimateLineKind
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.billing.subscription.v1.IoProto.getDescriptor().getEnumType(0);
+    return ai.stigmer.billing.subscription.v1.IoProto.getDescriptor().getEnumType(1);
   }
 
   private static final PeriodEstimateLineKind[] VALUES = values();

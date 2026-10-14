@@ -1216,7 +1216,7 @@ function generatePythonTypes(outputDir: string): void {
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2

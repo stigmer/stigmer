@@ -12,7 +12,7 @@ function createMockStigmer(overrides: {
   return {
     session: {
       listByChannel:
-        overrides.listByChannel ?? vi.fn().mockResolvedValue({ entries: [] }),
+        overrides.listByChannel ?? vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
     },
   } as never;
 }
@@ -50,7 +50,7 @@ describe("useChannelSessions", () => {
 
   it("loads the channel's conversations by channel id", async () => {
     const session = makeChannelSession("ses_1", "U0AB12CD3");
-    const listByChannel = vi.fn().mockResolvedValue({ entries: [session] });
+    const listByChannel = vi.fn().mockResolvedValue({ entries: [session], nextPageToken: "" });
     const client = createMockStigmer({ listByChannel });
 
     const { result } = renderHook(() => useChannelSessions("ach_1"), {

@@ -40,10 +40,7 @@ function wrap(mock: unknown) {
 
 describe("usePluginEvals", () => {
   it("lists the plugin's evals, and asks nothing for an empty id", async () => {
-    const listByPlugin = vi.fn(async () => ({
-      totalCount: 1,
-      items: [evalWith([])],
-    }));
+    const listByPlugin = vi.fn(async () => ({ entries: [evalWith([])], nextPageToken: "" }));
     const { result } = renderHook(() => usePluginEvals("plg_1"), {
       wrapper: wrap({ plugineval: { listByPlugin } }),
     });
@@ -64,8 +61,8 @@ describe("usePluginEvals", () => {
     running.status!.phase = PluginEvalPhase.running;
     const listByPlugin = vi
       .fn()
-      .mockResolvedValueOnce({ totalCount: 2, items: [running, evalWith([])] })
-      .mockResolvedValue({ totalCount: 2, items: [evalWith([], undefined, "pev_2"), evalWith([])] });
+      .mockResolvedValueOnce({ entries: [running, evalWith([])], nextPageToken: "" })
+      .mockResolvedValue({ entries: [evalWith([], undefined, "pev_2"), evalWith([])], nextPageToken: "" });
     const { result } = renderHook(() => usePluginEvals("plg_1"), {
       wrapper: wrap({ plugineval: { listByPlugin } }),
     });

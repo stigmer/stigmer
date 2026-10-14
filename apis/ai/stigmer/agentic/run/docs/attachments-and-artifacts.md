@@ -204,8 +204,8 @@ Defined by `RunArtifact` in `api.proto`.
 # Download a specific artifact
 stigmer download run run_abc123 --artifact generated-skill
 
-# List all artifacts from a run
-stigmer runs get run_abc123 --output yaml | grep -A5 artifacts
+# Show a run's artifacts (status.artifacts in the run's YAML)
+stigmer get run run_abc123 -o yaml
 ```
 
 **Direct HTTP:**
@@ -217,12 +217,7 @@ curl -L "https://r2.cloudflarestorage.com/.../artifacts/..." -o output.zip
 
 **Refreshing expired URLs:**
 
-Download URLs expire after 7 days. If a URL has expired, call `getArtifactDownloadUrl` to get a fresh one:
-
-```bash
-stigmer runs get-artifact-url run_abc123 \
-  --storage-key "artifacts/run_abc123/generated-skill.zip"
-```
+Download URLs expire after 7 days. `stigmer download run` asks for a fresh URL on every download, so it never meets an expired one. Any other client calls `getArtifactDownloadUrl` with the run's id and the artifact's `storage_key` to get a fresh one (below).
 
 ### `getArtifactDownloadUrl` RPC
 

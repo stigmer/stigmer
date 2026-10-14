@@ -26,12 +26,12 @@ function org(id: string, slug: string): Organization {
 /** Each fetch answers the next list; the last one repeats. */
 function createMockStigmer(lists: Organization[][]) {
   let calls = 0;
-  const findMyOrganizations = vi.fn(async () => {
+  const listMine = vi.fn(async () => {
     const entries = lists[Math.min(calls, lists.length - 1)];
     calls += 1;
-    return { entries };
+    return { entries, nextPageToken: "" };
   });
-  return { organization: { findMyOrganizations } } as never;
+  return { organization: { listMine } } as never;
 }
 
 function renderOrg(client: unknown, cache: FetchCache | null = null) {

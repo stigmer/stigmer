@@ -202,7 +202,7 @@ describe("showRunScores", () => {
       score: {
         listByRun: async (input: ListScoresByRunRequest) => {
           asked.push(input.runId);
-          return create(ScoreListSchema, { totalCount: items.length, items });
+          return create(ScoreListSchema, { entries: items });
         },
       },
     } as unknown as Stigmer;

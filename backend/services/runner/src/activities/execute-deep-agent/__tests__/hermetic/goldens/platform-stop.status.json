@@ -1,29 +1,4 @@
 {
-  "messages": [
-    {
-      "type": "MESSAGE_AI",
-      "content": "Let me look.",
-      "timestamp": "2026-01-01T00:00:01.000Z",
-      "toolCalls": [
-        {
-          "id": "call-hermetic-read-0001",
-          "name": "read_file",
-          "args": {
-            "file_path": "/notes.md"
-          },
-          "status": "TOOL_CALL_RUNNING",
-          "startedAt": "2026-01-01T00:00:01.000Z",
-          "argsPreview": "{\"file_path\":\"/notes.md\"}",
-          "toolKind": "TOOL_KIND_FILE_READ"
-        }
-      ]
-    },
-    {
-      "type": "MESSAGE_SYSTEM",
-      "content": "Execution stopped by the platform.",
-      "timestamp": "2026-01-01T00:00:01.000Z"
-    }
-  ],
   "phase": "RUN_COMPLETED",
   "startedAt": "2026-01-01T00:00:00.000Z",
   "completedAt": "2026-01-01T00:00:01.000Z",

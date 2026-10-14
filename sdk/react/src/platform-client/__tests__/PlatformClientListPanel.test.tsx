@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import {
@@ -20,13 +20,16 @@ import { PlatformClientListPanel } from "../PlatformClientListPanel";
  *     admin who may view a client they did not create is handed neither
  *     (stigmer/stigmer#1302);
  *   - an empty list says "No platform clients configured." unless the host
- *     passes the empty state for a caller who may not manage clients.
+ *     passes the empty state for a caller who may not manage clients;
+ *   - Edit hands the host the client; Delete asks first, Cancel backs out,
+ *     and a confirmed delete re-reads the list.
  *
- * The data hook is stubbed; the delete hook is never exercised here.
+ * The data hook is stubbed; the delete hook runs over a stubbed client.
  */
 
 const stubs = vi.hoisted(() => ({
   clients: [] as PlatformClient[],
+  refetch: (() => {}) as () => void,
 }));
 
 vi.mock("../usePlatformClientList.js", () => ({
@@ -35,7 +38,7 @@ vi.mock("../usePlatformClientList.js", () => ({
     isLoading: false,
     isRefetching: false,
     error: null,
-    refetch: () => {},
+    refetch: () => stubs.refetch(),
   }),
 }));
 
@@ -55,9 +58,10 @@ function renderList(
   checkMyPermission: (
     input: CheckMyPermissionInput,
   ) => Promise<{ isAuthorized: boolean }>,
-  props: { emptyState?: string } = {},
+  props: { emptyState?: string; onEdit?: (client: PlatformClient) => void } = {},
+  remove: (input: unknown) => Promise<unknown> = async () => ({}),
 ) {
-  const stigmer = { iamPolicy: { checkMyPermission } } as never;
+  const stigmer = { iamPolicy: { checkMyPermission }, platformclient: { delete: remove } } as never;
   return render(
     <StigmerContext.Provider value={stigmer}>
       <PlatformClientListPanel
@@ -73,6 +77,7 @@ function renderList(
 afterEach(() => {
   cleanup();
   stubs.clients = [];
+  stubs.refetch = () => {};
 });
 
 describe("PlatformClientListPanel rows", () => {
@@ -136,5 +141,26 @@ describe("PlatformClientListPanel empty state", () => {
       screen.getByText("Platform clients are managed by your organization's admins."),
     ).toBeTruthy();
     expect(screen.queryByText("No platform clients configured.")).toBeNull();
+  });
+});
+
+describe("PlatformClientListPanel row actions", () => {
+  it("hands Edit the client, backs out of a delete on Cancel, and re-reads the list after one", async () => {
+    stubs.clients = [client("pcl_dash", "Dashboard")];
+    const refetch = vi.fn();
+    stubs.refetch = refetch;
+    const onEdit = vi.fn();
+    const remove = vi.fn(async () => ({}));
+    renderList(async () => ({ isAuthorized: true }), { onEdit }, remove);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit Dashboard" }));
+    expect(onEdit.mock.calls[0]![0].metadata?.id).toBe("pcl_dash");
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete Dashboard" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Delete Dashboard" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(refetch).toHaveBeenCalledTimes(1));
+    expect(remove).toHaveBeenCalledTimes(1);
   });
 });

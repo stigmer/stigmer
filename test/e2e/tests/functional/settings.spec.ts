@@ -45,6 +45,11 @@ const SETTINGS_SECTIONS: readonly {
     oss: { notice: "Teams are available in Stigmer Enterprise and Cloud." },
   },
   {
+    path: "/settings/access-history",
+    headingText: "Access history",
+    oss: { notice: "The access history is kept by Stigmer Enterprise and Cloud." },
+  },
+  {
     path: "/settings/invitations",
     headingText: "Invitations",
     oss: { notice: "Invitations are not available in local mode." },

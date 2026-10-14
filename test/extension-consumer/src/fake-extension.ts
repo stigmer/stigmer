@@ -31,6 +31,7 @@ import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchan
 import { ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import {
+  ChannelConversationCountSchema,
   ChannelConversationListSchema,
   ChannelConversationSchema,
   ConversationMediaDownloadUrlSchema,
@@ -419,6 +420,9 @@ const consumerPlatformClientStore: PlatformClientStore = {
         (client) => client.metadata?.org === org,
       ),
     ),
+  // The list lane's page source: a real driver answers the rows after the
+  // cursor, newest first; this compile proof answers an empty page.
+  pageByOrg: () => Promise.resolve([]),
 };
 
 /** The PlatformClient port-contract kit over the consumer's driver (compile-only here). */
@@ -587,6 +591,9 @@ const consumerIamPolicyStore: IamPolicyStore = {
   countDistinctPrincipalsByResource: () => Promise.resolve(0),
   findScopeTuple: () => Promise.resolve(undefined),
   findByResourceKindAndRelation: () => Promise.resolve([]),
+  // A store that keeps no history answers none; one composed above open
+  // source keeps one and reads it back here.
+  listChanges: () => Promise.resolve([]),
 };
 
 /**
@@ -603,6 +610,7 @@ export function consumerIamPolicyStoreContract(): ReadonlyArray<IamPolicyStoreCo
       disconnect: () => Promise.resolve(),
       cleanup: () => Promise.resolve(),
     }),
+    { keepsHistory: false },
   );
 }
 
@@ -1088,10 +1096,11 @@ const channelRuntime: ChannelRuntime = {
       Promise.resolve(create(MessagingChannelsSchema)),
   },
   conversations: {
-    listConversations: () =>
-      Promise.resolve(create(ChannelConversationListSchema)),
+    list: () => Promise.resolve(create(ChannelConversationListSchema)),
+    countConversations: () =>
+      Promise.resolve(create(ChannelConversationCountSchema)),
     getConversation: () => Promise.resolve(create(ChannelConversationSchema)),
-    getTimeline: () => Promise.resolve(create(ConversationTimelineSchema)),
+    listTimeline: () => Promise.resolve(create(ConversationTimelineSchema)),
     getMediaDownloadUrl: () =>
       Promise.resolve(create(ConversationMediaDownloadUrlSchema)),
     reply: () => Promise.resolve(create(SendChannelMessageOutputSchema)),
@@ -1437,7 +1446,6 @@ const listReadScope: ListReadScope = {
 
 /** A consumer organization directory. */
 const organizationDirectory: OrganizationDirectory = {
-  refusesEnumeration: true,
   listMyOrganizationIds: (caller: CallerIdentity) => {
     void caller.identityId;
     return Promise.resolve<ReadonlyArray<string>>([]);
@@ -1574,6 +1582,9 @@ export const fakeExtension: ServerExtension = {
     // edition removes, or refuses to leave behind, what it keeps for the
     // organization. It reads the loaded organization off the exported key.
     ["org-delete:pre-delete", [consumerGateStep()]],
+    // The tenth: the access history's read before anything is read — where
+    // a host refuses a read its own rules forbid (the Cloud, by plan).
+    ["iam-policy-list-access-history:pre-read", [consumerGateStep()]],
   ]),
   statusTransitionHooks: {
     observers: [statusObserver],

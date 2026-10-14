@@ -99,7 +99,7 @@ function flaggedHealth(runId: string): Score {
 }
 
 function list(scores: Score[]) {
-  return create(ScoreListSchema, { totalCount: scores.length, items: scores });
+  return create(ScoreListSchema, { entries: scores, nextPageToken: "" });
 }
 
 function client() {

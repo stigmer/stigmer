@@ -38,7 +38,7 @@
 import { mkdirSync } from "node:fs";
 import { realpath } from "node:fs/promises";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -65,6 +65,7 @@ import {
   sessionWorkspaceDir,
 } from "../../__test-utils__/hermetic-deep-agent.js";
 import { recordedModelBuilds } from "../../__test-utils__/scripted-model-module.js";
+import { MessageType } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** Below the lock's 1 s poll interval: the first contended attempt times out. */
 const LOCK_TIMEOUT_MS = 250;
@@ -121,12 +122,13 @@ describe("ExecuteDeepAgent hermetic — workspace lock timeout", () => {
       // ── Assert: the copy, built with the same class over the real path ─────
       const expectedMessage = new WorkspaceLockTimeoutError(resolvedDir, 0).message;
       const final = record.lastFullStatus!;
+      const finalRows = record.rowsOf(final);
       expect(final.error).toBe(expectedMessage);
       expect(final.completedAt).not.toBe("");
-      expect(final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
+      expect(finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
         `Execution failed: ${expectedMessage}`,
       ]);
-      expect(final.messages, "the system row is the whole transcript").toHaveLength(1);
+      expect(finalRows.messages, "the system row is the whole transcript").toHaveLength(1);
 
       // ── Assert: the order — the lock is tried before the tool surface ─────
       expect(record.setupProgress).toEqual([

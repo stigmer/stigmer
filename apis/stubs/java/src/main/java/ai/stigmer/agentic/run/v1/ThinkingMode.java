@@ -172,7 +172,7 @@ public enum ThinkingMode
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.run.v1.EnumProto.getDescriptor().getEnumType(17);
+    return ai.stigmer.agentic.run.v1.EnumProto.getDescriptor().getEnumType(6);
   }
 
   private static final ThinkingMode[] VALUES = values();

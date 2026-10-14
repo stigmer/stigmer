@@ -6,23 +6,17 @@
  *
  * The server lists every service account of the organization, newest first,
  * including one whose role was removed, so an admin can still find and delete
- * it. An organization has few of them, so the hook reads every page and hands
- * back one list; the page size is the server's to cap. A bounded page count
- * keeps a server that misreports its total from looping the client.
+ * it. An organization has few of them, so the hook walks every page of the
+ * list and hands back one list.
  */
 import { create } from "@bufbuild/protobuf";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { ListWithIdentityOrgSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
-import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
+import { ListServiceAccountsInputSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
+import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
 import { useFetch } from "../internal/useFetch.js";
 
-/** Accounts asked for per page. */
-const PAGE_SIZE = 100;
-
-/** The most pages read, whatever total the server reports. */
-const MAX_PAGES = 20;
 
 /** Return value of {@link useServiceAccountList}. */
 export interface UseServiceAccountListReturn {
@@ -65,20 +59,14 @@ export function useServiceAccountList(
   return { serviceAccounts, isLoading, isRefetching, error, refetch };
 }
 
-async function listEveryServiceAccount(
+
+function listEveryServiceAccount(
   stigmer: Stigmer,
   org: string,
 ): Promise<IdentityAccount[]> {
-  const accounts: IdentityAccount[] = [];
-  for (let num = 1; num <= MAX_PAGES; num++) {
-    const page = await stigmer.identityAccount.listServiceAccounts(
-      create(ListWithIdentityOrgSchema, {
-        org,
-        page: create(PageInfoSchema, { num, size: PAGE_SIZE }),
-      }),
-    );
-    accounts.push(...page.entries);
-    if (page.entries.length === 0 || num >= page.totalPages) break;
-  }
-  return accounts;
+  return readEveryPage((pageToken) =>
+    stigmer.identityAccount.listServiceAccounts(
+      create(ListServiceAccountsInputSchema, { org, pageSize: LIST_PAGE_MAX, pageToken }),
+    ),
+  );
 }

@@ -32,13 +32,13 @@ interface MockOverrides {
   update?: (resource: AgentChannel, paths: string[]) => Promise<unknown>;
   initiateInstall?: (input: unknown) => Promise<unknown>;
   get?: (id: string) => Promise<unknown>;
-  /** Org channel apps returned by channelapp.listByOrg (serving picker). */
+  /** Org channel apps returned by channelapp.list (serving picker). */
   channelApps?: unknown[];
   /** Org-wide channels returned by agentChannel.list (advisory). */
   orgChannels?: unknown[];
 }
 
-/** A registered Meta app as channelapp.listByOrg returns it. */
+/** A registered Meta app as channelapp.list returns it. */
 function makeWhatsAppApp(slug = "acme-meta-app", name = "Acme Meta App") {
   return {
     metadata: { id: `chapp_${slug}`, org: "acme", slug, name },
@@ -67,13 +67,15 @@ function installedChannel() {
 function createMockStigmer(overrides: MockOverrides = {}) {
   return {
     channelapp: {
-      listByOrg: vi.fn().mockResolvedValue({
+      list: vi.fn().mockResolvedValue({
         entries: overrides.channelApps ?? [makeWhatsAppApp()],
+        nextPageToken: "",
       }),
     },
     agentChannel: {
       list: vi.fn().mockResolvedValue({
-        items: overrides.orgChannels ?? [],
+        entries: overrides.orgChannels ?? [],
+        nextPageToken: "",
       }),
       create:
         overrides.create ??
@@ -87,7 +89,7 @@ function createMockStigmer(overrides: MockOverrides = {}) {
       get: overrides.get ?? vi.fn().mockResolvedValue(installedChannel()),
     },
     vault: {
-      list: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }),
+      list: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
       getByReference: vi.fn().mockRejectedValue(new Error("not found")),
     },
   } as never;

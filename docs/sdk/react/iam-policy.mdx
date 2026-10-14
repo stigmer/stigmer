@@ -7,6 +7,54 @@ description: Hooks and components for access control bindings, role assignment, 
 
 ## Hooks
 
+### useAccessHistory
+
+Data hook that pages an organization's access history through
+`IamPolicyQueryController.listAccessHistory`, newest first: every time
+someone was given or lost access, who did it, why and when.
+
+The server answers only the organization's owners and administrators,
+and a parent organization's administrators for a child
+(`can_view_access_history`); gate the hook on that permission and pass
+`null` otherwise, which keeps it idle. An open-source server keeps no
+history and answers UNIMPLEMENTED.
+
+To hand the whole history to another tool, use `exportAccessHistory`
+and `accessHistoryJsonLine` from `@stigmer/sdk`.
+
+**Signature**
+
+```tsx
+function useAccessHistory(org: string | null, options: UseAccessHistoryOptions): UseAccessHistoryReturn
+```
+
+<TypeTable
+  type={{
+    org: { type: "string | null", description: "", required: true },
+    options: { type: "UseAccessHistoryOptions", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseAccessHistoryReturn`
+
+<TypeTable
+  type={{
+    entries: { type: "readonly AccessHistoryEntry[]", description: "The organization's access history, newest first: the first page, then every page loaded since." },
+    error: { type: "Error | null", description: "Error from the last failed first-page read, or `null`." },
+    hasMore: { type: "boolean", description: "`true` while older entries exist beyond what is loaded." },
+    isLoading: { type: "boolean", description: "`true` only during the first load." },
+    isLoadingMore: { type: "boolean", description: "`true` while a `loadMore` page is in flight." },
+    loadMore: { type: "() => void", description: "Load the next, older page. No-op while one is loading or when nothing follows." },
+    loadMoreError: { type: "Error | null", description: "Error from the last failed `loadMore`, or `null`." },
+    refetch: { type: "() => void", description: "Re-read the first page; entries made since appear at the head." },
+  }}
+/>
+
+```tsx
+const { entries, hasMore, loadMore } = useAccessHistory(orgId);
+```
+
+
 ### useCheckPermission
 
 Hook that checks whether the current user has a specific permission
@@ -888,6 +936,17 @@ A team the share can be granted to.
     kind: { type: "\"team\"", description: "", required: true },
     name: { type: "string", description: "The team's name.", required: true },
     team: { type: "Team", description: "The full resource.", required: true },
+  }}
+/>
+
+
+### UseAccessHistoryOptions
+
+Options for [`useAccessHistory`](#useaccesshistory).
+
+<TypeTable
+  type={{
+    pageSize: { type: "number", description: "Entries per page, the first and each `loadMore`; the server caps it at 100." },
   }}
 />
 

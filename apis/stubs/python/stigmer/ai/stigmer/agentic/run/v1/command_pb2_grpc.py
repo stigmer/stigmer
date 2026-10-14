@@ -38,21 +38,6 @@ class RunCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceId.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.FromString,
                 _registered_method=True)
-        self.submitApproval = channel.unary_unary(
-                '/ai.stigmer.agentic.run.v1.RunCommandController/submitApproval',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.SubmitApprovalInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.FromString,
-                _registered_method=True)
-        self.submitFileDecision = channel.unary_unary(
-                '/ai.stigmer.agentic.run.v1.RunCommandController/submitFileDecision',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.SubmitFileDecisionInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.FromString,
-                _registered_method=True)
-        self.cancel = channel.unary_unary(
-                '/ai.stigmer.agentic.run.v1.RunCommandController/cancel',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.CancelRunInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.FromString,
-                _registered_method=True)
         self.terminate = channel.unary_unary(
                 '/ai.stigmer.agentic.run.v1.RunCommandController/terminate',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.TerminateRunInput.SerializeToString,
@@ -129,48 +114,7 @@ class RunCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def submitApproval(self, request, context):
-        """Submit an approval decision for a pending tool call.
-
-        ## Preconditions
-
-        - Run must be in RUN_WAITING_FOR_APPROVAL phase
-        - tool_call_id must match status.pending_approval.tool_call_id
-        - User must have can_edit permission on the run
-
-        ## Behavior by Action
-
-        - APPROVE: Tool executes normally, run resumes to IN_PROGRESS
-        - SKIP: Tool returns skip message to LLM, run continues to IN_PROGRESS
-        - REJECT: Tool is denied and the user's objection is fed back to the LLM;
-        the run CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
-        stop the whole run, use cancel/terminate)
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def submitFileDecision(self, request, context):
-        """Submit a keep/discard decision on a file change set (or a single file).
-
-        Records a FILE_DECIDED event in the append-only file_review stream;
-        FileChangeSet.decisions is the derived projection. The runner reconciles
-        the approved bytes — this RPC records the decision and enforces
-        that expected_digest still matches the captured content the user reviewed.
-
-        ## Preconditions
-
-        - Run must exist and be non-terminal
-        - change_set_id must match a status.file_change_sets[].id; for FILE scope,
-        file_change_id must match a CapturedFileChange.id within it
-        - expected_digest must match the target's current digest
-        - User must have can_edit permission on the run
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def cancel(self, request, context):
+    def terminate(self, request, context):
         """─────────────────────────────────────────────────────────────────────────────
         Lifecycle Control Operations
 
@@ -179,21 +123,10 @@ class RunCommandControllerServicer(object):
         pause, resume, or recover runs.
         ─────────────────────────────────────────────────────────────────────────────
 
-        Cancel a running run gracefully.
+        Terminate a run immediately.
 
-        Sends a cancellation signal to the run. The agent can handle
-        the cancellation signal to save checkpoint and clean up before
-        transitioning to the CANCELLED phase.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def terminate(self, request, context):
-        """Terminate a run immediately.
-
-        Force-stops the run without allowing cleanup. Unlike cancel,
-        the agent cannot respond to termination - it is stopped immediately.
+        Force-stops the run without allowing cleanup. Unlike the session's
+        interrupt, the agent cannot respond to termination - it is stopped immediately.
         Use this for stuck or unresponsive agents.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -213,8 +146,8 @@ class RunCommandControllerServicer(object):
     def pause(self, request, context):
         """Pause a running run.
 
-        Temporarily stops the agent at its current checkpoint. Unlike cancel,
-        the run is NOT terminal and can be resumed later from where it left off.
+        Temporarily stops the agent at its current checkpoint. Unlike the
+        session's interrupt, the run is NOT terminal and can be resumed later from where it left off.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -271,21 +204,6 @@ def add_RunCommandControllerServicer_to_server(servicer, server):
             'delete': grpc.unary_unary_rpc_method_handler(
                     servicer.delete,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceId.FromString,
-                    response_serializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.SerializeToString,
-            ),
-            'submitApproval': grpc.unary_unary_rpc_method_handler(
-                    servicer.submitApproval,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.SubmitApprovalInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.SerializeToString,
-            ),
-            'submitFileDecision': grpc.unary_unary_rpc_method_handler(
-                    servicer.submitFileDecision,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.SubmitFileDecisionInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.SerializeToString,
-            ),
-            'cancel': grpc.unary_unary_rpc_method_handler(
-                    servicer.cancel,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.CancelRunInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.SerializeToString,
             ),
             'terminate': grpc.unary_unary_rpc_method_handler(
@@ -423,87 +341,6 @@ class RunCommandController(object):
             target,
             '/ai.stigmer.agentic.run.v1.RunCommandController/delete',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceId.SerializeToString,
-            ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def submitApproval(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.agentic.run.v1.RunCommandController/submitApproval',
-            ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.SubmitApprovalInput.SerializeToString,
-            ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def submitFileDecision(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.agentic.run.v1.RunCommandController/submitFileDecision',
-            ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.SubmitFileDecisionInput.SerializeToString,
-            ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def cancel(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.agentic.run.v1.RunCommandController/cancel',
-            ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.CancelRunInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.FromString,
             options,
             channel_credentials,

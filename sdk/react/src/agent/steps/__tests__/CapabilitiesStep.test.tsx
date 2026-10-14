@@ -31,7 +31,18 @@ const LINEAR_REF = { org: ACME_ID, slug: "linear", kind: ApiResourceKind.plugin 
 function renderStep(plugins: (typeof LINEAR_REF)[]) {
   const updateData = vi.fn();
   render(<CapabilitiesStep org={ACME_ID} data={{ ...createInitialWizardData(), plugins }} updateData={updateData} />, {
-    wrapper: orgWrapper({ plugin: { list: vi.fn(async () => ({ entries: [NOTION], totalPages: 1 })) } }, undefined, true),
+    wrapper: orgWrapper(
+      {
+        plugin: {
+          list: vi.fn(async () => ({
+            entries: [{ metadata: { id: NOTION.id, org: NOTION.org, slug: NOTION.slug, name: NOTION.name, tags: [] } }],
+            nextPageToken: "",
+          })),
+        },
+      },
+      undefined,
+      true,
+    ),
   });
   return { updateData };
 }

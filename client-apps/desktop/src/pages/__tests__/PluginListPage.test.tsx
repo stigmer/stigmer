@@ -73,9 +73,10 @@ vi.mock("@stigmer/react", () => {
       return null;
     },
     OrgSlugText: () => null,
+    createLibraryListFn: () => async () => ({ entries: [], nextPageToken: "" }),
     useStigmer: () => ({
       plugin: {
-        list: async () => ({ items: [] }),
+        list: async () => ({ entries: [], nextPageToken: "" }),
         delete: async (id: string) => {
           if (page.deleteFailure !== undefined) throw page.deleteFailure;
           page.deleted.push(id);

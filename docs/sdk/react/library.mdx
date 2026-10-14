@@ -326,6 +326,7 @@ All visual properties flow through `--stgm-*` tokens.
   type={{
     className: { type: "string", description: "Additional CSS classes for the root element." },
     count: { type: "number", description: "Resource count to display. When `undefined` and `isLoading` is true, a skeleton placeholder renders in its place. When `undefined` and `isLoading` is false, an em-dash is shown as a neutral placeholder.  When a count is already available and `isLoading` becomes true again (refresh scenario), the existing count remains visible — no skeleton flash." },
+    countIsLowerBound: { type: "boolean", description: "`true` when `count` is what a first page holds and more follow (a list with no total, such as schedules): the card reads \"100+\"." },
     href: { type: "string", description: "URL for the card. When provided, the card renders as an `<a>` element for accessible navigation (right-click, open in new tab, browser status bar URL preview).  For SPA routing, combine with `onClick` and call `preventDefault`:  ```tsx <ResourceCountCard   href=\"/library/agents\"   onClick={(e) => { e.preventDefault(); router.push(\"/library/agents\"); }}   // ... /> ```" },
     icon: { type: "ReactNode", description: "Icon element rendered at the top of the card. Sized by the consumer.  Should be marked `aria-hidden=\"true\"` when purely decorative (typical for resource type icons alongside a text label).", required: true },
     isLoading: { type: "boolean", description: "Whether the count is being fetched. Shows a skeleton pulse when `count` is not yet available." },
@@ -493,6 +494,21 @@ single-organization server has no children).
 />
 
 
+### createLibraryListFn
+
+A workbench data source for one Library kind: `list` while
+`request.query` is empty, search while it holds text.
+
+```tsx
+function createLibraryListFn(client: LibraryClient, kind: LibraryKind): WorkbenchListFn
+```
+
+```tsx
+const listFn = useMemo(() => createLibraryListFn(stigmer, ApiResourceKind.agent), [stigmer]);
+<ResourceWorkbench listFn={listFn} org={org} />
+```
+
+
 ### detectSkillPackage
 
 Detects a skill package and extracts metadata from its SKILL.md content.
@@ -654,6 +670,16 @@ if (isSkillPackage(artifact)) {
   // Show "Push Skill" CTA
 }
 ```
+
+
+### LibraryClient
+
+The slice of the Stigmer client a library source needs (mockable in tests).
+
+
+### LibraryKind
+
+The kinds the Library lists and searches.
 
 
 ### PLAN_ARTIFACT_NAME

@@ -179,6 +179,25 @@ private static final long serialVersionUID = 0L;
     return totalTokens_;
   }
 
+  public static final int WORKING_SECONDS_FIELD_NUMBER = 6;
+  private long workingSeconds_ = 0L;
+  /**
+   * <pre>
+   * Seconds an agent was working (thinking, calling tools, writing files),
+   * counted from the session's status events; waiting for a person is never
+   * working. A stretch of work is credited to the run whose start began it.
+   * This is the clock, never priced; a Stigmer Cloud plan's agent hours are
+   * its subscription's getAgentHours.
+   * </pre>
+   *
+   * <code>int64 working_seconds = 6 [json_name = "workingSeconds"];</code>
+   * @return The workingSeconds.
+   */
+  @java.lang.Override
+  public long getWorkingSeconds() {
+    return workingSeconds_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -205,6 +224,9 @@ private static final long serialVersionUID = 0L;
     if (totalTokens_ != 0L) {
       output.writeInt64(4, totalTokens_);
     }
+    if (workingSeconds_ != 0L) {
+      output.writeInt64(6, workingSeconds_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -227,6 +249,10 @@ private static final long serialVersionUID = 0L;
     if (totalTokens_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
         .computeInt64Size(4, totalTokens_);
+    }
+    if (workingSeconds_ != 0L) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(6, workingSeconds_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -251,6 +277,8 @@ private static final long serialVersionUID = 0L;
         != other.getRunCount()) return false;
     if (getTotalTokens()
         != other.getTotalTokens()) return false;
+    if (getWorkingSeconds()
+        != other.getWorkingSeconds()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -271,6 +299,9 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + TOTAL_TOKENS_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
         getTotalTokens());
+    hash = (37 * hash) + WORKING_SECONDS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getWorkingSeconds());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -410,6 +441,7 @@ private static final long serialVersionUID = 0L;
       agentName_ = "";
       runCount_ = 0;
       totalTokens_ = 0L;
+      workingSeconds_ = 0L;
       return this;
     }
 
@@ -455,6 +487,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.totalTokens_ = totalTokens_;
       }
+      if (((from_bitField0_ & 0x00000010) != 0)) {
+        result.workingSeconds_ = workingSeconds_;
+      }
     }
 
     @java.lang.Override
@@ -484,6 +519,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getTotalTokens() != 0L) {
         setTotalTokens(other.getTotalTokens());
+      }
+      if (other.getWorkingSeconds() != 0L) {
+        setWorkingSeconds(other.getWorkingSeconds());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -531,6 +569,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000008;
               break;
             } // case 32
+            case 48: {
+              workingSeconds_ = input.readInt64();
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 48
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -819,6 +862,62 @@ private static final long serialVersionUID = 0L;
     public Builder clearTotalTokens() {
       bitField0_ = (bitField0_ & ~0x00000008);
       totalTokens_ = 0L;
+      onChanged();
+      return this;
+    }
+
+    private long workingSeconds_ ;
+    /**
+     * <pre>
+     * Seconds an agent was working (thinking, calling tools, writing files),
+     * counted from the session's status events; waiting for a person is never
+     * working. A stretch of work is credited to the run whose start began it.
+     * This is the clock, never priced; a Stigmer Cloud plan's agent hours are
+     * its subscription's getAgentHours.
+     * </pre>
+     *
+     * <code>int64 working_seconds = 6 [json_name = "workingSeconds"];</code>
+     * @return The workingSeconds.
+     */
+    @java.lang.Override
+    public long getWorkingSeconds() {
+      return workingSeconds_;
+    }
+    /**
+     * <pre>
+     * Seconds an agent was working (thinking, calling tools, writing files),
+     * counted from the session's status events; waiting for a person is never
+     * working. A stretch of work is credited to the run whose start began it.
+     * This is the clock, never priced; a Stigmer Cloud plan's agent hours are
+     * its subscription's getAgentHours.
+     * </pre>
+     *
+     * <code>int64 working_seconds = 6 [json_name = "workingSeconds"];</code>
+     * @param value The workingSeconds to set.
+     * @return This builder for chaining.
+     */
+    public Builder setWorkingSeconds(long value) {
+
+      workingSeconds_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Seconds an agent was working (thinking, calling tools, writing files),
+     * counted from the session's status events; waiting for a person is never
+     * working. A stretch of work is credited to the run whose start began it.
+     * This is the clock, never priced; a Stigmer Cloud plan's agent hours are
+     * its subscription's getAgentHours.
+     * </pre>
+     *
+     * <code>int64 working_seconds = 6 [json_name = "workingSeconds"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearWorkingSeconds() {
+      bitField0_ = (bitField0_ & ~0x00000010);
+      workingSeconds_ = 0L;
       onChanged();
       return this;
     }

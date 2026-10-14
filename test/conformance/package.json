@@ -26,6 +26,7 @@
     "@stigmer/plugin-package": "*",
     "@stigmer/protos": "*",
     "@stigmer/sdk": "*",
+    "@stigmer/session-log": "*",
     "@stigmer/test-support": "*",
     "fflate": "^0.8.3",
     "js-yaml": "^4.3.1",

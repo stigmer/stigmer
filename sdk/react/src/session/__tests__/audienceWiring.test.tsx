@@ -502,6 +502,20 @@ describe("SessionViewer — audience wiring", () => {
     expect(screen.getByRole("alert").textContent).toContain("This organization has no Anthropic key.");
     expect(screen.getByRole("link", { name: "Open provider keys" })).toBeTruthy();
   });
+
+  it("renders a used-up agent hours refusal with the link to the plans", async () => {
+    const { refusal } = await import("../../billing/__tests__/fixtures");
+    stubConv.sendError = refusal("This organization has used the 10 agent hours its Free plan includes.", "AGENT_HOURS_USED_UP", {
+      org: "acme",
+      plan: "Free",
+      included_hours: "10",
+      resets_at: "2026-11-01T00:00:00.000Z",
+    });
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+
+    expect(screen.getByRole("alert").textContent).toContain("used the 10 agent hours");
+    expect(screen.getByRole("link", { name: "View plans" }).getAttribute("href")).toBe("/settings/billing");
+  });
 });
 
 describe("owner-pinned runConfig wiring (#664)", () => {

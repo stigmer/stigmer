@@ -109,7 +109,7 @@ describe("Organization identity conformance", () => {
       const found = await clients.vaultQuery.getByReference({ org, slug: vault.metadata!.slug });
       expect(found.metadata?.id, `found through org '${org}'`).toBe(vault.metadata?.id);
       const listed = await clients.vaultQuery.list({ org });
-      expect(listed.items.map((item) => item.metadata?.id)).toContain(vault.metadata?.id);
+      expect(listed.entries.map((item) => item.metadata?.id)).toContain(vault.metadata?.id);
     }
   });
 
@@ -215,7 +215,7 @@ describe("Organization identity conformance", () => {
     expect(second.metadata?.id, "a new organization, not the deleted one again").not.toBe(first.metadata?.id);
 
     const listed = await clients.vaultQuery.list({ org: slug });
-    expect(listed.items, "the new organization holds none of the deleted one's vaults").toEqual([]);
+    expect(listed.entries, "the new organization holds none of the deleted one's vaults").toEqual([]);
     await expectGrpcCode(
       () => clients.vaultQuery.getByReference({ org: slug, slug: vault.metadata!.slug }),
       Code.NotFound,
@@ -318,7 +318,7 @@ describe("Organization identity conformance", () => {
     const second = await createOrgOnceReleased(slug, stranger);
     expect(second.metadata?.id).not.toBe(first.metadata?.id);
 
-    expect((await stranger.vaultQuery.list({ org: slug })).items).toEqual([]);
+    expect((await stranger.vaultQuery.list({ org: slug })).entries).toEqual([]);
     await expectGrpcCode(
       () => stranger.vaultQuery.getByReference({ org: slug, slug: vault.metadata!.slug }),
       Code.NotFound,

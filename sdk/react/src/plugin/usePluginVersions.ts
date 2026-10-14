@@ -8,7 +8,7 @@ import {
   type PluginVersionEntry as ProtoPluginVersionEntry,
 } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
 import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useCursorPages } from "../internal/useCursorPages.js";
 import type { VersionEntry } from "../version-history/types.js";
 
 /** Return value of {@link usePluginVersions}. */
@@ -23,31 +23,43 @@ export interface UsePluginVersionsReturn {
   readonly error: Error | null;
   /** Discard cached data and re-fetch from the server. */
   readonly refetch: () => void;
+  /** `true` while the server holds entries beyond those loaded. */
+  readonly hasMore: boolean;
+  /** Load the next page. No-op while one is loading or when nothing follows. */
+  readonly loadMore: () => void;
+  /** `true` while a `loadMore` read is in flight. */
+  readonly isLoadingMore: boolean;
+  /** Error from the last failed `loadMore`, or `null`. */
+  readonly loadMoreError: Error | null;
 }
-
-const EMPTY: readonly ProtoPluginVersionEntry[] = [];
 
 /**
  * Data hook that fetches the version history of an installed plugin and
  * maps it to the generic {@link VersionEntry} the `VersionTimeline` renders.
  * A version's id is its archive digest; its tag is the manifest version
- * when that fits the tag pattern. Pass `null` to skip fetching.
+ * when that fits the tag pattern. The history pages newest first
+ * (`hasMore` / `loadMore` for older versions). Pass `null` to skip fetching.
  */
 export function usePluginVersions(org: string | null, slug: string | null): UsePluginVersionsReturn {
   const stigmer = useStigmer();
 
-  const { data: raw, isLoading, error, refetch } = useFetch(
+  const pages = useCursorPages<ProtoPluginVersionEntry>(
     org && slug
-      ? async () => (await stigmer.plugin.listVersions(create(ListPluginVersionsInputSchema, { org, slug }))).versions
+      ? (pageToken) => stigmer.plugin.listVersions(create(ListPluginVersionsInputSchema, { org, slug, pageToken }))
       : null,
     [org, slug, stigmer],
-    EMPTY,
+    (entry) => entry.digest,
   );
+  const raw = pages.items;
+  const { hasMore, loadMore, isLoadingMore, loadMoreError, isLoading, error, refetch } = pages;
 
   const versions = useMemo(() => raw.map(toVersionEntry), [raw]);
   const isEmpty = versions.length === 0;
 
-  return useMemo(() => ({ versions, isEmpty, isLoading, error, refetch }), [versions, isEmpty, isLoading, error, refetch]);
+  return useMemo(
+    () => ({ versions, isEmpty, hasMore, loadMore, isLoadingMore, loadMoreError, isLoading, error, refetch }),
+    [versions, isEmpty, hasMore, loadMore, isLoadingMore, loadMoreError, isLoading, error, refetch],
+  );
 }
 
 function toVersionEntry(proto: ProtoPluginVersionEntry): VersionEntry {

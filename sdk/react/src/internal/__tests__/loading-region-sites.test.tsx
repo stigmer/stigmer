@@ -57,7 +57,7 @@ const ACME = create(OrganizationSchema, {
 
 /** The one call OrgProvider makes, answered with Acme. */
 const ORG_PROVIDER_CALLS: ClientStub = {
-  organization: { findMyOrganizations: async () => ({ entries: [ACME] }) },
+  organization: { listMine: async () => ({ entries: [ACME], nextPageToken: "" }) },
 };
 
 interface Site {
@@ -80,7 +80,7 @@ const SITES: readonly Site[] = [
   {
     name: "ApiKeyListPanel",
     label: "Loading API keys",
-    client: { apiKey: { findAll: pending } },
+    client: { apiKey: { list: pending } },
     ui: <ApiKeyListPanel />,
   },
   {
@@ -96,7 +96,7 @@ const SITES: readonly Site[] = [
   {
     name: "ChannelAppListPanel",
     label: "Loading channel apps",
-    client: { channelapp: { listByOrg: pending } },
+    client: { channelapp: { list: pending } },
     ui: <ChannelAppListPanel org="acme" />,
   },
   {
@@ -117,7 +117,7 @@ const SITES: readonly Site[] = [
   {
     name: "FederationIssuerListPanel",
     label: "Loading federation issuers",
-    client: { federationIssuer: { listByOrg: pending } },
+    client: { federationIssuer: { list: pending } },
     ui: <FederationIssuerListPanel org="acme" />,
   },
   {
@@ -129,13 +129,13 @@ const SITES: readonly Site[] = [
   {
     name: "OAuthAppListPanel",
     label: "Loading OAuth apps",
-    client: { oauthapp: { listByOrg: pending } },
+    client: { oauthapp: { list: pending } },
     ui: <OAuthAppListPanel org="acme" />,
   },
   {
     name: "PlatformClientListPanel",
     label: "Loading platform clients",
-    client: { platformclient: { listByOrg: pending } },
+    client: { platformclient: { list: pending } },
     ui: <PlatformClientListPanel org="acme" />,
   },
   {

@@ -83,7 +83,7 @@ describe("newSiblingEnforcingLane", () => {
         provisionMyAccount: async () => ({ metadata: { id: `ida_${++accounts}` } }),
       },
       organizationQuery: {
-        findMyOrganizations: async () => ({
+        listMine: async () => ({
           entries: [{ metadata: { id: "org_kept" } }, { metadata: { id: "org_other" } }],
         }),
       },

@@ -268,6 +268,10 @@ export const PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE =
 export const AUTHORIZATION_QUERIES_UNIMPLEMENTED_MESSAGE =
   "authorization queries are served by the Enterprise and Cloud editions";
 
+/** listAccessHistory on open source, which keeps no history (UNIMPLEMENTED). */
+export const ACCESS_HISTORY_UNIMPLEMENTED_MESSAGE =
+  "the access history is served by the Enterprise and Cloud editions";
+
 /** checkMyPermission with a relation that is no IamPermission name (INVALID_ARGUMENT). */
 export function unknownPermissionMessage(relation: string): string {
   return `unknown permission '${relation}'`;

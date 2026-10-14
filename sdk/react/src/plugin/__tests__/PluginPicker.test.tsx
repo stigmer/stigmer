@@ -1,7 +1,8 @@
 /**
  * The plugins picker over the organization's installed plugins, driven
  * through the real search hook against a client whose `plugin.list`
- * answers a fixed catalog filtered by the query. Pins: each installed
+ * answers a fixed catalog while nothing is typed and whose `search.query`
+ * answers it filtered by the query once something is. Pins: each installed
  * plugin is an option with its org's slug and its description; a click or
  * Enter on the focused option appends a plugin reference and hands the
  * host its display name; the arrow keys move the focus within the list and
@@ -12,7 +13,7 @@
 
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import type { ListParams, ResourceRef } from "@stigmer/sdk";
+import type { ResourceRef, SearchParams } from "@stigmer/sdk";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -46,22 +47,34 @@ const NOTION = result("plg_2", ACME_ID, "notion", "Notion", "");
 const SEARCH = result("plg_3", GLOBEX_ID, "search", "Web search", "Search the web.");
 const CATALOG = [LINEAR, NOTION, SEARCH];
 
-/** A `plugin.list` that answers the catalog entries whose name or description holds the query. */
+/** A `plugin.list` that answers the catalog as installed plugins, one page. */
 function catalogList(catalog: readonly SearchResult[]) {
-  return vi.fn(async (params: ListParams) => {
+  return vi.fn(async (_request: { readonly org: string; readonly pageSize: number; readonly pageToken: string }) => ({
+    entries: catalog.map((entry) => ({
+      metadata: { id: entry.id, org: entry.org, slug: entry.slug, name: entry.name, tags: [] },
+      spec: { description: entry.description },
+    })),
+    nextPageToken: "",
+  }));
+}
+
+/** A `search.query` that answers the catalog entries whose name or description holds the query. */
+function catalogSearch(catalog: readonly SearchResult[]) {
+  return vi.fn(async (params: SearchParams) => {
     const query = (params.query ?? "").toLowerCase();
     const entries = catalog.filter((entry) => `${entry.name} ${entry.description}`.toLowerCase().includes(query));
-    return { entries, totalPages: 1 };
+    return { entries, countsByKind: {}, nextPageToken: "" };
   });
 }
 
 interface RenderOptions {
   readonly value?: ResourceRef[];
-  readonly list?: (params: ListParams) => Promise<unknown>;
+  readonly list?: (request: { readonly org: string; readonly pageSize: number; readonly pageToken: string }) => Promise<unknown>;
   readonly disabled?: boolean;
 }
 
 function renderPicker({ value = [], list = catalogList(CATALOG), disabled }: RenderOptions = {}) {
+  const query = catalogSearch(CATALOG);
   const onChange = vi.fn();
   const onDisplayNameResolved = vi.fn();
   render(
@@ -73,9 +86,9 @@ function renderPicker({ value = [], list = catalogList(CATALOG), disabled }: Ren
       disabled={disabled}
       className="host-class"
     />,
-    { wrapper: orgWrapper({ plugin: { list } }, undefined, true) },
+    { wrapper: orgWrapper({ plugin: { list }, search: { query } }, undefined, true) },
   );
-  return { onChange, onDisplayNameResolved, list };
+  return { onChange, onDisplayNameResolved, list, query };
 }
 
 const pluginRef = (org: string, slug: string): ResourceRef => ({ org, slug, kind: ApiResourceKind.plugin });
@@ -87,7 +100,7 @@ describe("PluginPicker", () => {
     const linear = await screen.findByRole("option", { name: /Linear/ });
     expect(linear.textContent).toContain("Issues and projects.");
     expect(within(screen.getByRole("option", { name: /Web search/ })).getByText("globex")).toBeTruthy();
-    expect(list).toHaveBeenCalledWith({ org: ACME_ID, query: undefined, page: { num: 1, size: 30 } });
+    expect(list).toHaveBeenCalledWith(expect.objectContaining({ org: ACME_ID, pageSize: 30, pageToken: "" }));
 
     fireEvent.click(linear);
     expect(onChange).toHaveBeenCalledWith([pluginRef(ACME_ID, "linear")]);
@@ -144,7 +157,7 @@ describe("PluginPicker", () => {
   });
 
   it("searches as the person types, highlighting where the query meets a name", async () => {
-    const { list } = renderPicker();
+    const { query } = renderPicker();
     await screen.findByRole("option", { name: /Notion/ });
     const search = screen.getByRole("combobox");
 
@@ -153,7 +166,13 @@ describe("PluginPicker", () => {
     // A new query drops the focus.
     expect(search.getAttribute("aria-activedescendant")).toBeNull();
     await waitFor(() => expect(screen.queryByRole("option", { name: /Notion/ })).toBeNull());
-    expect(list).toHaveBeenLastCalledWith({ org: ACME_ID, query: "lin", page: { num: 1, size: 30 } });
+    expect(query).toHaveBeenLastCalledWith({
+      kinds: [ApiResourceKind.plugin],
+      org: ACME_ID,
+      query: "lin",
+      pageSize: 30,
+      pageToken: "",
+    });
     const [only] = screen.getAllByRole("option");
     expect(only?.textContent).toContain("Linear");
     const highlighted = within(only!).getByText("Lin");
@@ -161,7 +180,7 @@ describe("PluginPicker", () => {
 
     // A plugin found by its description shows its name as it is.
     fireEvent.change(search, { target: { value: "issues" } });
-    await waitFor(() => expect(list).toHaveBeenLastCalledWith(expect.objectContaining({ query: "issues" })));
+    await waitFor(() => expect(query).toHaveBeenLastCalledWith(expect.objectContaining({ query: "issues" })));
     const linear = await screen.findByRole("option", { name: /Linear/ });
     expect(within(linear).getByText("Linear").className).toContain("stg:font-medium");
 

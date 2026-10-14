@@ -38,6 +38,7 @@ import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
 import type { ResolvedBlueprint } from "../../shared/blueprint-resolver.js";
 import { TranscriptBuilder } from "../transcript/builder.js";
 import { refuseUnrunnableHooks, resolveHooks, type ResolutionDeps } from "../turn-context.js";
+import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 const env = createHermeticEnvironment();
 afterAll(() => env.dispose());
@@ -80,6 +81,7 @@ let session = 0;
 function deps(client: ResolutionDeps["client"]): { deps: ResolutionDeps; labels: string[] } {
   const labels: string[] = [];
   const status = create(RunStatusSchema, {});
+  const rows = create(TurnRowsSchema);
   return {
     labels,
     deps: {
@@ -87,7 +89,8 @@ function deps(client: ResolutionDeps["client"]): { deps: ResolutionDeps; labels:
       client,
       config: testConfig({ workspaceRootDir: env.workspaceRootDir }),
       status,
-      transcript: new TranscriptBuilder("aex-hooks", status),
+      rows,
+      transcript: new TranscriptBuilder("aex-hooks", rows, status),
       artifactStorage: undefined,
       timing: new TimingRecorder(),
       signal: new AbortController().signal,

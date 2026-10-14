@@ -4,7 +4,7 @@
 //
 // `set --org <slug|id>` checks the value against the active backend before
 // it persists: the organization must be one the caller belongs to there
-// (findMyOrganizations, matched by slug or id), so a typo or a stranger's
+// (listMine, matched by slug or id), so a typo or a stranger's
 // organization is refused at the moment it is typed, not on the next
 // command. It stores the organization's id, which never changes, and its
 // slug for output: a context set before the organization is renamed keeps
@@ -15,7 +15,7 @@
 // refreshes the stored copy.
 
 import type { Command } from "commander";
-import { organizationNamed } from "../../client/organizations.js";
+import { myOrganizations, organizationNamed } from "../../client/organizations.js";
 import {
   type Config,
   activeBackendName,
@@ -89,7 +89,7 @@ async function assertMembership(config: Config, org: string): Promise<{ id: stri
   const { connectBackend } = await import("../../backend.js");
   const client = connectBackend(config);
   ensureAuthenticated(client.config);
-  const mine = await client.stigmer.organization.findMyOrganizations();
+  const mine = { entries: await myOrganizations(client.stigmer) };
   // A slug an organization was renamed from still leads to it for a while:
   // the server answers which organization it names, matched here by id. A
   // value the caller cannot see is refused below; any other failed lookup

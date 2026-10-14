@@ -94,7 +94,7 @@ function client(scores: Score[]) {
   return {
     score: {
       listBySession: vi.fn(async () =>
-        create(ScoreListSchema, { totalCount: scores.length, items: scores }),
+        create(ScoreListSchema, { entries: scores, nextPageToken: "" }),
       ),
       create: vi.fn(),
       get: vi.fn(),

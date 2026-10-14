@@ -198,7 +198,7 @@ beforeAll(async () => {
         }
         return knownOrganization;
       },
-      findMyOrganizations: () => ({ entries: [knownOrganization] }),
+      listMine: () => ({ entries: [knownOrganization] }),
     });
     router.service(OrganizationCommandController, {
       delete: (req) => {

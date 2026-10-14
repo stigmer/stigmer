@@ -46,8 +46,8 @@ public enum ApprovalMode
   /**
    * <pre>
    * Interactive approval (today's behavior): a gated tool pauses the
-   * run (RUN_WAITING_FOR_APPROVAL) until a human submits a
-   * decision via the submitApproval RPC. No timeout — the run waits
+   * run (RUN_WAITING_FOR_APPROVAL) until a person answers it through
+   * SessionCommandController.confirmToolUse or grantPermission. No timeout — the run waits
    * indefinitely.
    * </pre>
    *
@@ -94,8 +94,8 @@ public enum ApprovalMode
   /**
    * <pre>
    * Interactive approval (today's behavior): a gated tool pauses the
-   * run (RUN_WAITING_FOR_APPROVAL) until a human submits a
-   * decision via the submitApproval RPC. No timeout — the run waits
+   * run (RUN_WAITING_FOR_APPROVAL) until a person answers it through
+   * SessionCommandController.confirmToolUse or grantPermission. No timeout — the run waits
    * indefinitely.
    * </pre>
    *
@@ -178,7 +178,7 @@ public enum ApprovalMode
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.run.v1.EnumProto.getDescriptor().getEnumType(15);
+    return ai.stigmer.agentic.run.v1.EnumProto.getDescriptor().getEnumType(4);
   }
 
   private static final ApprovalMode[] VALUES = values();

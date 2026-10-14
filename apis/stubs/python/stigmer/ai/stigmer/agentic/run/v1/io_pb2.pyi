@@ -88,52 +88,6 @@ class UpdateStatusResponse(_message.Message):
     signal_reason: str
     def __init__(self, signal: _Optional[_Union[_enum_pb2.RunControlSignal, str]] = ..., signal_reason: _Optional[str] = ...) -> None: ...
 
-class SubmitApprovalInput(_message.Message):
-    __slots__ = ("run_id", "tool_call_id", "action", "comment")
-    RUN_ID_FIELD_NUMBER: _ClassVar[int]
-    TOOL_CALL_ID_FIELD_NUMBER: _ClassVar[int]
-    ACTION_FIELD_NUMBER: _ClassVar[int]
-    COMMENT_FIELD_NUMBER: _ClassVar[int]
-    run_id: str
-    tool_call_id: str
-    action: _enum_pb2.ApprovalAction
-    comment: str
-    def __init__(self, run_id: _Optional[str] = ..., tool_call_id: _Optional[str] = ..., action: _Optional[_Union[_enum_pb2.ApprovalAction, str]] = ..., comment: _Optional[str] = ...) -> None: ...
-
-class ApprovalDecisionList(_message.Message):
-    __slots__ = ("decisions",)
-    DECISIONS_FIELD_NUMBER: _ClassVar[int]
-    decisions: _containers.RepeatedCompositeFieldContainer[SubmitApprovalInput]
-    def __init__(self, decisions: _Optional[_Iterable[_Union[SubmitApprovalInput, _Mapping]]] = ...) -> None: ...
-
-class SubmitFileDecisionInput(_message.Message):
-    __slots__ = ("run_id", "change_set_id", "scope", "file_change_id", "action", "expected_digest", "reason", "acknowledge_unreviewable")
-    RUN_ID_FIELD_NUMBER: _ClassVar[int]
-    CHANGE_SET_ID_FIELD_NUMBER: _ClassVar[int]
-    SCOPE_FIELD_NUMBER: _ClassVar[int]
-    FILE_CHANGE_ID_FIELD_NUMBER: _ClassVar[int]
-    ACTION_FIELD_NUMBER: _ClassVar[int]
-    EXPECTED_DIGEST_FIELD_NUMBER: _ClassVar[int]
-    REASON_FIELD_NUMBER: _ClassVar[int]
-    ACKNOWLEDGE_UNREVIEWABLE_FIELD_NUMBER: _ClassVar[int]
-    run_id: str
-    change_set_id: str
-    scope: _enum_pb2.FileDecisionScope
-    file_change_id: str
-    action: _enum_pb2.FileDecisionAction
-    expected_digest: str
-    reason: str
-    acknowledge_unreviewable: bool
-    def __init__(self, run_id: _Optional[str] = ..., change_set_id: _Optional[str] = ..., scope: _Optional[_Union[_enum_pb2.FileDecisionScope, str]] = ..., file_change_id: _Optional[str] = ..., action: _Optional[_Union[_enum_pb2.FileDecisionAction, str]] = ..., expected_digest: _Optional[str] = ..., reason: _Optional[str] = ..., acknowledge_unreviewable: bool = ...) -> None: ...
-
-class CancelRunInput(_message.Message):
-    __slots__ = ("id", "reason")
-    ID_FIELD_NUMBER: _ClassVar[int]
-    REASON_FIELD_NUMBER: _ClassVar[int]
-    id: str
-    reason: str
-    def __init__(self, id: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...
-
 class TerminateRunInput(_message.Message):
     __slots__ = ("id", "reason")
     ID_FIELD_NUMBER: _ClassVar[int]
@@ -323,7 +277,7 @@ class GetOrgUsageReportOutput(_message.Message):
     def __init__(self, org: _Optional[str] = ..., total_agents: _Optional[int] = ..., total_sessions: _Optional[int] = ..., total_runs: _Optional[int] = ..., model_breakdown: _Optional[_Iterable[_Union[_usage_pb2.ModelUsage, _Mapping]]] = ..., top_agents: _Optional[_Iterable[_Union[AgentUsageSummary, _Mapping]]] = ..., daily_usage: _Optional[_Iterable[_Union[DailyUsage, _Mapping]]] = ..., harness_usage: _Optional[_Iterable[_Union[HarnessUsage, _Mapping]]] = ..., total_usage: _Optional[_Union[_usage_pb2.UsageReportAggregate, _Mapping]] = ...) -> None: ...
 
 class RunUsageSummary(_message.Message):
-    __slots__ = ("run_id", "started_at", "completed_at", "input_tokens", "output_tokens", "cache_read_input_tokens", "primary_model", "sub_agent_count", "phase", "is_estimated", "total_tokens")
+    __slots__ = ("run_id", "started_at", "completed_at", "input_tokens", "output_tokens", "cache_read_input_tokens", "primary_model", "sub_agent_count", "phase", "is_estimated", "total_tokens", "working_seconds")
     RUN_ID_FIELD_NUMBER: _ClassVar[int]
     STARTED_AT_FIELD_NUMBER: _ClassVar[int]
     COMPLETED_AT_FIELD_NUMBER: _ClassVar[int]
@@ -335,6 +289,7 @@ class RunUsageSummary(_message.Message):
     PHASE_FIELD_NUMBER: _ClassVar[int]
     IS_ESTIMATED_FIELD_NUMBER: _ClassVar[int]
     TOTAL_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    WORKING_SECONDS_FIELD_NUMBER: _ClassVar[int]
     run_id: str
     started_at: str
     completed_at: str
@@ -346,33 +301,38 @@ class RunUsageSummary(_message.Message):
     phase: _enum_pb2.RunPhase
     is_estimated: bool
     total_tokens: int
-    def __init__(self, run_id: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_read_input_tokens: _Optional[int] = ..., primary_model: _Optional[str] = ..., sub_agent_count: _Optional[int] = ..., phase: _Optional[_Union[_enum_pb2.RunPhase, str]] = ..., is_estimated: bool = ..., total_tokens: _Optional[int] = ...) -> None: ...
+    working_seconds: int
+    def __init__(self, run_id: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_read_input_tokens: _Optional[int] = ..., primary_model: _Optional[str] = ..., sub_agent_count: _Optional[int] = ..., phase: _Optional[_Union[_enum_pb2.RunPhase, str]] = ..., is_estimated: bool = ..., total_tokens: _Optional[int] = ..., working_seconds: _Optional[int] = ...) -> None: ...
 
 class SessionUsageSummary(_message.Message):
-    __slots__ = ("session_id", "run_count", "total_tokens", "first_run_at", "last_run_at")
+    __slots__ = ("session_id", "run_count", "total_tokens", "first_run_at", "last_run_at", "working_seconds")
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]
     RUN_COUNT_FIELD_NUMBER: _ClassVar[int]
     TOTAL_TOKENS_FIELD_NUMBER: _ClassVar[int]
     FIRST_RUN_AT_FIELD_NUMBER: _ClassVar[int]
     LAST_RUN_AT_FIELD_NUMBER: _ClassVar[int]
+    WORKING_SECONDS_FIELD_NUMBER: _ClassVar[int]
     session_id: str
     run_count: int
     total_tokens: int
     first_run_at: str
     last_run_at: str
-    def __init__(self, session_id: _Optional[str] = ..., run_count: _Optional[int] = ..., total_tokens: _Optional[int] = ..., first_run_at: _Optional[str] = ..., last_run_at: _Optional[str] = ...) -> None: ...
+    working_seconds: int
+    def __init__(self, session_id: _Optional[str] = ..., run_count: _Optional[int] = ..., total_tokens: _Optional[int] = ..., first_run_at: _Optional[str] = ..., last_run_at: _Optional[str] = ..., working_seconds: _Optional[int] = ...) -> None: ...
 
 class AgentUsageSummary(_message.Message):
-    __slots__ = ("agent_id", "agent_name", "run_count", "total_tokens")
+    __slots__ = ("agent_id", "agent_name", "run_count", "total_tokens", "working_seconds")
     AGENT_ID_FIELD_NUMBER: _ClassVar[int]
     AGENT_NAME_FIELD_NUMBER: _ClassVar[int]
     RUN_COUNT_FIELD_NUMBER: _ClassVar[int]
     TOTAL_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    WORKING_SECONDS_FIELD_NUMBER: _ClassVar[int]
     agent_id: str
     agent_name: str
     run_count: int
     total_tokens: int
-    def __init__(self, agent_id: _Optional[str] = ..., agent_name: _Optional[str] = ..., run_count: _Optional[int] = ..., total_tokens: _Optional[int] = ...) -> None: ...
+    working_seconds: int
+    def __init__(self, agent_id: _Optional[str] = ..., agent_name: _Optional[str] = ..., run_count: _Optional[int] = ..., total_tokens: _Optional[int] = ..., working_seconds: _Optional[int] = ...) -> None: ...
 
 class DailyUsage(_message.Message):
     __slots__ = ("date", "run_count", "total_tokens", "llm_call_count")

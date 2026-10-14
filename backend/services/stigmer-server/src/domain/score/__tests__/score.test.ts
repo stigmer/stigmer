@@ -326,12 +326,12 @@ describe("the lists", () => {
     await inProcess.create(check(first.runId));
     await inProcess.create(check(second.runId));
 
-    expect((await query.listByRun({ runId: first.runId })).items).toHaveLength(
+    expect((await query.listByRun({ runId: first.runId })).entries).toHaveLength(
       2,
     );
     const session = await query.listBySession({ sessionId: first.sessionId });
-    expect(session.totalCount).toBe(3);
-    expect(new Set(session.items.map((s) => s.spec?.runId))).toEqual(
+    expect(session.entries).toHaveLength(3);
+    expect(new Set(session.entries.map((s) => s.spec?.runId))).toEqual(
       new Set([first.runId, second.runId]),
     );
   });
@@ -369,7 +369,7 @@ describe("the cascades", () => {
       );
     }
     expect(
-      (await query.listBySession({ sessionId: first.sessionId })).items,
+      (await query.listBySession({ sessionId: first.sessionId })).entries,
     ).toEqual([]);
   });
 });

@@ -57,6 +57,7 @@ import { usePlugin } from "./usePlugin.js";
 import { usePluginVersions } from "./usePluginVersions.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { PluginEvalsTab } from "../plugin-eval/PluginEvalsTab.js";
+import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
 
 const OVERVIEW_TAB: TabItem = { id: "overview", label: "Overview" };
 const EVALS_TAB: TabItem = { id: "evals", label: "Evals" };
@@ -126,7 +127,8 @@ export function PluginDetailView({
   className,
 }: PluginDetailViewProps) {
   const { plugin, isLoading, error, refetch } = usePlugin(org, slug);
-  const { versions, isEmpty: noVersions } = usePluginVersions(org, slug);
+  const versionPages = usePluginVersions(org, slug);
+  const { versions, isEmpty: noVersions } = versionPages;
 
   const builtInTabs = useMemo<readonly TabItem[]>(
     () => (noVersions ? [OVERVIEW_TAB, EVALS_TAB] : [OVERVIEW_TAB, EVALS_TAB, VERSIONS_TAB]),
@@ -207,7 +209,12 @@ export function PluginDetailView({
   } else if (effectiveActiveTab === "evals") {
     tabContent = <PluginEvalsTab plugin={plugin} onNavigateToRun={onNavigateToRun} />;
   } else if (effectiveActiveTab === "versions" && versions.length > 0) {
-    tabContent = <VersionTimeline entries={versions} />;
+    tabContent = (
+      <>
+        <VersionTimeline entries={versions} />
+        <LoadMoreFooter hasMore={versionPages.hasMore} loadMore={versionPages.loadMore} isLoadingMore={versionPages.isLoadingMore} loadMoreError={versionPages.loadMoreError} />
+      </>
+    );
   } else {
     tabContent = <PluginOverview plugin={plugin} org={org} onStartChat={onStartChat} onAgentClick={onAgentClick} />;
   }

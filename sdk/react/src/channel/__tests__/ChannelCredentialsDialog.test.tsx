@@ -63,7 +63,7 @@ function createMockStigmer(overrides: {
     },
     vault: {
       list: vi.fn().mockResolvedValue({
-        items: [
+        entries: [
           {
             metadata: { slug: "github-credentials", name: "GitHub Credentials", org: "acme" },
             spec: { owner: { case: "org", value: "acme" } },
@@ -73,7 +73,7 @@ function createMockStigmer(overrides: {
             spec: { owner: { case: "person", value: "ida_ana" } },
           },
         ],
-        totalCount: 2,
+        nextPageToken: "",
       }),
       getByReference: vi.fn().mockImplementation(({ slug }: { slug: string }) =>
         Promise.resolve({

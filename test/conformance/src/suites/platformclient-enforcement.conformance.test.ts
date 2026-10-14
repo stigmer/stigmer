@@ -169,14 +169,14 @@ describe.skipIf(!enforcementServed)(
       );
       const minted = lane.clientsPresenting(token);
 
-      // findMyOrganizations answers any authenticated caller, so the flip
+      // listMine answers any authenticated caller, so the flip
       // below isolates the enforcement, not a grant.
-      await minted.organizationQuery.findMyOrganizations({});
+      await minted.organizationQuery.listMine({});
 
       await deletePlatformClient(lane.clients, client.id);
 
       const denied = await expectGrpcCode(
-        () => minted.organizationQuery.findMyOrganizations({}),
+        () => minted.organizationQuery.listMine({}),
         Code.Unauthenticated,
         "request with a deleted platform client's user token",
       );
@@ -198,7 +198,7 @@ describe.skipIf(!enforcementServed)(
       });
 
       const denied = await expectGrpcCode(
-        () => foreignBrowser.organizationQuery.findMyOrganizations({}),
+        () => foreignBrowser.organizationQuery.listMine({}),
         Code.PermissionDenied,
         "leaked-token replay from a foreign browser origin",
       );
@@ -209,7 +209,7 @@ describe.skipIf(!enforcementServed)(
       // The listed origin passes, compared case-insensitively.
       await lane
         .clientsPresenting(token, { origin: "https://ALLOWED.example" })
-        .organizationQuery.findMyOrganizations({});
+        .organizationQuery.listMine({});
     });
 
     it("a request without an Origin header passes an allowlisted client (absence never refuses)", async () => {
@@ -225,7 +225,7 @@ describe.skipIf(!enforcementServed)(
 
       await lane
         .clientsPresenting(token)
-        .organizationQuery.findMyOrganizations({});
+        .organizationQuery.listMine({});
     });
   },
 );
@@ -313,7 +313,7 @@ describe.skipIf(!enforcementServed)(
 
       const mine = await lane
         .clientsPresenting(token)
-        .organizationQuery.findMyOrganizations({});
+        .organizationQuery.listMine({});
       expect(
         mine.entries.map((organization) => organization.metadata?.id),
       ).toEqual([context.org]);
@@ -331,7 +331,7 @@ describe.skipIf(!enforcementServed)(
       const founderId = await lane.accountIdOf(lane.clients);
       // The minted user sees exactly the owning organization; its id is the
       // row the grant names (the id and the slug differ on some editions).
-      const [owning] = (await minted.organizationQuery.findMyOrganizations({})).entries;
+      const [owning] = (await minted.organizationQuery.listMine({})).entries;
       const orgId = owning?.metadata?.id ?? "";
       expect(orgId, "the minted user sees its owning organization").not.toBe("");
 
@@ -461,7 +461,7 @@ describe.skipIf(!enforcementServed)(
       );
       await lane
         .clientsPresenting(token)
-        .organizationQuery.findMyOrganizations({});
+        .organizationQuery.listMine({});
     });
 
     it("[rpc:PlatformClientQueryController.get] [rpc:PlatformClientTokenController.mintUserToken] a successful mint records the client's last use; a refused mint records nothing", async () => {
@@ -503,7 +503,7 @@ describe.skipIf(!enforcementServed)(
 describe.skipIf(!enforcementServed)(
   "platform-client enforcement — who reads a client (platformClientTokens targets)",
   () => {
-    it("[rpc:PlatformClientQueryController.getByReference] [rpc:PlatformClientQueryController.listByOrg] an outsider can neither read a client by reference nor list the organization's clients", async () => {
+    it("[rpc:PlatformClientQueryController.getByReference] [rpc:PlatformClientQueryController.list] an outsider can neither read a client by reference nor list the organization's clients", async () => {
       const context = await tenancy();
       const client = await platformClient(context.org);
       const outsider = await lane.provisionIdentity();
@@ -522,7 +522,7 @@ describe.skipIf(!enforcementServed)(
       );
 
       const listed = await expectGrpcCode(
-        () => outsider.platformClientQuery.listByOrg({ org: context.org }),
+        () => outsider.platformClientQuery.list({ org: context.org }),
         Code.PermissionDenied,
         "an outsider listing the organization's platform clients",
       );
@@ -531,12 +531,12 @@ describe.skipIf(!enforcementServed)(
       );
     });
 
-    it("[rpc:PlatformClientQueryController.listByOrg] a member lists none of the organization's clients; the owner lists them without the secret hash", async () => {
+    it("[rpc:PlatformClientQueryController.list] a member lists none of the organization's clients; the owner lists them without the secret hash", async () => {
       const context = await tenancy();
       const client = await platformClient(context.org);
       const member = await lane.provisionMember(context);
 
-      const asMember = await member.platformClientQuery.listByOrg({
+      const asMember = await member.platformClientQuery.list({
         org: context.org,
       });
       expect(
@@ -544,7 +544,7 @@ describe.skipIf(!enforcementServed)(
         "a member has no access to a credential",
       ).toEqual([]);
 
-      const asOwner = await lane.clients.platformClientQuery.listByOrg({
+      const asOwner = await lane.clients.platformClientQuery.list({
         org: context.org,
       });
       const listed = asOwner.entries.find(

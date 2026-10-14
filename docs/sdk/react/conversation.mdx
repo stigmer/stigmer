@@ -59,8 +59,9 @@ across every channel the caller can view, optionally narrowed to one
 channel and/or a server-evaluated predicate (`ChannelConversationListFilter`).
 
 The head page rides `useFetch` and polls; older pages accumulate via
-`UseConversationListReturn.loadMore` and are merged with head
-precedence — the server's offset pagination shifts under live activity,
+`UseConversationListReturn.loadMore`, each continuing from the
+token after the last one loaded, and are merged with head precedence —
+a conversation that gains activity moves above the pages already read,
 so identity dedup (head copy wins: it is the fresher read) is what
 keeps a moving conversation from rendering twice.
 
@@ -102,7 +103,7 @@ function useConversationList(options: UseConversationListOptions): UseConversati
 <TypeTable
   type={{
     applyServerState: { type: "(fresh: ChannelConversation) => void", description: "Adopt a fresh row the server just returned — every participation command answers the post-command state, and that answer is newer than anything a poll already in flight will deliver (your own action reflects immediately, zero polls involved). The row overrides the listed copy for exactly one round-trip: applying also starts a fresh head fetch, and the override is dropped when a page provably fetched after the apply answers." },
-    conversations: { type: "readonly ChannelConversation[]", description: "Conversations, newest activity first: the polled head page followed by the accumulated older pages, deduplicated by conversation identity (offset pages drift under live activity — a conversation that moved up between fetches appears once, in its head position), with any applyServerState rows overriding both." },
+    conversations: { type: "readonly ChannelConversation[]", description: "Conversations, newest activity first: the polled head page followed by the accumulated older pages, deduplicated by conversation identity (a conversation that gains activity while older pages load moves to the head, and appears once, in its head position), with any applyServerState rows overriding both. A list carries no total; the inbox badge counts through `useConversationsWantsHumanCount`." },
     error: { type: "Error | null", description: "Error from the last failed head-page fetch, or `null`." },
     hasMore: { type: "boolean", description: "`true` while more conversations exist beyond what is loaded." },
     isLoading: { type: "boolean", description: "`true` only during the first head-page load." },
@@ -111,7 +112,6 @@ function useConversationList(options: UseConversationListOptions): UseConversati
     loadMore: { type: "() => void", description: "Load the next older page. No-op while one is already loading." },
     loadMoreError: { type: "Error | null", description: "Error from the last failed loadMore, or `null`. Cleared on retry." },
     refetch: { type: "() => void", description: "Re-fetch the head page." },
-    totalCount: { type: "number", description: "Exact total for the current filter, from the server." },
   }}
 />
 
@@ -214,11 +214,11 @@ function useConversationParticipation(options: UseConversationParticipationOptio
 Data hook for the sidebar's Conversations badge: how many
 conversations want a human right now, org-wide.
 
-The count IS the filtered list's `total_count` — one page-size-1 read
-with `filter_wants_human`, zero dedicated RPCs. Because
-the badge and the wants-human list filter share one server-side
-predicate, the number shown and the list it leads to can never
-disagree.
+The count is `countConversations` with `filter_wants_human`: the
+server counts with the same predicate the wants-human list filters by,
+over the same channels, so the number shown and the list it leads to
+can never disagree. A list carries no total; the count is its own
+answer.
 
 Pass `null` to skip fetching (no active org).
 

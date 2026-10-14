@@ -14,6 +14,7 @@ import {
   AGENT_GIT_AUTHOR_EMAIL,
 } from "../git-identity.js";
 import { forgetGitVersion } from "../git-credential.js";
+import { TurnRowsSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 const SESSION_ID = "ses-01test";
 const SESSION_BRANCH = `stigmer/${SESSION_ID}`;
@@ -24,7 +25,7 @@ const SESSION_BRANCH = `stigmer/${SESSION_ID}`;
 /** A builder and the status it builds into: the test writes through `sb` and reads `status`, as production reads `TurnSink.status`. */
 function makeStatusBuilder(): { sb: TranscriptBuilder; status: RunStatus } {
   const status = create(RunStatusSchema, {});
-  return { sb: new TranscriptBuilder("exec-test", status), status };
+  return { sb: new TranscriptBuilder("exec-test", create(TurnRowsSchema), status), status };
 }
 
 function makeProvisionResult(overrides: Partial<ProvisionResult> = {}): ProvisionResult {

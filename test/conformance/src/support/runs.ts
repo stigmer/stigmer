@@ -11,16 +11,14 @@
 // a turn on an agent never names an agent id: the server pins the agent and
 // version on the session and stamps them on the turn's status. A Run
 // is a *running thing*, so this module also exposes phase-await helpers,
-// delegating the timing loop to the shared poll core — and the submit-approval
-// seam: the one place the run-scoped approval read-model contract is
-// asserted (see the seam's own header below). The session-scoped answers and
-// what the session's log says waits are support/answers.ts.
+// delegating the timing loop to the shared poll core. What a turn did (its
+// messages, tool uses, sub-agents) is the session's log: support/turn.ts.
+// What waits for a person, and the answers, are support/answers.ts.
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import type { InitShape } from "./init-shape";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import type { AttachmentSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
@@ -156,6 +154,15 @@ export function isTerminalPhase(phase: RunPhase | undefined): boolean {
   return phase !== undefined && TERMINAL_PHASES.has(phase);
 }
 
+// Stops a turn that may still be working the way a person does: the session's
+// interrupt, which stops every unfinished turn of the run's session (each
+// ends CANCELLED with stop cause user). A run already finished is left as it
+// is.
+export async function interruptRunSession(clients: ConformanceClients, runId: string): Promise<void> {
+  const run = await clients.agentExecutionQuery.get({ value: runId });
+  await clients.sessionCommand.interrupt({ sessionId: sessionIdOf(run) });
+}
+
 export interface PollOptions extends PollCoreOptions {
   // Used in the timeout error for diagnosis.
   label?: string;
@@ -184,16 +191,11 @@ export function pollExecution(
       return execution;
     },
     predicate,
-    (last, timeoutMs) => {
-      const lastMessage = last?.status?.messages?.at(-1)?.content ?? "";
-      return (
-        `execution ${executionId} did not satisfy ${opts.label ?? "the predicate"} ` +
-        `within ${timeoutMs}ms (observed phases: ${phaseTrace.join(" -> ")}; ` +
-        `status.error: ${JSON.stringify(last?.status?.error ?? "")}; ` +
-        `messages: ${last?.status?.messages?.length ?? 0}, ` +
-        `last: ${JSON.stringify(lastMessage.slice(0, 160))})`
-      );
-    },
+    (last, timeoutMs) =>
+      `execution ${executionId} did not satisfy ${opts.label ?? "the predicate"} ` +
+      `within ${timeoutMs}ms (observed phases: ${phaseTrace.join(" -> ")}; ` +
+      `status.error: ${JSON.stringify(last?.status?.error ?? "")}; ` +
+      `stop_cause: ${JSON.stringify(last?.status?.stopCause ?? "")})`,
     opts,
   );
 }
@@ -221,64 +223,6 @@ export function awaitTerminal(
     label: "a terminal phase",
     ...opts,
   });
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// The submit-approval seam.
-//
-// Every approval submit in the execution suites is one gesture: submit the
-// decision right after the gate appears, assert the response's pending_approvals
-// reflects it (the contract the approval suite's header states — recomputed
-// SYNCHRONOUSLY, in the same locked write that records the decision), continue.
-// The seam owns that gesture once, for two reasons that hold on every target:
-//
-// - it is the ONE definition of the approval read-model contract, so a change
-//   to what a submit response must carry lands here and not at ten sites;
-// - asserting AT the submit turns a decision the server failed to record into a
-//   red that names the decision, where a bare submit would surface it later as
-//   an awaitTerminal timeout with a misleading face.
-//
-// History: the seam arrived to contain a Java-only race
-// (the workflow's WAITING heartbeat overwriting a concurrent submit) that the
-// OSS server was structurally immune to — its submit and its status writes are
-// each one read-modify-write under the store write lock. The race path retired
-// with the Java service (stigmer#1023).
-// ─────────────────────────────────────────────────────────────────────────────
-
-export interface SubmitApprovalPerContractOptions {
-  // Issues the decision. Resolves to the Run whose read model the
-  // contract is asserted on: the submit response.
-  submit: () => Promise<Run>;
-  // pending_approvals the response must carry after this decision: 0 for a
-  // single gate, 1 for the first approve of two co-pending calls.
-  expectedRemaining: number;
-  // Names the decision in the contract assertion's failure message.
-  label: string;
-}
-
-// Submits per the contract and returns the response the contract held on.
-// `expect` is imported here, at the call, not at the module's top: this
-// module's builders and phase helpers are also read by the live benchmark
-// script (scripts/benchmark-harnesses.ts), which runs outside vitest, and
-// vitest's `expect` refuses to load without a running test worker.
-export async function submitApprovalPerContract(
-  opts: SubmitApprovalPerContractOptions,
-): Promise<Run> {
-  const { expect } = await import("vitest");
-  const response = await opts.submit();
-  expect(response.status?.pendingApprovals.length, opts.label).toBe(opts.expectedRemaining);
-  return response;
-}
-
-// Root and sub-agent transcripts, the same scan the server's pending-approval
-// projection runs — the REJECT arm reads the decided tool call through it.
-export function allToolCalls(execution: Run): ToolCall[] {
-  const root = execution.status?.messages.flatMap((message) => message.toolCalls) ?? [];
-  const nested =
-    execution.status?.subAgentRuns.flatMap((subAgent) =>
-      subAgent.messages.flatMap((message) => message.toolCalls),
-    ) ?? [];
-  return [...root, ...nested];
 }
 
 // Obtain the mock LLM proxy from an execution target, failing loudly if the
@@ -325,7 +269,10 @@ export interface FixturePluginOptions {
 // surface's URL, with no sign-in: the fixture answers the install's probe
 // without a challenge), so an arm whose tools never appear is red at its
 // cause rather than as a timeout waiting on the model. `expect` is imported
-// at the call for the reason submitApprovalPerContract gives.
+// at the call, not at the module's top: this module's builders and phase
+// helpers are also read by the live benchmark script
+// (scripts/benchmark-harnesses.ts), which runs outside vitest, and vitest's
+// `expect` refuses to load without a running test worker.
 export async function pushFixturePlugin(
   clients: Pick<ConformanceClients, "pluginCommand">,
   mcp: Pick<McpToolFixture, "url">,

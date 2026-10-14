@@ -14,7 +14,7 @@ export interface UseCreateInvitationReturn {
    * Resolves with the server-created {@link Invitation} including the
    * generated token in `status.token`. Callers must capture this token
    * to construct the invite URL — it is always available via `get` and
-   * `listByOrg`, but surfacing it immediately after creation is the
+   * `list`, but surfacing it immediately after creation is the
    * expected UX flow.
    */
   readonly create: (input: InvitationInput) => Promise<Invitation>;

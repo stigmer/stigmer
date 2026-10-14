@@ -29,7 +29,7 @@
  * configuration resource; `not_search_indexed` in the kind registry).
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
-import { create, fromBinary } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type {
@@ -102,6 +102,7 @@ import { renameResource, storeRenameRows } from "../../pipeline/steps/rename.js"
 import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cleanup.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import {
+  decodeOrSkip,
   listPageFingerprint,
   readListPage,
 } from "../../pipeline/steps/list-page.js";
@@ -532,16 +533,10 @@ function newListStep(
           pageToken: ctx.input.pageToken,
         },
         fingerprint: listPageFingerprint({ org }),
-        decode: (data) => {
-          try {
-            return fromBinary(OAuthAppSchema, data);
-          } catch (error) {
-            logger.warn("failed to unmarshal OAuthApp, skipping", {
-              error: error instanceof Error ? error.message : String(error),
-            });
-            return undefined;
-          }
-        },
+        decode: decodeOrSkip<OAuthApp>(OAuthAppSchema, {
+          logger,
+          message: "failed to unmarshal OAuthApp, skipping",
+        }),
         keep: (app) => (app.metadata?.org ?? "") === org,
         scope: (rows) =>
           restrictListByReadScope(

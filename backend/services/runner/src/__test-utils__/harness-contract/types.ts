@@ -23,13 +23,13 @@
  * HITL taxonomy.
  */
 
-import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { Config } from "../../config.js";
 import type { HarnessName } from "../../harness/registry.js";
 import type { FailureSurface, HarnessAdapter, UsageDelta } from "../../harness/types.js";
 import type { ProposedAction } from "../approval-contract/types.js";
 import type { TurnInputFixtureOverrides } from "../turn-input-fixture.js";
+import type { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
  * One thing the engine does during a turn. A turn plays its steps in order

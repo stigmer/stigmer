@@ -31,6 +31,7 @@ import { Peer, loopbackChannels } from "../channel.js";
 import { decodeMessage, encodeMessage, encodeRunEvents, encodeTurnInput } from "../codec.js";
 import { serveAgentHost } from "../host.js";
 import type { HostCalls, HostNotices, RunnerCalls, RunnerNotices } from "../protocol.js";
+import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 /** A store the runtime resolved; the host only learns there is one. */
 const STORE: ArtifactStorage = {
@@ -61,6 +62,7 @@ function served(runTurn: HarnessAdapter["runTurn"]) {
       harness: "deep-agent",
       input: encodeTurnInput(turnInputFixture({ artifactStorage: STORE })),
       status: encodeMessage(RunStatusSchema, create(RunStatusSchema)),
+      rows: encodeMessage(TurnRowsSchema, create(TurnRowsSchema)),
       timing: new TimingRecorder().toWire(),
       fingerprintKey: Buffer.alloc(32).toString("base64"),
       stopped: null,
@@ -102,7 +104,7 @@ describe("the agent host's server", () => {
     const settlement = await call();
     expect(settlement.outcome).toBeNull();
     expect(settlement.thrown).toEqual(expect.objectContaining({ name: "TypeError", message: "broke the contract" }));
-    expect(decodeMessage(RunStatusSchema, settlement.projection).messages.map((m) => m.content)).toEqual(["folded first"]);
+    expect(decodeMessage(TurnRowsSchema, settlement.projection.rows).messages.map((m) => m.content)).toEqual(["folded first"]);
   });
 
   it("carries a throw that is not an Error as its text", async () => {

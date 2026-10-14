@@ -2,8 +2,9 @@
 
 import { create } from "@bufbuild/protobuf";
 import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
-import { ListIdentityProvidersByOrgInputSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/io_pb";
+import { ListFederationIssuersInputSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/io_pb";
 import { useStigmer } from "../hooks.js";
+import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
 import { useFetch } from "../internal/useFetch.js";
 
 /** Return value of {@link useFederationIssuerList}. */
@@ -24,8 +25,9 @@ export interface UseFederationIssuerListReturn {
  * Data hook that fetches all federation issuers for an organization.
  *
  * Federation issuers are admin-level resources with small cardinality
- * (typically 1–3 per org), so results are returned as a flat list
- * without pagination.
+ * (typically 1–3 per org), and the members page looks an issuer up among
+ * them, so the hook walks every page of the list and answers the whole
+ * set.
  *
  * Pass `null` to skip fetching (stable no-op). Call `refetch()` to
  * re-query after mutations (create / update / delete).
@@ -62,9 +64,11 @@ export function useFederationIssuerList(
   const { data: federationIssuers, isLoading, isRefetching, error, refetch } = useFetch(
     org
       ? () =>
-          stigmer.federationIssuer
-            .listByOrg(create(ListIdentityProvidersByOrgInputSchema, { org }))
-            .then((r) => [...r.entries])
+          readEveryPage((pageToken) =>
+            stigmer.federationIssuer.list(
+              create(ListFederationIssuersInputSchema, { org, pageSize: LIST_PAGE_MAX, pageToken }),
+            ),
+          )
       : null,
     [org, stigmer],
     [] as FederationIssuer[],

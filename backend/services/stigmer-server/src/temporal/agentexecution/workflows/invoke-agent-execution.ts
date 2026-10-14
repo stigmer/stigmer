@@ -40,16 +40,15 @@
  *     context): CANCELLED persist (quiet terminal, NO status.error —
  *     stigmer#282), and the retired cleanup call for runs started before
  *     values were fetched from vaults.
- *   - Stop and failure copy (stigmer#980): the runner cannot tell a Pause
- *     from a Cancel (both reach its activity as the same cancellation), so
- *     this workflow, which knows which stop it runs, writes the stop row
- *     (platform-rows.ts) and the merge keeps it last. When the runner
- *     reported the turn FAILED it already explained the failure in the
- *     transcript, so the failure-path write adds no lines; only a flow
- *     that broke without a runner verdict gets the platform's two lines.
- *     Both are payload changes to activities scheduled as before, pinned
- *     by the runner-failed, user-cancel and pause-resume replay
- *     histories.
+ *   - Stops and failures: the runner cannot tell a Pause from a Cancel
+ *     (both reach its activity as the same cancellation), so this
+ *     workflow, which knows which stop it runs, writes the phase and the
+ *     stop's cause. What the turn said is the session's log; a tool call
+ *     it never finished is read as stopped from the turn's end, so these
+ *     writes carry no transcript lines. The payloads changed over time
+ *     (stigmer#980 added lines, the transcript's removal took them out);
+ *     the activities are scheduled as before, pinned by the runner-failed,
+ *     user-cancel and pause-resume replay histories.
  *   - Recovery is terminate-and-start-fresh ONLY (stigmer#200); no
  *     version gates (no Go-era history can replay here).
  *
@@ -60,9 +59,8 @@
  * WORKFLOW-BUNDLE IMPORT DISCIPLINE: this file runs in Temporal's
  * deterministic sandbox. Only @temporalio/workflow, @temporalio/common,
  * @bufbuild/protobuf, generated protos, and verified-pure domain modules
- * (filereview/gate.js and platform-rows.js by DIRECT path — gate.js's
- * sibling digest.ts pulls node:crypto) may be imported. The SDK bundler
- * hard-fails otherwise.
+ * (filereview/gate.js by DIRECT path — its sibling digest.ts pulls
+ * node:crypto) may be imported. The SDK bundler hard-fails otherwise.
  */
 import { create, toJson } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
@@ -86,21 +84,12 @@ import {
   workflowInfo,
 } from "@temporalio/workflow";
 
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { decodeLoadedExecution } from "../execution-json.js";
-import {
-  RunPhase,
-  MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
-import { unresolvedGateCount } from "../../../domain/run/filereview/gate.js";
-import {
-  CANCEL_STOP_ROW,
-  PAUSE_STOP_ROW,
-} from "../../../domain/run/platform-rows.js";
+import { unresolvedGateCountOfJson } from "../../../domain/run/filereview/gate.js";
 import {
   isWorkerShutdown,
   WORKER_SHUTDOWN_STATUS_ERROR,
@@ -725,16 +714,12 @@ async function runWithPauseAndRecovery(
       });
 
       // Defense-in-depth for the phase (the Pause RPC already set PAUSED)
-      // and the one writer of the pause row: the runner settles its
-      // transcript without a row because it cannot tell this stop from a
-      // cancel, and the merge appends the row and keeps it last across
-      // the runner's settle write, whichever lands first (stigmer#980).
+      // and the stop's cause, which the runner cannot tell from a cancel's.
       await persistFinalStatus(
         executionId,
         create(RunStatusSchema, {
           phase: RunPhase.RUN_PAUSED,
           stopCause: "user",
-          messages: [{ type: MessageType.MESSAGE_SYSTEM, content: PAUSE_STOP_ROW }],
         }),
         "Failed to persist PAUSED status (non-fatal)",
       );
@@ -898,7 +883,7 @@ interface HitlLoopOptions {
  * WAITING_FOR_APPROVAL. The gate is the turn's open asks in its session's
  * log alone: file review never holds a turn (filereview/gate.ts). TurnSeq is the approvalCycle:
  * the runner mints the deterministic change-set id `executionId:turnSeq`
- * from it, so ledger authoring stays idempotent across Temporal retries.
+ * from it, so the file record stays idempotent across Temporal retries.
  */
 async function executeWithHitlLoop(
   options: HitlLoopOptions,
@@ -1005,11 +990,8 @@ async function executeWithHitlLoop(
  * persist the honest platform-failure copy instead of raw Temporal
  * internals ("Worker is shutting down and this activity did not complete
  * in time" reached users in the 2026-08-08 incident, #776) — the raw text
- * stays in the workflow log; status.error is a user surface. The two
- * transcript lines are the platform's explanation, sent only when the
- * flow broke without the runner's verdict: a RunnerReportedFailure's
- * transcript already carries the runner's own (stigmer#980), and the
- * merge appends these rather than replacing the transcript.
+ * stays in the workflow log; status.error is a user surface, and the
+ * phase with its stop's cause is the turn's end in the session's log.
  */
 async function updateStatusOnFailure(
   executionId: string,
@@ -1033,20 +1015,6 @@ async function updateStatusOnFailure(
     phase: RunPhase.RUN_FAILED,
     error: statusError,
     stopCause,
-    messages:
-      originalError instanceof RunnerReportedFailure
-        ? []
-        : [
-            {
-              type: MessageType.MESSAGE_SYSTEM,
-              content:
-                "Internal system error occurred during execution. Please contact support if this issue persists.",
-            },
-            {
-              type: MessageType.MESSAGE_SYSTEM,
-              content: `Error details: ${statusError}`,
-            },
-          ],
   });
 
   await failurePathActivities[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME](
@@ -1073,21 +1041,14 @@ async function handleCancellation(executionId: string): Promise<void> {
  * CANCELLED persist. Deliberately sets NO status.error: a user-initiated
  * cancel is a quiet terminal state, not a failure (stigmer#282) — display
  * layers key error styling on phase, so a sentinel here would render the
- * stop as a red failure. The muted stop row is the durable in-transcript
- * marker, written only here (stigmer#980): the merge appends it and keeps
- * it last across the runner's settle write. Regular activity for the same
- * replay-safety reasons as updateStatusOnFailure.
+ * stop as a red failure. The stop's cause, `user`, is what the session's
+ * log says of it. Regular activity for the same replay-safety reasons as
+ * updateStatusOnFailure.
  */
 async function updateStatusOnCancellation(executionId: string): Promise<void> {
   const cancelledStatus = create(RunStatusSchema, {
     phase: RunPhase.RUN_CANCELLED,
     stopCause: "user",
-    messages: [
-      {
-        type: MessageType.MESSAGE_SYSTEM,
-        content: CANCEL_STOP_ROW,
-      },
-    ],
   });
 
   try {
@@ -1168,8 +1129,9 @@ async function persistResumedStatus(executionId: string): Promise<void> {
  * The turn's open gates (module header, HITL loop): counted from the
  * session's log by CountOpenGates (filereview/gate.ts) behind
  * OPEN_GATES_FROM_LOG_PATCH_ID; a run whose history loaded the run for its
- * pending approvals replays that load. Either read's failure counts 1, so
- * the turn waits for the signal.
+ * pending approvals replays that load, and counts them from the JSON the
+ * load recorded (filereview/gate.ts `unresolvedGateCountOfJson`). Either
+ * read's failure counts 1, so the turn waits for the signal.
  */
 async function readGateCount(executionId: string, sessionId: string): Promise<number> {
   if (patched(OPEN_GATES_FROM_LOG_PATCH_ID)) {
@@ -1187,8 +1149,9 @@ async function readGateCount(executionId: string, sessionId: string): Promise<nu
     }
   }
   try {
-    const execution = await loadExecution(executionId);
-    return unresolvedGateCount(execution.status ?? create(RunStatusSchema));
+    return unresolvedGateCountOfJson(
+      await localActivities[LOAD_AGENT_EXECUTION_ACTIVITY_NAME](executionId),
+    );
   } catch (error) {
     log.warn(
       "Failed to load execution from DB for gate count (non-fatal, will wait for signal)",
@@ -1196,23 +1159,6 @@ async function readGateCount(executionId: string, sessionId: string): Promise<nu
     );
     return 1;
   }
-}
-
-/**
- * Loads the CURRENT execution from the system of record (the workflow's
- * input snapshot is stale by completion time). Proto-JSON at the payload
- * boundary; parsed to the typed message here.
- */
-async function loadExecution(executionId: string): Promise<Run> {
-  let raw: JsonValue;
-  try {
-    raw = await localActivities[LOAD_AGENT_EXECUTION_ACTIVITY_NAME](executionId);
-  } catch (error) {
-    throw new Error(`load execution ${executionId}: ${errorMessage(error)}`, {
-      cause: error,
-    });
-  }
-  return decodeLoadedExecution(raw);
 }
 
 async function readHarnessStateId(sessionId: string): Promise<string> {

@@ -38,7 +38,7 @@ import { silentLogger } from "../../../extensions/__tests__/composed-support.js"
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import type { ListReadScope } from "../../../extensions/list-read-scope.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
-import { LIST_PAGE_MAX_SIZE } from "../../../pipeline/steps/list-page.js";
+import { LIST_PAGE_DEFAULT_SIZE } from "../../../pipeline/steps/list-page.js";
 import type { Store } from "../../../store/interface.js";
 import { PostgresStore } from "../../../store/postgres/store.js";
 import {
@@ -308,11 +308,11 @@ describe.each(fixtures)("an agent's quality on $name", (fixture) => {
         };
 
         const all = await flaggedOf(store, undefined, 0);
-        expect(all.items).toHaveLength(3);
+        expect(all.entries).toHaveLength(3);
         const first = await flaggedOf(store, scope, 1);
-        expect(first.items.map((s) => s.metadata?.id)).toEqual([mine[0]]);
+        expect(first.entries.map((s) => s.metadata?.id)).toEqual([mine[0]]);
         const second = await flaggedOf(store, scope, 1, first.nextPageToken);
-        expect(second.items.map((s) => s.metadata?.id)).toEqual([mine[1]]);
+        expect(second.entries.map((s) => s.metadata?.id)).toEqual([mine[1]]);
         expect(second.nextPageToken).toBe("");
       } finally {
         await opened.close();
@@ -320,23 +320,23 @@ describe.each(fixtures)("an agent's quality on $name", (fixture) => {
     },
   );
   it.skipIf(fixture.skip)(
-    "answers page_size 0 with one full page and a token, never the whole list",
+    "answers page_size 0 with the default page and a token, never the whole list",
     async () => {
       const opened = await fixture.open();
       try {
         const { store } = opened;
-        for (let i = 0; i < 105; i += 35) {
+        for (let i = 0; i < LIST_PAGE_DEFAULT_SIZE + 5; i += 11) {
           await Promise.all(
-            Array.from({ length: 35 }, () =>
+            Array.from({ length: 11 }, () =>
               seedScore(store, { passed: false }),
             ),
           );
         }
         const first = await flaggedOf(store, undefined, 0);
-        expect(first.items).toHaveLength(LIST_PAGE_MAX_SIZE);
+        expect(first.entries).toHaveLength(LIST_PAGE_DEFAULT_SIZE);
         expect(first.nextPageToken).not.toBe("");
         const rest = await flaggedOf(store, undefined, 0, first.nextPageToken);
-        expect(rest.items).toHaveLength(5);
+        expect(rest.entries).toHaveLength(5);
         expect(rest.nextPageToken).toBe("");
       } finally {
         await opened.close();

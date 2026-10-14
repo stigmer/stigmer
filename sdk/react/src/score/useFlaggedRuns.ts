@@ -132,7 +132,7 @@ export function useFlaggedRuns(
           after: first,
           items: [
             ...(previous?.after === first ? previous.items : NO_SCORES),
-            ...page.items,
+            ...page.entries,
           ],
           nextPageToken: page.nextPageToken,
         }));
@@ -148,8 +148,8 @@ export function useFlaggedRuns(
   const items = useMemo(
     () =>
       current === null
-        ? (first?.items ?? NO_SCORES)
-        : [...(first?.items ?? NO_SCORES), ...current.items],
+        ? (first?.entries ?? NO_SCORES)
+        : [...(first?.entries ?? NO_SCORES), ...current.items],
     [first, current],
   );
 

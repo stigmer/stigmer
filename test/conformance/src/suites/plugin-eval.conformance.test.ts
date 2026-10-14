@@ -203,9 +203,9 @@ describe("PluginEval — create, get and listByPlugin", () => {
     const elsewhere = await createEval(other);
 
     const list = await clients.pluginEvalQuery.listByPlugin({ pluginId: plugin.metadata!.id });
-    expect(list.items.map((e) => e.metadata?.id)).toEqual([second.metadata!.id, first.metadata!.id]);
-    expect(list.totalCount).toBe(2);
-    expect(list.items.map((e) => e.metadata?.id)).not.toContain(elsewhere.metadata!.id);
+    expect(list.entries.map((e) => e.metadata?.id)).toEqual([second.metadata!.id, first.metadata!.id]);
+    expect(list.nextPageToken).toBe("");
+    expect(list.entries.map((e) => e.metadata?.id)).not.toContain(elsewhere.metadata!.id);
   });
 });
 
@@ -345,7 +345,7 @@ describe("PluginEval — create refusals", () => {
       "create naming a digest other than the current version",
     );
     const list = await clients.pluginEvalQuery.listByPlugin({ pluginId: plugin.metadata!.id });
-    expect(list.items).toEqual([]);
+    expect(list.entries).toEqual([]);
   });
 });
 
@@ -386,7 +386,7 @@ describe.skipIf(capabilities.scheduleFiring)("PluginEval — without an engine b
       "get after delete",
     );
     const list = await clients.pluginEvalQuery.listByPlugin({ pluginId: plugin.metadata!.id });
-    expect(list.items).toEqual([]);
+    expect(list.entries).toEqual([]);
   });
 
   it("deleting the plugin deletes its evals", async () => {
@@ -480,7 +480,7 @@ describe("PluginEval — who may run and read an eval", () => {
     );
     expect(refused.rawMessage).toBe(PLUGIN_EVAL_CREATE_DENIED_MESSAGE);
     expect(
-      (await lane.clients.pluginEvalQuery.listByPlugin({ pluginId })).items,
+      (await lane.clients.pluginEvalQuery.listByPlugin({ pluginId })).entries,
       "the refused create stored nothing",
     ).toEqual([]);
 
@@ -528,7 +528,7 @@ describe("PluginEval — who may run and read an eval", () => {
     expect(read.metadata?.id).toBe(created.metadata!.id);
     expect(read.spec?.pluginId).toBe(plugin.metadata!.id);
     const list = await viewer.pluginEvalQuery.listByPlugin({ pluginId: plugin.metadata!.id });
-    expect(list.items.map((e) => e.metadata?.id)).toEqual([created.metadata!.id]);
+    expect(list.entries.map((e) => e.metadata?.id)).toEqual([created.metadata!.id]);
   });
 
   it("[rpc:PluginEvalQueryController.get] [rpc:PluginEvalQueryController.listByPlugin] [rpc:PluginEvalCommandController.create] a person who cannot view the plugin reads, lists and starts nothing: another organization's person, and a member when the plugin is private", async (ctx) => {
@@ -590,7 +590,7 @@ describe("PluginEval — who may run and read an eval", () => {
       "the child's viewer views the plugin its parent shares",
     ).toBe(pluginId);
     const list = await childViewer.pluginEvalQuery.listByPlugin({ pluginId });
-    expect(list.items, "the eval is the parent's: the child's viewer lists no eval").toEqual([]);
+    expect(list.entries, "the eval is the parent's: the child's viewer lists no eval").toEqual([]);
     await expectGrpcCode(
       () => childViewer.pluginEvalQuery.get({ value: created.metadata!.id }),
       Code.PermissionDenied,

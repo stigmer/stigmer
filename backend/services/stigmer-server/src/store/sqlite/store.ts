@@ -121,11 +121,16 @@ import {
 } from "../proto-fields.js";
 import {
   assertPermissionChangeKind,
+  PERMISSION_HISTORY_COLUMNS,
+  permissionHistoryBounds,
   permissionHistoryEntryOf,
+  permissionHistoryRecordOf,
 } from "../permission-history.js";
 import type {
   PermissionChange,
   PermissionHistoryEntry,
+  PermissionHistoryPage,
+  PermissionHistoryRecord,
 } from "../permission-history.js";
 import { instantNotBefore, rfc3339Seconds } from "../rfc3339.js";
 import { normalizeBm25Score, renderFts5MatchExpression } from "./fts5.js";
@@ -1181,6 +1186,24 @@ export class SqliteStore implements Store {
     }
   }
 
+  async listPermissionHistory(
+    org: string,
+    page: PermissionHistoryPage,
+  ): Promise<PermissionHistoryRecord[]> {
+    const db = this.open();
+    const { ascending, bound, limit } = permissionHistoryBounds(page);
+    const comparison = ascending ? ">" : "<";
+    const rows = db
+      .prepare(
+        `SELECT ${PERMISSION_HISTORY_COLUMNS} FROM iam_policy_history
+         WHERE org = ? AND (? IS NULL OR sequence ${comparison} ?)
+         ORDER BY sequence ${ascending ? "ASC" : "DESC"}
+         LIMIT ?`,
+      )
+      .all(org, bound ?? null, bound ?? null, limit) as Array<Record<string, unknown>>;
+    return rows.map(permissionHistoryRecordOf);
+  }
+
   async listAuditRecords(
     kind: ApiResourceKind,
     resourceId: string,
@@ -1548,19 +1571,22 @@ export class SqliteStore implements Store {
     // Statement 2 — the ranked page. Search mode: bm25 with the pinned
     // weight vector (kind=1, resource_id=0, name=10, description=5,
     // tags=5), ascending rank (bm25 is negative, lower = better). List
-    // mode: rank pinned 1.0, newest first.
+    // mode: rank pinned 1.0, newest first. Each order ends in a unique
+    // key, as the Postgres driver's does, so a page token's position names
+    // the same row on every read: rows created in the same instant or of
+    // equal rank otherwise come back in any order.
     const pageSql = searchMode
       ? `SELECT kind, resource_id, bm25(search_index, 1.0, 0, 10.0, 5.0, 5.0) as rank
          FROM search_index
          WHERE search_index MATCH ? AND kind IN (${kindPlaceholders})
          ${scopeSql}
-         ORDER BY rank
+         ORDER BY rank, kind, resource_id
          LIMIT ? OFFSET ?`
       : `SELECT kind, resource_id, 1.0 as rank
          FROM search_index
          WHERE kind IN (${kindPlaceholders})
          ${scopeSql}
-         ORDER BY created_at DESC
+         ORDER BY created_at DESC, rowid DESC
          LIMIT ? OFFSET ?`;
 
     const pageRows = db

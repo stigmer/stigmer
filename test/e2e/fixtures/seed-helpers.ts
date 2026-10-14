@@ -27,8 +27,13 @@ export async function ensureDefaultOrg(client: Stigmer): Promise<void> {
  * which is the desired end state, and reads the winner's id.
  */
 export async function ensureOrg(client: Stigmer, slug: string, name: string): Promise<string> {
-  const idOf = async () =>
-    (await client.organization.findMyOrganizations()).entries.find((o) => o.metadata?.slug === slug)?.metadata?.id;
+  const idOf = async () => {
+    // Every organization the caller is in, page after page.
+    for await (const org of client.organization.listMineAll({})) {
+      if (org.metadata?.slug === slug) return org.metadata.id;
+    }
+    return undefined;
+  };
   const existing = await idOf();
   if (existing !== undefined) return existing;
 

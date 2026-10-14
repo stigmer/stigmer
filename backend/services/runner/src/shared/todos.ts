@@ -12,11 +12,10 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
-import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
-import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { applyTodoUpdate as applyTodoRule, type Todo } from "@stigmer/session-log";
 import { utcTimestamp } from "./status.js";
+import { TodoItemSchema, type TodoItem } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { TodoStatus } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const STATUS_OF: Readonly<Record<Todo["status"], TodoStatus>> = {
   pending: TodoStatus.TODO_PENDING,
@@ -30,7 +29,7 @@ const WORD_OF: ReadonlyMap<TodoStatus, Todo["status"]> = new Map(
 );
 
 /**
- * Project a to-do tool call's payload into a `status.todos` map, in place.
+ * Project a to-do tool call's payload into a `rows.todos` map, in place.
  * Returns whether the map changed — the caller's "dirty" / force-persist
  * signal. The rule is `@stigmer/session-log`'s (module header); `now`
  * defaults to the current UTC instant.

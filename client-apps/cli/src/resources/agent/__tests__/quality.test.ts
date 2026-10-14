@@ -155,7 +155,7 @@ function fakeServer(opts: { pages?: ScoreList[]; historyError?: Error; singleOrg
       listVersions: async (input: { org: string; slug: string }) => {
         calls.push(`versions ${input.org}/${input.slug}`);
         if (opts.historyError !== undefined) throw opts.historyError;
-        return { versions: [{ versionHash: HASH_V3, tag: "v3" }, { versionHash: HASH_OLD, tag: "" }], totalCount: 2 };
+        return { entries: [{ versionHash: HASH_V3, tag: "v3" }, { versionHash: HASH_OLD, tag: "" }], nextPageToken: "" };
       },
     },
     score: {
@@ -295,11 +295,10 @@ describe("showAgentQuality, --flagged", () => {
   it("follows a short page that carries a token, asks only for what is missing, and stops at the limit", async () => {
     const server = fakeServer({
       pages: [
-        create(ScoreListSchema, { totalCount: 1, items: [flagged("run_3", "judge", 30, ["accurate", "polite"])], nextPageToken: "t1" }),
-        create(ScoreListSchema, { totalCount: 0, items: [], nextPageToken: "t2" }),
+        create(ScoreListSchema, { entries: [flagged("run_3", "judge", 30, ["accurate", "polite"])], nextPageToken: "t1" }),
+        create(ScoreListSchema, { entries: [], nextPageToken: "t2" }),
         create(ScoreListSchema, {
-          totalCount: 2,
-          items: [flagged("run_2", "feedback", 20), flagged("run_1", "run-health", 10, ["no-repeated-calls"])],
+          entries: [flagged("run_2", "feedback", 20), flagged("run_1", "run-health", 10, ["no-repeated-calls"])],
           nextPageToken: "t3",
         }),
       ],
@@ -326,9 +325,9 @@ describe("showAgentQuality, --flagged", () => {
   it("reads every page at 100 a request under --limit 0, following each token to the end", async () => {
     const server = fakeServer({
       pages: [
-        create(ScoreListSchema, { totalCount: 1, items: [flagged("run_3", "judge", 30)], nextPageToken: "t1" }),
-        create(ScoreListSchema, { totalCount: 0, items: [], nextPageToken: "t2" }),
-        create(ScoreListSchema, { totalCount: 1, items: [flagged("run_2", "feedback", 20)], nextPageToken: "" }),
+        create(ScoreListSchema, { entries: [flagged("run_3", "judge", 30)], nextPageToken: "t1" }),
+        create(ScoreListSchema, { entries: [], nextPageToken: "t2" }),
+        create(ScoreListSchema, { entries: [flagged("run_2", "feedback", 20)], nextPageToken: "" }),
       ],
     });
     const out = await showAgentQuality(server.client, "acme", "support-desk", options({ flagged: true, limit: 0 }));
@@ -344,7 +343,7 @@ describe("showAgentQuality, --flagged", () => {
 
   it("prints a dash for a grade with no recorded time", async () => {
     const undated = create(ScoreSchema, { spec: { runId: "run_9", metric: "judge", value: { case: "passed", value: false } } });
-    const server = fakeServer({ pages: [create(ScoreListSchema, { totalCount: 1, items: [undated] })] });
+    const server = fakeServer({ pages: [create(ScoreListSchema, { entries: [undated] })] });
     const out = await showAgentQuality(server.client, "acme", "support-desk", options({ flagged: true }));
     expect(out.split("\n").find((line) => line.includes("run_9"))).toMatch(/^-\s+run_9\s+judge\s+-$/);
   });
@@ -358,14 +357,14 @@ describe("showAgentQuality, --flagged", () => {
   it("prints the scores undecorated under -o json and -o yaml", async () => {
     const score = flagged("run_3", "judge", 30, ["accurate"]);
     const json = await showAgentQuality(
-      fakeServer({ pages: [create(ScoreListSchema, { totalCount: 1, items: [score] })] }).client,
+      fakeServer({ pages: [create(ScoreListSchema, { entries: [score] })] }).client,
       "acme",
       "support-desk",
       options({ flagged: true, format: "json" }),
     );
     expect(JSON.parse(json)).toEqual([toJson(ScoreSchema, score, { useProtoFieldName: true })]);
     const yaml = await showAgentQuality(
-      fakeServer({ pages: [create(ScoreListSchema, { totalCount: 1, items: [score] })] }).client,
+      fakeServer({ pages: [create(ScoreListSchema, { entries: [score] })] }).client,
       "acme",
       "support-desk",
       options({ flagged: true, format: "yaml" }),

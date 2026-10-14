@@ -56,7 +56,7 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "er.iam.v1\032 google/protobuf/descriptor.pr" +
       "oto\"R\n\013IamRoleMeta\022!\n\014display_name\030\001 \001(\t" +
       "R\013displayName\022 \n\013description\030\002 \001(\tR\013desc" +
-      "ription*\365\n\n\rIamPermission\022\017\n\013unspecified" +
+      "ription*\222\013\n\rIamPermission\022\017\n\013unspecified" +
       "\020\000\022\014\n\010can_view\020\001\022\014\n\010can_edit\020\002\022\016\n\ncan_de" +
       "lete\020\003\022\024\n\020can_grant_access\020\004\022\023\n\017can_view" +
       "_access\020\005\022\024\n\020can_assign_roles\020/\022\027\n\023can_m" +
@@ -78,39 +78,40 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "am\020-\022\031\n\025can_manage_child_orgs\0201\022\025\n\021can_v" +
       "iew_settings\0202\022\024\n\020can_create_vault\0203\022\033\n\027" +
       "can_create_shared_vault\0204\022\013\n\007can_use\0205\022\023" +
-      "\n\017can_manage_keys\0207\"\004\010\016\020\016\"\004\010\007\020\007\"\004\010\014\020\014\"\004\010" +
-      "\020\020\020\"\004\010\026\020\026\"\004\010\022\020\022\"\004\010\024\020\024\"\004\010\031\020\031\"\004\010\032\020\032\"\004\010!\020!\"" +
-      "\004\010\"\020\"\"\004\010\n\020\n\"\004\010#\020#\"\004\010&\020&\"\004\010\'\020\'\"\004\010+\020+\"\004\010,\020" +
-      ",\"\004\010.\020.*\023can_create_instance*\023can_create" +
-      "_workflow*\026can_create_environment*\020can_r" +
-      "ead_secrets*\013can_connect*\034can_manage_ide" +
-      "ntity_accounts*\024login_to_back_office*\021ca" +
-      "n_create_runner*\022can_delete_session*\017can" +
-      "_use_records*\024can_create_datastore*\022can_" +
-      "create_project*\032can_manage_cursor_accoun" +
-      "ts*\032can_view_provider_standing*\031can_set_" +
-      "public_visibility*\025can_create_mcp_server" +
-      "*\031can_create_agent_instance*\022can_manage_" +
-      "credits*\267\004\n\007IamRole\022\030\n\024iam_role_unspecif" +
-      "ied\020\000\022U\n\005owner\020\001\032J\212\304,F\n\005Owner\022=Everythin" +
-      "g, including deleting it and deciding wh" +
-      "o has access\022P\n\005admin\020\002\032E\212\304,A\n\005Admin\0228Ma" +
-      "nage the organization\'s people, settings" +
-      " and resources\022B\n\006member\020\003\0326\212\304,2\n\006Member" +
-      "\022(Belongs to it and holds what it is giv" +
-      "en\0223\n\006viewer\020\004\032\'\212\304,#\n\006Viewer\022\031Read it; c" +
-      "annot change it\022L\n\013participant\020\005\032;\212\304,7\n\013" +
-      "Participant\022(Read the conversations and " +
-      "send messages\022V\n\006editor\020\006\032J\212\304,F\n\006Editor\022" +
-      "<Change and use it; cannot delete it or " +
-      "decide who has access\022J\n\004user\020\007\032@\212\304,<\n\007C" +
-      "an use\0221Use this vault\'s logins and secr" +
-      "ets in their runs:`\n\trole_meta\022!.google." +
-      "protobuf.EnumValueOptions\030\301\310\005 \001(\0132\036.ai.s" +
-      "tigmer.iam.v1.IamRoleMetaR\010roleMetaBrB\tE" +
-      "numProtoP\001\242\002\003ASI\252\002\021Ai.Stigmer.Iam.V1\312\002\021A" +
-      "i\\Stigmer\\Iam\\V1\342\002\035Ai\\Stigmer\\Iam\\V1\\GPB" +
-      "Metadata\352\002\024Ai::Stigmer::Iam::V1b\006proto3"
+      "\n\017can_manage_keys\0207\022\033\n\027can_view_access_h" +
+      "istory\0208\"\004\010\016\020\016\"\004\010\007\020\007\"\004\010\014\020\014\"\004\010\020\020\020\"\004\010\026\020\026\"\004" +
+      "\010\022\020\022\"\004\010\024\020\024\"\004\010\031\020\031\"\004\010\032\020\032\"\004\010!\020!\"\004\010\"\020\"\"\004\010\n\020\n" +
+      "\"\004\010#\020#\"\004\010&\020&\"\004\010\'\020\'\"\004\010+\020+\"\004\010,\020,\"\004\010.\020.*\023ca" +
+      "n_create_instance*\023can_create_workflow*\026" +
+      "can_create_environment*\020can_read_secrets" +
+      "*\013can_connect*\034can_manage_identity_accou" +
+      "nts*\024login_to_back_office*\021can_create_ru" +
+      "nner*\022can_delete_session*\017can_use_record" +
+      "s*\024can_create_datastore*\022can_create_proj" +
+      "ect*\032can_manage_cursor_accounts*\032can_vie" +
+      "w_provider_standing*\031can_set_public_visi" +
+      "bility*\025can_create_mcp_server*\031can_creat" +
+      "e_agent_instance*\022can_manage_credits*\267\004\n" +
+      "\007IamRole\022\030\n\024iam_role_unspecified\020\000\022U\n\005ow" +
+      "ner\020\001\032J\212\304,F\n\005Owner\022=Everything, includin" +
+      "g deleting it and deciding who has acces" +
+      "s\022P\n\005admin\020\002\032E\212\304,A\n\005Admin\0228Manage the or" +
+      "ganization\'s people, settings and resour" +
+      "ces\022B\n\006member\020\003\0326\212\304,2\n\006Member\022(Belongs t" +
+      "o it and holds what it is given\0223\n\006viewe" +
+      "r\020\004\032\'\212\304,#\n\006Viewer\022\031Read it; cannot chang" +
+      "e it\022L\n\013participant\020\005\032;\212\304,7\n\013Participant" +
+      "\022(Read the conversations and send messag" +
+      "es\022V\n\006editor\020\006\032J\212\304,F\n\006Editor\022<Change and" +
+      " use it; cannot delete it or decide who " +
+      "has access\022J\n\004user\020\007\032@\212\304,<\n\007Can use\0221Use" +
+      " this vault\'s logins and secrets in thei" +
+      "r runs:`\n\trole_meta\022!.google.protobuf.En" +
+      "umValueOptions\030\301\310\005 \001(\0132\036.ai.stigmer.iam." +
+      "v1.IamRoleMetaR\010roleMetaBrB\tEnumProtoP\001\242" +
+      "\002\003ASI\252\002\021Ai.Stigmer.Iam.V1\312\002\021Ai\\Stigmer\\I" +
+      "am\\V1\342\002\035Ai\\Stigmer\\Iam\\V1\\GPBMetadata\352\002\024" +
+      "Ai::Stigmer::Iam::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

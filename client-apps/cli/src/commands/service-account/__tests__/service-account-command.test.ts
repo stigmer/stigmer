@@ -26,7 +26,7 @@ import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityac
 import {
   type CreateServiceAccountInput,
   IdentityAccountsListSchema,
-  type ListWithIdentityOrg,
+  type ListServiceAccountsInput,
 } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { Command } from "commander";
@@ -65,12 +65,13 @@ vi.mock("../../../backend.js", async () => {
               metadata: { id: "ida_sa_made", name: input.name, org: input.org },
             });
           },
-          listServiceAccounts: async (input: ListWithIdentityOrg) => {
-            const num = input.page?.num ?? 0;
+          // Page n is read with the token "n", the first with "".
+          listServiceAccounts: async (input: ListServiceAccountsInput) => {
+            const num = input.pageToken === "" ? 1 : Number(input.pageToken);
             backend.listed.push([input.org, num]);
             return create(IdentityAccountsListSchema, {
-              totalPages: backend.noAccounts ? 0 : PAGES.length,
               entries: backend.noAccounts ? [] : (PAGES[num - 1] ?? []),
+              nextPageToken: !backend.noAccounts && num < PAGES.length ? String(num + 1) : "",
             });
           },
           delete: async (id: string) => {
@@ -79,8 +80,8 @@ vi.mock("../../../backend.js", async () => {
           },
         },
         apiKey: {
-          findByAccount: async (id: string) => {
-            backend.keysOf.push(id);
+          listByAccount: async (input: { accountId: string }) => {
+            backend.keysOf.push(input.accountId);
             return create(ApiKeysSchema, {
               entries: backend.noKeys ? [] : [
                 { metadata: { id: "key_gha", name: "github-actions" }, spec: { fingerprint: "a1b2c3", neverExpires: true } },

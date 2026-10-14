@@ -416,11 +416,11 @@ describe("[rpc:SkillCommandController.push] Skill conformance — version histor
 
     const history = await clients.skillQuery.listVersions({ org, slug: name });
     expect(
-      history.versions,
+      history.entries,
       "re-pushing the same bytes must not create a version",
     ).toHaveLength(1);
-    expect(history.totalCount).toBe(1);
-    expect(history.versions[0]?.versionHash).toBe(first.status?.versionHash);
+    expect(history.entries).toHaveLength(1);
+    expect(history.entries[0]?.versionHash).toBe(first.status?.versionHash);
   });
 
   it("pushing changed content archives a new version (newest-first, exactly one current)", async () => {
@@ -440,14 +440,14 @@ describe("[rpc:SkillCommandController.push] Skill conformance — version histor
     expect(v2.status?.versionHash).not.toBe(v1.status?.versionHash);
 
     const history = await clients.skillQuery.listVersions({ org, slug: name });
-    expect(history.versions).toHaveLength(2);
-    expect(history.totalCount).toBe(2);
+    expect(history.entries).toHaveLength(2);
+    expect(history.entries).toHaveLength(2);
 
     // Newest first; the head is current and matches the live skill's hash.
-    expect(history.versions[0]?.isCurrent).toBe(true);
-    expect(history.versions[0]?.versionHash).toBe(v2.status?.versionHash);
-    expect(history.versions.filter((entry) => entry.isCurrent)).toHaveLength(1);
-    for (const entry of history.versions) {
+    expect(history.entries[0]?.isCurrent).toBe(true);
+    expect(history.entries[0]?.versionHash).toBe(v2.status?.versionHash);
+    expect(history.entries.filter((entry) => entry.isCurrent)).toHaveLength(1);
+    for (const entry of history.entries) {
       expect(
         entry.artifactStorageKey,
         "each version carries its artifact storage key",
@@ -618,7 +618,7 @@ describe("[rpc:SkillQueryController.getArtifact] Skill conformance — artifact 
     });
 
     const history = await clients.skillQuery.listVersions({ org, slug: name });
-    const v1Entry = history.versions.find(
+    const v1Entry = history.entries.find(
       (entry) => entry.versionHash === v1.status!.versionHash,
     );
     expect(
@@ -716,14 +716,13 @@ describe("[rpc:SkillQueryController.listVersions] Skill conformance — listVers
       slug: name,
       pageSize: 2,
     });
-    expect(page1.versions).toHaveLength(2);
-    expect(page1.totalCount).toBe(3);
+    expect(page1.entries).toHaveLength(2);
     expect(
       page1.nextPageToken,
       "a partial page yields a continuation token",
     ).not.toBe("");
-    expect(page1.versions[0]?.versionHash).toBe(v3.status?.versionHash);
-    expect(page1.versions[1]?.versionHash).toBe(v2.status?.versionHash);
+    expect(page1.entries[0]?.versionHash).toBe(v3.status?.versionHash);
+    expect(page1.entries[1]?.versionHash).toBe(v2.status?.versionHash);
 
     const page2 = await clients.skillQuery.listVersions({
       org,
@@ -731,8 +730,8 @@ describe("[rpc:SkillQueryController.listVersions] Skill conformance — listVers
       pageSize: 2,
       pageToken: page1.nextPageToken,
     });
-    expect(page2.versions).toHaveLength(1);
-    expect(page2.versions[0]?.versionHash).toBe(v1.status?.versionHash);
+    expect(page2.entries).toHaveLength(1);
+    expect(page2.entries[0]?.versionHash).toBe(v1.status?.versionHash);
     expect(
       page2.nextPageToken,
       "the final page has no continuation token",
@@ -765,7 +764,7 @@ describe("[rpc:SkillQueryController.listVersions] Skill conformance — listVers
     });
 
     const history = await clients.skillQuery.listVersions({ org, slug: name });
-    const entry = history.versions[0];
+    const entry = history.entries[0];
 
     expect(entry?.versionHash).toBe(v1.status?.versionHash);
     expect(entry?.artifactStorageKey).toBe(v1.status?.artifactStorageKey);
@@ -818,23 +817,23 @@ describe("[rpc:SkillCommandController.push] Skill conformance — content-addres
 
     const history = await clients.skillQuery.listVersions({ org, slug: name });
     expect(
-      history.versions,
+      history.entries,
       "one content, one history row — no duplicate for the re-push",
     ).toHaveLength(2);
 
     // Newest-archived first (B), but currency and the tag sit on the OLDER
     // repointed-to row (A): recency and currency legitimately diverge.
-    expect(history.versions[0]?.versionHash).toBe(vB.status?.versionHash);
-    expect(history.versions[0]?.isCurrent).toBe(false);
-    expect(history.versions[0]?.tag, "the moved-away holder is untagged").toBe(
+    expect(history.entries[0]?.versionHash).toBe(vB.status?.versionHash);
+    expect(history.entries[0]?.isCurrent).toBe(false);
+    expect(history.entries[0]?.tag, "the moved-away holder is untagged").toBe(
       "",
     );
-    expect(history.versions[1]?.versionHash).toBe(vA.status?.versionHash);
+    expect(history.entries[1]?.versionHash).toBe(vA.status?.versionHash);
     expect(
-      history.versions[1]?.isCurrent,
+      history.entries[1]?.isCurrent,
       "is_current follows the live head, not row recency",
     ).toBe(true);
-    expect(history.versions[1]?.tag).toBe("stable");
+    expect(history.entries[1]?.tag).toBe("stable");
 
     const byTag = await clients.skillQuery.getByReference({
       org,
@@ -870,8 +869,8 @@ describe("[rpc:SkillCommandController.push] Skill conformance — content-addres
     ).toBe(v1.status?.versionHash);
 
     const history = await clients.skillQuery.listVersions({ org, slug: name });
-    expect(history.versions, "retagging adds no history row").toHaveLength(1);
-    expect(history.versions[0]?.tag, "the tag moved to the new name").toBe(
+    expect(history.entries, "retagging adds no history row").toHaveLength(1);
+    expect(history.entries[0]?.tag, "the tag moved to the new name").toBe(
       "v2",
     );
 
@@ -906,14 +905,14 @@ describe("[rpc:SkillCommandController.push] Skill conformance — content-addres
     );
 
     const history = await clients.skillQuery.listVersions({ org, slug: name });
-    expect(history.versions).toHaveLength(2);
-    expect(history.versions[0]?.versionHash).toBe(vB.status?.versionHash);
-    expect(history.versions[0]?.tag, '"latest" names the newest push').toBe(
+    expect(history.entries).toHaveLength(2);
+    expect(history.entries[0]?.versionHash).toBe(vB.status?.versionHash);
+    expect(history.entries[0]?.tag, '"latest" names the newest push').toBe(
       "latest",
     );
-    expect(history.versions[0]?.isCurrent).toBe(true);
-    expect(history.versions[1]?.versionHash).toBe(vA.status?.versionHash);
-    expect(history.versions[1]?.tag, "the prior holder is untagged").toBe("");
+    expect(history.entries[0]?.isCurrent).toBe(true);
+    expect(history.entries[1]?.versionHash).toBe(vA.status?.versionHash);
+    expect(history.entries[1]?.tag, "the prior holder is untagged").toBe("");
   });
 });
 

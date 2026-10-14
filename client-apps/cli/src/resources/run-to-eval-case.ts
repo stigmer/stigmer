@@ -23,6 +23,7 @@ import { CriterionResult, ScoreSource } from "@stigmer/protos/ai/stigmer/agentic
 import { ListScoresByRunRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
 import { caseFromRun, suggestCaseName, type Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../errors/index.js";
+import { readCursorPages } from "./cursor-pages.js";
 
 /** The options as commander hands them over. */
 export interface ToEvalCaseFlags {
@@ -60,7 +61,9 @@ export async function writeEvalCaseFromRun(
     throw new UsageError(`run ${runId} has no request to make a case from`);
   }
   const [scores, multiTurn] = await Promise.all([
-    client.score.listByRun(create(ListScoresByRunRequestSchema, { runId })).then((list) => list.items),
+    readCursorPages(0, (pageSize, pageToken) =>
+      client.score.listByRun(create(ListScoresByRunRequestSchema, { runId, pageSize, pageToken })),
+    ),
     continuesConversation(client, run),
   ]);
 

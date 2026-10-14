@@ -160,8 +160,8 @@ if (files) {
 
 Data hook that fetches the total count of skills.
 
-Issues a minimal `stigmer.skill.list()` call to retrieve only the
-total count — no skill entries are returned or stored. Useful for
+Reads search's count of the organization's skills for this kind —
+no skill entries are returned or stored. Useful for
 summary cards, badges, and dashboard widgets.
 
 For the full paginated skill list, use [`useSkillList`](#useskilllist) instead.
@@ -270,11 +270,11 @@ function useSkillDuplicateCheck(): UseSkillDuplicateCheckReturn
 
 ### useSkillList
 
-Data hook that fetches a paginated list of skills for the Library.
-
-Wraps `stigmer.skill.list()` with pagination and text search over the
-organization's skills. All parameters are externally controlled — the
-consumer manages page state and query debouncing.
+Data hook that lists an organization's skills for the Library, a page at
+a time: `stigmer.skill.list()` newest first while `query` is empty,
+search matches while it holds text. All parameters are externally
+controlled — the consumer manages query debouncing. A list carries no
+total; use [`useSkillCount`](#useskillcount) for a count.
 
 For picker/type-ahead search with internal debouncing and query
 state management, use [`useSkillSearch`](#useskillsearch) instead.
@@ -298,21 +298,19 @@ function useSkillList(org: string | null, options?: UseSkillListOptions): UseSki
 
 <TypeTable
   type={{
-    currentPage: { type: "number", description: "The current page number (mirrors the `page` option)." },
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
-    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
-    refetch: { type: "() => void", description: "Discard cached data and re-fetch the current page from the server." },
-    skills: { type: "readonly SearchResult[]", description: "Paginated skill entries for the current page." },
-    totalCount: { type: "number", description: "Total number of skills matching the current filters." },
-    totalPages: { type: "number", description: "Total pages available at the current page size." },
+    hasMore: { type: "boolean", description: "`true` while the server holds skills beyond those loaded." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    isLoadingMore: { type: "boolean", description: "`true` while a `loadMore` read is in flight." },
+    loadMore: { type: "() => void", description: "Load the next page. No-op while one is loading or when nothing follows." },
+    loadMoreError: { type: "Error | null", description: "Error from the last failed `loadMore`, or `null`." },
+    refetch: { type: "() => void", description: "Re-read the first page; pages loaded since stay." },
+    skills: { type: "readonly SearchResult[]", description: "The first page of skills, then every page loaded since." },
   }}
 />
 
 ```tsx
-const { skills, totalCount, isLoading } = useSkillList("acme", {
-  page: 1,
-  pageSize: 20,
-});
+const { skills, hasMore, loadMore, isLoading } = useSkillList("acme", { pageSize: 20 });
 ```
 
 
@@ -320,7 +318,8 @@ const { skills, totalCount, isLoading } = useSkillList("acme", {
 
 Data hook that searches skills available in the given organization.
 
-Wraps `stigmer.skill.list()` with debounced search, loading/error
+Lists the organization's skills, newest first, while nothing is typed
+and searches them once something is, with a debounce, loading/error
 tracking, and cancellation-safe fetching. Platform builders use this
 when they want full control over rendering; the [`SkillPicker`](#skillpicker)
 styled component uses it internally.
@@ -428,8 +427,12 @@ function useSkillVersions(org: string | null, slug: string | null): UseSkillVers
   type={{
     error: { type: "Error | null", description: "Error from the last failed request (excludes UNIMPLEMENTED), or `null`." },
     getArtifactKey: { type: "(versionHash: string) => string | null", description: "Look up the artifact storage key for a version by its hash. Used by diff flows to fetch historical artifacts via `getArtifact()`. Returns `null` if the version hash is not found or has no artifact key." },
+    hasMore: { type: "boolean", description: "`true` while the server holds entries beyond those loaded." },
     isEmpty: { type: "boolean", description: "`true` when no versions are available (RPC unimplemented or empty response)." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    isLoadingMore: { type: "boolean", description: "`true` while a `loadMore` read is in flight." },
+    loadMore: { type: "() => void", description: "Load the next page. No-op while one is loading or when nothing follows." },
+    loadMoreError: { type: "Error | null", description: "Error from the last failed `loadMore`, or `null`." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
     versions: { type: "readonly VersionEntry[]", description: "Version entries mapped to the generic timeline format (newest first)." },
   }}
@@ -716,8 +719,7 @@ Options for [`useSkillList`](#useskilllist).
 
 <TypeTable
   type={{
-    page: { type: "number", description: "Page number (1-indexed)." },
-    pageSize: { type: "number", description: "Maximum skills per page." },
+    pageSize: { type: "number", description: "Maximum skills per page, the first and each `loadMore`." },
     query: { type: "string", description: "Text query to filter skills by name, description, or tags." },
   }}
 />

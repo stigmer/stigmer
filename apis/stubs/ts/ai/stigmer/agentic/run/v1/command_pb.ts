@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { RunSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_run_v1_api } from "./api_pb.js";
-import type { CancelRunInputSchema, PauseRunInputSchema, RecoverRunInputSchema, ResumeRunInputSchema, RunUpdateStatusInputSchema, SubmitApprovalInputSchema, SubmitFileDecisionInputSchema, TerminateRunInputSchema, UpdateRunInputSchema, UpdateStatusResponseSchema, UploadAttachmentRequestSchema, UploadAttachmentResponseSchema } from "./io_pb.js";
+import type { PauseRunInputSchema, RecoverRunInputSchema, ResumeRunInputSchema, RunUpdateStatusInputSchema, TerminateRunInputSchema, UpdateRunInputSchema, UpdateStatusResponseSchema, UploadAttachmentRequestSchema, UploadAttachmentResponseSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_run_v1_io } from "./io_pb.js";
 import type { ApiResourceIdSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/run/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_run_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL2NvbW1hbmQucHJvdG8SGWFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEygA0KFFJ1bkNvbW1hbmRDb250cm9sbGVyEk4KBmNyZWF0ZRIeLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuGh4uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW4iBNC4GAESjwEKBnVwZGF0ZRIpLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVXBkYXRlUnVuSW5wdXQaHi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1biI6wrgYNggCECkiFHJlc291cmNlLm1ldGFkYXRhLmlkKhp1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHJ1bhKlAQoMdXBkYXRlU3RhdHVzEi8uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5VcGRhdGVTdGF0dXNJbnB1dBovLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVXBkYXRlU3RhdHVzUmVzcG9uc2UiM8K4GC8IAhApIgZydW5faWQqIXVuYXV0aG9yaXplZCB0byB1cGRhdGUgcnVuIHN0YXR1cxKEAQoGZGVsZXRlEi0uYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlSWQaHi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1biIrwrgYJwgCECkiBXZhbHVlKhp1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHJ1bhKbAQoOc3VibWl0QXBwcm92YWwSLi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlN1Ym1pdEFwcHJvdmFsSW5wdXQaHi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1biI5wrgYNQgCECkiBnJ1bl9pZCondW5hdXRob3JpemVkIHRvIHN1Ym1pdCBhcHByb3ZhbCBmb3IgcnVuEqgBChJzdWJtaXRGaWxlRGVjaXNpb24SMi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlN1Ym1pdEZpbGVEZWNpc2lvbklucHV0Gh4uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW4iPsK4GDoIAhApIgZydW5faWQqLHVuYXV0aG9yaXplZCB0byBzdWJtaXQgZmlsZSBkZWNpc2lvbiBmb3IgcnVuEn0KBmNhbmNlbBIpLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuQ2FuY2VsUnVuSW5wdXQaHi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1biIowrgYJAgCECkiAmlkKhp1bmF1dGhvcml6ZWQgdG8gY2FuY2VsIHJ1bhKGAQoJdGVybWluYXRlEiwuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5UZXJtaW5hdGVSdW5JbnB1dBoeLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuIivCuBgnCAIQKSICaWQqHXVuYXV0aG9yaXplZCB0byB0ZXJtaW5hdGUgcnVuEoABCgdyZWNvdmVyEiouYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SZWNvdmVyUnVuSW5wdXQaHi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1biIpwrgYJQgCECkiAmlkKht1bmF1dGhvcml6ZWQgdG8gcmVjb3ZlciBydW4SegoFcGF1c2USKC5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlBhdXNlUnVuSW5wdXQaHi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1biInwrgYIwgCECkiAmlkKhl1bmF1dGhvcml6ZWQgdG8gcGF1c2UgcnVuEn0KBnJlc3VtZRIpLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUmVzdW1lUnVuSW5wdXQaHi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1biIowrgYJAgCECkiAmlkKhp1bmF1dGhvcml6ZWQgdG8gcmVzdW1lIHJ1bhKBAQoQdXBsb2FkQXR0YWNobWVudBIyLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVXBsb2FkQXR0YWNobWVudFJlcXVlc3QaMy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlVwbG9hZEF0dGFjaG1lbnRSZXNwb25zZSIE0LgYARoEoP8rKWIGcHJvdG8z", [file_ai_stigmer_agentic_run_v1_api, file_ai_stigmer_agentic_run_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL2NvbW1hbmQucHJvdG8SGWFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEyuAkKFFJ1bkNvbW1hbmRDb250cm9sbGVyEk4KBmNyZWF0ZRIeLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuGh4uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW4iBNC4GAESjwEKBnVwZGF0ZRIpLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVXBkYXRlUnVuSW5wdXQaHi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1biI6wrgYNggCECkiFHJlc291cmNlLm1ldGFkYXRhLmlkKhp1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHJ1bhKlAQoMdXBkYXRlU3RhdHVzEi8uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5VcGRhdGVTdGF0dXNJbnB1dBovLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVXBkYXRlU3RhdHVzUmVzcG9uc2UiM8K4GC8IAhApIgZydW5faWQqIXVuYXV0aG9yaXplZCB0byB1cGRhdGUgcnVuIHN0YXR1cxKEAQoGZGVsZXRlEi0uYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlSWQaHi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1biIrwrgYJwgCECkiBXZhbHVlKhp1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHJ1bhKGAQoJdGVybWluYXRlEiwuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5UZXJtaW5hdGVSdW5JbnB1dBoeLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuIivCuBgnCAIQKSICaWQqHXVuYXV0aG9yaXplZCB0byB0ZXJtaW5hdGUgcnVuEoABCgdyZWNvdmVyEiouYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SZWNvdmVyUnVuSW5wdXQaHi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1biIpwrgYJQgCECkiAmlkKht1bmF1dGhvcml6ZWQgdG8gcmVjb3ZlciBydW4SegoFcGF1c2USKC5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlBhdXNlUnVuSW5wdXQaHi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1biInwrgYIwgCECkiAmlkKhl1bmF1dGhvcml6ZWQgdG8gcGF1c2UgcnVuEn0KBnJlc3VtZRIpLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUmVzdW1lUnVuSW5wdXQaHi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1biIowrgYJAgCECkiAmlkKhp1bmF1dGhvcml6ZWQgdG8gcmVzdW1lIHJ1bhKBAQoQdXBsb2FkQXR0YWNobWVudBIyLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVXBsb2FkQXR0YWNobWVudFJlcXVlc3QaMy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlVwbG9hZEF0dGFjaG1lbnRSZXNwb25zZSIE0LgYARoEoP8rKWIGcHJvdG8z", [file_ai_stigmer_agentic_run_v1_api, file_ai_stigmer_agentic_run_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * RunCommandController handles write operations for runs.
@@ -83,71 +83,10 @@ export const RunCommandController: GenService<{
     output: typeof RunSchema;
   },
   /**
-   * Submit an approval decision for a pending tool call.
-   *
-   * ## Preconditions
-   *
-   * - Run must be in RUN_WAITING_FOR_APPROVAL phase
-   * - tool_call_id must match status.pending_approval.tool_call_id
-   * - User must have can_edit permission on the run
-   *
-   * ## Behavior by Action
-   *
-   * - APPROVE: Tool executes normally, run resumes to IN_PROGRESS
-   * - SKIP: Tool returns skip message to LLM, run continues to IN_PROGRESS
-   * - REJECT: Tool is denied and the user's objection is fed back to the LLM;
-   *   the run CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
-   *   stop the whole run, use cancel/terminate)
-   *
-   * @generated from rpc ai.stigmer.agentic.run.v1.RunCommandController.submitApproval
-   */
-  submitApproval: {
-    methodKind: "unary";
-    input: typeof SubmitApprovalInputSchema;
-    output: typeof RunSchema;
-  },
-  /**
-   * Submit a keep/discard decision on a file change set (or a single file).
-   *
-   * Records a FILE_DECIDED event in the append-only file_review stream;
-   * FileChangeSet.decisions is the derived projection. The runner reconciles
-   * the approved bytes — this RPC records the decision and enforces
-   * that expected_digest still matches the captured content the user reviewed.
-   *
-   * ## Preconditions
-   *
-   * - Run must exist and be non-terminal
-   * - change_set_id must match a status.file_change_sets[].id; for FILE scope,
-   *   file_change_id must match a CapturedFileChange.id within it
-   * - expected_digest must match the target's current digest
-   * - User must have can_edit permission on the run
-   *
-   * @generated from rpc ai.stigmer.agentic.run.v1.RunCommandController.submitFileDecision
-   */
-  submitFileDecision: {
-    methodKind: "unary";
-    input: typeof SubmitFileDecisionInputSchema;
-    output: typeof RunSchema;
-  },
-  /**
-   * Cancel a running run gracefully.
-   *
-   * Sends a cancellation signal to the run. The agent can handle
-   * the cancellation signal to save checkpoint and clean up before
-   * transitioning to the CANCELLED phase.
-   *
-   * @generated from rpc ai.stigmer.agentic.run.v1.RunCommandController.cancel
-   */
-  cancel: {
-    methodKind: "unary";
-    input: typeof CancelRunInputSchema;
-    output: typeof RunSchema;
-  },
-  /**
    * Terminate a run immediately.
    *
-   * Force-stops the run without allowing cleanup. Unlike cancel,
-   * the agent cannot respond to termination - it is stopped immediately.
+   * Force-stops the run without allowing cleanup. Unlike the session's
+   * interrupt, the agent cannot respond to termination - it is stopped immediately.
    * Use this for stuck or unresponsive agents.
    *
    * @generated from rpc ai.stigmer.agentic.run.v1.RunCommandController.terminate
@@ -173,8 +112,8 @@ export const RunCommandController: GenService<{
   /**
    * Pause a running run.
    *
-   * Temporarily stops the agent at its current checkpoint. Unlike cancel,
-   * the run is NOT terminal and can be resumed later from where it left off.
+   * Temporarily stops the agent at its current checkpoint. Unlike the
+   * session's interrupt, the run is NOT terminal and can be resumed later from where it left off.
    *
    * @generated from rpc ai.stigmer.agentic.run.v1.RunCommandController.pause
    */

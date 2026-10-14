@@ -7,7 +7,9 @@ import {
   type PeriodEstimate,
   type PeriodEstimateLine,
 } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
+import type { AgentHours } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
 import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
+import { AgentHoursStanding } from "./AgentHoursStanding.js";
 import { formatUsd } from "./format.js";
 import { formatAgentHours, formatDay, formatPeriodDay } from "./plan-features.js";
 import type { PlanStanding } from "./plan-state.js";
@@ -22,6 +24,10 @@ export interface PlanCardProps {
   readonly estimate?: PeriodEstimate | null;
   /** Why the estimate could not be read, shown in its place. */
   readonly estimateError?: Error | null;
+  /** Where the organization stands against its plan's agent hours, shown above the estimate. */
+  readonly agentHours?: AgentHours | null;
+  /** Why the agent hours could not be read, shown in their place. */
+  readonly agentHoursError?: Error | null;
   /**
    * Set for a child organization, which is on its parent's plan and has no
    * plan, period or invoice of its own: the parent's name, or "" when it
@@ -34,10 +40,20 @@ export interface PlanCardProps {
 
 /**
  * The organization's plan: its name, its standing (active, payment
- * failed, or ending on a date), the period it is in, and the period's
- * estimated invoice line by line, the way the invoice will read it.
+ * failed, or ending on a date), the agent hours it has used of those the
+ * plan includes, the period it is in, and the period's estimated invoice
+ * line by line, the way the invoice will read it.
  */
-export function PlanCard({ planName, standing, estimate, estimateError, billedToParent, className }: PlanCardProps) {
+export function PlanCard({
+  planName,
+  standing,
+  estimate,
+  estimateError,
+  agentHours,
+  agentHoursError,
+  billedToParent,
+  className,
+}: PlanCardProps) {
   const child = billedToParent !== undefined;
   return (
     <div
@@ -61,6 +77,13 @@ export function PlanCard({ planName, standing, estimate, estimateError, billedTo
         </p>
       ) : (
         <StandingDetail standing={standing} />
+      )}
+
+      {!child && agentHours && <AgentHoursStanding hours={agentHours} />}
+      {!child && !agentHours && agentHoursError && (
+        <p className="stg:mt-3 stg:text-xs stg:text-destructive" role="alert">
+          Agent hours could not be read: {getUserMessage(agentHoursError)}
+        </p>
       )}
 
       {!child && estimate && <EstimateLines planName={planName} estimate={estimate} />}

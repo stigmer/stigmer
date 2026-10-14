@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
+import { DeploymentModeContext } from "../../deployment-mode";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useRef, useState } from "react";
 import {
@@ -255,6 +256,36 @@ describe("useSettingsNavGroups and the organization's admin entries", () => {
     verdicts = { can_create_identity_account: true };
     render(<FirstGroupProbe />);
     expect(items()).not.toContain("/settings/service-accounts");
+  });
+
+  it("adds Access history for a caller who may read it, on its own permission", () => {
+    verdicts = { can_view_access_history: true };
+    render(<FirstGroupProbe />);
+    const hrefs = items();
+    expect(hrefs).toContain("/settings/access-history");
+    expect(hrefs).not.toContain("/settings/service-accounts");
+    expect(hrefs.indexOf("/settings/access-history")).toBe(hrefs.indexOf("/settings/teams") + 1);
+    expect(checks).toContainEqual([
+      { kind: "organization", id: "org_acme" },
+      "can_view_access_history",
+      { fail: "closed" },
+    ]);
+    cleanup();
+
+    verdicts = { can_create_identity_account: true, can_view_access_history: true };
+    render(<FirstGroupProbe />);
+    const both = items();
+    expect(both.indexOf("/settings/access-history")).toBe(both.indexOf("/settings/service-accounts") + 1);
+  });
+
+  it("leaves Access history out on open source, which keeps no history", () => {
+    verdicts = { can_view_access_history: true };
+    render(
+      <DeploymentModeContext.Provider value="local">
+        <FirstGroupProbe />
+      </DeploymentModeContext.Provider>,
+    );
+    expect(items()).not.toContain("/settings/access-history");
   });
 
   it("declares every organization entry's permission, and checks each", () => {

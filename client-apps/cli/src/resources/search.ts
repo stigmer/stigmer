@@ -1,10 +1,10 @@
 // `search` dispatch: a relevance-ranked, cross-resource text query over the
 // unified SearchService. Only agents take the `search` verb (matching the Go
-// CLI). Results render identically to `list` (the shared SEARCH_TABLE),
-// with a pagination footer the command appends for human output, and names
-// each result's organization by slug in the same way.
+// CLI). Results render as SEARCH_TABLE, with a footer the command appends
+// for human output (how many match, and how to read the next page), and
+// name each result's organization by slug as `list` does.
 
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { SearchResultSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import type { OutputFormat } from "../output/index.js";
@@ -15,18 +15,19 @@ import { renderCollection, tableOrganizations } from "./render.js";
 export interface SearchParams {
   /** Organization scope. Empty searches across every org the caller can access. */
   readonly org: string;
-  /** 1-indexed page number. */
-  readonly page: number;
   /** Results per page. */
   readonly pageSize: number;
+  /** The previous page's token, to continue the same query; "" for the first page. */
+  readonly pageToken: string;
 }
 
 export interface SearchOutcome {
   /** Rendered entries (table grid, or protojson array for json/yaml). */
   readonly rendered: string;
-  readonly page: number;
-  readonly totalPages: number;
-  readonly totalCount: number;
+  /** How many results match across every page, by the server's count for the kind. */
+  readonly matches: number;
+  /** The token that reads the next page; "" when this page is the last. */
+  readonly nextPageToken: string;
 }
 
 export async function searchResources(
@@ -40,7 +41,8 @@ export async function searchResources(
     kinds: [kind],
     query,
     org: params.org,
-    page: { num: params.page, size: params.pageSize },
+    pageSize: params.pageSize,
+    pageToken: params.pageToken,
   });
 
   return {
@@ -54,8 +56,7 @@ export async function searchResources(
         tableOrganizations(SearchResultSchema, response.entries, format, SEARCH_TABLE),
       ),
     ),
-    page: params.page,
-    totalPages: response.totalPages,
-    totalCount: response.totalCount,
+    matches: response.countsByKind[ApiResourceKind[kind]] ?? response.entries.length,
+    nextPageToken: response.nextPageToken,
   };
 }

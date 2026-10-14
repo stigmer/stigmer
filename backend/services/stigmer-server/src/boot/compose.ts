@@ -69,7 +69,6 @@ import {
 } from "../artifactstorage/artifact-storage.js";
 import type { ArtifactStorage } from "../artifactstorage/artifact-storage.js";
 import { downloadUrlSignerFor } from "../artifactstorage/url-signer.js";
-import { StreamBroker } from "../domain/run/stream-broker.js";
 import { newExecutionEngineStateProvider } from "../temporal/agentexecution/engine-client.js";
 import { newPluginToolsEngineStateProvider } from "../temporal/plugintools/engine-client.js";
 import { newAgentExecutionWorkerFactory } from "../temporal/agentexecution/worker.js";
@@ -317,13 +316,7 @@ export interface ComposedServer {
    * getRunnerScopedToken).
    */
   runnerAuthService: RunnerAuthService;
-  /**
-   * The agentexecution broadcast fabric (exposed for tests and for the
-   * Temporal worker's recovery broadcasts — Go's GetStreamBroker).
-   * UpdateStatus is the production writer.
-   */
-  agentExecutionStreamBroker: StreamBroker;
-  /** Each session's event fan-out (exposed for tests, as the run broker is). */
+  /** Each session's event fan-out (exposed for tests). */
   sessionEventBroker: SessionEventBroker;
   /**
    * The in-process router transport — the same routes and interceptor
@@ -1077,13 +1070,8 @@ export async function composeServer(
   const registryLanes = createRegistryLanes({
     modelRegistryStore: modelCatalog,
   });
-  // ONE broker spans both routers AND the Temporal worker's activities:
-  // the worker's status persists broadcast through the same fabric, so
-  // recovery/fallback updates reach externally-connected subscribe
-  // streams (Go's GetStreamBroker seam).
-  const agentExecutionStreamBroker = new StreamBroker(logger);
-  // The same for each session's event log: one fan-out for both routers
-  // and the worker, so an event a worker's write appends reaches every
+  // One fan-out of each session's event log for both routers and the
+  // worker, so an event a worker's write appends reaches every
   // externally-connected streamEvents.
   const sessionEventBroker = new SessionEventBroker(logger);
   // Recover's per-execution turns (stigmer#1672): built here, not inside
@@ -1121,6 +1109,7 @@ export async function composeServer(
   // person who decided the undo (domain/session/filereview/stopped-turn.ts).
   const stoppedTurnObserver = newStoppedTurnObserver({
     logger,
+    store,
     reconcileTurns: () => requireInProcess().reconcileTurnCreator,
     callerOf: undoDeciderCaller(personAccounts, () => singleOrganizationCaller),
   });
@@ -1881,9 +1870,8 @@ export async function composeServer(
       runScores,
       sessionEventBroker,
       runnerAuth: runnerCredentials,
-      // A file decision's run broadcast and the reconcile turn an undo on
-      // an ended turn starts (domain/session/filereview/decide.ts).
-      broker: agentExecutionStreamBroker,
+      // The reconcile turn an undo on an ended turn starts
+      // (domain/session/filereview/decide.ts).
       reconcileTurns: () => requireInProcess().reconcileTurnCreator,
       // The answers to waiting tool uses and the session's stop
       // (domain/session/hitl/).
@@ -1999,7 +1987,6 @@ export async function composeServer(
       visitorClassifier: extensions.drivers.visitorClassifier,
       runLanes: extensions.drivers.runLanes,
       scheduleRunProfile: scheduleTemporalConfig.executionProfile(),
-      broker: agentExecutionStreamBroker,
       sessionEventBroker,
       recoverSerializer: agentExecutionRecoverSerializer,
       engineState: executionEngineState,
@@ -2012,7 +1999,6 @@ export async function composeServer(
       sandboxLane,
       temporalConfig,
       sessionCreator: () => requireInProcess().executionSessionCreator,
-      reconcileTurns: () => requireInProcess().reconcileTurnCreator,
       runValuePlanner: {
         store,
         logger,
@@ -2333,7 +2319,6 @@ export async function composeServer(
     secrets: secretService,
     temporalManager,
     runnerAuthService,
-    agentExecutionStreamBroker,
     sessionEventBroker,
     inProcessTransport: inProcessWiring.transport,
     identityVerifiers,

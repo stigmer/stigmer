@@ -64,13 +64,10 @@ function createMockStigmer(overrides: MockOverrides = {}) {
     // The connect dialog's serving-app picker lists the org's channel
     // apps; the panel itself never fetches them.
     channelapp: {
-      listByOrg: vi.fn().mockResolvedValue({ entries: [] }),
+      list: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
     },
     agentChannel: {
-      getByAgent: vi.fn().mockResolvedValue({
-        totalCount: overrides.channels?.length ?? 0,
-        items: overrides.channels ?? [],
-      }),
+      listByAgent: vi.fn().mockResolvedValue({ entries: overrides.channels ?? [], nextPageToken: "" }),
       apply: vi.fn().mockResolvedValue({}),
       update: overrides.update ?? vi.fn().mockResolvedValue({}),
       create: vi.fn().mockResolvedValue({ metadata: { id: "ach_new" } }),
@@ -82,7 +79,7 @@ function createMockStigmer(overrides: MockOverrides = {}) {
       completeInstall: vi.fn().mockResolvedValue({}),
     },
     vault: {
-      list: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }),
+      list: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
       getByReference: vi.fn().mockRejectedValue(new Error("not found")),
     },
     iamPolicy: {
@@ -481,7 +478,7 @@ describe("AgentChannelsPanel", () => {
       client as { iamPolicy: Record<string, unknown> }
     ).iamPolicy.listResourceAccessByPrincipal = vi
       .fn()
-      .mockResolvedValue({ entries: [] });
+      .mockResolvedValue({ entries: [], nextPageToken: "" });
     render(
       <Providers client={client}>
         <AgentChannelsPanel agent={makeAgent()} />
@@ -840,10 +837,10 @@ describe("AgentChannelsPanel", () => {
   it("renders an error state when the list fails to load", async () => {
     const client = {
       agentChannel: {
-        getByAgent: vi.fn().mockRejectedValue(new Error("boom")),
+        listByAgent: vi.fn().mockRejectedValue(new Error("boom")),
       },
       channelapp: {
-        listByOrg: vi.fn().mockResolvedValue({ entries: [] }),
+        list: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
       },
       iamPolicy: {
         checkMyPermission: vi.fn().mockResolvedValue({ isAuthorized: true }),

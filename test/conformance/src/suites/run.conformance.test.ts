@@ -21,12 +21,7 @@
 // single-source-of-truth clearing) needs a live engine and stays in the
 // execution suite.
 import { Code } from "@connectrpc/connect";
-import {
-  FileDecisionAction,
-  FileDecisionScope,
-  ServiceTier,
-  ThinkingMode,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
@@ -35,7 +30,6 @@ import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { agentRefOf, makeAgent } from "../support/agents";
 import { makeAgentExecution } from "../support/runs";
 import { makeSession } from "../support/sessions";
-import { collectStream } from "../support/collect-stream";
 import { uniqueName, uniqueOrg } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -471,78 +465,6 @@ describe("Run conformance — zero-record read surfaces", () => {
       () => clients.agentExecutionQuery.getOrgUsageReport({ org: "conf-org" }),
       Code.InvalidArgument,
       "org usage report without the date range",
-    );
-  });
-
-  it("[rpc:RunQueryController.subscribe] subscribe refuses an empty id (InvalidArgument) and an unknown id (NotFound)", async () => {
-    await expectGrpcCode(
-      () =>
-        collectStream((signal) => clients.agentExecutionQuery.subscribe({ value: "" }, { signal })),
-      Code.InvalidArgument,
-      "subscribe with an empty id",
-    );
-    // Single-user arm here; on the multi-tenant edition an unresolvable id
-    // answers the SAME NotFound through the authorizer's deny-path
-    // existence probe (the uniform not-found posture) — pinned
-    // with an outsider caller in the direct-handler-authorization suite.
-    if (target.capabilities.enforcingAuthorizer) return;
-    await expectGrpcCode(
-      () =>
-        collectStream((signal) =>
-          clients.agentExecutionQuery.subscribe({ value: "aexec_01conformancemissing" }, { signal }),
-        ),
-      Code.NotFound,
-      "subscribe to an unknown execution",
-    );
-  });
-});
-
-describe("Run conformance — submitFileDecision negatives", () => {
-  // Single-user-posture arms: the multi-tenant edition's authorization
-  // interceptor resolves the execution BEFORE proto validation, so invalid
-  // or unknown ids surface as NotFound/PermissionDenied there instead — a
-  // known ordering divergence.
-  it("[rpc:RunCommandController.submitFileDecision] rejects structurally invalid inputs before any load (InvalidArgument)", async (ctx) => {
-    if (target.capabilities.enforcingAuthorizer) return ctx.skip();
-    await expectGrpcCode(
-      () =>
-        clients.agentExecutionCommand.submitFileDecision({
-          runId: "",
-          changeSetId: "cs_x",
-          expectedDigest: "digest",
-          scope: FileDecisionScope.CHANGE_SET,
-          action: FileDecisionAction.APPROVE,
-        }),
-      Code.InvalidArgument,
-      "submitFileDecision without an execution id",
-    );
-    await expectGrpcCode(
-      () =>
-        clients.agentExecutionCommand.submitFileDecision({
-          runId: "aexec_x",
-          changeSetId: "cs_x",
-          expectedDigest: "digest",
-          scope: FileDecisionScope.CHANGE_SET,
-          action: FileDecisionAction.UNSPECIFIED,
-        }),
-      Code.InvalidArgument,
-      "submitFileDecision with an unspecified action",
-    );
-  });
-
-  it("[rpc:RunCommandController.submitFileDecision] an unknown execution answers NotFound", async (ctx) => {
-    if (target.capabilities.enforcingAuthorizer) return ctx.skip();
-    await expectGrpcCode(
-      () =>
-        clients.agentExecutionCommand.submitFileDecision({
-          runId: "aexec_01conformancemissing",
-          changeSetId: "cs_x",
-          expectedDigest: "digest",
-          scope: FileDecisionScope.CHANGE_SET,
-          action: FileDecisionAction.APPROVE,
-        }),
-      Code.NotFound,
-      "submitFileDecision on a nonexistent agent execution",
     );
   });
 });

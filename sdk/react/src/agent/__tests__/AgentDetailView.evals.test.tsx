@@ -25,7 +25,7 @@ function renderView(plugins: readonly string[], onNavigateToRun = vi.fn()) {
   const agent = samples.agent({ name: "Reviewer", org: ACME_ID });
   agent.spec = { ...agent.spec!, plugins: plugins.map((slug) => ({ org: ACME_ID, slug })) } as typeof agent.spec;
   const latest = agentEvalWith([{ slug: "thermos", cases: [{ name: "review-fires", score: 1 }] }]);
-  const listByAgent = vi.fn(async () => ({ totalCount: 1, items: [latest] }));
+  const listByAgent = vi.fn(async () => ({ entries: [latest], nextPageToken: "" }));
   render(<AgentDetailView org="acme" slug="reviewer" onNavigateToRun={onNavigateToRun} />, {
     wrapper: orgWrapper(
       {

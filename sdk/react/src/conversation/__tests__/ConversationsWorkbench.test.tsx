@@ -81,11 +81,11 @@ function publicItem(
 function createMockStigmer(overrides: Record<string, unknown> = {}) {
   return {
     agentChannel: {
-      list: vi.fn().mockResolvedValue({ items: [whatsappChannel()], totalCount: 1 }),
-      listConversations: vi.fn().mockResolvedValue({ items: [row()], totalCount: 1 }),
+      list: vi.fn().mockResolvedValue({ entries: [whatsappChannel()], nextPageToken: "" }),
+      listConversations: vi.fn().mockResolvedValue({ entries: [row()], nextPageToken: "" }),
       getConversation: vi.fn().mockResolvedValue(row()),
-      getTimeline: vi.fn().mockResolvedValue({
-        items: [customerItem("wa:1", "where is my order?")],
+      listTimeline: vi.fn().mockResolvedValue({
+        entries: [customerItem("wa:1", "where is my order?")],
         nextPageToken: "",
       }),
       reply: vi.fn().mockResolvedValue(
@@ -196,7 +196,7 @@ describe("ConversationsWorkbench", () => {
     // level: your own takeover may never lag the inbox.
     const listConversations = vi
       .fn()
-      .mockResolvedValueOnce({ items: [row()], totalCount: 1 })
+      .mockResolvedValueOnce({ entries: [row()], nextPageToken: "" })
       .mockReturnValue(new Promise(() => {}));
     render(
       <ConversationsWorkbench
@@ -260,13 +260,13 @@ describe("ConversationsWorkbench", () => {
     const input = await screen.findByLabelText("Reply to the customer");
     const agentChannel = (client as { agentChannel: Record<string, ReturnType<typeof vi.fn>> })
       .agentChannel;
-    const timelineCallsBefore = agentChannel.getTimeline.mock.calls.length;
+    const timelineCallsBefore = agentChannel.listTimeline.mock.calls.length;
 
     await user.type(input, "on my way{Enter}");
 
     expect(agentChannel.reply).toHaveBeenCalled();
     await waitFor(() =>
-      expect(agentChannel.getTimeline.mock.calls.length).toBeGreaterThan(
+      expect(agentChannel.listTimeline.mock.calls.length).toBeGreaterThan(
         timelineCallsBefore,
       ),
     );
@@ -334,22 +334,22 @@ describe("ConversationsWorkbench", () => {
     const user = userEvent.setup();
     const initialItems = [customerItem("wa:1", "where is my order?")];
     let releaseRefetch!: (page: {
-      items: readonly unknown[];
+      entries: readonly unknown[];
       nextPageToken: string;
     }) => void;
-    const getTimeline = vi
+    const listTimeline = vi
       .fn()
       // Initial load, then the post-reply refetch held open under test
       // control, then a default for any later poll tick.
-      .mockResolvedValueOnce({ items: initialItems, nextPageToken: "" })
+      .mockResolvedValueOnce({ entries: initialItems, nextPageToken: "" })
       .mockImplementationOnce(
         () =>
           new Promise((resolve) => {
             releaseRefetch = resolve;
           }),
       )
-      .mockResolvedValue({ items: initialItems, nextPageToken: "" });
-    const client = createMockStigmer({ getTimeline });
+      .mockResolvedValue({ entries: initialItems, nextPageToken: "" });
+    const client = createMockStigmer({ listTimeline });
     render(
       <ConversationsWorkbench org="acme" selected={SELECTED} onSelectionChange={vi.fn()} />,
       { wrapper: wrapper(client) },
@@ -363,7 +363,7 @@ describe("ConversationsWorkbench", () => {
     // still in flight, so the composer must STILL be busy — an idle
     // button over an emptied box with the message nowhere on screen is
     // exactly the dead interval this guards.
-    await waitFor(() => expect(getTimeline).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(listTimeline).toHaveBeenCalledTimes(2));
     await act(async () => {
       await Promise.resolve();
       await Promise.resolve();
@@ -375,7 +375,7 @@ describe("ConversationsWorkbench", () => {
     // The refetch answers with the real ledger item (ob:<id>, the id
     // the reply output promised) — busy clears only now.
     releaseRefetch({
-      items: [
+      entries: [
         publicItem(
           "ob:obm_1",
           ConversationItemAuthor.author_teammate,
@@ -448,9 +448,9 @@ describe("ConversationsWorkbench", () => {
           "When are you open?",
         ),
       ];
-      const getTimeline = vi
+      const listTimeline = vi
         .fn()
-        .mockResolvedValue({ items: answered, nextPageToken: "" });
+        .mockResolvedValue({ entries: answered, nextPageToken: "" });
       const getConversation = vi.fn().mockResolvedValue(
         row({
           control: ConversationControl.control_human,
@@ -458,7 +458,7 @@ describe("ConversationsWorkbench", () => {
           awaitingReply: false,
         }),
       );
-      const client = createMockStigmer({ getConversation, getTimeline });
+      const client = createMockStigmer({ getConversation, listTimeline });
       render(
         <ConversationsWorkbench
           org="acme"
@@ -477,7 +477,7 @@ describe("ConversationsWorkbench", () => {
       expect(
         screen.getByRole("button", { name: "Hand back to agent" }),
       ).toBeDefined();
-      const callsBeforePoll = getTimeline.mock.calls.length;
+      const callsBeforePoll = listTimeline.mock.calls.length;
 
       // The customer writes again: the next detail poll answers the
       // row with awaiting_reply true, the next timeline poll delivers
@@ -489,8 +489,8 @@ describe("ConversationsWorkbench", () => {
           awaitingReply: true,
         }),
       );
-      getTimeline.mockResolvedValue({
-        items: [
+      listTimeline.mockResolvedValue({
+        entries: [
           publicItem(
             "wa:3",
             ConversationItemAuthor.author_customer,
@@ -502,7 +502,7 @@ describe("ConversationsWorkbench", () => {
         nextPageToken: "",
       });
       await advanceInSlices(5000);
-      expect(getTimeline.mock.calls.length).toBeGreaterThan(callsBeforePoll);
+      expect(listTimeline.mock.calls.length).toBeGreaterThan(callsBeforePoll);
       expect(screen.getByText("And on Sundays?")).toBeDefined();
 
       // The polled-in unanswered message must arm the confirm guard.
@@ -540,8 +540,8 @@ describe("ConversationsWorkbench", () => {
           awaitingReply: true,
         }),
       ),
-      getTimeline: vi.fn().mockResolvedValue({
-        items: [
+      listTimeline: vi.fn().mockResolvedValue({
+        entries: [
           create(ConversationTimelineItemSchema, {
             itemId: "ob:obm_bounced",
             lane: ConversationLane.lane_public,
@@ -595,8 +595,8 @@ describe("ConversationsWorkbench", () => {
           awaitingReply: true,
         }),
       ),
-      getTimeline: vi.fn().mockResolvedValue({
-        items: [
+      listTimeline: vi.fn().mockResolvedValue({
+        entries: [
           publicItem(
             "out:ack1",
             ConversationItemAuthor.author_platform,
@@ -649,8 +649,8 @@ describe("ConversationsWorkbench", () => {
           awaitingReply: false,
         }),
       ),
-      getTimeline: vi.fn().mockResolvedValue({
-        items: [customerItem("wa:1", "where is my order?")],
+      listTimeline: vi.fn().mockResolvedValue({
+        entries: [customerItem("wa:1", "where is my order?")],
         nextPageToken: "",
       }),
     });
@@ -688,8 +688,8 @@ describe("ConversationsWorkbench", () => {
     const other = { agentChannelId: "ach_wa", conversationKey: "15550009999" };
     const client = createMockStigmer({
       listConversations: vi.fn().mockResolvedValue({
-        items: [row(), row({ conversationKey: other.conversationKey, displayName: "Sam" })],
-        totalCount: 2,
+        entries: [row(), row({ conversationKey: other.conversationKey, displayName: "Sam" })],
+        nextPageToken: "",
       }),
     });
     const { rerender } = render(
@@ -831,15 +831,15 @@ describe("ConversationsWorkbench", () => {
 
   it("disables the composer on Slack with the honest reason", async () => {
     const client = createMockStigmer({
-      list: vi.fn().mockResolvedValue({ items: [slackChannel()], totalCount: 1 }),
+      list: vi.fn().mockResolvedValue({ entries: [slackChannel()], nextPageToken: "" }),
       listConversations: vi.fn().mockResolvedValue({
-        items: [row({ agentChannelId: "ach_sl", conversationKey: "1723012345.678900" })],
-        totalCount: 1,
+        entries: [row({ agentChannelId: "ach_sl", conversationKey: "1723012345.678900" })],
+        nextPageToken: "",
       }),
       getConversation: vi
         .fn()
         .mockResolvedValue(row({ agentChannelId: "ach_sl", conversationKey: "1723012345.678900" })),
-      getTimeline: vi.fn().mockResolvedValue({ items: [], nextPageToken: "" }),
+      listTimeline: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
     });
     render(
       <ConversationsWorkbench

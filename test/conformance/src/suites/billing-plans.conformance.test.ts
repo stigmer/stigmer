@@ -8,8 +8,9 @@
 //     it is a platform operator's act, refused to everyone else with the
 //     proto's own copy;
 //   - an organization that never subscribed is on Free: getEntitlements
-//     answers Free's features with an empty plan id, and getForOrg
-//     and getPeriodEstimate answer NOT_FOUND;
+//     answers Free's features with an empty plan id, getForOrg
+//     and getPeriodEstimate answer NOT_FOUND, and getAgentHours answers
+//     Free's allowance over the current UTC month, with no hourly price;
 //   - subscribing needs a saved payment method, refused with the engine's
 //     copy and the PAYMENT_METHOD_REQUIRED reason before anything is written
 //     or charged;
@@ -27,6 +28,7 @@
 // box does not hold; the Cloud composition's own suites pin both. The plan
 // gates on teams and managed organizations belong to the enterprise identity
 // lanes, which this suite has no clients for.
+import { timestampMs } from "@bufbuild/protobuf/wkt";
 import { Code } from "@connectrpc/connect";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -35,6 +37,7 @@ import { PlanQueryController } from "@stigmer/protos/ai/stigmer/billing/plan/v1/
 import { PlanInstrument } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
 import { PlanLifecycle } from "@stigmer/protos/ai/stigmer/billing/plan/v1/status_pb";
 import { SubscriptionCommandController } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/command_pb";
+import { AgentHoursWindow } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
 import { SubscriptionQueryController } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/query_pb";
 import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 import { FixtureTracker } from "../harness/fixtures";
@@ -75,6 +78,7 @@ const COPY = {
   changePlan: "unauthorized to change this organization's plan",
   viewEntitlements: "unauthorized to view this organization's entitlements",
   viewPeriodEstimate: "unauthorized to view this organization's period estimate",
+  viewAgentHours: "unauthorized to view this organization's agent hours",
 } as const;
 
 // The engine's own copy, which the console surfaces to the person who can act
@@ -184,6 +188,27 @@ describe.skipIf(!plansServed)("Billing plans conformance — an organization's s
     );
   });
 
+  it("[billing.rpc.get-agent-hours.free-calendar-month] [rpc:SubscriptionQueryController.getAgentHours] an organization on Free counts its agent hours over the calendar month in UTC, pausing at its allowance", async () => {
+    const { org } = await keylessOrg();
+    const before = new Date();
+    const answer = await clients.subscriptionQuery.getAgentHours({ org });
+    const after = new Date();
+    expect(answer.window).toBe(AgentHoursWindow.calendar_month);
+    expect(answer.includedHours, "Free states an allowance").toBeGreaterThan(0);
+    expect(answer.perAgentHourMicros, "no hourly price: new work pauses at the allowance").toBeUndefined();
+    expect(answer.workingSeconds, "a new organization has worked no time").toBe(0n);
+    // The month the read fell in; a read straddling a month's end may answer either.
+    const monthOf = (at: Date): readonly [number, number] => [
+      Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), 1),
+      Date.UTC(at.getUTCFullYear(), at.getUTCMonth() + 1, 1),
+    ];
+    const window = [
+      answer.windowStart === undefined ? NaN : timestampMs(answer.windowStart),
+      answer.windowEnd === undefined ? NaN : timestampMs(answer.windowEnd),
+    ];
+    expect([monthOf(before), monthOf(after)]).toContainEqual(window);
+  });
+
   it("[billing.rpc.change-plan.requires-payment-method] [rpc:SubscriptionCommandController.changePlan] subscribing without a saved card is refused before anything is written or charged", async () => {
     const { org } = await keylessOrg();
     const planId = await subscriptionPlanId();
@@ -207,7 +232,7 @@ describe.skipIf(!plansServed)("Billing plans conformance — an organization's s
     expect(await control.stripe.requests(), "nothing reached Stripe").toEqual([]);
   });
 
-  it("[billing.rpc.subscription.outsider-permission-denied] [rpc:SubscriptionCommandController.changePlan] [rpc:SubscriptionQueryController.getEntitlements] [rpc:SubscriptionQueryController.getPeriodEstimate] an outsider can neither change an organization's plan nor read its entitlements or period estimate", async () => {
+  it("[billing.rpc.subscription.outsider-permission-denied] [rpc:SubscriptionCommandController.changePlan] [rpc:SubscriptionQueryController.getEntitlements] [rpc:SubscriptionQueryController.getPeriodEstimate] [rpc:SubscriptionQueryController.getAgentHours] an outsider can neither change an organization's plan nor read its entitlements, period estimate or agent hours", async () => {
     const { org } = await keylessOrg();
     const planId = await subscriptionPlanId();
     const other = await outsider();
@@ -229,11 +254,17 @@ describe.skipIf(!plansServed)("Billing plans conformance — an organization's s
       "outsider getPeriodEstimate",
     );
     expect(estimate.rawMessage).toBe(COPY.viewPeriodEstimate);
+    const hours = await expectGrpcCode(
+      () => other.subscriptionQuery.getAgentHours({ org }),
+      Code.PermissionDenied,
+      "outsider getAgentHours",
+    );
+    expect(hours.rawMessage).toBe(COPY.viewAgentHours);
   });
 });
 
 describe.skipIf(plansServed)("Billing plans conformance — the OSS boundary (no plan or subscription controllers routed)", () => {
-  it("[billing.rpc.oss-boundary.every-plan-rpc-unimplemented] [rpc:PlanCommandController.create] [rpc:PlanCommandController.retire] [rpc:PlanQueryController.get] [rpc:PlanQueryController.list] [rpc:SubscriptionCommandController.changePlan] [rpc:SubscriptionCommandController.cancel] [rpc:SubscriptionQueryController.getForOrg] [rpc:SubscriptionQueryController.getEntitlements] [rpc:SubscriptionQueryController.getPeriodEstimate] every Plan and Subscription RPC answers Unimplemented where billingPlans is false", async () => {
+  it("[billing.rpc.oss-boundary.every-plan-rpc-unimplemented] [rpc:PlanCommandController.create] [rpc:PlanCommandController.retire] [rpc:PlanQueryController.get] [rpc:PlanQueryController.list] [rpc:SubscriptionCommandController.changePlan] [rpc:SubscriptionCommandController.cancel] [rpc:SubscriptionQueryController.getForOrg] [rpc:SubscriptionQueryController.getEntitlements] [rpc:SubscriptionQueryController.getPeriodEstimate] [rpc:SubscriptionQueryController.getAgentHours] every Plan and Subscription RPC answers Unimplemented where billingPlans is false", async () => {
     const org = "conformance-oss-boundary";
     const lanes: ReadonlyArray<readonly [string, () => Promise<unknown>]> = [
       ["Plan.create", () => clients.planCommand.create({})],
@@ -245,6 +276,7 @@ describe.skipIf(plansServed)("Billing plans conformance — the OSS boundary (no
       ["Subscription.getForOrg", () => clients.subscriptionQuery.getForOrg({ org })],
       ["Subscription.getEntitlements", () => clients.subscriptionQuery.getEntitlements({ org })],
       ["Subscription.getPeriodEstimate", () => clients.subscriptionQuery.getPeriodEstimate({ org })],
+      ["Subscription.getAgentHours", () => clients.subscriptionQuery.getAgentHours({ org })],
     ];
     // Every method the four controllers declare, so a new RPC on the contract
     // fails here until its boundary is pinned.

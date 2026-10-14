@@ -1,15 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import {
-  FileChangeSchema,
-  FileContentSchema,
-  type FileChange,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  FileChangeCaptureLevel,
-  FileChangeType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { DisplayFileChange } from "@stigmer/sdk";
 import type { UseFileChangeContentReturn } from "../../run/useFileChangeContent";
 
 // Drive FileChangeDiff's content deterministically (it is rendered by the diff
@@ -40,21 +33,30 @@ import {
   type WorkspaceFileReader,
 } from "../WorkspaceFileReader";
 
-function wholeFileChange(path: string): FileChange {
-  return create(FileChangeSchema, {
+function displayChange(init: Partial<DisplayFileChange> & { path: string }): DisplayFileChange {
+  return {
+    changeType: "modified",
+    before: undefined,
+    after: undefined,
+    linesAdded: 0,
+    linesRemoved: 0,
+    renameFrom: "",
+    ...init,
+  };
+}
+
+function wholeFileChange(path: string): DisplayFileChange {
+  return displayChange({
     path,
-    changeType: FileChangeType.MODIFY,
-    captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
     before: create(FileContentSchema, { body: { case: "inline", value: "alpha\n" } }),
     after: create(FileContentSchema, { body: { case: "inline", value: "beta\n" } }),
   });
 }
 
-function deleteChange(path: string): FileChange {
-  return create(FileChangeSchema, {
+function deleteChange(path: string): DisplayFileChange {
+  return displayChange({
     path,
-    changeType: FileChangeType.DELETE,
-    captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+    changeType: "deleted",
     before: create(FileContentSchema, { body: { case: "inline", value: "alpha\n" } }),
   });
 }
@@ -534,13 +536,8 @@ describe("FileViewer — not-found and captured-content fallback", () => {
     await waitFor(() => expect(screen.getByText("now it exists")).toBeTruthy());
   });
 
-  it("keeps the not-found state calm for a HUNK_ONLY change (no whole-file capture to serve)", async () => {
-    const hunkOnly = create(FileChangeSchema, {
-      path: "notes.md",
-      changeType: FileChangeType.MODIFY,
-      captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
-      unifiedDiff: "@@ -1 +1 @@\n-alpha\n+beta\n",
-    });
+  it("keeps the not-found state calm for a change with no captured after side", async () => {
+    const hunkOnly = displayChange({ path: "notes.md" });
     render(
       <FileViewer
         selectedFile={{ entryId: "e1", path: "notes.md" }}

@@ -7,8 +7,8 @@
  * The contract: observers fire synchronously after the
  * store write and MAY NOT mutate the execution; decorators may contribute
  * only response fields the OSS reply schema already carries (the
- * control-signal field exists on the shared proto); StreamBroker.broadcast
- * stays last. The workflow `stigmer/agent-execution/invoke` stays
+ * control-signal field exists on the shared proto). The workflow
+ * `stigmer/agent-execution/invoke` stays
  * byte-identical — no extension activities inside it (that alternative
  * was considered and rejected).
  *

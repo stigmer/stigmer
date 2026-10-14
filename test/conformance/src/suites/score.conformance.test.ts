@@ -169,7 +169,7 @@ describe("Score conformance (no finished run)", () => {
       const week = await clients.scoreQuery.getAgentQualityReport({ org, agentId, days: 7 });
       expect(Date.parse(week.toDate) - Date.parse(week.fromDate)).toBe(6 * 86_400_000);
       const flagged = await clients.scoreQuery.listFlaggedByAgent({ org, agentId });
-      expect(flagged.items).toEqual([]);
+      expect(flagged.entries).toEqual([]);
       expect(flagged.nextPageToken).toBe("");
     } finally {
       await clients.agentCommand.delete({ value: agentId });

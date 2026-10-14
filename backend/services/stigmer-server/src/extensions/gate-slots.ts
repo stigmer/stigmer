@@ -17,11 +17,11 @@
  * answer to a waiting tool use runs (domain/session/hitl/answer.ts): after
  * the answer is validated, before it is recorded. It runs once per fresh
  * answer whichever method carried it (SessionCommandController
- * .confirmToolUse and .grantPermission, RunCommandController
- * .submitApproval), and never for a replayed answer, which ends the chain
- * before the slot. Its steps read the answer with `approvalAnswerOf(ctx)`
- * (`APPROVAL_ANSWER_KEY`): the run as loaded, the tool use and its call
- * row, the result and whether it is a grant. The chain's input differs by
+ * .confirmToolUse and .grantPermission), and never for a replayed answer,
+ * which ends the chain before the slot. Its name is frozen from the run
+ * method that first carried answers. Its steps read the answer with
+ * `approvalAnswerOf(ctx)` (`APPROVAL_ANSWER_KEY`): the run as loaded, the
+ * tool use and its call id, the result and whether it is a grant. The chain's input differs by
  * method, so a step reads the answer, never `ctx.input`.
  *
  * The sixth is
@@ -79,6 +79,15 @@
  * its idempotency. After the slot the chain revokes the organization's own
  * policy rows, also before the row and also failing closed.
  *
+ * The tenth, `iam-policy-list-access-history:pre-read`: the access
+ * history's read (IamPolicyQueryController.listAccessHistory) after
+ * Authorize, ValidateProto and the open-source refusal, before anything is
+ * read, so a host refuses a read its own rules forbid with nothing
+ * returned. The Cloud refuses an organization whose plan does not include
+ * the history. Open source and self-hosted Enterprise splice nothing. The
+ * first slot on a read chain: its steps see the request (`ctx.input`, the
+ * organization already the id) and must not write.
+ *
  * Two enforcement layers, deliberately redundant, both derived from the
  * ONE literal tuple below (lockstep by construction):
  *   - GateSlotName (compile time): the union of declared slot literals.
@@ -125,6 +134,7 @@ export const GATE_SLOT_NAMES = [
   "iam-policy-create:pre-side-effect-gate",
   "org-create:pre-side-effect-gate",
   "org-delete:pre-delete",
+  "iam-policy-list-access-history:pre-read",
 ] as const;
 
 /** The declared slot-name union — a registration outside it fails tsc. */

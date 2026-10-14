@@ -41,13 +41,13 @@ interface MockOverrides {
   create?: (input: AgentChannelInput) => Promise<unknown>;
   initiateInstall?: (input: unknown) => Promise<unknown>;
   completeInstall?: (input: unknown) => Promise<unknown>;
-  /** Org channel apps returned by channelapp.listByOrg (BYO picker). */
+  /** Org channel apps returned by channelapp.list (BYO picker). */
   channelApps?: unknown[];
   /** Org-wide channels returned by agentChannel.list (pre-OAuth advisory). */
   orgChannels?: unknown[];
 }
 
-/** A registered BYO Slack app as channelapp.listByOrg returns it. */
+/** A registered BYO Slack app as channelapp.list returns it. */
 function makeChannelApp(slug = "acme-support-app", name = "Acme Support App") {
   return {
     metadata: { id: `chapp_${slug}`, org: "acme", slug, name },
@@ -58,13 +58,15 @@ function makeChannelApp(slug = "acme-support-app", name = "Acme Support App") {
 function createMockStigmer(overrides: MockOverrides = {}) {
   return {
     channelapp: {
-      listByOrg: vi.fn().mockResolvedValue({
+      list: vi.fn().mockResolvedValue({
         entries: overrides.channelApps ?? [],
+        nextPageToken: "",
       }),
     },
     agentChannel: {
       list: vi.fn().mockResolvedValue({
-        items: overrides.orgChannels ?? [],
+        entries: overrides.orgChannels ?? [],
+        nextPageToken: "",
       }),
       create:
         overrides.create ??
@@ -89,13 +91,13 @@ function createMockStigmer(overrides: MockOverrides = {}) {
     },
     vault: {
       list: vi.fn().mockResolvedValue({
-        items: [
+        entries: [
           {
             metadata: { slug: "github-credentials", name: "GitHub Credentials", org: "acme" },
             spec: { owner: { case: "org", value: "acme" } },
           },
         ],
-        totalCount: 1,
+        nextPageToken: "",
       }),
       getByReference: vi.fn().mockResolvedValue({
         spec: { owner: { case: "org", value: "acme" } },

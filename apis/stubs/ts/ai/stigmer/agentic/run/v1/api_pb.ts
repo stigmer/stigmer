@@ -4,28 +4,18 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ApprovalEventStream, PendingApproval } from "./approval_pb.js";
-import { file_ai_stigmer_agentic_run_v1_approval } from "./approval_pb.js";
 import type { RunArtifact } from "./artifact_pb.js";
 import { file_ai_stigmer_agentic_run_v1_artifact } from "./artifact_pb.js";
-import type { ContextInfo } from "./context_pb.js";
-import { file_ai_stigmer_agentic_run_v1_context } from "./context_pb.js";
 import type { ApprovalMode, RunPhase, RunValueDeclarerKind, RunValueOrigin } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_run_v1_enum } from "./enum_pb.js";
-import type { FileChangeProgress, FileChangeSet, FileReviewEventStream } from "./filereview_pb.js";
+import type { FileChangeProgress, FileChangeSet } from "./filereview_pb.js";
 import { file_ai_stigmer_agentic_run_v1_filereview } from "./filereview_pb.js";
 import type { RunConfig } from "./invocation_pb.js";
 import { file_ai_stigmer_agentic_run_v1_invocation } from "./invocation_pb.js";
-import type { AgentMessage } from "./message_pb.js";
-import { file_ai_stigmer_agentic_run_v1_message } from "./message_pb.js";
 import type { PluginEvalFiles } from "./plugin_eval_case_pb.js";
 import { file_ai_stigmer_agentic_run_v1_plugin_eval_case } from "./plugin_eval_case_pb.js";
 import type { DeclaredPreferences, RecalledMemories, RunSpec } from "./spec_pb.js";
 import { file_ai_stigmer_agentic_run_v1_spec } from "./spec_pb.js";
-import type { SubAgentRun } from "./subagent_pb.js";
-import { file_ai_stigmer_agentic_run_v1_subagent } from "./subagent_pb.js";
-import type { TodoItem } from "./todo_pb.js";
-import { file_ai_stigmer_agentic_run_v1_todo } from "./todo_pb.js";
 import type { StreamingUsageSummary } from "./usage_pb.js";
 import { file_ai_stigmer_agentic_run_v1_usage } from "./usage_pb.js";
 import type { WorkspaceWriteBack } from "./writeback_pb.js";
@@ -38,14 +28,13 @@ import { file_ai_stigmer_commons_apiresource_metadata } from "../../../commons/a
 import type { ApiResourceAudit } from "../../../commons/apiresource/status_pb.js";
 import { file_ai_stigmer_commons_apiresource_status } from "../../../commons/apiresource/status_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
-import { file_google_protobuf_struct } from "@bufbuild/protobuf/wkt";
-import type { JsonObject, Message } from "@bufbuild/protobuf";
+import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/agentic/run/v1/api.proto.
  */
 export const file_ai_stigmer_agentic_run_v1_api: GenFile = /*@__PURE__*/
-  fileDesc("CiNhaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL2FwaS5wcm90bxIZYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MSKJAgoDUnVuEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEhgKBGtpbmQYAiABKAlCCrpIB3IFCgNSdW4STQoIbWV0YWRhdGEYAyABKAsyMy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VNZXRhZGF0YUIGukgDyAEBEjAKBHNwZWMYBCABKAsyIi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1blNwZWMSNAoGc3RhdHVzGAUgASgLMiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5TdGF0dXMi8Q8KCVJ1blN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0EjkKCG1lc3NhZ2VzGAEgAygLMicuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5BZ2VudE1lc3NhZ2USPAoFcGhhc2UYAiABKA4yIy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1blBoYXNlQgi6SAWCAQIQARI+Cg5zdWJfYWdlbnRfcnVucxgEIAMoCzImLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuU3ViQWdlbnRSdW4SDQoFZXJyb3IYBiABKAkSEgoKc3RhcnRlZF9hdBgHIAEoCRIUCgxjb21wbGV0ZWRfYXQYCCABKAkSPgoFdG9kb3MYCSADKAsyLy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1blN0YXR1cy5Ub2Rvc0VudHJ5EkUKEXBlbmRpbmdfYXBwcm92YWxzGBAgAygLMiouYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5QZW5kaW5nQXBwcm92YWwSTQoVYXBwcm92YWxfZXZlbnRfc3RyZWFtGBYgASgLMi4uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5BcHByb3ZhbEV2ZW50U3RyZWFtEjwKDGNvbnRleHRfaW5mbxgOIAEoCzImLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuQ29udGV4dEluZm8SOQoJYXJ0aWZhY3RzGA8gAygLMiYuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5BcnRpZmFjdBJMChV3b3Jrc3BhY2Vfd3JpdGVfYmFja3MYESADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLldvcmtzcGFjZVdyaXRlQmFjaxJACg5zZXR1cF9wcm9ncmVzcxgSIAEoCzIoLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuU2V0dXBQcm9ncmVzcxJJCg9zdHJlYW1pbmdfdXNhZ2UYFCABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlN0cmVhbWluZ1VzYWdlU3VtbWFyeRIyChFzdHJ1Y3R1cmVkX291dHB1dBgVIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSQgoQZmlsZV9jaGFuZ2Vfc2V0cxgXIAMoCzIoLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRmlsZUNoYW5nZVNldBJSChhmaWxlX3Jldmlld19ldmVudF9zdHJlYW0YGCABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkZpbGVSZXZpZXdFdmVudFN0cmVhbRJLChRmaWxlX2NoYW5nZV9wcm9ncmVzcxgZIAEoCzItLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRmlsZUNoYW5nZVByb2dyZXNzElMKGHJlY2FsbGVkX21lbW9yaWVzX3JlcG9ydBgaIAEoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUmVjYWxsZWRNZW1vcmllc1JlcG9ydBIQCghhZ2VudF9pZBgbIAEoCRIaChJhZ2VudF92ZXJzaW9uX2hhc2gYHCABKAkSQgoPbG9hZGVkX3ZlcnNpb25zGCQgASgLMikuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Mb2FkZWRWZXJzaW9ucxJMChRkZWNsYXJlZF9wcmVmZXJlbmNlcxgdIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRGVjbGFyZWRQcmVmZXJlbmNlcxJGChFyZWNhbGxlZF9tZW1vcmllcxgeIAEoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUmVjYWxsZWRNZW1vcmllcxI4CgpydW5fY29uZmlnGB8gASgLMiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5Db25maWcSPgoNYXBwcm92YWxfbW9kZRggIAEoDjInLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuQXBwcm92YWxNb2RlEj4KC2NyZWRlbnRpYWxzGCEgASgLMikuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5DcmVkZW50aWFscxJFChFwbHVnaW5fZXZhbF9maWxlcxgiIAEoCzIqLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUGx1Z2luRXZhbEZpbGVzEo4BCgpzdG9wX2NhdXNlGCMgASgJQnq6SHfYAQFyclIOYnVkZ2V0X3JlYWNoZWRSB3RpbWVvdXRSDmluZnJhc3RydWN0dXJlUg1wbGF0Zm9ybV9zdG9wUgR1c2VyUgttb2RlbF9lcnJvclIGZmFpbGVkUgxldmFsX3N0b3BwZWRSD3Jldmlld19yZXNvbHZlZBpRCgpUb2Rvc0VudHJ5EgsKA2tleRgBIAEoCRIyCgV2YWx1ZRgCIAEoCzIjLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVG9kb0l0ZW06AjgBSgQIChALSgQIDBANUg5jYWxsYmFja190b2tlblIQcmVzb2x2ZWRfY29udGV4dCLTAgoOTG9hZGVkVmVyc2lvbnMSnQEKBnNraWxscxgBIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJXukhQkgFNIku6AUgKGGxvYWRlZF92ZXJzaW9ucy5za2lsbF9pZBIdYSBsb2FkZWQgc2tpbGwgaXMgbmFtZWQgYnkgaWQaDXRoaXMuaWQgIT0gJyfghSwrEqABCgdwbHVnaW5zGAIgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQlm6SFKSAU8iTboBSgoZbG9hZGVkX3ZlcnNpb25zLnBsdWdpbl9pZBIeYSBsb2FkZWQgcGx1Z2luIGlzIG5hbWVkIGJ5IGlkGg10aGlzLmlkICE9ICcn4IUsOiJsCg5SdW5DcmVkZW50aWFscxITCgZwZXJzb24YASABKAlIAIgBARI6Cgdzb3VyY2VzGAIgAygLMikuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5WYWx1ZVNvdXJjZUIJCgdfcGVyc29uIusBCg5SdW5WYWx1ZVNvdXJjZRILCgNrZXkYASABKAkSPQoIZGVjbGFyZXIYAiABKAsyKy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1blZhbHVlRGVjbGFyZXISOQoGb3JpZ2luGAMgASgOMikuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5WYWx1ZU9yaWdpbhIQCgh2YXVsdF9pZBgEIAEoCRINCgVlbnRyeRgFIAEoCRINCgVsb2dpbhgGIAEoCBITCgtwbGFpbl92YWx1ZRgIIAEoCUoECAcQCFIHc2lnbl9pbiLGAQoQUnVuVmFsdWVEZWNsYXJlchI9CgRraW5kGAEgASgOMi8uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5WYWx1ZURlY2xhcmVyS2luZBIMCgRuYW1lGAIgASgJEhYKDnJlcG9zaXRvcnlfdXJsGAQgASgJEhEKCXBsdWdpbl9pZBgFIAEoCRIOCgZzZXJ2ZXIYBiABKAkSFQoNcGx1Z2luX2RpZ2VzdBgHIAEoCUoECAMQBFINbWNwX3NlcnZlcl9pZCImCg1TZXR1cFByb2dyZXNzEhUKDWN1cnJlbnRfcGhhc2UYASABKAkiaAoWUmVjYWxsZWRNZW1vcmllc1JlcG9ydBIYChBzZWxlY3Rpb25fYWN0aXZlGAEgASgIEhsKE2luamVjdGVkX21lbW9yeV9pZHMYAiADKAkSFwoPZW1iZWRkaW5nX21vZGVsGAMgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_run_v1_approval, file_ai_stigmer_agentic_run_v1_artifact, file_ai_stigmer_agentic_run_v1_context, file_ai_stigmer_agentic_run_v1_enum, file_ai_stigmer_agentic_run_v1_filereview, file_ai_stigmer_agentic_run_v1_invocation, file_ai_stigmer_agentic_run_v1_message, file_ai_stigmer_agentic_run_v1_plugin_eval_case, file_ai_stigmer_agentic_run_v1_spec, file_ai_stigmer_agentic_run_v1_subagent, file_ai_stigmer_agentic_run_v1_todo, file_ai_stigmer_agentic_run_v1_usage, file_ai_stigmer_agentic_run_v1_writeback, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CiNhaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL2FwaS5wcm90bxIZYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MSKJAgoDUnVuEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEhgKBGtpbmQYAiABKAlCCrpIB3IFCgNSdW4STQoIbWV0YWRhdGEYAyABKAsyMy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VNZXRhZGF0YUIGukgDyAEBEjAKBHNwZWMYBCABKAsyIi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1blNwZWMSNAoGc3RhdHVzGAUgASgLMiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5TdGF0dXMinAwKCVJ1blN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0EjwKBXBoYXNlGAIgASgOMiMuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5QaGFzZUIIukgFggECEAESDQoFZXJyb3IYBiABKAkSEgoKc3RhcnRlZF9hdBgHIAEoCRIUCgxjb21wbGV0ZWRfYXQYCCABKAkSOQoJYXJ0aWZhY3RzGA8gAygLMiYuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5BcnRpZmFjdBJMChV3b3Jrc3BhY2Vfd3JpdGVfYmFja3MYESADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLldvcmtzcGFjZVdyaXRlQmFjaxJACg5zZXR1cF9wcm9ncmVzcxgSIAEoCzIoLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuU2V0dXBQcm9ncmVzcxJJCg9zdHJlYW1pbmdfdXNhZ2UYFCABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlN0cmVhbWluZ1VzYWdlU3VtbWFyeRJLChRmaWxlX2NoYW5nZV9wcm9ncmVzcxgZIAEoCzItLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRmlsZUNoYW5nZVByb2dyZXNzEj4KDGZpbGVfY2hhbmdlcxglIAMoCzIoLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRmlsZUNoYW5nZVNldBIQCghhZ2VudF9pZBgbIAEoCRIaChJhZ2VudF92ZXJzaW9uX2hhc2gYHCABKAkSQgoPbG9hZGVkX3ZlcnNpb25zGCQgASgLMikuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Mb2FkZWRWZXJzaW9ucxJMChRkZWNsYXJlZF9wcmVmZXJlbmNlcxgdIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRGVjbGFyZWRQcmVmZXJlbmNlcxJGChFyZWNhbGxlZF9tZW1vcmllcxgeIAEoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUmVjYWxsZWRNZW1vcmllcxI4CgpydW5fY29uZmlnGB8gASgLMiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5Db25maWcSPgoNYXBwcm92YWxfbW9kZRggIAEoDjInLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuQXBwcm92YWxNb2RlEj4KC2NyZWRlbnRpYWxzGCEgASgLMikuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5DcmVkZW50aWFscxJFChFwbHVnaW5fZXZhbF9maWxlcxgiIAEoCzIqLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUGx1Z2luRXZhbEZpbGVzEo4BCgpzdG9wX2NhdXNlGCMgASgJQnq6SHfYAQFyclIOYnVkZ2V0X3JlYWNoZWRSB3RpbWVvdXRSDmluZnJhc3RydWN0dXJlUg1wbGF0Zm9ybV9zdG9wUgR1c2VyUgttb2RlbF9lcnJvclIGZmFpbGVkUgxldmFsX3N0b3BwZWRSD3Jldmlld19yZXNvbHZlZEoECAEQAkoECAQQBUoECAkQCkoECA4QD0oECBAQEUoECBUQFkoECBYQF0oECBcQGEoECBgQGUoECBoQG0oECAoQC0oECAwQDVIIbWVzc2FnZXNSDnN1Yl9hZ2VudF9ydW5zUgV0b2Rvc1IMY29udGV4dF9pbmZvUhFwZW5kaW5nX2FwcHJvdmFsc1IRc3RydWN0dXJlZF9vdXRwdXRSFWFwcHJvdmFsX2V2ZW50X3N0cmVhbVIQZmlsZV9jaGFuZ2Vfc2V0c1IYZmlsZV9yZXZpZXdfZXZlbnRfc3RyZWFtUhhyZWNhbGxlZF9tZW1vcmllc19yZXBvcnRSDmNhbGxiYWNrX3Rva2VuUhByZXNvbHZlZF9jb250ZXh0ItMCCg5Mb2FkZWRWZXJzaW9ucxKdAQoGc2tpbGxzGAEgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQle6SFCSAU0iS7oBSAoYbG9hZGVkX3ZlcnNpb25zLnNraWxsX2lkEh1hIGxvYWRlZCBza2lsbCBpcyBuYW1lZCBieSBpZBoNdGhpcy5pZCAhPSAnJ+CFLCsSoAEKB3BsdWdpbnMYAiADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCWbpIUpIBTyJNugFKChlsb2FkZWRfdmVyc2lvbnMucGx1Z2luX2lkEh5hIGxvYWRlZCBwbHVnaW4gaXMgbmFtZWQgYnkgaWQaDXRoaXMuaWQgIT0gJyfghSw6ImwKDlJ1bkNyZWRlbnRpYWxzEhMKBnBlcnNvbhgBIAEoCUgAiAEBEjoKB3NvdXJjZXMYAiADKAsyKS5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1blZhbHVlU291cmNlQgkKB19wZXJzb24i6wEKDlJ1blZhbHVlU291cmNlEgsKA2tleRgBIAEoCRI9CghkZWNsYXJlchgCIAEoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuVmFsdWVEZWNsYXJlchI5CgZvcmlnaW4YAyABKA4yKS5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1blZhbHVlT3JpZ2luEhAKCHZhdWx0X2lkGAQgASgJEg0KBWVudHJ5GAUgASgJEg0KBWxvZ2luGAYgASgIEhMKC3BsYWluX3ZhbHVlGAggASgJSgQIBxAIUgdzaWduX2luIsYBChBSdW5WYWx1ZURlY2xhcmVyEj0KBGtpbmQYASABKA4yLy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1blZhbHVlRGVjbGFyZXJLaW5kEgwKBG5hbWUYAiABKAkSFgoOcmVwb3NpdG9yeV91cmwYBCABKAkSEQoJcGx1Z2luX2lkGAUgASgJEg4KBnNlcnZlchgGIAEoCRIVCg1wbHVnaW5fZGlnZXN0GAcgASgJSgQIAxAEUg1tY3Bfc2VydmVyX2lkIiYKDVNldHVwUHJvZ3Jlc3MSFQoNY3VycmVudF9waGFzZRgBIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_run_v1_artifact, file_ai_stigmer_agentic_run_v1_enum, file_ai_stigmer_agentic_run_v1_filereview, file_ai_stigmer_agentic_run_v1_invocation, file_ai_stigmer_agentic_run_v1_plugin_eval_case, file_ai_stigmer_agentic_run_v1_spec, file_ai_stigmer_agentic_run_v1_usage, file_ai_stigmer_agentic_run_v1_writeback, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate]);
 
 /**
  * Run represents a single run instance (conversational).
@@ -89,7 +78,8 @@ export type Run = Message<"ai.stigmer.agentic.run.v1.Run"> & {
 
   /**
    * System-managed run state and results.
-   * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
+   * Contains: phase, timestamps, errors, the file record and what the turn ran
+   * with. What the agent said and did is the session's event log.
    *
    * @generated from field: ai.stigmer.agentic.run.v1.RunStatus status = 5;
    */
@@ -106,6 +96,9 @@ export const RunSchema: GenMessage<Run> = /*@__PURE__*/
 /**
  * RunStatus contains all run results and state.
  * Everything populated during or after the run goes here, not in spec.
+ * The conversation itself (messages, tool calls, approvals, todos,
+ * sub-agents, structured output and file-review decisions) is the session's
+ * event log (SessionEvent), not a field here.
  *
  * @generated from message ai.stigmer.agentic.run.v1.RunStatus
  */
@@ -118,15 +111,6 @@ export type RunStatus = Message<"ai.stigmer.agentic.run.v1.RunStatus"> & {
   audit?: ApiResourceAudit;
 
   /**
-   * Sequential stream of run events: AI messages, tool calls, and system notifications.
-   * Ordered chronologically to reconstruct the complete run flow.
-   * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-   *
-   * @generated from field: repeated ai.stigmer.agentic.run.v1.AgentMessage messages = 1;
-   */
-  messages: AgentMessage[];
-
-  /**
    * Current run lifecycle phase.
    * Tracks the run state from creation (PENDING) through active processing (IN_PROGRESS)
    * to terminal states (COMPLETED/FAILED/CANCELLED).
@@ -134,15 +118,6 @@ export type RunStatus = Message<"ai.stigmer.agentic.run.v1.RunStatus"> & {
    * @generated from field: ai.stigmer.agentic.run.v1.RunPhase phase = 2;
    */
   phase: RunPhase;
-
-  /**
-   * Sub-agent runs invoked during this run.
-   * Tracks when the main agent delegates work to specialized sub-agents.
-   * Ordered chronologically by invocation time.
-   *
-   * @generated from field: repeated ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4;
-   */
-  subAgentRuns: SubAgentRun[];
 
   /**
    * Error message if the run failed.
@@ -167,55 +142,6 @@ export type RunStatus = Message<"ai.stigmer.agentic.run.v1.RunStatus"> & {
    * @generated from field: string completed_at = 8;
    */
   completedAt: string;
-
-  /**
-   * Todo list tracking multi-step tasks and progress for this run.
-   * Updated via write_todos tool (if TodoListMiddleware is enabled).
-   * Each run maintains its own snapshot of todos at run time.
-   * Key: todo item ID, Value: todo item details
-   *
-   * @generated from field: map<string, ai.stigmer.agentic.run.v1.TodoItem> todos = 9;
-   */
-  todos: { [key: string]: TodoItem };
-
-  /**
-   * Active pending approval requests for this run.
-   *
-   * Contains one entry per tool call that requires user approval before
-   * it can proceed. Sub-agent approvals are included with from_sub_agent
-   * set to true. Empty when no approvals are pending.
-   *
-   * @generated from field: repeated ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16;
-   */
-  pendingApprovals: PendingApproval[];
-
-  /**
-   * No longer written: approvals and their answers are the session's events
-   * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
-   * stigmer.permission.grant). Runs written before then keep their entries.
-   *
-   * @generated from field: ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22;
-   */
-  approvalEventStream?: ApprovalEventStream;
-
-  /**
-   * Context window utilization and summarization tracking.
-   *
-   * Provides visibility into how the agent is using its context window and
-   * any summarization events that occurred during the run.
-   *
-   * Populated when context management is active (not disabled via config).
-   * Updated progressively during streaming as token counts change.
-   *
-   * Use cases:
-   * - **Monitoring**: Track context utilization across runs
-   * - **Debugging**: Understand why a run hit context limits
-   * - **Cost optimization**: Identify runs with excessive summarization
-   * - **UX**: Show users their context window health
-   *
-   * @generated from field: ai.stigmer.agentic.run.v1.ContextInfo context_info = 14;
-   */
-  contextInfo?: ContextInfo;
 
   /**
    * Files/directories published by the agent for download.
@@ -268,40 +194,6 @@ export type RunStatus = Message<"ai.stigmer.agentic.run.v1.RunStatus"> & {
   streamingUsage?: StreamingUsageSummary;
 
   /**
-   * Structured output extracted from the agent's final response.
-   *
-   * Populated when spec.structured_output_schema was set and the
-   * runner successfully extracted schema-conforming data. Only meaningful
-   * when phase is RUN_COMPLETED.
-   *
-   * For native harness: populated from LangGraph graphState.structuredResponse
-   * (ToolStrategy enforcement). For Cursor harness: populated from 3-tier
-   * extraction (JSON.parse → fence extraction → extraction LLM fallback).
-   *
-   * Consumers: frontend architect/refine hooks read this instead of parsing
-   * YAML from messages.
-   *
-   * @generated from field: google.protobuf.Struct structured_output = 21;
-   */
-  structuredOutput?: JsonObject;
-
-  /**
-   * Server-computed projection of file change sets awaiting or completing
-   * review for this run.
-   *
-   * @generated from field: repeated ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23;
-   */
-  fileChangeSets: FileChangeSet[];
-
-  /**
-   * Server-owned, append-only record of every file-review event (baseline /
-   * candidate capture, file decisions, reconcile, failures).
-   *
-   * @generated from field: ai.stigmer.agentic.run.v1.FileReviewEventStream file_review_event_stream = 24;
-   */
-  fileReviewEventStream?: FileReviewEventStream;
-
-  /**
    * Transient, non-authoritative snapshot of the workspace delta accumulating
    * during the current turn — the live "N files changed so far" surface, shown
    * before any review is possible.
@@ -311,15 +203,18 @@ export type RunStatus = Message<"ai.stigmer.agentic.run.v1.RunStatus"> & {
   fileChangeProgress?: FileChangeProgress;
 
   /**
-   * Report of which recalled memories were injected into this run's
-   * prompt.
+   * The run's file record: the change sets its turns captured, each with the
+   * files' contents before and after (inline or by storage key), the diff, the
+   * snapshots they were read from and the consent the turn's commands ran
+   * under. Empty for a run that changed no file or ran without file review.
    *
-   * Absent, or present with selection_active=false, means wholesale: every
-   * fact in the status.recalled_memories snapshot was injected.
+   * A record only: it carries no status and no decisions. What was decided,
+   * what is still undecided and what was put back are the session's
+   * stigmer.file_review.* events.
    *
-   * @generated from field: ai.stigmer.agentic.run.v1.RecalledMemoriesReport recalled_memories_report = 26;
+   * @generated from field: repeated ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37;
    */
-  recalledMemoriesReport?: RecalledMemoriesReport;
+  fileChanges: FileChangeSet[];
 
   /**
    * ID of the agent this turn ran. Empty when the turn ran the built-in
@@ -649,44 +544,4 @@ export type SetupProgress = Message<"ai.stigmer.agentic.run.v1.SetupProgress"> &
  */
 export const SetupProgressSchema: GenMessage<SetupProgress> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_run_v1_api, 6);
-
-/**
- * RecalledMemoriesReport records the semantic retriever's injection outcome
- * for one run.
- *
- * @generated from message ai.stigmer.agentic.run.v1.RecalledMemoriesReport
- */
-export type RecalledMemoriesReport = Message<"ai.stigmer.agentic.run.v1.RecalledMemoriesReport"> & {
-  /**
-   * Whether semantic selection was active for this run's prompt.
-   * False means wholesale: the full status.recalled_memories snapshot was
-   * injected.
-   *
-   * @generated from field: bool selection_active = 1;
-   */
-  selectionActive: boolean;
-
-  /**
-   * IDs of the injected memories when selection was active.
-   *
-   * @generated from field: repeated string injected_memory_ids = 2;
-   */
-  injectedMemoryIds: string[];
-
-  /**
-   * Embedding model that performed the selection.
-   * Example: "text-embedding-3-small". Empty when selection_active is
-   * false.
-   *
-   * @generated from field: string embedding_model = 3;
-   */
-  embeddingModel: string;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.run.v1.RecalledMemoriesReport.
- * Use `create(RecalledMemoriesReportSchema)` to create a new message.
- */
-export const RecalledMemoriesReportSchema: GenMessage<RecalledMemoriesReport> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_api, 7);
 

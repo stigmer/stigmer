@@ -21,7 +21,7 @@ import { GateHeader } from "../shell/GateHeader";
  * disabled (a local server) the hook reports ready at once.
  *
  * It sits above `OrgProvider` in the provider chain, so the personal
- * organization exists before `findMyOrganizations()` is called.
+ * organization exists before `listMine()` is called.
  */
 export function IdentityAccountGate({ children }: { children: ReactNode }) {
   const { isAuthEnabled } = useAuth();

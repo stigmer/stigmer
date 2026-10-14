@@ -142,7 +142,7 @@ describe("AgentShare conformance — CRUD & identity", () => {
     expect(named.metadata?.slug).toContain("campaign-link");
   });
 
-  it("[rpc:AgentShareQueryController.get] [rpc:AgentShareQueryController.getByReference] [rpc:AgentShareQueryController.getByAgent] [rpc:AgentShareQueryController.list] get, getByReference, getByAgent, and list resolve the share", async () => {
+  it("[rpc:AgentShareQueryController.get] [rpc:AgentShareQueryController.getByReference] [rpc:AgentShareQueryController.listByAgent] [rpc:AgentShareQueryController.list] get, getByReference, listByAgent, and list resolve the share", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const created = await createShareFixture(org, agent.metadata!.slug);
@@ -156,11 +156,11 @@ describe("AgentShare conformance — CRUD & identity", () => {
     });
     expect(byRef.metadata?.id).toBe(created.metadata?.id);
 
-    const byAgent = await clients.agentShareQuery.getByAgent({ agentId: agent.metadata!.id });
-    expect(byAgent.items.some((s) => s.metadata?.id === created.metadata?.id)).toBe(true);
+    const byAgent = await clients.agentShareQuery.listByAgent({ agentId: agent.metadata!.id });
+    expect(byAgent.entries.some((s) => s.metadata?.id === created.metadata?.id)).toBe(true);
 
     const listed = await clients.agentShareQuery.list({ org });
-    expect(listed.items.some((s) => s.metadata?.id === created.metadata?.id)).toBe(true);
+    expect(listed.entries.some((s) => s.metadata?.id === created.metadata?.id)).toBe(true);
   });
 
   it("[rpc:AgentShareCommandController.update] update flips mutable fields but refuses re-pointing agent_ref (FailedPrecondition)", async () => {

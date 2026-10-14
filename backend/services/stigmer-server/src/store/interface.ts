@@ -34,7 +34,11 @@ import type {
   ListIndexQuery,
   ListIndexRow,
 } from "./list-index.js";
-import type { PermissionChange } from "./permission-history.js";
+import type {
+  PermissionChange,
+  PermissionHistoryPage,
+  PermissionHistoryRecord,
+} from "./permission-history.js";
 import type {
   ResourceEventWriteResult,
   ResourceEventWriter,
@@ -782,6 +786,17 @@ export interface Store {
     id: string,
     change?: PermissionChange,
   ): Promise<boolean>;
+
+  /**
+   * One organization's permission-history entries (permission-history.ts):
+   * newest first below `page.before`, or oldest first above `page.after`,
+   * at most `page.limit`. An organization with no entries, or none past
+   * the bound, answers an empty array.
+   */
+  listPermissionHistory(
+    org: string,
+    page: PermissionHistoryPage,
+  ): Promise<PermissionHistoryRecord[]>;
 
   /**
    * The one door for a write that must commit with session events

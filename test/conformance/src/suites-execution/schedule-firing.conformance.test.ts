@@ -143,8 +143,9 @@ describe.skipIf(!firingEnabled)("Schedule trigger contract (scheduleFiring targe
     const history = await clients.scheduleQuery.listFires({
       scheduleId: schedule.metadata!.id,
     });
-    expect(history.totalCount).toBe(1);
-    const run = history.items[0]!;
+    expect(history.entries).toHaveLength(1);
+    expect(history.nextPageToken).toBe("");
+    const run = history.entries[0]!;
     expect(run.origin).toBe(ScheduleFireOrigin.MANUAL);
     expect(run.outcome).toBe(ScheduleFireOutcome.TARGET_MISSING);
     expect(run.reason).toBe(targetMissingReason(org, agentId));
@@ -224,8 +225,9 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
     // execution — so run history resolves their outcome at READ time
     // from the execution's live phase (the honesty rule).
     const history = await clients.scheduleQuery.listFires({ scheduleId: id });
-    expect(history.totalCount).toBe(1);
-    const run = history.items[0]!;
+    expect(history.entries).toHaveLength(1);
+    expect(history.nextPageToken).toBe("");
+    const run = history.entries[0]!;
     expect(run.origin).toBe(ScheduleFireOrigin.MANUAL);
     expect(run.outcome).toBe(ScheduleFireOutcome.COMPLETED);
     expect(run.runId).toBe(executionId);

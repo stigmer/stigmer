@@ -1,6 +1,6 @@
 /**
- * The session Usage tab: the session's tokens (never money), and per run
- * its tokens and primary model (for a metered Cursor Auto run, the
+ * The session Usage tab: the session's tokens (never money) and working
+ * time, and per run its tokens, working time and primary model (for a metered Cursor Auto run, the
  * after-the-fact truth of which model served) paired with the tier the
  * runner REQUESTED (the streaming summary's audit record that the account
  * default was never left in control, #362), marked "Estimated" for a run
@@ -36,6 +36,7 @@ const EMPTY_USAGE: UseSessionUsageReturn = {
   cacheReadTokens: 0,
   cacheCreationTokens: 0,
   llmCallCount: 0,
+  workingSeconds: 0,
   modelBreakdown: [],
   runBreakdown: [],
   servedBy: [],
@@ -89,27 +90,45 @@ describe("UsageTab (#362 model provenance)", () => {
         resolvedModel: "cursor-grok-4.5-high-fast",
         totalTokens: 12_300,
         isEstimated: false,
+        workingSeconds: 0,
       }],
     }));
 
     const { container } = render(<UsageTab runs={[executionWithTier("exe_1", ServiceTier.STANDARD)]} />);
 
     expect(screen.getByRole("region", { name: "Session usage summary" }).textContent).toContain("18.4k tokens");
-    const list = screen.getByRole("list", { name: "Per-run tokens, model and tier" });
+    const list = screen.getByRole("list", { name: "Per-run tokens, working time, model and tier" });
     expect(list.textContent).toContain("cursor-grok-4.5-high-fast");
     expect(list.textContent).toContain("12.3k tokens");
     expect(container.textContent).not.toContain("$");
   });
 
+  it("shows the session's working time and each run's, never days", () => {
+    usageMock.mockReturnValue(usageWith({
+      workingSeconds: 4_000,
+      runBreakdown: [
+        { runId: "exe_1", resolvedModel: "claude-sonnet", totalTokens: 900, isEstimated: false, workingSeconds: 252 },
+        { runId: "exe_2", resolvedModel: "claude-sonnet", totalTokens: 300, isEstimated: false, workingSeconds: 3_748 },
+      ],
+    }));
+
+    render(<UsageTab runs={[executionWithTier("exe_1"), executionWithTier("exe_2")]} />);
+
+    expect(screen.getByText("1h 6m")).toBeTruthy();
+    const items = screen.getAllByRole("listitem").map((item) => item.textContent);
+    expect(items[0]).toContain("900 tokens · 4m 12s");
+    expect(items[1]).toContain("300 tokens · 1h 2m");
+  });
+
   it("marks a run counted from its runner's report as estimated", () => {
     usageMock.mockReturnValue(usageWith({
       isEstimated: true,
-      runBreakdown: [{ runId: "exe_1", resolvedModel: "composer-2", totalTokens: 900, isEstimated: true }],
+      runBreakdown: [{ runId: "exe_1", resolvedModel: "composer-2", totalTokens: 900, isEstimated: true, workingSeconds: 0 }],
     }));
 
     render(<UsageTab runs={[executionWithTier("exe_1")]} />);
 
-    const list = screen.getByRole("list", { name: "Per-run tokens, model and tier" });
+    const list = screen.getByRole("list", { name: "Per-run tokens, working time, model and tier" });
     expect(list.textContent).toContain("Estimated");
     expect(list.textContent).toContain("900 tokens");
   });
@@ -121,6 +140,7 @@ describe("UsageTab (#362 model provenance)", () => {
         resolvedModel: "composer-2.5",
         totalTokens: 100,
         isEstimated: false,
+        workingSeconds: 0,
       }],
     }));
 
@@ -136,6 +156,7 @@ describe("UsageTab (#362 model provenance)", () => {
         resolvedModel: "claude-haiku-4.5",
         totalTokens: 100,
         isEstimated: false,
+        workingSeconds: 0,
       }],
     }));
 
@@ -160,6 +181,6 @@ describe("UsageTab (#362 model provenance)", () => {
 
     render(<UsageTab runs={[executionWithTier("exe_1", ServiceTier.STANDARD)]} />);
 
-    expect(screen.queryByRole("list", { name: "Per-run tokens, model and tier" })).toBeNull();
+    expect(screen.queryByRole("list", { name: "Per-run tokens, working time, model and tier" })).toBeNull();
   });
 });

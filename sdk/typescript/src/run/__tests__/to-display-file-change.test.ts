@@ -1,4 +1,4 @@
-// Unit tests for the CapturedFileChange -> FileChange display projection.
+// Unit tests for the CapturedFileChange -> DisplayFileChange projection.
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
@@ -6,11 +6,7 @@ import {
   CapturedFileChangeSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  FileChangeCaptureLevel,
-  FileChangeKind,
-  FileChangeType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { toDisplayFileChange } from "../to-display-file-change";
 
 function inline(text: string) {
@@ -18,7 +14,7 @@ function inline(text: string) {
 }
 
 describe("toDisplayFileChange", () => {
-  it("maps a MODIFY with both sides to a WHOLE_FILE before/after change", () => {
+  it("maps a MODIFY with both sides to a before/after change", () => {
     const fc = toDisplayFileChange(
       create(CapturedFileChangeSchema, {
         id: "fc1",
@@ -30,14 +26,13 @@ describe("toDisplayFileChange", () => {
       }),
     );
     expect(fc.path).toBe("src/a.ts");
-    expect(fc.changeType).toBe(FileChangeType.MODIFY);
-    expect(fc.captureLevel).toBe(FileChangeCaptureLevel.WHOLE_FILE);
+    expect(fc.changeType).toBe("modified");
     expect(fc.before?.body.case).toBe("inline");
     expect(fc.after?.body.case).toBe("inline");
     expect(fc.renameFrom).toBe("");
   });
 
-  it("maps ADD -> CREATE and uses pathAfter", () => {
+  it("maps ADD -> added and uses pathAfter", () => {
     const fc = toDisplayFileChange(
       create(CapturedFileChangeSchema, {
         id: "fc1",
@@ -46,11 +41,11 @@ describe("toDisplayFileChange", () => {
         after: inline("hello"),
       }),
     );
-    expect(fc.changeType).toBe(FileChangeType.CREATE);
+    expect(fc.changeType).toBe("added");
     expect(fc.path).toBe("src/new.ts");
   });
 
-  it("maps DELETE -> DELETE and uses pathBefore when pathAfter is empty", () => {
+  it("maps DELETE -> deleted and uses pathBefore when pathAfter is empty", () => {
     const fc = toDisplayFileChange(
       create(CapturedFileChangeSchema, {
         id: "fc1",
@@ -59,11 +54,11 @@ describe("toDisplayFileChange", () => {
         before: inline("bye"),
       }),
     );
-    expect(fc.changeType).toBe(FileChangeType.DELETE);
+    expect(fc.changeType).toBe("deleted");
     expect(fc.path).toBe("src/gone.ts");
   });
 
-  it("maps RENAME -> RENAME and carries renameFrom = pathBefore", () => {
+  it("maps RENAME -> renamed and carries renameFrom = pathBefore", () => {
     const fc = toDisplayFileChange(
       create(CapturedFileChangeSchema, {
         id: "fc1",
@@ -72,7 +67,7 @@ describe("toDisplayFileChange", () => {
         kind: FileChangeKind.RENAME,
       }),
     );
-    expect(fc.changeType).toBe(FileChangeType.RENAME);
+    expect(fc.changeType).toBe("renamed");
     expect(fc.path).toBe("src/new-name.ts");
     expect(fc.renameFrom).toBe("src/old-name.ts");
   });

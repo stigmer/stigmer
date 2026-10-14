@@ -451,7 +451,8 @@ System.out.println("JWKS: " + issuer.getSpec().getJwksUri());
 
 An Organization can have multiple Federation Issuers. This is useful when your
 platform uses different auth providers for different regions or customer
-segments. Use `list` to see all Federation Issuers of an Organization:
+segments. Use `list` to see an Organization's Federation Issuers, one page at a time
+(follow `nextPageToken` for the next page):
 
 <SDKTabs>
 <Tab value="TypeScript">

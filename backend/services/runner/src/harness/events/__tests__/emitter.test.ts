@@ -17,23 +17,24 @@
 import { create, toBinary, type MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it, vi } from "vitest";
-import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
-  ApprovalPolicySource,
-  ApprovalPolicySourceSchema,
   FileChangeKind,
   FileReviewBlockReason,
-  FileReviewEventType,
-  MessageType,
-  SubAgentStatus,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { AppendSessionEventsResponseSchema, type SessionEventPreview } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 
 import { ELISION_MARKER } from "../../../shared/status-offload.js";
-import { POLICY_SOURCE_WORDS, SESSION_EVENT_MAX_BYTES, SessionEventEmitter, type SessionEventEmitterDeps } from "../emitter.js";
+import { POLICY_SOURCE_WORDS, SESSION_EVENT_MAX_BYTES, SessionEventEmitter, nextScopeIndexes, type SessionEventEmitterDeps } from "../emitter.js";
+import { AgentMessageSchema, ToolCallSchema, TurnRowsSchema, type TurnRows } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import {
+  ApprovalPolicySource,
+  ApprovalPolicySourceSchema,
+  FileReviewEventType,
+  MessageType,
+  SubAgentStatus,
+  ToolCallStatus,
+} from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const RUN = "run_01jz8k3q9w4e5r6t7y8u9i0o1p";
 const AI = MessageType.MESSAGE_AI;
@@ -74,8 +75,8 @@ function ids(log: ReturnType<typeof logDouble>): string[] {
   return log.events.map((e) => (e.event.case === undefined ? "" : e.event.value.id.slice(RUN.length + 1)));
 }
 
-function status(init: Parameters<typeof create<typeof RunStatusSchema>>[1]): RunStatus {
-  return create(RunStatusSchema, init);
+function status(init: Parameters<typeof create<typeof TurnRowsSchema>>[1]): TurnRows {
+  return create(TurnRowsSchema, init);
 }
 
 type RowInit = MessageInitShape<typeof ToolCallSchema>;
@@ -94,7 +95,7 @@ describe("the sealed prefix of a thread", () => {
         { type: AI, content: "Both read." },
       ],
     });
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     await e.flush(st, { final: false });
     expect(ids(log)).toEqual(["root.m0", "a", "b", "a.r"]);
 
@@ -108,7 +109,7 @@ describe("the sealed prefix of a thread", () => {
     const log = logDouble();
     const e = emitter(log);
     const st = status({ messages: [{ type: AI, content: "Thinking out lo", isStreaming: true }] });
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     await e.flush(st, { final: false });
     expect(ids(log)).toEqual([]);
     await e.flush(st, { final: true });
@@ -125,7 +126,7 @@ describe("the sealed prefix of a thread", () => {
         { type: AI, content: "Stopped." },
       ],
     });
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     await e.flush(st, { final: true });
     expect(ids(log)).toEqual(["r", "root.m1"]);
   });
@@ -140,7 +141,7 @@ describe("an offloaded output", () => {
       outputRef: { storageKey: `artifacts/${RUN}/toolcalls/big.txt`, sizeBytes: 900_000n, contentHash: "ab12", mimeType: "text/plain", truncatedPreview: "line 1" },
     });
     const st = status({ messages: [{ type: AI, content: "Reading the log.", toolCalls: [offloaded, row("small")] }] });
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     await e.flush(st, { final: false });
     await e.flush(st, { final: true });
     expect(ids(log)).toEqual(["root.m0", "big", "small", "big.r", "big.full", "small.r"]);
@@ -170,7 +171,7 @@ describe("the ask's policy source", () => {
     const st = status({
       messages: [{ type: AI, content: "Writing.", toolCalls: [row("w", { ...waiting, approvalContentDigest: "d1" }), row("s", { ...waiting, name: "shell" })] }],
     });
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     await e.flush(st, { final: true });
     const asks = log.events.flatMap((ev) => (ev.event.case === "stigmerPermissionAsked" ? [ev.event.value] : []));
     expect(asks.map((ask) => [ask.toolUseId.slice(RUN.length + 1), ask.contentDigest])).toEqual([["w", "d1"], ["s", ""]]);
@@ -195,7 +196,7 @@ describe("the permission a tool use carries", () => {
         },
       ],
     });
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     await e.flush(st, { final: true });
     const uses = log.events.flatMap((ev) => (ev.event.case === "agentToolUse" ? [ev.event.value] : []));
     expect(uses.map((use) => [use.id.slice(RUN.length + 1), use.evaluatedPermission])).toEqual([
@@ -222,7 +223,7 @@ describe("a harness whose boundary rewrites rows", () => {
         { type: AI, content: "After the block." },
       ],
     });
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     e.observe({ kind: "text_delta", runId: "seg-2", text: "After" }, { messageIndex: 1 });
     await e.flush(st, { final: false });
     expect(ids(log)).toEqual(["root.m0"]);
@@ -233,18 +234,111 @@ describe("a harness whose boundary rewrites rows", () => {
 });
 
 describe("rows that are not the runner's to write", () => {
-  it("skips seeded SYSTEM rows and a terminal arm's rows; any other SYSTEM row is a harness note", async () => {
+  it("skips a terminal arm's rows; any other SYSTEM row is a harness note", async () => {
     const log = logDouble();
     const e = emitter(log);
-    const seeded = status({ messages: [{ type: AI, content: "Earlier." }, { type: MessageType.MESSAGE_SYSTEM, content: "Execution paused." }] });
-    await e.begin({ sessionId: "ses_1", resumed: false, status: seeded });
-    seeded.messages.push(
+    const rows = status({});
+    await e.begin({ sessionId: "ses_1", resumed: false, rows });
+    rows.messages.push(
+      create(AgentMessageSchema, { type: AI, content: "Working." }),
       create(AgentMessageSchema, { type: MessageType.MESSAGE_SYSTEM, content: "Platform tools are off." }),
       create(AgentMessageSchema, { type: MessageType.MESSAGE_SYSTEM, content: "Execution failed: boom" }),
     );
-    e.skipRootRows([3]);
-    await e.flush(seeded, { final: true });
-    expect(ids(log)).toEqual(["root.m0", "root.n2"]);
+    e.skipRootRows([2]);
+    await e.flush(rows, { final: true });
+    expect(ids(log)).toEqual(["root.m0", "root.n1"]);
+  });
+});
+
+describe("a resumed invocation's own rows", () => {
+  /** The first invocation: a message, then a call that asks. */
+  async function firstInvocation(log: ReturnType<typeof logDouble>): Promise<void> {
+    const first = emitter(log);
+    await first.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    await first.flush(
+      status({
+        messages: [
+          { type: AI, content: "Let me check." },
+          { type: MessageType.MESSAGE_THINKING, content: "The build first." },
+          { type: AI, content: "Running it.", toolCalls: [row("x", { name: "shell", status: S.TOOL_CALL_WAITING_APPROVAL, requiresApproval: true, result: "" })] },
+        ],
+      }),
+      { final: true },
+    );
+  }
+
+  /** The resumed invocation's rows: the seeded ask on a message with no text, then its own. */
+  function resumedRows(): TurnRows {
+    return status({
+      messages: [{ type: AI, content: "", toolCalls: [row("x", { name: "shell", status: S.TOOL_CALL_WAITING_APPROVAL, requiresApproval: true, result: "" })] }],
+    });
+  }
+
+  it("numbers each scope's own messages, thinking and notes on from the highest index the log holds there", async () => {
+    const log = logDouble();
+    await firstInvocation(log);
+    expect(ids(log)).toEqual(["root.m0", "root.t1", "root.t1.text", "root.m2", "x", "x.ask"]);
+
+    const resumed = emitter(log);
+    const rows = resumedRows();
+    await resumed.begin({ sessionId: "ses_1", resumed: true, rows });
+    rows.messages[0]!.toolCalls[0]!.status = S.TOOL_CALL_COMPLETED;
+    rows.messages[0]!.toolCalls[0]!.result = "built";
+    rows.messages.push(
+      create(AgentMessageSchema, { type: MessageType.MESSAGE_THINKING, content: "It passed." }),
+      create(AgentMessageSchema, { type: AI, content: "The build passed." }),
+      create(AgentMessageSchema, { type: MessageType.MESSAGE_SYSTEM, content: "A note." }),
+    );
+    await resumed.flush(rows, { final: true });
+    expect(ids(log).slice(6)).toEqual(["x.r", "root.t3", "root.t3.text", "root.m4", "root.n5"]);
+    const all = ids(log);
+    expect(new Set(all).size, "no id is named twice").toBe(all.length);
+  });
+
+  it("numbers a scope the log holds nothing in from zero, and a sub-agent's scope on its own", async () => {
+    const log = logDouble();
+    const first = emitter(log);
+    await first.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    await first.flush(
+      status({
+        messages: [{ type: AI, content: "", toolCalls: [row("task-1", { name: "task", status: S.TOOL_CALL_RUNNING, result: "" })] }],
+        subAgentRuns: [{ id: "task-1", name: "helper", status: SubAgentStatus.SUB_AGENT_IN_PROGRESS, messages: [{ type: AI, content: "Helping." }] }],
+      }),
+      { final: false },
+    );
+    expect(ids(log)).toContain("task-1.m0");
+
+    const resumed = emitter(log);
+    const rows = status({
+      messages: [{ type: AI, content: "", toolCalls: [row("task-1", { name: "task", status: S.TOOL_CALL_RUNNING, result: "" })] }],
+      subAgentRuns: [{ id: "task-1", name: "helper", status: SubAgentStatus.SUB_AGENT_IN_PROGRESS, messages: [{ type: AI, content: "" }] }],
+    });
+    await resumed.begin({ sessionId: "ses_1", resumed: true, rows });
+    rows.messages.push(create(AgentMessageSchema, { type: AI, content: "Delegated." }));
+    rows.subAgentRuns[0]!.messages.push(create(AgentMessageSchema, { type: AI, content: "Helped." }));
+    await resumed.flush(rows, { final: true });
+    expect(ids(log)).toContain("root.m0");
+    expect(ids(log)).toContain("task-1.m1");
+  });
+});
+
+describe("nextScopeIndexes", () => {
+  it("is the index after the highest place each scope's logged ids name; other ids and other runs are ignored", () => {
+    expect(
+      Object.fromEntries(
+        nextScopeIndexes(RUN, [
+          `${RUN}.root.m0`,
+          `${RUN}.root.t4`,
+          `${RUN}.root.t4.text`,
+          `${RUN}.root.n2`,
+          `${RUN}.task-1.m7`,
+          `${RUN}.call-1`,
+          `${RUN}.call-1.r`,
+          `${RUN}.output`,
+          `run_other.root.m9`,
+        ]),
+      ),
+    ).toEqual({ [`${RUN}.root`]: 5, [`${RUN}.task-1`]: 8 });
   });
 });
 
@@ -253,7 +347,7 @@ describe("its memory is the log", () => {
     const log = logDouble();
     const first = emitter(log);
     const st = status({ messages: [{ type: AI, content: "I will run it.", toolCalls: [row("x", { name: "shell", status: S.TOOL_CALL_WAITING_APPROVAL, requiresApproval: true, result: "" })] }] });
-    await first.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await first.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     await first.flush(st, { final: true });
     expect(ids(log)).toEqual(["root.m0", "x", "x.ask"]);
 
@@ -262,7 +356,7 @@ describe("its memory is the log", () => {
     st.messages[0]!.toolCalls[0]!.status = S.TOOL_CALL_COMPLETED;
     st.messages[0]!.toolCalls[0]!.result = "done";
     const second = emitter(log);
-    await second.begin({ sessionId: "ses_1", resumed: true, status: st });
+    await second.begin({ sessionId: "ses_1", resumed: true, rows: st });
     await second.flush(st, { final: true });
     expect(ids(log)).toEqual(["root.m0", "x", "x.ask", "x.r"]);
     expect(log.client.appendSessionEvents.mock.calls.at(-1)![1].map((ev: SessionEvent) => ev.event.value?.id)).toEqual([`${RUN}.x.r`]);
@@ -270,7 +364,7 @@ describe("its memory is the log", () => {
 
   it("a fresh turn does not read the log", async () => {
     const log = logDouble();
-    await emitter(log).begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await emitter(log).begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     expect(log.client.listRunSessionEvents).not.toHaveBeenCalled();
   });
 
@@ -287,7 +381,7 @@ describe("the bound", () => {
     const e = emitter(log);
     const body = "x".repeat(1024 * 1024);
     const st = status({ messages: [{ type: AI, content: "Writing.", toolCalls: [row("w", { name: "write", args: { path: "big.txt", content: body } })] }] });
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     await e.flush(st, { final: true });
     expect(ids(log)).toEqual(["root.m0", "w", "w.r"]);
     const use = log.events[1]!;
@@ -305,7 +399,7 @@ describe("threads", () => {
       messages: [{ type: AI, content: "Delegating.", toolCalls: [row("t1", { name: "task", status: S.TOOL_CALL_RUNNING, result: "" })] }],
       subAgentRuns: [{ id: "t1", name: "helper", input: "look", status: SubAgentStatus.SUB_AGENT_IN_PROGRESS, messages: [{ type: AI, content: "Looking." }] }],
     });
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     await e.flush(st, { final: false });
     expect(ids(log)).toEqual(["root.m0", "t1", "t1.created", "t1.sent", "t1.running", "t1.m0"]);
     expect(log.events[5]!.threadId).toBe(`${RUN}.t1`);
@@ -328,7 +422,7 @@ describe("threads", () => {
       ],
       subAgentRuns: [{ id: "t1", name: "helper", status: SubAgentStatus.SUB_AGENT_IN_PROGRESS, messages: [] }],
     });
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     await e.flush(st, { final: true });
     expect(ids(log)).toEqual(["root.m0", "t1", "t1.created", "t1.sent", "t1.running", "root.n1"]);
   });
@@ -339,7 +433,7 @@ describe("previews", () => {
     const log = logDouble();
     const e = emitter(log);
     const st = status({ messages: [{ type: AI, content: "Hel", isStreaming: true }] });
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     e.observe({ kind: "text_delta", runId: "r1", text: "Hel" }, { messageIndex: 0 });
     await e.flush(st, { final: false });
     e.observe({ kind: "text_delta", runId: "r1", text: "lo" }, { messageIndex: 0 });
@@ -353,7 +447,7 @@ describe("previews", () => {
     const log = logDouble();
     const e = emitter(log);
     const st = status({ messages: [{ type: AI, content: "Running.", toolCalls: [row("sh", { name: "shell", status: S.TOOL_CALL_RUNNING, result: "" })] }] });
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     e.observe({ kind: "tool_output_delta", callId: "sh", delta: "12 passing" });
     await e.flush(st, { final: false });
     const preview = log.previews[0]!.preview;
@@ -363,7 +457,7 @@ describe("previews", () => {
   it("the terminal write sends no preview", async () => {
     const log = logDouble();
     const e = emitter(log);
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     e.observe({ kind: "text_delta", runId: "r1", text: "Hi" }, { messageIndex: 0 });
     await e.flush(status({ messages: [{ type: AI, content: "Hi" }] }), { final: true });
     expect(log.previews).toEqual([]);
@@ -379,7 +473,7 @@ describe("Stigmer's own turn events", () => {
       structuredOutput: { answer: 42 },
       messages: [{ type: AI, content: "Done." }],
     });
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     await e.flush(st, { final: false });
     expect(ids(log)).toEqual(["memory", "root.m0"]);
     await e.flush(st, { final: true });
@@ -392,7 +486,7 @@ describe("a failed or refused append", () => {
     const log = logDouble();
     const e = emitter(log);
     const st = status({ messages: [{ type: AI, content: "One." }] });
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     log.answers.push("fail", "fail", "fail");
     await e.flush(st, { final: false });
     expect(ids(log)).toEqual([]);
@@ -404,7 +498,7 @@ describe("a failed or refused append", () => {
     const log = logDouble();
     const e = emitter(log);
     const st = status({ messages: [{ type: AI, content: "One." }] });
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     log.answers.push("refuse");
     await e.flush(st, { final: false });
     st.messages.push(create(AgentMessageSchema, { type: AI, content: "Two." }));
@@ -415,7 +509,7 @@ describe("a failed or refused append", () => {
   it("the terminal write gives up after its retries and still returns", async () => {
     const log = logDouble();
     const e = emitter(log);
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     log.answers.push("fail", "fail", "fail", "fail");
     await expect(e.flush(status({ messages: [{ type: AI, content: "Last." }] }), { final: true })).resolves.toBeUndefined();
     expect(log.client.appendSessionEvents).toHaveBeenCalledTimes(4);
@@ -428,7 +522,7 @@ describe("what never stops a turn", () => {
     log.client.listRunSessionEvents.mockRejectedValueOnce(new Error("log unreachable"));
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const e = emitter(log);
-    await e.begin({ sessionId: "ses_1", resumed: true, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: true, rows: create(TurnRowsSchema) });
     await e.flush(status({ messages: [{ type: AI, content: "Still here." }] }), { final: true });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("reading what the run already wrote failed"));
     warn.mockRestore();
@@ -439,7 +533,7 @@ describe("what never stops a turn", () => {
     const log = logDouble();
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const e = emitter(log, { boundaryRewritesRow: () => { throw new Error("predicate fell over"); } });
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     await e.flush(status({ messages: [{ type: AI, content: "Before.", toolCalls: [row("x")] }] }), { final: false });
     expect(error).toHaveBeenCalledWith(expect.stringContaining("reading the rows failed"));
     error.mockRestore();
@@ -450,7 +544,7 @@ describe("what never stops a turn", () => {
     const log = logDouble();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const e = emitter(log, { credential: async () => { throw new Error("exchange refused"); } });
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     await e.flush(status({ messages: [{ type: AI, content: "Hi." }] }), { final: true });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("no scoped credential"));
     warn.mockRestore();
@@ -461,7 +555,7 @@ describe("what never stops a turn", () => {
   it("waits between transient retries by default", async () => {
     const log = logDouble();
     const e = new SessionEventEmitter({ client: log.client, runId: RUN, credential: async () => undefined });
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     log.answers.push("fail");
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     await e.flush(status({ messages: [{ type: AI, content: "Retried." }] }), { final: false });
@@ -474,7 +568,7 @@ describe("rows the log does not carry, and big batches", () => {
   it("a HUMAN row writes nothing and holds nothing back (the turn's message is the server's)", async () => {
     const log = logDouble();
     const e = emitter(log);
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     await e.flush(status({ messages: [{ type: MessageType.MESSAGE_HUMAN, content: "hi" }, { type: AI, content: "Hello." }] }), { final: false });
     expect(ids(log)).toEqual(["root.m1"]);
   });
@@ -482,7 +576,7 @@ describe("rows the log does not carry, and big batches", () => {
   it("splits a queue past an append's limit across appends, in order", async () => {
     const log = logDouble();
     const e = emitter(log);
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     const messages = Array.from({ length: 1001 }, (_, i) => ({ type: AI, content: `m${i}` }));
     await e.flush(status({ messages }), { final: true });
     expect(log.client.appendSessionEvents.mock.calls.map((c) => c[1].length)).toEqual([1000, 1]);
@@ -496,7 +590,7 @@ describe("rows the log does not carry, and big batches", () => {
       messages: [{ type: AI, content: "Delegating.", toolCalls: [row("t1", { name: "task", status: S.TOOL_CALL_RUNNING, result: "" })] }],
       subAgentRuns: [{ id: "t1", name: "helper", status: SubAgentStatus.SUB_AGENT_COMPLETED, output: "done", messages: [] }],
     });
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     await e.flush(st, { final: false });
     expect(ids(log).slice(-2)).toEqual(["t1.received", "t1.idle"]);
     st.messages[0]!.toolCalls[0]!.status = S.TOOL_CALL_COMPLETED;
@@ -510,7 +604,7 @@ describe("file review", () => {
   const CHANGE_SET = `${RUN}:3`;
 
   /** A status whose own ledger captured one change set with every reviewable shape. */
-  function captured(): RunStatus {
+  function captured(): TurnRows {
     return status({
       messages: [{ type: AI, content: "Edited." }],
       fileReviewEventStream: {
@@ -548,7 +642,7 @@ describe("file review", () => {
   it("writes one stigmer.file_review.changes per captured change set, in the log's words, under its derived id", async () => {
     const log = logDouble();
     const e = emitter(log);
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     await e.flush(captured(), { final: true });
 
     const changes = log.events.flatMap((event) => (event.event.case === "stigmerFileReviewChanges" ? [event.event.value] : []));
@@ -569,15 +663,18 @@ describe("file review", () => {
   it("never writes a change set twice: later writes and a resumed turn that already wrote it send nothing new", async () => {
     const log = logDouble();
     const e = emitter(log);
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     await e.flush(captured(), { final: false });
     await e.flush(captured(), { final: true });
     expect(log.events.filter((event) => event.event.case === "stigmerFileReviewChanges")).toHaveLength(1);
 
     const resumed = emitter(log);
     const sent = log.client.appendSessionEvents.mock.calls.length;
-    await resumed.begin({ sessionId: "ses_1", resumed: true, status: create(RunStatusSchema) });
-    await resumed.flush(captured(), { final: true });
+    await resumed.begin({ sessionId: "ses_1", resumed: true, rows: create(TurnRowsSchema) });
+    // The resumed invocation's own rows: its ledger, and no message of its own.
+    const again = captured();
+    again.messages.splice(0);
+    await resumed.flush(again, { final: true });
     expect(log.client.appendSessionEvents.mock.calls.length, "nothing new to send").toBe(sent);
   });
 
@@ -586,7 +683,7 @@ describe("file review", () => {
     const e = emitter(log);
     const st = captured();
     st.fileReviewEventStream!.events.splice(1, 1);
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     await e.flush(st, { final: true });
     expect(log.events.some((event) => event.event.case === "stigmerFileReviewChanges")).toBe(false);
   });

@@ -63,7 +63,7 @@ function wrapper({ children }: { children: ReactNode }) {
   const client = {
     session: { get: vi.fn(() => Promise.resolve(stored)), update: sessionUpdate, streamEvents: sessionEventStream().streamEvents },
     run: {
-      listBySession: vi.fn().mockResolvedValue({ entries: [] }),
+      listBySession: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
       // The sent turn's run, read while it is live; never answered here.
       get: vi.fn(() => new Promise(() => {})),
       create: runCreate,

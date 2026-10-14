@@ -5,11 +5,12 @@ import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import {
   ListSkillVersionsInputSchema,
+  ListSkillVersionsResponseSchema,
   type SkillVersionEntry as ProtoSkillVersionEntry,
 } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { isUnimplemented } from "../internal/isUnimplemented.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useCursorPages } from "../internal/useCursorPages.js";
 import type { VersionEntry } from "../version-history/types.js";
 
 // ---------------------------------------------------------------------------
@@ -34,11 +35,22 @@ export interface UseSkillVersionsReturn {
    * Returns `null` if the version hash is not found or has no artifact key.
    */
   readonly getArtifactKey: (versionHash: string) => string | null;
+  /** `true` while the server holds entries beyond those loaded. */
+  readonly hasMore: boolean;
+  /** Load the next page. No-op while one is loading or when nothing follows. */
+  readonly loadMore: () => void;
+  /** `true` while a `loadMore` read is in flight. */
+  readonly isLoadingMore: boolean;
+  /** Error from the last failed `loadMore`, or `null`. */
+  readonly loadMoreError: Error | null;
 }
 
 // ---------------------------------------------------------------------------
 // Hook implementation
 // ---------------------------------------------------------------------------
+
+/** The answer of a server that keeps no skill history: no versions. */
+const NO_VERSIONS = create(ListSkillVersionsResponseSchema);
 
 /**
  * Data hook that fetches version history for a skill.
@@ -70,30 +82,27 @@ export function useSkillVersions(
 ): UseSkillVersionsReturn {
   const stigmer = useStigmer();
 
-  const {
-    data: rawVersions,
-    isLoading,
-    error,
-    refetch,
-  } = useFetch(
+  const pages = useCursorPages<ProtoSkillVersionEntry>(
     org && slug
-      ? async () => {
+      ? async (pageToken) => {
           try {
             const request = create(ListSkillVersionsInputSchema, {
               org,
               slug,
+              pageToken,
             });
-            const response = await stigmer.skill.listVersions(request);
-            return response.versions;
+            return await stigmer.skill.listVersions(request);
           } catch (err) {
-            if (isUnimplemented(err)) return [];
+            if (isUnimplemented(err)) return NO_VERSIONS;
             throw err;
           }
         }
       : null,
     [org, slug, stigmer],
-    [] as ProtoSkillVersionEntry[],
+    (entry) => entry.versionHash,
   );
+  const rawVersions = pages.items;
+  const { hasMore, loadMore, isLoadingMore, loadMoreError, isLoading, error, refetch } = pages;
 
   const versions = useMemo(
     () => rawVersions.map(mapProtoToVersionEntry),
@@ -119,8 +128,19 @@ export function useSkillVersions(
   const isEmpty = versions.length === 0;
 
   return useMemo(
-    () => ({ versions, isEmpty, isLoading, error, refetch, getArtifactKey }),
-    [versions, isEmpty, isLoading, error, refetch, getArtifactKey],
+    () => ({
+      versions,
+      isEmpty,
+      hasMore,
+      loadMore,
+      isLoadingMore,
+      loadMoreError,
+      isLoading,
+      error,
+      refetch,
+      getArtifactKey,
+    }),
+    [versions, isEmpty, hasMore, loadMore, isLoadingMore, loadMoreError, isLoading, error, refetch, getArtifactKey],
   );
 }
 

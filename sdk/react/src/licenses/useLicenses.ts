@@ -5,6 +5,7 @@ import { create } from "@bufbuild/protobuf";
 import type { License } from "@stigmer/protos/ai/stigmer/billing/license/v1/api_pb";
 import { ListLicensesInputSchema } from "@stigmer/protos/ai/stigmer/billing/license/v1/io_pb";
 import { useStigmer } from "../hooks.js";
+import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
 import { useFetch } from "../internal/useFetch.js";
 
 /** Return value of {@link useLicenses}. */
@@ -48,9 +49,10 @@ export function useLicenses(
   const { data: licenses, isLoading, isRefetching, error, refetch } = useFetch(
     enabled
       ? () =>
-          stigmer.license
-            .list(create(ListLicensesInputSchema))
-            .then((result): readonly License[] => result.entries)
+          // A platform catalog the admin page shows whole.
+          readEveryPage((pageToken) =>
+            stigmer.license.list(create(ListLicensesInputSchema, { pageSize: LIST_PAGE_MAX, pageToken })),
+          )
       : null,
     [enabled, stigmer],
     null as readonly License[] | null,

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import { getUserMessage, isUnimplemented } from "@stigmer/sdk";
 import { ApiResourceKind, useResourceAvailable } from "../deployment-mode.js";
 import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { ChangePlanDialog } from "./ChangePlanDialog.js";
@@ -14,6 +14,7 @@ import { planMove, planStanding, standingPlanId, type PlanMove } from "./plan-st
 import type { BillingRedirect } from "./redirect.js";
 import { useCancelSubscription, useChangePlan } from "./useChangePlan.js";
 import { useCreatePaymentMethodSetupSession } from "./useCreatePaymentMethodSetupSession.js";
+import { useAgentHours } from "./useAgentHours.js";
 import { usePeriodEstimate } from "./usePeriodEstimate.js";
 import { usePlans } from "./usePlans.js";
 import { useSubscription } from "./useSubscription.js";
@@ -55,7 +56,7 @@ export interface PlanSectionProps {
 
 /**
  * An organization's plan on Stigmer Cloud: the current plan with its
- * standing and the period's estimated invoice, the plan comparison, and
+ * standing, its agent hours and the period's estimated invoice, the plan comparison, and
  * the confirm step for a subscribe, switch, resume or cancel.
  *
  * Everyone who can view the organization's billing reads it; only those
@@ -86,6 +87,9 @@ export function PlanSection({
   const livePlanId = standingPlanId(standing);
   const child = billedToParent !== undefined;
   const estimate = usePeriodEstimate(orgId, { enabled: available && !child && livePlanId !== "" });
+  const agentHours = useAgentHours(orgId, { enabled: available && !child });
+  // A console ahead of its server: the read is not served yet, so the block is left out rather than shown failing.
+  const agentHoursError = agentHours.error !== null && isUnimplemented(agentHours.error) ? null : agentHours.error;
   const manage = useCheckPermission(available && orgId ? { kind: "organization", id: orgId } : null, "can_manage_billing");
   const canManage = !child && !manage.isLoading && manage.allowed;
 
@@ -157,7 +161,8 @@ export function PlanSection({
   const refreshAll = useCallback(() => {
     current.refetch();
     estimate.refetch();
-  }, [current.refetch, estimate.refetch]);
+    agentHours.refetch();
+  }, [current.refetch, estimate.refetch, agentHours.refetch]);
 
   const confirm = useCallback(() => {
     if (move === null) return;
@@ -208,6 +213,8 @@ export function PlanSection({
         standing={standing}
         estimate={estimate.estimate}
         estimateError={estimate.error}
+        agentHours={agentHours.hours}
+        agentHoursError={agentHoursError}
         billedToParent={billedToParent}
       />
       {!child && (

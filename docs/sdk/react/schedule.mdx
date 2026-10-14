@@ -142,14 +142,14 @@ const { schedule, isLoading, error, refetch } = useSchedule("isc", "daily-fee-re
 
 ### useScheduleCount
 
-Data hook that fetches the total count of an organization's schedules.
+Data hook that counts an organization's schedules, for the Library
+landing card and dashboard widgets.
 
-Issues a minimal direct `listSchedules` call to retrieve only the
-total count. Useful for the Library landing card and dashboard
-widgets. There is no scope option: schedules are org-only.
+Schedules are not in search, so no per-kind count exists for them: the
+hook reads the list's largest page and counts it, with `isLowerBound`
+set when more follow. There is no scope option: schedules are org-only.
 
-For the full paginated schedule list, use [`useScheduleList`](#useschedulelist)
-instead.
+For the schedules themselves, use [`useScheduleList`](#useschedulelist) instead.
 
 Pass `null` as `org` to skip fetching (stable no-op).
 
@@ -170,21 +170,23 @@ function useScheduleCount(org: string | null, options?: UseScheduleCountOptions)
 
 <TypeTable
   type={{
-    count: { type: "number | undefined", description: "Total number of schedules in the organization. `undefined` until the first successful fetch completes." },
+    count: { type: "number | undefined", description: "The schedules a first page holds, up to 100. `undefined` until the first successful fetch completes." },
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the count fetch is in flight." },
+    isLowerBound: { type: "boolean", description: "`true` when more schedules follow that page: a card reads \"100+\" rather than a total the list does not carry." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the count from the server." },
   }}
 />
 
 ```tsx
-const { count, isLoading } = useScheduleCount("isc");
+const { count, isLowerBound, isLoading } = useScheduleCount("isc");
 ```
 
 
 ### useScheduleList
 
-Data hook that fetches a paginated list of an organization's schedules.
+Data hook that lists an organization's schedules, newest first, a page at
+a time (`hasMore` / `loadMore`; a list carries no total).
 
 Backed by the direct `listSchedules` query — not the search service —
 so each entry is a full `Schedule` proto with the operational status
@@ -211,20 +213,20 @@ function useScheduleList(org: string | null, options?: UseScheduleListOptions): 
 
 <TypeTable
   type={{
-    currentPage: { type: "number", description: "The current page number (mirrors the `page` option)." },
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    hasMore: { type: "boolean", description: "`true` while the server holds schedules beyond those loaded." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    isLoadingMore: { type: "boolean", description: "`true` while a `loadMore` read is in flight." },
     isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight." },
-    refetch: { type: "() => void", description: "Discard cached data and re-fetch the current page from the server." },
-    schedules: { type: "readonly Schedule[]", description: "Full `Schedule` protos (spec + status) for the current page." },
-    totalCount: { type: "number", description: "Total number of schedules in the organization." },
-    totalPages: { type: "number", description: "Total pages available at the current page size." },
+    loadMore: { type: "() => void", description: "Load the next page. No-op while one is loading or when nothing follows." },
+    loadMoreError: { type: "Error | null", description: "Error from the last failed `loadMore`, or `null`." },
+    refetch: { type: "() => void", description: "Re-read the first page; pages loaded since stay." },
+    schedules: { type: "readonly Schedule[]", description: "Full `Schedule` protos (spec + status), the first page then each page loaded since." },
   }}
 />
 
 ```tsx
-const { schedules, totalCount, isLoading } = useScheduleList("isc", {
-  page: 1,
+const { schedules, hasMore, loadMore, isLoading } = useScheduleList("isc", {
   pageSize: 20,
 });
 ```
@@ -579,21 +581,15 @@ function createScheduleColumns(options?: ScheduleColumnsOptions): WorkbenchColum
 
 ### createScheduleListFn
 
-Build a `ResourceWorkbench`-compatible `listFn` over the direct
-schedule query.
+Build a `ResourceWorkbench` data source over the direct schedule query.
+Consumers type their workbench as `ResourceWorkbench<Schedule>` and pass
+`getItemId={(s) => s.metadata?.id}`.
 
-The returned entries are full `Schedule` protos occupying the
-`SearchResult` slot of `ListResult` — `ResourceWorkbench` is generic
-over its row type (`useResourceCollection` casts entries through to
-`TData`), and this is the one documented place where that cast
-happens. Consumers type their workbench as
-`ResourceWorkbench<Schedule>` and pass `getItemId={(s) => s.metadata?.id}`.
-
-`params.query` is ignored: schedules have no server-side text search
+`request.query` is ignored: schedules have no server-side text search
 (render the workbench with `searchable={false}`).
 
 ```tsx
-function createScheduleListFn(client: ScheduleListClient): (params: ListParams) => Promise<ListResult>
+function createScheduleListFn(client: ScheduleListClient): WorkbenchListFn<Schedule>
 ```
 
 
@@ -660,18 +656,11 @@ function formatNextFire(date: Date, now: Date): string
 
 ### listSchedulesPage
 
-Fetch one page of an organization's schedules via the direct query.
-
-Handles a verified split between the two server editions: cloud slices
-pages server-side, while the OSS server documents that it ignores
-`page_info` and returns every matching schedule. A server that
-paginated can never return more rows than the requested size, so an
-overflowing response is the tell that the server ignored pagination —
-only then is the page sliced locally (absolute indices into the full
-list). A cloud page passes through untouched.
+Fetch one page of an organization's schedules via the direct query:
+the page `pageToken` names (`""` for the first), at most `pageSize`.
 
 ```tsx
-function listSchedulesPage(client: ScheduleListClient, org: string, page: { num?: number; size?: number }): Promise<SchedulePage>
+function listSchedulesPage(client: ScheduleListClient, org: string, page: { pageSize?: number; pageToken?: string }): Promise<SchedulePage>
 ```
 
 
@@ -699,13 +688,12 @@ The slice of the Stigmer client this module needs (mockable in tests).
 
 ### SchedulePage
 
-One page of schedules, with pagination totals.
+One page of schedules, newest first.
 
 <TypeTable
   type={{
-    items: { type: "readonly Schedule[]", description: "Full `Schedule` protos (spec + status) for the requested page.", required: true },
-    totalCount: { type: "number", description: "Total schedules in the org (across all pages).", required: true },
-    totalPages: { type: "number", description: "Total pages at the requested page size.", required: true },
+    entries: { type: "readonly Schedule[]", description: "Full `Schedule` protos (spec + status) for the page.", required: true },
+    nextPageToken: { type: "string", description: "Set when more schedules follow; `\"\"` on the last page.", required: true },
   }}
 />
 
@@ -746,8 +734,7 @@ Options for [`useScheduleList`](#useschedulelist).
 
 <TypeTable
   type={{
-    page: { type: "number", description: "Page number (1-indexed)." },
-    pageSize: { type: "number", description: "Maximum schedules per page." },
+    pageSize: { type: "number", description: "Maximum schedules per page, the first and each `loadMore`." },
   }}
 />
 

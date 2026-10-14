@@ -46,8 +46,8 @@
       "slug": "billing",
       "title": "Billing",
       "description": "Hooks and components for subscription plans, payment methods, and invoices.",
-      "hooks": 11,
-      "components": 9
+      "hooks": 12,
+      "components": 11
     },
     {
       "slug": "button",
@@ -127,6 +127,13 @@
       "components": 0
     },
     {
+      "slug": "federation-issuer",
+      "title": "Federation Issuer",
+      "description": "Hooks and components for registering federation issuers, the outside issuers whose tokens Stigmer accepts.",
+      "hooks": 5,
+      "components": 5
+    },
+    {
       "slug": "file-reference",
       "title": "file-reference",
       "description": "",
@@ -144,7 +151,7 @@
       "slug": "iam-policy",
       "title": "IAM Policy",
       "description": "Hooks and components for access control bindings, role assignment, and org membership.",
-      "hooks": 11,
+      "hooks": 12,
       "components": 8
     },
     {
@@ -153,13 +160,6 @@
       "description": "Hooks for identity account lookup and profile resolution.",
       "hooks": 4,
       "components": 1
-    },
-    {
-      "slug": "federation-issuer",
-      "title": "Federation Issuer",
-      "description": "Hooks and components for registering federation issuers, the outside issuers whose tokens Stigmer accepts.",
-      "hooks": 5,
-      "components": 5
     },
     {
       "slug": "invitation",
@@ -292,7 +292,7 @@
       "title": "Settings",
       "description": "Pre-composed settings sections for organization console embedding.",
       "hooks": 1,
-      "components": 16
+      "components": 17
     },
     {
       "slug": "sharing",

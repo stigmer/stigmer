@@ -1,10 +1,10 @@
-// Conformance suite for the Run messages read model: what a
-// completed run's status.messages carries for a plain text turn, a thinking
-// turn, and MCP tool calls that succeed or fail — plus the model id the
-// provider actually received.
-// Domain: agentic / agentexecution — the transcript a console or SDK renders.
+// Conformance suite for a turn's transcript: what the session's log says of
+// a completed run for a plain text turn, a thinking turn, and MCP tool calls
+// that succeed or fail — plus the model id the provider actually received.
+// Domain: agentic / agentexecution and session — the transcript a console or
+// SDK renders, folded from the session's events (support/turn.ts).
 //
-// These are runner behaviors read through execution status, and so contract;
+// These are runner behaviors read through the session's log, and so contract;
 // they replace the Go offline suite's offline_test.go,
 // plain_chat_offline_test.go and the agent half of
 // model_resolution_offline_test.go. The MCP echo round-trip itself is the harness
@@ -12,8 +12,8 @@
 // says about it and about a tool that fails.
 //
 // Two contracts here are easy to get wrong and are stated on purpose:
-// - A failing MCP tool is a TOOL RESULT, not a failed run. The ToolCall is
-//   recorded, the agent gets its next turn, the run completes.
+// - A failing MCP tool is a TOOL RESULT, not a failed run. The tool use and
+//   its result are in the log, the agent gets its next turn, the run completes.
 // - The model id on the wire is the registry's apiModelId, not the registry id
 //   the execution named. The runner resolves it through the control plane's
 //   /v1/proxy/model-registry; this arm reads the same document the
@@ -21,7 +21,6 @@
 //   reached the mock — a runner that stops resolving fails here on either
 //   edition. The two ids must differ, or the arm would pass on the identity
 //   fallback it exists to catch.
-import { MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -32,8 +31,8 @@ import type { AnthropicMessageBody, MockLlmProxy } from "@stigmer/test-support/m
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { requireRegistryRow } from "../harness/model-registry";
 import { agentRefOf, makeAgent } from "../support/agents";
+import { messagesOf, toolUsesOf, turnOfRun } from "../support/turn";
 import {
-  allToolCalls,
   awaitTerminal,
   makeAgentExecution,
   requireLlmProxy,
@@ -127,63 +126,61 @@ function expectCompleted(final: Run): void {
 }
 
 describe("Run messages — text and thinking turns", () => {
-  it("a single text turn completes with one non-streaming AI message and no tool calls", async () => {
+  it("a single text turn completes with one stored agent message and no tool uses", async () => {
     mock.enqueue(anthropicText("Hello from the mock."));
 
     const final = await runAgent({});
 
     expectCompleted(final);
-    const aiMessages = (final.status?.messages ?? []).filter((m) => m.type === MessageType.MESSAGE_AI);
-    expect(aiMessages, "exactly the one assistant turn is in the transcript").toHaveLength(1);
-    expect(aiMessages[0]!.content).toBe("Hello from the mock.");
-    expect(aiMessages[0]!.isStreaming, "a settled message is not marked streaming").toBe(false);
-    expect(allToolCalls(final)).toHaveLength(0);
+    const turn = await turnOfRun(clients, final);
+    const messages = messagesOf(turn);
+    expect(messages, "exactly the one agent message is in the log").toHaveLength(1);
+    expect(messages[0]!.text).toBe("Hello from the mock.");
+    expect(messages[0]!.live, "a stored message is not a live preview").toBe(false);
+    expect(turn.answer).toBe("Hello from the mock.");
+    expect(toolUsesOf(turn)).toHaveLength(0);
     expect(mock.consumed()).toBe(1);
   });
 
-  it("a thinking block surfaces as a MESSAGE_THINKING beside the MESSAGE_AI answer", async () => {
+  it("a thinking block surfaces as agent thinking beside the agent's answer", async () => {
     mock.enqueue(anthropicThinkingThenText("Let me consider the question carefully.", "The answer is 42."));
 
     const final = await runAgent({});
 
     expectCompleted(final);
-    const byType = (type: MessageType) => (final.status?.messages ?? []).filter((m) => m.type === type);
-    const thinking = byType(MessageType.MESSAGE_THINKING);
-    expect(thinking, "the thinking block is its own message").toHaveLength(1);
-    expect(thinking[0]!.content).toContain("consider the question");
-    const ai = byType(MessageType.MESSAGE_AI);
-    expect(ai).toHaveLength(1);
-    expect(ai[0]!.content).toBe("The answer is 42.");
-    expect(allToolCalls(final)).toHaveLength(0);
+    const turn = await turnOfRun(clients, final);
+    const thinking = turn.items.filter((item) => item.kind === "thinking");
+    expect(thinking, "the thinking block is its own item").toHaveLength(1);
+    expect(thinking[0]!.kind === "thinking" && thinking[0]!.text).toContain("consider the question");
+    const messages = messagesOf(turn);
+    expect(messages).toHaveLength(1);
+    expect(messages[0]!.text).toBe("The answer is 42.");
+    expect(toolUsesOf(turn)).toHaveLength(0);
   });
 });
 
 describe("Run messages — MCP tool calls", () => {
-  it("a failing MCP tool does not fail the run: the fail ToolCall is recorded and the run completes", async () => {
+  it("a failing MCP tool does not fail the run: the fail tool use and its result are in the log and the run completes", async () => {
     mock.enqueue(anthropicToolUse("call_fail_1", FAIL_TOOL_NAME, { message: "deliberate" }));
     mock.enqueue(anthropicText("The tool reported an error; moving on."));
 
     const final = await runAgent({ tools: [ECHO_TOOL_NAME, FAIL_TOOL_NAME] });
 
     expectCompleted(final);
-    const failCall = allToolCalls(final).find((tc) => tc.name === FAIL_TOOL_NAME);
-    expect(failCall, "the failed tool call is in the transcript").toBeDefined();
-    // The runner records a tool's failure on the call — as a FAILED status with
-    // the message on `error` when the tool node threw, or as a COMPLETED call
-    // whose result carries the tool's error content — and either way the text
-    // the tool reported is what the transcript keeps.
+    const failCall = toolUsesOf(await turnOfRun(clients, final)).find((use) => use.name === FAIL_TOOL_NAME);
+    expect(failCall, "the failed tool use is in the log").toBeDefined();
+    // The runner records a tool's failure as an error result when the tool
+    // node threw, or as a plain result carrying the tool's error content —
+    // and either way the text the tool reported is what the log keeps.
+    expect(["completed", "failed"], "the call settled").toContain(failCall!.state);
     expect(
-      [ToolCallStatus.TOOL_CALL_COMPLETED, ToolCallStatus.TOOL_CALL_FAILED],
-      "the call settled",
-    ).toContain(failCall!.status);
-    expect(
-      `${failCall!.result} ${failCall!.error}`,
-      `the tool's message is on the call (result=${JSON.stringify(failCall!.result)}, error=${JSON.stringify(failCall!.error)})`,
+      failCall!.result?.text ?? "",
+      `the tool's message is on the result (${JSON.stringify(failCall!.result)})`,
     ).toContain("deliberate");
     expect(mock.consumed(), "the agent got its turn after the failure").toBe(2);
   });
 
-  it("a ToolCall carries id, name, started_at, completed_at, result and mcp_server_slug", async () => {
+  it("a tool use carries its id, name, input, result and MCP server", async () => {
     mock.enqueue(anthropicToolUse("call_echo_fields", ECHO_TOOL_NAME, { text: "fields" }));
     mock.enqueue(anthropicText("Done."));
 
@@ -191,14 +188,15 @@ describe("Run messages — MCP tool calls", () => {
     const final = await runAgent({ tools: [ECHO_TOOL_NAME], pluginName });
 
     expectCompleted(final);
-    const echo = allToolCalls(final).find((tc) => tc.name === ECHO_TOOL_NAME);
+    const echo = toolUsesOf(await turnOfRun(clients, final)).find((use) => use.name === ECHO_TOOL_NAME);
     expect(echo).toBeDefined();
-    expect(echo!.id).not.toBe("");
-    expect(echo!.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
-    expect(echo!.startedAt, "started_at is stamped").not.toBe("");
-    expect(echo!.completedAt, "completed_at is stamped").not.toBe("");
-    expect(echo!.result, "the echo result carries the input back").toContain("fields");
-    expect(echo!.mcpServerSlug, "the call names the plugin server it ran on").toBe(toolServerSegment(pluginName));
+    expect(echo!.id, "the tool use is named for the call").toBe(`${final.metadata!.id}.call_echo_fields`);
+    expect(echo!.state).toBe("completed");
+    expect(echo!.input).toEqual({ text: "fields" });
+    expect(echo!.processedAt, "the tool use is stamped when it was appended").not.toBe("");
+    expect(echo!.result?.processedAt, "and so is its result").not.toBe("");
+    expect(echo!.result?.text, "the echo result carries the input back").toContain("fields");
+    expect(echo!.mcpServerName, "the call names the plugin server it ran on").toBe(toolServerSegment(pluginName));
   });
 });
 

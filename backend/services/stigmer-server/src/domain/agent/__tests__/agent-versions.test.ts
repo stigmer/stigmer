@@ -185,8 +185,8 @@ describe("agent versions: what a write records", () => {
     expect(back.status?.versionHash).toBe(a.status?.versionHash);
     expect(await versionRows(id)).toBe(2);
     const history = await query.listVersions({ org: ORG, slug: a.metadata!.slug });
-    expect(history.totalCount).toBe(2);
-    const current = history.versions.filter((entry) => entry.isCurrent);
+    expect(history.entries).toHaveLength(2);
+    const current = history.entries.filter((entry) => entry.isCurrent);
     expect(current.map((entry) => entry.versionHash)).toEqual([
       a.status?.versionHash,
     ]);
@@ -271,7 +271,7 @@ describe("agent versions: tags", () => {
     expect(head.metadata?.version?.tag).toBe("stable");
 
     const history = await query.listVersions({ org: ORG, slug });
-    expect(history.versions.filter((entry) => entry.tag === "stable")).toHaveLength(1);
+    expect(history.entries.filter((entry) => entry.tag === "stable")).toHaveLength(1);
     await expectCode(
       command.tagVersion({ agentId: id, versionHash: "0".repeat(64), tag: "stable" }),
       Code.NotFound,
@@ -288,7 +288,7 @@ describe("agent versions: tags", () => {
     expect(await versionRows(id)).toBe(1);
     expect(retagged.metadata?.version?.tag).toBe("prod");
     const history = await query.listVersions({ org: ORG, slug: v1.metadata!.slug });
-    expect(history.versions.map((entry) => entry.tag)).toEqual(["prod"]);
+    expect(history.entries.map((entry) => entry.tag)).toEqual(["prod"]);
   });
 });
 

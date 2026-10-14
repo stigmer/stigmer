@@ -1,66 +1,62 @@
 "use client";
 
-import { useCallback } from "react";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import { useStigmer } from "../hooks.js";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useResourceCount, useResourceList } from "../search/index.js";
 
 /** Options for {@link usePluginList}. */
 export interface UsePluginListOptions {
-  /** Maximum plugins per page. @default 20 */
+  /** Maximum plugins per page, the first and each `loadMore`. @default 20 */
   readonly pageSize?: number;
-  /** Page number (1-indexed). @default 1 */
-  readonly page?: number;
-  /** Text query to filter plugins by name, description or keywords. */
+  /** Text query to filter plugins by name, description, or tags. */
   readonly query?: string;
 }
 
 /** Return value of {@link usePluginList}. */
 export interface UsePluginListReturn {
-  /** Paginated plugin entries for the current page. */
+  /** The first page of plugins, then every page loaded since. */
   readonly plugins: readonly SearchResult[];
-  /** Total number of plugins matching the current filters. */
-  readonly totalCount: number;
-  /** Total pages available at the current page size. */
-  readonly totalPages: number;
-  /** The current page number (mirrors the `page` option). */
-  readonly currentPage: number;
-  /** `true` while the initial fetch or a refetch is in flight. */
+  /** `true` while the server holds plugins beyond those loaded. */
+  readonly hasMore: boolean;
+  /** Load the next page. No-op while one is loading or when nothing follows. */
+  readonly loadMore: () => void;
+  /** `true` while a `loadMore` read is in flight. */
+  readonly isLoadingMore: boolean;
+  /** Error from the last failed `loadMore`, or `null`. */
+  readonly loadMoreError: Error | null;
+  /** `true` while the initial fetch is in flight. */
   readonly isLoading: boolean;
   /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
-  /** Discard cached data and re-fetch the current page from the server. */
+  /** Re-read the first page; pages loaded since stay. */
   readonly refetch: () => void;
 }
 
 /**
- * Data hook that fetches a paginated list of installed plugins for the
- * Library. Wraps `stigmer.plugin.list()` (the search-backed listing every
- * indexed kind shares) with pagination and text search over the
- * organization's plugins; the consumer owns page state and query debouncing.
+ * Data hook that lists an organization's plugins for the Library, a page at
+ * a time: `stigmer.plugin.list()` newest first while `query` is empty,
+ * search matches while it holds text. All parameters are externally
+ * controlled — the consumer manages query debouncing. A list carries no
+ * total; use {@link usePluginCount} for a count.
+ *
+ * For picker/type-ahead search with internal debouncing and query
+ * state management, use {@link usePluginSearch} instead.
  *
  * Pass `null` as `org` to skip fetching (stable no-op).
  *
  * @example
  * ```tsx
- * const { plugins, totalCount } = usePluginList("acme", { page: 1, pageSize: 20 });
+ * const { plugins, hasMore, loadMore, isLoading } = usePluginList("acme", { pageSize: 20 });
  * ```
  */
-export function usePluginList(org: string | null, options?: UsePluginListOptions): UsePluginListReturn {
-  const stigmer = useStigmer();
+export function usePluginList(
+  org: string | null,
+  options?: UsePluginListOptions,
+): UsePluginListReturn {
+  const { entries, hasMore, loadMore, isLoadingMore, loadMoreError, isLoading, error, refetch } =
+    useResourceList(ApiResourceKind.plugin, org, options);
 
-  const listFn = useCallback(
-    (params: Parameters<typeof stigmer.plugin.list>[0]) => stigmer.plugin.list(params),
-    [stigmer],
-  );
-
-  const { entries, totalCount, totalPages, currentPage, isLoading, error, refetch } = useResourceList(
-    listFn,
-    org,
-    options,
-  );
-
-  return { plugins: entries, totalCount, totalPages, currentPage, isLoading, error, refetch };
+  return { plugins: entries, hasMore, loadMore, isLoadingMore, loadMoreError, isLoading, error, refetch };
 }
 
 /** Options for {@link usePluginCount}. */
@@ -85,16 +81,9 @@ export interface UsePluginCountReturn {
 
 /**
  * Data hook that fetches the total count of installed plugins, for summary
- * cards and badges. Issues a minimal `stigmer.plugin.list()` call for the
- * count alone. Pass `null` as `org` to skip fetching.
+ * cards and badges, read from search's count for the kind (no entries are
+ * kept). Pass `null` as `org` to skip fetching.
  */
 export function usePluginCount(org: string | null, options?: UsePluginCountOptions): UsePluginCountReturn {
-  const stigmer = useStigmer();
-
-  const listFn = useCallback(
-    (params: Parameters<typeof stigmer.plugin.list>[0]) => stigmer.plugin.list(params),
-    [stigmer],
-  );
-
-  return useResourceCount(listFn, org, options);
+  return useResourceCount(ApiResourceKind.plugin, org, options);
 }

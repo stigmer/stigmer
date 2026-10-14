@@ -21,7 +21,7 @@ afterEach(cleanup);
 function mockClient(operator: boolean) {
   return {
     plan: {
-      list: vi.fn().mockResolvedValue({ entries: [TEAM, BUSINESS, RETIRED] }),
+      list: vi.fn().mockResolvedValue({ entries: [TEAM, BUSINESS, RETIRED], nextPageToken: "" }),
       retire: vi.fn().mockResolvedValue(TEAM),
       create: vi.fn().mockResolvedValue(TEAM),
     },

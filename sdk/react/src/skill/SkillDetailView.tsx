@@ -29,6 +29,7 @@ import { SkillDiffDialog, type SkillDiffDialogState } from "./SkillDiffDialog.js
 import { ManagedByPluginNotice } from "../plugin/ManagedByPluginNotice.js";
 import { useManagingPlugin } from "../plugin/useManagingPlugin.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
 
 const CONTENT_TAB: TabItem = { id: "content", label: "Content" };
 const VERSIONS_TAB: TabItem = { id: "versions", label: "Versions" };
@@ -172,7 +173,8 @@ export function SkillDetailView({
   const managing = useManagingPlugin(skill?.metadata?.labels);
   // A plugin's resource is the plugin's to redefine; the notice says so and no edit form is offered.
   const editable = editableProp && managing.plugin === null;
-  const { versions, isEmpty: noVersions, getArtifactKey } = useSkillVersions(org, slug);
+  const versionPages = useSkillVersions(org, slug);
+  const { versions, isEmpty: noVersions, getArtifactKey } = versionPages;
   const [diffState, setDiffState] = useState<SkillDiffDialogState | null>(null);
 
   const builtInTabs = useMemo<readonly TabItem[]>(
@@ -289,11 +291,14 @@ export function SkillDetailView({
     tabContent = activeAdditionalTab.content;
   } else if (effectiveActiveTab === "versions" && versions.length > 0) {
     tabContent = (
-      <VersionTimeline
-        entries={versions}
-        onEntrySelect={handleVersionSelect}
-        onCompare={handleCompare}
-      />
+      <>
+        <VersionTimeline
+          entries={versions}
+          onEntrySelect={handleVersionSelect}
+          onCompare={handleCompare}
+        />
+        <LoadMoreFooter hasMore={versionPages.hasMore} loadMore={versionPages.loadMore} isLoadingMore={versionPages.isLoadingMore} loadMoreError={versionPages.loadMoreError} />
+      </>
     );
   } else {
     tabContent = (

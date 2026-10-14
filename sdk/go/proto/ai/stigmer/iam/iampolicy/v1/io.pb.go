@@ -8,9 +8,11 @@ package iampolicyv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityaccount/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -22,6 +24,157 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+// AccessChange says what happened to someone's access.
+type AccessChange int32
+
+const (
+	AccessChange_access_change_unspecified AccessChange = 0
+	// Access was given.
+	AccessChange_granted AccessChange = 1
+	// Access was taken away.
+	AccessChange_revoked AccessChange = 2
+)
+
+// Enum value maps for AccessChange.
+var (
+	AccessChange_name = map[int32]string{
+		0: "access_change_unspecified",
+		1: "granted",
+		2: "revoked",
+	}
+	AccessChange_value = map[string]int32{
+		"access_change_unspecified": 0,
+		"granted":                   1,
+		"revoked":                   2,
+	}
+)
+
+func (x AccessChange) Enum() *AccessChange {
+	p := new(AccessChange)
+	*p = x
+	return p
+}
+
+func (x AccessChange) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AccessChange) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_iam_iampolicy_v1_io_proto_enumTypes[0].Descriptor()
+}
+
+func (AccessChange) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_iam_iampolicy_v1_io_proto_enumTypes[0]
+}
+
+func (x AccessChange) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AccessChange.Descriptor instead.
+func (AccessChange) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescGZIP(), []int{0}
+}
+
+// AccessChangeCause says why someone's access changed. A cause is added,
+// never renamed or reused.
+type AccessChangeCause int32
+
+const (
+	AccessChangeCause_access_change_cause_unspecified AccessChangeCause = 0
+	// Someone gave a person, a team or a group a role.
+	AccessChangeCause_grant AccessChangeCause = 1
+	// Someone took a role away.
+	AccessChangeCause_revoke AccessChangeCause = 2
+	// The server recorded what creating a resource implies: its creator's
+	// ownership, or the audience its visibility opens it to.
+	AccessChangeCause_structural AccessChangeCause = 3
+	// Someone removed a person from the organization.
+	AccessChangeCause_organization_access_revoked AccessChangeCause = 4
+	// A person left the organization, and the server took away what they
+	// still held on its resources.
+	AccessChangeCause_left_organization AccessChangeCause = 5
+	// A resource was deleted, and its access with it.
+	AccessChangeCause_resource_deleted AccessChangeCause = 6
+	// A person created the organization and became its owner.
+	AccessChangeCause_organization_created AccessChangeCause = 7
+	// A person signed in for the first time and was given the roles the
+	// server's membership rules grant.
+	AccessChangeCause_first_sign_in AccessChangeCause = 8
+	// The server gave existing accounts the roles its membership rules would
+	// have given them.
+	AccessChangeCause_role_reconciliation AccessChangeCause = 9
+	// The server's operator became owner of an organization nobody owned.
+	AccessChangeCause_operator_ownership AccessChangeCause = 10
+	// A person who signed in through a platform client was given the
+	// organization role that client grants.
+	AccessChangeCause_platform_client_grant AccessChangeCause = 11
+	// An administrator created a service account with its role in the
+	// organization.
+	AccessChangeCause_service_account_created AccessChangeCause = 12
+)
+
+// Enum value maps for AccessChangeCause.
+var (
+	AccessChangeCause_name = map[int32]string{
+		0:  "access_change_cause_unspecified",
+		1:  "grant",
+		2:  "revoke",
+		3:  "structural",
+		4:  "organization_access_revoked",
+		5:  "left_organization",
+		6:  "resource_deleted",
+		7:  "organization_created",
+		8:  "first_sign_in",
+		9:  "role_reconciliation",
+		10: "operator_ownership",
+		11: "platform_client_grant",
+		12: "service_account_created",
+	}
+	AccessChangeCause_value = map[string]int32{
+		"access_change_cause_unspecified": 0,
+		"grant":                           1,
+		"revoke":                          2,
+		"structural":                      3,
+		"organization_access_revoked":     4,
+		"left_organization":               5,
+		"resource_deleted":                6,
+		"organization_created":            7,
+		"first_sign_in":                   8,
+		"role_reconciliation":             9,
+		"operator_ownership":              10,
+		"platform_client_grant":           11,
+		"service_account_created":         12,
+	}
+)
+
+func (x AccessChangeCause) Enum() *AccessChangeCause {
+	p := new(AccessChangeCause)
+	*p = x
+	return p
+}
+
+func (x AccessChangeCause) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AccessChangeCause) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_iam_iampolicy_v1_io_proto_enumTypes[1].Descriptor()
+}
+
+func (AccessChangeCause) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_iam_iampolicy_v1_io_proto_enumTypes[1]
+}
+
+func (x AccessChangeCause) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AccessChangeCause.Descriptor instead.
+func (AccessChangeCause) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescGZIP(), []int{1}
+}
 
 // ApiResourceRefView represents a reference to ANY API resource in the system
 // WITH display fields for UI rendering. This is used in view/query responses.
@@ -1432,11 +1585,279 @@ func (x *PrincipalsCount) GetCount() int32 {
 	return 0
 }
 
+// ListAccessHistoryInput names the organization whose access history to
+// read, and where to start.
+type ListAccessHistoryInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The organization, by slug or id.
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100. A history only grows, so there is no size
+	// that returns every entry at once: follow next_page_token.
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that read.
+	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Read oldest first, starting just after this entry's sequence; 0 reads
+	// from the first entry. Unset reads newest first. A tool that keeps its
+	// own copy passes the last sequence it holds.
+	AfterSequence *int64 `protobuf:"varint,4,opt,name=after_sequence,json=afterSequence,proto3,oneof" json:"after_sequence,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAccessHistoryInput) Reset() {
+	*x = ListAccessHistoryInput{}
+	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAccessHistoryInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAccessHistoryInput) ProtoMessage() {}
+
+func (x *ListAccessHistoryInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAccessHistoryInput.ProtoReflect.Descriptor instead.
+func (*ListAccessHistoryInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *ListAccessHistoryInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *ListAccessHistoryInput) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListAccessHistoryInput) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+func (x *ListAccessHistoryInput) GetAfterSequence() int64 {
+	if x != nil && x.AfterSequence != nil {
+		return *x.AfterSequence
+	}
+	return 0
+}
+
+// AccessHistoryPage is one page of an organization's access history.
+type AccessHistoryPage struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The entries, newest first, or oldest first when the request named
+	// after_sequence.
+	Entries []*AccessHistoryEntry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more entries may follow: pass it as page_token, with the same
+	// request otherwise, to continue. Empty when this page reached the end.
+	// A page may be short, even empty, and still carry a token: a parent
+	// organization's administrators are not shown the entries about a child's
+	// resources.
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AccessHistoryPage) Reset() {
+	*x = AccessHistoryPage{}
+	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccessHistoryPage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccessHistoryPage) ProtoMessage() {}
+
+func (x *AccessHistoryPage) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccessHistoryPage.ProtoReflect.Descriptor instead.
+func (*AccessHistoryPage) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *AccessHistoryPage) GetEntries() []*AccessHistoryEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+func (x *AccessHistoryPage) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+// AccessHistoryEntry is one change to who has access to what: someone was
+// given access, or lost it.
+type AccessHistoryEntry struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The entry's number in its organization's history: 1 for the first, and
+	// one more for each entry after it, in the order they happened.
+	Sequence int64 `protobuf:"varint,1,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	// When the change happened. Never before the entry numbered before it.
+	OccurredAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=occurred_at,json=occurredAt,proto3" json:"occurred_at,omitempty"`
+	// Whether access was given or taken away.
+	Change AccessChange `protobuf:"varint,3,opt,name=change,proto3,enum=ai.stigmer.iam.iampolicy.v1.AccessChange" json:"change,omitempty"`
+	// Why the change happened.
+	Cause AccessChangeCause `protobuf:"varint,4,opt,name=cause,proto3,enum=ai.stigmer.iam.iampolicy.v1.AccessChangeCause" json:"cause,omitempty"`
+	// Who made the change: a person or service account, named as their
+	// account reads today (display name, email and avatar), whether or not
+	// they still belong to the organization, so a security team can tell who
+	// a past member was. An account that no longer exists, or the server
+	// acting on its own, carries only its id.
+	Actor *ApiResourceRefView `protobuf:"bytes,5,opt,name=actor,proto3" json:"actor,omitempty"`
+	// How the actor made the change: "user" for a person, "service_account"
+	// for a service account's key, "internal" for the server acting on the
+	// actor's behalf (an invitation's redemption, a removal's sweep). An
+	// edition may add its own.
+	ActorClass string `protobuf:"bytes,6,opt,name=actor_class,json=actorClass,proto3" json:"actor_class,omitempty"`
+	// Who was given or lost access: a person, named as the actor is, or a
+	// group written with its relation (the members of a team, the viewers of
+	// an organization).
+	Principal *ApiResourceRefView `protobuf:"bytes,7,opt,name=principal,proto3" json:"principal,omitempty"`
+	// The role given or taken away, as the access list shows it.
+	Role *RoleInfo `protobuf:"bytes,8,opt,name=role,proto3" json:"role,omitempty"`
+	// What the access is to. Its slug is the resource's current name, and
+	// empty when the resource has been deleted.
+	Resource      *apiresource.ApiResourceReference `protobuf:"bytes,9,opt,name=resource,proto3" json:"resource,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AccessHistoryEntry) Reset() {
+	*x = AccessHistoryEntry{}
+	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccessHistoryEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccessHistoryEntry) ProtoMessage() {}
+
+func (x *AccessHistoryEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccessHistoryEntry.ProtoReflect.Descriptor instead.
+func (*AccessHistoryEntry) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *AccessHistoryEntry) GetSequence() int64 {
+	if x != nil {
+		return x.Sequence
+	}
+	return 0
+}
+
+func (x *AccessHistoryEntry) GetOccurredAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.OccurredAt
+	}
+	return nil
+}
+
+func (x *AccessHistoryEntry) GetChange() AccessChange {
+	if x != nil {
+		return x.Change
+	}
+	return AccessChange_access_change_unspecified
+}
+
+func (x *AccessHistoryEntry) GetCause() AccessChangeCause {
+	if x != nil {
+		return x.Cause
+	}
+	return AccessChangeCause_access_change_cause_unspecified
+}
+
+func (x *AccessHistoryEntry) GetActor() *ApiResourceRefView {
+	if x != nil {
+		return x.Actor
+	}
+	return nil
+}
+
+func (x *AccessHistoryEntry) GetActorClass() string {
+	if x != nil {
+		return x.ActorClass
+	}
+	return ""
+}
+
+func (x *AccessHistoryEntry) GetPrincipal() *ApiResourceRefView {
+	if x != nil {
+		return x.Principal
+	}
+	return nil
+}
+
+func (x *AccessHistoryEntry) GetRole() *RoleInfo {
+	if x != nil {
+		return x.Role
+	}
+	return nil
+}
+
+func (x *AccessHistoryEntry) GetResource() *apiresource.ApiResourceReference {
+	if x != nil {
+		return x.Resource
+	}
+	return nil
+}
+
 var File_ai_stigmer_iam_iampolicy_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"$ai/stigmer/iam/iampolicy/v1/io.proto\x12\x1bai.stigmer.iam.iampolicy.v1\x1a%ai/stigmer/iam/iampolicy/v1/api.proto\x1a&ai/stigmer/iam/iampolicy/v1/spec.proto\x1a,ai/stigmer/iam/identityaccount/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x92\x03\n" +
+	"$ai/stigmer/iam/iampolicy/v1/io.proto\x12\x1bai.stigmer.iam.iampolicy.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a%ai/stigmer/iam/iampolicy/v1/api.proto\x1a&ai/stigmer/iam/iampolicy/v1/spec.proto\x1a,ai/stigmer/iam/identityaccount/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x92\x03\n" +
 	"\x12ApiResourceRefView\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x1a\n" +
@@ -1529,7 +1950,51 @@ const file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDesc = "" +
 	"\x0eprincipal_kind\x18\x02 \x01(\tB\n" +
 	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\rprincipalKind\"'\n" +
 	"\x0fPrincipalsCount\x12\x14\n" +
-	"\x05count\x18\x01 \x01(\x05R\x05countB\x8f\x02\n" +
+	"\x05count\x18\x01 \x01(\x05R\x05count\"\xcd\x01\n" +
+	"\x16ListAccessHistoryInput\x12\x1c\n" +
+	"\x03org\x18\x01 \x01(\tB\n" +
+	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\x03org\x12$\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x123\n" +
+	"\x0eafter_sequence\x18\x04 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x00R\rafterSequence\x88\x01\x01B\x11\n" +
+	"\x0f_after_sequence\"\x86\x01\n" +
+	"\x11AccessHistoryPage\x12I\n" +
+	"\aentries\x18\x01 \x03(\v2/.ai.stigmer.iam.iampolicy.v1.AccessHistoryEntryR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xba\x04\n" +
+	"\x12AccessHistoryEntry\x12\x1a\n" +
+	"\bsequence\x18\x01 \x01(\x03R\bsequence\x12;\n" +
+	"\voccurred_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"occurredAt\x12A\n" +
+	"\x06change\x18\x03 \x01(\x0e2).ai.stigmer.iam.iampolicy.v1.AccessChangeR\x06change\x12D\n" +
+	"\x05cause\x18\x04 \x01(\x0e2..ai.stigmer.iam.iampolicy.v1.AccessChangeCauseR\x05cause\x12E\n" +
+	"\x05actor\x18\x05 \x01(\v2/.ai.stigmer.iam.iampolicy.v1.ApiResourceRefViewR\x05actor\x12\x1f\n" +
+	"\vactor_class\x18\x06 \x01(\tR\n" +
+	"actorClass\x12M\n" +
+	"\tprincipal\x18\a \x01(\v2/.ai.stigmer.iam.iampolicy.v1.ApiResourceRefViewR\tprincipal\x129\n" +
+	"\x04role\x18\b \x01(\v2%.ai.stigmer.iam.iampolicy.v1.RoleInfoR\x04role\x12P\n" +
+	"\bresource\x18\t \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\bresource*G\n" +
+	"\fAccessChange\x12\x1d\n" +
+	"\x19access_change_unspecified\x10\x00\x12\v\n" +
+	"\agranted\x10\x01\x12\v\n" +
+	"\arevoked\x10\x02*\xc3\x02\n" +
+	"\x11AccessChangeCause\x12#\n" +
+	"\x1faccess_change_cause_unspecified\x10\x00\x12\t\n" +
+	"\x05grant\x10\x01\x12\n" +
+	"\n" +
+	"\x06revoke\x10\x02\x12\x0e\n" +
+	"\n" +
+	"structural\x10\x03\x12\x1f\n" +
+	"\x1borganization_access_revoked\x10\x04\x12\x15\n" +
+	"\x11left_organization\x10\x05\x12\x14\n" +
+	"\x10resource_deleted\x10\x06\x12\x18\n" +
+	"\x14organization_created\x10\a\x12\x11\n" +
+	"\rfirst_sign_in\x10\b\x12\x17\n" +
+	"\x13role_reconciliation\x10\t\x12\x16\n" +
+	"\x12operator_ownership\x10\n" +
+	"\x12\x19\n" +
+	"\x15platform_client_grant\x10\v\x12\x1b\n" +
+	"\x17service_account_created\x10\fB\x8f\x02\n" +
 	"\x1fcom.ai.stigmer.iam.iampolicy.v1B\aIoProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/iampolicy/v1;iampolicyv1\xa2\x02\x04ASII\xaa\x02\x1bAi.Stigmer.Iam.Iampolicy.V1\xca\x02\x1bAi\\Stigmer\\Iam\\Iampolicy\\V1\xe2\x02'Ai\\Stigmer\\Iam\\Iampolicy\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Iam::Iampolicy::V1b\x06proto3"
 
 var (
@@ -1544,70 +2009,86 @@ func file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_ai_stigmer_iam_iampolicy_v1_io_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
 var file_ai_stigmer_iam_iampolicy_v1_io_proto_goTypes = []any{
-	(*ApiResourceRefView)(nil),              // 0: ai.stigmer.iam.iampolicy.v1.ApiResourceRefView
-	(*IdentityOrigin)(nil),                  // 1: ai.stigmer.iam.iampolicy.v1.IdentityOrigin
-	(*IamPolicyId)(nil),                     // 2: ai.stigmer.iam.iampolicy.v1.IamPolicyId
-	(*PrincipalResourceInput)(nil),          // 3: ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput
-	(*ResourcePrincipalsInput)(nil),         // 4: ai.stigmer.iam.iampolicy.v1.ResourcePrincipalsInput
-	(*RevokeOrgAccessInput)(nil),            // 5: ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput
-	(*IamPoliciesList)(nil),                 // 6: ai.stigmer.iam.iampolicy.v1.IamPoliciesList
-	(*ListResourceAccessInput)(nil),         // 7: ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput
-	(*ResourceAccessByPrincipalList)(nil),   // 8: ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList
-	(*PrincipalAccess)(nil),                 // 9: ai.stigmer.iam.iampolicy.v1.PrincipalAccess
-	(*RoleGrant)(nil),                       // 10: ai.stigmer.iam.iampolicy.v1.RoleGrant
-	(*ResourceAccessByRoleList)(nil),        // 11: ai.stigmer.iam.iampolicy.v1.ResourceAccessByRoleList
-	(*RoleAccess)(nil),                      // 12: ai.stigmer.iam.iampolicy.v1.RoleAccess
-	(*RoleInfo)(nil),                        // 13: ai.stigmer.iam.iampolicy.v1.RoleInfo
-	(*PrincipalResourceRoles)(nil),          // 14: ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles
-	(*CheckAuthorizationInput)(nil),         // 15: ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput
-	(*CheckAuthorizationResult)(nil),        // 16: ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult
-	(*CheckMyPermissionInput)(nil),          // 17: ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput
-	(*ListAuthorizedResourceIdsInput)(nil),  // 18: ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput
-	(*AuthorizedResourceIdsList)(nil),       // 19: ai.stigmer.iam.iampolicy.v1.AuthorizedResourceIdsList
-	(*ListAuthorizedPrincipalIdsInput)(nil), // 20: ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput
-	(*AuthorizedPrincipalIdsList)(nil),      // 21: ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList
-	(*GetPrincipalsCountInput)(nil),         // 22: ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput
-	(*PrincipalsCount)(nil),                 // 23: ai.stigmer.iam.iampolicy.v1.PrincipalsCount
-	(v1.IdentityAccountProvisioningMode)(0), // 24: ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode
-	(*ApiResourceRef)(nil),                  // 25: ai.stigmer.iam.iampolicy.v1.ApiResourceRef
-	(*IamPolicy)(nil),                       // 26: ai.stigmer.iam.iampolicy.v1.IamPolicy
-	(*IamPolicySpec)(nil),                   // 27: ai.stigmer.iam.iampolicy.v1.IamPolicySpec
+	(AccessChange)(0),                        // 0: ai.stigmer.iam.iampolicy.v1.AccessChange
+	(AccessChangeCause)(0),                   // 1: ai.stigmer.iam.iampolicy.v1.AccessChangeCause
+	(*ApiResourceRefView)(nil),               // 2: ai.stigmer.iam.iampolicy.v1.ApiResourceRefView
+	(*IdentityOrigin)(nil),                   // 3: ai.stigmer.iam.iampolicy.v1.IdentityOrigin
+	(*IamPolicyId)(nil),                      // 4: ai.stigmer.iam.iampolicy.v1.IamPolicyId
+	(*PrincipalResourceInput)(nil),           // 5: ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput
+	(*ResourcePrincipalsInput)(nil),          // 6: ai.stigmer.iam.iampolicy.v1.ResourcePrincipalsInput
+	(*RevokeOrgAccessInput)(nil),             // 7: ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput
+	(*IamPoliciesList)(nil),                  // 8: ai.stigmer.iam.iampolicy.v1.IamPoliciesList
+	(*ListResourceAccessInput)(nil),          // 9: ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput
+	(*ResourceAccessByPrincipalList)(nil),    // 10: ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList
+	(*PrincipalAccess)(nil),                  // 11: ai.stigmer.iam.iampolicy.v1.PrincipalAccess
+	(*RoleGrant)(nil),                        // 12: ai.stigmer.iam.iampolicy.v1.RoleGrant
+	(*ResourceAccessByRoleList)(nil),         // 13: ai.stigmer.iam.iampolicy.v1.ResourceAccessByRoleList
+	(*RoleAccess)(nil),                       // 14: ai.stigmer.iam.iampolicy.v1.RoleAccess
+	(*RoleInfo)(nil),                         // 15: ai.stigmer.iam.iampolicy.v1.RoleInfo
+	(*PrincipalResourceRoles)(nil),           // 16: ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles
+	(*CheckAuthorizationInput)(nil),          // 17: ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput
+	(*CheckAuthorizationResult)(nil),         // 18: ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult
+	(*CheckMyPermissionInput)(nil),           // 19: ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput
+	(*ListAuthorizedResourceIdsInput)(nil),   // 20: ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput
+	(*AuthorizedResourceIdsList)(nil),        // 21: ai.stigmer.iam.iampolicy.v1.AuthorizedResourceIdsList
+	(*ListAuthorizedPrincipalIdsInput)(nil),  // 22: ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput
+	(*AuthorizedPrincipalIdsList)(nil),       // 23: ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList
+	(*GetPrincipalsCountInput)(nil),          // 24: ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput
+	(*PrincipalsCount)(nil),                  // 25: ai.stigmer.iam.iampolicy.v1.PrincipalsCount
+	(*ListAccessHistoryInput)(nil),           // 26: ai.stigmer.iam.iampolicy.v1.ListAccessHistoryInput
+	(*AccessHistoryPage)(nil),                // 27: ai.stigmer.iam.iampolicy.v1.AccessHistoryPage
+	(*AccessHistoryEntry)(nil),               // 28: ai.stigmer.iam.iampolicy.v1.AccessHistoryEntry
+	(v1.IdentityAccountProvisioningMode)(0),  // 29: ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode
+	(*ApiResourceRef)(nil),                   // 30: ai.stigmer.iam.iampolicy.v1.ApiResourceRef
+	(*IamPolicy)(nil),                        // 31: ai.stigmer.iam.iampolicy.v1.IamPolicy
+	(*IamPolicySpec)(nil),                    // 32: ai.stigmer.iam.iampolicy.v1.IamPolicySpec
+	(*timestamppb.Timestamp)(nil),            // 33: google.protobuf.Timestamp
+	(*apiresource.ApiResourceReference)(nil), // 34: ai.stigmer.commons.apiresource.ApiResourceReference
 }
 var file_ai_stigmer_iam_iampolicy_v1_io_proto_depIdxs = []int32{
-	0,  // 0: ai.stigmer.iam.iampolicy.v1.ApiResourceRefView.members:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRefView
-	0,  // 1: ai.stigmer.iam.iampolicy.v1.ApiResourceRefView.teams:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRefView
-	1,  // 2: ai.stigmer.iam.iampolicy.v1.ApiResourceRefView.identity_origin:type_name -> ai.stigmer.iam.iampolicy.v1.IdentityOrigin
-	24, // 3: ai.stigmer.iam.iampolicy.v1.IdentityOrigin.provisioning_mode:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode
-	25, // 4: ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput.principal:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
-	25, // 5: ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput.resource:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
-	25, // 6: ai.stigmer.iam.iampolicy.v1.ResourcePrincipalsInput.resource:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
-	25, // 7: ai.stigmer.iam.iampolicy.v1.ResourcePrincipalsInput.principals:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
-	26, // 8: ai.stigmer.iam.iampolicy.v1.IamPoliciesList.entries:type_name -> ai.stigmer.iam.iampolicy.v1.IamPolicy
-	25, // 9: ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput.resource:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
-	9,  // 10: ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList.entries:type_name -> ai.stigmer.iam.iampolicy.v1.PrincipalAccess
-	0,  // 11: ai.stigmer.iam.iampolicy.v1.PrincipalAccess.principal:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRefView
-	10, // 12: ai.stigmer.iam.iampolicy.v1.PrincipalAccess.roles:type_name -> ai.stigmer.iam.iampolicy.v1.RoleGrant
-	13, // 13: ai.stigmer.iam.iampolicy.v1.RoleGrant.role:type_name -> ai.stigmer.iam.iampolicy.v1.RoleInfo
-	25, // 14: ai.stigmer.iam.iampolicy.v1.RoleGrant.owner_resource:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
-	12, // 15: ai.stigmer.iam.iampolicy.v1.ResourceAccessByRoleList.entries:type_name -> ai.stigmer.iam.iampolicy.v1.RoleAccess
-	10, // 16: ai.stigmer.iam.iampolicy.v1.RoleAccess.role:type_name -> ai.stigmer.iam.iampolicy.v1.RoleGrant
-	0,  // 17: ai.stigmer.iam.iampolicy.v1.RoleAccess.principals:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRefView
-	13, // 18: ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles.roles:type_name -> ai.stigmer.iam.iampolicy.v1.RoleInfo
-	27, // 19: ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput.policy:type_name -> ai.stigmer.iam.iampolicy.v1.IamPolicySpec
-	27, // 20: ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput.contextual_policies:type_name -> ai.stigmer.iam.iampolicy.v1.IamPolicySpec
-	25, // 21: ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput.resource:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
-	27, // 22: ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput.contextual_policies:type_name -> ai.stigmer.iam.iampolicy.v1.IamPolicySpec
-	25, // 23: ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput.principal:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
-	27, // 24: ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput.contextual_policies:type_name -> ai.stigmer.iam.iampolicy.v1.IamPolicySpec
-	25, // 25: ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput.resource:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
-	27, // 26: ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput.contextual_policies:type_name -> ai.stigmer.iam.iampolicy.v1.IamPolicySpec
-	27, // [27:27] is the sub-list for method output_type
-	27, // [27:27] is the sub-list for method input_type
-	27, // [27:27] is the sub-list for extension type_name
-	27, // [27:27] is the sub-list for extension extendee
-	0,  // [0:27] is the sub-list for field type_name
+	2,  // 0: ai.stigmer.iam.iampolicy.v1.ApiResourceRefView.members:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRefView
+	2,  // 1: ai.stigmer.iam.iampolicy.v1.ApiResourceRefView.teams:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRefView
+	3,  // 2: ai.stigmer.iam.iampolicy.v1.ApiResourceRefView.identity_origin:type_name -> ai.stigmer.iam.iampolicy.v1.IdentityOrigin
+	29, // 3: ai.stigmer.iam.iampolicy.v1.IdentityOrigin.provisioning_mode:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode
+	30, // 4: ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput.principal:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
+	30, // 5: ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput.resource:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
+	30, // 6: ai.stigmer.iam.iampolicy.v1.ResourcePrincipalsInput.resource:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
+	30, // 7: ai.stigmer.iam.iampolicy.v1.ResourcePrincipalsInput.principals:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
+	31, // 8: ai.stigmer.iam.iampolicy.v1.IamPoliciesList.entries:type_name -> ai.stigmer.iam.iampolicy.v1.IamPolicy
+	30, // 9: ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput.resource:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
+	11, // 10: ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList.entries:type_name -> ai.stigmer.iam.iampolicy.v1.PrincipalAccess
+	2,  // 11: ai.stigmer.iam.iampolicy.v1.PrincipalAccess.principal:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRefView
+	12, // 12: ai.stigmer.iam.iampolicy.v1.PrincipalAccess.roles:type_name -> ai.stigmer.iam.iampolicy.v1.RoleGrant
+	15, // 13: ai.stigmer.iam.iampolicy.v1.RoleGrant.role:type_name -> ai.stigmer.iam.iampolicy.v1.RoleInfo
+	30, // 14: ai.stigmer.iam.iampolicy.v1.RoleGrant.owner_resource:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
+	14, // 15: ai.stigmer.iam.iampolicy.v1.ResourceAccessByRoleList.entries:type_name -> ai.stigmer.iam.iampolicy.v1.RoleAccess
+	12, // 16: ai.stigmer.iam.iampolicy.v1.RoleAccess.role:type_name -> ai.stigmer.iam.iampolicy.v1.RoleGrant
+	2,  // 17: ai.stigmer.iam.iampolicy.v1.RoleAccess.principals:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRefView
+	15, // 18: ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles.roles:type_name -> ai.stigmer.iam.iampolicy.v1.RoleInfo
+	32, // 19: ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput.policy:type_name -> ai.stigmer.iam.iampolicy.v1.IamPolicySpec
+	32, // 20: ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput.contextual_policies:type_name -> ai.stigmer.iam.iampolicy.v1.IamPolicySpec
+	30, // 21: ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput.resource:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
+	32, // 22: ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput.contextual_policies:type_name -> ai.stigmer.iam.iampolicy.v1.IamPolicySpec
+	30, // 23: ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput.principal:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
+	32, // 24: ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput.contextual_policies:type_name -> ai.stigmer.iam.iampolicy.v1.IamPolicySpec
+	30, // 25: ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput.resource:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
+	32, // 26: ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput.contextual_policies:type_name -> ai.stigmer.iam.iampolicy.v1.IamPolicySpec
+	28, // 27: ai.stigmer.iam.iampolicy.v1.AccessHistoryPage.entries:type_name -> ai.stigmer.iam.iampolicy.v1.AccessHistoryEntry
+	33, // 28: ai.stigmer.iam.iampolicy.v1.AccessHistoryEntry.occurred_at:type_name -> google.protobuf.Timestamp
+	0,  // 29: ai.stigmer.iam.iampolicy.v1.AccessHistoryEntry.change:type_name -> ai.stigmer.iam.iampolicy.v1.AccessChange
+	1,  // 30: ai.stigmer.iam.iampolicy.v1.AccessHistoryEntry.cause:type_name -> ai.stigmer.iam.iampolicy.v1.AccessChangeCause
+	2,  // 31: ai.stigmer.iam.iampolicy.v1.AccessHistoryEntry.actor:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRefView
+	2,  // 32: ai.stigmer.iam.iampolicy.v1.AccessHistoryEntry.principal:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRefView
+	15, // 33: ai.stigmer.iam.iampolicy.v1.AccessHistoryEntry.role:type_name -> ai.stigmer.iam.iampolicy.v1.RoleInfo
+	34, // 34: ai.stigmer.iam.iampolicy.v1.AccessHistoryEntry.resource:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	35, // [35:35] is the sub-list for method output_type
+	35, // [35:35] is the sub-list for method input_type
+	35, // [35:35] is the sub-list for extension type_name
+	35, // [35:35] is the sub-list for extension extendee
+	0,  // [0:35] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_iampolicy_v1_io_proto_init() }
@@ -1617,18 +2098,20 @@ func file_ai_stigmer_iam_iampolicy_v1_io_proto_init() {
 	}
 	file_ai_stigmer_iam_iampolicy_v1_api_proto_init()
 	file_ai_stigmer_iam_iampolicy_v1_spec_proto_init()
+	file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes[24].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDesc), len(file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   24,
+			NumEnums:      2,
+			NumMessages:   27,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_iam_iampolicy_v1_io_proto_goTypes,
 		DependencyIndexes: file_ai_stigmer_iam_iampolicy_v1_io_proto_depIdxs,
+		EnumInfos:         file_ai_stigmer_iam_iampolicy_v1_io_proto_enumTypes,
 		MessageInfos:      file_ai_stigmer_iam_iampolicy_v1_io_proto_msgTypes,
 	}.Build()
 	File_ai_stigmer_iam_iampolicy_v1_io_proto = out.File

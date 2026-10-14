@@ -9,7 +9,7 @@ package ai.stigmer.agentic.run.v1;
  * <pre>
  * PauseRunInput requests temporarily pausing a run.
  *
- * Pauses the agent at its current checkpoint. Unlike cancel, the run
+ * Pauses the agent at its current checkpoint. Unlike an interrupt, the run
  * is NOT terminal and can be resumed later from where it left off.
  *
  * ## Behavior
@@ -391,7 +391,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * PauseRunInput requests temporarily pausing a run.
    *
-   * Pauses the agent at its current checkpoint. Unlike cancel, the run
+   * Pauses the agent at its current checkpoint. Unlike an interrupt, the run
    * is NOT terminal and can be resumed later from where it left off.
    *
    * ## Behavior

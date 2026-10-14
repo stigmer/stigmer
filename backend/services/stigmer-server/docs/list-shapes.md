@@ -79,6 +79,7 @@ Rows read `| \`package.Service.method\` | class |`.
 | `ai.stigmer.billing.v1.BillingQueryController.listModelPricingBaselines` | paged |
 | `ai.stigmer.iam.apikey.v1.ApiKeyQueryController.list` | paged |
 | `ai.stigmer.iam.apikey.v1.ApiKeyQueryController.listByAccount` | paged |
+| `ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listAccessHistory` | paged |
 | `ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listAuthorizedPrincipalIds` | exempt: an outside system's answer, the authorization engine's enumeration, capped at 1,000 and refused past it |
 | `ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listAuthorizedResourceIds` | exempt: an outside system's answer, the authorization engine's enumeration, capped at 1,000 and refused past it |
 | `ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listResourceAccessByPrincipal` | exempt: an outside system's answer, the authorization engine's enumeration, capped at 1,000 and refused past it |

@@ -28,7 +28,7 @@ function useCreateFederationIssuer(): UseCreateFederationIssuerReturn
 <TypeTable
   type={{
     clearError: { type: "() => void", description: "Reset `error` to `null`." },
-    create: { type: "(input: FederationIssuerInput) => Promise<FederationIssuer>", description: "Submit a FederationIssuerInput to create a new federation issuer. Resolves with the server-created resource." },
+    create: { type: "(input: FederationIssuerInput) => Promise<FederationIssuer>", description: "Submit an FederationIssuerInput to create a new federation issuer. Resolves with the server-created resource." },
     error: { type: "Error | null", description: "Error from the last failed create, or `null` when healthy." },
     isCreating: { type: "boolean", description: "`true` while the create request is in flight." },
   }}
@@ -54,7 +54,7 @@ and error state.
 
 Deletes a federation issuer by its resource ID. Returns the deleted
 `FederationIssuer` on success so callers can confirm which
-provider was removed.
+issuer was removed.
 
 **Signature**
 
@@ -134,8 +134,9 @@ function IssuerDetail({ issuerId }: { issuerId: string }) {
 Data hook that fetches all federation issuers for an organization.
 
 Federation issuers are admin-level resources with small cardinality
-(typically 1–3 per org), so results are returned as a flat list
-without pagination.
+(typically 1–3 per org), and the members page looks an issuer up among
+them, so the hook walks every page of the list and answers the whole
+set.
 
 Pass `null` to skip fetching (stable no-op). Call `refetch()` to
 re-query after mutations (create / update / delete).
@@ -221,7 +222,7 @@ const { update, isUpdating, error } = useUpdateFederationIssuer();
 
 await update(
   {
-    metadata: { id: provider.metadata!.id, etag: provider.metadata!.etag },
+    metadata: { id: issuer.metadata!.id, etag: issuer.metadata!.etag },
     spec: { displayName: "Acme Platform" },
   },
   ["spec.display_name"],
@@ -277,7 +278,7 @@ organization's trust in tokens another platform issues.
 
 In **view mode**, displays all OIDC configuration fields in a
 structured label/value layout, with an "Edit" button for a caller who
-may edit the provider (`can_edit`).
+may edit the issuer (`can_edit`).
 
 In **edit mode**, fields become editable inputs, the sign-in settings
 (account creation, sign-in role, customer id claim) among them. "Save" submits the update via
@@ -311,7 +312,7 @@ All visual properties flow through `--stgm-*` design tokens.
 Displays a list of `FederationIssuer` resources for an
 organization with inline delete confirmation.
 
-Each provider is rendered as a row showing name, slug, a JIT badge
+Each issuer is rendered as a row showing name, slug, a JIT badge
 (when a first sign-in creates the person's account), and creation date. The edit and
 delete buttons appear only on rows the caller may edit or delete
 (`can_edit`, `can_delete`); delete opens an inline confirmation.
@@ -326,7 +327,7 @@ All visual properties flow through `--stgm-*` design tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    emptyState: { type: "ReactNode", description: "Shown when the list is empty. Defaults to \"No federation issuers configured.\" The list holds only the providers the caller may view, so a host that knows the caller may not manage providers should say who does instead." },
+    emptyState: { type: "ReactNode", description: "Shown when the list is empty. Defaults to \"No federation issuers configured.\" The list holds only the issuers the caller may view, so a host that knows the caller may not manage issuers should say who does instead." },
     onEdit: { type: "(issuer: FederationIssuer) => void", description: "Fired when the user wants to edit a federation issuer." },
     onRefetchRef: { type: "(refetch: () => void) => void", description: "Expose the refetch function so parents can trigger a list refresh." },
     org: { type: "string", description: "Id of the organization whose federation issuers should be listed (a slug is also accepted).", required: true },

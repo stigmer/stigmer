@@ -56,7 +56,7 @@ describe("useMemories", () => {
   it("fetches all memories in one cap-sized page", async () => {
     const list = vi
       .fn()
-      .mockResolvedValue(create(MemoryListSchema, { totalCount: 2, items: [PROPOSED, CONFIRMED] }));
+      .mockResolvedValue(create(MemoryListSchema, { entries: [PROPOSED, CONFIRMED], nextPageToken: "" }));
     const client = { memory: { list } };
 
     const { result } = renderHook(() => useMemories("test-org"), {
@@ -71,7 +71,7 @@ describe("useMemories", () => {
     expect(list).toHaveBeenCalledWith(
       expect.objectContaining({
         org: "test-org",
-        pageInfo: expect.objectContaining({ num: 1, size: 100 }),
+        pageSize: 100,
       }),
     );
   });

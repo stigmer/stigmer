@@ -33,17 +33,6 @@ service RunQueryController {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
-  // Subscribe to real-time run updates (streaming).
-  //
-  // @internal
-  // Authorization is handled by the FJ model via proto configuration.
-  rpc subscribe(RunId) returns (stream Run) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = run;
-    option (ai.stigmer.commons.rpc.config).permission = can_view;
-    option (ai.stigmer.commons.rpc.config).field_path = "value";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to subscribe to run";
-  }
-
   // ─────────────────────────────────────────────────────────────────────────────
   // Artifact Lifecycle Operations
   //

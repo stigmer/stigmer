@@ -49,6 +49,16 @@ test.describe("Plugin hooks journey", () => {
       .getByReference({ org: testAgent.org, slug: PLUGIN })
       .then((stale) => stigmerClient.plugin.delete(stale.metadata!.id))
       .catch(() => undefined);
+    // The plugin goes into the agent's organization, so that organization is
+    // the console's active one (stored by id) before the first page loads:
+    // with none stored, the console opens whichever its list answers first.
+    let orgId: string | undefined;
+    for await (const org of stigmerClient.organization.listMineAll({})) {
+      if (org.metadata?.slug === testAgent.org) orgId = org.metadata.id;
+    }
+    await page.addInitScript((id) => {
+      localStorage.setItem("stigmer:activeOrg", id);
+    }, orgId ?? "");
 
     // The preview names the hooks in the CLI's words.
     await page.goto("/library/plugins/upload");

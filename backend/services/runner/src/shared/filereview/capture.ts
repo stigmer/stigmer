@@ -3,9 +3,9 @@
  * HITL subsystem. This is the glue between the git snapshot/restore substrate
  * ({@link ./git-substrate.js}) and the file-review ledger ({@link ./events.js}):
  * it turns "the agent edited files freely this turn" into the append-only
- * `file_review` events the server folds into `file_change_sets` (the single
- * review surface), and after the turn puts back the files a person undid
- * ({@link undoChangeSet}).
+ * `file_review` ledger the run's file record is read from
+ * (`RunStatus.file_changes`, `record.ts`), and after the turn puts back the
+ * files a person undid ({@link undoChangeSet}).
  *
  * It is parameterized by `harnessId` (stamped onto the BASELINE payload, which is
  * the projection's source of truth for `turn_id`/`harness_id`) and `excludePaths`
@@ -24,13 +24,9 @@ import { create } from "@bufbuild/protobuf";
 import {
   FileCaptureClass,
   FileChangeKind,
-  FileChangeType,
-  FileDecisionAction,
-  FileDecisionScope,
   FileReviewBlockReason,
   SnapshotKind,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   CasManifestRefSchema,
   GitTreeRefSchema,
@@ -49,6 +45,7 @@ import {
   buildCandidateCapturedEvent,
   buildCapturedFileChange,
   changeSetIdParts,
+  type LedgerHolder,
   contentSha256,
   type CapturedChangeInput,
   type ChangeSetContext,
@@ -73,6 +70,7 @@ import {
   type CasSnapshotRef,
 } from "./cas-substrate.js";
 import { isSecretLikePath } from "./secret-paths.js";
+import { FileChangeType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
  * Whether a workspace CAN capture a turn's file edits: the substrate half of
@@ -130,8 +128,8 @@ export function deriveCaptureMode(
  * the BASELINE_CAPTURED event. The projection reads `turn_id`/`harness_id` ONLY
  * from this payload, so `turnId == changeSetId` (one turn = one change set) and
  * `harnessId` identifies the producer. Returns the baseline tree sha for the
- * turn-end diff. Appends onto `status.fileReviewEventStream`; the event rides the
- * next persist.
+ * turn-end diff. Appends onto the turn's ledger (`rows.fileReviewEventStream`);
+ * the next persist reads it into the run's file record.
  *
  * `gitWorkspace=false` (a non-git workspace) has no whole-tree baseline
  * to pin — a file's pre-edit bytes are captured per-path by the CAS observer at
@@ -141,7 +139,7 @@ export function deriveCaptureMode(
  * no manifest yet (the manifest is authored at candidate time). Returns "".
  */
 export async function captureBaselineToLedger(opts: {
-  readonly status: RunStatus;
+  readonly rows: LedgerHolder;
   readonly gitRoot: string;
   readonly executionId: string;
   readonly changeSetId: string;
@@ -150,7 +148,7 @@ export async function captureBaselineToLedger(opts: {
   /** True (default) for a git work tree; false for a CAS-only non-git workspace. */
   readonly gitWorkspace?: boolean;
 }): Promise<string> {
-  const { status, gitRoot, executionId, changeSetId, harnessId, excludePaths } = opts;
+  const { rows, gitRoot, executionId, changeSetId, harnessId, excludePaths } = opts;
   const gitWorkspace = opts.gitWorkspace ?? true;
 
   if (!gitWorkspace) {
@@ -158,7 +156,7 @@ export async function captureBaselineToLedger(opts: {
       changeSetContext(changeSetId, harnessId),
       casManifestSnapshotRef(),
     );
-    appendFileReviewEvents(status, executionId, [event]);
+    appendFileReviewEvents(rows, executionId, [event]);
     return "";
   }
 
@@ -167,7 +165,7 @@ export async function captureBaselineToLedger(opts: {
     changeSetContext(changeSetId, harnessId),
     gitTreeSnapshotRef(baselineTree, baselineRef(executionId)),
   );
-  appendFileReviewEvents(status, executionId, [event]);
+  appendFileReviewEvents(rows, executionId, [event]);
   return baselineTree;
 }
 
@@ -178,12 +176,12 @@ export async function captureBaselineToLedger(opts: {
  * baseline/after refs are the authoritative source for an undo after the turn
  * ({@link undoChangeSet}).
  *
- * Presentation (hiding the harness's flowed transcript rows so `file_change_sets`
+ * Presentation (hiding the harness's flowed transcript rows so the change set
  * is the single review surface) is the harness adapter's concern, not this seam's.
  * Returns the captured changes. No-op authoring when the turn changed nothing.
  */
 export async function captureCandidateToLedger(opts: {
-  readonly status: RunStatus;
+  readonly rows: LedgerHolder;
   readonly gitRoot: string;
   readonly executionId: string;
   readonly changeSetId: string;
@@ -234,7 +232,7 @@ export async function captureCandidateToLedger(opts: {
   readonly commandProvenance?: TurnCommandProvenance;
 }): Promise<readonly GitCapturedChange[]> {
   const {
-    status, gitRoot, executionId, changeSetId, baselineTree, harnessId, excludePaths,
+    rows, gitRoot, executionId, changeSetId, baselineTree, harnessId, excludePaths,
     casCaptures, storage, unreviewablePaths, commandProvenance,
   } = opts;
   const gitWorkspace = opts.gitWorkspace ?? true;
@@ -314,7 +312,7 @@ export async function captureCandidateToLedger(opts: {
     captured,
     commandProvenance,
   );
-  appendFileReviewEvents(status, executionId, [event]);
+  appendFileReviewEvents(rows, executionId, [event]);
   return gitChanges;
 }
 
@@ -333,11 +331,26 @@ export interface UndoOutcome {
 }
 
 /**
+ * One decision on a change set, as the session's `stigmer.file_review.decided`
+ * event states it: the server writes it, the undo reads it from the log.
+ */
+export interface LoggedFileDecision {
+  /** `change_set` (every file of the set) or `file` (the one file). */
+  readonly scope: string;
+  /** The file decided, for scope `file`; "" otherwise. */
+  readonly fileChangeId: string;
+  /** `keep` or `undo`. */
+  readonly action: string;
+}
+
+/**
  * Put back the files a person undid in one change set, after its turn: every
- * file whose effective decision is REJECT (the CHANGE_SET decision seeds every
- * file, FILE decisions override it, most specific wins) returns to its pre-turn
- * bytes. Kept and undecided files are left exactly as they are: review never
- * holds a turn, so an undecided file is one nobody objected to.
+ * file whose effective decision is `undo` (a change-set decision seeds every
+ * file, a file decision overrides it, most specific wins; among decisions of
+ * one scope the later wins) returns to its pre-turn bytes. Kept and
+ * undecided files are left exactly as they are: review never holds a turn,
+ * so an undecided file is one nobody objected to. The set is read from its
+ * run's file record, the decisions from the session's log, oldest first.
  *
  * The sources are the ones capture pinned, never the live tree: a git-tracked
  * file from the change set's run's baseline and capture refs
@@ -362,12 +375,14 @@ export interface UndoOutcome {
 export async function undoChangeSet(opts: {
   readonly gitRoot: string;
   readonly changeSet: FileChangeSet;
+  /** The set's decisions from the session's log, oldest first. */
+  readonly decisions: readonly LoggedFileDecision[];
   /** False for a CAS-only non-git workspace: git refs are never consulted. */
   readonly gitWorkspace: boolean;
   /** Reads a CAS blob back; absent when the runner has no artifact storage. */
   readonly readBlob?: BlobReader;
 }): Promise<UndoOutcome> {
-  const { gitRoot, changeSet, gitWorkspace, readBlob } = opts;
+  const { gitRoot, changeSet, decisions, gitWorkspace, readBlob } = opts;
   const failed = (failure: UndoFailure, failureDetail: string): UndoOutcome => ({
     changeSetId: changeSet.id,
     undonePaths: [],
@@ -375,8 +390,8 @@ export async function undoChangeSet(opts: {
     failureDetail,
   });
 
-  const actionByChangeId = resolveDecisions(changeSet);
-  const undone = changeSet.changes.filter((c) => actionByChangeId.get(c.id) === FileDecisionAction.REJECT);
+  const actionByChangeId = resolveDecisions(changeSet, decisions);
+  const undone = changeSet.changes.filter((c) => actionByChangeId.get(c.id) === "undo");
   if (undone.length === 0) return { changeSetId: changeSet.id, undonePaths: [], failure: "", failureDetail: "" };
   const undoneById = new Map(undone.map((c) => [c.id, c]));
 
@@ -464,25 +479,21 @@ function isSecretWithheld(change: CapturedFileChange): boolean {
 
 /**
  * Resolve each file's effective decision (most-specific-wins, runner-owned):
- * seed every change with the CHANGE_SET decision (if present), then override per
- * file with FILE decisions. Returns change-id -> action.
+ * seed every change with the change-set decisions in order, then override
+ * per file with the file decisions in order. Returns change-id -> action
+ * (`keep` or `undo`).
  */
-function resolveDecisions(
-  changeSet: FileChangeSet,
-): Map<string, FileDecisionAction> {
-  const byChangeId = new Map<string, FileDecisionAction>();
-  const changeSetDecision = changeSet.decisions.find(
-    (d) => d.scope === FileDecisionScope.CHANGE_SET,
-  );
-  if (changeSetDecision) {
-    for (const change of changeSet.changes) {
-      byChangeId.set(change.id, changeSetDecision.action);
-    }
+export function resolveDecisions(
+  changeSet: Pick<FileChangeSet, "changes">,
+  decisions: readonly LoggedFileDecision[],
+): Map<string, string> {
+  const byChangeId = new Map<string, string>();
+  for (const decision of decisions) {
+    if (decision.scope !== "change_set") continue;
+    for (const change of changeSet.changes) byChangeId.set(change.id, decision.action);
   }
-  for (const decision of changeSet.decisions) {
-    if (decision.scope === FileDecisionScope.FILE && decision.fileChangeId) {
-      byChangeId.set(decision.fileChangeId, decision.action);
-    }
+  for (const decision of decisions) {
+    if (decision.scope === "file" && decision.fileChangeId !== "") byChangeId.set(decision.fileChangeId, decision.action);
   }
   return byChangeId;
 }

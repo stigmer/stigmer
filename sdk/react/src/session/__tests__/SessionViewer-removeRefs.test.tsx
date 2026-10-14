@@ -118,7 +118,7 @@ const stubSessionPageFlow = {
   skillRefs,
   setSkillRefs: vi.fn(),
   workspace: stubWorkspace,
-  sessionVariables: { entries: [], isEmpty: true, clear: vi.fn() },
+  sessionVariables: { entries: [], isEmpty: true, clear: vi.fn(), nextPageToken: "" },
   autoApproveAll: false,
   setAutoApproveAll: vi.fn(),
   answerToolUse: vi.fn(),
@@ -150,7 +150,7 @@ vi.mock("../../hooks", () => ({
         getArtifactContent: vi.fn(),
       },
       organization: {
-        findMyOrganizations: async () => ({ entries: ORGS }),
+        listMine: async () => ({ entries: ORGS, nextPageToken: "" }),
       },
     };
     return client.current;

@@ -37,9 +37,12 @@
  */
 import { createHash } from "node:crypto";
 
-import { toBinary } from "@bufbuild/protobuf";
-import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
+import { fromBinary, toBinary } from "@bufbuild/protobuf";
+import { ConnectError } from "@connectrpc/connect";
+import type { DescMessage, Message, MessageShape } from "@bufbuild/protobuf";
+import type { GenMessage } from "@bufbuild/protobuf/codegenv1";
 
+import type { LogFields, Logger } from "../../boot/logger.js";
 import type { Store } from "../../store/interface.js";
 import type {
   ListIndexCursor,
@@ -225,7 +228,10 @@ interface InHandResource {
   readonly status?: {
     readonly audit?: {
       readonly specAudit?: {
-        readonly createdAt?: { readonly seconds: bigint; readonly nanos: number };
+        readonly createdAt?: {
+          readonly seconds: bigint;
+          readonly nanos: number;
+        };
       };
     };
   };
@@ -252,7 +258,9 @@ export function inHandListPageSource<Desc extends DescMessage>(
         id,
         data: toBinary(schema, resource),
         cursor: {
-          createdAt: listIndexInstant(shaped.status?.audit?.specAudit?.createdAt),
+          createdAt: listIndexInstant(
+            shaped.status?.audit?.specAudit?.createdAt,
+          ),
           id,
         },
       };
@@ -300,6 +308,35 @@ export async function readEveryPage<T>(
   }
 }
 
+/** What `decodeOrSkip` logs when a stored row does not decode. */
+export interface SkippedRowLog {
+  readonly logger: Logger;
+  readonly message: string;
+  readonly fields?: LogFields;
+}
+
+/**
+ * A lane's `decode` over one message kind: a stored row whose bytes do not
+ * decode is skipped, so one bad record never takes a list down, and when
+ * `log` is given a warning names it with the decoder's reason.
+ */
+export function decodeOrSkip<T extends Message>(
+  schema: GenMessage<T>,
+  log?: SkippedRowLog,
+): (data: Uint8Array) => T | undefined {
+  return (data) => {
+    try {
+      return fromBinary(schema, data);
+    } catch (error) {
+      log?.logger.warn(log.message, {
+        ...log.fields,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return undefined;
+    }
+  };
+}
+
 interface Admitted<T> {
   readonly row: T;
   readonly cursor: ListIndexCursor;
@@ -313,6 +350,12 @@ async function queryOrFail<T>(
   try {
     return await params.source(after, limit);
   } catch (error) {
+    // A source's own refusal (a cursor it cannot read answers
+    // `invalid page_token`, as the source contract above asks) is the
+    // caller's answer; any other failure is a fault behind the lane.
+    if (error instanceof ConnectError) {
+      throw error;
+    }
     throw internalError(error, params.failure);
   }
 }

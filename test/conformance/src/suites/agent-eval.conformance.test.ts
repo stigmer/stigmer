@@ -283,9 +283,9 @@ describe("AgentEval — create, get and listByAgent", () => {
     const elsewhere = await createEval(other);
 
     const list = await clients.agentEvalQuery.listByAgent({ agentId: agent.metadata!.id });
-    expect(list.items.map((e) => e.metadata?.id)).toEqual([second.metadata!.id, first.metadata!.id]);
-    expect(list.totalCount).toBe(2);
-    expect(list.items.map((e) => e.metadata?.id)).not.toContain(elsewhere.metadata!.id);
+    expect(list.entries.map((e) => e.metadata?.id)).toEqual([second.metadata!.id, first.metadata!.id]);
+    expect(list.nextPageToken).toBe("");
+    expect(list.entries.map((e) => e.metadata?.id)).not.toContain(elsewhere.metadata!.id);
   });
 });
 
@@ -485,7 +485,7 @@ describe("AgentEval — create refusals", () => {
       "create selecting a plugin the agent does not attach",
     );
     const list = await clients.agentEvalQuery.listByAgent({ agentId: agent.metadata!.id });
-    expect(list.items).toEqual([]);
+    expect(list.entries).toEqual([]);
   });
 });
 
@@ -525,7 +525,7 @@ describe.skipIf(capabilities.scheduleFiring)("AgentEval — without an engine be
       "get after delete",
     );
     const list = await clients.agentEvalQuery.listByAgent({ agentId: agent.metadata!.id });
-    expect(list.items).toEqual([]);
+    expect(list.entries).toEqual([]);
   });
 
   it("deleting the agent deletes its evals", async () => {
@@ -623,7 +623,7 @@ describe("AgentEval — who may run and read an eval", () => {
       "a member who cannot edit the agent starting an eval",
     );
     expect(refused.rawMessage).toBe(AGENT_EVAL_CREATE_DENIED_MESSAGE);
-    expect((await lane.clients.agentEvalQuery.listByAgent({ agentId })).items, "the refused create stored nothing").toEqual([]);
+    expect((await lane.clients.agentEvalQuery.listByAgent({ agentId })).entries, "the refused create stored nothing").toEqual([]);
 
     const created = await laneEval(lane, lane.clients, agent);
     const id = created.metadata!.id;
@@ -681,7 +681,7 @@ describe("AgentEval — who may run and read an eval", () => {
     expect(read.metadata?.id).toBe(created.metadata!.id);
     expect(read.spec?.agentId).toBe(agent.metadata!.id);
     const list = await viewer.agentEvalQuery.listByAgent({ agentId: agent.metadata!.id });
-    expect(list.items.map((e) => e.metadata?.id)).toEqual([created.metadata!.id]);
+    expect(list.entries.map((e) => e.metadata?.id)).toEqual([created.metadata!.id]);
   });
 
   it("[rpc:AgentEvalQueryController.get] [rpc:AgentEvalQueryController.listByAgent] [rpc:AgentEvalCommandController.create] a person who cannot view the agent reads, lists and starts nothing: another organization's person, and a member when the agent is private", async (ctx) => {
@@ -739,7 +739,7 @@ describe("AgentEval — who may run and read an eval", () => {
       "the child's viewer views the agent its parent shares",
     ).toBe(agentId);
     const list = await childViewer.agentEvalQuery.listByAgent({ agentId });
-    expect(list.items, "a try spends the parent's money: the child's viewer lists no eval").toEqual([]);
+    expect(list.entries, "a try spends the parent's money: the child's viewer lists no eval").toEqual([]);
     await expectGrpcCode(
       () => childViewer.agentEvalQuery.get({ value: created.metadata!.id }),
       Code.PermissionDenied,

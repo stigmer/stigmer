@@ -53,6 +53,7 @@ vi.mock("../../workspace", () => ({
     addLocalPath: vi.fn(),
     removeEntry: vi.fn(),
     clear: vi.fn(),
+    nextPageToken: "",
   }),
 }));
 

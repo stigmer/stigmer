@@ -497,7 +497,7 @@ describe("child organizations — managed by the parent, never read by it", () =
         org: child.org,
       }),
     );
-    const mine = await asCustomer.organizationQuery.findMyOrganizations({});
+    const mine = await asCustomer.organizationQuery.listMine({});
     expect(
       mine.entries.map((organization) => organization.metadata?.id),
       "the minted user is the child's member and is bound to it",

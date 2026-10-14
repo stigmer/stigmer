@@ -94,12 +94,12 @@ export function createStigmerPreview(
     customTransport: createRouterTransport((router) => {
       // Pre-registered for every tour: the depicted organization. The shells
       // render the real `OrgSwitcher`, which loads through `OrgProvider` →
-      // `findMyOrganizations`; one platform-wide fixture keeps every tour's
+      // `listMine`; one platform-wide fixture keeps every tour's
       // org chrome identical ("Acme Corp" / `acme`). Tours register only
       // their own RPCs — never this service again (Connect rejects duplicate
       // registrations).
       router.service(OrganizationQueryController, {
-        findMyOrganizations: () => samples.organizationList(),
+        listMine: () => samples.organizationList(),
       });
       register(router);
     }),

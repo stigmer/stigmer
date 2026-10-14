@@ -10,30 +10,31 @@ import {
   timelineByKey,
 } from "../fixtures";
 
+function conversationsFor(filter: ChannelConversationListFilter) {
+  return filter === ChannelConversationListFilter.filter_wants_human
+    ? WANTS_HUMAN_CONVERSATIONS
+    : ALL_CONVERSATIONS;
+}
+
 /**
- * The four read RPCs the workbench's hooks call, over the fixture cast.
+ * The five read RPCs the workbench's hooks call, over the fixture cast.
  * Every handler is a pure function of its input — `getConversation` and
- * `getTimeline` key on the conversation, `listConversations` honors the
- * server-evaluated Needs-human predicate — so each beat's selection fetches
- * the state it depicts. Command RPCs (takeOver, reply, …) stay unregistered
- * on purpose: the tour depicts states, never drives them, and the workbench
- * subtree is inert.
+ * `listTimeline` key on the conversation, `list` and `countConversations`
+ * honor the server-evaluated Needs-human predicate — so each beat's
+ * selection fetches the state it depicts. Command RPCs (takeOver, reply, …)
+ * stay unregistered on purpose: the tour depicts states, never drives
+ * them, and the workbench subtree is inert.
  */
 export const PreviewProviders = createStigmerPreview((router) => {
   router.service(AgentChannelQueryController, {
-    list: () => ({ items: [supportLineChannel()], totalCount: 1 }),
+    list: () => ({ entries: [supportLineChannel()], nextPageToken: "" }),
   });
   router.service(ChannelConversationQueryController, {
-    listConversations: (input) => {
-      const items =
-        input.filter === ChannelConversationListFilter.filter_wants_human
-          ? WANTS_HUMAN_CONVERSATIONS
-          : ALL_CONVERSATIONS;
-      return { items: [...items], totalCount: items.length };
-    },
+    list: (input) => ({ entries: [...conversationsFor(input.filter)], nextPageToken: "" }),
+    countConversations: (input) => ({ count: conversationsFor(input.filter).length }),
     getConversation: (input) => conversationByKey(input.conversationKey),
-    getTimeline: (input) => ({
-      items: timelineByKey(input.conversationKey),
+    listTimeline: (input) => ({
+      entries: timelineByKey(input.conversationKey),
       nextPageToken: "",
     }),
   });

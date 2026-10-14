@@ -75,7 +75,7 @@ export async function awaitJudgeVerdict(
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     const list = await clients.scoreQuery.listByRun({ runId });
-    const judge = list.items.find((score) => score.spec?.metric === JUDGE);
+    const judge = list.entries.find((score) => score.spec?.metric === JUDGE);
     if (judge !== undefined && judge.status?.state !== ScoreState.pending) {
       return judge;
     }

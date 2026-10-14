@@ -27,8 +27,8 @@ import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
 import { Stigmer } from "@stigmer/sdk";
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import { GetServerInfoOutputSchema, PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
-import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
-import { SearchResponseSchema, SearchResultSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginListSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
 
 import { StigmerContext } from "../../context.js";
 import { CATALOG_PAGE_SIZE, MarketplaceCatalog, filterEntries } from "../MarketplaceCatalog.js";
@@ -54,15 +54,13 @@ function transport(installedSlugs: readonly string[]) {
       // A development server: the official catalogue is not published for it.
       getServerInfo: () => create(GetServerInfoOutputSchema, { edition: 1, version: "dev" }),
     });
-    service(SearchService, {
-      search: () =>
-        create(SearchResponseSchema, {
-          entries: installedSlugs.map((slug) => create(SearchResultSchema, { id: `plg_${slug}`, slug, name: slug, org: ORG })),
-          totalCount: installedSlugs.length,
-          totalPages: 1,
-        }),
-    });
     service(PluginQueryController, {
+      // The installed plugins, every page of them (one here).
+      list: () =>
+        create(PluginListSchema, {
+          entries: installedSlugs.map((slug) => create(PluginSchema, { metadata: { id: `plg_${slug}`, slug, name: slug, org: ORG } })),
+          nextPageToken: "",
+        }),
       getByReference: () => {
         throw new ConnectError("no plugin", Code.NotFound);
       },
@@ -181,7 +179,7 @@ describe("MarketplaceCatalog: the grid", () => {
     expect(within(dialog).getByText(/Drop a plugin folder/)).toBeTruthy();
   });
 
-  it("pages at CATALOG_PAGE_SIZE, the Upload tile taking one slot on the first page, and a new query returns to page one", async () => {
+  it("pages at CATALOG_PAGE_SIZE next and back, the Upload tile taking one slot on the first page, and a new query returns to page one", async () => {
     // A catalogue of thirty entries, each its own manifest-only directory.
     const files = hostedMarketplaceFiles();
     const many = Array.from({ length: 30 }, (_, index) => `plugin-${String(index).padStart(2, "0")}`);
@@ -205,6 +203,10 @@ describe("MarketplaceCatalog: the grid", () => {
     expect(cards).toHaveLength(30 - (CATALOG_PAGE_SIZE - 1));
     expect(screen.queryByRole("button", { name: /Upload a plugin/ })).toBeNull();
     expect(screen.getByRole("button", { name: `Install plugin-${CATALOG_PAGE_SIZE - 1}` })).toBeTruthy();
+
+    fireEvent.click(within(screen.getByRole("navigation", { name: "Plugins pagination" })).getByRole("button", { name: "Previous" }));
+    expect(screen.getByRole("navigation", { name: "Plugins pagination" }).textContent).toContain("Page 1 of 2");
+    expect(screen.getByRole("button", { name: /Upload a plugin/ })).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("Search plugins"), { target: { value: "plugin-2" } });
     expect(screen.queryByRole("navigation", { name: "Plugins pagination" })).toBeNull();

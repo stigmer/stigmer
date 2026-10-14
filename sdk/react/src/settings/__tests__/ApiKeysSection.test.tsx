@@ -4,7 +4,7 @@
  * to one is named by that organization's slug when the user's organization
  * list holds it, and by a plain label when it does not, so a stored id is
  * never shown. The organization context is stubbed; the list runs through
- * the real hook over a stubbed `apiKey.findAll`.
+ * the real hook over a stubbed `apiKey.list`.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -44,7 +44,7 @@ function key(id: string, name: string, org: string): ApiKey {
 
 function renderSection(keys: ApiKey[]) {
   const client = {
-    apiKey: { findAll: vi.fn(async () => ({ entries: keys })) },
+    apiKey: { list: vi.fn(async () => ({ entries: keys, nextPageToken: "" })) },
   } as never;
   return render(
     <StigmerContext.Provider value={client}>

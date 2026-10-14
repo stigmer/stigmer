@@ -36,11 +36,12 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.vaults` | manifest reference |
 | `ai.stigmer.agentic.agentchannel.v1.ChannelConversation.agent_channel_id` | stamped id |
 | `ai.stigmer.agentic.agentchannel.v1.ConversationControlInput.agent_channel_id` | stamped id |
-| `ai.stigmer.agentic.agentchannel.v1.GetAgentChannelsByAgentRequest.agent_id` | stamped id |
+| `ai.stigmer.agentic.agentchannel.v1.CountChannelConversationsInput.agent_channel_id` | stamped id |
 | `ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput.agent_channel_id` | stamped id |
 | `ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput.agent_channel_id` | stamped id |
-| `ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput.agent_channel_id` | stamped id |
+| `ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsByAgentRequest.agent_id` | stamped id |
 | `ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput.agent_channel_id` | stamped id |
+| `ai.stigmer.agentic.agentchannel.v1.ListConversationTimelineInput.agent_channel_id` | stamped id |
 | `ai.stigmer.agentic.agentchannel.v1.ReplyToConversationInput.agent_channel_id` | stamped id |
 | `ai.stigmer.agentic.agentchannel.v1.SlackInstallStatus.channel_app_id` | stamped id |
 | `ai.stigmer.agentic.agentchannel.v1.SlackInstallStatus.team_id` | stamped id |
@@ -64,7 +65,7 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.agentshare.v1.AgentShareSpec.agent_ref` | manifest reference |
 | `ai.stigmer.agentic.agentshare.v1.AgentShareSpec.vaults` | manifest reference |
 | `ai.stigmer.agentic.agentshare.v1.AgentShareStatus.agent_id` | stamped id |
-| `ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest.agent_id` | stamped id |
+| `ai.stigmer.agentic.agentshare.v1.ListAgentSharesByAgentRequest.agent_id` | stamped id |
 | `ai.stigmer.agentic.agentshare.v1.SharedAgentProfile.agent_ref` | stamped reference |
 | `ai.stigmer.agentic.agentshare.v1.SharedAgentProfile.slug` | not a resource: the share's own name, beside its org |
 
@@ -109,9 +110,6 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.run.v1.AgentInvocation.agent_ref` | manifest reference |
 | `ai.stigmer.agentic.run.v1.AgentInvocation.vaults` | manifest reference |
 | `ai.stigmer.agentic.run.v1.AgentUsageSummary.agent_id` | stamped id |
-| `ai.stigmer.agentic.run.v1.ApprovalEventStream.run_id` | stamped id |
-| `ai.stigmer.agentic.run.v1.ApprovalRequest.mcp_server_slug` | not a resource: an MCP server's tool-name segment, plugin_<plugin>_<server> |
-| `ai.stigmer.agentic.run.v1.FileReviewEventStream.run_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.GetAgentUsageReportInput.agent_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.GetAgentUsageReportOutput.agent_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.GetArtifactContentRequest.run_id` | stamped id |
@@ -122,7 +120,6 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.session_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.LoadedVersions.plugins` | stamped reference |
 | `ai.stigmer.agentic.run.v1.LoadedVersions.skills` | stamped reference |
-| `ai.stigmer.agentic.run.v1.PendingApproval.mcp_server_slug` | not a resource: an MCP server's tool-name segment, plugin_<plugin>_<server> |
 | `ai.stigmer.agentic.run.v1.PluginEvalCaseContext.plugin_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.RecalledMemoryFact.memory_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.RunSpec.session_id` | stamped id |
@@ -132,16 +129,13 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.run.v1.RunValueDeclarer.plugin_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.RunValueSource.vault_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.SessionUsageSummary.session_id` | stamped id |
-| `ai.stigmer.agentic.run.v1.SubmitApprovalInput.run_id` | stamped id |
-| `ai.stigmer.agentic.run.v1.SubmitFileDecisionInput.run_id` | stamped id |
-| `ai.stigmer.agentic.run.v1.ToolCall.mcp_server_slug` | not a resource: an MCP server's tool-name segment, plugin_<plugin>_<server> |
 
 ## `ai.stigmer.agentic.schedule.v1`
 
 | Field | Class |
 |---|---|
-| `ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest.agent_id` | stamped id |
 | `ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest.schedule_id` | stamped id |
+| `ai.stigmer.agentic.schedule.v1.ListSchedulesByAgentRequest.agent_id` | stamped id |
 | `ai.stigmer.agentic.schedule.v1.ScheduleFire.run_id` | stamped id |
 | `ai.stigmer.agentic.schedule.v1.ScheduleFire.schedule_id` | stamped id |
 | `ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult.run_id` | stamped id |
@@ -206,6 +200,7 @@ Rows read `| \`Message.field\` | class |`.
 
 | Field | Class |
 |---|---|
+| `ai.stigmer.iam.iampolicy.v1.AccessHistoryEntry.resource` | stamped reference |
 | `ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput.identity_account_id` | stamped id |
 
 ## `ai.stigmer.iam.identityaccount.v1`

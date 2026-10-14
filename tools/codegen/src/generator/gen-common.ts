@@ -6,6 +6,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { goTrimSpace } from "../internalcomment/internalcomment.js";
 import type { FieldSchema, SpecSchema, TypeSchema } from "./schema.js";
@@ -248,22 +249,28 @@ export function pageIteratorName(methodName: string): string {
   return methodName + "All";
 }
 
+// The repository's apis directory, found from this module's own place in
+// the tree so a generator run from any directory (a test, a make target)
+// reads the same protos.
+const repoApisDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../../apis");
+
 /**
- * The `.proto` file (repo-relative, under `apis/`) that declares a
- * top-level message, found by scanning its package's directory: the
- * service schema carries the files of method types only, and an entry
- * type need not be one.
+ * The `.proto` file that declares a top-level message, as a path under
+ * `apis/`, found by scanning its package's directory: the service schema
+ * carries the files of method types only, and an entry type need not be
+ * one.
  */
 export function protoFileOfMessage(fullType: string): string {
   const idx = fullType.lastIndexOf(".");
-  const pkgDir = path.join("apis", fullType.slice(0, idx).replaceAll(".", "/"));
+  const pkgPath = fullType.slice(0, idx).replaceAll(".", "/");
   const needle = new RegExp("^message " + fullType.slice(idx + 1) + " \\{", "m");
-  for (const e of readDirSorted(pkgDir)) {
+  for (const e of readDirSorted(path.join(repoApisDir, pkgPath))) {
     if (e.isDirectory() || !e.name.endsWith(".proto")) continue;
-    const file = path.join(pkgDir, e.name);
-    if (needle.test(fs.readFileSync(file, "utf8"))) return file;
+    if (needle.test(fs.readFileSync(path.join(repoApisDir, pkgPath, e.name), "utf8"))) {
+      return path.posix.join("apis", pkgPath, e.name);
+    }
   }
-  throw new Error(`no .proto under ${pkgDir} declares message ${fullType}`);
+  throw new Error(`no .proto under apis/${pkgPath} declares message ${fullType}`);
 }
 
 /** Port of protoTypeName: final segment of a fully-qualified proto type. */

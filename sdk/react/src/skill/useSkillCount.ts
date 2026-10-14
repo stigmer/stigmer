@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
-import { useStigmer } from "../hooks.js";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useResourceCount } from "../search/index.js";
 
 /** Options for {@link useSkillCount}. */
@@ -30,8 +29,8 @@ export interface UseSkillCountReturn {
 /**
  * Data hook that fetches the total count of skills.
  *
- * Issues a minimal `stigmer.skill.list()` call to retrieve only the
- * total count — no skill entries are returned or stored. Useful for
+ * Reads search's count of the organization's skills for this kind —
+ * no skill entries are returned or stored. Useful for
  * summary cards, badges, and dashboard widgets.
  *
  * For the full paginated skill list, use {@link useSkillList} instead.
@@ -47,13 +46,5 @@ export function useSkillCount(
   org: string | null,
   options?: UseSkillCountOptions,
 ): UseSkillCountReturn {
-  const stigmer = useStigmer();
-
-  const listFn = useCallback(
-    (params: Parameters<typeof stigmer.skill.list>[0]) =>
-      stigmer.skill.list(params),
-    [stigmer],
-  );
-
-  return useResourceCount(listFn, org, options);
+  return useResourceCount(ApiResourceKind.skill, org, options);
 }

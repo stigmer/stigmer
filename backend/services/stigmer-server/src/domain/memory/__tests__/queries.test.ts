@@ -3,10 +3,11 @@
  * store opened with the server's list indexes (stigmer#1405): a subject's
  * read answers that subject's rows in the one organization, in every
  * lifecycle state, newest first; the "" sentinel reads by organization
- * and stays exact against a named subject's rows; the organization read
- * answers every subject's rows there and none elsewhere; and rows a
- * binary that does not know the index wrote (a second handle opened with
- * no declarations, the overlap of a roll) answer the same.
+ * and stays exact against a named subject's rows; and rows a binary that
+ * does not know the index wrote (a second handle opened with no
+ * declarations, the overlap of a roll) answer the same. The organization's
+ * list pages through the list index; memory.test.ts and the list-pages
+ * conformance suite pin it.
  */
 import { DatabaseSync } from "node:sqlite";
 

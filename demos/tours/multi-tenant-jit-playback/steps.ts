@@ -2,7 +2,7 @@
  * Child organization JIT playback — walkthrough of JIT provisioning with
  * externalIdClaim for a platform with child organizations.
  *
- * Shows the setup-once pattern: register an IdP with JIT + externalIdClaim,
+ * Shows the setup-once pattern: register an federation issuer with JIT + externalIdClaim,
  * create one child organization per customer, and let Stigmer handle
  * per-user provisioning automatically from a JWT claim.
  *
@@ -31,7 +31,7 @@ export type MultiTenantJitStep =
 // ---------------------------------------------------------------------------
 
 export const REGISTER_ISSUER_JIT_CODE = [
-  "// register-issuer.ts — IdP with JIT + externalIdClaim",
+  "// register-issuer.ts — federation issuer with JIT + externalIdClaim",
   "const issuer = await stigmer.federationIssuer.create({",
   '  name: "Acme Cloud Auth",',
   '  org: "acme",',

@@ -1,11 +1,19 @@
 // `usage` reports: token and model breakdowns at three granularities
-// (session, agent, org). Usage is counted in tokens and never priced, so the
-// tables show TOKENS and a SHARE of the report's tokens; no dollar figure
-// appears. A served-by line says whose provider credential served the tokens
-// (the organization's own keys or Stigmer's free model), and "estimated"
-// marks numbers counted from a run's own runner report rather than the
-// deployment's meter. Mirrors the retired Go CLI's usage_* renderers for
-// layout and date formatting.
+// (session, agent, org), and the organization's agent hours. Usage is
+// counted in tokens and never priced, so the tables show TOKENS and a SHARE
+// of the report's tokens; no dollar figure appears. A served-by line says
+// whose provider credential served the tokens (the organization's own keys
+// or Stigmer's free model), and "estimated" marks numbers counted from a
+// run's own runner report rather than the deployment's meter. Mirrors the
+// retired Go CLI's usage_* renderers for layout and date formatting.
+//
+// Two clocks, two words, two units. Every report shows WORKING time, the
+// seconds an agent worked (never waiting for a person), as a duration in
+// hours and minutes, never days, because a turn is minutes and a month's
+// work is hundreds of hours. `usage hours` shows AGENT HOURS, the unit a
+// Stigmer Cloud plan includes and bills, in tenths of an hour rounded half
+// up, the rule the console's billing page and the invoice use; it is the
+// one place a price may appear, the plan's own price past its allowance.
 //
 // A deliberate divergence from the retired Go CLI, which serialized usage
 // reports with the standard library (encoding/json + yaml.v3) directly on the
@@ -32,6 +40,12 @@ import {
   type ModelUsage,
   type UsageReportAggregate,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
+import {
+  AgentHoursSchema,
+  AgentHoursWindow,
+  GetAgentHoursInputSchema,
+  type AgentHours,
+} from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import type { OutputFormat } from "../output/index.js";
 import { renderProtoJson, renderProtoYaml, renderTable } from "../output/index.js";
@@ -69,6 +83,77 @@ export async function getOrgUsageReport(
   );
 }
 
+export async function getAgentHours(client: Stigmer, org: string): Promise<AgentHours> {
+  return client.subscription.getAgentHours(create(GetAgentHoursInputSchema, { org }));
+}
+
+// --- Render: agent hours ---
+
+/**
+ * Where the organization stands against its plan's agent hours, as one
+ * line: the hours used of those included in the window ("this month" on
+ * Free's calendar month, "this period" on a subscription's), the reset
+ * date, then what happens past the allowance by the plan's own terms (an
+ * allowance with no hourly price pauses new work; a price bills each hour
+ * past it). A plan with no allowance shows the hours alone.
+ */
+export function renderAgentHours(hours: AgentHours, format: OutputFormat): string {
+  if (format === "json") return renderProtoJson(AgentHoursSchema, hours);
+  if (format === "yaml") return renderProtoYaml(AgentHoursSchema, hours);
+
+  const window = hours.window === AgentHoursWindow.calendar_month ? "this month" : "this period";
+  const used = formatAgentHours(hours.workingSeconds);
+  const resets = hours.windowEnd === undefined ? "" : ` (resets ${utcDay(hours.windowEnd.seconds)} UTC)`;
+  const included = hours.includedHours;
+  if (included === undefined) {
+    return `Agent hours: ${used} used ${window}${resets}.\n`;
+  }
+  const head = `Agent hours: ${used} of ${included} h used ${window}${resets}.`;
+  if (hours.perAgentHourMicros !== undefined) {
+    return `${head} Then ${formatHourlyPrice(hours.perAgentHourMicros)} an hour, on this period's invoice.\n`;
+  }
+  const usedUp = hours.workingSeconds >= BigInt(included) * 3600n;
+  return usedUp
+    ? `${head} New work is paused until the reset.\n`
+    : `${head} New work pauses at the allowance.\n`;
+}
+
+/**
+ * Working agent time as hours to one decimal, e.g. "18.4 h": the tenth of
+ * an hour the invoice bills by, rounded half up. The console's billing page
+ * prints the same figure (formatAgentHours in @stigmer/react).
+ */
+export function formatAgentHours(seconds: bigint): string {
+  const tenths = (seconds + 180n) / 360n;
+  return `${tenths / 10n}.${tenths % 10n} h`;
+}
+
+/**
+ * Working time as a duration: "312h 5m" from an hour up, "4m 12s" under
+ * it, "42s" under a minute, "0s" for none. Never days: a report compares
+ * agents' hours, and a day would hide them.
+ */
+export function formatWorkingTime(seconds: bigint): string {
+  if (seconds <= 0n) return "0s";
+  const hours = seconds / 3600n;
+  const minutes = (seconds % 3600n) / 60n;
+  const rest = seconds % 60n;
+  if (hours > 0n) return `${hours}h ${minutes}m`;
+  if (minutes > 0n) return `${minutes}m ${rest}s`;
+  return `${rest}s`;
+}
+
+// "$0.50" from micro-USD, rounded half up to the cent.
+function formatHourlyPrice(micros: bigint): string {
+  const cents = (micros + 5_000n) / 10_000n;
+  return `$${cents / 100n}.${String(cents % 100n).padStart(2, "0")}`;
+}
+
+// "2026-11-01": the UTC calendar day of an epoch-seconds instant.
+function utcDay(seconds: bigint): string {
+  return new Date(Number(seconds) * 1000).toISOString().slice(0, 10);
+}
+
 // --- Render: session ---
 
 export function renderSessionUsage(report: GetSessionUsageReportOutput, format: OutputFormat): string {
@@ -84,6 +169,7 @@ export function renderSessionUsage(report: GetSessionUsageReportOutput, format: 
   }
   const totalTokens = reportTokens(report.totalUsage, report.modelBreakdown);
   lines.push(`Tokens:  ${formatTokenCount(totalTokens)}${report.isEstimated ? " (estimated)" : ""}`);
+  lines.push(`Working time: ${formatWorkingTime(report.totalUsage?.workingSeconds ?? 0n)}`);
   const servedBy = formatServedBy(report.totalUsage);
   if (servedBy !== "") lines.push(`Served by: ${servedBy}`);
   lines.push("");
@@ -109,10 +195,11 @@ export function renderSessionUsage(report: GetSessionUsageReportOutput, format: 
       String(i + 1),
       formatDate(exec.startedAt),
       `${exec.isEstimated ? ESTIMATED_MARK : ""}${formatTokenCount(exec.totalTokens)}`,
+      formatWorkingTime(exec.workingSeconds),
       exec.primaryModel,
       mapPhaseToString(exec.phase),
     ]);
-    lines.push(renderTable(["#", "DATE", "TOKENS", "MODEL", "STATUS"], rows));
+    lines.push(renderTable(["#", "DATE", "TOKENS", "WORKING", "MODEL", "STATUS"], rows));
     if (report.runs.some((exec) => exec.isEstimated)) {
       lines.push(`${ESTIMATED_MARK} estimated from the run's own report`);
     }
@@ -142,6 +229,7 @@ export function renderAgentUsage(
   lines.push(`  Sessions:     ${report.totalSessions}`);
   lines.push(`  Runs:         ${report.totalRuns}`);
   lines.push(`  Total tokens: ${formatTokenCount(totalTokens)}`);
+  lines.push(`  Working time: ${formatWorkingTime(report.totalUsage?.workingSeconds ?? 0n)}`);
   if (report.totalRuns > 0) {
     lines.push(`  Avg/run:      ${formatTokenCount(totalTokens / BigInt(report.totalRuns))}`);
   }
@@ -164,8 +252,9 @@ export function renderAgentUsage(
       formatDateRange(sess.firstRunAt, sess.lastRunAt),
       String(sess.runCount),
       formatTokenCount(sess.totalTokens),
+      formatWorkingTime(sess.workingSeconds),
     ]);
-    lines.push(renderTable(["#", "PERIOD", "RUNS", "TOKENS"], rows));
+    lines.push(renderTable(["#", "PERIOD", "RUNS", "TOKENS", "WORKING"], rows));
   }
 
   lines.push("");
@@ -188,6 +277,7 @@ export function renderOrgUsage(
   lines.push(`  Sessions:     ${report.totalSessions}`);
   lines.push(`  Runs:         ${report.totalRuns}`);
   lines.push(`  Total tokens: ${formatTokenCount(totalTokens)}`);
+  lines.push(`  Working time: ${formatWorkingTime(report.totalUsage?.workingSeconds ?? 0n)}`);
   const servedBy = formatServedBy(report.totalUsage);
   if (servedBy !== "") lines.push(`  Served by:    ${servedBy}`);
   lines.push("");
@@ -207,8 +297,9 @@ export function renderOrgUsage(
       String(a.runCount),
       formatTokenCount(a.totalTokens),
       formatShare(a.totalTokens, totalTokens),
+      formatWorkingTime(a.workingSeconds),
     ]);
-    lines.push(renderTable(["AGENT", "RUNS", "TOKENS", "SHARE"], rows), "");
+    lines.push(renderTable(["AGENT", "RUNS", "TOKENS", "SHARE", "WORKING"], rows), "");
   }
 
   if (report.harnessUsage.length > 0) {

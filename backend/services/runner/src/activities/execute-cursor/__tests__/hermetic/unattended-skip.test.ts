@@ -26,13 +26,9 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   ApprovalMode,
-  ApprovalPolicySource,
   RunPhase,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { foldSession, turnOf, type ToolUse } from "@stigmer/session-log";
 
@@ -50,6 +46,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { unattendedSkipMessage } from "../../../../shared/approval-policy.js";
 import { hasBash, hookShell } from "../../__test-utils__/cursor-hook-harness.js";
@@ -64,6 +63,7 @@ import {
   sessionWorkspaceDir,
 } from "../../__test-utils__/hermetic-cursor.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
+import { ApprovalPolicySource, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const AGENT_ID = "agent-hermetic-unattended-0001";
 const RUN_ID = "run-hermetic-unattended-0001";
@@ -150,8 +150,8 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — an unattended turn skips a
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the goldens ──────────────────────────────────────────────────
-    const statusJson = JSON.stringify(toJson(RunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
-    await expect(statusJson).toMatchFileSnapshot("./goldens/unattended-skip.status.json");
+    await expect(statusGolden(record.lastFullStatus!)).toMatchFileSnapshot("./goldens/unattended-skip.status.json");
+    await expect(rowsGolden(record.rowsOf(record.lastFullStatus!))).toMatchFileSnapshot(rowsGoldenPath("./goldens/unattended-skip.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/unattended-skip.events.json");
   });
 });

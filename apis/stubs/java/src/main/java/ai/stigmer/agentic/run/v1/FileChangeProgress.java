@@ -61,10 +61,9 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object changeSetId_ = "";
   /**
    * <pre>
-   * Id of the CAPTURING change set this progress previews ("${executionId}:${turnSeq}").
-   * The server keeps this snapshot only while a CAPTURING FileChangeSet with this
-   * id exists, so a stale prior-turn snapshot is cleared once the next turn pins a
-   * new baseline.
+   * Id of the change set this progress previews ("${executionId}:${turnSeq}"),
+   * before it is captured. A stale prior-turn snapshot is cleared once the next
+   * turn pins a new baseline.
    * </pre>
    *
    * <code>string change_set_id = 1 [json_name = "changeSetId"];</code>
@@ -85,10 +84,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Id of the CAPTURING change set this progress previews ("${executionId}:${turnSeq}").
-   * The server keeps this snapshot only while a CAPTURING FileChangeSet with this
-   * id exists, so a stale prior-turn snapshot is cleared once the next turn pins a
-   * new baseline.
+   * Id of the change set this progress previews ("${executionId}:${turnSeq}"),
+   * before it is captured. A stale prior-turn snapshot is cleared once the next
+   * turn pins a new baseline.
    * </pre>
    *
    * <code>string change_set_id = 1 [json_name = "changeSetId"];</code>
@@ -738,10 +736,9 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object changeSetId_ = "";
     /**
      * <pre>
-     * Id of the CAPTURING change set this progress previews ("${executionId}:${turnSeq}").
-     * The server keeps this snapshot only while a CAPTURING FileChangeSet with this
-     * id exists, so a stale prior-turn snapshot is cleared once the next turn pins a
-     * new baseline.
+     * Id of the change set this progress previews ("${executionId}:${turnSeq}"),
+     * before it is captured. A stale prior-turn snapshot is cleared once the next
+     * turn pins a new baseline.
      * </pre>
      *
      * <code>string change_set_id = 1 [json_name = "changeSetId"];</code>
@@ -761,10 +758,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Id of the CAPTURING change set this progress previews ("${executionId}:${turnSeq}").
-     * The server keeps this snapshot only while a CAPTURING FileChangeSet with this
-     * id exists, so a stale prior-turn snapshot is cleared once the next turn pins a
-     * new baseline.
+     * Id of the change set this progress previews ("${executionId}:${turnSeq}"),
+     * before it is captured. A stale prior-turn snapshot is cleared once the next
+     * turn pins a new baseline.
      * </pre>
      *
      * <code>string change_set_id = 1 [json_name = "changeSetId"];</code>
@@ -785,10 +781,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Id of the CAPTURING change set this progress previews ("${executionId}:${turnSeq}").
-     * The server keeps this snapshot only while a CAPTURING FileChangeSet with this
-     * id exists, so a stale prior-turn snapshot is cleared once the next turn pins a
-     * new baseline.
+     * Id of the change set this progress previews ("${executionId}:${turnSeq}"),
+     * before it is captured. A stale prior-turn snapshot is cleared once the next
+     * turn pins a new baseline.
      * </pre>
      *
      * <code>string change_set_id = 1 [json_name = "changeSetId"];</code>
@@ -805,10 +800,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Id of the CAPTURING change set this progress previews ("${executionId}:${turnSeq}").
-     * The server keeps this snapshot only while a CAPTURING FileChangeSet with this
-     * id exists, so a stale prior-turn snapshot is cleared once the next turn pins a
-     * new baseline.
+     * Id of the change set this progress previews ("${executionId}:${turnSeq}"),
+     * before it is captured. A stale prior-turn snapshot is cleared once the next
+     * turn pins a new baseline.
      * </pre>
      *
      * <code>string change_set_id = 1 [json_name = "changeSetId"];</code>
@@ -822,10 +816,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Id of the CAPTURING change set this progress previews ("${executionId}:${turnSeq}").
-     * The server keeps this snapshot only while a CAPTURING FileChangeSet with this
-     * id exists, so a stale prior-turn snapshot is cleared once the next turn pins a
-     * new baseline.
+     * Id of the change set this progress previews ("${executionId}:${turnSeq}"),
+     * before it is captured. A stale prior-turn snapshot is cleared once the next
+     * turn pins a new baseline.
      * </pre>
      *
      * <code>string change_set_id = 1 [json_name = "changeSetId"];</code>

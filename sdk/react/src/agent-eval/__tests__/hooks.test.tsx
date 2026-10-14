@@ -40,10 +40,7 @@ function wrap(mock: unknown) {
 
 describe("useAgentEvals", () => {
   it("lists the agent's evals, and asks nothing for an empty id", async () => {
-    const listByAgent = vi.fn(async () => ({
-      totalCount: 1,
-      items: [agentEvalWith([])],
-    }));
+    const listByAgent = vi.fn(async () => ({ entries: [agentEvalWith([])], nextPageToken: "" }));
     const { result } = renderHook(() => useAgentEvals("agt_1"), {
       wrapper: wrap({ agenteval: { listByAgent } }),
     });
@@ -63,10 +60,10 @@ describe("useAgentEvals", () => {
     const running = agentEvalWith([], { id: "aev_2", phase: PluginEvalPhase.running });
     const listByAgent = vi
       .fn()
-      .mockResolvedValueOnce({ totalCount: 2, items: [running, agentEvalWith([])] })
+      .mockResolvedValueOnce({ entries: [running, agentEvalWith([])], nextPageToken: "" })
       .mockResolvedValue({
-        totalCount: 2,
-        items: [agentEvalWith([], { id: "aev_2" }), agentEvalWith([])],
+        entries: [agentEvalWith([], { id: "aev_2" }), agentEvalWith([])],
+        nextPageToken: "",
       });
     const { result } = renderHook(() => useAgentEvals("agt_1"), {
       wrapper: wrap({ agenteval: { listByAgent } }),

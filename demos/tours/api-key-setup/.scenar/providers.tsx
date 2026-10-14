@@ -17,6 +17,6 @@ import { createStigmerPreview } from "../../_shared/stigmer-preview";
 
 export const PreviewProviders = createStigmerPreview((router) => {
   router.service(ApiKeyQueryController, {
-    findAll: () => create(ApiKeysSchema, { entries: [] }),
+    list: () => create(ApiKeysSchema, { entries: [] }),
   });
 });

@@ -37,6 +37,7 @@ import { Peer, loopbackChannels } from "../channel.js";
 import { encodeMessage, encodeTurnInput } from "../codec.js";
 import { runAgentHostProcess } from "../entry.js";
 import { AGENT_HOST_PROTOCOL_VERSION, type HostCalls, type HostConfigWire, type HostNotices, type RunnerCalls, type RunnerNotices } from "../protocol.js";
+import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 const CONFIG: HostConfigWire = {
   mode: "local",
@@ -162,6 +163,7 @@ describe("the agent host process", () => {
       harness: "deep-agent",
       input: encodeTurnInput(turnInputFixture()),
       status: encodeMessage(RunStatusSchema, create(RunStatusSchema)),
+      rows: encodeMessage(TurnRowsSchema, create(TurnRowsSchema)),
       timing: new TimingRecorder().toWire(),
       fingerprintKey: handed.toString("base64"),
       stopped: null,

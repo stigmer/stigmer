@@ -1,16 +1,4 @@
 {
-  "messages": [
-    {
-      "type": "MESSAGE_AI",
-      "content": "Let me look at the recent changes.",
-      "timestamp": "2026-01-01T00:00:02.000Z"
-    },
-    {
-      "type": "MESSAGE_AI",
-      "content": "Two files changed since yesterday: notes.md and README.md.",
-      "timestamp": "2026-01-01T00:00:06.000Z"
-    }
-  ],
   "phase": "RUN_COMPLETED",
   "startedAt": "2026-01-01T00:00:00.000Z",
   "completedAt": "2026-01-01T00:00:08.000Z",

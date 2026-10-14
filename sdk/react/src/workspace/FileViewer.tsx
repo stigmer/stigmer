@@ -11,11 +11,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { cn } from "@stigmer/theme";
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  FileChangeCaptureLevel,
-  FileChangeType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { DisplayFileChange } from "@stigmer/sdk";
 import { AttachmentImageLightbox } from "../attachment/AttachmentImageLightbox.js";
 import { useObjectUrl } from "../attachment/useObjectUrl.js";
 import { ArtifactContentRenderer } from "../run/ArtifactContentRenderer.js";
@@ -53,15 +49,15 @@ export interface FileViewerProps {
    */
   readonly reader: WorkspaceFileReader | undefined;
   /**
-   * The session {@link FileChange} that touched this file, when it was changed
+   * The session {@link DisplayFileChange} that touched this file, when it was changed
    * this session. When present the viewer defaults to the authoritative
    * `baseline→candidate` diff and — for a non-DELETE change with a
    * `reader` — offers a labeled toggle to the live "File" view. `undefined`
    * (the default) keeps the viewer a pure read-only browser (backward
    * compatible). Callers correlate the open file to its change with
-   * `findChangeForSelection`; a platform builder can pass any `FileChange`.
+   * `findChangeForSelection`; a platform builder can pass any `DisplayFileChange`.
    */
-  readonly change?: FileChange;
+  readonly change?: DisplayFileChange;
   /**
    * Optional jump-to-line request (e.g. a content-search hit). When present the
    * viewer opens in the live **File** view — a line number refers to current
@@ -146,7 +142,7 @@ export const FileViewer = forwardRef<FileViewerHandle, FileViewerProps>(
   // control). The default is the authoritative diff. The mount site
   // remounts the viewer per file (`key`), so this initializes correctly for
   // each opened file without deriving during render.
-  const canBrowseLive = reader !== undefined && change?.changeType !== FileChangeType.DELETE;
+  const canBrowseLive = reader !== undefined && change?.changeType !== "deleted";
   const showViewToggle = change !== undefined && canBrowseLive;
   // A reveal (jump-to-line) opens in File view even for a changed file — the
   // line number refers to current source, not the diff. Absent a reveal,
@@ -339,16 +335,14 @@ function ViewerModeToggle({
 /**
  * Whether the session captured this change's full after-content — the
  * precondition for serving it when the live substrate can't (a cloud file not
- * yet pushed to any readable ref). A DELETE has no after side, and a
- * HUNK_ONLY capture carries only the diff, never the whole file.
+ * yet pushed to any readable ref). A deletion has no after side.
  */
 function hasCapturedAfterContent(
-  change: FileChange | undefined,
-): change is FileChange {
+  change: DisplayFileChange | undefined,
+): change is DisplayFileChange {
   return (
     change !== undefined &&
-    change.changeType !== FileChangeType.DELETE &&
-    change.captureLevel !== FileChangeCaptureLevel.HUNK_ONLY &&
+    change.changeType !== "deleted" &&
     change.after !== undefined
   );
 }
@@ -370,7 +364,7 @@ function FileViewerBody({
   readonly error: Error | null;
   readonly onRetry: () => void;
   readonly reveal?: RevealTarget;
-  readonly change?: FileChange;
+  readonly change?: DisplayFileChange;
 }) {
   // A live read that can't be served (unsupported substrate, or the file
   // isn't at the read ref yet) degrades to the session's captured
@@ -514,7 +508,7 @@ function ImageFileContent({
   readonly mime: string;
   readonly basename: string;
   readonly size: number;
-  readonly change?: FileChange;
+  readonly change?: DisplayFileChange;
 }) {
   // Memo (not effect) is correct for the Blob — it holds no OS resource; the
   // object URL over it is effect-managed inside useObjectUrl.
@@ -591,7 +585,7 @@ function CapturedFileContent({
   basename,
   reveal,
 }: {
-  readonly change: FileChange;
+  readonly change: DisplayFileChange;
   readonly basename: string;
   readonly reveal?: RevealTarget;
 }) {

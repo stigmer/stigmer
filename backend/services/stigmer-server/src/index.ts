@@ -307,15 +307,19 @@ export type { IamPolicyStore } from "./domain/iampolicy/store.js";
 export { DuplicatePolicyError } from "./domain/iampolicy/store.js";
 // What the grant path hands the store beside every access row it writes or
 // deletes (who, through which door, in which organization), so an edition
-// that keeps a permission history writes it atomically with the row.
+// that keeps a permission history writes it atomically with the row; and
+// what the store's `listChanges` reads back.
 export type {
   PolicyActor,
+  PolicyChange,
   PolicyChangeCause,
+  PolicyChangePage,
   PolicyChangeRecord,
 } from "./domain/iampolicy/change.js";
 export type {
   IamPolicyStoreContractCase,
   IamPolicyStoreContractFixture,
+  IamPolicyStoreContractOptions,
 } from "./domain/iampolicy/store-contract.js";
 export { iamPolicyStoreContract } from "./domain/iampolicy/store-contract.js";
 // The owner rule's refusal, the one sentence every door that grants the
@@ -680,7 +684,11 @@ export { TARGET_RESOURCE_KEY } from "./pipeline/steps/load-target.js";
 export type { Store, StoreOpenOptions } from "./store/interface.js";
 // What a write hands `Store.insertResource` and `Store.deleteResource` to
 // record a change to an access row in the permission history.
-export type { PermissionChange } from "./store/permission-history.js";
+export type {
+  PermissionChange,
+  PermissionHistoryPage,
+  PermissionHistoryRecord,
+} from "./store/permission-history.js";
 export {
   AuditNotFoundError,
   ResourceNotFoundError,
@@ -950,7 +958,7 @@ export {
 export { LOADED_EXECUTION_KEY } from "./pipeline/request-context.js";
 // The answer to a waiting tool use, as the steps of the
 // `agent-execution-submit-approval:gate` slot read it, whichever method
-// carried it (confirmToolUse, grantPermission, the submitApproval adapter;
+// carried it (confirmToolUse, grantPermission;
 // domain/session/hitl/answer.ts). A replayed answer never reaches the slot.
 export type { ApprovalAnswer } from "./domain/session/hitl/answer.js";
 export { APPROVAL_ANSWER_KEY, approvalAnswerOf } from "./domain/session/hitl/answer.js";

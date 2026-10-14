@@ -22,10 +22,15 @@
  *   file changes ....... <run>.fr<turn seq>         (a change set, `<run>:<turn seq>`)
  *   files put back ..... <run>.fr<turn seq>.r
  *
- * `scope` is `root`, or the sub-agent's row id, and `index` the row's place
- * in its scope's message array: a reinvocation seeds the array back in
- * order and nothing removes a message, so the place is stable for the
- * run's life. The two file-review ids derive from the change set, so the
+ * `scope` is `root`, or the sub-agent's row id, and `index` a row's place
+ * in its scope: within one invocation its place in the scope's message
+ * array, which nothing reorders or removes, numbered on from the index
+ * after the highest one the log already holds in that scope. An invocation
+ * builds only its own rows (a reinvocation seeds the asks it resumes onto,
+ * on messages that write nothing), so a later invocation's first message
+ * takes the next index and no id is ever named twice with other bytes
+ * (`emitter.ts` `nextScopeIndexes`). Messages, thinking and notes share one
+ * index sequence per scope. The two file-review ids derive from the change set, so the
  * second one begins with the change set's run even when another run (the
  * turn that put the files back) writes it: one per change set, whichever
  * turn reconciles it. A thread's id equals its `task` call's tool use id (the

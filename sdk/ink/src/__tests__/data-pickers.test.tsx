@@ -2,7 +2,7 @@ import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render } from "ink-testing-library";
 import { create } from "@bufbuild/protobuf";
-import { SearchResultSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { InkStigmerProvider } from "../provider.js";
 import { AgentPicker } from "../components/AgentPicker.js";
@@ -16,8 +16,11 @@ function settle(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 60));
 }
 
-function agentResult(id: string, slug: string, description: string) {
-  return create(SearchResultSchema, { id, qualifiedSlug: slug, description });
+// An agent as its organization's list answers it; the picker shows it as
+// search would, by its qualified slug and description.
+function agent(id: string, qualifiedSlug: string, description: string) {
+  const [org, slug] = qualifiedSlug.split("/");
+  return create(AgentSchema, { metadata: { id, org, slug }, spec: { description } });
 }
 
 function session(id: string, subject: string, agentSlug: string) {
@@ -30,11 +33,11 @@ function session(id: string, subject: string, agentSlug: string) {
 describe("AgentPicker", () => {
   it("renders search results and returns the chosen agent on Enter", async () => {
     const results = [
-      agentResult("agt_1", "acme/alpha", "first"),
-      agentResult("agt_2", "acme/beta", "second"),
+      agent("agt_1", "acme/alpha", "first"),
+      agent("agt_2", "acme/beta", "second"),
     ];
     const client = fakeClient({
-      agent: { list: vi.fn(async () => ({ entries: results, totalPages: 1, totalCount: 2 })) },
+      agent: { list: vi.fn(async () => ({ entries: results, nextPageToken: "" })) },
     });
     const onSelect = vi.fn();
 
@@ -55,9 +58,9 @@ describe("AgentPicker", () => {
   });
 
   it("offers the built-in assistant first when asked, and picks it without an agent", async () => {
-    const results = [agentResult("agt_1", "acme/alpha", "first")];
+    const results = [agent("agt_1", "acme/alpha", "first")];
     const client = fakeClient({
-      agent: { list: vi.fn(async () => ({ entries: results, totalPages: 1, totalCount: 1 })) },
+      agent: { list: vi.fn(async () => ({ entries: results, nextPageToken: "" })) },
     });
     const onSelect = vi.fn();
     const onSelectBuiltInAssistant = vi.fn();
@@ -87,7 +90,7 @@ describe("AgentPicker", () => {
 
   it("offers agents only when no built-in handler is given", async () => {
     const client = fakeClient({
-      agent: { list: vi.fn(async () => ({ entries: [], totalPages: 0, totalCount: 0 })) },
+      agent: { list: vi.fn(async () => ({ entries: [], nextPageToken: "" })) },
     });
     const { lastFrame } = render(
       <InkStigmerProvider client={client}>
@@ -99,8 +102,9 @@ describe("AgentPicker", () => {
   });
 
   it("seeds the search box from initialQuery", async () => {
-    const list = vi.fn(async () => ({ entries: [], totalPages: 0, totalCount: 0 }));
-    const client = fakeClient({ agent: { list } });
+    const list = vi.fn(async () => ({ entries: [], nextPageToken: "" }));
+    const query = vi.fn(async () => ({ entries: [], countsByKind: {}, nextPageToken: "" }));
+    const client = fakeClient({ agent: { list }, search: { query } });
 
     const { lastFrame } = render(
       <InkStigmerProvider client={client}>
@@ -110,7 +114,7 @@ describe("AgentPicker", () => {
 
     await settle();
     // The picker pre-fills the input with the unresolved query the user
-    // already typed; useAgentSearch then re-searches it (debounced).
+    // already typed; useAgentSearch then searches it (debounced).
     expect(lastFrame() ?? "").toContain("deploy");
   });
 });

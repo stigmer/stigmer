@@ -5,7 +5,7 @@
 //   - create answers the client and its secret ONCE: `pcl_` id, a
 //     `stgm_cid_` client_id, a `stgm_cs_` secret whose last six characters
 //     are the fingerprint; no read ever returns the secret or its hash
-//     (create, get, getByReference, listByOrg, update, rotateSecret, delete);
+//     (create, get, getByReference, list, update, rotateSecret, delete);
 //   - update replaces the spec but never the credentials (client_id,
 //     fingerprint kept from the stored client);
 //   - rotateSecret answers a new secret and fingerprint under the same
@@ -104,7 +104,7 @@ function expectRedacted(
 }
 
 describe("PlatformClient conformance — CRUD on the primary", () => {
-  it("[rpc:PlatformClientCommandController.create] [rpc:PlatformClientQueryController.get] [rpc:PlatformClientQueryController.getByReference] [rpc:PlatformClientQueryController.listByOrg] create answers the client and its secret once, and no read returns the secret or its hash", async () => {
+  it("[rpc:PlatformClientCommandController.create] [rpc:PlatformClientQueryController.get] [rpc:PlatformClientQueryController.getByReference] [rpc:PlatformClientQueryController.list] create answers the client and its secret once, and no read returns the secret or its hash", async () => {
     const org = await organization();
     const client = await platformClient(org);
     const created = client.created.platformClient;
@@ -131,11 +131,11 @@ describe("PlatformClient conformance — CRUD on the primary", () => {
       }),
       "getByReference",
     );
-    const listed = await clients.platformClientQuery.listByOrg({ org });
+    const listed = await clients.platformClientQuery.list({ org });
     const entry = listed.entries.find(
       (candidate) => candidate.metadata?.id === client.id,
     );
-    expectRedacted(entry, "listByOrg");
+    expectRedacted(entry, "list");
   });
 
   it("[rpc:PlatformClientCommandController.update] update replaces the spec but keeps the credentials", async () => {
@@ -285,7 +285,7 @@ describe("PlatformClient conformance — CRUD on the primary", () => {
     expect(deleted.metadata?.id).toBe(client.id);
     expectRedacted(deleted, "delete");
 
-    const listed = await clients.platformClientQuery.listByOrg({ org });
+    const listed = await clients.platformClientQuery.list({ org });
     expect(listed.entries.map((entry) => entry.metadata?.id)).not.toContain(
       client.id,
     );

@@ -48,8 +48,6 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -63,6 +61,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import {
@@ -134,10 +135,11 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
     expect(boundSchemaTools[0], "langchain bound the toolStrategy schema tool").toBe("extract-1");
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
     const final = record.lastFullStatus!;
-    expect(final.structuredOutput, "the engine's structuredResponse reaches the status").toEqual(ANSWER);
+    const finalRows = record.rowsOf(final);
+    expect(finalRows.structuredOutput, "the engine's structuredResponse reaches the status").toEqual(ANSWER);
 
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/structured-output.tool-strategy.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/structured-output.tool-strategy.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/structured-output.tool-strategy.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/structured-output.tool-strategy.events.json");
   });
 
@@ -167,12 +169,13 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
     expect(slim.phase).toBe("RUN_COMPLETED");
     const final = record.lastFullStatus!;
-    expect(final.structuredOutput, "extracted from the final text").toEqual(ANSWER);
+    const finalRows = record.rowsOf(final);
+    expect(finalRows.structuredOutput, "extracted from the final text").toEqual(ANSWER);
     expect(record.toolCalls(), "no tool was involved").toHaveLength(0);
 
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/structured-output.text-fallback.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/structured-output.text-fallback.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/structured-output.text-fallback.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/structured-output.text-fallback.events.json");
   });
 
@@ -209,7 +212,8 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
       const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
       expect(slim.phase).toBe("RUN_COMPLETED");
       const final = record.lastFullStatus!;
-      expect(final.structuredOutput, "extracted by the second model").toEqual(ANSWER);
+      const finalRows = record.rowsOf(final);
+      expect(finalRows.structuredOutput, "extracted by the second model").toEqual(ANSWER);
         expect(record.toolCalls(), "the extraction tool call is not a graph step and never reaches the transcript").toHaveLength(0);
       expect(extractionCalls, "the extractor was asked exactly once").toHaveLength(1);
 
@@ -228,8 +232,8 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
       // falls back to the primary (its last resort).
       expect(extractorBuilds[0]!.modelName).toBe(FIXTURE_NATIVE_MODEL);
 
-      const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-      await expect(json).toMatchFileSnapshot("./goldens/structured-output.tier2.status.json");
+      await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/structured-output.tier2.status.json");
+      await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/structured-output.tier2.status.json"));
       await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/structured-output.tier2.events.json");
     } finally {
       vi.unstubAllEnvs();

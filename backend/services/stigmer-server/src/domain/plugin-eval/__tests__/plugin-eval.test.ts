@@ -248,7 +248,7 @@ describe("plugin eval create", () => {
 
   it("refuses what an eval cannot run, before writing anything", async () => {
     const plugin = await install();
-    const before = (await evalQuery.listByPlugin({ pluginId: plugin.metadata!.id })).items.length;
+    const before = (await evalQuery.listByPlugin({ pluginId: plugin.metadata!.id })).entries.length;
 
     const wrongOrg = await refusal(evals.create(evalOf(plugin, {}, OTHER_ORG)));
     expect(wrongOrg.code).toBe(Code.FailedPrecondition);
@@ -286,7 +286,7 @@ describe("plugin eval create", () => {
     expect(typo.code).toBe(Code.InvalidArgument);
     expect(typo.rawMessage).toContain("spec.targets[0].model_name: model 'claude-sonet-4.6' is not in the model registry");
 
-    expect((await evalQuery.listByPlugin({ pluginId: plugin.metadata!.id })).items).toHaveLength(before);
+    expect((await evalQuery.listByPlugin({ pluginId: plugin.metadata!.id })).entries).toHaveLength(before);
   });
 
   it("runs at most 200 cases and 1000 tries, refusing one more of either", async () => {
@@ -326,8 +326,8 @@ describe("plugin eval reads, cancel and delete", () => {
     const second = await evals.create(evalOf(plugin));
     await evals.create(evalOf(other));
     const listed = await evalQuery.listByPlugin({ pluginId: plugin.metadata!.id });
-    expect(listed.items.map((e) => e.metadata?.id)).toEqual([second.metadata!.id, first.metadata!.id]);
-    expect(listed.totalCount).toBe(2);
+    expect(listed.entries.map((e) => e.metadata?.id)).toEqual([second.metadata!.id, first.metadata!.id]);
+    expect(listed.entries).toHaveLength(2);
   });
 
   it("answers a finished eval's cancel unchanged, and cannot stop a running one with no engine", async () => {

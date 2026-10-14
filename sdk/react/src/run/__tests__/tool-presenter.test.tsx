@@ -5,7 +5,6 @@
 // with their disposers.
 import { describe, it, expect } from "vitest";
 import { renderHook } from "@testing-library/react";
-import { ToolKind } from "@stigmer/sdk";
 import { useToolPresentation, registerToolPresenter } from "../tool-presenter";
 import { toolUse } from "./__fixtures__/fold-values";
 
@@ -18,7 +17,7 @@ describe("useToolPresentation", () => {
     });
     const { result } = renderHook(() => useToolPresentation(tc));
 
-    expect(result.current.kind).toBe(ToolKind.FILE_EDIT);
+    expect(result.current.kind).toBe("file_edit");
     expect(result.current.category).toBe("edit");
     expect(result.current.label).toBe("Edit");
     expect(result.current.result.type).toBe("diff");
@@ -33,7 +32,7 @@ describe("useToolPresentation", () => {
     });
     const { result } = renderHook(() => useToolPresentation(tc));
 
-    expect(result.current.kind).toBe(ToolKind.SHELL);
+    expect(result.current.kind).toBe("shell");
     expect(result.current.result.type).toBe("terminal");
     expect(result.current.resultSummary).toBe("exit 3");
   });
@@ -45,7 +44,7 @@ describe("useToolPresentation", () => {
   });
 
   it("honors a registered custom presenter override and restores on dispose", () => {
-    const dispose = registerToolPresenter(ToolKind.SHELL, {
+    const dispose = registerToolPresenter("shell", {
       label: () => "Run command",
     });
     try {
@@ -94,7 +93,7 @@ describe("useToolPresentation", () => {
 
     it("lets a host restore the always-expanded shell preview via the registry", () => {
       // The one-line opt-out for hosts that prefer the pre-tail behaviour.
-      const dispose = registerToolPresenter(ToolKind.SHELL, {
+      const dispose = registerToolPresenter("shell", {
         disclosure: () => "preview",
       });
       try {
@@ -125,7 +124,7 @@ describe("useToolPresentation", () => {
     });
 
     it("lets a registered presenter override the disclosure", () => {
-      const dispose = registerToolPresenter(ToolKind.MCP, {
+      const dispose = registerToolPresenter("mcp", {
         disclosure: () => "summary",
       });
       try {
@@ -150,7 +149,7 @@ describe("useToolPresentation", () => {
     });
 
     it("lets a registered presenter restore the boxed look for a kind", () => {
-      const dispose = registerToolPresenter(ToolKind.FILE_READ, {
+      const dispose = registerToolPresenter("file_read", {
         chrome: () => "card",
       });
       try {
@@ -181,7 +180,7 @@ describe("useToolPresentation", () => {
     });
 
     it("lets a registered presenter override run-grouping", () => {
-      const dispose = registerToolPresenter(ToolKind.SHELL, {
+      const dispose = registerToolPresenter("shell", {
         runGroupable: () => true,
       });
       try {

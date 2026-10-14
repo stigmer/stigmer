@@ -407,7 +407,6 @@ function generateTSMethod(
   const isDeleteInput = m.inputType === "ApiResourceDeleteInput";
   const isResourceInput = m.inputType === cfg.protoResType;
   const isUpdateInput = isUpdateInputType(m.inputType, cfg.protoResType);
-  const isApiResourceIdInput = m.inputType === "ApiResourceId";
   const isApiResourceRefInput = m.inputType === "ApiResourceReference";
 
   let outputType = cfg.protoResType;
@@ -448,12 +447,6 @@ function generateTSMethod(
     buf.push(`  async ${tsMethodName(sdkMethodName(svc, m))}(id: string): Promise<${outputType}> {\n`);
     buf.push("    try {\n");
     buf.push(`      ${returnKeyword}await this.${svc.role}.${tsMethodName(m.name)}(create(${m.inputType}Schema, { value: id }));\n`);
-    buf.push("    } catch (e) { throw wrapError(e); }\n");
-    buf.push("  }\n");
-  } else if (isApiResourceIdInput) {
-    buf.push(`  async ${tsMethodName(sdkMethodName(svc, m))}(id: string): Promise<${outputType}> {\n`);
-    buf.push("    try {\n");
-    buf.push(`      ${returnKeyword}await this.${svc.role}.${tsMethodName(m.name)}(create(ApiResourceIdSchema, { value: id }));\n`);
     buf.push("    } catch (e) { throw wrapError(e); }\n");
     buf.push("  }\n");
   } else if (isApiResourceRefInput) {

@@ -17,7 +17,7 @@ const globex = {
 function createMockStigmer(orgs: Organization[]) {
   return {
     organization: {
-      findMyOrganizations: vi.fn().mockResolvedValue({ entries: orgs }),
+      listMine: vi.fn().mockResolvedValue({ entries: orgs, nextPageToken: "" }),
     },
   } as never;
 }

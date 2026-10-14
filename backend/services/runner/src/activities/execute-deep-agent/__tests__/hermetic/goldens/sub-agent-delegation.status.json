@@ -1,52 +1,5 @@
 {
-  "messages": [
-    {
-      "type": "MESSAGE_AI",
-      "content": "Delegating to the helper.",
-      "timestamp": "2026-01-01T00:00:01.000Z",
-      "toolCalls": [
-        {
-          "id": "call-hermetic-task-0001",
-          "name": "task",
-          "args": {
-            "description": "Look up the fixture value.",
-            "subagent_type": "helper"
-          },
-          "result": "The fixture value is forty-two.",
-          "status": "TOOL_CALL_COMPLETED",
-          "startedAt": "2026-01-01T00:00:01.000Z",
-          "completedAt": "2026-01-01T00:00:02.000Z",
-          "argsPreview": "{\"description\":\"Look up the fixture value.\",\"subagent_type\":\"helper\"}",
-          "toolKind": "TOOL_KIND_SUBAGENT"
-        }
-      ]
-    },
-    {
-      "type": "MESSAGE_AI",
-      "content": "The helper reports the fixture value is forty-two.",
-      "timestamp": "2026-01-01T00:00:03.000Z"
-    }
-  ],
   "phase": "RUN_COMPLETED",
-  "subAgentRuns": [
-    {
-      "id": "call-hermetic-task-0001",
-      "name": "helper",
-      "input": "Look up the fixture value.",
-      "output": "The fixture value is forty-two.",
-      "status": "SUB_AGENT_COMPLETED",
-      "startedAt": "2026-01-01T00:00:01.000Z",
-      "completedAt": "2026-01-01T00:00:02.000Z",
-      "messages": [
-        {
-          "type": "MESSAGE_AI",
-          "content": "The fixture value is forty-two.",
-          "timestamp": "2026-01-01T00:00:02.000Z"
-        }
-      ],
-      "subject": "Look up the fixture value."
-    }
-  ],
   "startedAt": "2026-01-01T00:00:00.000Z",
   "completedAt": "2026-01-01T00:00:03.000Z",
   "streamingUsage": {

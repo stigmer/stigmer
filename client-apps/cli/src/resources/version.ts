@@ -26,10 +26,10 @@ export async function renderAgentVersionHistory(client: Stigmer, org: string, sl
   const response = await client.agent.listVersions(
     create(ListAgentVersionsInputSchema, { org, slug, pageSize: VERSION_HISTORY_PAGE_SIZE }),
   );
-  if (response.versions.length === 0) {
+  if (response.entries.length === 0) {
     return emptyHistory(client, org, slug);
   }
-  return renderVersionsTable(response.versions, response.totalCount);
+  return renderVersionsTable(response.entries, response.nextPageToken !== "");
 }
 
 /**
@@ -54,10 +54,13 @@ async function emptyHistory(client: Stigmer, org: string, slug: string): Promise
 
 // --- Rendering (mirrors Go's displayVersionsTable) ---
 
-function renderVersionsTable(entries: readonly VersionRow[], totalCount: number): string {
+// The history is one page, newest first: a list says whether more follow,
+// not how many there are, so the header counts the page and adds "+" when
+// older versions follow it.
+function renderVersionsTable(entries: readonly VersionRow[], olderFollow: boolean): string {
   const lines: string[] = [
     "",
-    `Version History (${totalCount} total)`,
+    `Version History (${entries.length}${olderFollow ? "+" : ""})`,
     "",
     `  ${pad("HASH", 14)} ${pad("TAG", 10)} ${pad("APPLIED AT", 20)} ${pad("CURRENT", 8)} MESSAGE`,
     `  ${"─".repeat(14)} ${"─".repeat(10)} ${"─".repeat(20)} ${"─".repeat(8)} ───────`,

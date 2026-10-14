@@ -33,6 +33,22 @@ export interface OrganizationNames {
   readonly slug: string;
 }
 
+/** What reading the caller's own organizations needs of a client: listMine's walk over every page. */
+export interface MembershipReader {
+  readonly organization: {
+    listMineAll(input: Record<string, never>): AsyncIterable<Organization>;
+  };
+}
+
+/** Every organization the caller belongs to, read page by page. */
+export async function myOrganizations(client: MembershipReader): Promise<Organization[]> {
+  const organizations: Organization[] = [];
+  for await (const organization of client.organization.listMineAll({})) {
+    organizations.push(organization);
+  }
+  return organizations;
+}
+
 /** Whether a failed organization lookup says the caller cannot see it (NotFound or PermissionDenied). */
 export function cannotSeeOrganization(err: unknown): boolean {
   const code = classify(err)?.code;

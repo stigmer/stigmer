@@ -34,7 +34,7 @@ function wrapperFor(client: unknown) {
 
 describe("useLicenses", () => {
   it("unwraps the list to its entries", async () => {
-    const client = { license: { list: vi.fn().mockResolvedValue({ entries: [entry] }) } };
+    const client = { license: { list: vi.fn().mockResolvedValue({ entries: [entry], nextPageToken: "" }) } };
     const { result } = renderHook(() => useLicenses(), { wrapper: wrapperFor(client) });
     await waitFor(() => expect(result.current.licenses).toEqual([entry]));
   });

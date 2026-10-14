@@ -217,15 +217,47 @@ export interface BulkAction<TData = SearchResult> {
 // ---------------------------------------------------------------------------
 
 /**
- * Serializable snapshot of the workbench's filter, sort, pagination,
- * and view state. Passed to `onStateChange` so consumers can sync
- * this state to URL search params or other persistence layers.
+ * Serializable snapshot of the workbench's filter, sort, page size and
+ * view state. Passed to `onStateChange` so consumers can sync this state
+ * to URL search params or other persistence layers. The shown page is not
+ * part of it: a page is a position in one walk of the list (a token), not
+ * an address a URL can hold.
  */
 export interface WorkbenchState {
   readonly filters: readonly FilterValue[];
   readonly sort: SortValue | null;
-  readonly page: number;
   readonly pageSize: number;
   readonly query: string;
   readonly viewMode: ViewMode;
 }
+
+// ---------------------------------------------------------------------------
+// Data source
+// ---------------------------------------------------------------------------
+
+/** What a workbench asks its list function for: one page of an organization's rows. */
+export interface WorkbenchPageRequest {
+  /** Organization id (a slug is also accepted). */
+  readonly org: string;
+  /** The search box's text; empty or absent when nothing is typed. */
+  readonly query?: string;
+  /** The most rows the page holds. */
+  readonly pageSize: number;
+  /** The previous page's `nextPageToken`; `""` for the first page. */
+  readonly pageToken: string;
+}
+
+/** One page of rows, as every Stigmer list answers it. */
+export interface WorkbenchPage<TData = SearchResult> {
+  readonly entries: readonly TData[];
+  /** Set when more rows follow; `""` on the last page. */
+  readonly nextPageToken: string;
+}
+
+/**
+ * A workbench's data source: reads the page a request names. The
+ * workbench pages by token (next and previous), so a list carries no total.
+ */
+export type WorkbenchListFn<TData = SearchResult> = (
+  request: WorkbenchPageRequest,
+) => Promise<WorkbenchPage<TData>>;

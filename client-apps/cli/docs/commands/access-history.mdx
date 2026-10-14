@@ -1,0 +1,63 @@
+Read your Organization's access history, and export it as JSON Lines.
+
+The access history records every time someone was given or lost access to your
+Organization or anything in it: who made the change, why, and when. Only the
+Organization's owners and admins read it, and a parent Organization's admins for
+a child. Stigmer Enterprise and Stigmer Cloud keep it; an open-source server
+keeps none and says so. The commands act in the Organization `--org` names, then
+`STIGMER_ORG`, then your context.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# The newest 50 changes
+stigmer access-history list
+
+# The newest 200, as JSON
+stigmer access-history list --limit 200 -o json
+
+# Everything, oldest first, one JSON object per line
+stigmer access-history export > access-history.jsonl
+
+# Only what came after the last entry you hold
+stigmer access-history export --after 42 >> access-history.jsonl
+```
+
+{/* AUTO_FLAGS */}
+
+### Keeping a copy up to date
+
+Each Organization numbers its changes 1, 2, 3 and so on, in the order they
+happened, with no gaps. `export --after <sequence>` writes exactly what came
+after that entry, so a tool that stores the last `sequence` it wrote never
+misses a change. Each line's `sequence` is a string, as the API's JSON form
+writes 64-bit numbers.
+
+{/* AUTO_SUBCOMMANDS */}
+
+## Examples
+
+### Pull the history into a security tool every night
+
+```bash
+last=$(tail -n 1 access-history.jsonl | jq -r .sequence)
+stigmer access-history export --after "${last:-0}" >> access-history.jsonl
+```
+
+Run it with an Admin service account's API key in `STIGMER_API_KEY`.
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command                                        | Description                              |
+| ---------------------------------------------- | ---------------------------------------- |
+| [`stigmer service-account`](./service-account) | Create the account a scheduled tool uses |
+
+## See also
+
+- [Access history](/docs/guides/authentication/access-history) — What each entry
+  and cause says, and who may read it
+- [Command Reference](./) — All available commands

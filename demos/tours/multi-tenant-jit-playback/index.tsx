@@ -29,7 +29,7 @@ const EMERALD = "#10b981";
 const FILE_TREE: FileTreeEntry[] = [
   { name: "src", type: "folder", depth: 0 },
   { name: "tenants", type: "folder", depth: 1 },
-  { name: "register-idp.ts", type: "file", depth: 2 },
+  { name: "register-issuer.ts", type: "file", depth: 2 },
   { name: "onboard-tenant.ts", type: "file", depth: 2 },
   { name: "federation", type: "folder", depth: 1 },
   { name: "verify-idp.ts", type: "file", depth: 2 },
@@ -171,14 +171,14 @@ function TenantJwtCard() {
 
 export function renderStep(data: MultiTenantJitStep): ReactNode {
   switch (data.view) {
-    case "code-register-idp":
+    case "code-register-issuer":
       return (
         <CodeEditorView
-          filename="register-idp.ts"
+          filename="register-issuer.ts"
           lines={REGISTER_ISSUER_JIT_CODE}
           highlightLines={[8, 9, 10, 11]}
           fileTree={FILE_TREE}
-          contentKey="register-idp"
+          contentKey="register-issuer"
         />
       );
 

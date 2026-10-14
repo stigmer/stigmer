@@ -26,10 +26,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { AgentMessageSchema, ToolCallSchema, type ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
-import { ApprovalAction, FileChangeKind, MessageType, SnapshotKind, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileChangeKind, SnapshotKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
 import { initGitWorkspace } from "../../__test-utils__/git-workspace-fixture.js";
@@ -37,6 +34,8 @@ import { mockWorkspaceBackend } from "../../__test-utils__/mock-workspace.js";
 import type { FileReviewIdentity } from "../capabilities.js";
 import { captureCandidate, deriveCommandProvenance, pinCaptureBaseline } from "../capture.js";
 import type { TurnWorkspace } from "../types.js";
+import { AgentMessageSchema, ToolCallSchema, type ToolCall, SubAgentRunSchema, TurnRowsSchema, type TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction, MessageType, ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const EXECUTION_ID = "aex-capture-unit";
 const FILE_REVIEW: FileReviewIdentity = { harnessId: "unit", excludePaths: [".unit/scratch.json"] };
@@ -71,12 +70,12 @@ function messageWith(...toolCalls: ToolCall[]) {
 
 describe("harness/capture over a git work tree", () => {
   let root: string;
-  let status: RunStatus;
+  let status: TurnRows;
 
   beforeEach(() => {
     root = mkdtempSync(join(tmpdir(), "stigmer-capture-unit-"));
     initGitWorkspace(root, { "notes.md": "one\n", "keep.md": "keep\n" });
-    status = create(RunStatusSchema, {});
+    status = create(TurnRowsSchema, {});
   });
 
   afterEach(() => {
@@ -85,7 +84,7 @@ describe("harness/capture over a git work tree", () => {
 
   it("outside capture mode there is nothing to pin", async () => {
     const capture = await pinCaptureBaseline({
-      status,
+      rows: status,
       executionId: EXECUTION_ID,
       workspace: { ...workspaceOver(root), captureMode: false },
       fileReview: FILE_REVIEW,
@@ -97,7 +96,7 @@ describe("harness/capture over a git work tree", () => {
 
   it("pins the baseline, captures the net change after the turn, stamps only the COMPLETED write rows, and reports the review pending", async () => {
     const workspace = workspaceOver(root);
-    const capture = (await pinCaptureBaseline({ status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined }))!;
+    const capture = (await pinCaptureBaseline({ rows: status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined }))!;
     expect(capture.baselineTree).toMatch(/^[0-9a-f]{40}$/);
     expect(status.fileReviewEventStream?.events.map((e) => e.payload.case)).toEqual(["baselineCaptured"]);
 
@@ -116,7 +115,7 @@ describe("harness/capture over a git work tree", () => {
     );
 
     const pending = await captureCandidate({
-      status,
+      rows: status,
       executionId: EXECUTION_ID,
       workspace,
       fileReview: FILE_REVIEW,
@@ -142,27 +141,27 @@ describe("harness/capture over a git work tree", () => {
 
   it("a turn that changed nothing authors no candidate and pends no review", async () => {
     const workspace = workspaceOver(root);
-    const capture = (await pinCaptureBaseline({ status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined }))!;
-    const pending = await captureCandidate({ status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined, capture, globalBypass: false });
+    const capture = (await pinCaptureBaseline({ rows: status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined }))!;
+    const pending = await captureCandidate({ rows: status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined, capture, globalBypass: false });
     expect(pending).toBe(false);
     expect(status.fileReviewEventStream?.events.map((e) => e.payload.case)).toEqual(["baselineCaptured"]);
   });
 
   it("a turn that changed nothing on the tree stamps no row, even a COMPLETED write whose edit was reverted before the boundary", async () => {
     const workspace = workspaceOver(root);
-    const capture = (await pinCaptureBaseline({ status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined }))!;
+    const capture = (await pinCaptureBaseline({ rows: status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined }))!;
     status.messages.push(messageWith(row("tc-reverted", "write_file", ToolCallStatus.TOOL_CALL_COMPLETED, { args: { file_path: "notes.md" } })));
     // The engine wrote and then wrote the original back: no net change.
     writeFileSync(join(root, "notes.md"), "one\n");
 
-    const pending = await captureCandidate({ status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined, capture, globalBypass: false });
+    const pending = await captureCandidate({ rows: status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined, capture, globalBypass: false });
 
     expect(pending).toBe(false);
     expect(status.messages[0]!.toolCalls[0]!.fileChangeSetId, "a row must never reference a change set that does not exist").toBe("");
   });
 
   it("the progress substrate follows the workspace shape: git-only without storage surfaces the tracked change; CAS reads what the adapter bound", async () => {
-    const gitOnly = (await pinCaptureBaseline({ status, executionId: EXECUTION_ID, workspace: workspaceOver(root), fileReview: FILE_REVIEW, artifactStorage: undefined }))!;
+    const gitOnly = (await pinCaptureBaseline({ rows: status, executionId: EXECUTION_ID, workspace: workspaceOver(root), fileReview: FILE_REVIEW, artifactStorage: undefined }))!;
     writeFileSync(join(root, "notes.md"), "one\ntwo\n");
     const tracked = await gitOnly.progress.substrate.capture();
     expect(tracked.changed).toBe(true);
@@ -174,7 +173,7 @@ describe("harness/capture over a git work tree", () => {
     try {
       const casWorkspace: TurnWorkspace = { ...workspaceOver(casRoot), gitWorkspace: false };
       const cas = (await pinCaptureBaseline({
-        status: create(RunStatusSchema, {}),
+        rows: create(TurnRowsSchema, {}),
         executionId: EXECUTION_ID,
         workspace: casWorkspace,
         fileReview: FILE_REVIEW,
@@ -195,13 +194,13 @@ describe("harness/capture over a git work tree", () => {
     const fileReview: FileReviewIdentity = { ...FILE_REVIEW, transientPaths: ["settings.json"] };
     initGitWorkspace(root, { "notes.md": "one\n", "keep.md": "keep\n", "settings.json": '{"hooks":{}}' });
     const workspace = workspaceOver(root);
-    const capture = (await pinCaptureBaseline({ status, executionId: EXECUTION_ID, workspace, fileReview, artifactStorage: undefined }))!;
+    const capture = (await pinCaptureBaseline({ rows: status, executionId: EXECUTION_ID, workspace, fileReview, artifactStorage: undefined }))!;
     // The harness rewrites it mid-run; the progress diff does not show that.
     writeFileSync(join(root, "settings.json"), "{}");
     expect((await capture.progress.substrate.capture()).delta.entries).toEqual([]);
     // Restored with the agent's own edit kept: the candidate shows the edit.
     writeFileSync(join(root, "settings.json"), '{"hooks":{},"model":"x"}');
-    expect(await captureCandidate({ status, executionId: EXECUTION_ID, workspace, fileReview, artifactStorage: undefined, capture, globalBypass: false })).toBe(true);
+    expect(await captureCandidate({ rows: status, executionId: EXECUTION_ID, workspace, fileReview, artifactStorage: undefined, capture, globalBypass: false })).toBe(true);
     const candidate = status.fileReviewEventStream!.events.at(-1)!.payload;
     if (candidate.case !== "candidateCaptured") throw new Error("unreachable");
     expect(candidate.value.changes.map((c) => c.pathAfter)).toEqual(["settings.json"]);
@@ -214,12 +213,12 @@ describe("harness/capture over a git work tree", () => {
       create(SubAgentRunSchema, { id: "sa-prior", name: "editor", messages: [messageWith(row("sa-tc-prior", "write_file", ToolCallStatus.TOOL_CALL_COMPLETED))] }),
     );
     const workspace = workspaceOver(root, 1);
-    const capture = (await pinCaptureBaseline({ status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined }))!;
+    const capture = (await pinCaptureBaseline({ rows: status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined }))!;
 
     writeFileSync(join(root, "keep.md"), "kept and changed\n");
     status.subAgentRuns[0]!.messages.push(messageWith(row("sa-tc-new", "write_file", ToolCallStatus.TOOL_CALL_COMPLETED)));
 
-    await captureCandidate({ status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined, capture, globalBypass: false });
+    await captureCandidate({ rows: status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined, capture, globalBypass: false });
 
     expect(status.messages[0]!.toolCalls[0]!.fileChangeSetId, "the prior turn's row is untouched").toBe(`${EXECUTION_ID}:0`);
     const sub = status.subAgentRuns[0]!.messages.flatMap((m) => m.toolCalls);
@@ -236,7 +235,7 @@ describe("deriveCommandProvenance — one rule for both engines", () => {
     // Turn 1 left the gate row WAITING at message 0; the reinvocation
     // reconciled the re-attempt onto it: same id, same position, COMPLETED,
     // the server's APPROVE preserved. It had NOT settled before this turn.
-    const status = create(RunStatusSchema, {
+    const status = create(TurnRowsSchema, {
       messages: [
         messageWith(seededShell(ToolCallStatus.TOOL_CALL_COMPLETED, ApprovalAction.APPROVE)),
         create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "Generated." }),
@@ -248,14 +247,14 @@ describe("deriveCommandProvenance — one rule for both engines", () => {
   });
 
   it("the gate turn itself does not qualify: the proposed command is WAITING, not executed", () => {
-    const status = create(RunStatusSchema, {
+    const status = create(TurnRowsSchema, {
       messages: [messageWith(seededShell(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL, ApprovalAction.UNSPECIFIED))],
     });
     expect(deriveCommandProvenance(status, { priorSettledToolCallIds: new Set(), priorSubAgentToolCallIds: new Set() }, false)).toBeUndefined();
   });
 
   it("a command settled before this turn is prior history and cannot qualify or disqualify it", () => {
-    const status = create(RunStatusSchema, {
+    const status = create(TurnRowsSchema, {
       messages: [
         messageWith(seededShell(ToolCallStatus.TOOL_CALL_COMPLETED, ApprovalAction.APPROVE)),
         messageWith(row("tc-read", "read_file", ToolCallStatus.TOOL_CALL_COMPLETED)),
@@ -268,7 +267,7 @@ describe("deriveCommandProvenance — one rule for both engines", () => {
   });
 
   it("any sub-agent activity this turn fails closed", () => {
-    const status = create(RunStatusSchema, {
+    const status = create(TurnRowsSchema, {
       messages: [messageWith(seededShell(ToolCallStatus.TOOL_CALL_COMPLETED, ApprovalAction.APPROVE))],
       subAgentRuns: [create(SubAgentRunSchema, { id: "sa", messages: [messageWith(row("sa-tc", "write_file", ToolCallStatus.TOOL_CALL_COMPLETED))] })],
     });
@@ -276,7 +275,7 @@ describe("deriveCommandProvenance — one rule for both engines", () => {
   });
 
   it("under the global bypass an executed unconsented command is attributed to auto_approve_all", () => {
-    const status = create(RunStatusSchema, {
+    const status = create(TurnRowsSchema, {
       messages: [messageWith(row("tc-shell", "shell", ToolCallStatus.TOOL_CALL_COMPLETED, { args: { command: "make" } }))],
     });
     const provenance = deriveCommandProvenance(status, { priorSettledToolCallIds: new Set(), priorSubAgentToolCallIds: new Set() }, true);

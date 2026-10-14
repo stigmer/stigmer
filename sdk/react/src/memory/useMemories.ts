@@ -8,9 +8,9 @@ import { useFetch } from "../internal/useFetch.js";
 
 /**
  * The server-enforced per-subject-per-org record ceiling (all lifecycle
- * states). Requesting one page of exactly this size fetches EVERY record
- * the caller can see, by construction — the cap is why this list needs
- * no pagination UI.
+ * states), which is also the largest page a list serves. One page of this
+ * size holds EVERY record the caller can see, by construction — the cap is
+ * why this list needs no pagination UI.
  */
 const MEMORY_CAP = 100;
 
@@ -54,9 +54,9 @@ export function useMemories(org: string | null): UseMemoriesReturn {
           stigmer.memory
             .list(create(ListMemoriesRequestSchema, {
               org,
-              pageInfo: { num: 1, size: MEMORY_CAP },
+              pageSize: MEMORY_CAP,
             }))
-            .then((r) => [...r.items])
+            .then((r) => [...r.entries])
       : null,
     [stigmer, org],
     [] as Memory[],

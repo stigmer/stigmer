@@ -66,8 +66,8 @@ function createMockStigmer(overrides: MockOverrides = {}) {
     },
     vault: {
       list: vi.fn().mockResolvedValue({
-        items: overrides.vaults ?? [],
-        totalCount: overrides.vaults?.length ?? 0,
+        entries: overrides.vaults ?? [],
+        nextPageToken: "",
       }),
       // The readiness hook reads each named vault; the picker's list above
       // is the source of the fixtures, so resolve from it.

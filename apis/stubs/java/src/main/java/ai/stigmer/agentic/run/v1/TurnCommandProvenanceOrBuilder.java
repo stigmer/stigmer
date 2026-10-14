@@ -12,12 +12,11 @@ public interface TurnCommandProvenanceOrBuilder extends
 
   /**
    * <pre>
-   * Ids of the transcript tool calls whose SERVER-AUTHORED approval_action
-   * (written only by SubmitApproval, preserved against runner writes)
-   * authorizes this turn's executed commands: the approved gate row for a
-   * per-command grant, or the APPROVE_ALL row whose category lease covered the
-   * command. Exact-id lookup — never a content or fuzzy match. Empty only when
-   * authorized_by_auto_approve_all carries the consent instead.
+   * Ids of the tool calls whose answers in the session's log authorize this
+   * turn's executed commands: the call a person allowed, or the call whose
+   * grant for its class covered the command. Exact-id lookup — never a content
+   * or fuzzy match. Empty only when authorized_by_auto_approve_all carries the
+   * consent instead.
    * </pre>
    *
    * <code>repeated string consent_tool_call_ids = 1 [json_name = "consentToolCallIds"];</code>
@@ -27,12 +26,11 @@ public interface TurnCommandProvenanceOrBuilder extends
       getConsentToolCallIdsList();
   /**
    * <pre>
-   * Ids of the transcript tool calls whose SERVER-AUTHORED approval_action
-   * (written only by SubmitApproval, preserved against runner writes)
-   * authorizes this turn's executed commands: the approved gate row for a
-   * per-command grant, or the APPROVE_ALL row whose category lease covered the
-   * command. Exact-id lookup — never a content or fuzzy match. Empty only when
-   * authorized_by_auto_approve_all carries the consent instead.
+   * Ids of the tool calls whose answers in the session's log authorize this
+   * turn's executed commands: the call a person allowed, or the call whose
+   * grant for its class covered the command. Exact-id lookup — never a content
+   * or fuzzy match. Empty only when authorized_by_auto_approve_all carries the
+   * consent instead.
    * </pre>
    *
    * <code>repeated string consent_tool_call_ids = 1 [json_name = "consentToolCallIds"];</code>
@@ -41,12 +39,11 @@ public interface TurnCommandProvenanceOrBuilder extends
   int getConsentToolCallIdsCount();
   /**
    * <pre>
-   * Ids of the transcript tool calls whose SERVER-AUTHORED approval_action
-   * (written only by SubmitApproval, preserved against runner writes)
-   * authorizes this turn's executed commands: the approved gate row for a
-   * per-command grant, or the APPROVE_ALL row whose category lease covered the
-   * command. Exact-id lookup — never a content or fuzzy match. Empty only when
-   * authorized_by_auto_approve_all carries the consent instead.
+   * Ids of the tool calls whose answers in the session's log authorize this
+   * turn's executed commands: the call a person allowed, or the call whose
+   * grant for its class covered the command. Exact-id lookup — never a content
+   * or fuzzy match. Empty only when authorized_by_auto_approve_all carries the
+   * consent instead.
    * </pre>
    *
    * <code>repeated string consent_tool_call_ids = 1 [json_name = "consentToolCallIds"];</code>
@@ -56,12 +53,11 @@ public interface TurnCommandProvenanceOrBuilder extends
   java.lang.String getConsentToolCallIds(int index);
   /**
    * <pre>
-   * Ids of the transcript tool calls whose SERVER-AUTHORED approval_action
-   * (written only by SubmitApproval, preserved against runner writes)
-   * authorizes this turn's executed commands: the approved gate row for a
-   * per-command grant, or the APPROVE_ALL row whose category lease covered the
-   * command. Exact-id lookup — never a content or fuzzy match. Empty only when
-   * authorized_by_auto_approve_all carries the consent instead.
+   * Ids of the tool calls whose answers in the session's log authorize this
+   * turn's executed commands: the call a person allowed, or the call whose
+   * grant for its class covered the command. Exact-id lookup — never a content
+   * or fuzzy match. Empty only when authorized_by_auto_approve_all carries the
+   * consent instead.
    * </pre>
    *
    * <code>repeated string consent_tool_call_ids = 1 [json_name = "consentToolCallIds"];</code>

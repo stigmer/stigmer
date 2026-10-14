@@ -253,8 +253,9 @@ describe("useApplyManifest's org-mismatch warning, inside the person's organizat
     const client = {
       ...(createMockStigmer() as object),
       organization: {
-        findMyOrganizations: vi.fn().mockResolvedValue({
+        listMine: vi.fn().mockResolvedValue({
           entries: [{ metadata: { id: ACME_ID, slug: "acme", name: "Acme" } }],
+          nextPageToken: "",
         }),
       },
     };

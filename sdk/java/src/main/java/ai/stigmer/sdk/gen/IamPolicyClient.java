@@ -2,6 +2,8 @@
 
 package ai.stigmer.sdk.gen;
 
+import ai.stigmer.iam.iampolicy.v1.AccessHistoryEntry;
+import ai.stigmer.iam.iampolicy.v1.AccessHistoryPage;
 import ai.stigmer.iam.iampolicy.v1.ApiResourceRef;
 import ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList;
 import ai.stigmer.iam.iampolicy.v1.AuthorizedResourceIdsList;
@@ -14,6 +16,7 @@ import ai.stigmer.iam.iampolicy.v1.IamPolicyCommandControllerGrpc;
 import ai.stigmer.iam.iampolicy.v1.IamPolicyId;
 import ai.stigmer.iam.iampolicy.v1.IamPolicyQueryControllerGrpc;
 import ai.stigmer.iam.iampolicy.v1.IamPolicySpec;
+import ai.stigmer.iam.iampolicy.v1.ListAccessHistoryInput;
 import ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput;
 import ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput;
 import ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput;
@@ -118,5 +121,24 @@ public final class IamPolicyClient {
         try {
             return query.getPrincipalsCount(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public AccessHistoryPage listAccessHistory(ListAccessHistoryInput input) {
+        try {
+            return query.listAccessHistory(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code listAccessHistory}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<AccessHistoryEntry> listAccessHistoryAll(ListAccessHistoryInput input) {
+        return Pages.<AccessHistoryPage, AccessHistoryEntry>iterate(
+            input.getPageToken(),
+            token -> listAccessHistory(input.toBuilder().setPageToken(token).build()),
+            AccessHistoryPage::getEntriesList,
+            AccessHistoryPage::getNextPageToken);
     }
 }

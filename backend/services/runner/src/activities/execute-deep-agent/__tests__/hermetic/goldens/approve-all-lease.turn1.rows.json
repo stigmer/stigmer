@@ -1,0 +1,32 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_THINKING",
+      "content": "Two commands are needed; I will run them in order.",
+      "timestamp": "2026-01-01T00:00:01.000Z"
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "I will run the two commands.",
+      "timestamp": "2026-01-01T00:00:01.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-exec-0001",
+          "name": "execute",
+          "args": {
+            "command": "echo hermetic-a"
+          },
+          "status": "TOOL_CALL_WAITING_APPROVAL",
+          "startedAt": "2026-01-01T00:00:01.000Z",
+          "requiresApproval": true,
+          "approvalMessage": "Run command: echo hermetic-a",
+          "approvalRequestedAt": "2026-01-01T00:00:01.000Z",
+          "argsPreview": "{\"command\":\"echo hermetic-a\"}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+          "policyEngineVersion": "hooks-2"
+        }
+      ]
+    }
+  ]
+}

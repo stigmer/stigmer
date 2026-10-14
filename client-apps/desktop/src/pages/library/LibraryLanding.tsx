@@ -45,6 +45,7 @@ export default function LibraryLanding() {
           icon={<CalendarClock className="size-5" aria-hidden="true" />}
           label="Schedules"
           count={schedules.count}
+          countIsLowerBound={schedules.isLowerBound}
           isLoading={schedules.isLoading}
           onClick={() => navigate("/library/schedules")}
         />

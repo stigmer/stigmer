@@ -133,7 +133,7 @@ describe("delete and remake: a reference never moves to a newcomer that takes a 
     expect(fired.runId).toBe("");
   });
 
-  it("[rpc:AgentChannelQueryController.getByAgent] [rpc:ScheduleQueryController.getByAgent] [rpc:AgentShareQueryController.getByAgent] the lists keyed on an agent id answer the agent they were written for, never the newcomer", async () => {
+  it("[rpc:AgentChannelQueryController.listByAgent] [rpc:ScheduleQueryController.listByAgent] [rpc:AgentShareQueryController.listByAgent] the lists keyed on an agent id answer the agent they were written for, never the newcomer", async () => {
     const { org } = await target.provisionTenancy();
     const slug = uniqueName("remade-lists");
     const before = await createAgent(org, slug);
@@ -145,16 +145,16 @@ describe("delete and remake: a reference never moves to a newcomer that takes a 
     await clients.agentCommand.delete({ value: before.id });
     const after = await createAgent(org, slug);
 
-    const newcomerChannels = await clients.agentChannelQuery.getByAgent({ agentId: after.id, org });
-    const newcomerSchedules = await clients.scheduleQuery.getByAgent({ agentId: after.id, org });
-    const newcomerShares = await clients.agentShareQuery.getByAgent({ agentId: after.id, org });
-    expect(newcomerChannels.items.map((c) => c.metadata?.id)).toEqual([]);
-    expect(newcomerSchedules.items.map((s) => s.metadata?.id)).toEqual([]);
-    expect(newcomerShares.items.map((s) => s.metadata?.id)).toEqual([]);
+    const newcomerChannels = await clients.agentChannelQuery.listByAgent({ agentId: after.id, org });
+    const newcomerSchedules = await clients.scheduleQuery.listByAgent({ agentId: after.id, org });
+    const newcomerShares = await clients.agentShareQuery.listByAgent({ agentId: after.id, org });
+    expect(newcomerChannels.entries.map((c) => c.metadata?.id)).toEqual([]);
+    expect(newcomerSchedules.entries.map((s) => s.metadata?.id)).toEqual([]);
+    expect(newcomerShares.entries.map((s) => s.metadata?.id)).toEqual([]);
 
-    const keptChannels = await clients.agentChannelQuery.getByAgent({ agentId: before.id, org });
-    const keptSchedules = await clients.scheduleQuery.getByAgent({ agentId: before.id, org });
-    expect(keptChannels.items.map((c) => c.metadata?.id)).toEqual([channel.metadata!.id]);
-    expect(keptSchedules.items.map((s) => s.metadata?.id)).toEqual([schedule.metadata!.id]);
+    const keptChannels = await clients.agentChannelQuery.listByAgent({ agentId: before.id, org });
+    const keptSchedules = await clients.scheduleQuery.listByAgent({ agentId: before.id, org });
+    expect(keptChannels.entries.map((c) => c.metadata?.id)).toEqual([channel.metadata!.id]);
+    expect(keptSchedules.entries.map((s) => s.metadata?.id)).toEqual([schedule.metadata!.id]);
   });
 });

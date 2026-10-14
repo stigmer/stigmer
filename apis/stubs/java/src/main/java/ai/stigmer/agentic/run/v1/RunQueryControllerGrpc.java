@@ -108,37 +108,6 @@ public final class RunQueryControllerGrpc {
     return getListBySessionMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.RunId,
-      ai.stigmer.agentic.run.v1.Run> getSubscribeMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "subscribe",
-      requestType = ai.stigmer.agentic.run.v1.RunId.class,
-      responseType = ai.stigmer.agentic.run.v1.Run.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.SERVER_STREAMING)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.RunId,
-      ai.stigmer.agentic.run.v1.Run> getSubscribeMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.RunId, ai.stigmer.agentic.run.v1.Run> getSubscribeMethod;
-    if ((getSubscribeMethod = RunQueryControllerGrpc.getSubscribeMethod) == null) {
-      synchronized (RunQueryControllerGrpc.class) {
-        if ((getSubscribeMethod = RunQueryControllerGrpc.getSubscribeMethod) == null) {
-          RunQueryControllerGrpc.getSubscribeMethod = getSubscribeMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.run.v1.RunId, ai.stigmer.agentic.run.v1.Run>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.SERVER_STREAMING)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "subscribe"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.run.v1.RunId.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.run.v1.Run.getDefaultInstance()))
-              .setSchemaDescriptor(new RunQueryControllerMethodDescriptorSupplier("subscribe"))
-              .build();
-        }
-      }
-    }
-    return getSubscribeMethod;
-  }
-
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlRequest,
       ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlResponse> getGetArtifactDownloadUrlMethod;
 
@@ -454,16 +423,6 @@ public final class RunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Subscribe to real-time run updates (streaming).
-     * </pre>
-     */
-    default void subscribe(ai.stigmer.agentic.run.v1.RunId request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.Run> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSubscribeMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
      * Get a presigned download URL for a run artifact or attachment.
      * Returns a time-limited URL for downloading an artifact published by
      * an agent during the run, or an attachment submitted with the
@@ -622,17 +581,6 @@ public final class RunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Subscribe to real-time run updates (streaming).
-     * </pre>
-     */
-    public void subscribe(ai.stigmer.agentic.run.v1.RunId request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.Run> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncServerStreamingCall(
-          getChannel().newCall(getSubscribeMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
      * Get a presigned download URL for a run artifact or attachment.
      * Returns a time-limited URL for downloading an artifact published by
      * an agent during the run, or an attachment submitted with the
@@ -781,18 +729,6 @@ public final class RunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Subscribe to real-time run updates (streaming).
-     * </pre>
-     */
-    @io.grpc.ExperimentalApi("https://github.com/grpc/grpc-java/issues/10918")
-    public io.grpc.stub.BlockingClientCall<?, ai.stigmer.agentic.run.v1.Run>
-        subscribe(ai.stigmer.agentic.run.v1.RunId request) {
-      return io.grpc.stub.ClientCalls.blockingV2ServerStreamingCall(
-          getChannel(), getSubscribeMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
      * Get a presigned download URL for a run artifact or attachment.
      * Returns a time-limited URL for downloading an artifact published by
      * an agent during the run, or an attachment submitted with the
@@ -930,17 +866,6 @@ public final class RunQueryControllerGrpc {
     public ai.stigmer.agentic.run.v1.RunList listBySession(ai.stigmer.agentic.run.v1.ListRunsBySessionRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getListBySessionMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Subscribe to real-time run updates (streaming).
-     * </pre>
-     */
-    public java.util.Iterator<ai.stigmer.agentic.run.v1.Run> subscribe(
-        ai.stigmer.agentic.run.v1.RunId request) {
-      return io.grpc.stub.ClientCalls.blockingServerStreamingCall(
-          getChannel(), getSubscribeMethod(), getCallOptions(), request);
     }
 
     /**
@@ -1189,14 +1114,13 @@ public final class RunQueryControllerGrpc {
   private static final int METHODID_GET = 0;
   private static final int METHODID_LIST = 1;
   private static final int METHODID_LIST_BY_SESSION = 2;
-  private static final int METHODID_SUBSCRIBE = 3;
-  private static final int METHODID_GET_ARTIFACT_DOWNLOAD_URL = 4;
-  private static final int METHODID_GET_ARTIFACT_CONTENT = 5;
-  private static final int METHODID_GET_RUN_USAGE_REPORT = 6;
-  private static final int METHODID_GET_SESSION_USAGE_REPORT = 7;
-  private static final int METHODID_GET_AGENT_USAGE_REPORT = 8;
-  private static final int METHODID_GET_ORG_USAGE_REPORT = 9;
-  private static final int METHODID_GET_RUN_SUMMARY = 10;
+  private static final int METHODID_GET_ARTIFACT_DOWNLOAD_URL = 3;
+  private static final int METHODID_GET_ARTIFACT_CONTENT = 4;
+  private static final int METHODID_GET_RUN_USAGE_REPORT = 5;
+  private static final int METHODID_GET_SESSION_USAGE_REPORT = 6;
+  private static final int METHODID_GET_AGENT_USAGE_REPORT = 7;
+  private static final int METHODID_GET_ORG_USAGE_REPORT = 8;
+  private static final int METHODID_GET_RUN_SUMMARY = 9;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1226,10 +1150,6 @@ public final class RunQueryControllerGrpc {
         case METHODID_LIST_BY_SESSION:
           serviceImpl.listBySession((ai.stigmer.agentic.run.v1.ListRunsBySessionRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.RunList>) responseObserver);
-          break;
-        case METHODID_SUBSCRIBE:
-          serviceImpl.subscribe((ai.stigmer.agentic.run.v1.RunId) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.Run>) responseObserver);
           break;
         case METHODID_GET_ARTIFACT_DOWNLOAD_URL:
           serviceImpl.getArtifactDownloadUrl((ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlRequest) request,
@@ -1298,13 +1218,6 @@ public final class RunQueryControllerGrpc {
               ai.stigmer.agentic.run.v1.ListRunsBySessionRequest,
               ai.stigmer.agentic.run.v1.RunList>(
                 service, METHODID_LIST_BY_SESSION)))
-        .addMethod(
-          getSubscribeMethod(),
-          io.grpc.stub.ServerCalls.asyncServerStreamingCall(
-            new MethodHandlers<
-              ai.stigmer.agentic.run.v1.RunId,
-              ai.stigmer.agentic.run.v1.Run>(
-                service, METHODID_SUBSCRIBE)))
         .addMethod(
           getGetArtifactDownloadUrlMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1405,7 +1318,6 @@ public final class RunQueryControllerGrpc {
               .addMethod(getGetMethod())
               .addMethod(getListMethod())
               .addMethod(getListBySessionMethod())
-              .addMethod(getSubscribeMethod())
               .addMethod(getGetArtifactDownloadUrlMethod())
               .addMethod(getGetArtifactContentMethod())
               .addMethod(getGetRunUsageReportMethod())

@@ -7,8 +7,9 @@
  * not asserted — no budget is ruled for open source.
  *
  * The seed is the hosted edition's population as read on 2026-09-23:
- * 1,279 agent executions averaging about 37 KB each (the kind's rows are
- * fat: every message, tool call and todo of a run rides the row), 865
+ * 1,279 agent executions averaging about 37 KB each (the kind's rows were
+ * fat then: every message, tool call and todo of a run rode the row; the
+ * seed keeps that weight in the run's file record, which still can), 865
  * sessions of about half a kilobyte, twelve organizations with one third
  * of every kind in the busiest. The payload is uniform where production's
  * is skewed (its largest execution is 4 MB), so these numbers understate
@@ -28,7 +29,6 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -47,8 +47,8 @@ import { tempStore } from "../sqlite/__tests__/support.js";
 const ORGS = 12;
 const EXECUTIONS = 1_279;
 const SESSIONS = 865;
-const MESSAGES_PER_EXECUTION = 40;
-const MESSAGE_CHARS = 900;
+const FILES_PER_EXECUTION = 40;
+const FILE_CHARS = 900;
 const BUSY_ORG = "org-00";
 const RUNS = 5;
 
@@ -68,7 +68,7 @@ function createdAt(index: number): { seconds: bigint; nanos: number } {
 }
 
 async function seed(store: Store): Promise<void> {
-  const content = "x".repeat(MESSAGE_CHARS);
+  const content = "x".repeat(FILE_CHARS);
   for (let i = 0; i < SESSIONS; i++) {
     const id = sessionIdOf(i);
     await store.saveResource(
@@ -98,12 +98,16 @@ async function seed(store: Store): Promise<void> {
           message: "run it",
         },
         status: {
-          messages: Array.from({ length: MESSAGES_PER_EXECUTION }, (_, m) => ({
-            type:
-              m % 2 === 0 ? MessageType.MESSAGE_HUMAN : MessageType.MESSAGE_AI,
-            content,
-            timestamp: "2026-09-23T10:00:00Z",
-          })),
+          fileChanges: [
+            {
+              id: `${id}:0`,
+              changes: Array.from({ length: FILES_PER_EXECUTION }, (_, m) => ({
+                id: `fc-${m}`,
+                pathAfter: `notes/${m}.txt`,
+                after: { body: { case: "inline" as const, value: content } },
+              })),
+            },
+          ],
           audit: { specAudit: { createdAt: createdAt(i) } },
         },
       }),

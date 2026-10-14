@@ -30,11 +30,13 @@ import { TimingRecorder } from "../../shared/cold-start-timing.js";
 import { NO_RUN_VALUES } from "../../shared/run-values.js";
 import { TranscriptBuilder } from "../transcript/builder.js";
 import { PLATFORM_TOOLS_OFF_NOTICE, resolveMcpServersAndPolicies, type ResolutionDeps } from "../turn-context.js";
+import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 const RUNNER_KEY = "stigmer_runner_own_key";
 
 async function resolveWith(exchange: () => Promise<string | undefined>, runnerKey: string | null) {
   const status = create(RunStatusSchema);
+  const rows = create(TurnRowsSchema);
   const client = {
     acquireScopedRunnerToken: exchange,
     listMessagingChannels: async () => [],
@@ -44,7 +46,8 @@ async function resolveWith(exchange: () => Promise<string | undefined>, runnerKe
     client,
     config: testConfig({ stigmerTokenRef: { current: runnerKey }, mcpBridgeEndpoint: "http://bridge.local" }),
     status,
-    transcript: new TranscriptBuilder("aex-attach", status),
+    rows,
+    transcript: new TranscriptBuilder("aex-attach", rows, status),
     artifactStorage: undefined,
     timing: new TimingRecorder(),
     signal: new AbortController().signal,
@@ -75,38 +78,38 @@ async function resolveWith(exchange: () => Promise<string | undefined>, runnerKe
     readsToolMarks: true,
     grants: new Map(),
   });
-  return { mcp, status };
+  return { mcp, status, rows };
 }
 
 describe("the platform's attachments' credential", () => {
   it("carries the run's own credential when there is one", async () => {
-    const { mcp, status } = await resolveWith(async () => "run-scoped-token", RUNNER_KEY);
+    const { mcp, rows } = await resolveWith(async () => "run-scoped-token", RUNNER_KEY);
     expect(mcp.platformServerSlugs.size).toBeGreaterThan(0);
     expect(JSON.stringify(mcp.servers)).toContain("run-scoped-token");
     expect(JSON.stringify(mcp.servers)).not.toContain(RUNNER_KEY);
-    expect(status.messages).toEqual([]);
+    expect(rows.messages).toEqual([]);
   });
 
   it("runs the turn without them, and says so, when the runner's key cannot be exchanged", async () => {
     for (const exchange of [async () => Promise.reject(new Error("exchange refused")), async () => undefined]) {
-      const { mcp, status } = await resolveWith(exchange, RUNNER_KEY);
+      const { mcp, rows } = await resolveWith(exchange, RUNNER_KEY);
       expect(mcp.platformServerSlugs.size).toBe(0);
       expect(JSON.stringify(mcp.servers)).not.toContain(RUNNER_KEY);
-      expect(status.messages.map((m) => m.content)).toEqual([PLATFORM_TOOLS_OFF_NOTICE]);
+      expect(rows.messages.map((m) => m.content)).toEqual([PLATFORM_TOOLS_OFF_NOTICE]);
     }
   });
 
   it("carries a cloud sandbox's session token, already scoped below the runner", async () => {
     const sandboxToken = `${Buffer.from('{"alg":"RS256"}').toString("base64url")}.${Buffer.from('{"token_type":"sandbox"}').toString("base64url")}.sig`;
-    const { mcp, status } = await resolveWith(async () => undefined, sandboxToken);
+    const { mcp, rows } = await resolveWith(async () => undefined, sandboxToken);
     expect(mcp.platformServerSlugs.size).toBeGreaterThan(0);
     expect(JSON.stringify(mcp.servers)).toContain(sandboxToken);
-    expect(status.messages).toEqual([]);
+    expect(rows.messages).toEqual([]);
   });
 
   it("runs them without a credential on a runner that holds none", async () => {
-    const { mcp, status } = await resolveWith(async () => undefined, null);
+    const { mcp, rows } = await resolveWith(async () => undefined, null);
     expect(mcp.platformServerSlugs.size).toBeGreaterThan(0);
-    expect(status.messages).toEqual([]);
+    expect(rows.messages).toEqual([]);
   });
 });

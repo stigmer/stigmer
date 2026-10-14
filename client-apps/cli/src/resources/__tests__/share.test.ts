@@ -65,7 +65,7 @@ function makeShare(fixture: ShareFixture = {}) {
 }
 
 // A minimal fake of the SDK surface shareAgent touches: agent resolution +
-// call-recording agentShare getByAgent/apply/rotateShareLink (skill.test.ts
+// call-recording agentShare listByAgentAll/apply/rotateShareLink (skill.test.ts
 // convention). Apply answers with the applied input merged over the existing
 // share (id assigned), mirroring the server's upsert. Rotation answers with
 // the share re-stamped with `rotatedToken`, mirroring fresh entropy.
@@ -116,13 +116,10 @@ function fakeClient(
       // Mirrors the server's org scope: a non-empty request org returns
       // only that org's shares (the contract resolveCanonicalShare relies
       // on to never surface another org's channel).
-      async getByAgent(input: { org?: string }) {
-        const items =
-          currentShare &&
-          (!input.org || currentShare.metadata.org === input.org)
-            ? [currentShare]
-            : [];
-        return { totalCount: items.length, items };
+      async *listByAgentAll(input: { org?: string }) {
+        if (currentShare && (!input.org || currentShare.metadata.org === input.org)) {
+          yield currentShare;
+        }
       },
       async apply(input: AgentShareInput) {
         if (opts.failWith) throw opts.failWith;

@@ -20,7 +20,7 @@ import type {
   PolicyRevokedEvent,
   ResourceAuthorizationLifecycle,
 } from "../../../extensions/resource-authorization.js";
-import type { PolicyChangeRecord } from "../change.js";
+import type { PolicyChange, PolicyChangeRecord } from "../change.js";
 import type { StoredResources } from "../grant-path.js";
 import { DuplicatePolicyError } from "../store.js";
 import type { IamPolicyStore } from "../store.js";
@@ -126,6 +126,30 @@ export function fakeIamPolicyStore(
 ): FakeIamPolicyStore {
   const rows = new Map<string, IamPolicy>();
   const changes: RecordedChange[] = [];
+  // The history a store that keeps one reads back: each organization's
+  // changes numbered from 1, in the order they were made.
+  const history: PolicyChange[] = [];
+  const keep = (
+    change: PolicyChange["change"],
+    policy: IamPolicy,
+    record: PolicyChangeRecord | undefined,
+  ): void => {
+    if (record === undefined) {
+      return;
+    }
+    const org = record.organizationId;
+    const sequence =
+      BigInt(history.filter((kept) => kept.organizationId === org).length) + 1n;
+    history.push({
+      sequence,
+      occurredAt: new Date().toISOString(),
+      change,
+      actor: record.actor,
+      cause: record.cause,
+      organizationId: org,
+      policy,
+    });
+  };
   const all = (): IamPolicy[] => [...rows.values()];
   const matches = (
     policy: IamPolicy,
@@ -150,11 +174,14 @@ export function fakeIamPolicyStore(
       }
       rows.set(id, policy);
       changes.push({ op: "save", id, record });
+      keep("granted", policy, record);
       recorded?.push({ kind: "row-save", id });
     },
     async deleteById(id, record) {
-      if (rows.delete(id)) {
+      const held = rows.get(id);
+      if (held !== undefined && rows.delete(id)) {
         changes.push({ op: "delete", id, record });
+        keep("revoked", held, record);
       }
       recorded?.push({ kind: "row-delete", id });
     },
@@ -219,6 +246,22 @@ export function fakeIamPolicyStore(
           p.spec?.resource?.kind === resourceKind &&
           p.spec.relation === relation,
       );
+    },
+    async listChanges(org, page) {
+      if (!Number.isSafeInteger(page.limit) || page.limit <= 0) {
+        throw new Error(`limit must be a positive integer, got ${page.limit}`);
+      }
+      const own = history.filter((kept) => kept.organizationId === org);
+      if ("after" in page) {
+        return own
+          .filter((kept) => kept.sequence > page.after)
+          .slice(0, page.limit);
+      }
+      const before = page.before;
+      return own
+        .filter((kept) => before === undefined || kept.sequence < before)
+        .reverse()
+        .slice(0, page.limit);
     },
   };
 }

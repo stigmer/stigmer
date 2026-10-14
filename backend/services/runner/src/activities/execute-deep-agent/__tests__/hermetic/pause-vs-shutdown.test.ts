@@ -44,15 +44,12 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
 import {
-  RunStatusSchema,
   type RunStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunControlSignal,
   RunPhase,
-  MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -68,6 +65,9 @@ import {
   threwCancelledFailure,
   type HermeticEnvironment,
   type InvocationControls,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import {
@@ -77,6 +77,8 @@ import {
   type DeepAgentScenario,
 } from "../../__test-utils__/hermetic-deep-agent.js";
 import type { RoleScript } from "../../__test-utils__/scripted-model.js";
+import { MessageType } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import {  type TurnRows } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 const READ_CALL = { id: "call-hermetic-read-0001", name: "read_file", args: { file_path: "/notes.md" } };
 
@@ -129,8 +131,8 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
         beginDeepAgentScenario({ env, clock, record, script: () => SCRIPT }),
       // The platform answers the persist that carries the first tool row by
       // cancelling the activity (the workflow's pause).
-      controlSignal: (status: RunStatus) => {
-        if (status.messages.some((m) => m.toolCalls.length > 0)) inFlight?.controls?.cancel();
+      controlSignal: (_status: RunStatus, rows: TurnRows) => {
+        if (rows.messages.some((m) => m.toolCalls.length > 0)) inFlight?.controls?.cancel();
         return RunControlSignal.UNSPECIFIED;
       },
       loopGolden: "./goldens/pause.loop.mid-tool.status.json",
@@ -148,23 +150,24 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
       expect(record.persistedPhases, "the stop writes no phase").toEqual([RunPhase.RUN_IN_PROGRESS]);
 
       const settleWrites = record.persisted.filter(
-        (s) => s.phase === RunPhase.RUN_PHASE_UNSPECIFIED && s.messages.length > 0,
+        (s) => s.phase === RunPhase.RUN_PHASE_UNSPECIFIED && !s.setupProgress?.currentPhase,
       );
       expect(settleWrites, "the stop is settled exactly once (stigmer#1071)").toHaveLength(1);
       const [paused] = settleWrites;
+      const pausedRows = record.rowsOf(paused);
       expect(
-        paused.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content),
+        pausedRows.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content),
         "no stop row: the workflow writes it (stigmer#980)",
       ).toEqual([]);
       expect(
-        paused.messages.flatMap((m) => m.toolCalls).map((tc) => tc.name),
+        pausedRows.messages.flatMap((m) => m.toolCalls).map((tc) => tc.name),
         "the read that landed before the stop is in the one write",
       ).toEqual(["read_file"]);
       expect(paused.completedAt).toBe("");
       expect(record.persisted.at(-1), "the wire ends on the write that carries the transcript").toEqual(paused);
 
-      const json = JSON.stringify(toJson(RunStatusSchema, paused), null, 2) + "\n";
-      await expect(json).toMatchFileSnapshot(loopGolden);
+      await expect(statusGolden(paused)).toMatchFileSnapshot(loopGolden);
+      await expect(rowsGolden(record.rowsOf(paused))).toMatchFileSnapshot(rowsGoldenPath(loopGolden));
       await expect(record.eventsGolden()).toMatchFileSnapshot(loopGolden.replace(".status.json", ".events.json"));
     });
   });
@@ -193,21 +196,22 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
     );
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_FAILED);
     const final = record.lastFullStatus!;
+    const finalRows = record.rowsOf(final);
     expect(final.error).toBe("Execution interrupted: runner worker was shut down. Retry or resume.");
     // The transcript the turn produced is kept and the row appended (the
     // runtime's arm); the tool row sits on the message whose text
     // proposed it (since #1097 — until then on its own empty message).
-    expect(final.messages.map((m) => [m.type, m.content])).toEqual([
+    expect(finalRows.messages.map((m) => [m.type, m.content])).toEqual([
       [MessageType.MESSAGE_AI, "Let me look."],
       [
         MessageType.MESSAGE_SYSTEM,
         "Execution interrupted: the runner worker was shut down while the agent was still running. You can retry or resume.",
       ],
     ]);
-    expect(final.messages.flatMap((m) => m.toolCalls).map((tc) => tc.name), "the read that landed before the drain is kept").toEqual(["read_file"]);
+    expect(finalRows.messages.flatMap((m) => m.toolCalls).map((tc) => tc.name), "the read that landed before the drain is kept").toEqual(["read_file"]);
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/worker-shutdown.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/worker-shutdown.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/worker-shutdown.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/worker-shutdown.events.json");
   });
 });

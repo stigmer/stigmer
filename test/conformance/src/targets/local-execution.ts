@@ -61,7 +61,6 @@ export class LocalExecutionTarget implements TargetProfile {
     // sibling this target boots WITH an engine and a runner
     // (enforcingLane below).
     enforcingAuthorizer: false,
-    organizationEnumeration: true,
     versionTagging: false,
     skillArtifactTransferLane: true,
     // The schedule clock runs here (tick workflow + reconciler on the
@@ -112,6 +111,7 @@ export class LocalExecutionTarget implements TargetProfile {
     // Organization-only grants and no query engine, as on `local`.
     perResourceGrants: false,
     authorizationQueries: false,
+    accessHistory: "unimplemented",
   };
 
   private temporal: RunningTemporal | undefined;

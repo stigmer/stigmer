@@ -1,6 +1,8 @@
 // Reads what the terminal Run status carries into a benchmark
 // sample: the runner's aggregate usage (tokens, the rate-card cost estimate,
-// the model it priced against), the server's own timestamps, and the outcome.
+// the model it priced against), the server's own timestamps, and the outcome;
+// and what the user saw of the turn, from the session's log folded
+// (`Turn`, @stigmer/session-log): the first visible token and the final reply.
 // Domain: conformance benchmark (the status-borne facts).
 //
 // The open-source edition records no per-call usage; `status.streaming_usage`
@@ -22,7 +24,8 @@
 // need a channel or conversation label the benchmark never sets.
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Turn } from "@stigmer/session-log";
 import type { BenchmarkAxes, SampleOutcome, TokenCounts } from "./report";
 
 const MICROS_PER_USD = 1_000_000;
@@ -90,21 +93,21 @@ export function outcomeOf(phase: RunPhase | undefined): SampleOutcome {
 }
 
 /**
- * Whether a subscribe snapshot shows the user something visible: a ROOT row
- * of type AI or THINKING with content (both stream into the console as
- * tokens, the runner's `turn_phases.first_visible_token_ms` definition), and
- * separately an AI row alone (its `first_text_ms`). Sub-agent rows live under
- * `sub_agent_executions` and are not the thread the user is watching.
+ * Whether the turn shows the user something visible: on its PRIMARY thread,
+ * an agent message with text or any thinking (both stream into the console
+ * as tokens, the runner's `turn_phases.first_visible_token_ms` definition,
+ * a live preview included), and separately a message with text alone (its
+ * `first_text_ms`). A sub-agent's thread is not the one the user is
+ * watching.
  */
-export function visibleRows(execution: Run): { visible: boolean; text: boolean } {
+export function visibleRows(turn: Turn | undefined): { visible: boolean; text: boolean } {
   let visible = false;
   let text = false;
-  for (const message of execution.status?.messages ?? []) {
-    if (message.content.length === 0) continue;
-    if (message.type === MessageType.MESSAGE_AI) {
+  for (const item of turn?.items ?? []) {
+    if (item.kind === "message" && item.text.length > 0) {
       visible = true;
       text = true;
-    } else if (message.type === MessageType.MESSAGE_THINKING) {
+    } else if (item.kind === "thinking") {
       visible = true;
     }
   }
@@ -112,17 +115,12 @@ export function visibleRows(execution: Run): { visible: boolean; text: boolean }
 }
 
 /**
- * The agent's final reply on the turn: the content of the last ROOT AI row
- * with content (sub-agent rows live under `sub_agent_executions`), "" when
- * the turn produced none. What a user reads as the turn's answer.
+ * The agent's final reply on the turn: the text of the primary thread's last
+ * agent message (a sub-agent's reply is its own), "" when the turn produced
+ * none. What a user reads as the turn's answer.
  */
-export function finalReply(execution: Run): string {
-  const messages = execution.status?.messages ?? [];
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const message = messages[i];
-    if (message !== undefined && message.type === MessageType.MESSAGE_AI && message.content.length > 0) return message.content;
-  }
-  return "";
+export function finalReply(turn: Turn | undefined): string {
+  return turn?.answer ?? "";
 }
 
 /** The axes nothing observed yet: every field `null`, the sample's starting point. */

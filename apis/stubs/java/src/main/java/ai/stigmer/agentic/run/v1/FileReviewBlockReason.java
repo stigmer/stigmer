@@ -164,7 +164,7 @@ public enum FileReviewBlockReason
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.run.v1.EnumProto.getDescriptor().getEnumType(30);
+    return ai.stigmer.agentic.run.v1.EnumProto.getDescriptor().getEnumType(11);
   }
 
   private static final FileReviewBlockReason[] VALUES = values();

@@ -22,6 +22,7 @@ const (
 	SubscriptionQueryController_GetForOrg_FullMethodName         = "/ai.stigmer.billing.subscription.v1.SubscriptionQueryController/getForOrg"
 	SubscriptionQueryController_GetEntitlements_FullMethodName   = "/ai.stigmer.billing.subscription.v1.SubscriptionQueryController/getEntitlements"
 	SubscriptionQueryController_GetPeriodEstimate_FullMethodName = "/ai.stigmer.billing.subscription.v1.SubscriptionQueryController/getPeriodEstimate"
+	SubscriptionQueryController_GetAgentHours_FullMethodName     = "/ai.stigmer.billing.subscription.v1.SubscriptionQueryController/getAgentHours"
 )
 
 // SubscriptionQueryControllerClient is the client API for SubscriptionQueryController service.
@@ -63,6 +64,17 @@ type SubscriptionQueryControllerClient interface {
 	// Free, or it is a child organization on its parent's plan, and
 	// neither is invoiced a plan of its own.
 	GetPeriodEstimate(ctx context.Context, in *GetPeriodEstimateInput, opts ...grpc.CallOption) (*PeriodEstimate, error)
+	// Read where the organization stands against its plan's agent hours.
+	//
+	// Answers for every plan, Free included: the working seconds the
+	// organization and its child organizations have used in the month its
+	// plan counts, the hours the plan includes and its price past them. The
+	// count is the one the estimate's working_seconds and the pause at the
+	// allowance read, so the three agree at the same instant.
+	//
+	// NOT_FOUND for a child organization: a child organization is on its
+	// parent's plan, whose pool is the parent's to read.
+	GetAgentHours(ctx context.Context, in *GetAgentHoursInput, opts ...grpc.CallOption) (*AgentHours, error)
 }
 
 type subscriptionQueryControllerClient struct {
@@ -97,6 +109,16 @@ func (c *subscriptionQueryControllerClient) GetPeriodEstimate(ctx context.Contex
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(PeriodEstimate)
 	err := c.cc.Invoke(ctx, SubscriptionQueryController_GetPeriodEstimate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *subscriptionQueryControllerClient) GetAgentHours(ctx context.Context, in *GetAgentHoursInput, opts ...grpc.CallOption) (*AgentHours, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AgentHours)
+	err := c.cc.Invoke(ctx, SubscriptionQueryController_GetAgentHours_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -142,6 +164,17 @@ type SubscriptionQueryControllerServer interface {
 	// Free, or it is a child organization on its parent's plan, and
 	// neither is invoiced a plan of its own.
 	GetPeriodEstimate(context.Context, *GetPeriodEstimateInput) (*PeriodEstimate, error)
+	// Read where the organization stands against its plan's agent hours.
+	//
+	// Answers for every plan, Free included: the working seconds the
+	// organization and its child organizations have used in the month its
+	// plan counts, the hours the plan includes and its price past them. The
+	// count is the one the estimate's working_seconds and the pause at the
+	// allowance read, so the three agree at the same instant.
+	//
+	// NOT_FOUND for a child organization: a child organization is on its
+	// parent's plan, whose pool is the parent's to read.
+	GetAgentHours(context.Context, *GetAgentHoursInput) (*AgentHours, error)
 }
 
 // UnimplementedSubscriptionQueryControllerServer should be embedded to have
@@ -159,6 +192,9 @@ func (UnimplementedSubscriptionQueryControllerServer) GetEntitlements(context.Co
 }
 func (UnimplementedSubscriptionQueryControllerServer) GetPeriodEstimate(context.Context, *GetPeriodEstimateInput) (*PeriodEstimate, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPeriodEstimate not implemented")
+}
+func (UnimplementedSubscriptionQueryControllerServer) GetAgentHours(context.Context, *GetAgentHoursInput) (*AgentHours, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAgentHours not implemented")
 }
 func (UnimplementedSubscriptionQueryControllerServer) testEmbeddedByValue() {}
 
@@ -234,6 +270,24 @@ func _SubscriptionQueryController_GetPeriodEstimate_Handler(srv interface{}, ctx
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SubscriptionQueryController_GetAgentHours_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAgentHoursInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SubscriptionQueryControllerServer).GetAgentHours(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SubscriptionQueryController_GetAgentHours_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SubscriptionQueryControllerServer).GetAgentHours(ctx, req.(*GetAgentHoursInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SubscriptionQueryController_ServiceDesc is the grpc.ServiceDesc for SubscriptionQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -252,6 +306,10 @@ var SubscriptionQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getPeriodEstimate",
 			Handler:    _SubscriptionQueryController_GetPeriodEstimate_Handler,
+		},
+		{
+			MethodName: "getAgentHours",
+			Handler:    _SubscriptionQueryController_GetAgentHours_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -196,7 +196,7 @@ describe("the in-memory IamPolicy store this suite composes", () => {
       },
       cleanup: () => Promise.resolve(),
     };
-  })) {
+  }, { keepsHistory: true })) {
     it(contractCase.name, contractCase.run);
   }
 });

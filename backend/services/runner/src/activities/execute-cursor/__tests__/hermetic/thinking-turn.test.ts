@@ -26,9 +26,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -41,6 +39,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { ScriptedCursorAgent, sdkEvents, step } from "../../__test-utils__/scripted-agent.js";
 import {
@@ -51,6 +52,7 @@ import {
   runCursorTurn,
 } from "../../__test-utils__/hermetic-cursor.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
+import { MessageType, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const AGENT_ID = "agent-hermetic-thinking-0001";
 const RUN_ID = "run-hermetic-thinking-0001";
@@ -119,8 +121,9 @@ describe("ExecuteCursor hermetic — thinking on both sides of a tool call", () 
 
     // ── Assert: the segmentation ─────────────────────────────────────────────
     const final = record.lastFullStatus!;
+    const finalRows = record.rowsOf(final);
     expect(
-      final.messages.map((m) => [m.type, m.content]),
+      finalRows.messages.map((m) => [m.type, m.content]),
       "a tool call closes the run's THINKING and AI rows; what follows opens new ones",
     ).toEqual([
       [MessageType.MESSAGE_THINKING, THINKING_BEFORE],
@@ -128,19 +131,19 @@ describe("ExecuteCursor hermetic — thinking on both sides of a tool call", () 
       [MessageType.MESSAGE_THINKING, THINKING_AFTER],
       [MessageType.MESSAGE_AI, TEXT_AFTER],
     ]);
-    expect(final.messages.every((m) => !m.isStreaming), "finalize clears every streaming flag").toBe(true);
+    expect(finalRows.messages.every((m) => !m.isStreaming), "finalize clears every streaming flag").toBe(true);
 
     // ── Assert: the row sits on the text that proposed it ────────────────────
     const rows = record.toolCalls();
     expect(rows.map((tc) => [tc.id, tc.status])).toEqual([[CALL_ID, ToolCallStatus.TOOL_CALL_COMPLETED]]);
-    expect(final.messages[1].toolCalls.map((tc) => tc.id), "the read row is on AI(A1), not on a THINKING row").toEqual([CALL_ID]);
+    expect(finalRows.messages[1].toolCalls.map((tc) => tc.id), "the read row is on AI(A1), not on a THINKING row").toEqual([CALL_ID]);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/thinking-turn.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/thinking-turn.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/thinking-turn.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/thinking-turn.events.json");
   });
 });

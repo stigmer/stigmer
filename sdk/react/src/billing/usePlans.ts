@@ -5,6 +5,7 @@ import { create } from "@bufbuild/protobuf";
 import type { Plan } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
 import { ListPlansInputSchema } from "@stigmer/protos/ai/stigmer/billing/plan/v1/io_pb";
 import { useStigmer } from "../hooks.js";
+import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
 import { useFetch } from "../internal/useFetch.js";
 
 /** Options for {@link usePlans}. */
@@ -51,9 +52,10 @@ export function usePlans(options?: UsePlansOptions): UsePlansReturn {
   const { data: plans, isLoading, isRefetching, error, refetch } = useFetch(
     enabled
       ? () =>
-          stigmer.plan
-            .list(create(ListPlansInputSchema, { includeRetired }))
-            .then((result): readonly Plan[] => result.entries)
+          // A platform catalog the admin page shows whole.
+          readEveryPage((pageToken) =>
+            stigmer.plan.list(create(ListPlansInputSchema, { includeRetired, pageSize: LIST_PAGE_MAX, pageToken })),
+          )
       : null,
     [enabled, includeRetired, stigmer],
     null as readonly Plan[] | null,

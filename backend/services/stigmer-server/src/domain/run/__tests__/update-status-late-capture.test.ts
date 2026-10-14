@@ -1,11 +1,12 @@
 /**
- * Pins the candidate fold's close of an outdated turn (update-status.ts,
+ * Pins the capture write's close of an outdated turn (update-status.ts,
  * filereview/autokeep.ts keepOutdatedSets) on a real store: a turn whose
- * candidate lands after a later message was sent has its edits kept as
- * they land, origin next turn, with the `stigmer.file_review.decided`
- * event in the session's log; the conversation's newest turn keeps its
- * set awaiting review; and a write that folds no candidate closes
- * nothing, because only a candidate's write asks for the newest turn.
+ * captured set lands after a later message was sent has its edits kept as
+ * they land, a next_turn `stigmer.file_review.decided` event in the
+ * session's log, the set staying on the run's record; the conversation's
+ * newest turn leaves its set undecided; and a write that carries no
+ * captured set closes nothing, because only a capture's write asks for
+ * the newest turn.
  */
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
@@ -16,11 +17,7 @@ import type {
   Run,
   RunStatusSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  FileChangeSetStatus,
-  FileDecisionOrigin,
-  RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -30,8 +27,8 @@ import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/autho
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import { SessionEventBroker } from "../../session/events/broker.js";
+import { eventOf } from "../../session/events/codec.js";
 import { createRunAppendingEvents } from "../../session/events/run-writes.js";
-import { StreamBroker } from "../stream-broker.js";
 import { updateStatus } from "../update-status.js";
 import type { UpdateStatusDeps } from "../update-status.js";
 import { fileReviewSeed } from "./file-review-seed.js";
@@ -52,7 +49,6 @@ beforeEach(() => {
     store: temp.store,
     logger: silentLogger,
     authorizer: newPermissiveSingleTeamAuthorizer(),
-    broker: new StreamBroker(silentLogger),
     sessionEventBroker: new SessionEventBroker(silentLogger),
     statusObservers: [],
     responseDecorators: [],
@@ -98,16 +94,20 @@ async function storedSet(runId: string) {
     runId,
     RunSchema,
   );
-  return run.status?.fileChangeSets[0];
+  return run.status?.fileChanges[0];
 }
 
-async function decidedTypes(): Promise<Array<[string, string]>> {
+/** The decided events in the session's log: run and origin. */
+async function decided(): Promise<Array<[string, string]>> {
   const records = await temp.store.sessionEvents.list(SESSION, {
     order: "asc",
     types: ["stigmer.file_review.decided"],
     limit: 10,
   });
-  return records.map((record) => [record.runId, record.type]);
+  return records.map(eventOf).map((event) => [
+    event.runId,
+    event.event.case === "stigmerFileReviewDecided" ? event.event.value.origin : "",
+  ]);
 }
 
 describe("a turn that captures after a later message was sent", () => {
@@ -117,37 +117,37 @@ describe("a turn that captures after a later message was sent", () => {
 
     await runnerWrites("run_a", true);
 
-    const set = await storedSet("run_a");
-    expect(set?.status).toBe(FileChangeSetStatus.DECIDED);
-    expect(set?.decisions.map((d) => d.origin)).toEqual([
-      FileDecisionOrigin.POLICY_NEXT_TURN,
-    ]);
-    expect(await decidedTypes()).toEqual([
-      ["run_a", "stigmer.file_review.decided"],
-    ]);
+    expect((await storedSet("run_a"))?.id).toBe("run_a:0");
+    expect(await decided()).toEqual([["run_a", "next_turn"]]);
   });
 
-  it("the conversation's newest turn keeps its set awaiting review", async () => {
+  it("the conversation's newest turn leaves its set undecided", async () => {
     await createRunAppendingEvents(deps, turn("run_a"));
 
     await runnerWrites("run_a", true);
 
-    const set = await storedSet("run_a");
-    expect(set?.status).toBe(FileChangeSetStatus.AWAITING_REVIEW);
-    expect(set?.decisions).toEqual([]);
-    expect(await decidedTypes()).toEqual([]);
+    expect((await storedSet("run_a"))?.id).toBe("run_a:0");
+    expect(await decided()).toEqual([]);
   });
 
-  it("a write that folds no candidate closes nothing, even on an outdated turn", async () => {
+  it("a write that carries no captured set closes nothing, even on an outdated turn", async () => {
     await createRunAppendingEvents(deps, turn("run_a"));
     await runnerWrites("run_a", true);
     await createRunAppendingEvents(deps, turn("run_b"));
 
     await runnerWrites("run_a", false);
 
-    expect((await storedSet("run_a"))?.status).toBe(
-      FileChangeSetStatus.AWAITING_REVIEW,
-    );
-    expect(await decidedTypes()).toEqual([]);
+    expect((await storedSet("run_a"))?.id).toBe("run_a:0");
+    expect(await decided()).toEqual([]);
+  });
+
+  it("a capture written again on the outdated turn adds nothing: the log shows it kept", async () => {
+    await createRunAppendingEvents(deps, turn("run_a"));
+    await createRunAppendingEvents(deps, turn("run_b"));
+    await runnerWrites("run_a", true);
+
+    await runnerWrites("run_a", true);
+
+    expect(await decided()).toEqual([["run_a", "next_turn"]]);
   });
 });

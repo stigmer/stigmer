@@ -18,7 +18,7 @@ type ListFn = (...args: unknown[]) => Promise<unknown>;
 function createMockStigmer(overrides: { list?: ListFn } = {}) {
   return {
     session: {
-      list: overrides.list ?? vi.fn().mockResolvedValue({ entries: [], totalPages: 0, nextPageToken: "" }),
+      list: overrides.list ?? vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
     },
   } as never;
 }
@@ -40,7 +40,7 @@ function session(id: string) {
 }
 
 function page(ids: string[], nextPageToken = "") {
-  return { entries: ids.map(session), totalPages: nextPageToken === "" ? 1 : 0, nextPageToken };
+  return { entries: ids.map(session), nextPageToken };
 }
 
 function idsOf(sessions: readonly { metadata?: { id?: string } }[]) {

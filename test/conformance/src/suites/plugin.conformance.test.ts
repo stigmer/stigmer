@@ -314,9 +314,9 @@ describe("Plugin conformance — install writes one row", () => {
     expect(await clients.pluginQuery.get({ value: first.metadata!.id })).toEqual(stored);
 
     const versions = await clients.pluginQuery.listVersions({ org: org(), slug: name });
-    expect(versions.totalCount).toBe(1);
-    expect(versions.versions[0]?.tag).toBe("1.2.0");
-    expect(versions.versions[0]?.isCurrent).toBe(true);
+    expect(versions.entries).toHaveLength(1);
+    expect(versions.entries[0]?.tag).toBe("1.2.0");
+    expect(versions.entries[0]?.isCurrent).toBe(true);
   });
 
   it("[rpc:PluginCommandController.push] [rpc:PluginQueryController.listVersions] an upgrade replaces the lists and grows the history", async () => {
@@ -330,8 +330,8 @@ describe("Plugin conformance — install writes one row", () => {
     expect(second.status?.skills.map((s) => s.name)).toEqual([`${name}-review`]);
 
     const versions = await clients.pluginQuery.listVersions({ org: org(), slug: name });
-    expect(versions.totalCount).toBe(2);
-    expect(versions.versions.filter((v) => v.isCurrent).map((v) => v.digest)).toEqual([second.status?.digest]);
+    expect(versions.entries).toHaveLength(2);
+    expect(versions.entries.filter((v) => v.isCurrent).map((v) => v.digest)).toEqual([second.status?.digest]);
   });
 
   it("[rpc:PluginCommandController.push] [rpc:PluginCommandController.updateVisibility] installs at the requested level, and updateVisibility moves the plugin alone: an agent that lists it keeps its level and definition", async () => {
@@ -354,7 +354,7 @@ describe("Plugin conformance — install writes one row", () => {
     const agentAfter = await clients.agentQuery.get({ value: mine.metadata!.id });
     expect(agentAfter.metadata?.visibility).toBe(mine.metadata?.visibility);
     expect(agentAfter.status?.audit?.specAudit?.updatedAt).toEqual(mine.status?.audit?.specAudit?.updatedAt);
-    expect((await clients.pluginQuery.listVersions({ org: org(), slug: name })).totalCount).toBe(1);
+    expect((await clients.pluginQuery.listVersions({ org: org(), slug: name })).entries).toHaveLength(1);
   });
 });
 
@@ -412,7 +412,7 @@ describe("Plugin conformance — version resolution", () => {
     const plugin = await install(pluginArchive(fixture));
     expect(plugin.status?.warnings.map((w) => w.kind)).toContain("version-not-taggable");
     const versions = await clients.pluginQuery.listVersions({ org: org(), slug: name });
-    expect(versions.versions[0]?.tag).toBe("");
+    expect(versions.entries[0]?.tag).toBe("");
     // The reference contract itself refuses the string: a version that is not
     // latest, a digest or a tag can never name a version.
     await expectGrpcCode(
@@ -576,7 +576,7 @@ describe("Plugin conformance — the transfer lane", () => {
     // Content addressing must not care how the bytes travelled.
     const inline = await clients.pluginCommand.push({ org: org(), artifact: archive });
     expect(inline.status?.digest).toBe(plugin.status?.digest);
-    expect((await clients.pluginQuery.listVersions({ org: org(), slug: name })).totalCount).toBe(1);
+    expect((await clients.pluginQuery.listVersions({ org: org(), slug: name })).entries).toHaveLength(1);
   });
 });
 

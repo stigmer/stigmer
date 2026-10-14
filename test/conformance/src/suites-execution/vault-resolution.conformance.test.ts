@@ -66,6 +66,7 @@ import {
   requireLlmProxy,
   requireMcpFixture,
   sessionIdOf,
+  interruptRunSession,
 } from "../support/runs";
 import { FIXTURE_SERVER, pluginToolDeclarer } from "../support/plugins";
 import { uniqueName } from "../support/naming";
@@ -208,7 +209,7 @@ async function runWith(org: string, setup: RunSetup) {
     makeAgentExecution({ org, name: uniqueName("aex"), sessionId: session.metadata!.id }),
   );
   fixtures.defer(async () => {
-    await clients.agentExecutionCommand.cancel({ id: execution.metadata!.id }).catch(() => {});
+    await interruptRunSession(clients, execution.metadata!.id).catch(() => {});
     await clients.agentExecutionCommand.delete({ value: execution.metadata!.id });
   });
 
@@ -537,7 +538,7 @@ describe("vault resolution — a person's run", () => {
       }),
     );
     fixtures.defer(async () => {
-      await clients.agentExecutionCommand.cancel({ id: execution.metadata!.id }).catch(() => {});
+      await interruptRunSession(clients, execution.metadata!.id).catch(() => {});
       await clients.agentExecutionCommand.delete({ value: execution.metadata!.id });
     });
 
@@ -616,7 +617,7 @@ describe("vault resolution — a plugin's server", () => {
     );
     const runId = execution.metadata!.id;
     fixtures.defer(async () => {
-      await clients.agentExecutionCommand.cancel({ id: runId }).catch(() => {});
+      await interruptRunSession(clients, runId).catch(() => {});
       await clients.agentExecutionCommand.delete({ value: runId });
     });
 
@@ -662,7 +663,7 @@ describe("vault resolution — recover", () => {
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(async () => {
-      await clients.agentExecutionCommand.cancel({ id: executionId }).catch(() => {});
+      await interruptRunSession(clients, executionId).catch(() => {});
       await clients.agentExecutionCommand.delete({ value: executionId });
     });
     expect(execution.status?.credentials?.person, "create records the run's person").toBeDefined();
@@ -953,7 +954,7 @@ describe.skipIf(!firingEnabled)("vault resolution — a schedule's fire (schedul
     const result = await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
     expect(result.outcome, `fire refused: ${result.refusalReason}`).toBe(ScheduleFireOutcome.STARTED);
     fixtures.defer(async () => {
-      await clients.agentExecutionCommand.cancel({ id: result.runId }).catch(() => {});
+      await interruptRunSession(clients, result.runId).catch(() => {});
       await clients.agentExecutionCommand.delete({ value: result.runId });
     });
 
@@ -976,7 +977,7 @@ describe.skipIf(!firingEnabled)("vault resolution — a schedule's fire (schedul
     const result = await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
     expect(result.outcome, `fire refused: ${result.refusalReason}`).toBe(ScheduleFireOutcome.STARTED);
     fixtures.defer(async () => {
-      await clients.agentExecutionCommand.cancel({ id: result.runId }).catch(() => {});
+      await interruptRunSession(clients, result.runId).catch(() => {});
       await clients.agentExecutionCommand.delete({ value: result.runId });
     });
     const owners = agentSourceOf(await runSourcesOf(clients, result.runId), "OWNERS_KEY");

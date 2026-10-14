@@ -235,7 +235,7 @@ async function expectBoundTo(
     a.org,
   );
 
-  const mine = await asBound.organizationQuery.findMyOrganizations({});
+  const mine = await asBound.organizationQuery.listMine({});
   expect(
     mine.entries.map((organization) => organization.metadata?.id),
     "a bound credential sees its own organization alone",

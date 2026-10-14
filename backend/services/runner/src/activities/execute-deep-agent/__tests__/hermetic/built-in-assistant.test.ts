@@ -14,7 +14,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -35,6 +35,7 @@ import {
   deepAgentExecutionRecord,
   runDeepAgentTurn,
 } from "../../__test-utils__/hermetic-deep-agent.js";
+import { MessageType } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const USER_MESSAGE = "Say hello.";
 const ASSISTANT_TEXT = "Hello from the built-in assistant.";
@@ -85,7 +86,8 @@ describe("ExecuteDeepAgent hermetic — the built-in assistant", () => {
       RunPhase.RUN_COMPLETED,
     ]);
     const final = record.lastFullStatus!;
-    const ai = final.messages.filter((m) => m.type === MessageType.MESSAGE_AI);
+    const finalRows = record.rowsOf(final);
+    const ai = finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_AI);
     expect(ai).toHaveLength(1);
     expect(ai[0].content).toBe(ASSISTANT_TEXT);
 

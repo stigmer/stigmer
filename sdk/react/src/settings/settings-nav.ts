@@ -8,6 +8,7 @@ import {
   Building2,
   CreditCard,
   FileBadge,
+  History,
   Layers,
   KeyRound,
   KeySquare,
@@ -154,7 +155,9 @@ export const SINGLE_ORG_SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] =
  *
  * Kept out of {@link SETTINGS_NAV_GROUPS} for the reason the platform group
  * is: that constant is what every signed-in user sees. Service accounts are
- * managed by the organization's admins (`can_create_identity_account`), and a
+ * managed by the organization's admins (`can_create_identity_account`), the
+ * access history is read by its owners and admins
+ * (`can_view_access_history`), and a
  * page a member could only be told about is discoverability, not capability,
  * so it stays hidden until the server says yes. Use
  * {@link useSettingsNavGroups} for the permission-aware list.
@@ -165,6 +168,12 @@ export const ORG_ADMIN_SETTINGS_NAV_ITEMS: readonly SettingsNavItem[] = [
     label: "Service accounts",
     icon: Bot,
     requiredPermission: "can_create_identity_account",
+  },
+  {
+    href: "/settings/access-history",
+    label: "Access history",
+    icon: History,
+    requiredPermission: "can_view_access_history",
   },
 ];
 

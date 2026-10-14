@@ -54,12 +54,6 @@ export interface CapabilityFlags {
   // multiTenant: tenancy (many organizations, no enumeration) and enforcement are different facts — an enforcing
   // self-host is single-tenant.
   enforcingAuthorizer: boolean;
-  // OrganizationQuery.find enumerates every organization. True for local OSS,
-  // which is single-tenant and returns them all. False for cloud, where
-  // enumerating every tenant's org is not a tenant capability — cloud leaves
-  // find unrouted and answers Unimplemented; tenants use findMyOrganizations
-  // (proto documents find as platform-admin/administrative use only).
-  organizationEnumeration: boolean;
   // The dedicated AgentCommandController.tagVersion mutation RPC is
   // implemented. Where true, the agent-versions suite runs its tagVersion
   // cases; where false, it skips them and pins nothing about the RPC (version
@@ -283,6 +277,19 @@ export interface CapabilityFlags {
   // the edition sentence, never INTERNAL; where false, the suite PINS that
   // refusal on all four lanes.
   authorizationQueries: boolean;
+  // How listAccessHistory answers the organization's owner here.
+  //
+  // `unimplemented` for the local OSS targets BY DESIGN: open source keeps
+  // no access history, and the controller answers UNIMPLEMENTED with the
+  // edition sentence after authorizing. `plan-upgrade-required` for cloud:
+  // the history is recorded for every organization, but reading it is the
+  // Enterprise plan's, which is quoted and never seeded, so the suite's
+  // organizations meet the plan gate (FAILED_PRECONDITION, reason
+  // PLAN_UPGRADE_REQUIRED, feature access_history). No target here serves
+  // the read itself; Enterprise's composed suite
+  // (ee/server/src/editions/__tests__/enterprise-access-history.postgres.test.ts)
+  // and the handler suite prove it.
+  accessHistory: "unimplemented" | "plan-upgrade-required";
   // The billing ENGINE is served here: the 8 RPCs of BillingCommandController
   // and BillingQueryController (the organization's billing account and its
   // Stripe customer, the usage meter the run reports read, the model catalog's

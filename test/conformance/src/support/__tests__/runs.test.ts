@@ -1,17 +1,13 @@
 // Unit arms for the Run support seams.
 // - The phase polls: a timeout names the run, the label awaited, the distinct
-//   phases the poll saw in order, the status error and the last message, and
+//   phases the poll saw in order, the status error and the stop cause, and
 //   awaitPhase labels its wait with the phase it awaits.
-// - allToolCalls: the root transcript's tool calls, then every sub-agent's.
-// - The submit-approval seam: one submit, then the response's
-//   pending_approvals must equal what the decision leaves behind — a match
-//   returns the response, a mismatch is red under the caller's label, and in
-//   neither case is the decision submitted twice.
 // - pushFixturePlugin: it pushes a one-server plugin on the fixture surface
 //   it was given and returns the installed plugin only when its status
 //   lists that one server at the surface's URL with no sign-in; anything
 //   else is red at the helper, and the plugin's delete is deferred either
 //   way.
+// - interruptRunSession: it interrupts the session the run's target names.
 // Pure: hand-built resources and stubbed clients, no target.
 // Domain: conformance support (execution engine).
 import { create } from "@bufbuild/protobuf";
@@ -23,56 +19,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
 import { FixtureTracker } from "../../harness/fixtures";
 import { DESTRUCTIVE_ECHO_TOOL_NAME, ECHO_TOOL_NAME, type McpToolFixture } from "../../harness/mcp-server";
-import {
-  allToolCalls,
-  awaitPhase,
-  pollExecution,
-  pushFixturePlugin,
-  submitApprovalPerContract,
-} from "../runs";
-
-function executionWithPending(toolCallIds: string[]): Run {
-  return create(RunSchema, {
-    metadata: { id: "aex_unit" },
-    status: { pendingApprovals: toolCallIds.map((toolCallId) => ({ toolCallId })) },
-  });
-}
-
-describe("submitApprovalPerContract", () => {
-  it("submits once and returns the response when pending_approvals matches the decision", async () => {
-    const settled = executionWithPending([]);
-    const submit = vi.fn(async () => settled);
-    const response = await submitApprovalPerContract({
-      submit,
-      expectedRemaining: 0,
-      label: "approve clears the gate",
-    });
-    expect(response).toBe(settled);
-    expect(submit).toHaveBeenCalledTimes(1);
-  });
-
-  it("accepts a partially resolved gate when the decision leaves that many pending", async () => {
-    const oneLeft = executionWithPending(["call_second"]);
-    const response = await submitApprovalPerContract({
-      submit: async () => oneLeft,
-      expectedRemaining: 1,
-      label: "one gate remains after the first approve",
-    });
-    expect(response).toBe(oneLeft);
-  });
-
-  it("is red under the caller's label when the response still lists the decided call — and never re-submits", async () => {
-    const submit = vi.fn(async () => executionWithPending(["call_a"]));
-    await expect(
-      submitApprovalPerContract({
-        submit,
-        expectedRemaining: 0,
-        label: "approve clears the gate",
-      }),
-    ).rejects.toThrow("approve clears the gate");
-    expect(submit).toHaveBeenCalledTimes(1);
-  });
-});
+import { awaitPhase, interruptRunSession, pollExecution, pushFixturePlugin } from "../runs";
 
 // A plugin as push answers it: one server entry at `url`, signed in or not.
 function installed(url: string, oauthOnly = false): Plugin {
@@ -144,23 +91,19 @@ function queryAnswering(answers: Run[]) {
   return { clients, get };
 }
 
-function atPhase(phase: RunPhase, extra: { error?: string; lastMessage?: string } = {}): Run {
+function atPhase(phase: RunPhase, extra: { error?: string; stopCause?: string } = {}): Run {
   return create(RunSchema, {
     metadata: { id: "aex_unit" },
-    status: {
-      phase,
-      error: extra.error ?? "",
-      messages: extra.lastMessage !== undefined ? [{ content: "first" }, { content: extra.lastMessage }] : [],
-    },
+    status: { phase, error: extra.error ?? "", stopCause: extra.stopCause ?? "" },
   });
 }
 
 describe("pollExecution", () => {
-  it("times out with the distinct phases it saw in order, the status error and the last message", async () => {
+  it("times out with the distinct phases it saw in order, the status error and the stop cause", async () => {
     const { clients, get } = queryAnswering([
       atPhase(RunPhase.RUN_PENDING),
       atPhase(RunPhase.RUN_PENDING),
-      atPhase(RunPhase.RUN_IN_PROGRESS, { error: "provider refused", lastMessage: "still thinking" }),
+      atPhase(RunPhase.RUN_IN_PROGRESS, { error: "provider refused", stopCause: "model_error" }),
     ]);
     // Long enough for at least three polls on a loaded machine; the predicate
     // never holds, so the run always ends at the deadline.
@@ -169,7 +112,7 @@ describe("pollExecution", () => {
     ).rejects.toThrow(
       "execution aex_unit did not satisfy the unit predicate within 1000ms " +
         '(observed phases: RUN_PENDING -> RUN_IN_PROGRESS; status.error: "provider refused"; ' +
-        'messages: 2, last: "still thinking")',
+        'stop_cause: "model_error")',
     );
     expect(get).toHaveBeenCalledWith({ value: "aex_unit" });
   });
@@ -177,7 +120,7 @@ describe("pollExecution", () => {
   it("reads an absent phase as RUN_PHASE_UNSPECIFIED", async () => {
     const { clients } = queryAnswering([create(RunSchema, {})]);
     await expect(pollExecution(clients, "aex_unit", () => false, { timeoutMs: 1, pollMs: 1 })).rejects.toThrow(
-      'did not satisfy the predicate within 1ms (observed phases: RUN_PHASE_UNSPECIFIED; status.error: ""; messages: 0, last: "")',
+      'did not satisfy the predicate within 1ms (observed phases: RUN_PHASE_UNSPECIFIED; status.error: ""; stop_cause: "")',
     );
   });
 });
@@ -199,26 +142,14 @@ describe("awaitPhase", () => {
   });
 });
 
-describe("allToolCalls", () => {
-  it("returns the root transcript's tool calls, then every sub-agent's", () => {
-    const execution = create(RunSchema, {
-      status: {
-        messages: [{ toolCalls: [{ id: "call_root" }] }, { toolCalls: [] }],
-        subAgentRuns: [
-          { messages: [{ toolCalls: [{ id: "call_sub_a1" }, { id: "call_sub_a2" }] }] },
-          { messages: [{ toolCalls: [{ id: "call_sub_b" }] }] },
-        ],
-      },
-    });
-    expect(allToolCalls(execution).map((call) => call.id)).toEqual([
-      "call_root",
-      "call_sub_a1",
-      "call_sub_a2",
-      "call_sub_b",
-    ]);
-  });
-
-  it("is empty for a run with no status", () => {
-    expect(allToolCalls(create(RunSchema, {}))).toEqual([]);
+describe("interruptRunSession", () => {
+  it("interrupts the session the run's target names", async () => {
+    const run = create(RunSchema, { metadata: { id: "aex_unit" }, spec: { target: { case: "sessionId", value: "ses_unit" } } });
+    const get = vi.fn(async () => run);
+    const interrupt = vi.fn(async () => ({}));
+    const clients = { agentExecutionQuery: { get }, sessionCommand: { interrupt } } as unknown as ConformanceClients;
+    await interruptRunSession(clients, "aex_unit");
+    expect(get).toHaveBeenCalledWith({ value: "aex_unit" });
+    expect(interrupt).toHaveBeenCalledWith({ sessionId: "ses_unit" });
   });
 });

@@ -140,6 +140,25 @@ private static final long serialVersionUID = 0L;
     return reasoningTokens_;
   }
 
+  public static final int WORKING_SECONDS_FIELD_NUMBER = 7;
+  private long workingSeconds_ = 0L;
+  /**
+   * <pre>
+   * Seconds an agent was working (thinking, calling tools, writing files),
+   * counted from the session's status events; waiting for a person is never
+   * working. A stretch of work is credited to the run whose start began it.
+   * This is the clock, never priced; a Stigmer Cloud plan's agent hours are
+   * its subscription's getAgentHours.
+   * </pre>
+   *
+   * <code>int64 working_seconds = 7 [json_name = "workingSeconds"];</code>
+   * @return The workingSeconds.
+   */
+  @java.lang.Override
+  public long getWorkingSeconds() {
+    return workingSeconds_;
+  }
+
   public static final int LLM_CALL_COUNT_FIELD_NUMBER = 10;
   private int llmCallCount_ = 0;
   /**
@@ -344,6 +363,9 @@ private static final long serialVersionUID = 0L;
     if (reasoningTokens_ != 0L) {
       output.writeInt64(6, reasoningTokens_);
     }
+    if (workingSeconds_ != 0L) {
+      output.writeInt64(7, workingSeconds_);
+    }
     if (llmCallCount_ != 0) {
       output.writeInt32(10, llmCallCount_);
     }
@@ -388,6 +410,10 @@ private static final long serialVersionUID = 0L;
     if (reasoningTokens_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
         .computeInt64Size(6, reasoningTokens_);
+    }
+    if (workingSeconds_ != 0L) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(7, workingSeconds_);
     }
     if (llmCallCount_ != 0) {
       size += com.google.protobuf.CodedOutputStream
@@ -435,6 +461,8 @@ private static final long serialVersionUID = 0L;
         != other.getCacheReadInputTokens()) return false;
     if (getReasoningTokens()
         != other.getReasoningTokens()) return false;
+    if (getWorkingSeconds()
+        != other.getWorkingSeconds()) return false;
     if (getLlmCallCount()
         != other.getLlmCallCount()) return false;
     if (!getPrimaryModel()
@@ -472,6 +500,9 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + REASONING_TOKENS_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
         getReasoningTokens());
+    hash = (37 * hash) + WORKING_SECONDS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getWorkingSeconds());
     hash = (37 * hash) + LLM_CALL_COUNT_FIELD_NUMBER;
     hash = (53 * hash) + getLlmCallCount();
     hash = (37 * hash) + PRIMARY_MODEL_FIELD_NUMBER;
@@ -627,6 +658,7 @@ private static final long serialVersionUID = 0L;
       cacheCreationInputTokens_ = 0L;
       cacheReadInputTokens_ = 0L;
       reasoningTokens_ = 0L;
+      workingSeconds_ = 0L;
       llmCallCount_ = 0;
       primaryModel_ = "";
       primaryProvider_ = "";
@@ -636,7 +668,7 @@ private static final long serialVersionUID = 0L;
         servedBy_ = null;
         servedByBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000400);
       return this;
     }
 
@@ -671,9 +703,9 @@ private static final long serialVersionUID = 0L;
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.run.v1.UsageReportAggregate result) {
       if (servedByBuilder_ == null) {
-        if (((bitField0_ & 0x00000200) != 0)) {
+        if (((bitField0_ & 0x00000400) != 0)) {
           servedBy_ = java.util.Collections.unmodifiableList(servedBy_);
-          bitField0_ = (bitField0_ & ~0x00000200);
+          bitField0_ = (bitField0_ & ~0x00000400);
         }
         result.servedBy_ = servedBy_;
       } else {
@@ -702,12 +734,15 @@ private static final long serialVersionUID = 0L;
         result.reasoningTokens_ = reasoningTokens_;
       }
       if (((from_bitField0_ & 0x00000040) != 0)) {
-        result.llmCallCount_ = llmCallCount_;
+        result.workingSeconds_ = workingSeconds_;
       }
       if (((from_bitField0_ & 0x00000080) != 0)) {
-        result.primaryModel_ = primaryModel_;
+        result.llmCallCount_ = llmCallCount_;
       }
       if (((from_bitField0_ & 0x00000100) != 0)) {
+        result.primaryModel_ = primaryModel_;
+      }
+      if (((from_bitField0_ & 0x00000200) != 0)) {
         result.primaryProvider_ = primaryProvider_;
       }
     }
@@ -742,24 +777,27 @@ private static final long serialVersionUID = 0L;
       if (other.getReasoningTokens() != 0L) {
         setReasoningTokens(other.getReasoningTokens());
       }
+      if (other.getWorkingSeconds() != 0L) {
+        setWorkingSeconds(other.getWorkingSeconds());
+      }
       if (other.getLlmCallCount() != 0) {
         setLlmCallCount(other.getLlmCallCount());
       }
       if (!other.getPrimaryModel().isEmpty()) {
         primaryModel_ = other.primaryModel_;
-        bitField0_ |= 0x00000080;
+        bitField0_ |= 0x00000100;
         onChanged();
       }
       if (!other.getPrimaryProvider().isEmpty()) {
         primaryProvider_ = other.primaryProvider_;
-        bitField0_ |= 0x00000100;
+        bitField0_ |= 0x00000200;
         onChanged();
       }
       if (servedByBuilder_ == null) {
         if (!other.servedBy_.isEmpty()) {
           if (servedBy_.isEmpty()) {
             servedBy_ = other.servedBy_;
-            bitField0_ = (bitField0_ & ~0x00000200);
+            bitField0_ = (bitField0_ & ~0x00000400);
           } else {
             ensureServedByIsMutable();
             servedBy_.addAll(other.servedBy_);
@@ -772,7 +810,7 @@ private static final long serialVersionUID = 0L;
             servedByBuilder_.dispose();
             servedByBuilder_ = null;
             servedBy_ = other.servedBy_;
-            bitField0_ = (bitField0_ & ~0x00000200);
+            bitField0_ = (bitField0_ & ~0x00000400);
             servedByBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetServedByFieldBuilder() : null;
@@ -837,19 +875,24 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000020;
               break;
             } // case 48
+            case 56: {
+              workingSeconds_ = input.readInt64();
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 56
             case 80: {
               llmCallCount_ = input.readInt32();
-              bitField0_ |= 0x00000040;
+              bitField0_ |= 0x00000080;
               break;
             } // case 80
             case 242: {
               primaryModel_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000080;
+              bitField0_ |= 0x00000100;
               break;
             } // case 242
             case 250: {
               primaryProvider_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000200;
               break;
             } // case 250
             case 322: {
@@ -1119,6 +1162,62 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
+    private long workingSeconds_ ;
+    /**
+     * <pre>
+     * Seconds an agent was working (thinking, calling tools, writing files),
+     * counted from the session's status events; waiting for a person is never
+     * working. A stretch of work is credited to the run whose start began it.
+     * This is the clock, never priced; a Stigmer Cloud plan's agent hours are
+     * its subscription's getAgentHours.
+     * </pre>
+     *
+     * <code>int64 working_seconds = 7 [json_name = "workingSeconds"];</code>
+     * @return The workingSeconds.
+     */
+    @java.lang.Override
+    public long getWorkingSeconds() {
+      return workingSeconds_;
+    }
+    /**
+     * <pre>
+     * Seconds an agent was working (thinking, calling tools, writing files),
+     * counted from the session's status events; waiting for a person is never
+     * working. A stretch of work is credited to the run whose start began it.
+     * This is the clock, never priced; a Stigmer Cloud plan's agent hours are
+     * its subscription's getAgentHours.
+     * </pre>
+     *
+     * <code>int64 working_seconds = 7 [json_name = "workingSeconds"];</code>
+     * @param value The workingSeconds to set.
+     * @return This builder for chaining.
+     */
+    public Builder setWorkingSeconds(long value) {
+
+      workingSeconds_ = value;
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Seconds an agent was working (thinking, calling tools, writing files),
+     * counted from the session's status events; waiting for a person is never
+     * working. A stretch of work is credited to the run whose start began it.
+     * This is the clock, never priced; a Stigmer Cloud plan's agent hours are
+     * its subscription's getAgentHours.
+     * </pre>
+     *
+     * <code>int64 working_seconds = 7 [json_name = "workingSeconds"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearWorkingSeconds() {
+      bitField0_ = (bitField0_ & ~0x00000040);
+      workingSeconds_ = 0L;
+      onChanged();
+      return this;
+    }
+
     private int llmCallCount_ ;
     /**
      * <pre>
@@ -1146,7 +1245,7 @@ private static final long serialVersionUID = 0L;
     public Builder setLlmCallCount(int value) {
 
       llmCallCount_ = value;
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -1160,7 +1259,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearLlmCallCount() {
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000080);
       llmCallCount_ = 0;
       onChanged();
       return this;
@@ -1227,7 +1326,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       primaryModel_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -1243,7 +1342,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearPrimaryModel() {
       primaryModel_ = getDefaultInstance().getPrimaryModel();
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000100);
       onChanged();
       return this;
     }
@@ -1263,7 +1362,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       primaryModel_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -1311,7 +1410,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       primaryProvider_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -1321,7 +1420,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearPrimaryProvider() {
       primaryProvider_ = getDefaultInstance().getPrimaryProvider();
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000200);
       onChanged();
       return this;
     }
@@ -1335,7 +1434,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       primaryProvider_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -1343,9 +1442,9 @@ private static final long serialVersionUID = 0L;
     private java.util.List<ai.stigmer.agentic.run.v1.ServedByUsage> servedBy_ =
       java.util.Collections.emptyList();
     private void ensureServedByIsMutable() {
-      if (!((bitField0_ & 0x00000200) != 0)) {
+      if (!((bitField0_ & 0x00000400) != 0)) {
         servedBy_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.ServedByUsage>(servedBy_);
-        bitField0_ |= 0x00000200;
+        bitField0_ |= 0x00000400;
        }
     }
 
@@ -1550,7 +1649,7 @@ private static final long serialVersionUID = 0L;
     public Builder clearServedBy() {
       if (servedByBuilder_ == null) {
         servedBy_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000200);
+        bitField0_ = (bitField0_ & ~0x00000400);
         onChanged();
       } else {
         servedByBuilder_.clear();
@@ -1662,7 +1761,7 @@ private static final long serialVersionUID = 0L;
         servedByBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.run.v1.ServedByUsage, ai.stigmer.agentic.run.v1.ServedByUsage.Builder, ai.stigmer.agentic.run.v1.ServedByUsageOrBuilder>(
                 servedBy_,
-                ((bitField0_ & 0x00000200) != 0),
+                ((bitField0_ & 0x00000400) != 0),
                 getParentForChildren(),
                 isClean());
         servedBy_ = null;

@@ -30,7 +30,7 @@
  * (local-execution), and __tests__/schedule.composed.test.ts.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
-import { create, fromBinary } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 
 import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
 import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
@@ -86,6 +86,7 @@ import {
   sortedLabels,
 } from "../../pipeline/steps/helpers.js";
 import {
+  decodeOrSkip,
   listPageFingerprint,
   readListPage,
 } from "../../pipeline/steps/list-page.js";
@@ -621,10 +622,7 @@ function newLoadSchedulesByAgentStep(
       // A schedule's agent_ref holds its agent's id (the index's `agent`
       // key), so a schedule of an agent since deleted never lists under a
       // new agent of the same name.
-      if (req.agentId === "") {
-        ctx.set(SCHEDULE_LIST_KEY, create(ScheduleListSchema));
-        return;
-      }
+      //
       // Org scope: a multi-org caller asking for one org's schedules must
       // not see another org's schedules of the same agent. (Schedules are
       // same-org by invariant, so today this only excludes rows when the
@@ -733,13 +731,7 @@ async function readSchedulePage(
     query: lane.query,
     request,
     fingerprint: listPageFingerprint(lane.fingerprint),
-    decode: (data) => {
-      try {
-        return fromBinary(ScheduleSchema, data);
-      } catch {
-        return undefined;
-      }
-    },
+    decode: decodeOrSkip(ScheduleSchema),
     ...(lane.keep === undefined ? {} : { keep: lane.keep }),
     scope: (schedules) =>
       restrictListByReadScope(

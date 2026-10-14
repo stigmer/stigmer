@@ -1,6 +1,7 @@
 /**
  * Pins the one decision core (../decide.ts) on a real store: a person's
- * keep or undo lands on the change set's run with its decided event, only
+ * keep or undo lands in the session's log as its decided event, on the
+ * change set's run and naming the person in decided_by, only
  * while the set's turn is the conversation's newest (a reconcile turn
  * never moves it on), only for a set of the session asked in, for a file
  * the set holds, through the digest and completeness gates, once per
@@ -10,7 +11,6 @@
  * create answers.
  */
 import { clone, create } from "@bufbuild/protobuf";
-import type { MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -19,15 +19,7 @@ import {
   RunStatusSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  FileChangeSetStatus,
-  FileDecisionAction,
-  FileDecisionOrigin,
-  FileDecisionScope,
-  RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { FileReviewEventSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { eventTypeOf } from "@stigmer/session-log";
 import { createLogger } from "../../../../boot/logger.js";
@@ -38,7 +30,6 @@ import type { TempStore } from "../../../../store/sqlite/__tests__/support.js";
 import { fileReviewSeed } from "../../../run/__tests__/file-review-seed.js";
 import type { FileReviewSeed } from "../../../run/__tests__/file-review-seed.js";
 import { fileDigest } from "../../../run/filereview/digest.js";
-import { StreamBroker } from "../../../run/stream-broker.js";
 import { SessionEventBroker } from "../../events/broker.js";
 import { eventOf } from "../../events/codec.js";
 import { createRunAppendingEvents } from "../../events/run-writes.js";
@@ -53,6 +44,7 @@ import type {
   FileDecisionDeps,
   ReconcileTurnCreator,
 } from "../decide.js";
+import type { ActionWord } from "../words.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -89,7 +81,6 @@ function deps(): FileDecisionDeps {
   return {
     ...base,
     logger: silentLogger,
-    broker: new StreamBroker(silentLogger),
     reconcileTurns: () => creator,
   };
 }
@@ -103,8 +94,6 @@ beforeEach(() => {
 afterEach(async () => {
   await temp.cleanup();
 });
-
-type LedgerEvent = MessageInitShape<typeof FileReviewEventSchema>;
 
 /** A turn of the session with `sets` captured change sets (`<id>:1`, ...), stored as the create chain stores it. */
 async function seedTurn(
@@ -126,9 +115,7 @@ async function storeTurn(
   seeds: FileReviewSeed[],
   sessionId = SESSION,
 ): Promise<void> {
-  const events: LedgerEvent[] = seeds.flatMap(
-    (seed) => seed.status.fileReviewEventStream?.events ?? [],
-  );
+  const fileChanges = seeds.flatMap((seed) => seed.status.fileChanges ?? []);
   await createRunAppendingEvents(
     {
       store: temp.store,
@@ -140,19 +127,19 @@ async function storeTurn(
         target: { case: "sessionId", value: sessionId },
         message: `turn ${id}`,
       },
-      status: { phase, fileReviewEventStream: { runId: id, events } },
+      status: { phase, fileChanges },
     }),
   );
 }
 
 function setDecision(
   changeSetId: string,
-  action: FileDecisionAction,
+  action: ActionWord,
   digest: string,
 ): FileDecisionAsked {
   return {
     changeSetId,
-    scope: FileDecisionScope.CHANGE_SET,
+    scope: "change_set",
     fileChangeId: "",
     action,
     expectedDigest: digest,
@@ -161,14 +148,11 @@ function setDecision(
   };
 }
 
-/** Decides as the person, in `sessionId` (null: on the run, as the run's own method asks). */
-function decide(asked: FileDecisionAsked, sessionId: string | null = SESSION) {
+/** Decides as the person, in `sessionId`. */
+function decide(asked: FileDecisionAsked, sessionId: string = SESSION) {
   return decideFileChanges(
     deps(),
-    {
-      runId: runIdOfChangeSet(asked.changeSetId),
-      ...(sessionId === null ? {} : { sessionId }),
-    },
+    { runId: runIdOfChangeSet(asked.changeSetId), sessionId },
     asked,
     PERSON,
   );
@@ -186,8 +170,18 @@ async function refusal(promise: Promise<unknown>): Promise<ConnectError> {
   throw new Error("expected a refusal");
 }
 
-async function stored(id: string): Promise<Run> {
-  return temp.store.getResource(ApiResourceKind.run, id, RunSchema);
+/** The decided events of `runId` in the session's log, in order. */
+async function decisionsOf(runId: string, sessionId = SESSION) {
+  const records = await temp.store.sessionEvents.list(sessionId, {
+    order: "asc",
+    runId,
+    types: ["stigmer.file_review.decided"],
+    limit: 100,
+  });
+  return records.flatMap((record) => {
+    const event = eventOf(record);
+    return event.event.case === "stigmerFileReviewDecided" ? [event.event.value] : [];
+  });
 }
 
 async function log(sessionId = SESSION): Promise<string[]> {
@@ -217,7 +211,7 @@ describe("the change set's run", () => {
     );
     const asked = setDecision(
       "run_1:1",
-      FileDecisionAction.APPROVE,
+      "keep",
       seed!.aggregate,
     );
     expect((await refusal(decide(asked))).code).toBe(Code.NotFound);
@@ -227,7 +221,7 @@ describe("the change set's run", () => {
     expect(
       (await refusal(decide({ ...asked, changeSetId: "no-run" }))).code,
     ).toBe(Code.NotFound);
-    expect((await stored("run_1")).status?.fileChangeSets ?? []).toEqual([]);
+    expect(await decisionsOf("run_1", "ses_other")).toEqual([]);
   });
 });
 
@@ -235,20 +229,14 @@ describe("a keep", () => {
   it("records the person's decision on the newest turn, with its decided event, and starts no turn", async () => {
     const [seed] = await seedTurn("run_1", RunPhase.RUN_COMPLETED);
     const outcome = await decide(
-      setDecision("run_1:1", FileDecisionAction.APPROVE, seed!.aggregate),
+      setDecision("run_1:1", "keep", seed!.aggregate),
     );
 
     expect([outcome.recorded, outcome.reconcileRunId]).toEqual([true, ""]);
-    const set = outcome.run.status?.fileChangeSets.find(
-      (cs) => cs.id === "run_1:1",
-    );
-    expect(set?.status).toBe(FileChangeSetStatus.DECIDED);
     expect(
-      set?.decisions.map((d) => [d.action, d.origin, d.reviewerId]),
-    ).toEqual([
-      [FileDecisionAction.APPROVE, FileDecisionOrigin.USER, "usr_person"],
-    ]);
-    expect(await log()).toContain("run_1:stigmer.file_review.decided");
+      (await decisionsOf("run_1")).map((d) => [d.changeSetId, d.scope, d.action, d.origin, d.expectedDigest, d.decidedBy]),
+    ).toEqual([["run_1:1", "change_set", "keep", "person", seed!.aggregate, "usr_person"]]);
+    expect(outcome.run.status?.fileChanges.map((cs) => cs.id)).toEqual(["run_1:1"]);
     expect(created).toEqual([]);
   });
 
@@ -256,7 +244,7 @@ describe("a keep", () => {
     const [seed] = await seedTurn("run_1", RunPhase.RUN_COMPLETED);
     const asked = setDecision(
       "run_1:1",
-      FileDecisionAction.APPROVE,
+      "keep",
       seed!.aggregate,
     );
     await decide(asked);
@@ -264,29 +252,25 @@ describe("a keep", () => {
 
     const again = await decide(asked);
     expect(again.recorded).toBe(false);
-    expect(again.run.status?.fileChangeSets[0]?.decisions).toHaveLength(1);
+    expect(await decisionsOf("run_1")).toHaveLength(1);
     expect(await log()).toEqual(before);
   });
 
   it("refuses a different decision on a target already decided, writes nothing and starts no turn", async () => {
     const [seed] = await seedTurn("run_1", RunPhase.RUN_COMPLETED);
     await decide(
-      setDecision("run_1:1", FileDecisionAction.APPROVE, seed!.aggregate),
+      setDecision("run_1:1", "keep", seed!.aggregate),
     );
     const before = await log();
 
     const error = await refusal(
-      decide(setDecision("run_1:1", FileDecisionAction.REJECT, seed!.aggregate)),
+      decide(setDecision("run_1:1", "undo", seed!.aggregate)),
     );
     expect([error.code, error.rawMessage]).toEqual([
       Code.FailedPrecondition,
       CONFLICTING_DECISION_MESSAGE,
     ]);
-    expect(
-      (await stored("run_1")).status?.fileChangeSets[0]?.decisions.map(
-        (d) => d.action,
-      ),
-    ).toEqual([FileDecisionAction.APPROVE]);
+    expect((await decisionsOf("run_1")).map((d) => d.action)).toEqual(["keep"]);
     expect(await log()).toEqual(before);
     expect(created).toEqual([]);
   });
@@ -295,8 +279,8 @@ describe("a keep", () => {
     const [seed] = await seedTurn("run_1", RunPhase.RUN_COMPLETED);
     const error = await refusal(
       decide({
-        ...setDecision("run_1:1", FileDecisionAction.REJECT, seed!.aggregate),
-        scope: FileDecisionScope.FILE,
+        ...setDecision("run_1:1", "undo", seed!.aggregate),
+        scope: "file",
         fileChangeId: "run_1:1:no-such-file.ts",
       }),
     );
@@ -304,7 +288,7 @@ describe("a keep", () => {
       Code.FailedPrecondition,
       "file change run_1:1:no-such-file.ts not found in change set run_1:1",
     ]);
-    expect((await stored("run_1")).status?.fileChangeSets ?? []).toEqual([]);
+    expect(await decisionsOf("run_1")).toEqual([]);
   });
 
   it("refuses a digest the person did not review, and a keep of a change that cannot be shown whole; an undo of that change passes", async () => {
@@ -313,28 +297,28 @@ describe("a keep", () => {
     seed.change.fileDigest = fileDigest(seed.change);
     await storeTurn("run_1", RunPhase.RUN_COMPLETED, [seed]);
     const file = (
-      action: FileDecisionAction,
+      action: ActionWord,
       digest: string,
     ): FileDecisionAsked => ({
       ...setDecision("run_1:1", action, digest),
-      scope: FileDecisionScope.FILE,
+      scope: "file",
       fileChangeId: seed.change.id,
     });
 
     expect(
-      (await refusal(decide(file(FileDecisionAction.REJECT, "0".repeat(64)))))
+      (await refusal(decide(file("undo", "0".repeat(64)))))
         .code,
     ).toBe(Code.InvalidArgument);
     expect(
       (
         await refusal(
-          decide(file(FileDecisionAction.APPROVE, seed.change.fileDigest)),
+          decide(file("keep", seed.change.fileDigest)),
         )
       ).code,
     ).toBe(Code.FailedPrecondition);
-    expect((await stored("run_1")).status?.fileChangeSets ?? []).toEqual([]);
+    expect(await decisionsOf("run_1")).toEqual([]);
     expect(
-      (await decide(file(FileDecisionAction.REJECT, seed.change.fileDigest)))
+      (await decide(file("undo", seed.change.fileDigest)))
         .recorded,
     ).toBe(true);
   });
@@ -349,14 +333,14 @@ describe("a store fault", () => {
 
     const error = await refusal(
       decide(
-        setDecision("run_1:1", FileDecisionAction.REJECT, seed!.aggregate),
+        setDecision("run_1:1", "undo", seed!.aggregate),
       ),
     );
     expect([error.code, error.rawMessage]).toEqual([
       Code.Internal,
       "failed to persist file decision",
     ]);
-    expect((await stored("run_1")).status?.fileChangeSets ?? []).toEqual([]);
+    expect(await decisionsOf("run_1")).toEqual([]);
     expect(created).toEqual([]);
   });
 });
@@ -368,14 +352,14 @@ describe("the window", () => {
 
     const error = await refusal(
       decide(
-        setDecision("run_1:1", FileDecisionAction.REJECT, seed!.aggregate),
+        setDecision("run_1:1", "undo", seed!.aggregate),
       ),
     );
     expect([error.code, error.rawMessage]).toEqual([
       Code.FailedPrecondition,
       CONVERSATION_MOVED_ON_MESSAGE,
     ]);
-    expect((await stored("run_1")).status?.fileChangeSets ?? []).toEqual([]);
+    expect(await decisionsOf("run_1")).toEqual([]);
     expect(created).toEqual([]);
   });
 
@@ -383,7 +367,7 @@ describe("the window", () => {
     const [seed] = await seedTurn("run_1", RunPhase.RUN_COMPLETED);
     const asked = setDecision(
       "run_1:1",
-      FileDecisionAction.APPROVE,
+      "keep",
       seed!.aggregate,
     );
     await decide(asked);
@@ -395,12 +379,12 @@ describe("the window", () => {
   it("stays open through a reconcile turn, which sends no message", async () => {
     const [first, second] = await seedTurn("run_1", RunPhase.RUN_COMPLETED, 2);
     await decide(
-      setDecision("run_1:1", FileDecisionAction.REJECT, first!.aggregate),
+      setDecision("run_1:1", "undo", first!.aggregate),
     );
     expect(created).toHaveLength(1);
 
     const keep = await decide(
-      setDecision("run_1:2", FileDecisionAction.APPROVE, second!.aggregate),
+      setDecision("run_1:2", "keep", second!.aggregate),
     );
     expect(keep.recorded).toBe(true);
     expect(await log()).not.toContain("run_reconcile_1:user.message");
@@ -411,7 +395,7 @@ describe("an undo", () => {
   it("on an ended turn starts a reconcile turn as the person, in the session and its organization, with no message", async () => {
     const [seed] = await seedTurn("run_1", RunPhase.RUN_COMPLETED);
     const outcome = await decide(
-      setDecision("run_1:1", FileDecisionAction.REJECT, seed!.aggregate),
+      setDecision("run_1:1", "undo", seed!.aggregate),
     );
 
     expect(outcome.reconcileRunId).toBe("run_reconcile_1");
@@ -424,18 +408,16 @@ describe("an undo", () => {
       true,
       "",
     ]);
-    expect(outcome.run.status?.fileChangeSets[0]?.decisions[0]?.action).toBe(
-      FileDecisionAction.REJECT,
-    );
+    expect((await decisionsOf("run_1")).map((d) => [d.action, d.decidedBy])).toEqual([["undo", "usr_person"]]);
   });
 
   it("starts one for every undo, even while another is unfinished: that one may have read what is owed already", async () => {
     const [first, second] = await seedTurn("run_1", RunPhase.RUN_COMPLETED, 2);
     await decide(
-      setDecision("run_1:1", FileDecisionAction.REJECT, first!.aggregate),
+      setDecision("run_1:1", "undo", first!.aggregate),
     );
     const outcome = await decide(
-      setDecision("run_1:2", FileDecisionAction.REJECT, second!.aggregate),
+      setDecision("run_1:2", "undo", second!.aggregate),
     );
 
     expect(outcome.recorded).toBe(true);
@@ -447,7 +429,7 @@ describe("an undo", () => {
     const [seed] = await seedTurn("run_1", RunPhase.RUN_COMPLETED);
     const asked = setDecision(
       "run_1:1",
-      FileDecisionAction.REJECT,
+      "undo",
       seed!.aggregate,
     );
     await decide(asked);
@@ -458,7 +440,7 @@ describe("an undo", () => {
   it("on a turn still working starts none: its next start restores the file", async () => {
     const [seed] = await seedTurn("run_1", RunPhase.RUN_IN_PROGRESS);
     const outcome = await decide(
-      setDecision("run_1:1", FileDecisionAction.REJECT, seed!.aggregate),
+      setDecision("run_1:1", "undo", seed!.aggregate),
     );
     expect([outcome.recorded, outcome.reconcileRunId]).toEqual([true, ""]);
     expect(created).toEqual([]);
@@ -472,38 +454,12 @@ describe("an undo", () => {
       createAnswer = answer;
       const [seed] = await seedTurn(id, RunPhase.RUN_COMPLETED);
       const outcome = await decide(
-        setDecision(`${id}:1`, FileDecisionAction.REJECT, seed!.aggregate),
+        setDecision(`${id}:1`, "undo", seed!.aggregate),
       );
 
       expect([outcome.recorded, outcome.reconcileRunId]).toEqual([true, ""]);
-      const decisions =
-        (await stored(id)).status?.fileChangeSets[0]?.decisions ?? [];
-      expect(decisions.map((d) => d.action)).toEqual([
-        FileDecisionAction.REJECT,
-      ]);
+      expect((await decisionsOf(id)).map((d) => d.action)).toEqual(["undo"]);
     }
     expect(created).toHaveLength(2);
-  });
-});
-
-describe("a run in no session", () => {
-  it("has no window and no reconcile turn", async () => {
-    const seed = fileReviewSeed("run_solo", "run_solo:1");
-    await temp.store.saveResource(
-      ApiResourceKind.run,
-      "run_solo",
-      RunSchema,
-      create(RunSchema, {
-        metadata: { id: "run_solo", org: ORG },
-        spec: { message: "hello" },
-        status: { ...seed.status, phase: RunPhase.RUN_COMPLETED },
-      }),
-    );
-    const outcome = await decide(
-      setDecision("run_solo:1", FileDecisionAction.REJECT, seed.aggregate),
-      null,
-    );
-    expect([outcome.recorded, outcome.reconcileRunId]).toEqual([true, ""]);
-    expect(created).toEqual([]);
   });
 });

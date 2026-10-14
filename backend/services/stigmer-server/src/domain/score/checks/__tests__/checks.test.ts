@@ -7,7 +7,7 @@
  *     content hash differs, and a call whose inputs are not known never
  *     count as repeats, while three calls with an empty input do;
  *   - `last-action-succeeded` fails when the run's last call FAILED (its
- *     result is an error) or was INTERRUPTED (its turn ended before it
+ *     result is an error) or was stopped (its turn ended before it
  *     returned), and passes when a failure was recovered from;
  *   - `structured-output-delivered` applies only when a schema was set;
  *   - a run with no tool calls is not applicable on the call checks;
@@ -20,11 +20,9 @@ import type { JsonObject } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  RunPhase,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { CriterionResult } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
+import type { ToolUseState } from "@stigmer/session-log";
 
 import type { RunTranscript } from "../../../session/events/run-events.js";
 import { RunEventsBuilder } from "../../../session/events/__tests__/run-events-fixture.js";
@@ -46,22 +44,22 @@ interface CallSpec {
   readonly args?: JsonObject;
   readonly result?: string;
   readonly contentHash?: string;
-  readonly status?: ToolCallStatus;
+  readonly status?: ToolUseState;
 }
 
 let callCount = 0;
 
 function call(spec: CallSpec = {}): FixtureCall {
-  const status = spec.status ?? ToolCallStatus.TOOL_CALL_COMPLETED;
+  const status = spec.status ?? "completed";
   return {
     id: `c${++callCount}`,
     name: spec.name ?? "echo",
     ...(spec.args === undefined ? {} : { input: spec.args }),
     // An interrupted call never returned: its turn ended first.
-    ...(status === ToolCallStatus.TOOL_CALL_INTERRUPTED
+    ...(status === "stopped"
       ? {}
       : { result: spec.result ?? `result for ${SECRET_TEXT}` }),
-    ...(status === ToolCallStatus.TOOL_CALL_FAILED ? { isError: true } : {}),
+    ...(status === "failed" ? { isError: true } : {}),
     ...(spec.contentHash === undefined
       ? {}
       : { offloadedHash: spec.contentHash }),
@@ -159,7 +157,7 @@ describe("no-repeated-calls", () => {
       name: "echo",
       argsKey: "",
       resultKey: "sha256:same",
-      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      status: "completed" as const,
     };
     const health = gradeRunHealth({
       actions: [1, 2, 3].map((step) => ({ ...unknown, step })),
@@ -193,7 +191,7 @@ describe("last-action-succeeded", () => {
       call({
         name: "create_ticket",
         args,
-        status: ToolCallStatus.TOOL_CALL_FAILED,
+        status: "failed",
       }),
     ]);
     const v = verdict(run, LAST_ACTION_SUCCEEDED);
@@ -201,9 +199,9 @@ describe("last-action-succeeded", () => {
     expect(v.reason).toBe("ended on a failed action: create_ticket (step 2)");
   });
 
-  it("fails when the last call was INTERRUPTED", () => {
+  it("fails when the last call was stopped", () => {
     const run = runWith([
-      call({ args, status: ToolCallStatus.TOOL_CALL_INTERRUPTED }),
+      call({ args, status: "stopped" }),
     ]);
     expect(verdict(run, LAST_ACTION_SUCCEEDED).result).toBe(
       CriterionResult.failed,
@@ -212,7 +210,7 @@ describe("last-action-succeeded", () => {
 
   it("passes when a failure was recovered from", () => {
     const run = runWith([
-      call({ args, status: ToolCallStatus.TOOL_CALL_FAILED }),
+      call({ args, status: "failed" }),
       call({ args: { text: "retry" } }),
     ]);
     expect(verdict(run, LAST_ACTION_SUCCEEDED).result).toBe(
@@ -268,7 +266,7 @@ describe("the grade", () => {
       [
         call({ args }),
         call({ args }),
-        call({ args, status: ToolCallStatus.TOOL_CALL_FAILED }),
+        call({ args, status: "failed" }),
       ],
       { schema: { type: "object" } },
     );

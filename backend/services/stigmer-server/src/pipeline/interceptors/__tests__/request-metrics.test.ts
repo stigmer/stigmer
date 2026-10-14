@@ -32,8 +32,8 @@ import { create } from "@bufbuild/protobuf";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
+import { StreamSessionEventsResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import {
   Health,
   HealthCheckResponse_ServingStatus as ServingStatus,
@@ -63,8 +63,8 @@ const inMemoryMeter = () => inMemoryMeterFor(resetRpcInstruments);
 const COUNT = "stigmer.grpc.request.count";
 const DURATION = "stigmer.grpc.request.duration";
 const AGENT_SERVICE = "ai.stigmer.agentic.agent.v1.AgentCommandController";
-const EXECUTION_SERVICE =
-  "ai.stigmer.agentic.run.v1.RunQueryController";
+const STREAM_SERVICE =
+  "ai.stigmer.agentic.session.v1.SessionQueryController";
 
 const VALID_AGENT = {
   apiVersion: "agentic.stigmer.ai/v1",
@@ -108,7 +108,7 @@ function sumOf(point: CollectedPoint): number {
 
 interface Handlers {
   create?: () => unknown;
-  subscribe?: () => AsyncIterable<unknown>;
+  streamEvents?: () => AsyncIterable<unknown>;
 }
 
 /**
@@ -131,8 +131,8 @@ function servingTransport(
         updateVisibility: () => create(AgentSchema, VALID_AGENT),
         delete: () => create(AgentSchema, VALID_AGENT),
       });
-      router.service(RunQueryController, {
-        subscribe: () => (handlers.subscribe?.() ?? emptyStream()) as never,
+      router.service(SessionQueryController, {
+        streamEvents: () => (handlers.streamEvents?.() ?? emptyStream()) as never,
       });
       router.service(Health, {
         check: () => ({ status: ServingStatus.SERVING }),
@@ -163,8 +163,10 @@ function servingTransport(
 
 async function* emptyStream(): AsyncIterable<unknown> {}
 
-function execution(id: string) {
-  return create(RunSchema, { metadata: { id } });
+function frame(id: string) {
+  return create(StreamSessionEventsResponseSchema, {
+    frame: { case: "event", value: { event: { case: "agentMessage", value: { id } } } },
+  });
 }
 
 describe("the request-metrics interceptor on the serving chain", () => {
@@ -336,11 +338,11 @@ describe("the request-metrics interceptor on the serving chain", () => {
     try {
       const transport = servingTransport(
         {
-          subscribe: async function* () {
+          streamEvents: async function* () {
             clock.advance(5);
-            yield execution("e1");
+            yield frame("e1");
             clock.advance(40);
-            yield execution("e2");
+            yield frame("e2");
             clock.advance(55);
           },
         },
@@ -349,10 +351,10 @@ describe("the request-metrics interceptor on the serving chain", () => {
 
       const seen: string[] = [];
       for await (const message of createClient(
-        RunQueryController,
+        SessionQueryController,
         transport,
-      ).subscribe({ value: "exec-1" })) {
-        seen.push(message.metadata?.id ?? "");
+      ).streamEvents({ sessionId: "ses-1" })) {
+        seen.push(message.frame.case === "event" ? (message.frame.value.event.value?.id ?? "") : "");
       }
       expect(seen).toEqual(["e1", "e2"]);
 
@@ -362,8 +364,8 @@ describe("the request-metrics interceptor on the serving chain", () => {
       );
       expect(requestPoints(collected)).toHaveLength(1);
       expect(requestPoints(collected)[0]!.attributes).toEqual({
-        "rpc.service": EXECUTION_SERVICE,
-        "rpc.method": "subscribe",
+        "rpc.service": STREAM_SERVICE,
+        "rpc.method": "streamEvents",
         "rpc.grpc.status_code": "OK",
       });
       expect(sumOf(durationPoints(collected)[0]!)).toBe(100);
@@ -377,8 +379,8 @@ describe("the request-metrics interceptor on the serving chain", () => {
     try {
       const transport = servingTransport(
         {
-          subscribe: async function* () {
-            yield execution("e1");
+          streamEvents: async function* () {
+            yield frame("e1");
             throw new ConnectError("engine went away", Code.Unavailable);
           },
         },
@@ -388,9 +390,9 @@ describe("the request-metrics interceptor on the serving chain", () => {
       const failure = await (async () => {
         try {
           for await (const _ of createClient(
-            RunQueryController,
+            SessionQueryController,
             transport,
-          ).subscribe({ value: "exec-1" })) {
+          ).streamEvents({ sessionId: "ses-1" })) {
             // drain
           }
           return null;
@@ -406,7 +408,7 @@ describe("the request-metrics interceptor on the serving chain", () => {
       );
       expect(requestPoints(collected)).toHaveLength(1);
       expect(requestPoints(collected)[0]!.attributes).toMatchObject({
-        "rpc.method": "subscribe",
+        "rpc.method": "streamEvents",
         "rpc.grpc.status_code": "UNAVAILABLE",
       });
     } finally {
@@ -432,8 +434,8 @@ describe("the request-metrics interceptor on the serving chain", () => {
           })(),
         }) as never;
       const request = {
-        service: { typeName: EXECUTION_SERVICE },
-        method: { name: "subscribe" },
+        service: { typeName: STREAM_SERVICE },
+        method: { name: "streamEvents" },
       } as never;
 
       const response = (await interceptor(next)(request)) as {

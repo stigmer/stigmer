@@ -4,7 +4,6 @@ package gen
 
 import (
 	"context"
-	"io"
 	"iter"
 	"time"
 
@@ -55,21 +54,6 @@ func (r *RunClient) UpdateStatus(ctx context.Context, input *runv1.RunUpdateStat
 
 func (r *RunClient) Delete(ctx context.Context, id string) (*runv1.Run, error) {
 	resp, err := r.command.Delete(ctx, &apiresource.ApiResourceId{Value: id})
-	return resp, wrapErr(err)
-}
-
-func (r *RunClient) SubmitApproval(ctx context.Context, input *runv1.SubmitApprovalInput) (*runv1.Run, error) {
-	resp, err := r.command.SubmitApproval(ctx, input)
-	return resp, wrapErr(err)
-}
-
-func (r *RunClient) SubmitFileDecision(ctx context.Context, input *runv1.SubmitFileDecisionInput) (*runv1.Run, error) {
-	resp, err := r.command.SubmitFileDecision(ctx, input)
-	return resp, wrapErr(err)
-}
-
-func (r *RunClient) Cancel(ctx context.Context, input *runv1.CancelRunInput) (*runv1.Run, error) {
-	resp, err := r.command.Cancel(ctx, input)
 	return resp, wrapErr(err)
 }
 
@@ -169,30 +153,6 @@ func (r *RunClient) ListBySessionAll(ctx context.Context, input *runv1.ListRunsB
 			req.PageToken = page.GetNextPageToken()
 		}
 	}
-}
-
-// RunSubscribeStream wraps the server stream for Subscribe.
-type RunSubscribeStream struct {
-	stream runv1.RunQueryController_SubscribeClient
-}
-
-func (s *RunSubscribeStream) Recv() (*runv1.Run, error) {
-	msg, err := s.stream.Recv()
-	if err != nil {
-		if err == io.EOF {
-			return nil, io.EOF
-		}
-		return nil, wrapErr(err)
-	}
-	return msg, nil
-}
-
-func (r *RunClient) Subscribe(ctx context.Context, id string) (*RunSubscribeStream, error) {
-	stream, err := r.query.Subscribe(ctx, &runv1.RunId{Value: id})
-	if err != nil {
-		return nil, wrapErr(err)
-	}
-	return &RunSubscribeStream{stream: stream}, nil
 }
 
 func (r *RunClient) GetArtifactDownloadUrl(ctx context.Context, input *runv1.GetArtifactDownloadUrlRequest) (*runv1.GetArtifactDownloadUrlResponse, error) {

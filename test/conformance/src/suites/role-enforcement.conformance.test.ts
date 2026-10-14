@@ -67,7 +67,7 @@
 //     lane.
 //   - The organization: `find` is UNIMPLEMENTED on every enforcing lane (the
 //     cloud leaves it unrouted; the built-in directory refuses enumeration);
-//     `findMyOrganizations` is the caller's organizations — a member of one
+//     `listMine` is the caller's organizations — a member of one
 //     of two sees one; `checkMyPermission(can_edit, organization)` is false
 //     for a member and true for an admin (the console's gates read exactly
 //     this).
@@ -585,7 +585,7 @@ const PERSONAL_KINDS: ReadonlyArray<PersonalKind> = [
     },
     get: (using, id) => using.vaultQuery.get({ value: id }),
     listIds: async (using, org) =>
-      (await using.vaultQuery.list({ org })).items.map(
+      (await using.vaultQuery.list({ org })).entries.map(
         (v) => v.metadata?.id ?? "",
       ),
     delete: (using, id) => using.vaultCommand.delete({ resourceId: id }),
@@ -603,7 +603,7 @@ const PERSONAL_KINDS: ReadonlyArray<PersonalKind> = [
     },
     get: (using, id) => using.apiKeyQuery.get({ value: id }),
     listIds: async (using) =>
-      (await using.apiKeyQuery.findAll({})).entries.map(
+      (await using.apiKeyQuery.list({})).entries.map(
         (k) => k.metadata?.id ?? "",
       ),
     delete: (using, id) => using.apiKeyCommand.delete({ value: id }),
@@ -698,7 +698,7 @@ const ADMINISTRATIVE_KINDS: ReadonlyArray<AdministrativeKind> = [
     },
     get: (using, id) => using.oauthAppQuery.get({ value: id }),
     listIds: async (using, org) =>
-      (await using.oauthAppQuery.listByOrg({ org })).entries.map(
+      (await using.oauthAppQuery.list({ org })).entries.map(
         (a) => a.metadata?.id ?? "",
       ),
     edit: (using, org, row) =>
@@ -717,7 +717,7 @@ const ADMINISTRATIVE_KINDS: ReadonlyArray<AdministrativeKind> = [
     },
     get: (using, id) => using.platformClientQuery.get({ value: id }),
     listIds: async (using, org) =>
-      (await using.platformClientQuery.listByOrg({ org })).entries.map(
+      (await using.platformClientQuery.list({ org })).entries.map(
         (c) => c.metadata?.id ?? "",
       ),
     edit: (using, _org, row) =>
@@ -736,7 +736,7 @@ const ADMINISTRATIVE_KINDS: ReadonlyArray<AdministrativeKind> = [
     },
     get: (using, id) => using.channelAppQuery.get({ value: id }),
     listIds: async (using, org) =>
-      (await using.channelAppQuery.listByOrg({ org })).entries.map(
+      (await using.channelAppQuery.list({ org })).entries.map(
         (a) => a.metadata?.id ?? "",
       ),
     edit: (using, org, row) =>
@@ -1005,23 +1005,8 @@ describe("role enforcement — leaving the organization: what a person made is t
   });
 });
 
-describe("role enforcement — the organization: enumeration, membership, the console's gate", () => {
-  it("[rpc:OrganizationQueryController.find] find is UNIMPLEMENTED on every enforcing lane — no role enumerates organizations", async (ctx) => {
-    const lane = laneOrSkip(ctx);
-    // `org` is required by protovalidate and ignored by find (organizations
-    // are the top-level scope) — the organization suite's placeholder.
-    await expectGrpcCode(
-      () =>
-        lane.clients.organizationQuery.find({
-          org: "conformance",
-          pageSize: 10,
-        }),
-      Code.Unimplemented,
-      "find on an enforcing lane",
-    );
-  });
-
-  it("[rpc:OrganizationQueryController.findMyOrganizations] findMyOrganizations is the caller's organizations: a member of one of two sees one", async (ctx) => {
+describe("role enforcement — the organization: membership, the console's gate", () => {
+  it("[rpc:OrganizationQueryController.listMine] listMine is the caller's organizations: a member of one of two sees one", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const first = await lane.provisionTenancy();
     fixtures.defer(() => lane.cleanupTenancy(first).catch(() => undefined));
@@ -1032,13 +1017,13 @@ describe("role enforcement — the organization: enumeration, membership, the co
     fixtures.defer(() => lane.cleanupTenancy(second).catch(() => undefined));
 
     const theirs = (
-      await member.organizationQuery.findMyOrganizations({})
+      await member.organizationQuery.listMine({})
     ).entries.map((o) => o.metadata?.id ?? "");
     expect(theirs, "the member's organizations").toContain(first.org);
     expect(theirs, "the member's organizations").not.toContain(second.org);
 
     const founders = (
-      await lane.clients.organizationQuery.findMyOrganizations({})
+      await lane.clients.organizationQuery.listMine({})
     ).entries.map((o) => o.metadata?.id ?? "");
     expect(founders, "the founder's organizations").toEqual(
       expect.arrayContaining([first.org, second.org]),

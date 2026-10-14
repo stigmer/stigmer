@@ -10,9 +10,12 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { create } from "@bufbuild/protobuf";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { ListMyOrganizationsInputSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetchCache } from "../internal/FetchCacheProvider.js";
+import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
 
 /** Value exposed by {@link OrgProvider} via {@link useOrg}. */
 export interface OrgContextValue {
@@ -88,7 +91,7 @@ export function findOrgByRef(
  * Provides organization context to the component tree.
  *
  * Fetches the authenticated user's organizations via
- * `stigmer.organization.findMyOrganizations()`, manages the active
+ * `stigmer.organization.listMine()` (every page), manages the active
  * organization selection, and persists the choice to `localStorage`
  * under the key `stigmer:activeOrg` by the organization's id.
  *
@@ -127,8 +130,13 @@ export function OrgProvider({ children }: { children: ReactNode }) {
       setError(null);
 
       try {
-        const response = await stigmer.organization.findMyOrganizations();
-        const entries = response.entries;
+        // The switcher offers every organization the caller is in, so the
+        // provider walks every page of the list.
+        const entries = await readEveryPage((pageToken) =>
+          stigmer.organization.listMine(
+            create(ListMyOrganizationsInputSchema, { pageSize: LIST_PAGE_MAX, pageToken }),
+          ),
+        );
 
         if (fetchId !== fetchIdRef.current) return;
 

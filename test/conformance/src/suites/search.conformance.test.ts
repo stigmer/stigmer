@@ -74,9 +74,9 @@ describe("Search conformance — list mode (empty query)", () => {
     const ids = response.entries.map((e) => e.id);
     expect(ids).toContain(first.metadata?.id);
     expect(ids).toContain(second.metadata?.id);
-    expect(response.totalCount).toBe(2);
+    expect(response.entries).toHaveLength(2);
     expect(response.countsByKind).toEqual({ agent: 2 });
-    expect(response.totalPages).toBe(1);
+    expect(response.nextPageToken).toBe("");
 
     for (const entry of response.entries) {
       // List mode pins score to exactly 1.0 — relevance is meaningless
@@ -125,7 +125,7 @@ describe("Search conformance — search mode (text query)", () => {
     // presentation difference (the multi-tenant edition enumerates every
     // kind at 0; local omits them), while the non-zero membership is the
     // shared contract.
-    expect(response.totalCount).toBe(2);
+    expect(response.entries).toHaveLength(2);
     const nonZeroCounts = Object.fromEntries(
       Object.entries(response.countsByKind).filter(([, count]) => count > 0),
     );
@@ -150,7 +150,7 @@ describe("Search conformance — search mode (text query)", () => {
     });
 
     expect(response.entries).toHaveLength(0);
-    expect(response.totalCount).toBe(0);
+    expect(response.nextPageToken).toBe("");
   });
 });
 
@@ -181,8 +181,8 @@ describe("Search conformance — org scoping", () => {
   });
 });
 
-describe("Search conformance — pagination clamping", () => {
-  it("[rpc:SearchService.search] pages by size with totals, clamping oversize and zero values instead of erroring", async () => {
+describe("Search conformance — pagination", () => {
+  it("[rpc:SearchService.search] pages by token in relevance order, clamping an oversize page instead of erroring", async () => {
     const { org } = await target.provisionTenancy();
     const token = uniqueToken();
     for (let i = 0; i < 3; i++) {
@@ -193,33 +193,50 @@ describe("Search conformance — pagination clamping", () => {
       kinds: [ApiResourceKind.agent],
       org,
       query: token,
-      page: { num: 1, size: 2 },
+      pageSize: 2,
     });
     expect(firstPage.entries).toHaveLength(2);
-    expect(firstPage.totalCount).toBe(3);
-    expect(firstPage.totalPages).toBe(2);
+    expect(firstPage.countsByKind).toEqual({ agent: 3 });
+    expect(firstPage.nextPageToken, "a partial page carries a token").not.toBe("");
 
     const secondPage = await clients.search.search({
       kinds: [ApiResourceKind.agent],
       org,
       query: token,
-      page: { num: 2, size: 2 },
+      pageSize: 2,
+      pageToken: firstPage.nextPageToken,
     });
     expect(secondPage.entries).toHaveLength(1);
+    expect(secondPage.nextPageToken, "the last page carries none").toBe("");
     // The two pages partition the result set.
     const seen = new Set([...firstPage.entries, ...secondPage.entries].map((e) => e.id));
     expect(seen.size).toBe(3);
 
-    // Clamping, not refusal: size above the 100 cap and num 0 both
-    // normalize (size→100, num→1) — the request still succeeds.
+    // A token is bound to its query: the same token on another query is
+    // refused, never read as a position in a different result set.
+    await expectGrpcCode(
+      () =>
+        clients.search.search({
+          kinds: [ApiResourceKind.agent],
+          org,
+          query: `${token}-other`,
+          pageSize: 2,
+          pageToken: firstPage.nextPageToken,
+        }),
+      Code.InvalidArgument,
+      "a token reused on another query",
+    );
+
+    // Clamping, not refusal: a size above the 100 maximum reads as 100 and
+    // the request still succeeds.
     const clamped = await clients.search.search({
       kinds: [ApiResourceKind.agent],
       org,
       query: token,
-      page: { num: 0, size: 1000 },
+      pageSize: 1000,
     });
     expect(clamped.entries).toHaveLength(3);
-    expect(clamped.totalPages).toBe(1);
+    expect(clamped.nextPageToken).toBe("");
   });
 });
 

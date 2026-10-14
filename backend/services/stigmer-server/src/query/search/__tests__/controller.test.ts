@@ -5,8 +5,9 @@
  * sanitizes to the static Internal copy (#478) — including the
  * deliberately-quirky Go arm where a store error containing "invalid"
  * answers InvalidArgument with its raw text — and the rank token: a walk
- * reads every match once, and a token from another query or none at all
- * is the codec's InvalidArgument, passed through unwrapped. Driven through
+ * reads every match once, and a token from another query, a list's row
+ * token with no rank, or none at all is the codec's InvalidArgument,
+ * passed through unwrapped. Driven through
  * createRouterTransport so the mapping is proven at the ConnectRPC
  * boundary, not by calling private functions.
  */
@@ -25,6 +26,10 @@ import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 
 import { createLogger } from "../../../boot/logger.js";
 import { createVerifierChainInterceptor } from "../../../pipeline/interceptors/auth.js";
+import {
+  encodeListPageToken,
+  listPageFingerprint,
+} from "../../../pipeline/steps/list-page.js";
 import {
   tempStore,
   type TempStore,
@@ -168,6 +173,20 @@ describe("search pages by a rank token", () => {
       ),
     );
     expect([garbage.code, garbage.rawMessage]).toEqual([
+      Code.InvalidArgument,
+      "invalid page_token",
+    ]);
+    // A list's row token for the same request carries no rank position.
+    const rowToken = encodeListPageToken(
+      { createdAt: "", id: "r1" },
+      listPageFingerprint({ kinds: [], query: "x", org: "" }),
+    );
+    const notSearch = await grpcError(
+      client.search(
+        create(SearchRequestSchema, { query: "x", pageToken: rowToken }),
+      ),
+    );
+    expect([notSearch.code, notSearch.rawMessage]).toEqual([
       Code.InvalidArgument,
       "invalid page_token",
     ]);

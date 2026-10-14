@@ -27,7 +27,7 @@
 //     rules make every later arrival a MEMBER of every
 //     organization that already exists. `provisionIdentity` therefore
 //     revokes the newcomer on every organization the founder can see
-//     (`findMyOrganizations` as the founder, then `revokeOrgAccess`), and
+//     (`listMine` as the founder, then `revokeOrgAccess`), and
 //     `provisionMember(t)` spares `t` — so "no grant" and "exactly member"
 //     are literally true on both lanes, and the arms that create an
 //     organization outside `provisionTenancy` (they exist) still meet a
@@ -285,7 +285,7 @@ export async function newSiblingEnforcingLane(
   const founder = await newPerson("lane-founder");
 
   async function founderOrganizationIds(): Promise<ReadonlyArray<string>> {
-    const mine = await founder.clients.organizationQuery.findMyOrganizations(
+    const mine = await founder.clients.organizationQuery.listMine(
       {},
     );
     return mine.entries.map((entry) => entry.metadata?.id ?? "");

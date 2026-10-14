@@ -34,7 +34,7 @@ function useCreateInvitation(): UseCreateInvitationReturn
 <TypeTable
   type={{
     clearError: { type: "() => void", description: "Reset `error` to `null`." },
-    create: { type: "(input: InvitationInput) => Promise<Invitation>", description: "Create an invitation link for an organization.  Resolves with the server-created Invitation including the generated token in `status.token`. Callers must capture this token to construct the invite URL — it is always available via `get` and `listByOrg`, but surfacing it immediately after creation is the expected UX flow." },
+    create: { type: "(input: InvitationInput) => Promise<Invitation>", description: "Create an invitation link for an organization.  Resolves with the server-created Invitation including the generated token in `status.token`. Callers must capture this token to construct the invite URL — it is always available via `get` and `list`, but surfacing it immediately after creation is the expected UX flow." },
     error: { type: "Error | null", description: "Error from the last failed create, or `null` when healthy." },
     isCreating: { type: "boolean", description: "`true` while the create request is in flight." },
   }}
@@ -116,7 +116,7 @@ return <p>Join {preview.orgName} as {preview.role}</p>;
 ### useOrgInvitations
 
 Data hook that pages an organization's `Invitation` entries
-through `InvitationQueryController.listByOrg`, newest first.
+through `InvitationQueryController.list`, newest first.
 
 Pass `null` to skip fetching (stable no-op). When the `org` changes,
 the list starts again from its first page. Call `refetch()` after a

@@ -1,12 +1,12 @@
 /**
- * Test seed for an agent execution parked on file review: the status block
- * a runner leaves behind when it offers one captured change set — the
- * BASELINE and CANDIDATE events on the file-review ledger, one complete
- * MODIFY change with real digests, the execution WAITING_FOR_APPROVAL —
- * so a submitFileDecision against it passes the completeness and digest
- * gates. Shared by every suite that decides on a seeded change set (the
- * agentexecution wire suite, the store-fault and autokeep suites) so the
- * ledger shape lives once.
+ * Test seed for a run that captured file changes: the status a runner
+ * leaves behind when its turn captured one change set — the set on the
+ * run's file record (RunStatus.file_changes) with its candidate captured,
+ * one complete MODIFY change with real digests, the run
+ * WAITING_FOR_APPROVAL — so a decision against it passes the completeness
+ * and digest gates. Shared by every suite that decides on a seeded change
+ * set (the run wire suite, the store-fault and autokeep suites) so the
+ * record's shape lives once.
  */
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
@@ -16,18 +16,24 @@ import {
   DiffCompleteness,
   RunPhase,
   FileChangeKind,
-  FileReviewEventType,
+  SnapshotKind,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { CapturedFileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import {
+  CapturedFileChangeSchema,
+  FileChangeSetSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import type {
+  CapturedFileChange,
+  FileChangeSet,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 
 import { aggregateDigest, fileDigest } from "../filereview/digest.js";
 
 export interface FileReviewSeed {
-  /** The execution status to seed: parked, with the change set captured. */
+  /** The run status to seed: parked, with the change set captured on its record. */
   readonly status: MessageInitShape<typeof RunStatusSchema>;
   readonly change: CapturedFileChange;
-  /** The change set's aggregate digest — a CHANGE_SET decision's expected_digest. */
+  /** The change set's aggregate digest — a change-set decision's expected_digest. */
   readonly aggregate: string;
 }
 
@@ -46,8 +52,34 @@ export function reviewableChange(): CapturedFileChange {
   return change;
 }
 
+/**
+ * A change set as the runner records it: its baseline and, when
+ * `captured`, its candidate (the workspace at the turn's end), with
+ * `changes` and their aggregate digest.
+ */
+export function capturedSet(
+  changeSetId: string,
+  changes: ReadonlyArray<CapturedFileChange> = [reviewableChange()],
+  captured = true,
+): FileChangeSet {
+  return create(FileChangeSetSchema, {
+    id: changeSetId,
+    turnId: "turn-1",
+    harnessId: "harness-1",
+    baselineSnapshot: { kind: SnapshotKind.GIT_TREE_REF, git: { treeOid: "base", ref: "refs/stigmer/baseline" } },
+    ...(captured
+      ? {
+          candidateSnapshot: { kind: SnapshotKind.GIT_TREE_REF, git: { treeOid: "after", ref: "refs/stigmer/candidate" } },
+          changes: [...changes],
+          aggregateDigest: aggregateDigest([...changes]),
+          diffCompleteness: DiffCompleteness.COMPLETE,
+        }
+      : {}),
+  });
+}
+
 export function fileReviewSeed(
-  executionId: string,
+  _runId: string,
   changeSetId: string,
 ): FileReviewSeed {
   const change = reviewableChange();
@@ -55,35 +87,7 @@ export function fileReviewSeed(
   return {
     status: {
       phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
-      fileReviewEventStream: {
-        runId: executionId,
-        events: [
-          {
-            eventId: `${changeSetId}:${changeSetId}:BASELINE`,
-            changeSetId,
-            eventType: FileReviewEventType.BASELINE_CAPTURED,
-            actor: "runner",
-            payload: {
-              case: "baselineCaptured",
-              value: { turnId: "turn-1", harnessId: "harness-1" },
-            },
-          },
-          {
-            eventId: `${changeSetId}:${changeSetId}:CANDIDATE`,
-            changeSetId,
-            eventType: FileReviewEventType.CANDIDATE_CAPTURED,
-            actor: "runner",
-            payload: {
-              case: "candidateCaptured",
-              value: {
-                changes: [change],
-                aggregateDigest: aggregate,
-                diffCompleteness: DiffCompleteness.COMPLETE,
-              },
-            },
-          },
-        ],
-      },
+      fileChanges: [capturedSet(changeSetId, [change])],
     },
     change,
     aggregate,

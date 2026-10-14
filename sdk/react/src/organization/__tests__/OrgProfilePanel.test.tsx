@@ -140,7 +140,7 @@ describe("OrgProfilePanel federation-issuer summary", () => {
     }));
     const client = {
       organization: { get: vi.fn(async () => ORG), update: vi.fn(async () => ORG) },
-      federationIssuer: { listByOrg: vi.fn(async () => ({ entries: providers })) },
+      federationIssuer: { list: vi.fn(async () => ({ entries: providers, nextPageToken: "" })) },
       iamPolicy: { checkMyPermission },
       platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
     };
@@ -313,16 +313,16 @@ describe("OrgProfilePanel rename", () => {
     function renderInProvider(panelOrg: string, panel?: "section") {
       // The person's organizations before the rename, then after it: the
       // renamed one by its new slug.
-      const findMyOrganizations = vi
+      const listMine = vi
         .fn()
-        .mockResolvedValueOnce({ entries: [ORG, GLOBEX] })
-        .mockResolvedValue({ entries: panelOrg === ACME_ID ? [RENAMED, GLOBEX] : [ORG, GLOBEX_RENAMED] });
+        .mockResolvedValueOnce({ entries: [ORG, GLOBEX], nextPageToken: "" })
+        .mockResolvedValue({ entries: panelOrg === ACME_ID ? [RENAMED, GLOBEX] : [ORG, GLOBEX_RENAMED], nextPageToken: "" });
       const client = {
         organization: {
           get: vi.fn(async () => (panelOrg === ACME_ID ? ORG : GLOBEX)),
           update: vi.fn(async () => ORG),
           rename: vi.fn(async () => (panelOrg === ACME_ID ? RENAMED : GLOBEX_RENAMED)),
-          findMyOrganizations,
+          listMine,
           // The section's child-organization list: an organization with none.
           listChildOrgs: vi.fn(async () => ({ entries: [], nextPageToken: "" })),
         },
@@ -339,7 +339,7 @@ describe("OrgProfilePanel rename", () => {
           </DeploymentModeContext.Provider>
         </StigmerContext.Provider>,
       );
-      return { findMyOrganizations };
+      return { listMine };
     }
 
     async function renameTo(slug: string, from: string) {
@@ -350,26 +350,26 @@ describe("OrgProfilePanel rename", () => {
     }
 
     it("refreshes the provider's organizations, so the switcher's slug follows the rename", async () => {
-      const { findMyOrganizations } = renderInProvider(ACME_ID);
+      const { listMine } = renderInProvider(ACME_ID);
       await waitFor(() => expect(screen.getByTestId("provider").textContent).toBe("acme:acme,globex"));
 
       await renameTo("acme-labs", "acme");
 
-      await waitFor(() => expect(findMyOrganizations).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(listMine).toHaveBeenCalledTimes(2));
       await waitFor(() =>
         expect(screen.getByTestId("provider").textContent).toBe("acme-labs:acme-labs,globex"),
       );
     });
 
     it("keeps the active organization selected when it renames another, and lists that one by its new slug", async () => {
-      const { findMyOrganizations } = renderInProvider(GLOBEX_ID);
+      const { listMine } = renderInProvider(GLOBEX_ID);
       await waitFor(() => expect(screen.getByTestId("provider").textContent).toBe("acme:acme,globex"));
       // Another tab remembers Globex; this one keeps Acme, by naming it.
       localStorage.setItem("stigmer:activeOrg", GLOBEX_ID);
 
       await renameTo("globex-labs", "globex");
 
-      await waitFor(() => expect(findMyOrganizations).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(listMine).toHaveBeenCalledTimes(2));
       await waitFor(() =>
         expect(screen.getByTestId("provider").textContent).toBe("acme:acme,globex-labs"),
       );
@@ -377,7 +377,7 @@ describe("OrgProfilePanel rename", () => {
     });
 
     it("refreshes the provider once when the settings section hosts the panel", async () => {
-      const { findMyOrganizations } = renderInProvider(ACME_ID, "section");
+      const { listMine } = renderInProvider(ACME_ID, "section");
       await waitFor(() => expect(screen.getByTestId("provider").textContent).toBe("acme:acme,globex"));
 
       await renameTo("acme-labs", "acme");
@@ -386,20 +386,20 @@ describe("OrgProfilePanel rename", () => {
         expect(screen.getByTestId("provider").textContent).toBe("acme-labs:acme-labs,globex"),
       );
       await new Promise((resolve) => setTimeout(resolve, 0));
-      expect(findMyOrganizations).toHaveBeenCalledTimes(2);
+      expect(listMine).toHaveBeenCalledTimes(2);
     });
 
     it("refreshes the provider once after a profile save", async () => {
-      const { findMyOrganizations } = renderInProvider(ACME_ID, "section");
+      const { listMine } = renderInProvider(ACME_ID, "section");
       const name = await screen.findByLabelText("Name");
       await waitFor(() => expect(name).toHaveProperty("value", "Acme Corp"));
 
       fireEvent.change(name, { target: { value: "Acme Corporation" } });
       fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
-      await waitFor(() => expect(findMyOrganizations).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(listMine).toHaveBeenCalledTimes(2));
       await new Promise((resolve) => setTimeout(resolve, 0));
-      expect(findMyOrganizations).toHaveBeenCalledTimes(2);
+      expect(listMine).toHaveBeenCalledTimes(2);
     });
   });
 

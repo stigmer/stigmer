@@ -39,15 +39,8 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
 import {
-  RunStatusSchema,
-  type RunStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  ApprovalAction,
   RunPhase,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -61,6 +54,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import {
@@ -76,14 +72,13 @@ import {
   GATE_TURN1_GOLDEN,
   executeApprovalMessage,
 } from "../../__test-utils__/hitl-script.js";
+import { ApprovalAction, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { toolUseEventId } from "../../../../harness/events/ids.js";
 
 const USER_MESSAGE = "Run the command for me.";
 const DECIDED_A_AT = "2026-01-01T00:00:30.000Z";
 const DECIDED_B_AT = "2026-01-01T00:01:00.000Z";
 
-function statusJson(status: RunStatus): string {
-  return JSON.stringify(toJson(RunStatusSchema, status), null, 2) + "\n";
-}
 
 describe("ExecuteDeepAgent hermetic — two sequential gates (sqlite)", () => {
   let env: HermeticEnvironment;
@@ -124,7 +119,9 @@ describe("ExecuteDeepAgent hermetic — two sequential gates (sqlite)", () => {
     expect(turn1.outcome.kind).toBe("returned");
     expect(record.waitingToolCalls().map((tc) => tc.id)).toEqual([EXECUTE_CALL_A.id]);
     const atGateA = record.lastFullStatus!;
-    await expect(statusJson(atGateA), "the same opening as every gated arm").toMatchFileSnapshot(GATE_TURN1_GOLDEN);
+    const atGateARows = record.rowsOf(atGateA);
+    await expect(statusGolden(atGateA), "the same opening as every gated arm").toMatchFileSnapshot(GATE_TURN1_GOLDEN);
+    await expect(rowsGolden(record.rowsOf(atGateA)), "the same opening as every gated arm").toMatchFileSnapshot(rowsGoldenPath(GATE_TURN1_GOLDEN));
     await expect(record.eventsGolden()).toMatchFileSnapshot(GATE_TURN1_GOLDEN.replace(".status.json", ".events.json"));
     expect(record.decideWaitingToolCalls(ApprovalAction.APPROVE, DECIDED_A_AT)).toBe(1);
 
@@ -133,7 +130,8 @@ describe("ExecuteDeepAgent hermetic — two sequential gates (sqlite)", () => {
     expect(turn2.outcome.kind).toBe("returned");
     expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_WAITING_FOR_APPROVAL");
     const atGateB = record.lastFullStatus!;
-    const rowsAtB = atGateB.messages.flatMap((m) => m.toolCalls);
+    const atGateBRows = record.rowsOf(atGateB);
+    const rowsAtB = atGateBRows.messages.flatMap((m) => m.toolCalls);
     expect(rowsAtB.map((tc) => [tc.id, tc.status]), "A committed and kept, B waiting").toEqual([
       [EXECUTE_CALL_A.id, ToolCallStatus.TOOL_CALL_COMPLETED],
       [EXECUTE_CALL_B.id, ToolCallStatus.TOOL_CALL_WAITING_APPROVAL],
@@ -142,11 +140,12 @@ describe("ExecuteDeepAgent hermetic — two sequential gates (sqlite)", () => {
     expect(rowsAtB[0].approvalAction).toBe(ApprovalAction.APPROVE);
     expect(rowsAtB[1].approvalMessage).toBe(executeApprovalMessage(EXECUTE_CALL_B));
     expect(record.waitingToolCalls().map((tc) => tc.id), "exactly one pending approval").toEqual([EXECUTE_CALL_B.id]);
-    // The gate-B transcript is a superset of the gate-A one: every id, every message, in order.
-    const gateAIds = atGateA.messages.flatMap((m) => m.toolCalls).map((tc) => tc.id);
+    // Turn 2's rows lead with the ask it resumed onto (gate A's row), then its own.
+    const gateAIds = atGateARows.messages.flatMap((m) => m.toolCalls).map((tc) => tc.id);
     expect(rowsAtB.map((tc) => tc.id).slice(0, gateAIds.length)).toEqual(gateAIds);
-    expect(atGateB.messages.length).toBeGreaterThanOrEqual(atGateA.messages.length);
-    await expect(statusJson(atGateB)).toMatchFileSnapshot("./goldens/sequential-gates.turn2.status.json");
+    expect(atGateBRows.messages.length).toBeGreaterThanOrEqual(atGateARows.messages.length);
+    await expect(statusGolden(atGateB)).toMatchFileSnapshot("./goldens/sequential-gates.turn2.status.json");
+    await expect(rowsGolden(record.rowsOf(atGateB))).toMatchFileSnapshot(rowsGoldenPath("./goldens/sequential-gates.turn2.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/sequential-gates.turn2.events.json");
     expect(record.decideWaitingToolCalls(ApprovalAction.APPROVE, DECIDED_B_AT)).toBe(1);
 
@@ -156,18 +155,26 @@ describe("ExecuteDeepAgent hermetic — two sequential gates (sqlite)", () => {
     expect((turn3.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
     expect(record.persistedPhases.filter((p) => p === RunPhase.RUN_WAITING_FOR_APPROVAL)).toHaveLength(2);
     const final = record.lastFullStatus!;
-    const rows = final.messages.flatMap((m) => m.toolCalls);
-    expect(rows.map((tc) => [tc.id, tc.status, tc.approvalAction, tc.approvalDecidedAt])).toEqual([
-      [EXECUTE_CALL_A.id, ToolCallStatus.TOOL_CALL_COMPLETED, ApprovalAction.APPROVE, DECIDED_A_AT],
-      [EXECUTE_CALL_B.id, ToolCallStatus.TOOL_CALL_COMPLETED, ApprovalAction.APPROVE, DECIDED_B_AT],
+    const finalRows = record.rowsOf(final);
+    const rows = finalRows.messages.flatMap((m) => m.toolCalls);
+    // Turn 3 resumed onto gate B alone: gate A's call finished in turn 2,
+    // so it is the log's, its result written once.
+    expect(rows.map((tc) => [tc.id, tc.status, tc.approvalAction])).toEqual([
+      [EXECUTE_CALL_B.id, ToolCallStatus.TOOL_CALL_COMPLETED, ApprovalAction.APPROVE],
     ]);
-    expect(rows[1].result).toContain("hermetic-b");
+    expect(rows[0].result).toContain("hermetic-b");
+    const aUse = toolUseEventId(record.executionId, EXECUTE_CALL_A.id);
+    expect(
+      record.sessionEvents.filter((e) => e.event.case === "agentToolResult" && e.event.value.toolUseId === aUse),
+      "gate A's result is in the log once",
+    ).toHaveLength(1);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    await expect(statusJson(final)).toMatchFileSnapshot("./goldens/sequential-gates.turn3.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/sequential-gates.turn3.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/sequential-gates.turn3.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/sequential-gates.turn3.events.json");
   });
 });

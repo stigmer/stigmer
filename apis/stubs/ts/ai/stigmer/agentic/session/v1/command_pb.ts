@@ -208,7 +208,7 @@ export const SessionCommandController: GenService<{
    *
    * Fails with FAILED_PRECONDITION while any run in the
    * session is still active (pending, in progress, waiting for approval,
-   * or paused); cancel it or wait for it to finish first.
+   * or paused); interrupt the session or wait for it to finish first.
    *
    * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.delete
    */

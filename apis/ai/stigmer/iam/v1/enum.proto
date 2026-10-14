@@ -291,6 +291,11 @@ enum IamPermission {
   // admins through it. A person's account has no organization link, so
   // nobody holds it over a person's keys.
   can_manage_keys = 55;
+
+  // Whether the caller may read an organization's access history: its
+  // owners and administrators, and a parent organization's administrators
+  // for a child.
+  can_view_access_history = 56;
 }
 
 // Display metadata for an IamRole value: the one place a role's name lives,

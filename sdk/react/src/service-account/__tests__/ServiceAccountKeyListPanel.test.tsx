@@ -1,6 +1,6 @@
 /**
  * Pins the service-account key list (`ServiceAccountKeyListPanel`): it
- * reads the keys of the account it is given (`findByAccount`), says so when
+ * reads the keys of the account it is given (`listByAccount`), says so when
  * the account has none, and hands the host a refetch that reads them again,
  * as the detail panel does after creating a key.
  *
@@ -20,9 +20,9 @@ const asked = vi.hoisted(() => ({ accounts: [] as string[] }));
 function wrapper({ children }: { children: ReactNode }) {
   const client = {
     apiKey: {
-      findByAccount: async (id: string) => {
+      listByAccount: async ({ accountId: id }: { accountId: string }) => {
         asked.accounts.push(id);
-        return create(ApiKeysSchema, { entries: [] });
+        return create(ApiKeysSchema, { entries: [], nextPageToken: "" });
       },
     },
   } as unknown as Stigmer;

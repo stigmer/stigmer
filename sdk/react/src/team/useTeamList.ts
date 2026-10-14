@@ -2,8 +2,9 @@
 
 /**
  * The organization's teams, for the Teams settings page and the share
- * picker. A team list is small (an organization names its teams by hand),
- * so it is one flat call with no pagination. Teams are an Enterprise and
+ * picker. The picker needs every team, and a team list is small (an
+ * organization names its teams by hand), so the hook walks every page of
+ * the list and answers the whole set. Teams are an Enterprise and
  * Cloud kind; callers gate on `useResourceAvailable(ApiResourceKind.team)`
  * and pass `null` where it is not served, which makes this a no-op rather
  * than a call the server answers UNIMPLEMENTED.
@@ -11,7 +12,8 @@
 import { useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
-import { ListTeamsByOrgInputSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/io_pb";
+import { ListTeamsInputSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/io_pb";
+import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 
@@ -49,9 +51,11 @@ export function useTeamList(org: string | null): UseTeamListReturn {
   const { data: teams, isLoading, isRefetching, error, refetch } = useFetch(
     org
       ? () =>
-          stigmer.team
-            .listByOrg(create(ListTeamsByOrgInputSchema, { org }))
-            .then((r) => [...r.entries])
+          readEveryPage((pageToken) =>
+            stigmer.team.list(
+              create(ListTeamsInputSchema, { org, pageSize: LIST_PAGE_MAX, pageToken }),
+            ),
+          )
       : null,
     [org, stigmer],
     NO_TEAMS,

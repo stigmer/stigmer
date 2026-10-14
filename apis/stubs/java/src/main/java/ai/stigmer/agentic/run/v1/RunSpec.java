@@ -506,8 +506,8 @@ private static final long serialVersionUID = 0L;
    * - Native harness: uses deepagents responseFormat/ToolStrategy
    * - Cursor harness: prompt instruction + extraction fallback
    *
-   * The validated structured data lands on the run's
-   * status.structured_output.
+   * The validated structured data is the turn's
+   * stigmer.agent.structured_output session event.
    * </pre>
    *
    * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -525,8 +525,8 @@ private static final long serialVersionUID = 0L;
    * - Native harness: uses deepagents responseFormat/ToolStrategy
    * - Cursor harness: prompt instruction + extraction fallback
    *
-   * The validated structured data lands on the run's
-   * status.structured_output.
+   * The validated structured data is the turn's
+   * stigmer.agent.structured_output session event.
    * </pre>
    *
    * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -544,8 +544,8 @@ private static final long serialVersionUID = 0L;
    * - Native harness: uses deepagents responseFormat/ToolStrategy
    * - Cursor harness: prompt instruction + extraction fallback
    *
-   * The validated structured data lands on the run's
-   * status.structured_output.
+   * The validated structured data is the turn's
+   * stigmer.agent.structured_output session event.
    * </pre>
    *
    * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -3234,8 +3234,8 @@ private static final long serialVersionUID = 0L;
      * - Native harness: uses deepagents responseFormat/ToolStrategy
      * - Cursor harness: prompt instruction + extraction fallback
      *
-     * The validated structured data lands on the run's
-     * status.structured_output.
+     * The validated structured data is the turn's
+     * stigmer.agent.structured_output session event.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -3252,8 +3252,8 @@ private static final long serialVersionUID = 0L;
      * - Native harness: uses deepagents responseFormat/ToolStrategy
      * - Cursor harness: prompt instruction + extraction fallback
      *
-     * The validated structured data lands on the run's
-     * status.structured_output.
+     * The validated structured data is the turn's
+     * stigmer.agent.structured_output session event.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -3274,8 +3274,8 @@ private static final long serialVersionUID = 0L;
      * - Native harness: uses deepagents responseFormat/ToolStrategy
      * - Cursor harness: prompt instruction + extraction fallback
      *
-     * The validated structured data lands on the run's
-     * status.structured_output.
+     * The validated structured data is the turn's
+     * stigmer.agent.structured_output session event.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -3301,8 +3301,8 @@ private static final long serialVersionUID = 0L;
      * - Native harness: uses deepagents responseFormat/ToolStrategy
      * - Cursor harness: prompt instruction + extraction fallback
      *
-     * The validated structured data lands on the run's
-     * status.structured_output.
+     * The validated structured data is the turn's
+     * stigmer.agent.structured_output session event.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -3326,8 +3326,8 @@ private static final long serialVersionUID = 0L;
      * - Native harness: uses deepagents responseFormat/ToolStrategy
      * - Cursor harness: prompt instruction + extraction fallback
      *
-     * The validated structured data lands on the run's
-     * status.structured_output.
+     * The validated structured data is the turn's
+     * stigmer.agent.structured_output session event.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -3358,8 +3358,8 @@ private static final long serialVersionUID = 0L;
      * - Native harness: uses deepagents responseFormat/ToolStrategy
      * - Cursor harness: prompt instruction + extraction fallback
      *
-     * The validated structured data lands on the run's
-     * status.structured_output.
+     * The validated structured data is the turn's
+     * stigmer.agent.structured_output session event.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -3382,8 +3382,8 @@ private static final long serialVersionUID = 0L;
      * - Native harness: uses deepagents responseFormat/ToolStrategy
      * - Cursor harness: prompt instruction + extraction fallback
      *
-     * The validated structured data lands on the run's
-     * status.structured_output.
+     * The validated structured data is the turn's
+     * stigmer.agent.structured_output session event.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -3401,8 +3401,8 @@ private static final long serialVersionUID = 0L;
      * - Native harness: uses deepagents responseFormat/ToolStrategy
      * - Cursor harness: prompt instruction + extraction fallback
      *
-     * The validated structured data lands on the run's
-     * status.structured_output.
+     * The validated structured data is the turn's
+     * stigmer.agent.structured_output session event.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -3423,8 +3423,8 @@ private static final long serialVersionUID = 0L;
      * - Native harness: uses deepagents responseFormat/ToolStrategy
      * - Cursor harness: prompt instruction + extraction fallback
      *
-     * The validated structured data lands on the run's
-     * status.structured_output.
+     * The validated structured data is the turn's
+     * stigmer.agent.structured_output session event.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>

@@ -129,7 +129,11 @@ export function LibraryLanding() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {RESOURCE_CARDS.map((card) => {
-          const { count, isLoading } = counts[card.key];
+          const cardCount = counts[card.key];
+          const { count, isLoading } = cardCount;
+          // Schedules have no search count: their card counts a first page
+          // and reads "100+" when more follow.
+          const countIsLowerBound = "isLowerBound" in cardCount && cardCount.isLowerBound;
 
           return (
             <ResourceCountCard
@@ -137,6 +141,7 @@ export function LibraryLanding() {
               icon={card.icon}
               label={card.label}
               count={count}
+              countIsLowerBound={countIsLowerBound}
               isLoading={isLoading}
               href={card.href}
               onClick={handleCardClick(card.href)}

@@ -140,99 +140,6 @@ public final class RunCommandControllerGrpc {
     return getDeleteMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.SubmitApprovalInput,
-      ai.stigmer.agentic.run.v1.Run> getSubmitApprovalMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "submitApproval",
-      requestType = ai.stigmer.agentic.run.v1.SubmitApprovalInput.class,
-      responseType = ai.stigmer.agentic.run.v1.Run.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.SubmitApprovalInput,
-      ai.stigmer.agentic.run.v1.Run> getSubmitApprovalMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.SubmitApprovalInput, ai.stigmer.agentic.run.v1.Run> getSubmitApprovalMethod;
-    if ((getSubmitApprovalMethod = RunCommandControllerGrpc.getSubmitApprovalMethod) == null) {
-      synchronized (RunCommandControllerGrpc.class) {
-        if ((getSubmitApprovalMethod = RunCommandControllerGrpc.getSubmitApprovalMethod) == null) {
-          RunCommandControllerGrpc.getSubmitApprovalMethod = getSubmitApprovalMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.run.v1.SubmitApprovalInput, ai.stigmer.agentic.run.v1.Run>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "submitApproval"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.run.v1.SubmitApprovalInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.run.v1.Run.getDefaultInstance()))
-              .setSchemaDescriptor(new RunCommandControllerMethodDescriptorSupplier("submitApproval"))
-              .build();
-        }
-      }
-    }
-    return getSubmitApprovalMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.SubmitFileDecisionInput,
-      ai.stigmer.agentic.run.v1.Run> getSubmitFileDecisionMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "submitFileDecision",
-      requestType = ai.stigmer.agentic.run.v1.SubmitFileDecisionInput.class,
-      responseType = ai.stigmer.agentic.run.v1.Run.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.SubmitFileDecisionInput,
-      ai.stigmer.agentic.run.v1.Run> getSubmitFileDecisionMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.SubmitFileDecisionInput, ai.stigmer.agentic.run.v1.Run> getSubmitFileDecisionMethod;
-    if ((getSubmitFileDecisionMethod = RunCommandControllerGrpc.getSubmitFileDecisionMethod) == null) {
-      synchronized (RunCommandControllerGrpc.class) {
-        if ((getSubmitFileDecisionMethod = RunCommandControllerGrpc.getSubmitFileDecisionMethod) == null) {
-          RunCommandControllerGrpc.getSubmitFileDecisionMethod = getSubmitFileDecisionMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.run.v1.SubmitFileDecisionInput, ai.stigmer.agentic.run.v1.Run>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "submitFileDecision"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.run.v1.SubmitFileDecisionInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.run.v1.Run.getDefaultInstance()))
-              .setSchemaDescriptor(new RunCommandControllerMethodDescriptorSupplier("submitFileDecision"))
-              .build();
-        }
-      }
-    }
-    return getSubmitFileDecisionMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.CancelRunInput,
-      ai.stigmer.agentic.run.v1.Run> getCancelMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "cancel",
-      requestType = ai.stigmer.agentic.run.v1.CancelRunInput.class,
-      responseType = ai.stigmer.agentic.run.v1.Run.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.CancelRunInput,
-      ai.stigmer.agentic.run.v1.Run> getCancelMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.CancelRunInput, ai.stigmer.agentic.run.v1.Run> getCancelMethod;
-    if ((getCancelMethod = RunCommandControllerGrpc.getCancelMethod) == null) {
-      synchronized (RunCommandControllerGrpc.class) {
-        if ((getCancelMethod = RunCommandControllerGrpc.getCancelMethod) == null) {
-          RunCommandControllerGrpc.getCancelMethod = getCancelMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.run.v1.CancelRunInput, ai.stigmer.agentic.run.v1.Run>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "cancel"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.run.v1.CancelRunInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.run.v1.Run.getDefaultInstance()))
-              .setSchemaDescriptor(new RunCommandControllerMethodDescriptorSupplier("cancel"))
-              .build();
-        }
-      }
-    }
-    return getCancelMethod;
-  }
-
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.TerminateRunInput,
       ai.stigmer.agentic.run.v1.Run> getTerminateMethod;
 
@@ -510,62 +417,9 @@ public final class RunCommandControllerGrpc {
 
     /**
      * <pre>
-     * Submit an approval decision for a pending tool call.
-     * ## Preconditions
-     * - Run must be in RUN_WAITING_FOR_APPROVAL phase
-     * - tool_call_id must match status.pending_approval.tool_call_id
-     * - User must have can_edit permission on the run
-     * ## Behavior by Action
-     * - APPROVE: Tool executes normally, run resumes to IN_PROGRESS
-     * - SKIP: Tool returns skip message to LLM, run continues to IN_PROGRESS
-     * - REJECT: Tool is denied and the user's objection is fed back to the LLM;
-     *   the run CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
-     *   stop the whole run, use cancel/terminate)
-     * </pre>
-     */
-    default void submitApproval(ai.stigmer.agentic.run.v1.SubmitApprovalInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.Run> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSubmitApprovalMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Submit a keep/discard decision on a file change set (or a single file).
-     * Records a FILE_DECIDED event in the append-only file_review stream;
-     * FileChangeSet.decisions is the derived projection. The runner reconciles
-     * the approved bytes — this RPC records the decision and enforces
-     * that expected_digest still matches the captured content the user reviewed.
-     * ## Preconditions
-     * - Run must exist and be non-terminal
-     * - change_set_id must match a status.file_change_sets[].id; for FILE scope,
-     *   file_change_id must match a CapturedFileChange.id within it
-     * - expected_digest must match the target's current digest
-     * - User must have can_edit permission on the run
-     * </pre>
-     */
-    default void submitFileDecision(ai.stigmer.agentic.run.v1.SubmitFileDecisionInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.Run> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSubmitFileDecisionMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Cancel a running run gracefully.
-     * Sends a cancellation signal to the run. The agent can handle
-     * the cancellation signal to save checkpoint and clean up before
-     * transitioning to the CANCELLED phase.
-     * </pre>
-     */
-    default void cancel(ai.stigmer.agentic.run.v1.CancelRunInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.Run> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCancelMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
      * Terminate a run immediately.
-     * Force-stops the run without allowing cleanup. Unlike cancel,
-     * the agent cannot respond to termination - it is stopped immediately.
+     * Force-stops the run without allowing cleanup. Unlike the session's
+     * interrupt, the agent cannot respond to termination - it is stopped immediately.
      * Use this for stuck or unresponsive agents.
      * </pre>
      */
@@ -589,8 +443,8 @@ public final class RunCommandControllerGrpc {
     /**
      * <pre>
      * Pause a running run.
-     * Temporarily stops the agent at its current checkpoint. Unlike cancel,
-     * the run is NOT terminal and can be resumed later from where it left off.
+     * Temporarily stops the agent at its current checkpoint. Unlike the
+     * session's interrupt, the run is NOT terminal and can be resumed later from where it left off.
      * </pre>
      */
     default void pause(ai.stigmer.agentic.run.v1.PauseRunInput request,
@@ -719,65 +573,9 @@ public final class RunCommandControllerGrpc {
 
     /**
      * <pre>
-     * Submit an approval decision for a pending tool call.
-     * ## Preconditions
-     * - Run must be in RUN_WAITING_FOR_APPROVAL phase
-     * - tool_call_id must match status.pending_approval.tool_call_id
-     * - User must have can_edit permission on the run
-     * ## Behavior by Action
-     * - APPROVE: Tool executes normally, run resumes to IN_PROGRESS
-     * - SKIP: Tool returns skip message to LLM, run continues to IN_PROGRESS
-     * - REJECT: Tool is denied and the user's objection is fed back to the LLM;
-     *   the run CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
-     *   stop the whole run, use cancel/terminate)
-     * </pre>
-     */
-    public void submitApproval(ai.stigmer.agentic.run.v1.SubmitApprovalInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.Run> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getSubmitApprovalMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Submit a keep/discard decision on a file change set (or a single file).
-     * Records a FILE_DECIDED event in the append-only file_review stream;
-     * FileChangeSet.decisions is the derived projection. The runner reconciles
-     * the approved bytes — this RPC records the decision and enforces
-     * that expected_digest still matches the captured content the user reviewed.
-     * ## Preconditions
-     * - Run must exist and be non-terminal
-     * - change_set_id must match a status.file_change_sets[].id; for FILE scope,
-     *   file_change_id must match a CapturedFileChange.id within it
-     * - expected_digest must match the target's current digest
-     * - User must have can_edit permission on the run
-     * </pre>
-     */
-    public void submitFileDecision(ai.stigmer.agentic.run.v1.SubmitFileDecisionInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.Run> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getSubmitFileDecisionMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Cancel a running run gracefully.
-     * Sends a cancellation signal to the run. The agent can handle
-     * the cancellation signal to save checkpoint and clean up before
-     * transitioning to the CANCELLED phase.
-     * </pre>
-     */
-    public void cancel(ai.stigmer.agentic.run.v1.CancelRunInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.Run> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getCancelMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
      * Terminate a run immediately.
-     * Force-stops the run without allowing cleanup. Unlike cancel,
-     * the agent cannot respond to termination - it is stopped immediately.
+     * Force-stops the run without allowing cleanup. Unlike the session's
+     * interrupt, the agent cannot respond to termination - it is stopped immediately.
      * Use this for stuck or unresponsive agents.
      * </pre>
      */
@@ -803,8 +601,8 @@ public final class RunCommandControllerGrpc {
     /**
      * <pre>
      * Pause a running run.
-     * Temporarily stops the agent at its current checkpoint. Unlike cancel,
-     * the run is NOT terminal and can be resumed later from where it left off.
+     * Temporarily stops the agent at its current checkpoint. Unlike the
+     * session's interrupt, the run is NOT terminal and can be resumed later from where it left off.
      * </pre>
      */
     public void pause(ai.stigmer.agentic.run.v1.PauseRunInput request,
@@ -917,62 +715,9 @@ public final class RunCommandControllerGrpc {
 
     /**
      * <pre>
-     * Submit an approval decision for a pending tool call.
-     * ## Preconditions
-     * - Run must be in RUN_WAITING_FOR_APPROVAL phase
-     * - tool_call_id must match status.pending_approval.tool_call_id
-     * - User must have can_edit permission on the run
-     * ## Behavior by Action
-     * - APPROVE: Tool executes normally, run resumes to IN_PROGRESS
-     * - SKIP: Tool returns skip message to LLM, run continues to IN_PROGRESS
-     * - REJECT: Tool is denied and the user's objection is fed back to the LLM;
-     *   the run CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
-     *   stop the whole run, use cancel/terminate)
-     * </pre>
-     */
-    public ai.stigmer.agentic.run.v1.Run submitApproval(ai.stigmer.agentic.run.v1.SubmitApprovalInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getSubmitApprovalMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Submit a keep/discard decision on a file change set (or a single file).
-     * Records a FILE_DECIDED event in the append-only file_review stream;
-     * FileChangeSet.decisions is the derived projection. The runner reconciles
-     * the approved bytes — this RPC records the decision and enforces
-     * that expected_digest still matches the captured content the user reviewed.
-     * ## Preconditions
-     * - Run must exist and be non-terminal
-     * - change_set_id must match a status.file_change_sets[].id; for FILE scope,
-     *   file_change_id must match a CapturedFileChange.id within it
-     * - expected_digest must match the target's current digest
-     * - User must have can_edit permission on the run
-     * </pre>
-     */
-    public ai.stigmer.agentic.run.v1.Run submitFileDecision(ai.stigmer.agentic.run.v1.SubmitFileDecisionInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getSubmitFileDecisionMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Cancel a running run gracefully.
-     * Sends a cancellation signal to the run. The agent can handle
-     * the cancellation signal to save checkpoint and clean up before
-     * transitioning to the CANCELLED phase.
-     * </pre>
-     */
-    public ai.stigmer.agentic.run.v1.Run cancel(ai.stigmer.agentic.run.v1.CancelRunInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getCancelMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
      * Terminate a run immediately.
-     * Force-stops the run without allowing cleanup. Unlike cancel,
-     * the agent cannot respond to termination - it is stopped immediately.
+     * Force-stops the run without allowing cleanup. Unlike the session's
+     * interrupt, the agent cannot respond to termination - it is stopped immediately.
      * Use this for stuck or unresponsive agents.
      * </pre>
      */
@@ -996,8 +741,8 @@ public final class RunCommandControllerGrpc {
     /**
      * <pre>
      * Pause a running run.
-     * Temporarily stops the agent at its current checkpoint. Unlike cancel,
-     * the run is NOT terminal and can be resumed later from where it left off.
+     * Temporarily stops the agent at its current checkpoint. Unlike the
+     * session's interrupt, the run is NOT terminal and can be resumed later from where it left off.
      * </pre>
      */
     public ai.stigmer.agentic.run.v1.Run pause(ai.stigmer.agentic.run.v1.PauseRunInput request) throws io.grpc.StatusException {
@@ -1107,62 +852,9 @@ public final class RunCommandControllerGrpc {
 
     /**
      * <pre>
-     * Submit an approval decision for a pending tool call.
-     * ## Preconditions
-     * - Run must be in RUN_WAITING_FOR_APPROVAL phase
-     * - tool_call_id must match status.pending_approval.tool_call_id
-     * - User must have can_edit permission on the run
-     * ## Behavior by Action
-     * - APPROVE: Tool executes normally, run resumes to IN_PROGRESS
-     * - SKIP: Tool returns skip message to LLM, run continues to IN_PROGRESS
-     * - REJECT: Tool is denied and the user's objection is fed back to the LLM;
-     *   the run CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
-     *   stop the whole run, use cancel/terminate)
-     * </pre>
-     */
-    public ai.stigmer.agentic.run.v1.Run submitApproval(ai.stigmer.agentic.run.v1.SubmitApprovalInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getSubmitApprovalMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Submit a keep/discard decision on a file change set (or a single file).
-     * Records a FILE_DECIDED event in the append-only file_review stream;
-     * FileChangeSet.decisions is the derived projection. The runner reconciles
-     * the approved bytes — this RPC records the decision and enforces
-     * that expected_digest still matches the captured content the user reviewed.
-     * ## Preconditions
-     * - Run must exist and be non-terminal
-     * - change_set_id must match a status.file_change_sets[].id; for FILE scope,
-     *   file_change_id must match a CapturedFileChange.id within it
-     * - expected_digest must match the target's current digest
-     * - User must have can_edit permission on the run
-     * </pre>
-     */
-    public ai.stigmer.agentic.run.v1.Run submitFileDecision(ai.stigmer.agentic.run.v1.SubmitFileDecisionInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getSubmitFileDecisionMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Cancel a running run gracefully.
-     * Sends a cancellation signal to the run. The agent can handle
-     * the cancellation signal to save checkpoint and clean up before
-     * transitioning to the CANCELLED phase.
-     * </pre>
-     */
-    public ai.stigmer.agentic.run.v1.Run cancel(ai.stigmer.agentic.run.v1.CancelRunInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getCancelMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
      * Terminate a run immediately.
-     * Force-stops the run without allowing cleanup. Unlike cancel,
-     * the agent cannot respond to termination - it is stopped immediately.
+     * Force-stops the run without allowing cleanup. Unlike the session's
+     * interrupt, the agent cannot respond to termination - it is stopped immediately.
      * Use this for stuck or unresponsive agents.
      * </pre>
      */
@@ -1186,8 +878,8 @@ public final class RunCommandControllerGrpc {
     /**
      * <pre>
      * Pause a running run.
-     * Temporarily stops the agent at its current checkpoint. Unlike cancel,
-     * the run is NOT terminal and can be resumed later from where it left off.
+     * Temporarily stops the agent at its current checkpoint. Unlike the
+     * session's interrupt, the run is NOT terminal and can be resumed later from where it left off.
      * </pre>
      */
     public ai.stigmer.agentic.run.v1.Run pause(ai.stigmer.agentic.run.v1.PauseRunInput request) {
@@ -1301,65 +993,9 @@ public final class RunCommandControllerGrpc {
 
     /**
      * <pre>
-     * Submit an approval decision for a pending tool call.
-     * ## Preconditions
-     * - Run must be in RUN_WAITING_FOR_APPROVAL phase
-     * - tool_call_id must match status.pending_approval.tool_call_id
-     * - User must have can_edit permission on the run
-     * ## Behavior by Action
-     * - APPROVE: Tool executes normally, run resumes to IN_PROGRESS
-     * - SKIP: Tool returns skip message to LLM, run continues to IN_PROGRESS
-     * - REJECT: Tool is denied and the user's objection is fed back to the LLM;
-     *   the run CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
-     *   stop the whole run, use cancel/terminate)
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.run.v1.Run> submitApproval(
-        ai.stigmer.agentic.run.v1.SubmitApprovalInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getSubmitApprovalMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
-     * Submit a keep/discard decision on a file change set (or a single file).
-     * Records a FILE_DECIDED event in the append-only file_review stream;
-     * FileChangeSet.decisions is the derived projection. The runner reconciles
-     * the approved bytes — this RPC records the decision and enforces
-     * that expected_digest still matches the captured content the user reviewed.
-     * ## Preconditions
-     * - Run must exist and be non-terminal
-     * - change_set_id must match a status.file_change_sets[].id; for FILE scope,
-     *   file_change_id must match a CapturedFileChange.id within it
-     * - expected_digest must match the target's current digest
-     * - User must have can_edit permission on the run
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.run.v1.Run> submitFileDecision(
-        ai.stigmer.agentic.run.v1.SubmitFileDecisionInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getSubmitFileDecisionMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
-     * Cancel a running run gracefully.
-     * Sends a cancellation signal to the run. The agent can handle
-     * the cancellation signal to save checkpoint and clean up before
-     * transitioning to the CANCELLED phase.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.run.v1.Run> cancel(
-        ai.stigmer.agentic.run.v1.CancelRunInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getCancelMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
      * Terminate a run immediately.
-     * Force-stops the run without allowing cleanup. Unlike cancel,
-     * the agent cannot respond to termination - it is stopped immediately.
+     * Force-stops the run without allowing cleanup. Unlike the session's
+     * interrupt, the agent cannot respond to termination - it is stopped immediately.
      * Use this for stuck or unresponsive agents.
      * </pre>
      */
@@ -1385,8 +1021,8 @@ public final class RunCommandControllerGrpc {
     /**
      * <pre>
      * Pause a running run.
-     * Temporarily stops the agent at its current checkpoint. Unlike cancel,
-     * the run is NOT terminal and can be resumed later from where it left off.
+     * Temporarily stops the agent at its current checkpoint. Unlike the
+     * session's interrupt, the run is NOT terminal and can be resumed later from where it left off.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.run.v1.Run> pause(
@@ -1428,14 +1064,11 @@ public final class RunCommandControllerGrpc {
   private static final int METHODID_UPDATE = 1;
   private static final int METHODID_UPDATE_STATUS = 2;
   private static final int METHODID_DELETE = 3;
-  private static final int METHODID_SUBMIT_APPROVAL = 4;
-  private static final int METHODID_SUBMIT_FILE_DECISION = 5;
-  private static final int METHODID_CANCEL = 6;
-  private static final int METHODID_TERMINATE = 7;
-  private static final int METHODID_RECOVER = 8;
-  private static final int METHODID_PAUSE = 9;
-  private static final int METHODID_RESUME = 10;
-  private static final int METHODID_UPLOAD_ATTACHMENT = 11;
+  private static final int METHODID_TERMINATE = 4;
+  private static final int METHODID_RECOVER = 5;
+  private static final int METHODID_PAUSE = 6;
+  private static final int METHODID_RESUME = 7;
+  private static final int METHODID_UPLOAD_ATTACHMENT = 8;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1468,18 +1101,6 @@ public final class RunCommandControllerGrpc {
           break;
         case METHODID_DELETE:
           serviceImpl.delete((ai.stigmer.commons.apiresource.ApiResourceId) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.Run>) responseObserver);
-          break;
-        case METHODID_SUBMIT_APPROVAL:
-          serviceImpl.submitApproval((ai.stigmer.agentic.run.v1.SubmitApprovalInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.Run>) responseObserver);
-          break;
-        case METHODID_SUBMIT_FILE_DECISION:
-          serviceImpl.submitFileDecision((ai.stigmer.agentic.run.v1.SubmitFileDecisionInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.Run>) responseObserver);
-          break;
-        case METHODID_CANCEL:
-          serviceImpl.cancel((ai.stigmer.agentic.run.v1.CancelRunInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.Run>) responseObserver);
           break;
         case METHODID_TERMINATE:
@@ -1548,27 +1169,6 @@ public final class RunCommandControllerGrpc {
               ai.stigmer.commons.apiresource.ApiResourceId,
               ai.stigmer.agentic.run.v1.Run>(
                 service, METHODID_DELETE)))
-        .addMethod(
-          getSubmitApprovalMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.agentic.run.v1.SubmitApprovalInput,
-              ai.stigmer.agentic.run.v1.Run>(
-                service, METHODID_SUBMIT_APPROVAL)))
-        .addMethod(
-          getSubmitFileDecisionMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.agentic.run.v1.SubmitFileDecisionInput,
-              ai.stigmer.agentic.run.v1.Run>(
-                service, METHODID_SUBMIT_FILE_DECISION)))
-        .addMethod(
-          getCancelMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.agentic.run.v1.CancelRunInput,
-              ai.stigmer.agentic.run.v1.Run>(
-                service, METHODID_CANCEL)))
         .addMethod(
           getTerminateMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1656,9 +1256,6 @@ public final class RunCommandControllerGrpc {
               .addMethod(getUpdateMethod())
               .addMethod(getUpdateStatusMethod())
               .addMethod(getDeleteMethod())
-              .addMethod(getSubmitApprovalMethod())
-              .addMethod(getSubmitFileDecisionMethod())
-              .addMethod(getCancelMethod())
               .addMethod(getTerminateMethod())
               .addMethod(getRecoverMethod())
               .addMethod(getPauseMethod())

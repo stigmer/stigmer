@@ -1,0 +1,34 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "toolCalls": [
+        {
+          "id": "call-publish",
+          "name": "shell",
+          "args": {
+            "command": "echo publish",
+            "cwd": "",
+            "timeout": 30000
+          },
+          "result": "publish\n",
+          "status": "TOOL_CALL_COMPLETED",
+          "completedAt": "2026-01-01T00:00:16.000Z",
+          "requiresApproval": true,
+          "approvalMessage": "publishing needs a person",
+          "approvalAction": "APPROVAL_ACTION_APPROVE",
+          "argsPreview": "{\"command\":\"echo publish\",\"cwd\":\"\",\"timeout\":30000}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_HOOK",
+          "approvalContentDigest": "args:833019951efa23a75abd5c7a203ba84931c4ba7c0fef1e96ed7b22ed85b986ae",
+          "approvalPolicyHook": "safety"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Published.",
+      "timestamp": "2026-01-01T00:00:17.000Z"
+    }
+  ]
+}

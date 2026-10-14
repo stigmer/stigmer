@@ -1,19 +1,21 @@
-// Unit arms for the status-borne facts of a sample, over hand-built
-// Run messages.
+// Unit arms for the status-borne facts of a sample, over hand-built Run
+// messages, and for what the user saw of the turn, over a hand-built session
+// log folded (turn-events.ts).
 // Domain: conformance benchmark.
 //
 // Pinned: int64 token counts become numbers; the cost estimate becomes
 // micros; the priced model is read as reported; `status.error` is kept
 // verbatim; memory on the status is one platform attachment; each terminal
-// phase maps to its outcome; a THINKING row counts as visible but not as
-// text; sub-agent rows never count; the final reply is the last root AI row
-// with content.
+// phase maps to its outcome; thinking counts as visible but not as text; a
+// sub-agent's thread never counts; the final reply is the primary thread's
+// last agent message.
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { describe, expect, it } from "vitest";
 import { finalReply, outcomeOf, statusFacts, visibleRows } from "../status-facts";
+import { said, subAgentThread, thought, turnFrom, userMessage } from "./turn-events";
 
 describe("statusFacts", () => {
   it("reads tokens, the cost estimate in micros, the priced model and the server's stamps", () => {
@@ -87,42 +89,28 @@ describe("outcomeOf", () => {
 });
 
 describe("finalReply", () => {
-  it("is the last root AI row with content, never a sub-agent's or an empty row", () => {
-    const execution = create(RunSchema, {
-      status: {
-        messages: [
-          { type: MessageType.MESSAGE_HUMAN, content: "fix it" },
-          { type: MessageType.MESSAGE_AI, content: "Reading the file." },
-          { type: MessageType.MESSAGE_AI, content: "Fixed: 90s is now 1 minute." },
-          { type: MessageType.MESSAGE_AI, content: "" },
-        ],
-        subAgentRuns: [{ messages: [{ type: MessageType.MESSAGE_AI, content: "sub-agent text" }] }],
-      },
-    });
-    expect(finalReply(execution)).toBe("Fixed: 90s is now 1 minute.");
-    expect(finalReply(create(RunSchema, {}))).toBe("");
+  it("is the primary thread's last agent message, never a sub-agent's", () => {
+    const turn = turnFrom([
+      userMessage("fix it"),
+      said(0, "Reading the file."),
+      said(1, "Fixed: 90s is now 1 minute."),
+      ...subAgentThread("task1", "sub-agent text"),
+    ]);
+    expect(finalReply(turn)).toBe("Fixed: 90s is now 1 minute.");
+    expect(finalReply(undefined)).toBe("");
+    expect(finalReply(turnFrom([userMessage("hi")]))).toBe("");
   });
 });
 
 describe("visibleRows", () => {
-  it("a THINKING row with content is visible but not text; an AI row is both", () => {
-    const thinking = create(RunSchema, {
-      status: { messages: [{ type: MessageType.MESSAGE_THINKING, content: "hmm" }] },
-    });
-    expect(visibleRows(thinking)).toEqual({ visible: true, text: false });
-    const ai = create(RunSchema, {
-      status: { messages: [{ type: MessageType.MESSAGE_HUMAN, content: "hi" }, { type: MessageType.MESSAGE_AI, content: "Hello." }] },
-    });
-    expect(visibleRows(ai)).toEqual({ visible: true, text: true });
+  it("thinking is visible but not text; an agent message is both", () => {
+    expect(visibleRows(turnFrom([userMessage("hi"), ...thought(0, "hmm")]))).toEqual({ visible: true, text: false });
+    expect(visibleRows(turnFrom([userMessage("hi"), said(0, "Hello.")]))).toEqual({ visible: true, text: true });
   });
 
-  it("an empty AI row and a sub-agent's row are not visible", () => {
-    const execution = create(RunSchema, {
-      status: {
-        messages: [{ type: MessageType.MESSAGE_AI, content: "" }],
-        subAgentRuns: [{ messages: [{ type: MessageType.MESSAGE_AI, content: "sub-agent text" }] }],
-      },
-    });
-    expect(visibleRows(execution)).toEqual({ visible: false, text: false });
+  it("an empty message and a sub-agent's message are not visible", () => {
+    const turn = turnFrom([userMessage("hi"), said(0, ""), ...subAgentThread("task1", "sub-agent text")]);
+    expect(visibleRows(turn)).toEqual({ visible: false, text: false });
+    expect(visibleRows(undefined)).toEqual({ visible: false, text: false });
   });
 });

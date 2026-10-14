@@ -73,8 +73,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { RunPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../client/stigmer-client.js", async () =>
   (await import("../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
@@ -85,6 +84,8 @@ import { liveSecret, recordLiveSpend } from "../../../__test-utils__/live-gate.j
 import { stubRegistryFetch } from "../../../__test-utils__/model-registry-fixture.js";
 import { approvalCategory } from "../approval-policy.js";
 import { beginLiveCursorScenario, cursorExecutionRecord, runCursorTurn } from "../__test-utils__/hermetic-cursor.js";
+import type { ToolCall } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { MessageType, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const CURSOR_API_KEY = liveSecret("CURSOR_API_KEY") ?? "";
 
@@ -184,7 +185,7 @@ describe.skipIf(!liveSecret("CURSOR_API_KEY"))("ExecuteCursor live — the trans
     recordLiveSpend("cursor transcript (composer-2.5)", final?.streamingUsage?.estimatedCostUsd);
     const rows = record.toolCalls();
     console.log(`[transcript-live] outcome: ${invocation.outcome.kind}; phases persisted: ${record.persistedPhases.map((p) => RunPhase[p]).join(" → ")}`);
-    for (const m of final?.messages ?? []) {
+    for (const m of record.lastFullRows?.messages ?? []) {
       console.log(`[transcript-live] message type=${MessageType[m.type]} isStreaming=${m.isStreaming} rows=${m.toolCalls.length} content=${JSON.stringify(m.content.slice(0, 80))}`);
     }
     for (const row of rows) {
@@ -221,7 +222,7 @@ describe.skipIf(!liveSecret("CURSOR_API_KEY"))("ExecuteCursor live — the trans
     const waitingRows = rows.filter((r) => r.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
     // The runner writes the file-review EVENT STREAM (the ledger); `file_change_sets`
     // is the server's projection of it and is never written from here.
-    const reviewEvents = (final!.fileReviewEventStream?.events ?? []).map((e) => e.payload.case);
+    const reviewEvents = (record.lastFullRows?.fileReviewEventStream?.events ?? []).map((e) => e.payload.case);
     console.log(`[transcript-live] ending: phase=${lastPhase === undefined ? "-" : RunPhase[lastPhase]} reviewEvents=[${reviewEvents.join(", ")}] waitingRows=${waitingRows.length}`);
     expect(
       waitingRows.map((r) => r.name),
@@ -230,7 +231,7 @@ describe.skipIf(!liveSecret("CURSOR_API_KEY"))("ExecuteCursor live — the trans
     expect(lastPhase, "the last persisted phase is not COMPLETED — read the phases above").toBe(RunPhase.RUN_COMPLETED);
 
     // ── Assert: fact 1 — every row settled ───────────────────────────────────
-    const streaming = final!.messages.filter((m) => m.isStreaming);
+    const streaming = record.lastFullRows!.messages.filter((m) => m.isStreaming);
     expect(
       streaming.map((m) => m.type),
       "a message is still isStreaming in the COMPLETED status — a spinner that never stops; the transcript is wrong (finalize did not close it)",

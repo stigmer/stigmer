@@ -1,0 +1,13 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Here you go:\n```json\n{\"answer\":\"forty-two\",\"score\":42}\n```",
+      "timestamp": "2026-01-01T00:00:01.000Z"
+    }
+  ],
+  "structuredOutput": {
+    "answer": "forty-two",
+    "score": 42
+  }
+}

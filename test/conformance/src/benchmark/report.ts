@@ -217,7 +217,7 @@ export interface ToolCallFact {
   /** A paged read's window, present only when the call set it. */
   offset?: number;
   limit?: number;
-  /** The row's `ToolCallStatus`, as `completed`, `failed`, ... */
+  /** How the call stands in the session's log: `completed`, `failed`, `denied`, `stopped`, ... */
   status: string;
   outcome: ToolCallOutcome;
 }

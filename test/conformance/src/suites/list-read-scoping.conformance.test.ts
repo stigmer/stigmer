@@ -11,7 +11,7 @@
 // One lane per consumer family (the seam's per-lane logic is pinned in
 // the OSS unit suites; this is the wire-level tenant-isolation contract):
 // session.list (the restrict verb, no org intersection, once walked page
-// by page so a token is shown to carry no authority), apikey.findAll
+// by page so a token is shown to carry no authority), apikey.list
 // (the direct-read tail), vault.list (the org-intersecting family),
 // search + recent activity (the enumeration verb), and the
 // check-shaped lane (the listByChannel channel gate) refusing an outsider
@@ -158,7 +158,7 @@ describe("list-read scoping — outsider isolation (on the enforcing lane)", () 
     expect(theirs, "the outsider's walk surfaces none of the owner's sessions").toEqual([]);
   });
 
-  it("[rpc:ApiKeyQueryController.findAll] apikey.findAll: the owner's key is ABSENT from the outsider's list", async (ctx) => {
+  it("[rpc:ApiKeyQueryController.list] apikey.list: the owner's key is ABSENT from the outsider's list", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const { org } = await lane.provisionTenancy();
     const outsider = await lane.provisionIdentity();
@@ -173,16 +173,16 @@ describe("list-read scoping — outsider isolation (on the enforcing lane)", () 
       clients.apiKeyCommand.delete({ value: key.metadata!.id }),
     );
 
-    const mine = await clients.apiKeyQuery.findAll({});
+    const mine = await clients.apiKeyQuery.list({});
     expect(
       mine.entries.map((k) => k.metadata?.id),
       "owner must see the minted key",
     ).toContain(key.metadata!.id);
 
-    const theirs = await outsider.apiKeyQuery.findAll({});
+    const theirs = await outsider.apiKeyQuery.list({});
     expect(
       theirs.entries.map((k) => k.metadata?.id),
-      "outsider findAll must not contain the owner's key",
+      "outsider list must not contain the owner's key",
     ).not.toContain(key.metadata!.id);
   });
 
@@ -202,7 +202,7 @@ describe("list-read scoping — outsider isolation (on the enforcing lane)", () 
 
     const mine = await clients.vaultQuery.list({ org });
     expect(
-      mine.items.map((v) => v.metadata?.id),
+      mine.entries.map((v) => v.metadata?.id),
       "owner must see the created vault",
     ).toContain(vault.metadata!.id);
 
@@ -210,7 +210,7 @@ describe("list-read scoping — outsider isolation (on the enforcing lane)", () 
     // caller-supplied and must never substitute for authorization.
     const theirs = await outsider.vaultQuery.list({ org });
     expect(
-      theirs.items.map((v) => v.metadata?.id),
+      theirs.entries.map((v) => v.metadata?.id),
       "outsider list must not contain the owner's vault",
     ).not.toContain(vault.metadata!.id);
   });

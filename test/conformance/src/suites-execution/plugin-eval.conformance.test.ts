@@ -118,7 +118,8 @@ import {
   unsupportedFeatureReason,
   type PluginEvalOptions,
 } from "../support/plugin-evals";
-import { allToolCalls, awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
+import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
+import { toolUseByCallId, toolUsesOf, turnOfRun } from "../support/turn";
 import { createTarget, type TargetProfile } from "../targets";
 import type { TenancyContext } from "../targets/target";
 
@@ -226,9 +227,9 @@ async function runOf(runId: string): Promise<Run> {
 
 async function evalScoreOf(runId: string): Promise<Score> {
   const scores = await clients.scoreQuery.listByRun({ runId });
-  const score = scores.items.find((item) => item.spec?.metric === EVAL_METRIC);
+  const score = scores.entries.find((item) => item.spec?.metric === EVAL_METRIC);
   if (score === undefined) {
-    throw new Error(`run ${runId} carries no eval score; metrics: [${scores.items.map((s) => s.spec?.metric).join(", ")}]`);
+    throw new Error(`run ${runId} carries no eval score; metrics: [${scores.entries.map((s) => s.spec?.metric).join(", ")}]`);
   }
   return score;
 }
@@ -330,7 +331,7 @@ describe.skipIf(!runnerServesTries)("PluginEval — a suite with and without the
       const run = await runOf(attempt.runId);
       expect(run.status?.phase).toBe(RunPhase.RUN_COMPLETED);
       expect(run.metadata?.labels[PLUGIN_EVAL_LABEL]).toBe(created.metadata!.id);
-      const readSkill = allToolCalls(run).some((call) => call.name === "read_file");
+      const readSkill = toolUsesOf(await turnOfRun(clients, run)).some((use) => use.name === "read_file");
       expect(readSkill, `${located.arm}-arm try reads the skill`).toBe(located.arm === "with");
 
       // One Score per try: source eval, one criterion per grader, the indicator not applicable.
@@ -453,9 +454,9 @@ describe.skipIf(!runnerServesTries)("PluginEval — what a try is given", () => 
     expect(ended.status?.phase, describeTries(ended)).toBe(PluginEvalPhase.completed);
     const [only] = triesOf(ended);
     const run = await runOf(only!.attempt.runId);
-    const caseRead = allToolCalls(run).find((call) => call.id === "call_read_case");
+    const caseRead = toolUseByCallId(await turnOfRun(clients, run), "call_read_case");
     expect(caseRead, "the scripted read was made").toBeDefined();
-    const answered = `${caseRead?.result ?? ""}${caseRead?.error ?? ""}`;
+    const answered = caseRead?.result?.text ?? "";
     // The case lists Read only, so the try withholds Skill: a read anywhere in
     // the mounted plugin tree is refused by the turn's tool scope, and the
     // tree below proves the mount carries no evals/ in any case.

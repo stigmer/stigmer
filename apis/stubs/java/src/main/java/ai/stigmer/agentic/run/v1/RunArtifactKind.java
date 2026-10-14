@@ -137,7 +137,7 @@ public enum RunArtifactKind
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.run.v1.EnumProto.getDescriptor().getEnumType(6);
+    return ai.stigmer.agentic.run.v1.EnumProto.getDescriptor().getEnumType(1);
   }
 
   private static final RunArtifactKind[] VALUES = values();

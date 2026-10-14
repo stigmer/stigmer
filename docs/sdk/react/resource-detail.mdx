@@ -346,6 +346,7 @@ Used uniformly by AgentDetailView, PluginDetailView, and SkillDetailView.
     children: { type: "ReactNode", description: "", required: true },
     className: { type: "string", description: "" },
     count: { type: "number", description: "" },
+    countIsLowerBound: { type: "boolean", description: "`true` when `count` is what is loaded of a longer list (a token follows): the badge reads \"50+\" rather than a total the list does not carry." },
     headerActions: { type: "ReactNode", description: "Arbitrary action elements rendered in the header row (e.g. expand, share)." },
     onEdit: { type: "() => void", description: "" },
     scrollTarget: { type: "string", description: "Stable id emitted as `data-scroll-target` on the section element, so guided tours and demos can scroll the section into view by name (the same convention as `data-cursor-target`). Purely an annotation — no behavior attaches to it here." },
@@ -370,6 +371,7 @@ providing both the tab metadata and the content to render.
 <TypeTable
   type={{
     badge: { type: "number", description: "Optional numeric badge rendered next to the label (e.g. item count)." },
+    badgeIsLowerBound: { type: "boolean", description: "`true` when `badge` counts only what a first page holds and more follow: the badge reads \"50+\" rather than a total the list does not carry." },
     content: { type: "ReactNode", description: "Content rendered in the tab panel when this tab is active.", required: true },
     icon: { type: "ReactNode", description: "Optional icon rendered before the label." },
     id: { type: "string", description: "Unique identifier for the tab, used as the `activeTab` value.", required: true },

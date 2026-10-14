@@ -14,6 +14,7 @@ import { useDeletePlatformClient } from "./useDeletePlatformClient.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { isPlatformClientExpired } from "./expiry.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
 
 /** Props for {@link PlatformClientListPanel}. */
 export interface PlatformClientListPanelProps {
@@ -78,7 +79,7 @@ export function PlatformClientListPanel({
   className,
   now,
 }: PlatformClientListPanelProps) {
-  const { platformClients, isLoading, error, refetch } =
+  const { platformClients, isLoading, error, refetch, hasMore, loadMore, isLoadingMore, loadMoreError } =
     usePlatformClientList(org);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
@@ -124,29 +125,28 @@ export function PlatformClientListPanel({
   }
 
   return (
-    <div
-      className={cn("stg:space-y-2", className)}
-      role="list"
-      aria-label="Platform clients"
-    >
-      {platformClients.map((pc) => {
-        const id = pc.metadata?.id ?? "";
-        return (
-          <PlatformClientRow
-            key={id}
-            platformClient={pc}
-            isConfirming={confirmingId === id}
-            now={now}
-            onEdit={onEdit ? () => onEdit(pc) : undefined}
-            onConfirmDelete={() => setConfirmingId(id)}
-            onCancelDelete={() => setConfirmingId(null)}
-            onDeleted={() => {
-              setConfirmingId(null);
-              refetch();
-            }}
-          />
-        );
-      })}
+    <div className={className}>
+      <div className="stg:space-y-2" role="list" aria-label="Platform clients">
+        {platformClients.map((pc) => {
+          const id = pc.metadata?.id ?? "";
+          return (
+            <PlatformClientRow
+              key={id}
+              platformClient={pc}
+              isConfirming={confirmingId === id}
+              now={now}
+              onEdit={onEdit ? () => onEdit(pc) : undefined}
+              onConfirmDelete={() => setConfirmingId(id)}
+              onCancelDelete={() => setConfirmingId(null)}
+              onDeleted={() => {
+                setConfirmingId(null);
+                refetch();
+              }}
+            />
+          );
+        })}
+      </div>
+      <LoadMoreFooter hasMore={hasMore} loadMore={loadMore} isLoadingMore={isLoadingMore} loadMoreError={loadMoreError} />
     </div>
   );
 }

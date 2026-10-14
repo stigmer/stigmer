@@ -7,7 +7,7 @@
 // keeps working when the person who set it up leaves. It is an identity
 // account, not a resource kind, so the generic verbs do not name it; these
 // helpers drive the identity-account and key clients directly. A service
-// account's keys are listed here (`findByAccount`), not by `stigmer list
+// account's keys are listed here (`listByAccount`), not by `stigmer list
 // apikeys`, which answers the caller's own keys; one is revoked with
 // `stigmer delete apikey <id>`.
 //
@@ -24,15 +24,15 @@
 
 import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
 import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import {
   type IdentityAccount,
   IdentityAccountSchema,
 } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { ListApiKeysByAccountInputSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
 import {
   CreateServiceAccountInputSchema,
-  ListWithIdentityOrgSchema,
+  ListServiceAccountsInputSchema,
 } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { iamRoleDisplayName, type Stigmer } from "@stigmer/sdk";
@@ -41,6 +41,7 @@ import { ExitCode } from "../errors/exit-codes.js";
 import { UsageError } from "../errors/usage-error.js";
 import { CommandResult, protoToJsonValue } from "../output/index.js";
 import type { DeletePlan } from "./delete.js";
+import { readCursorPages } from "./cursor-pages.js";
 
 /** The clients these helpers call: the identity-account and API key clients. */
 export type ServiceAccountClient = Pick<Stigmer, "identityAccount" | "apiKey">;
@@ -51,9 +52,6 @@ const ROLES: ReadonlyMap<string, IamRole> = new Map([
   ["member", IamRole.member],
   ["viewer", IamRole.viewer],
 ]);
-
-const PAGE_SIZE = 100;
-const MAX_PAGES = 20;
 
 /**
  * The organization role `--role` names. Owner is refused here as the server
@@ -76,18 +74,11 @@ export async function listServiceAccounts(
   client: ServiceAccountClient,
   org: string,
 ): Promise<IdentityAccount[]> {
-  const accounts: IdentityAccount[] = [];
-  for (let num = 1; num <= MAX_PAGES; num++) {
-    const page = await client.identityAccount.listServiceAccounts(
-      create(ListWithIdentityOrgSchema, {
-        org,
-        page: create(PageInfoSchema, { num, size: PAGE_SIZE }),
-      }),
-    );
-    accounts.push(...page.entries);
-    if (page.entries.length === 0 || num >= page.totalPages) break;
-  }
-  return accounts;
+  return readCursorPages(0, (pageSize, pageToken) =>
+    client.identityAccount.listServiceAccounts(
+      create(ListServiceAccountsInputSchema, { org, pageSize, pageToken }),
+    ),
+  );
 }
 
 /**
@@ -117,7 +108,11 @@ export async function listServiceAccountKeys(
   ref: string,
 ): Promise<ApiKey[]> {
   const account = await findServiceAccount(client, org, ref);
-  return (await client.apiKey.findByAccount(account.metadata?.id ?? "")).entries;
+  return readCursorPages(0, (pageSize, pageToken) =>
+    client.apiKey.listByAccount(
+      create(ListApiKeysByAccountInputSchema, { accountId: account.metadata?.id ?? "", pageSize, pageToken }),
+    ),
+  );
 }
 
 /** The key list's table: one row per key, as `stigmer list apikeys` renders it. */

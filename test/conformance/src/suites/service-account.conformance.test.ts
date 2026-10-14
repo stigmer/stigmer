@@ -203,7 +203,7 @@ describe("Service account conformance", () => {
     );
   });
 
-  it("[rpc:ApiKeyCommandController.createForServiceAccount] [rpc:ApiKeyQueryController.findByAccount] an admin creates, lists and revokes a service account's keys; a member can do none of it; the keys are not the admin's own", async (ctx) => {
+  it("[rpc:ApiKeyCommandController.createForServiceAccount] [rpc:ApiKeyQueryController.listByAccount] an admin creates, lists and revokes a service account's keys; a member can do none of it; the keys are not the admin's own", async (ctx) => {
     const on = laneOrSkip(ctx);
     const org = await tenancy(on);
     const admin = await on.provisionWithRole(org, "admin");
@@ -223,9 +223,9 @@ describe("Service account conformance", () => {
     expect(created.spec?.boundOrg, "the key works in the service account's organization").toBe(org.org);
     const plaintext = plaintextKeyOf(created);
 
-    const listed = await admin.apiKeyQuery.findByAccount({ value: accountId });
+    const listed = await admin.apiKeyQuery.listByAccount({ accountId });
     expect(listed.entries.map((key) => key.metadata?.id)).toContain(created.metadata?.id);
-    const own = await admin.apiKeyQuery.findAll({});
+    const own = await admin.apiKeyQuery.list({});
     expect(
       own.entries.map((key) => key.metadata?.id),
       "a service account's keys are never in the admin's own list",
@@ -237,7 +237,7 @@ describe("Service account conformance", () => {
       "a member creating a service account's key",
     );
     await expectGrpcCode(
-      () => member.apiKeyQuery.findByAccount({ value: accountId }),
+      () => member.apiKeyQuery.listByAccount({ accountId }),
       Code.PermissionDenied,
       "a member listing a service account's keys",
     );

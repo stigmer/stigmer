@@ -310,6 +310,16 @@ public enum IamPermission
    * <code>can_manage_keys = 55;</code>
    */
   can_manage_keys(55),
+  /**
+   * <pre>
+   * Whether the caller may read an organization's access history: its
+   * owners and administrators, and a parent organization's administrators
+   * for a child.
+   * </pre>
+   *
+   * <code>can_view_access_history = 56;</code>
+   */
+  can_view_access_history(56),
   UNRECOGNIZED(-1),
   ;
 
@@ -608,6 +618,16 @@ public enum IamPermission
    * <code>can_manage_keys = 55;</code>
    */
   public static final int can_manage_keys_VALUE = 55;
+  /**
+   * <pre>
+   * Whether the caller may read an organization's access history: its
+   * owners and administrators, and a parent organization's administrators
+   * for a child.
+   * </pre>
+   *
+   * <code>can_view_access_history = 56;</code>
+   */
+  public static final int can_view_access_history_VALUE = 56;
 
 
   public final int getNumber() {
@@ -671,6 +691,7 @@ public enum IamPermission
       case 52: return can_create_shared_vault;
       case 53: return can_use;
       case 55: return can_manage_keys;
+      case 56: return can_view_access_history;
       default: return null;
     }
   }

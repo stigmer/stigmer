@@ -1,11 +1,4 @@
 {
-  "messages": [
-    {
-      "type": "MESSAGE_AI",
-      "content": "Looking at the pull requests.",
-      "timestamp": "2026-01-01T00:00:02.000Z"
-    }
-  ],
   "phase": "RUN_CANCELLED",
   "startedAt": "2026-01-01T00:00:00.000Z",
   "completedAt": "2026-01-01T00:00:03.000Z"

@@ -11,7 +11,8 @@
  * tools now, as the caller, with a Destructive marker where the server sets
  * one, and shows the server's refusal when the listing fails. The keys the
  * plugin reads are listed in name order, and "Add to an agent" opens its
- * dialog over the plugin, which Cancel closes.
+ * dialog over the plugin, which Cancel closes. The Versions tab shows the
+ * newest versions and loads older ones on demand.
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -57,6 +58,8 @@ interface World {
   readonly listRefusal?: string;
   readonly listed: ListPluginToolsInput[];
   readonly removed: string[][];
+  /** When set, the history answers two pages of versions. */
+  readonly versions?: boolean;
 }
 
 function renderView(world: World, onStartChat = vi.fn()) {
@@ -75,6 +78,12 @@ function renderView(world: World, onStartChat = vi.fn()) {
           metadata: create(ApiResourceMetadataSchema, { id: "plg_1", org: ORG, slug: "linear", name: "linear" }),
           status: STATUS,
         }),
+      listVersions: (input) => {
+        if (world.versions !== true) throw new ConnectError("no history here", Code.Unimplemented);
+        return input.pageToken === ""
+          ? { entries: [{ digest: "d2", tag: "v2", isCurrent: true }], nextPageToken: "older" }
+          : { entries: [{ digest: "d1", tag: "v1" }], nextPageToken: "" };
+      },
     });
     service(PluginCommandController, {
       listTools: (input) => {
@@ -216,5 +225,16 @@ describe("PluginDetailView: Check tools", () => {
     fireEvent.click(within(servers).getAllByRole("button", { name: "Check tools" })[0]!);
 
     expect(await screen.findByText(/sign in to linear first/)).toBeTruthy();
+  });
+});
+
+describe("PluginDetailView: its versions", () => {
+  it("shows the newest versions first and loads older ones on demand", async () => {
+    renderView(world({ versions: true }));
+
+    fireEvent.click(await screen.findByRole("tab", { name: "Versions" }));
+    expect(await screen.findByText("v2")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+    expect(await screen.findByText("v1")).toBeTruthy();
   });
 });

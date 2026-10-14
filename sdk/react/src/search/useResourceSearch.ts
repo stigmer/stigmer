@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { ListParams, ListResult } from "@stigmer/sdk";
+import { useEffect, useMemo, useState } from "react";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
+import { createLibraryListFn, type LibraryKind } from "./librarySource.js";
 
 /** Shared options for resource search hooks (`useAgentSearch`, `usePluginSearch`, `useSkillSearch`). */
 export interface UseResourceSearchOptions {
@@ -35,16 +36,19 @@ const DEFAULT_PAGE_SIZE = 30;
 const DEFAULT_DEBOUNCE_MS = 300;
 
 /**
- * Internal hook that powers both `usePluginSearch` and `useSkillSearch`.
+ * Internal hook that powers `useAgentSearch`, `usePluginSearch` and
+ * `useSkillSearch`.
  *
- * Wraps a `ListParams -> ListResult` function with query state management,
- * debounced search, loading/error tracking, and cancellation-safe fetching.
+ * Adds query state, a debounce, loading/error tracking and
+ * cancellation-safe fetching to the Library source for one kind: the
+ * kind's newest while nothing is typed, its search matches once something
+ * is. A picker shows the first page; a person narrows it by typing.
  *
  * Not exported from the public API — consumers use the resource-specific
  * hooks (`usePluginSearch`, `useSkillSearch`) instead.
  */
 export function useResourceSearch(
-  listFn: (params: ListParams) => Promise<ListResult>,
+  kind: LibraryKind,
   org: string,
   options?: UseResourceSearchOptions,
 ): UseResourceSearchReturn {
@@ -59,15 +63,18 @@ export function useResourceSearch(
     return () => clearTimeout(timer);
   }, [query, debounceMs]);
 
+  const stigmer = useStigmer();
+  const listFn = useMemo(() => createLibraryListFn(stigmer, kind), [stigmer, kind]);
+
   const { data: results, isLoading, isRefetching, error, refetch } = useFetch<SearchResult[]>(
     async () => {
-      const params: ListParams = {
+      const page = await listFn({
         org,
         query: debouncedQuery || undefined,
-        page: { num: 1, size: pageSize },
-      };
-      const result = await listFn(params);
-      return [...result.entries];
+        pageSize,
+        pageToken: "",
+      });
+      return [...page.entries];
     },
     [listFn, org, debouncedQuery, pageSize],
     [],

@@ -8,7 +8,7 @@
 // server refuses as NotFound or PermissionDenied reads as "not one you belong
 // to"; any other failure is reported as itself. And `context show` names the
 // active backend, not the legacy local/cloud switch the file also carries,
-// and says its slug is the one `set` stored. A real Connect backend over h2c serves findMyOrganizations; the
+// and says its slug is the one `set` stored. A real Connect backend over h2c serves listMine; the
 // config file (HOME redirected) points a selfhost backend at it.
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -54,7 +54,7 @@ beforeAll(async () => {
         }
         return create(OrganizationSchema, { metadata: { id: ACME_ID, slug: "acme" } });
       },
-      findMyOrganizations: () => {
+      listMine: () => {
         lookups += 1;
         return create(OrganizationsSchema, {
           entries: [create(OrganizationSchema, { metadata: { id: ACME_ID, slug: "acme" } })],

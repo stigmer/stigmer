@@ -5,6 +5,7 @@ import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ListRunsBySessionRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { sortChronologically } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
+import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
 import { useFetch } from "../internal/useFetch.js";
 
 // The ordering rule lives in @stigmer/sdk with the other shared
@@ -49,9 +50,9 @@ export interface UseSessionRunsReturn {
  * re-query after a new run is created within the same session
  * (needed by the follow-up conversation loop).
  *
- * Returns up to 100 runs per call. Sessions rarely exceed a
- * handful of runs; full cursor-based pagination can be added
- * later without breaking the return type.
+ * A conversation renders all of its turns, so the hook walks every page
+ * of the session's runs (refusing past the SDK's walk cap rather than
+ * showing a cut conversation).
  *
  * @example
  * ```tsx
@@ -80,11 +81,15 @@ export function useSessionRuns(
   const { data: executions, isLoading, isRefetching, error, refetch } = useFetch(
     sessionId
       ? () =>
-          stigmer.run
-            .listBySession(
-              create(ListRunsBySessionRequestSchema, { sessionId }),
-            )
-            .then((result) => sortChronologically(result.entries))
+          readEveryPage((pageToken) =>
+            stigmer.run.listBySession(
+              create(ListRunsBySessionRequestSchema, {
+                sessionId,
+                pageSize: LIST_PAGE_MAX,
+                pageToken,
+              }),
+            ),
+          ).then(sortChronologically)
       : null,
     [sessionId, stigmer],
     [] as Run[],

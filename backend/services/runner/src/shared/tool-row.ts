@@ -17,13 +17,12 @@
  * shape of legacy (pre-stamping) sessions whose flowed edit rows were hidden.
  */
 
-import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 import { extractFilePath } from "./file-tools.js";
 import { isSecretLikePath } from "./filereview/secret-paths.js";
 import { toolApprovalCategory } from "./tool-kind.js";
 import { utcTimestamp } from "./status.js";
+import type { AgentMessage, ToolCall, SubAgentRun } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction, ToolCallStatus } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
  * Stamp a flowed file-edit row with the change set that captured its turn.
@@ -65,8 +64,8 @@ export function stampFileEditRow(tc: ToolCall, changeSetId: string): void {
 /**
  * The turn-boundary pass over a transcript: stamp every file-edit row
  * (category write/delete) that FLOWED this turn with the change set id, so
- * the row stays visible in place as an observational record while
- * `file_change_sets` remains the single decision surface. Skips:
+ * the row stays visible in place as an observational record while the
+ * change set remains the single decision surface. Skips:
  *
  *  - already-stamped rows — the idempotency AND cross-turn guard: a resume
  *    seeds prior turns' rows into this transcript, and re-stamping them with

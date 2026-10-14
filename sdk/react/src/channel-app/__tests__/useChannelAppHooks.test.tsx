@@ -34,8 +34,8 @@ const APP = {
 
 describe("useChannelAppList", () => {
   it("fetches the org's channel apps", async () => {
-    const listByOrg = vi.fn().mockResolvedValue({ entries: [APP] });
-    const client = createMockStigmer({ listByOrg });
+    const list = vi.fn().mockResolvedValue({ entries: [APP], nextPageToken: "" });
+    const client = createMockStigmer({ list });
 
     const { result } = renderHook(() => useChannelAppList("acme"), {
       wrapper: wrapper(client),
@@ -43,20 +43,20 @@ describe("useChannelAppList", () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.channelApps).toHaveLength(1);
-    expect(listByOrg).toHaveBeenCalledWith(
+    expect(list).toHaveBeenCalledWith(
       expect.objectContaining({ org: "acme" }),
     );
   });
 
   it("skips fetching while org is null (unresolved org)", () => {
-    const listByOrg = vi.fn();
-    const client = createMockStigmer({ listByOrg });
+    const list = vi.fn();
+    const client = createMockStigmer({ list });
 
     const { result } = renderHook(() => useChannelAppList(null), {
       wrapper: wrapper(client),
     });
 
-    expect(listByOrg).not.toHaveBeenCalled();
+    expect(list).not.toHaveBeenCalled();
     expect(result.current.channelApps).toEqual([]);
   });
 });

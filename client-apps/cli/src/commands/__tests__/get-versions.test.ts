@@ -68,14 +68,14 @@ afterEach(() => {
 describe("stigmer get agent --version-history / --version", () => {
   it("prints the agent's version history", async () => {
     listVersions.mockResolvedValue({
-      versions: [create(AgentVersionEntrySchema, { versionHash: "c".repeat(64), isCurrent: true, tag: "stable" })],
-      totalCount: 1,
+      entries: [create(AgentVersionEntrySchema, { versionHash: "c".repeat(64), isCurrent: true, tag: "stable" })],
+      nextPageToken: "",
     });
 
     const out = await runGet("agent", "acme/reviewer", "--version-history");
 
     expect(listVersions).toHaveBeenCalledWith(expect.objectContaining({ org: "acme", slug: "reviewer" }));
-    expect(out).toContain("Version History (1 total)");
+    expect(out).toContain("Version History (1)");
     expect(out).toMatch(/cccccccccccc +stable/);
   });
 

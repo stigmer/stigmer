@@ -31,7 +31,7 @@ interface MockLicenseClient {
 function mockClient(overrides: Partial<MockLicenseClient> = {}): { license: MockLicenseClient } {
   return {
     license: {
-      list: vi.fn().mockResolvedValue({ entries: [] }),
+      list: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
       get: vi.fn(),
       create: vi.fn(),
       ...overrides,
@@ -127,7 +127,7 @@ describe("LicensesConsole states", () => {
 
 describe("LicensesConsole calendar", () => {
   it("summarizes customers and lists what needs action first, renewed licenses last", async () => {
-    renderConsole(mockClient({ list: vi.fn().mockResolvedValue({ entries: [trialFirst, paidRenewal, globexExpiring] }) }));
+    renderConsole(mockClient({ list: vi.fn().mockResolvedValue({ entries: [trialFirst, paidRenewal, globexExpiring], nextPageToken: "" }) }));
     await waitFor(() => expect(screen.getByRole("table", { name: "Licenses" })).toBeTruthy());
 
     expect(screen.getByText("1 active · 1 expiring · 0 in grace")).toBeTruthy();
@@ -149,7 +149,7 @@ describe("LicensesConsole detail", () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, "clipboard", { value: { writeText }, configurable: true });
     const client = mockClient({
-      list: vi.fn().mockResolvedValue({ entries: [paidRenewal] }),
+      list: vi.fn().mockResolvedValue({ entries: [paidRenewal], nextPageToken: "" }),
       get: vi.fn().mockResolvedValue(license({ ...PAID_RENEWAL, ticket: "eyJhbGciOiJFZERTQSJ9.payload.sig" })),
     });
     renderConsole(client);
@@ -183,7 +183,7 @@ describe("LicensesConsole detail", () => {
     const user = userEvent.setup();
     const issued = license({ ...PAID_RENEWAL, issuer: { displayName, email } });
     const client = mockClient({
-      list: vi.fn().mockResolvedValue({ entries: [issued] }),
+      list: vi.fn().mockResolvedValue({ entries: [issued], nextPageToken: "" }),
       get: vi.fn().mockResolvedValue(issued),
     });
     renderConsole(client);
@@ -267,7 +267,7 @@ describe("LicensesConsole issue", () => {
 
   it("steers a new customer that duplicates an existing one back to the picker", async () => {
     const user = userEvent.setup();
-    renderConsole(mockClient({ list: vi.fn().mockResolvedValue({ entries: [globexExpiring] }) }));
+    renderConsole(mockClient({ list: vi.fn().mockResolvedValue({ entries: [globexExpiring], nextPageToken: "" }) }));
 
     await user.click(await screen.findByRole("button", { name: /Issue license/ }));
     await user.click(screen.getByLabelText("New customer"));
@@ -290,7 +290,7 @@ describe("LicensesConsole issue", () => {
       features: [Feature.sso_enforcement, Feature.channels],
     });
     const client = mockClient({
-      list: vi.fn().mockResolvedValue({ entries: [current] }),
+      list: vi.fn().mockResolvedValue({ entries: [current], nextPageToken: "" }),
       get: vi.fn().mockResolvedValue(current),
     });
     renderConsole(client);

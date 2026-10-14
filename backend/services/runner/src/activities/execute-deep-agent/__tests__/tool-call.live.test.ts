@@ -17,7 +17,7 @@
  * plane's real registry (`real-model-registry.ts`).
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { RunPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../client/stigmer-client.js", async () =>
   (await import("../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
@@ -28,6 +28,7 @@ import { liveSecret, recordLiveSpend, useProviderDirectly } from "../../../__tes
 import { stubRegistryFetch } from "../../../__test-utils__/model-registry-fixture.js";
 import { realModelRegistry } from "../../../__test-utils__/real-model-registry.js";
 import { beginLiveDeepAgentScenario, deepAgentExecutionRecord, runDeepAgentTurn } from "../__test-utils__/hermetic-deep-agent.js";
+import { ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const LIVE_MODEL = "claude-haiku-4.5";
 const MAX_COST_USD = 0.05;

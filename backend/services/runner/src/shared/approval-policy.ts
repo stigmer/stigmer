@@ -31,11 +31,12 @@
  */
 
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalMode, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SENSITIVE_ARG_KEYS } from "./args-preview.js";
 import { toolApprovalCategory, type ToolApprovalCategory } from "./tool-kind.js";
 import { extractFilePath } from "./file-tools.js";
 import type { McpToolListing } from "./mcp-tool-listing.js";
+import { ApprovalPolicySource } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
  * The set of run-lifetime approval leases active for an execution.

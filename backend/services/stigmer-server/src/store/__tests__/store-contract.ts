@@ -39,7 +39,9 @@
  * concurrent inserts, one entry per row change read from the row itself,
  * none for a refused insert or an empty delete, per-organization numbers
  * in order with times that never go back, and an entry the table refuses
- * rolling its row back.
+ * rolling its row back; and the history's read, one organization's
+ * entries newest first below a number or oldest first above one, a page
+ * at a time.
  *
  * Driver-physical behavior (column layouts, FTS5/tsvector internals,
  * migration chains, the repair's lock ordering) stays in each driver's own
@@ -144,8 +146,8 @@ export interface StoreContractFixture {
    */
   countPendingOAuthStates(): Promise<number>;
   /**
-   * Every iam_policy_history row, by organization then number (no Store
-   * member reads the history; the arms prove what was written).
+   * Every iam_policy_history row, by organization then number, read raw,
+   * so the write arms prove what was written without the Store's own read.
    */
   permissionHistory(): Promise<PermissionHistoryRow[]>;
   cleanup(): Promise<void>;
@@ -2837,6 +2839,68 @@ export function describeStoreContract(
       ]);
       const acme = entries.filter((entry) => entry.org === "acme").map((entry) => entry.occurredAt);
       expect([...acme].sort()).toEqual(acme);
+    });
+
+    it("reads one organization's entries newest first, or oldest first after a number, a page at a time", async () => {
+      for (const n of [1, 2, 3, 4, 5]) {
+        await fx.store.insertResource(
+          POLICY,
+          `iamp_a${n}`,
+          IamPolicySchema,
+          policy(`iamp_a${n}`, `ida_${n}`, "acme"),
+          change("acme"),
+        );
+      }
+      await fx.store.insertResource(POLICY, "iamp_b1", IamPolicySchema, policy("iamp_b1", "ida_1", "beta"), change("beta"));
+      await fx.store.deleteResource(POLICY, "iamp_a2", change("acme", "revoke"));
+
+      const sequences = (records: ReadonlyArray<{ sequence: bigint }>) =>
+        records.map((record) => Number(record.sequence));
+      expect(sequences(await fx.store.listPermissionHistory("acme", { limit: 2 }))).toEqual([6, 5]);
+      expect(sequences(await fx.store.listPermissionHistory("acme", { limit: 2, before: 5n }))).toEqual([4, 3]);
+      expect(sequences(await fx.store.listPermissionHistory("acme", { limit: 10, before: 3n }))).toEqual([2, 1]);
+      expect(await fx.store.listPermissionHistory("acme", { limit: 10, before: 1n })).toEqual([]);
+      expect(sequences(await fx.store.listPermissionHistory("acme", { limit: 2, after: 0n }))).toEqual([1, 2]);
+      expect(sequences(await fx.store.listPermissionHistory("acme", { limit: 2, after: 2n }))).toEqual([3, 4]);
+      expect(sequences(await fx.store.listPermissionHistory("acme", { limit: 10, after: 4n }))).toEqual([5, 6]);
+      expect(await fx.store.listPermissionHistory("acme", { limit: 10, after: 6n })).toEqual([]);
+      expect(sequences(await fx.store.listPermissionHistory("beta", { limit: 10 }))).toEqual([1]);
+      expect(await fx.store.listPermissionHistory("gamma", { limit: 10 })).toEqual([]);
+
+      const [revoked] = await fx.store.listPermissionHistory("acme", { limit: 1 });
+      expect(revoked).toMatchObject({
+        org: "acme",
+        sequence: 6n,
+        change: "revoked",
+        cause: "revoke",
+        actorId: "ida_actor",
+        actorClass: "user",
+        policyId: "iamp_a2",
+        principalKind: "identity_account",
+        principalId: "ida_2",
+        principalRelation: "",
+        relation: "member",
+        resourceKind: "organization",
+        resourceId: "acme",
+      });
+      expect(revoked?.occurredAt).toMatch(FIXED_WIDTH_UTC);
+      // The row as it stood: its id and triple (the store stamped its etag).
+      const stood = fromBinary(IamPolicySchema, revoked?.data ?? new Uint8Array());
+      expect(stood.metadata?.id).toBe("iamp_a2");
+      expect(stood.spec).toEqual(policy("iamp_a2", "ida_2", "acme").spec);
+      const raw = (await fx.permissionHistory()).filter((entry) => entry.org === "acme");
+      const read = await fx.store.listPermissionHistory("acme", { limit: 100, after: 0n });
+      expect(read.map((record) => [record.occurredAt, record.policyId, record.change])).toEqual(
+        raw.map((entry) => [entry.occurredAt, entry.policyId, entry.change]),
+      );
+    });
+
+    it("refuses a history read whose limit is not a positive integer", async () => {
+      for (const limit of [0, -1, 1.5]) {
+        await expect(fx.store.listPermissionHistory("acme", { limit })).rejects.toThrow(
+          `permission history limit must be a positive integer, got ${limit}`,
+        );
+      }
     });
 
     it("rolls the row back when the table refuses its entry", async () => {

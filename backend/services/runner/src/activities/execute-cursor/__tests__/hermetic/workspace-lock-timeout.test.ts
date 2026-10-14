@@ -30,7 +30,7 @@
 import { mkdirSync } from "node:fs";
 import { realpath } from "node:fs/promises";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -62,6 +62,7 @@ import {
   sessionWorkspaceDir,
 } from "../../__test-utils__/hermetic-cursor.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
+import { MessageType } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const USER_MESSAGE = "Rename the config module.";
 /** Below the lock's 1 s poll interval, so the first contended attempt times out. */
@@ -122,13 +123,14 @@ describe("ExecuteCursor hermetic — workspace lock timeout", () => {
           `Another agent execution is operating on this workspace directory; retry after it finishes.`,
       );
       const final = record.lastFullStatus!;
+      const finalRows = record.rowsOf(final);
       expect(final.error).toBe(expectedMessage);
       expect(final.completedAt).not.toBe("");
       expect(final.startedAt).not.toBe("");
       expect(
-        final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content),
+        finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content),
       ).toEqual([`Execution failed: ${expectedMessage}`]);
-      expect(final.messages, "the system message is the whole transcript").toHaveLength(1);
+      expect(finalRows.messages, "the system message is the whole transcript").toHaveLength(1);
 
       // ── Assert: the visible waiting state, then nothing past the lock ──────
       expect(record.setupProgress).toEqual([

@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
-import { useStigmer } from "../hooks.js";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useResourceCount } from "../search/index.js";
 
 /** Options for {@link useAgentCount}. */
@@ -30,8 +29,8 @@ export interface UseAgentCountReturn {
 /**
  * Data hook that fetches the total count of agents.
  *
- * Issues a minimal `stigmer.agent.list()` call to retrieve only the
- * total count — no agent entries are returned or stored. Useful for
+ * Reads search's count of the organization's agents for this kind —
+ * no agent entries are returned or stored. Useful for
  * summary cards, badges, and dashboard widgets.
  *
  * For the full paginated agent list, use {@link useAgentList} instead.
@@ -47,13 +46,5 @@ export function useAgentCount(
   org: string | null,
   options?: UseAgentCountOptions,
 ): UseAgentCountReturn {
-  const stigmer = useStigmer();
-
-  const listFn = useCallback(
-    (params: Parameters<typeof stigmer.agent.list>[0]) =>
-      stigmer.agent.list(params),
-    [stigmer],
-  );
-
-  return useResourceCount(listFn, org, options);
+  return useResourceCount(ApiResourceKind.agent, org, options);
 }

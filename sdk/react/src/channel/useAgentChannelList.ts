@@ -2,8 +2,9 @@
 
 import { create } from "@bufbuild/protobuf";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { GetAgentChannelsByAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
+import { ListAgentChannelsByAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
 import { useStigmer } from "../hooks.js";
+import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
 import { useFetch } from "../internal/useFetch.js";
 
 /** Return value of {@link useAgentChannelList}. */
@@ -35,7 +36,8 @@ export interface UseAgentChannelListReturn {
  * on (`spec.enabled`) — the two axes the Channels tab renders.
  *
  * Pass `org` to scope the list to one organization's channels; the server
- * only ever narrows the permission-bounded view. Pass an empty `agentId`
+ * only ever narrows the permission-bounded view. An agent has a handful of
+ * channels and the tab shows them all, so the hook walks every page. Pass an empty `agentId`
  * to skip fetching (stable no-op) — useful while the agent is still
  * loading.
  *
@@ -51,12 +53,17 @@ export function useAgentChannelList(agentId: string, org?: string): UseAgentChan
   const stigmer = useStigmer();
 
   const fetchFn = agentId
-    ? async () => {
-        const result = await stigmer.agentChannel.getByAgent(
-          create(GetAgentChannelsByAgentRequestSchema, { agentId, org: org ?? "" }),
-        );
-        return result.items;
-      }
+    ? () =>
+        readEveryPage((pageToken) =>
+          stigmer.agentChannel.listByAgent(
+            create(ListAgentChannelsByAgentRequestSchema, {
+              agentId,
+              org: org ?? "",
+              pageSize: LIST_PAGE_MAX,
+              pageToken,
+            }),
+          ),
+        )
     : null;
 
   const { data: channels, isLoading, isRefetching, error, refetch } = useFetch(

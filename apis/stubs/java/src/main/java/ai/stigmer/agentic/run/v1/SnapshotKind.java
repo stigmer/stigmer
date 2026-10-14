@@ -151,7 +151,7 @@ public enum SnapshotKind
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.run.v1.EnumProto.getDescriptor().getEnumType(24);
+    return ai.stigmer.agentic.run.v1.EnumProto.getDescriptor().getEnumType(10);
   }
 
   private static final SnapshotKind[] VALUES = values();

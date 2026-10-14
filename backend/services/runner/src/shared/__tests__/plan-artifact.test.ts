@@ -1,11 +1,8 @@
 import { createHash } from "node:crypto";
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   RunArtifactKind,
-  MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ArtifactStorage } from "../artifact-storage.js";
 import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
@@ -16,6 +13,9 @@ import {
   isPlanArtifactName,
   PLAN_ARTIFACT_NAME,
 } from "../plan-artifact.js";
+import { AgentMessageSchema, TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { MessageType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 
 /** Records uploads and returns deterministic download URLs (canonical double + shim). */
 function fakeStorage(): ArtifactStorage & { uploads: { key: string; content: Buffer; contentType?: string }[] } {
@@ -35,7 +35,7 @@ function planId(text: string): string {
 }
 
 function statusWith(...messages: { type: MessageType; content: string }[]) {
-  return create(RunStatusSchema, {
+  return create(TurnRowsSchema, {
     messages: messages.map((m) =>
       create(AgentMessageSchema, { type: m.type, content: m.content }),
     ),

@@ -105,8 +105,8 @@ type RunSpec struct {
 	// - Native harness: uses deepagents responseFormat/ToolStrategy
 	// - Cursor harness: prompt instruction + extraction fallback
 	//
-	// The validated structured data lands on the run's
-	// status.structured_output.
+	// The validated structured data is the turn's
+	// stigmer.agent.structured_output session event.
 	StructuredOutputSchema *structpb.Struct `protobuf:"bytes,21,opt,name=structured_output_schema,json=structuredOutputSchema,proto3" json:"structured_output_schema,omitempty"`
 	// Tools this turn may use, in the same names as an agent's tools; empty
 	// leaves the agent's tools as they are.

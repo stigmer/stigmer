@@ -99,6 +99,7 @@ import { awaitTerminal, makeAgentExecution, requireLlmProxy, sessionIdOf } from 
 import { uniqueName } from "../support/naming";
 import { renderSystemPrompt, renderToolSurface } from "../support/request-shape";
 import { makeSkillArtifact } from "../support/skills";
+import { turnOfRun } from "../support/turn";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -416,6 +417,6 @@ describe("Run request shape — thinking, per the model's native registry row", 
     expect(format?.type).toBe("json_schema");
     expect(format?.schema?.additionalProperties, "Anthropic accepts only closed objects").toBe(false);
     expect(request.tool_choice, "no tool is forced while the model thinks").toBeUndefined();
-    expect(final.status?.structuredOutput, "the JSON answer is the execution's structured output").toEqual(answer);
+    expect((await turnOfRun(clients, final)).structuredOutput, "the JSON answer is the turn's structured output").toEqual(answer);
   });
 });

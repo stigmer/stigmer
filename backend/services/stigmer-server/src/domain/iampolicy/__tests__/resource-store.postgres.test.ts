@@ -10,7 +10,8 @@
  * because the built-in authorizer reads them on every check; two
  * concurrent saves of one triple end in one row and one winner; and the
  * history: kept, one entry per change the grant path records and none for
- * a duplicate or an id not held; not kept, none at all.
+ * a duplicate or an id not held, read back through the port by the kit's
+ * history cases; not kept, none at all.
  *
  * The kit's case list is pinned by name so a case cannot drop out unnoticed:
  * another driver's test iterates the same export over its own table and
@@ -67,6 +68,15 @@ const CONTRACT_CASE_NAMES = [
   "two concurrent saves of one triple end in one row and DuplicatePolicyErrors only",
 ] as const;
 
+/** The history lines, pinned the same way, by whether the store keeps one. */
+const HISTORY_CASE_NAMES = {
+  kept: [
+    "with a history, each recorded write that changed a row reads back as one change, in order, and nothing else does",
+    "with a history, newest first below a number and oldest first above one page exactly at their edges",
+  ],
+  notKept: ["without a history, a recorded write leaves no change to read"],
+} as const;
+
 /** One permission-history entry, the columns the adapter's cases read. */
 interface HistoryEntry {
   readonly org: string;
@@ -95,7 +105,7 @@ function historyEntryOf(row: Record<string, unknown>): HistoryEntry {
 
 interface OpenedStore {
   readonly store: Store;
-  /** Every permission-history entry, read raw (no Store member reads it). */
+  /** Every permission-history entry, read raw, beside the port's own read. */
   history(): Promise<HistoryEntry[]>;
   close(): Promise<void>;
 }
@@ -178,12 +188,14 @@ describe.each([sqliteFixture, postgresFixture])(
             cleanup: () => opened.close(),
           };
         },
+        options,
       );
 
       it("carries every contract line, by name", () => {
-        expect(cases.map((contractCase) => contractCase.name)).toEqual(
-          CONTRACT_CASE_NAMES,
-        );
+        expect(cases.map((contractCase) => contractCase.name)).toEqual([
+          ...CONTRACT_CASE_NAMES,
+          ...(options.keepsHistory ? HISTORY_CASE_NAMES.kept : HISTORY_CASE_NAMES.notKept),
+        ]);
       });
 
       for (const contractCase of cases) {
