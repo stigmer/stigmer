@@ -3,7 +3,8 @@
  * agent version and each subagent it lists write themselves, the subagent
  * read at the version the agent pinned (not its head), each name once. A
  * subagent whose pinned version is gone adds nothing, and refuses nothing:
- * the try's own run is refused naming it.
+ * the try's own run is refused naming it. A store fault is thrown, never
+ * taken for a subagent gone.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -68,6 +69,19 @@ describe("writtenServerNames", () => {
 
   it("adds nothing for a subagent whose pinned version is gone", async () => {
     expect(await writtenServerNames(store, parent("c".repeat(64)), ORG)).toEqual(["zendesk"]);
+  });
+
+  it("throws a store fault rather than reading it as a subagent gone", async () => {
+    const faulty = new Proxy(store, {
+      get(target, property, receiver) {
+        if (property === "getResource" || property === "getResourceByName") {
+          return () => Promise.reject(new Error("disk unavailable"));
+        }
+        const value: unknown = Reflect.get(target, property, receiver);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    await expect(writtenServerNames(faulty, parent(PINNED), ORG)).rejects.toThrow();
   });
 
   it("names nothing for no agent", async () => {
