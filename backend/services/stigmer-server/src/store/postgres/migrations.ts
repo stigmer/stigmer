@@ -170,6 +170,11 @@ import {
   logUnreadableEtagRows,
   stampEtagRow,
 } from "../resource-etags-stamped.js";
+import {
+  LABEL_TAG_REPORT_KIND_NAMES,
+  LABEL_TAG_REPORT_PAGE_SIZE,
+  LabelTagTally,
+} from "../label-tag-report.js";
 
 export const SCHEMA_VERSION_1 = 1;
 export const SCHEMA_VERSION_2 = 2;
@@ -240,8 +245,11 @@ export const SCHEMA_VERSION_29 = 29;
 /** v30: the identity provider is a federation issuer: its names and the grants that name it. */
 export const SCHEMA_VERSION_30 = 30;
 
+/** v31: the stored labels, tags and annotations the new rules refuse, reported (nothing rewritten). */
+export const SCHEMA_VERSION_31 = 31;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_30;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_31;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -312,6 +320,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_28, migrateToV28],
       [SCHEMA_VERSION_29, (migrating) => migrateToV29(migrating, logger)],
       [SCHEMA_VERSION_30, migrateToV30],
+      [SCHEMA_VERSION_31, (migrating) => migrateToV31(migrating, logger)],
     ];
 
     for (const [version, migrate] of chain) {
@@ -2026,5 +2035,37 @@ async function migrateToV30(client: PoolClient): Promise<void> {
     const last = rows[rows.length - 1]!;
     afterOrg = last.org;
     afterSequence = Number(last.sequence);
+  }
+}
+
+/**
+ * v31: labels and tags gain their rules and annotations leave resource
+ * metadata (../label-tag-report.ts says what a row is found to hold). Each
+ * kind's rows are read in keyset pages on `(kind, id)`, and the ones whose
+ * stored labels, tags or annotations the rules refuse are named in one
+ * warning per kind. Nothing is written: the step only reports.
+ */
+async function migrateToV31(client: PoolClient, logger: StoreLogger): Promise<void> {
+  for (const kind of LABEL_TAG_REPORT_KIND_NAMES) {
+    const tally = new LabelTagTally(kind);
+    for (let after = ""; ; ) {
+      const rows = (
+        await client.query<{ id: string; data: Buffer }>(
+          `SELECT id, data FROM resources
+           WHERE kind = $1 AND id > $2
+           ORDER BY id
+           LIMIT $3`,
+          [kind, after, LABEL_TAG_REPORT_PAGE_SIZE],
+        )
+      ).rows;
+      for (const row of rows) {
+        tally.add(row.id, new Uint8Array(row.data));
+      }
+      if (rows.length < LABEL_TAG_REPORT_PAGE_SIZE) {
+        break;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+    tally.log(logger);
   }
 }

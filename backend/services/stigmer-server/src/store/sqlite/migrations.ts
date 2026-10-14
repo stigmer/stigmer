@@ -165,6 +165,11 @@ import {
   logUnreadableEtagRows,
   stampEtagRow,
 } from "../resource-etags-stamped.js";
+import {
+  LABEL_TAG_REPORT_KIND_NAMES,
+  LABEL_TAG_REPORT_PAGE_SIZE,
+  LabelTagTally,
+} from "../label-tag-report.js";
 
 export const SCHEMA_VERSION_1 = 1;
 export const SCHEMA_VERSION_2 = 2;
@@ -233,8 +238,11 @@ export const SCHEMA_VERSION_33 = 33;
 /** v34: every stored resource stamped with its etag. */
 export const SCHEMA_VERSION_34 = 34;
 
+/** v35: the stored labels, tags and annotations the new rules refuse, reported (nothing rewritten). */
+export const SCHEMA_VERSION_35 = 35;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_34;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_35;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -294,6 +302,7 @@ export function runMigrations(
     [SCHEMA_VERSION_32, migrateToV32],
     [SCHEMA_VERSION_33, migrateToV33],
     [SCHEMA_VERSION_34, (migrating) => migrateToV34(migrating, logger)],
+    [SCHEMA_VERSION_35, (migrating) => migrateToV35(migrating, logger)],
   ];
 
   for (const [version, migrate] of chain) {
@@ -1896,5 +1905,36 @@ function migrateToV34(db: DatabaseSync, logger: StoreLogger): void {
       after = rows[rows.length - 1]!.id;
     }
     logUnreadableEtagRows(logger, kind, unreadable);
+  }
+}
+
+/**
+ * v35: labels and tags gain their rules and annotations leave resource
+ * metadata — the Postgres driver's v31 in this engine's terms
+ * (../label-tag-report.ts says what a row is found to hold). Each kind's
+ * rows are read in keyset pages, and the ones whose stored labels, tags or
+ * annotations the rules refuse are named in one warning per kind. Nothing
+ * is written: the step only reports.
+ */
+function migrateToV35(db: DatabaseSync, logger: StoreLogger): void {
+  const page = db.prepare(
+    `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+  );
+  for (const kind of LABEL_TAG_REPORT_KIND_NAMES) {
+    const tally = new LabelTagTally(kind);
+    for (let after = ""; ; ) {
+      const rows = page.all(kind, after, LABEL_TAG_REPORT_PAGE_SIZE) as Array<{
+        id: string;
+        data: Uint8Array;
+      }>;
+      for (const row of rows) {
+        tally.add(row.id, row.data);
+      }
+      if (rows.length < LABEL_TAG_REPORT_PAGE_SIZE) {
+        break;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+    tally.log(logger);
   }
 }
