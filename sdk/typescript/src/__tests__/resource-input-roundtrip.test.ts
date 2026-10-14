@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { PluginEvalMockKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
+import { EvalMockKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
 import {
   create,
   toJson,
@@ -341,7 +341,7 @@ describe("toAgentExecutionInput", () => {
         },
         reconcileFileReview: true,
         excludedPluginIds: ["plg_compared"],
-        pluginEvalCase: {
+        evalCase: {
           pluginId: "plg_1",
           pluginDigest: "a".repeat(64),
           suiteDir: "evals",
@@ -359,7 +359,7 @@ describe("toAgentExecutionInput", () => {
                 {
                   tool: "create_issue",
                   file: "evals/mocks/tracker/create_issue.md",
-                  kind: PluginEvalMockKind.fixed,
+                  kind: EvalMockKind.fixed,
                   error: true,
                   expectJson: '{"title":"string"}',
                   abortWhen: "",

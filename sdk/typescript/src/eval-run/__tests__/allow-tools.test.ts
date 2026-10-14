@@ -1,5 +1,5 @@
-// Pins ALLOW_TOOL_PATTERN (plugin-eval/allow-tools.ts) to the pattern the
-// eval specs carry: it is read from both protos and compared byte for byte,
+// Pins ALLOW_TOOL_PATTERN (eval-run/allow-tools.ts) to the pattern the eval
+// run spec carries: it is read from the proto and compared byte for byte,
 // so a change to one copy without the other fails here; and a few entries
 // each side of the rule.
 
@@ -18,13 +18,8 @@ function protoPattern(relative: string): string {
 }
 
 describe("ALLOW_TOOL_PATTERN", () => {
-  it("is the pattern both eval specs carry", () => {
-    for (const proto of [
-      "../../../../../apis/ai/stigmer/agentic/plugineval/v1/spec.proto",
-      "../../../../../apis/ai/stigmer/agentic/agenteval/v1/spec.proto",
-    ]) {
-      expect(ALLOW_TOOL_PATTERN.source).toBe(protoPattern(proto));
-    }
+  it("is the pattern the eval run spec carries", () => {
+    expect(ALLOW_TOOL_PATTERN.source).toBe(protoPattern("../../../../../apis/ai/stigmer/agentic/evalrun/v1/spec.proto"));
   });
 
   it("accepts Claude tools, specifiers and both MCP forms, and refuses anything else", () => {

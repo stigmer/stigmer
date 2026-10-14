@@ -279,43 +279,34 @@ export {
   buildEvaluatorProto,
   type EvaluatorInput,
 } from "./gen/evaluator.js";
-// Plugin evals: one run of a plugin's own evals/ cases. An eval is started
+// Eval runs: test cases run on an agent, or on a plugin on the built-in
+// assistant, optionally with and without a plugin. An eval run is started
 // and read, never applied, so it has no update input; the result document
 // and the case builder are the pure reads the CLI and the console share.
 export {
-  PluginEvalClient,
-  buildPluginEvalProto,
-  type PluginEvalInput,
-  type PluginEvalTargetInput,
-} from "./gen/plugineval.js";
+  EvalRunClient,
+  buildEvalRunProto,
+  type EvalRunInput,
+  type EvalRunCaseSourceInput,
+  type EvalRunTargetInput,
+} from "./gen/evalrun.js";
 export {
   toResultDocument,
-  pluginEvalTargetLabel,
-  type PluginEvalResultDocument,
+  evalRunTargetLabel,
+  type EvalRunPluginResult,
+  type EvalRunResultDocument,
+  type ResultAggregates,
   type ResultCase,
   type ResultDocumentOptions,
   type ResultNotRun,
   type ResultPartialReason,
   type ResultRun,
+  type ResultSubject,
   type ResultTarget,
   resultBlockOf,
   type ResultBlock,
-} from "./plugin-eval/result-document.js";
-// Agent evals: one run of an agent on the eval cases of the plugins it
-// attaches. Started and read, never applied; the result document is the
-// pure read the CLI and the console share.
-export {
-  AgentEvalClient,
-  buildAgentEvalProto,
-  type AgentEvalInput,
-} from "./gen/agenteval.js";
-export { ALLOW_TOOL_PATTERN } from "./plugin-eval/allow-tools.js";
-export {
-  toAgentEvalResultDocument,
-  type AgentEvalPluginResult,
-  type AgentEvalResultDocument,
-  type AgentEvalResultDocumentOptions,
-} from "./agent-eval/result-document.js";
+} from "./eval-run/result-document.js";
+export { ALLOW_TOOL_PATTERN } from "./eval-run/allow-tools.js";
 export {
   caseFromRun,
   suggestCaseName,
@@ -323,7 +314,7 @@ export {
   type CaseFile,
   type CaseFromRun,
   type CaseFromRunInput,
-} from "./plugin-eval/case-from-run.js";
+} from "./eval-run/case-from-run.js";
 export {
   VaultClient,
   buildVaultProto,

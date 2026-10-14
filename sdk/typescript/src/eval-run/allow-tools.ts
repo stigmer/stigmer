@@ -1,5 +1,5 @@
 // The rule an eval's `allow_tools` entry follows, the API's own
-// (plugineval/v1/spec.proto and agenteval/v1/spec.proto carry the same
+// (evalrun/v1/spec.proto carries the
 // pattern): a Claude Code tool with an optional specifier, as `Write` or
 // `Bash(npm test *)`, or MCP tools as `mcp__plugin_<plugin>_<server>__<tool>`
 // (Claude Code's form) or `mcp__<server>__<tool>` (Stigmer's), `*` for every
