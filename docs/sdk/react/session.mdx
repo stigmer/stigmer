@@ -832,9 +832,9 @@ Pass `null` to skip fetching (stable no-op). Call `refetch()` to
 re-query after a new run is created within the same session
 (needed by the follow-up conversation loop).
 
-Returns up to 100 runs per call. Sessions rarely exceed a
-handful of runs; full cursor-based pagination can be added
-later without breaking the return type.
+A conversation renders all of its turns, so the hook walks every page
+of the session's runs (refusing past the SDK's walk cap rather than
+showing a cut conversation).
 
 **Signature**
 
@@ -889,7 +889,8 @@ this hook uses the SearchService which returns lightweight `SearchResult`
 projections and benefits from the search index's optimized access patterns.
 
 Supports incremental "load more" pagination — each call to `loadMore()`
-fetches the next page and appends results.
+follows the search's page token and appends results. A list carries no
+total.
 
 **Signature**
 
@@ -907,16 +908,15 @@ function useSessionSearch(options?: UseSessionSearchOptions): UseSessionSearchRe
 
 <TypeTable
   type={{
-    currentPage: { type: "number", description: "The current page number (1-indexed)." },
     error: { type: "Error | null", description: "Error from the last failed request, or `null`." },
     hasMore: { type: "boolean", description: "Whether more pages are available." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    isLoadingMore: { type: "boolean", description: "`true` while a `loadMore` read is in flight." },
     isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight." },
     loadMore: { type: "() => void", description: "Load the next page (appends to existing sessions)." },
-    refetch: { type: "() => void", description: "Re-fetch the current page." },
-    sessions: { type: "readonly SearchResult[]", description: "Current page of session entries (lightweight SearchResult projections)." },
-    totalCount: { type: "number", description: "Total number of sessions matching the query." },
-    totalPages: { type: "number", description: "Total pages available." },
+    loadMoreError: { type: "Error | null", description: "Error from the last failed `loadMore`, or `null`." },
+    refetch: { type: "() => void", description: "Re-read the first page; pages loaded since stay." },
+    sessions: { type: "readonly SearchResult[]", description: "The first page of sessions, then every page loaded since (lightweight SearchResult projections)." },
   }}
 />
 

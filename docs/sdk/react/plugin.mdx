@@ -322,8 +322,8 @@ const { plugin, isLoading } = usePlugin("acme", "thermos");
 ### usePluginCount
 
 Data hook that fetches the total count of installed plugins, for summary
-cards and badges. Issues a minimal `stigmer.plugin.list()` call for the
-count alone. Pass `null` as `org` to skip fetching.
+cards and badges, read from search's count for the kind (no entries are
+kept). Pass `null` as `org` to skip fetching.
 
 **Signature**
 
@@ -352,10 +352,14 @@ function usePluginCount(org: string | null, options?: UsePluginCountOptions): Us
 
 ### usePluginList
 
-Data hook that fetches a paginated list of installed plugins for the
-Library. Wraps `stigmer.plugin.list()` (the search-backed listing every
-indexed kind shares) with pagination and text search over the
-organization's plugins; the consumer owns page state and query debouncing.
+Data hook that lists an organization's plugins for the Library, a page at
+a time: `stigmer.plugin.list()` newest first while `query` is empty,
+search matches while it holds text. All parameters are externally
+controlled — the consumer manages query debouncing. A list carries no
+total; use [`usePluginCount`](#useplugincount) for a count.
+
+For picker/type-ahead search with internal debouncing and query
+state management, use [`usePluginSearch`](#usepluginsearch) instead.
 
 Pass `null` as `org` to skip fetching (stable no-op).
 
@@ -376,18 +380,19 @@ function usePluginList(org: string | null, options?: UsePluginListOptions): UseP
 
 <TypeTable
   type={{
-    currentPage: { type: "number", description: "The current page number (mirrors the `page` option)." },
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
-    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
-    plugins: { type: "readonly SearchResult[]", description: "Paginated plugin entries for the current page." },
-    refetch: { type: "() => void", description: "Discard cached data and re-fetch the current page from the server." },
-    totalCount: { type: "number", description: "Total number of plugins matching the current filters." },
-    totalPages: { type: "number", description: "Total pages available at the current page size." },
+    hasMore: { type: "boolean", description: "`true` while the server holds plugins beyond those loaded." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    isLoadingMore: { type: "boolean", description: "`true` while a `loadMore` read is in flight." },
+    loadMore: { type: "() => void", description: "Load the next page. No-op while one is loading or when nothing follows." },
+    loadMoreError: { type: "Error | null", description: "Error from the last failed `loadMore`, or `null`." },
+    plugins: { type: "readonly SearchResult[]", description: "The first page of plugins, then every page loaded since." },
+    refetch: { type: "() => void", description: "Re-read the first page; pages loaded since stay." },
   }}
 />
 
 ```tsx
-const { plugins, totalCount } = usePluginList("acme", { page: 1, pageSize: 20 });
+const { plugins, hasMore, loadMore, isLoading } = usePluginList("acme", { pageSize: 20 });
 ```
 
 
@@ -428,7 +433,8 @@ const title = presentation.displayName ?? entry.name;
 
 Data hook that searches the plugins installed in the given organization.
 
-Wraps `stigmer.plugin.list()` with debounced search, loading/error
+Lists the organization's plugins, newest first, while nothing is typed
+and searches them once something is, with a debounce, loading/error
 tracking, and cancellation-safe fetching. Platform builders use this
 when they want full control over rendering; the [`PluginPicker`](#pluginpicker)
 styled component uses it internally.
@@ -555,7 +561,8 @@ function usePluginUpload(): UsePluginUploadReturn
 Data hook that fetches the version history of an installed plugin and
 maps it to the generic [`VersionEntry`](/docs/sdk/react/version-history#versionentry) the `VersionTimeline` renders.
 A version's id is its archive digest; its tag is the manifest version
-when that fits the tag pattern. Pass `null` to skip fetching.
+when that fits the tag pattern. The history pages newest first
+(`hasMore` / `loadMore` for older versions). Pass `null` to skip fetching.
 
 **Signature**
 
@@ -575,8 +582,12 @@ function usePluginVersions(org: string | null, slug: string | null): UsePluginVe
 <TypeTable
   type={{
     error: { type: "Error | null", description: "Error from the last failed request, or `null`." },
+    hasMore: { type: "boolean", description: "`true` while the server holds entries beyond those loaded." },
     isEmpty: { type: "boolean", description: "`true` when the plugin has no recorded versions." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    isLoadingMore: { type: "boolean", description: "`true` while a `loadMore` read is in flight." },
+    loadMore: { type: "() => void", description: "Load the next page. No-op while one is loading or when nothing follows." },
+    loadMoreError: { type: "Error | null", description: "Error from the last failed `loadMore`, or `null`." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
     versions: { type: "readonly VersionEntry[]", description: "Version entries mapped to the generic timeline format (newest first)." },
   }}
@@ -1718,9 +1729,8 @@ Options for [`usePluginList`](#usepluginlist).
 
 <TypeTable
   type={{
-    page: { type: "number", description: "Page number (1-indexed)." },
-    pageSize: { type: "number", description: "Maximum plugins per page." },
-    query: { type: "string", description: "Text query to filter plugins by name, description or keywords." },
+    pageSize: { type: "number", description: "Maximum plugins per page, the first and each `loadMore`." },
+    query: { type: "string", description: "Text query to filter plugins by name, description, or tags." },
   }}
 />
 
