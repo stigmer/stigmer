@@ -3,9 +3,10 @@ name: model-proto-resource
 description:
   The procedure for adding or reshaping an API resource in the protobuf contract
   under apis, covering the file layout, the resource envelope, kind registration
-  with its metadata, the authorization annotation on every RPC, validation,
-  comments, the overview file, and the codegen that follows. Use when creating a
-  resource, adding an RPC, or changing a generated message.
+  with its metadata, the resource contract, the authorization annotation on
+  every RPC, validation, comments, the overview file, and the codegen that
+  follows. Use when creating a resource, adding an RPC, or changing a generated
+  message.
 paths:
   - apis/**
 ---
@@ -26,26 +27,25 @@ A resource lives in a bounded context, a directory under `apis/ai/stigmer/`:
 kinds), `iam` (identity, keys, policies, invitations), `tenancy` (organizations,
 projects), `platform`, `billing`, `search`, `activity`. Name its aggregate and
 its owner (which organization or parent it belongs to, who may grant roles on
-it) before a field is written; the authorization metadata in step 3 asks for
-both.
+it) before a field is written; the kind's registration in step 3 asks for both.
 
 ## 2. The files
 
 A resource directory is `<context>/<resource>/v1/`. The split by responsibility
 is the convention, not a fixed count of files:
 
-- `api.proto`: the resource message (the envelope below) and its list message.
+- `api.proto`: the resource message (the envelope below).
 - `spec.proto`: the user-provided configuration, with its supporting messages
   and enums.
 - `status.proto`: the system-managed state, when the kind has any.
 - `command.proto` and `query.proto`: one service each, write side and read side,
   and nothing but services.
-- `io.proto`: the request and response messages both services use (the id
-  message, list inputs, and so on).
+- `io.proto`: the request and response messages both services use: the id
+  message, `Update<Kind>Input`, `List<Kind>sRequest` and `<Kind>List` (step 4).
 - Further files as the kind needs them: an `enum.proto` for shared enums, a
   `version.proto` for versioned kinds, topic files for large sub-shapes
   (`apis/ai/stigmer/agentic/run/v1/` has `approval.proto`, `message.proto`,
-  `usage.proto`), the overview file of step 7, and for kinds with a curl
+  `usage.proto`), the overview file of step 8, and for kinds with a curl
   walkthrough a folder of scripts (`apis/ai/stigmer/iam/apikey/v1/curl/`).
 
 Messages never live in the service files; services never live in the message
@@ -86,7 +86,45 @@ kind chose, and keep enum numbers unique and never reused.
 Each service names its kind once with the service option
 `(ai.stigmer.commons.apiresource.api_resource_kind)`.
 
-## 4. Authorization on every RPC
+## 4. The resource contract
+
+Every kind behaves one way for the four things a person does to a resource:
+names it, points at it, changes it, lists it. Copy the agent's shapes
+(`apis/ai/stigmer/agentic/agent/v1/io.proto`, `command.proto`, `query.proto`);
+each part has a server inventory whose test refuses a kind that skips it, and a
+new kind adds its rows in the same pull request.
+
+- **The name.** A kind people name claims its slug in the organization, so two
+  of a kind never share one. A kind whose slug may change has
+  `rename(ai.stigmer.commons.apiresource.RenameInput)` returning the resource,
+  and update and apply never change the slug; its comment copies the agent's
+  (the old slug reads for 30 days, `SLUG_RENAMED` on a write that names it).
+  Every kind's answer, claimed or why not, is a row in `NAMED_KINDS`
+  (`backend/services/stigmer-server/src/pipeline/steps/names.ts`), held equal to
+  `ApiResourceKind` by
+  `backend/services/stigmer-server/src/pipeline/steps/__tests__/names.postgres.test.ts`.
+- **References.** A field that names another resource is an
+  `ai.stigmer.commons.apiresource.ApiResourceReference` with the
+  `(ai.stigmer.commons.apiresource.reference_kind)` option naming the kind it
+  points at: written by slug or id, stored by id, returned with the current
+  slug. `backend/services/stigmer-server/docs/reference-fields.md` classes every
+  field that names a resource, and its test refuses one with no row.
+- **Updates.** `update(Update<Kind>Input)` takes the resource and a
+  `google.protobuf.FieldMask`, with the `update_names_its_target` rule requiring
+  `resource.metadata.id`. A spec field another RPC owns (a vault's secrets, an
+  organization's policies) is declared beside the kind's update chain, so the
+  mask refuses it; `backend/services/stigmer-server/docs/update-paths.md` is the
+  inventory. The update's comment names its two `ABORTED` reasons,
+  `ETAG_MISMATCH` and `WRITE_CONFLICT`.
+- **Lists.** `list(List<Kind>sRequest)` returns `<Kind>List` for an
+  organization's rows, and `listBy<Parent>` for a parent's (an agent's channels
+  are `listByAgent`). The request takes `page_size` and `page_token` beside its
+  filters, a resource list also a `labels` map; the response returns `entries`
+  and `next_page_token` and never a total.
+  `backend/services/stigmer-server/docs/list-shapes.md` classes every
+  list-shaped RPC.
+
+## 5. Authorization on every RPC
 
 Every RPC declares its posture with the options in
 `apis/ai/stigmer/commons/rpc/method_options.proto`; the server's `Authorize`
@@ -106,7 +144,10 @@ names the kind the permission is checked on, the permission, and where in the
 request the target's id is:
 
 - An id message: `field_path = "value"`.
-- A full resource on update: `field_path = "metadata.id"`.
+- An update: `field_path = "resource.metadata.id"`, the target inside
+  `Update<Kind>Input`.
+- A rename: `field_path = "resource_id"` with `can_delete`, because whoever may
+  delete a resource may rename it.
 - Create: the check is on the parent, so `resource_kind` is the parent kind
   (`organization`), the permission is the parent's (`can_create_agent`), and
   `field_path` is `"metadata.org"`.
@@ -135,7 +176,7 @@ rest in its handler, with a comment on the RPC saying so.
 `backend/services/stigmer-server/docs/authorization-coverage.md` inventories
 every RPC's posture and changes in the same pull request.
 
-## 5. Spec against status
+## 6. Spec against status
 
 User-provided configuration is spec; system-managed state is status. A field the
 user cannot supply (an id the engine minted, a run phase, an execution
@@ -146,7 +187,7 @@ system update state without touching the user's input. When a field seems out of
 place in a request or a spec, look for the precedent in a similar kind before
 adding it.
 
-## 6. Validation and comments
+## 7. Validation and comments
 
 Constraints are protovalidate rules on the field (the `buf.validate` import
 every spec file carries), never prose. `buf lint` runs with comment ignores
@@ -159,7 +200,7 @@ authorization detail below a full-line `@internal` marker that
 no YAML, dividers or Markdown headers. `make stubs-internal-check` proves no
 `@internal` text reached a stub.
 
-## 7. The overview file
+## 8. The overview file
 
 `<resource>/docs/overview.md` beside the protos is the hand-written first
 section of the kind's generated SDK reference page: two or three sentences on
@@ -168,7 +209,7 @@ register and shape are in `.agents/skills/docs-writing/SKILL.md` under
 "Reference pages generated from protos". Twenty-five kinds have one today; a new
 user-facing kind gets one in the same pull request.
 
-## 8. Generate, then verify
+## 9. Generate, then verify
 
 From the repository root, `make codegen` regenerates every stub under
 `apis/stubs/`, every SDK's `gen` directory, the validation helpers and the SDK
@@ -185,6 +226,13 @@ cleanup commit.
 - Envelope fields in order with their constraints; kind registered with complete
   `kind_meta`, including the authorization block.
 - Services only in `command.proto` and `query.proto`; requests in `io.proto`.
+- The name: a `NAMED_KINDS` row, and `rename` where the slug may change.
+- Every reference field an `ApiResourceReference` with `reference_kind`, and a
+  row in `reference-fields.md`.
+- `Update<Kind>Input` with its mask; refused paths declared and listed in
+  `update-paths.md`.
+- Lists paged with `entries` and `next_page_token`, a resource list with
+  `labels`, each a row in `list-shapes.md`.
 - Every RPC carries `config`, `is_public` or `is_skip_authorization`, each a
   deliberate choice; the coverage document updated.
 - Every new RPC is tagged `[rpc:<Service>.<method>]` on the conformance test
