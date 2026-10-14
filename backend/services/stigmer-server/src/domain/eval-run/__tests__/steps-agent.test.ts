@@ -97,7 +97,7 @@ import {
 import type { EvalSuiteSource } from "../suite.js";
 import { EvalRunEngineUnavailableError } from "../workflows.js";
 import type { EvalRunWorkflows } from "../workflows.js";
-import { EVAL_RUN_AGENT_DENIED_MESSAGE, PLUGIN_NO_CASES_REASON } from "../constants.js";
+import { EVAL_RUN_AGENT_DENIED_MESSAGE, EVAL_RUN_COMPARED_DENIED_MESSAGE, PLUGIN_NO_CASES_REASON } from "../constants.js";
 import {
   EVAL_RUN_RESULT_KEY,
   EVAL_RUN_SUBJECT_KEY,
@@ -354,6 +354,67 @@ describe("ResolveAgentEvalDefaults", () => {
     const version = ctx.get(EVAL_RUN_LOAD_KEY) as EvaluatedLoad;
     expect(version.plugins.map((entry) => [entry.plugin.metadata?.id, entry.attached, entry.compared])).toEqual([["plg_1", true, false]]);
     expect([...version.selected]).toEqual(["plg_1"]);
+  });
+});
+
+describe("ResolveEvalRunDefaults with a compared plugin", () => {
+  const CANDIDATE: Plugin = create(PluginSchema, {
+    metadata: { id: "plg_candidate", org: ORG, slug: "candidate", name: "candidate" },
+    status: { digest: OTHER_DIGEST },
+  });
+
+  function comparing(pluginId: string) {
+    const row = evalRow("", EvalRunPhase.unspecified);
+    row.spec!.comparedPluginId = pluginId;
+    const ctx = createCtx(row);
+    ctx.set(EVAL_RUN_SUBJECT_KEY, { kind: "agent", org: ORG, row: AGENT } satisfies LoadedSubject);
+    return ctx;
+  }
+
+  it("asks can_view on a compared plugin the agent does not attach, and stamps it last, unattached", async () => {
+    await seedAgent();
+    await temp.store.saveResource(ApiResourceKind.plugin, "plg_1", PluginSchema, THERMOS);
+    await temp.store.saveResource(ApiResourceKind.plugin, "plg_candidate", PluginSchema, CANDIDATE);
+    const asked: string[] = [];
+    const viewing: Authorizer = {
+      authorize: (_caller, check) => {
+        asked.push(`${IamPermission[check.permission]} ${check.resourceId}`);
+        return Promise.resolve({ kind: "allow" });
+      },
+    };
+    const ctx = comparing("plg_candidate");
+    await newResolveEvalRunDefaultsStep(temp.store, viewing).execute(ctx);
+    expect(asked).toEqual(["can_view plg_candidate"]);
+    const load = ctx.get(EVAL_RUN_LOAD_KEY) as EvaluatedLoad;
+    expect(load.plugins.map((entry) => [entry.plugin.metadata?.id, entry.digest, entry.attached, entry.compared])).toEqual([
+      ["plg_1", DIGEST, true, false],
+      ["plg_candidate", OTHER_DIGEST, false, true],
+    ]);
+    expect([...load.selected]).toEqual(["plg_candidate"]);
+  });
+
+  it("refuses a compared plugin the creator may not view, and is INTERNAL when the authorizer cannot answer", async () => {
+    await seedAgent();
+    await temp.store.saveResource(ApiResourceKind.plugin, "plg_1", PluginSchema, THERMOS);
+    await temp.store.saveResource(ApiResourceKind.plugin, "plg_candidate", PluginSchema, CANDIDATE);
+    const deny: Authorizer = { authorize: () => Promise.resolve({ kind: "deny", reason: "not a viewer" }) };
+    const refused = await failure(() => newResolveEvalRunDefaultsStep(temp.store, deny).execute(comparing("plg_candidate")));
+    expect(refused.code).toBe(Code.PermissionDenied);
+    expect(refused.rawMessage).toBe(EVAL_RUN_COMPARED_DENIED_MESSAGE);
+    const down: Authorizer = { authorize: () => Promise.resolve({ kind: "unavailable", cause: new Error("engine down") }) };
+    const fault = await failure(() => newResolveEvalRunDefaultsStep(temp.store, down).execute(comparing("plg_candidate")));
+    expect(fault.code).toBe(Code.Internal);
+  });
+
+  it("asks nothing for a compared plugin the agent attaches, and answers NOT_FOUND for one that does not exist", async () => {
+    await seedAgent();
+    await temp.store.saveResource(ApiResourceKind.plugin, "plg_1", PluginSchema, THERMOS);
+    const deny: Authorizer = { authorize: () => Promise.resolve({ kind: "deny", reason: "" }) };
+    const ctx = comparing("plg_1");
+    await newResolveEvalRunDefaultsStep(temp.store, deny).execute(ctx);
+    expect((ctx.get(EVAL_RUN_LOAD_KEY) as EvaluatedLoad).plugins.map((entry) => entry.compared)).toEqual([true]);
+    const missing = await failure(() => newResolveEvalRunDefaultsStep(temp.store, ALLOW_ALL).execute(comparing("plg_gone")));
+    expect(missing.code).toBe(Code.NotFound);
   });
 });
 
