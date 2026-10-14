@@ -51,6 +51,13 @@ export const ACCESS_TOKEN_VAR_SUFFIX = "_ACCESS_TOKEN";
 
 /** `<SERVER>_ACCESS_TOKEN`, the server's name upper-cased with every non-alphanumeric run as one underscore. */
 export function accessTokenVariable(serverName: string): string {
-  const stem = serverName.toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  const folded = serverName.toUpperCase().replace(/[^A-Z0-9]+/g, "_");
+  // Trimmed by index rather than by an anchored regex, which backtracks on
+  // a long run of underscores.
+  let start = 0;
+  let end = folded.length;
+  while (start < end && folded[start] === "_") start++;
+  while (end > start && folded[end - 1] === "_") end--;
+  const stem = folded.slice(start, end);
   return `${stem === "" ? "MCP" : stem}${ACCESS_TOKEN_VAR_SUFFIX}`;
 }
