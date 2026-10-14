@@ -383,7 +383,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * Served by the Enterprise and Cloud editions; the open-source server
      * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
-     * that owns the identity provider.
+     * that owns the federation issuer.
      * </pre>
      */
     default void createFederatedAccount(ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput request,
@@ -394,13 +394,13 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Update profile fields on a federated identity account.
-     * Looks up the account by natural key (identity_provider_ref + external_sub)
+     * Looks up the account by natural key (federation_issuer_ref + external_sub)
      * and updates email, name, and picture. Identity keys are immutable.
      * Called by platform backends when a user's profile changes on their platform.
      * Served by the Enterprise and Cloud editions; the open-source server
      * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
-     * that owns the identity provider.
+     * that owns the federation issuer.
      * </pre>
      */
     default void updateFederatedAccount(ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput request,
@@ -411,7 +411,7 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Deprovision a federated identity account by revoking access or deleting it.
-     * Looks up the account by natural key (identity_provider_ref + external_sub).
+     * Looks up the account by natural key (federation_issuer_ref + external_sub).
      * When delete_account is false, revokes all IAM policies in the organization.
      * When delete_account is true, revokes policies and deletes the account.
      * Under a just-in-time provider, a deleted account is created again at
@@ -421,7 +421,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * Served by the Enterprise and Cloud editions; the open-source server
      * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
-     * that owns the identity provider.
+     * that owns the federation issuer.
      * </pre>
      */
     default void deprovisionFederatedAccount(ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput request,
@@ -458,7 +458,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * and the SDK's ensureMyIdentityAccount. Derives the account from the
      * caller's token and the userinfo endpoint of the issuer that vouched for
      * it. Idempotent: returns the existing account on retry. A caller another
-     * lane vouched for (an organization's identity provider, a platform
+     * lane vouched for (an organization's federation issuer, a platform
      * client, a system lane) already has the account that lane provisions,
      * and is refused PERMISSION_DENIED.
      * </pre>
@@ -559,7 +559,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * Served by the Enterprise and Cloud editions; the open-source server
      * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
-     * that owns the identity provider.
+     * that owns the federation issuer.
      * </pre>
      */
     public void createFederatedAccount(ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput request,
@@ -571,13 +571,13 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Update profile fields on a federated identity account.
-     * Looks up the account by natural key (identity_provider_ref + external_sub)
+     * Looks up the account by natural key (federation_issuer_ref + external_sub)
      * and updates email, name, and picture. Identity keys are immutable.
      * Called by platform backends when a user's profile changes on their platform.
      * Served by the Enterprise and Cloud editions; the open-source server
      * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
-     * that owns the identity provider.
+     * that owns the federation issuer.
      * </pre>
      */
     public void updateFederatedAccount(ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput request,
@@ -589,7 +589,7 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Deprovision a federated identity account by revoking access or deleting it.
-     * Looks up the account by natural key (identity_provider_ref + external_sub).
+     * Looks up the account by natural key (federation_issuer_ref + external_sub).
      * When delete_account is false, revokes all IAM policies in the organization.
      * When delete_account is true, revokes policies and deletes the account.
      * Under a just-in-time provider, a deleted account is created again at
@@ -599,7 +599,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * Served by the Enterprise and Cloud editions; the open-source server
      * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
-     * that owns the identity provider.
+     * that owns the federation issuer.
      * </pre>
      */
     public void deprovisionFederatedAccount(ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput request,
@@ -638,7 +638,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * and the SDK's ensureMyIdentityAccount. Derives the account from the
      * caller's token and the userinfo endpoint of the issuer that vouched for
      * it. Idempotent: returns the existing account on retry. A caller another
-     * lane vouched for (an organization's identity provider, a platform
+     * lane vouched for (an organization's federation issuer, a platform
      * client, a system lane) already has the account that lane provisions,
      * and is refused PERMISSION_DENIED.
      * </pre>
@@ -723,7 +723,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * Served by the Enterprise and Cloud editions; the open-source server
      * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
-     * that owns the identity provider.
+     * that owns the federation issuer.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount createFederatedAccount(ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput request) throws io.grpc.StatusException {
@@ -734,13 +734,13 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Update profile fields on a federated identity account.
-     * Looks up the account by natural key (identity_provider_ref + external_sub)
+     * Looks up the account by natural key (federation_issuer_ref + external_sub)
      * and updates email, name, and picture. Identity keys are immutable.
      * Called by platform backends when a user's profile changes on their platform.
      * Served by the Enterprise and Cloud editions; the open-source server
      * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
-     * that owns the identity provider.
+     * that owns the federation issuer.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount updateFederatedAccount(ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput request) throws io.grpc.StatusException {
@@ -751,7 +751,7 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Deprovision a federated identity account by revoking access or deleting it.
-     * Looks up the account by natural key (identity_provider_ref + external_sub).
+     * Looks up the account by natural key (federation_issuer_ref + external_sub).
      * When delete_account is false, revokes all IAM policies in the organization.
      * When delete_account is true, revokes policies and deletes the account.
      * Under a just-in-time provider, a deleted account is created again at
@@ -761,7 +761,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * Served by the Enterprise and Cloud editions; the open-source server
      * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
-     * that owns the identity provider.
+     * that owns the federation issuer.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount deprovisionFederatedAccount(ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput request) throws io.grpc.StatusException {
@@ -798,7 +798,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * and the SDK's ensureMyIdentityAccount. Derives the account from the
      * caller's token and the userinfo endpoint of the issuer that vouched for
      * it. Idempotent: returns the existing account on retry. A caller another
-     * lane vouched for (an organization's identity provider, a platform
+     * lane vouched for (an organization's federation issuer, a platform
      * client, a system lane) already has the account that lane provisions,
      * and is refused PERMISSION_DENIED.
      * </pre>
@@ -882,7 +882,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * Served by the Enterprise and Cloud editions; the open-source server
      * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
-     * that owns the identity provider.
+     * that owns the federation issuer.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount createFederatedAccount(ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput request) {
@@ -893,13 +893,13 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Update profile fields on a federated identity account.
-     * Looks up the account by natural key (identity_provider_ref + external_sub)
+     * Looks up the account by natural key (federation_issuer_ref + external_sub)
      * and updates email, name, and picture. Identity keys are immutable.
      * Called by platform backends when a user's profile changes on their platform.
      * Served by the Enterprise and Cloud editions; the open-source server
      * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
-     * that owns the identity provider.
+     * that owns the federation issuer.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount updateFederatedAccount(ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput request) {
@@ -910,7 +910,7 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Deprovision a federated identity account by revoking access or deleting it.
-     * Looks up the account by natural key (identity_provider_ref + external_sub).
+     * Looks up the account by natural key (federation_issuer_ref + external_sub).
      * When delete_account is false, revokes all IAM policies in the organization.
      * When delete_account is true, revokes policies and deletes the account.
      * Under a just-in-time provider, a deleted account is created again at
@@ -920,7 +920,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * Served by the Enterprise and Cloud editions; the open-source server
      * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
-     * that owns the identity provider.
+     * that owns the federation issuer.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount deprovisionFederatedAccount(ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput request) {
@@ -957,7 +957,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * and the SDK's ensureMyIdentityAccount. Derives the account from the
      * caller's token and the userinfo endpoint of the issuer that vouched for
      * it. Idempotent: returns the existing account on retry. A caller another
-     * lane vouched for (an organization's identity provider, a platform
+     * lane vouched for (an organization's federation issuer, a platform
      * client, a system lane) already has the account that lane provisions,
      * and is refused PERMISSION_DENIED.
      * </pre>
@@ -1044,7 +1044,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * Served by the Enterprise and Cloud editions; the open-source server
      * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
-     * that owns the identity provider.
+     * that owns the federation issuer.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> createFederatedAccount(
@@ -1056,13 +1056,13 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Update profile fields on a federated identity account.
-     * Looks up the account by natural key (identity_provider_ref + external_sub)
+     * Looks up the account by natural key (federation_issuer_ref + external_sub)
      * and updates email, name, and picture. Identity keys are immutable.
      * Called by platform backends when a user's profile changes on their platform.
      * Served by the Enterprise and Cloud editions; the open-source server
      * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
-     * that owns the identity provider.
+     * that owns the federation issuer.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> updateFederatedAccount(
@@ -1074,7 +1074,7 @@ public final class IdentityAccountCommandControllerGrpc {
     /**
      * <pre>
      * Deprovision a federated identity account by revoking access or deleting it.
-     * Looks up the account by natural key (identity_provider_ref + external_sub).
+     * Looks up the account by natural key (federation_issuer_ref + external_sub).
      * When delete_account is false, revokes all IAM policies in the organization.
      * When delete_account is true, revokes policies and deletes the account.
      * Under a just-in-time provider, a deleted account is created again at
@@ -1084,7 +1084,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * Served by the Enterprise and Cloud editions; the open-source server
      * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
-     * that owns the identity provider.
+     * that owns the federation issuer.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> deprovisionFederatedAccount(
@@ -1123,7 +1123,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * and the SDK's ensureMyIdentityAccount. Derives the account from the
      * caller's token and the userinfo endpoint of the issuer that vouched for
      * it. Idempotent: returns the existing account on retry. A caller another
-     * lane vouched for (an organization's identity provider, a platform
+     * lane vouched for (an organization's federation issuer, a platform
      * client, a system lane) already has the account that lane provisions,
      * and is refused PERMISSION_DENIED.
      * </pre>

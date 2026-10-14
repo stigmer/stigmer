@@ -14,9 +14,9 @@ A **PlatformClient** is an OAuth2 client credential (`client_id` + `client_secre
 
 Use PlatformClient when a platform builder wants to embed Stigmer UI components (sessions, agents, etc.) into their product and needs to authenticate their users against Stigmer.
 
-**PlatformClient vs IdentityProvider:**
+**PlatformClient vs FederationIssuer:**
 
-| Concern | PlatformClient | IdentityProvider |
+| Concern | PlatformClient | FederationIssuer |
 |---------|---------------|-----------------|
 | Setup complexity | Minimal — just create a PlatformClient and call `mintUserToken` | Requires JWKS endpoint, issuer configuration, audience setup |
 | Token issuer | Stigmer signs the JWT | External IdP (Auth0, Okta, etc.) signs the JWT |

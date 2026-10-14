@@ -91,9 +91,9 @@ public enum IamPermission
    */
   can_create_skill(9),
   /**
-   * <code>can_create_idp = 11;</code>
+   * <code>can_create_federation_issuer = 11;</code>
    */
-  can_create_idp(11),
+  can_create_federation_issuer(11),
   /**
    * <code>can_create_identity_account = 21;</code>
    */
@@ -389,9 +389,9 @@ public enum IamPermission
    */
   public static final int can_create_skill_VALUE = 9;
   /**
-   * <code>can_create_idp = 11;</code>
+   * <code>can_create_federation_issuer = 11;</code>
    */
-  public static final int can_create_idp_VALUE = 11;
+  public static final int can_create_federation_issuer_VALUE = 11;
   /**
    * <code>can_create_identity_account = 21;</code>
    */
@@ -645,7 +645,7 @@ public enum IamPermission
       case 6: return can_create_agent;
       case 8: return can_create_session;
       case 9: return can_create_skill;
-      case 11: return can_create_idp;
+      case 11: return can_create_federation_issuer;
       case 21: return can_create_identity_account;
       case 23: return can_create_oauth_app;
       case 24: return can_create_platform_client;

@@ -153,7 +153,7 @@ export interface IdentityAccountInput {
   pictureUrl?: string;
   isMachineAccount?: boolean;
   provisioningMode?: IdentityAccountProvisioningMode;
-  identityProviderRef?: ResourceRef;
+  federationIssuerRef?: ResourceRef;
   preferences?: IdentityAccountPreferencesInput;
 }
 
@@ -179,7 +179,7 @@ function buildIdentityAccountPreferencesProto(input: IdentityAccountPreferencesI
 }
 
 export function buildIdentityAccountProto(input: IdentityAccountInput): IdentityAccount {
-  const identityProviderRef = (input.identityProviderRef?.slug || input.identityProviderRef?.org || input.identityProviderRef?.id) ? create(ApiResourceReferenceSchema, { ...input.identityProviderRef, kind: 21 }) : undefined;
+  const federationIssuerRef = (input.federationIssuerRef?.slug || input.federationIssuerRef?.org || input.federationIssuerRef?.id) ? create(ApiResourceReferenceSchema, { ...input.federationIssuerRef, kind: 21 }) : undefined;
   const preferences = input.preferences ? buildIdentityAccountPreferencesProto(input.preferences) : undefined;
   return Object.assign(create(IdentityAccountSchema), {
     apiVersion: "iam.stigmer.ai/v1",
@@ -200,7 +200,7 @@ export function buildIdentityAccountProto(input: IdentityAccountInput): Identity
       pictureUrl: input.pictureUrl,
       isMachineAccount: input.isMachineAccount,
       provisioningMode: input.provisioningMode,
-      identityProviderRef,
+      federationIssuerRef,
       preferences,
     })),
   }) as IdentityAccount;
@@ -247,7 +247,7 @@ export function toIdentityAccountInput(resource: IdentityAccount): IdentityAccou
     pictureUrl: spec.pictureUrl || undefined,
     isMachineAccount: spec.isMachineAccount || undefined,
     provisioningMode: spec.provisioningMode || undefined,
-    identityProviderRef: toResourceRefInput(spec.identityProviderRef),
+    federationIssuerRef: toResourceRefInput(spec.federationIssuerRef),
     preferences: spec.preferences ? toIdentityAccountPreferencesInput(spec.preferences) : undefined,
   };
 }

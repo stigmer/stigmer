@@ -752,7 +752,7 @@
         {
           "name": "federated",
           "number": 2,
-          "description": "Account was created by the platform for federated authentication via an IdentityProvider."
+          "description": "Account was created by the platform for federated authentication via a FederationIssuer."
         },
         {
           "name": "machine",

@@ -159,7 +159,7 @@ func (x *ApiResourceRefView) GetIdentityOrigin() *IdentityOrigin {
 //
 // Email is not an identity key in Stigmer: two distinct accounts can
 // legitimately share one email address — for example a person who signed up
-// directly and is also provisioned through a platform's identity provider.
+// directly and is also provisioned through a platform's federation issuer.
 // This message gives the UI enough context to tell such accounts apart when
 // presenting a people chooser, so users never have to reason about raw
 // account IDs.
@@ -168,7 +168,7 @@ type IdentityOrigin struct {
 	// How the account was provisioned (direct, federated, machine, platform_client).
 	ProvisioningMode v1.IdentityAccountProvisioningMode `protobuf:"varint,1,opt,name=provisioning_mode,json=provisioningMode,proto3,enum=ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode" json:"provisioning_mode,omitempty"`
 	// Human-readable label for the identity source: "Stigmer" for direct
-	// accounts, or the owning IdentityProvider's display name for federated
+	// accounts, or the owning FederationIssuer's display name for federated
 	// accounts.
 	ProviderDisplayName string `protobuf:"bytes,2,opt,name=provider_display_name,json=providerDisplayName,proto3" json:"provider_display_name,omitempty"`
 	unknownFields       protoimpl.UnknownFields

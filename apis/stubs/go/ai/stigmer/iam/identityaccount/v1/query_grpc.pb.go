@@ -45,16 +45,16 @@ type IdentityAccountQueryControllerClient interface {
 	// Get a direct identity account by email address.
 	//
 	// Only returns direct (non-federated) accounts. Federated accounts are not
-	// returned by this RPC — use getByExternalSub for IdP-scoped federated lookups.
+	// returned by this RPC — use getByExternalSub for issuer-scoped federated lookups.
 	GetByEmail(ctx context.Context, in *IdentityAccountEmail, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// Get an identity account by identity provider ID (Auth0 subject).
 	//
 	// Primarily used for direct and machine accounts where the IDP ID is
 	// the Auth0 user_id or client_id. A federated account is never answered:
-	// its subject is its identity provider's, so it is looked up with
+	// its subject is its federation issuer's, so it is looked up with
 	// getByExternalSub, which is scoped to that provider.
 	GetByIdpId(ctx context.Context, in *IdpId, opts ...grpc.CallOption) (*IdentityAccount, error)
-	// Get a federated identity account by identity provider reference and external subject.
+	// Get a federated identity account by federation issuer reference and external subject.
 	//
 	// Used by platform backends to check whether a federated account already exists
 	// for a given OIDC subject before calling createFederatedAccount.
@@ -63,7 +63,7 @@ type IdentityAccountQueryControllerClient interface {
 	// answers UNIMPLEMENTED.
 	//
 	// Authorization: Requires can_create_identity_account on the organization
-	// that owns the identity provider.
+	// that owns the federation issuer.
 	GetByExternalSub(ctx context.Context, in *ExternalSubLookup, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// List an organization's service accounts, newest first.
 	//
@@ -169,16 +169,16 @@ type IdentityAccountQueryControllerServer interface {
 	// Get a direct identity account by email address.
 	//
 	// Only returns direct (non-federated) accounts. Federated accounts are not
-	// returned by this RPC — use getByExternalSub for IdP-scoped federated lookups.
+	// returned by this RPC — use getByExternalSub for issuer-scoped federated lookups.
 	GetByEmail(context.Context, *IdentityAccountEmail) (*IdentityAccount, error)
 	// Get an identity account by identity provider ID (Auth0 subject).
 	//
 	// Primarily used for direct and machine accounts where the IDP ID is
 	// the Auth0 user_id or client_id. A federated account is never answered:
-	// its subject is its identity provider's, so it is looked up with
+	// its subject is its federation issuer's, so it is looked up with
 	// getByExternalSub, which is scoped to that provider.
 	GetByIdpId(context.Context, *IdpId) (*IdentityAccount, error)
-	// Get a federated identity account by identity provider reference and external subject.
+	// Get a federated identity account by federation issuer reference and external subject.
 	//
 	// Used by platform backends to check whether a federated account already exists
 	// for a given OIDC subject before calling createFederatedAccount.
@@ -187,7 +187,7 @@ type IdentityAccountQueryControllerServer interface {
 	// answers UNIMPLEMENTED.
 	//
 	// Authorization: Requires can_create_identity_account on the organization
-	// that owns the identity provider.
+	// that owns the federation issuer.
 	GetByExternalSub(context.Context, *ExternalSubLookup) (*IdentityAccount, error)
 	// List an organization's service accounts, newest first.
 	//

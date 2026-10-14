@@ -65,12 +65,13 @@ public enum ApiResourceKind
   invitation(20),
   /**
    * <pre>
-   * External identity provider for federated authentication.
+   * An outside issuer whose tokens Stigmer accepts for its own users
+   * (identity federation): its keys, its audience, and what its tokens get.
    * </pre>
    *
-   * <code>identity_provider = 21 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   * <code>federation_issuer = 21 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
-  identity_provider(21),
+  federation_issuer(21),
   /**
    * <pre>
    * Registered OAuth application with an external vendor for outbound authentication.
@@ -345,12 +346,13 @@ public enum ApiResourceKind
   public static final int invitation_VALUE = 20;
   /**
    * <pre>
-   * External identity provider for federated authentication.
+   * An outside issuer whose tokens Stigmer accepts for its own users
+   * (identity federation): its keys, its audience, and what its tokens get.
    * </pre>
    *
-   * <code>identity_provider = 21 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   * <code>federation_issuer = 21 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
-  public static final int identity_provider_VALUE = 21;
+  public static final int federation_issuer_VALUE = 21;
   /**
    * <pre>
    * Registered OAuth application with an external vendor for outbound authentication.
@@ -595,7 +597,7 @@ public enum ApiResourceKind
       case 11: return identity_account;
       case 12: return api_key;
       case 20: return invitation;
-      case 21: return identity_provider;
+      case 21: return federation_issuer;
       case 22: return oauth_app;
       case 23: return platform_client;
       case 24: return team;

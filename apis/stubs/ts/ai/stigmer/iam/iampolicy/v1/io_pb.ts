@@ -113,7 +113,7 @@ export const ApiResourceRefViewSchema: GenMessage<ApiResourceRefView> = /*@__PUR
  *
  * Email is not an identity key in Stigmer: two distinct accounts can
  * legitimately share one email address — for example a person who signed up
- * directly and is also provisioned through a platform's identity provider.
+ * directly and is also provisioned through a platform's federation issuer.
  * This message gives the UI enough context to tell such accounts apart when
  * presenting a people chooser, so users never have to reason about raw
  * account IDs.
@@ -130,7 +130,7 @@ export type IdentityOrigin = Message<"ai.stigmer.iam.iampolicy.v1.IdentityOrigin
 
   /**
    * Human-readable label for the identity source: "Stigmer" for direct
-   * accounts, or the owning IdentityProvider's display name for federated
+   * accounts, or the owning FederationIssuer's display name for federated
    * accounts.
    *
    * @generated from field: string provider_display_name = 2;

@@ -12,7 +12,7 @@ public interface DeprovisionFederatedAccountInputOrBuilder extends
 
   /**
    * <pre>
-   * Organization that owns the identity provider.
+   * Organization that owns the federation issuer.
    * Used as the authorization scope: caller must have can_create_identity_account
    * permission on this organization.
    * </pre>
@@ -23,7 +23,7 @@ public interface DeprovisionFederatedAccountInputOrBuilder extends
   java.lang.String getOrg();
   /**
    * <pre>
-   * Organization that owns the identity provider.
+   * Organization that owns the federation issuer.
    * Used as the authorization scope: caller must have can_create_identity_account
    * permission on this organization.
    * </pre>
@@ -36,30 +36,30 @@ public interface DeprovisionFederatedAccountInputOrBuilder extends
 
   /**
    * <pre>
-   * Reference to the IdentityProvider that the federated account belongs to.
+   * Reference to the FederationIssuer that the federated account belongs to.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
-   * @return Whether the identityProviderRef field is set.
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
+   * @return Whether the federationIssuerRef field is set.
    */
-  boolean hasIdentityProviderRef();
+  boolean hasFederationIssuerRef();
   /**
    * <pre>
-   * Reference to the IdentityProvider that the federated account belongs to.
+   * Reference to the FederationIssuer that the federated account belongs to.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
-   * @return The identityProviderRef.
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
+   * @return The federationIssuerRef.
    */
-  ai.stigmer.commons.apiresource.ApiResourceReference getIdentityProviderRef();
+  ai.stigmer.commons.apiresource.ApiResourceReference getFederationIssuerRef();
   /**
    * <pre>
-   * Reference to the IdentityProvider that the federated account belongs to.
+   * Reference to the FederationIssuer that the federated account belongs to.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
    */
-  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getIdentityProviderRefOrBuilder();
+  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getFederationIssuerRefOrBuilder();
 
   /**
    * <pre>
@@ -83,7 +83,7 @@ public interface DeprovisionFederatedAccountInputOrBuilder extends
 
   /**
    * <pre>
-   * When false (default): revoke the account's access in this organization and the organizations its identity provider manages.
+   * When false (default): revoke the account's access in this organization and the organizations its federation issuer manages.
    * When true: revoke access AND delete the identity account; a just-in-time
    * provider creates a new one at the user's next sign-in.
    * </pre>
