@@ -41,6 +41,11 @@ message ListSchedulesByAgentRequest {
   // The previous response's next_page_token, to continue that list; every
   // other field must equal that request's, or the call is refused.
   string page_token = 5 [(buf.validate.field).string.max_len = 1024];
+
+  // Only resources carrying every label given, each matched exactly (AND).
+  // A selective filter may answer short pages, even empty ones, that still
+  // carry a token.
+  map<string, string> labels = 6;
 }
 
 // Response containing a paginated list of schedules.
@@ -61,7 +66,9 @@ message ListSchedulesRequest {
   // Organization slug to scope the listing.
   string org = 1 [(buf.validate.field).string.min_len = 1];
 
-  // Filter by metadata labels. AND semantics: all labels must match.
+  // Only resources carrying every label given, each matched exactly (AND).
+  // A selective filter may answer short pages, even empty ones, that still
+  // carry a token.
   map<string, string> labels = 2;
 
   reserved 3;
