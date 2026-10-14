@@ -70,18 +70,12 @@ export interface TemporalEvalRunWorkflowsDeps {
   readonly taskQueue: string;
   /** Defaults to EVAL_RUN_WORKFLOW_DEADLINE_MS; tests shorten it. */
   readonly deadlineMs?: number;
-  /** The suite workflow's type and id; a plugin eval's when absent. */
-  readonly workflow?: {
-    readonly type: string;
-    readonly idOf: (evalId: string) => string;
-  };
 }
 
 export function newTemporalEvalRunWorkflows(
   deps: TemporalEvalRunWorkflowsDeps,
 ): EvalRunWorkflows {
   const deadlineMs = deps.deadlineMs ?? EVAL_RUN_WORKFLOW_DEADLINE_MS;
-  const workflow = deps.workflow ?? { type: RUN_EVAL_RUN_WORKFLOW_TYPE, idOf: runEvalRunWorkflowId };
   const connected = (): Client => {
     const client = deps.client();
     if (client === undefined) {
@@ -95,8 +89,8 @@ export function newTemporalEvalRunWorkflows(
       const input: RunEvalRunInput = { evalId };
       try {
         await client.connection.withDeadline(Date.now() + deadlineMs, () =>
-          client.workflow.start(workflow.type, {
-            workflowId: workflow.idOf(evalId),
+          client.workflow.start(RUN_EVAL_RUN_WORKFLOW_TYPE, {
+            workflowId: runEvalRunWorkflowId(evalId),
             taskQueue: deps.taskQueue,
             workflowIdReusePolicy: "REJECT_DUPLICATE",
             workflowExecutionTimeout: EVAL_RUN_EXECUTION_TIMEOUT_MS,
@@ -114,7 +108,7 @@ export function newTemporalEvalRunWorkflows(
       const client = connected();
       try {
         await client.connection.withDeadline(Date.now() + deadlineMs, () =>
-          client.workflow.getHandle(workflow.idOf(evalId)).cancel(),
+          client.workflow.getHandle(runEvalRunWorkflowId(evalId)).cancel(),
         );
         return "requested";
       } catch (error) {

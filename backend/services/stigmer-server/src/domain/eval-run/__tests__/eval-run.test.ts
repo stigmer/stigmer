@@ -55,7 +55,7 @@ import {
 import {
   EVAL_RUN_LABEL,
   evalRunActiveDeleteMessage,
-  evalRunActiveOnPluginDeleteMessage,
+  evalRunActiveOnSubjectDeleteMessage,
   evalRunNotCurrentVersionMessage,
   evalRunTooLargeMessage,
   EVAL_RUN_MAX_CASES,
@@ -207,7 +207,6 @@ describe("plugin eval create", () => {
     // review-fires: 3 tries per arm; review-quiet: its own 2; two arms each.
     expect(created.status?.triesTotal).toBe(2 * 3 + 2 * 2);
     // Both arms run the built-in assistant, the with-arm listing the plugin: the comparison is not provisional.
-    expect(created.status?.provisionalDelta).toBe(false);
     expect(created.status?.phase).toBe(EvalRunPhase.failed);
     expect(created.status?.error).toBe("the eval's workflow could not be started");
 
@@ -263,7 +262,7 @@ describe("plugin eval create", () => {
     expect(badGlob.code).toBe(Code.InvalidArgument);
     expect(badGlob.rawMessage).toBe("spec.case_glob 'review-[z-a]' is not a valid glob: range 'z-a' is reversed");
 
-    const missing = await refusal(evals.create({ ...evalOf(plugin), spec: { pluginId: "plg_absent", maxCostUsd: 5 } }));
+    const missing = await refusal(evals.create({ ...evalOf(plugin), spec: { subject: { case: "pluginId", value: "plg_absent" }, maxCostUsd: 5 } }));
     expect(missing.code).toBe(Code.NotFound);
 
     const noCases = await install({ "README.md": "no evals here" });
@@ -374,7 +373,7 @@ describe("plugin eval reads, cancel and delete", () => {
     await setPhase(runningId, EvalRunPhase.running);
     const refused = await refusal(plugins.delete({ value: plugin.metadata!.id }));
     expect(refused.code).toBe(Code.FailedPrecondition);
-    expect(refused.rawMessage).toBe(evalRunActiveOnPluginDeleteMessage(runningId));
+    expect(refused.rawMessage).toBe(evalRunActiveOnSubjectDeleteMessage("plugin", runningId));
     expect(await sessionExists(evalTry)).toBe(true);
 
     await setPhase(runningId, EvalRunPhase.completed);

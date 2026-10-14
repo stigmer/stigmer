@@ -1,22 +1,25 @@
 /**
  * Pins the requests a try and a vote send (try-run.ts). The session: the
- * plugins its arm lists (the with-arm's plugin reference at the eval's
- * digest, none on the without-arm), no agent of its own, the reserved
- * label, the case name as the subject, the target's engine, and a name
- * per run and per retried start. The run: the case's
+ * same in both arms, every plugin a try loads listed by id at its stamped
+ * digest, no agent on an eval run of a plugin, the reserved label, the
+ * case name as the subject, the target's engine, and a name per run and
+ * per retried start. The run: the compared plugin left out in the without
+ * arm and nothing in the with arm; the case's
  * read-only tools plus the eval's grants, Skill disallowed unless listed,
  * only the to-do list allowed when none is granted, each of the plugin's
  * servers disallowed by its turn segment (`mcp__plugin_<plugin>_<server>`)
  * unless real servers run, names Stigmer runs nothing for left out, a
  * not-granted tool noted; max_turns clamped to the run's 10..1000 with a
  * note; auto-approve. The vote: the judge label and cap. A case's mocks:
- * each mocked tool granted in the with-arm and its server left off the
- * deny-list, a server neither mocked nor run real still denied,
+ * each mocked tool granted while the case's plugin is loaded and its
+ * server left off the deny-list, a server neither mocked nor run real
+ * still denied,
  * `allow_real_servers` starting the unmocked ones; the case context the
- * run carries (paths, variables, the files its graders read, the
- * with-arm's mocks under the run's server segments, the agent mocks' model
- * and budget), absent when the case gives its try nothing; the
- * mocked-servers line and the case's notes.
+ * run carries (paths, variables, the files its graders read, the mocks
+ * under the run's server segments while the case's plugin is loaded, the
+ * agent mocks' model and budget), absent when the case gives its try
+ * nothing; a case of a plugin other than the compared one keeps its mocks
+ * in the without arm; the mocked-servers line and the case's notes.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -30,7 +33,7 @@ import {
   GRADES_RUN_LABEL,
   PER_GRADE_CAP_USD,
 } from "../../score/judge/judge-run.js";
-import { armAttachment } from "../arm.js";
+import { tryAttachment } from "../arm.js";
 import { EVAL_RUN_LABEL } from "../constants.js";
 import {
   MAX_AGENT_MOCK_CALLS,
@@ -50,7 +53,7 @@ import {
 const spec = (
   init: { allowTools?: string[]; realMcpServers?: boolean; allowRealServers?: boolean; judgeModel?: string } = {},
 ) =>
-  create(EvalRunSpecSchema, { pluginId: "plg_1", maxCostUsd: 5, ...init });
+  create(EvalRunSpecSchema, { subject: { case: "pluginId", value: "plg_1" }, maxCostUsd: 5, ...init });
 
 const evalCase = (overrides: Partial<EvalCase> = {}): EvalCase => ({
   name: "first-case",
@@ -76,7 +79,11 @@ const GITHUB = { slug: SEGMENT, key: "github" };
 const JIRA = { slug: "plugin_thermos_jira", key: "jira" };
 const SOURCE = { pluginId: "plg_1", pluginName: "thermos", digest: "d".repeat(64), suiteDir: "evals" };
 
-const facts = { org: "acme", slug: "thermos", digest: "sha256:0123abcd" };
+const facts = { org: "acme", id: "plg_1", slug: "thermos", digest: "sha256:0123abcd" };
+
+/** An eval run of the plugin `facts`: the built-in assistant, the plugin listed and compared. */
+const onPlugin = (arm: "with" | "without") =>
+  tryAttachment({ agent: undefined, plugins: [facts], comparedPluginId: facts.id }, arm);
 
 describe("a try's tools", () => {
   it("grants the case's read-only tools and the eval's, and withholds Skill unless listed", () => {
@@ -141,7 +148,7 @@ describe("a try's tools", () => {
 });
 
 describe("a try's session and run", () => {
-  it("labels the session, names it after the case, runs the target's engine and lists the with-arm's plugin", () => {
+  it("labels the session, names it after the case, runs the target's engine and lists the plugin", () => {
     const session = trySessionRequest({
       org: "acme",
       evalId: "evr_1",
@@ -149,7 +156,7 @@ describe("a try's session and run", () => {
       attempt: 1,
       caseName: "first-case",
       harness: Harness.UNSPECIFIED,
-      attachment: armAttachment("with", facts),
+      attachment: onPlugin("with"),
     });
     expect(session.metadata?.labels).toEqual({ [EVAL_RUN_LABEL]: "evr_1" });
     expect(session.spec?.subject).toBe("first-case");
@@ -158,13 +165,13 @@ describe("a try's session and run", () => {
     expect(session.spec?.plugins[0]).toMatchObject({
       org: "acme",
       kind: ApiResourceKind.plugin,
-      slug: "thermos",
+      id: "plg_1",
       version: "sha256:0123abcd",
     });
     expect(session.spec?.agentRef).toBeUndefined();
   });
 
-  it("lists no plugin on the without-arm's session", () => {
+  it("lists the same plugin on the without arm's session", () => {
     const session = trySessionRequest({
       org: "acme",
       evalId: "evr_1",
@@ -172,9 +179,9 @@ describe("a try's session and run", () => {
       attempt: 1,
       caseName: "first-case",
       harness: Harness.CURSOR,
-      attachment: armAttachment("without", facts),
+      attachment: onPlugin("without"),
     });
-    expect(session.spec?.plugins).toEqual([]);
+    expect(session.spec?.plugins.map((ref) => ref.id)).toEqual(["plg_1"]);
     expect(session.spec?.agentRef).toBeUndefined();
     expect(session.spec?.harness).toBe(Harness.CURSOR);
   });
@@ -190,7 +197,7 @@ describe("a try's session and run", () => {
       arm: "with",
       tryIndex: 2,
     } as const;
-    const attachment = armAttachment("without", facts);
+    const attachment = onPlugin("without");
     const tryNames = [1, 2].map(
       (attempt) =>
         trySessionRequest({
@@ -204,8 +211,8 @@ describe("a try's session and run", () => {
         }).metadata?.name,
     );
     expect(tryNames).toEqual([
-      "try-pev-1-0-1-with-3",
-      "try-pev-1-0-1-with-3-attempt-2",
+      "try-evr-1-0-1-with-3",
+      "try-evr-1-0-1-with-3-attempt-2",
     ]);
     const voteNames = [1, 3].map(
       (attempt) =>
@@ -239,10 +246,10 @@ describe("a try's session and run", () => {
       modelName: "claude-sonnet-4-6",
       budgetUsd: 3.5,
       pluginServers: [GITHUB],
-      arm: "without",
+      attachment: onPlugin("without"),
       source: SOURCE,
     });
-    expect(run.metadata?.name).toBe("try-pev-1-0-1-without-3");
+    expect(run.metadata?.name).toBe("try-evr-1-0-1-without-3");
     expect(run.metadata?.labels).toEqual({ [EVAL_RUN_LABEL]: "evr_1" });
     expect(run.spec?.target).toEqual({ case: "sessionId", value: "ses_1" });
     expect(run.spec?.message).toBe("Write me a commit message.");
@@ -256,6 +263,7 @@ describe("a try's session and run", () => {
     expect(run.spec?.disallowedTools).toEqual(["Skill", `mcp__${SEGMENT}`]);
     expect(run.spec?.appendSystemPrompt).toBe("Be brief.");
     expect(run.spec?.evalCase).toBeUndefined();
+    expect(run.spec?.excludedPluginIds, "the without arm leaves the compared plugin out").toEqual(["plg_1"]);
   });
 
   it("sends a case that grants nothing an allow-list too, so nothing beyond the to-do list is in scope", () => {
@@ -269,10 +277,11 @@ describe("a try's session and run", () => {
       modelName: "claude-sonnet-4-6",
       budgetUsd: 1,
       pluginServers: [GITHUB],
-      arm: "with",
+      attachment: onPlugin("with"),
       source: SOURCE,
     });
     expect(run.spec?.tools).toEqual(["TodoWrite"]);
+    expect(run.spec?.excludedPluginIds).toEqual([]);
     expect(run.spec?.disallowedTools).toEqual(["Skill", `mcp__${SEGMENT}`]);
   });
 
@@ -330,22 +339,22 @@ describe("a case's mocks and context", () => {
     ],
   });
 
-  it("grants each mocked tool in the with-arm and leaves its server off the deny-list", () => {
-    const withArm = tryToolsOf(mocked, spec(), [TRACKER, GITHUB], "with");
+  it("grants each mocked tool while the case's plugin is loaded and leaves its server off the deny-list", () => {
+    const withArm = tryToolsOf(mocked, spec(), [TRACKER, GITHUB], true);
     expect(withArm.tools).toEqual(["mcp__tracker-acme__close_issue", "mcp__tracker-acme__create_issue"]);
     expect(withArm.disallowedTools).toEqual(["Skill", `mcp__${SEGMENT}`]);
-    const without = tryToolsOf(mocked, spec(), [TRACKER, GITHUB], "without");
+    const without = tryToolsOf(mocked, spec(), [TRACKER, GITHUB], false);
     expect(without.tools).toEqual(["TodoWrite"]);
     expect(without.disallowedTools).toEqual(["Skill", `mcp__${SEGMENT}`]);
   });
 
   it("starts the unmocked servers with allow_real_servers, their tools granted only by allow_tools", () => {
-    const tools = tryToolsOf(mocked, spec({ allowRealServers: true }), [TRACKER, GITHUB], "with");
+    const tools = tryToolsOf(mocked, spec({ allowRealServers: true }), [TRACKER, GITHUB], true);
     expect(tools.disallowedTools).toEqual(["Skill"]);
     expect(tools.tools).not.toContain(`mcp__${SEGMENT}`);
   });
 
-  it("carries the case's context and the files its graders read, with the mocks in the with-arm only, under the run's server names", () => {
+  it("carries the case's context and the files its graders read, with the mocks only while its plugin is loaded, under the run's server names", () => {
     const withCase = evalCase({
       ...mocked,
       maxTurns: 300,
@@ -363,7 +372,7 @@ describe("a case's mocks and context", () => {
     const context = tryCaseContextOf({
       evalCase: withCase,
       spec: spec({ judgeModel: "claude-haiku-4.5" }),
-      arm: "with",
+      caseLoaded: true,
       source: SOURCE,
       pluginServers: [TRACKER, GITHUB],
     });
@@ -391,12 +400,36 @@ describe("a case's mocks and context", () => {
         ],
       ],
     ]);
-    const without = tryCaseContextOf({ evalCase: withCase, spec: spec(), arm: "without", source: SOURCE, pluginServers: [TRACKER] });
+    const without = tryCaseContextOf({ evalCase: withCase, spec: spec(), caseLoaded: false, source: SOURCE, pluginServers: [TRACKER] });
     expect(without?.mocks).toEqual([]);
     expect(without?.scaffoldScript).toBe("setup.sh");
     expect(without?.readFiles, "both arms' graders read the same files").toEqual(["app.txt"]);
-    expect(tryCaseContextOf({ evalCase: mocked, spec: spec(), arm: "without", source: SOURCE, pluginServers: [TRACKER] })).toBeUndefined();
-    expect(tryCaseContextOf({ evalCase: mocked, spec: spec({ realMcpServers: true }), arm: "with", source: SOURCE, pluginServers: [TRACKER] })).toBeUndefined();
+    expect(tryCaseContextOf({ evalCase: mocked, spec: spec(), caseLoaded: false, source: SOURCE, pluginServers: [TRACKER] })).toBeUndefined();
+    expect(tryCaseContextOf({ evalCase: mocked, spec: spec({ realMcpServers: true }), caseLoaded: true, source: SOURCE, pluginServers: [TRACKER] })).toBeUndefined();
+  });
+
+  it("keeps a case's mocks in both arms when the plugin compared is another one the agent attaches", () => {
+    const agent = { org: "acme", id: "agt_1", slug: "desk", versionHash: "a".repeat(64) };
+    const refunds = { org: "acme", id: "plg_refunds", slug: "refunds", digest: "e".repeat(64) };
+    for (const arm of ["with", "without"] as const) {
+      const attachment = tryAttachment({ agent, plugins: [facts, refunds], comparedPluginId: refunds.id }, arm);
+      const run = tryRunRequest({
+        org: "acme",
+        evalId: "evr_1",
+        cell: { caseIndex: 0, targetIndex: 0, arm, tryIndex: 0 },
+        sessionId: "ses_1",
+        evalCase: mocked,
+        spec: spec(),
+        modelName: "",
+        budgetUsd: 1,
+        pluginServers: [TRACKER, GITHUB],
+        attachment,
+        source: SOURCE,
+      });
+      expect(run.spec?.tools, arm).toEqual(["mcp__tracker-acme__close_issue", "mcp__tracker-acme__create_issue"]);
+      expect(run.spec?.evalCase?.mocks.map((m) => m.server), arm).toEqual(["tracker"]);
+      expect(run.spec?.excludedPluginIds, arm).toEqual(arm === "without" ? ["plg_refunds"] : []);
+    }
   });
 
   it("lists the plugin's servers as the format's mocked: line names them", () => {

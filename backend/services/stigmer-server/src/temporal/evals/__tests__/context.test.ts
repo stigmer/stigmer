@@ -1,12 +1,15 @@
 /**
- * Pins what every eval activity reads first, over a real store and a real
- * suite read by `readEvalSuite`:
+ * Pins what every eval run activity reads first, over a real store and a
+ * real suite read by `readEvalSuite`:
  *
- *   - the loader answers undefined for an eval gone, an eval with no spec,
- *     and an eval whose plugin is gone, so an activity plans nothing rather
+ *   - an eval run about a plugin runs the built-in assistant (no agent)
+ *     with that plugin listed in both arms, compared, so the without arm
+ *     leaves it out;
+ *   - the loader answers undefined for an eval run gone, one with no spec,
+ *     and one whose plugin is gone, so an activity plans nothing rather
  *     than failing; a store fault other than "not found" is thrown, so the
  *     activity is retried rather than treating a transient fault as a gone
- *     eval;
+ *     eval run;
  *   - the suite cache keeps eight digests and drops the oldest: a ninth
  *     digest evicts the first read, which is then read from the archive
  *     again, while the others stay cached;
@@ -20,12 +23,13 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { EvalGrader, EvalGraderCheck } from "@stigmer/plugin-package";
 import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
 import { EvalRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Store } from "../../../store/interface.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
-import { loadRun, newEvalContextLoader, wantedFilesOf } from "../context.js";
+import { attachmentOf, loadRun, newEvalContextLoader, wantedFilesOf } from "../context.js";
 import {
   EVAL_ID,
   ORG,
@@ -53,8 +57,11 @@ function loader(
   return newEvalContextLoader({ store, suites: source, catalog });
 }
 
-/** An eval of the seeded plugin pinned to `digest`. */
+/** An eval run of the seeded plugin pinned to `digest`, an archived version of the plugin held at it. */
 async function seedEvalAt(id: string, digest: string): Promise<void> {
+  const plugin = await temp.store.getResource(ApiResourceKind.plugin, PLUGIN_ID, PluginSchema);
+  plugin.status!.digest = digest;
+  await temp.store.saveAudit(ApiResourceKind.plugin, PLUGIN_ID, PluginSchema, plugin, digest, `1.0.${id}`);
   await temp.store.saveResource(
     ApiResourceKind.eval_run,
     id,
@@ -62,10 +69,11 @@ async function seedEvalAt(id: string, digest: string): Promise<void> {
     create(EvalRunSchema, {
       metadata: { id, org: ORG, name: id },
       spec: create(EvalRunSpecSchema, {
-        pluginId: PLUGIN_ID,
+        subject: { case: "pluginId", value: PLUGIN_ID },
         pluginDigest: digest,
         runs: 1,
       }),
+      status: { plugins: [{ pluginId: PLUGIN_ID, pluginSlug: "thermos", pluginDigest: digest, compared: true }] },
     }),
   );
 }
@@ -83,7 +91,21 @@ function faultyReads(store: Store): Store {
   });
 }
 
-describe("the eval context loader", () => {
+describe("the eval run context loader", () => {
+  it("runs an eval run about a plugin on the built-in assistant, the plugin listed in both arms and left out of one", async () => {
+    await seedPlugin(temp.store);
+    await seedEval(temp.store);
+    const context = await loader()(EVAL_ID);
+    if (context === undefined) throw new Error("no context");
+    expect([context.agent, context.comparedPluginId, context.twoArms]).toEqual([undefined, PLUGIN_ID, true]);
+    expect(context.ownServers).toEqual([]);
+    const without = attachmentOf(context, "without");
+    expect(without.agentRef).toBeUndefined();
+    expect(without.plugins.map((ref) => ref.id)).toEqual([PLUGIN_ID]);
+    expect(without.excludedPluginIds).toEqual([PLUGIN_ID]);
+    expect(attachmentOf(context, "with").excludedPluginIds).toEqual([]);
+  });
+
   it("answers undefined for an eval gone, and reads no suite", async () => {
     const source = suiteSource();
     expect(await loader(source)(EVAL_ID)).toBeUndefined();
@@ -133,7 +155,7 @@ describe("the eval context loader", () => {
 
     for (let index = 1; index <= 8; index++) {
       const context = await load(`evr_${index}`);
-      expect(context?.kind === "plugin" ? context.digest : undefined).toBe(digests[index - 1]);
+      expect(context?.sources[0]?.digest).toBe(digests[index - 1]);
     }
     expect(source.reads).toBe(8);
 

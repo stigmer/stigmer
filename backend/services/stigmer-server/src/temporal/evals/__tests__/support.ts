@@ -1,8 +1,8 @@
 /**
- * Shared doubles for the eval activities' tests: a temp store seeded with
- * a plugin (one row, its status listing a skill and an MCP server, as
- * install writes it) and an eval, or an agent attaching that plugin and an
- * agent eval stamping it; an in-memory
+ * Shared doubles for the eval run activities' tests: a temp store seeded
+ * with a plugin (one row, its status listing a skill and an MCP server, as
+ * install writes it) and an eval run about it, or an agent attaching that
+ * plugin and an eval run about the agent stamping it; an in-memory
  * suite source over real `evals/` files read by `readEvalSuite`; a
  * catalog that knows one model; a try lane that records what it is asked
  * and creates rows in the store as the real chains would; a score
@@ -15,13 +15,11 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import type { PluginFiles } from "@stigmer/plugin-package";
 import { inMemoryPluginFiles } from "@stigmer/plugin-package";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
-import { AgentEvalPluginSchema } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/status_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
 import { EvalRunSpecSchema, EvalRunTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
 import type { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
-import { EvalRunPhase } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { EvalRunPhase, EvalRunPluginSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
 import {
   RunSchema,
   RunStatusSchema,
@@ -148,13 +146,16 @@ export async function seedEval(
     create(EvalRunSchema, {
       metadata: { id: EVAL_ID, org: ORG, name: EVAL_ID },
       spec: create(EvalRunSpecSchema, {
-        pluginId: PLUGIN_ID,
+        subject: { case: "pluginId", value: PLUGIN_ID },
         pluginDigest: DIGEST,
         maxCostUsd: 5,
         runs: 2,
         ...spec,
       }),
-      status: { phase },
+      status: {
+        phase,
+        plugins: [create(EvalRunPluginSchema, { pluginId: PLUGIN_ID, pluginSlug: "thermos", pluginDigest: DIGEST, compared: true })],
+      },
     }),
   );
 }
@@ -169,7 +170,7 @@ export async function readEval(store: Store) {
 
 export const AGENT_ID = "agt_1";
 export const AGENT_HASH = "a".repeat(64);
-export const AGENT_EVAL_ID = "aev_1";
+export const AGENT_EVAL_ID = "evr_agent";
 
 /** The agent under eval at AGENT_HASH, attaching the seeded plugin and running MODEL. */
 export async function seedAgent(
@@ -193,7 +194,11 @@ export async function seedAgent(
   );
 }
 
-/** An agent eval of the seeded agent stamping the seeded plugin at `pluginDigest`. */
+/**
+ * An eval run of the seeded agent stamping the seeded plugin at
+ * `pluginDigest`; `compared` compares that plugin, so each case runs
+ * with and without it.
+ */
 export async function seedAgentEval(
   store: Store,
   options: {
@@ -201,17 +206,19 @@ export async function seedAgentEval(
     readonly pluginDigest?: string;
     readonly threshold?: number;
     readonly phase?: EvalRunPhase;
+    readonly compared?: boolean;
   } = {},
 ): Promise<void> {
   await store.saveResource(
-    ApiResourceKind.agent_eval,
+    ApiResourceKind.eval_run,
     AGENT_EVAL_ID,
-    AgentEvalSchema,
-    create(AgentEvalSchema, {
+    EvalRunSchema,
+    create(EvalRunSchema, {
       metadata: { id: AGENT_EVAL_ID, org: ORG, name: AGENT_EVAL_ID },
       spec: {
-        agentId: AGENT_ID,
+        subject: { case: "agentId", value: AGENT_ID },
         agentVersion: AGENT_HASH,
+        comparedPluginId: options.compared === true ? PLUGIN_ID : "",
         runs: 1,
         maxCostUsd: 5,
         ...(options.threshold !== undefined && { threshold: options.threshold }),
@@ -221,10 +228,12 @@ export async function seedAgentEval(
         phase: options.phase ?? EvalRunPhase.pending,
         agentVersionHash: AGENT_HASH,
         plugins: [
-          create(AgentEvalPluginSchema, {
+          create(EvalRunPluginSchema, {
             pluginId: PLUGIN_ID,
             pluginSlug: "thermos",
             pluginDigest: options.pluginDigest ?? DIGEST,
+            attached: true,
+            compared: options.compared === true,
           }),
         ],
       },
@@ -233,7 +242,7 @@ export async function seedAgentEval(
 }
 
 export async function readAgentEval(store: Store) {
-  return store.getResource(ApiResourceKind.agent_eval, AGENT_EVAL_ID, AgentEvalSchema);
+  return store.getResource(ApiResourceKind.eval_run, AGENT_EVAL_ID, EvalRunSchema);
 }
 
 /** What the lane was asked, and how it answers. */

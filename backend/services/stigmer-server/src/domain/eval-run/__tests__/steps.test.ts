@@ -44,6 +44,7 @@ import {
   EvalRunArmSchema,
   EvalRunCaseSchema,
   EvalRunCaseTargetSchema,
+  EvalRunPluginSchema,
   EvalRunPartialReason,
   EvalRunPhase,
   EvalRunStatusSchema,
@@ -84,20 +85,22 @@ import {
   evalRunTooLargeMessage,
 } from "../constants.js";
 import {
-  EVALUATED_PLUGIN_KEY,
+  EVAL_RUN_LOAD_KEY,
+  EVAL_RUN_SUBJECT_KEY,
   EVAL_RUN_RESULT_KEY,
   newCancelEvalRunStep,
-  newListEvalRunsByPluginStep,
+  newListEvalRunsBySubjectStep,
   newSettleEndedEvalRunStep,
   evalRunOutlivedItsWorkflow,
   settleEndedEvalRun,
-  newLoadEvaluatedPluginStep,
+  newLoadEvalRunSubjectStep,
   newPlanEvalRunStep,
   newRefuseActiveEvalRunDeleteStep,
   newResolveEvalRunDefaultsStep,
   newStartEvalRunWorkflowStep,
   resolveEvalRunCreateTargets,
 } from "../steps.js";
+import type { EvaluatedLoad, LoadedSubject } from "../steps.js";
 import { EVAL_RUN_EXECUTION_TIMEOUT_MS } from "../workflows.js";
 import type { EvalRunWorkflows } from "../workflows.js";
 import * as matrix from "../matrix.js";
@@ -121,7 +124,7 @@ afterEach(async () => {
 function evalRow(id: string, phase: EvalRunPhase, pluginId = "plg_1"): EvalRun {
   return create(EvalRunSchema, {
     metadata: { id, name: id, org: "org_1" },
-    spec: { pluginId, maxCostUsd: 5 },
+    spec: { subject: { case: "pluginId", value: pluginId }, maxCostUsd: 5 },
     status: { phase },
   });
 }
@@ -152,6 +155,27 @@ function workflows(answers: Partial<EvalRunWorkflows> = {}): EvalRunWorkflows & 
 
 function createCtx(row: EvalRun, caller = testCallerIdentity()) {
   return new RequestContext(EvalRunSchema, row, caller, ApiResourceKind.eval_run);
+}
+
+/** An authorizer that allows every question: the create's own steps ask none in these arms. */
+const PERMIT: Authorizer = { authorize: () => Promise.resolve({ kind: "allow" }) };
+
+/** A plan's context: the eval run about the plugin `plg_1`, its one plugin stamped at `digest`, compared. */
+function planCtx(row: EvalRun, digest = "a".repeat(64)) {
+  const ctx = createCtx(row);
+  ctx.set(EVAL_RUN_LOAD_KEY, {
+    agentSpec: undefined,
+    plugins: [
+      {
+        plugin: create(PluginSchema, { metadata: { id: "plg_1", org: "org_1", name: "thermos", slug: "thermos" } }),
+        digest,
+        attached: false,
+        compared: true,
+      },
+    ],
+    selected: new Set(["plg_1"]),
+  } satisfies EvaluatedLoad);
+  return ctx;
 }
 
 function idCtx(target: EvalRun) {
@@ -261,7 +285,7 @@ describe("StartEvalRunWorkflow", () => {
     expect(status?.phase).toBe(EvalRunPhase.running);
     expect(status?.error).toBe("");
     expect(status?.finishedAt).toBeUndefined();
-    expect(status?.cases[0]?.targets[0]?.withPlugin?.tries[0]?.state).toBe(EvalRunTryState.graded);
+    expect(status?.plugins[0]?.cases[0]?.targets[0]?.withPlugin?.tries[0]?.state).toBe(EvalRunTryState.graded);
   });
 });
 
@@ -318,7 +342,7 @@ describe("an eval whose workflow ended without finishing", () => {
   function aged(id: string, phase: EvalRunPhase, ageMs: number): EvalRun {
     return create(EvalRunSchema, {
       metadata: { id, name: id, org: "org_1" },
-      spec: { pluginId: "plg_1", maxCostUsd: 5 },
+      spec: { subject: { case: "pluginId", value: "plg_1" }, maxCostUsd: 5 },
       status: { phase, audit: { specAudit: { createdAt: timestampFromMs(Date.now() - ageMs) } } },
     });
   }
@@ -363,7 +387,7 @@ describe("an eval whose workflow ended without finishing", () => {
       testCallerIdentity({ origin: "in-process" }),
       ApiResourceKind.plugin,
     );
-    await newListEvalRunsByPluginStep(temp.store, ALLOW_ALL, silentLogger).execute(ctx);
+    await newListEvalRunsBySubjectStep<typeof ListEvalRunsByPluginRequestSchema>("plugin", temp.store, ALLOW_ALL, silentLogger).execute(ctx);
     expect((ctx.get(EVAL_RUN_RESULT_KEY) as EvalRunList).entries[0]?.status?.phase).toBe(EvalRunPhase.failed);
 
     // A row deleted between the list and its settle is answered as listed.
@@ -411,21 +435,21 @@ describe("ListEvalRunsByPlugin", () => {
       },
     };
     const ctx = listCtx();
-    await newListEvalRunsByPluginStep(temp.store, onlyA, silentLogger).execute(ctx);
+    await newListEvalRunsBySubjectStep<typeof ListEvalRunsByPluginRequestSchema>("plugin", temp.store, onlyA, silentLogger).execute(ctx);
     const list = ctx.get(EVAL_RUN_RESULT_KEY) as EvalRunList;
     expect(list.entries.map((e) => e.metadata?.id)).toEqual(["evr_a"]);
     expect(list.entries).toHaveLength(1);
     expect(asked.sort()).toEqual(["can_view eval_run evr_a", "can_view eval_run evr_b"]);
 
     const serverCtx = listCtx(testCallerIdentity({ origin: "in-process" }));
-    await newListEvalRunsByPluginStep(temp.store, onlyA, silentLogger).execute(serverCtx);
+    await newListEvalRunsBySubjectStep<typeof ListEvalRunsByPluginRequestSchema>("plugin", temp.store, onlyA, silentLogger).execute(serverCtx);
     expect((serverCtx.get(EVAL_RUN_RESULT_KEY) as EvalRunList).entries).toHaveLength(2);
 
     const down: Authorizer = {
       authorize: () => Promise.resolve({ kind: "unavailable", cause: new Error("engine down") }),
     };
     const fault = await failure(() =>
-      newListEvalRunsByPluginStep(temp.store, down, silentLogger).execute(listCtx()),
+      newListEvalRunsBySubjectStep<typeof ListEvalRunsByPluginRequestSchema>("plugin", temp.store, down, silentLogger).execute(listCtx()),
     );
     expect(fault.code).toBe(Code.Internal);
   });
@@ -454,7 +478,7 @@ describe("ListEvalRunsByPlugin's label filter", () => {
         testCallerIdentity(),
         ApiResourceKind.plugin,
       );
-      await newListEvalRunsByPluginStep(temp.store, allow, silentLogger).execute(ctx);
+      await newListEvalRunsBySubjectStep<typeof ListEvalRunsByPluginRequestSchema>("plugin", temp.store, allow, silentLogger).execute(ctx);
       const page = ctx.get(EVAL_RUN_RESULT_KEY) as EvalRunList;
       expect(page.entries.length).toBeLessThanOrEqual(1);
       walked.push(...page.entries.map((row) => row.metadata!.id));
@@ -470,7 +494,7 @@ describe("ListEvalRunsByPlugin's answer", () => {
     const row = evalRow("evr_tries", EvalRunPhase.completed);
     row.status = create(EvalRunStatusSchema, {
       phase: EvalRunPhase.completed,
-      cases: [
+      plugins: [create(EvalRunPluginSchema, { pluginId: "plg_1", cases: [
         create(EvalRunCaseSchema, {
           caseName: "a",
           notes: ["a note"],
@@ -493,7 +517,7 @@ describe("ListEvalRunsByPlugin's answer", () => {
             create(EvalRunCaseTargetSchema, { notRunReason: "not run: model 'x' is not in Stigmer's catalog" }),
           ],
         }),
-      ],
+      ] })],
       aggregates: { casesTotal: 1, casesPassed: 1, overallScore: 1 },
     });
     await saved(row);
@@ -503,17 +527,17 @@ describe("ListEvalRunsByPlugin's answer", () => {
       testCallerIdentity({ origin: "in-process" }),
       ApiResourceKind.plugin,
     );
-    await newListEvalRunsByPluginStep(temp.store, { authorize: () => Promise.resolve({ kind: "allow" }) }, silentLogger).execute(ctx);
+    await newListEvalRunsBySubjectStep<typeof ListEvalRunsByPluginRequestSchema>("plugin", temp.store, { authorize: () => Promise.resolve({ kind: "allow" }) }, silentLogger).execute(ctx);
     const listed = (ctx.get(EVAL_RUN_RESULT_KEY) as EvalRunList).entries[0];
-    const target = listed?.status?.cases[0]?.targets[0];
+    const target = listed?.status?.plugins[0]?.cases[0]?.targets[0];
     expect(target?.withPlugin?.tries).toEqual([]);
     expect(target?.withoutPlugin?.tries).toEqual([]);
     expect(target?.withPlugin?.score).toBe(1);
     expect(target?.withPlugin?.gradedTries).toBe(2);
     expect(target?.delta).toBe(1);
-    expect(listed?.status?.cases[0]?.notes).toEqual(["a note"]);
+    expect(listed?.status?.plugins[0]?.cases[0]?.notes).toEqual(["a note"]);
     expect(listed?.status?.aggregates?.casesTotal).toBe(1);
-    expect((await stored("evr_tries")).status?.cases[0]?.targets[0]?.withPlugin?.tries).toHaveLength(2);
+    expect((await stored("evr_tries")).status?.plugins[0]?.cases[0]?.targets[0]?.withPlugin?.tries).toHaveLength(2);
   });
 });
 
@@ -542,11 +566,11 @@ describe("the create's question and its faults", () => {
       newPlanEvalRunStep(
         { readArchive: () => Promise.reject(new ConnectError("plugin version not found", Code.NotFound)) },
         catalog,
-      ).execute(createCtx(row)),
+      ).execute(planCtx(row)),
     );
     expect(notFound.code).toBe(Code.NotFound);
     const broken = await failure(() =>
-      newPlanEvalRunStep({ readArchive: () => Promise.reject(new Error("disk")) }, catalog).execute(createCtx(row)),
+      newPlanEvalRunStep({ readArchive: () => Promise.reject(new Error("disk")) }, catalog).execute(planCtx(row)),
     );
     expect(broken.code).toBe(Code.Internal);
     expect(broken.rawMessage).toBe("failed to read the plugin's evals");
@@ -571,7 +595,7 @@ describe("the create's question and its faults", () => {
     vi.mocked(matrix.planMatrix).mockClear();
     const tooLarge = await failure(() =>
       newPlanEvalRunStep({ readArchive: () => Promise.resolve(inMemoryPluginFiles(files)) }, catalog).execute(
-        createCtx(row),
+        planCtx(row),
       ),
     );
     expect(tooLarge.code).toBe(Code.FailedPrecondition);
@@ -584,7 +608,7 @@ describe("the create's question and its faults", () => {
       getResource: () => Promise.reject(new Error("disk")),
     } as unknown as Store;
     const fault = await failure(() =>
-      newLoadEvaluatedPluginStep(faulty).execute(createCtx(evalRow("", EvalRunPhase.unspecified))),
+      newLoadEvalRunSubjectStep(faulty).execute(createCtx(evalRow("", EvalRunPhase.unspecified))),
     );
     expect(fault.code).toBe(Code.Internal);
   });
@@ -593,13 +617,14 @@ describe("the create's question and its faults", () => {
 describe("ResolveEvalRunDefaults' refusals", () => {
   function evaluated(row: EvalRun, digest = "a".repeat(64)) {
     const ctx = createCtx(row);
-    ctx.set(
-      EVALUATED_PLUGIN_KEY,
-      create(PluginSchema, {
+    ctx.set(EVAL_RUN_SUBJECT_KEY, {
+      kind: "plugin",
+      org: "org_1",
+      row: create(PluginSchema, {
         metadata: { id: "plg_1", org: "org_1", name: "thermos", slug: "thermos" },
         status: { digest, mcpServers: [{ name: "github" }] },
       }),
-    );
+    } satisfies LoadedSubject);
     return ctx;
   }
 
@@ -607,23 +632,23 @@ describe("ResolveEvalRunDefaults' refusals", () => {
     const noOrg = evalRow("", EvalRunPhase.unspecified);
     noOrg.metadata!.org = "";
     const orgRefusal = await failure(() =>
-      newResolveEvalRunDefaultsStep(temp.store).execute(evaluated(noOrg)),
+      newResolveEvalRunDefaultsStep(temp.store, PERMIT).execute(evaluated(noOrg)),
     );
     expect(orgRefusal.code).toBe(Code.InvalidArgument);
-    expect(orgRefusal.rawMessage).toBe("metadata.org is required for a plugin eval");
+    expect(orgRefusal.rawMessage).toBe("metadata.org is required for an eval run");
 
     const noSpec = evalRow("", EvalRunPhase.unspecified);
     noSpec.spec = undefined;
     const specRefusal = await failure(() =>
-      newResolveEvalRunDefaultsStep(temp.store).execute(evaluated(noSpec)),
+      newResolveEvalRunDefaultsStep(temp.store, PERMIT).execute(evaluated(noSpec)),
     );
     expect(specRefusal.code).toBe(Code.InvalidArgument);
-    expect(specRefusal.rawMessage).toBe("spec is required for a plugin eval");
+    expect(specRefusal.rawMessage).toBe("spec is required for an eval run");
   });
 
   it("refuses a plugin that has no version to run", async () => {
     const refused = await failure(() =>
-      newResolveEvalRunDefaultsStep(temp.store).execute(
+      newResolveEvalRunDefaultsStep(temp.store, PERMIT).execute(
         evaluated(evalRow("", EvalRunPhase.unspecified), ""),
       ),
     );
@@ -635,18 +660,14 @@ describe("ResolveEvalRunDefaults' refusals", () => {
     const row = evalRow("", EvalRunPhase.unspecified);
     row.spec!.allowTools = ["Read", "mcp__plugin_other_github__search_issues"];
     const refused = await failure(() =>
-      newResolveEvalRunDefaultsStep(temp.store).execute(evaluated(row)),
+      newResolveEvalRunDefaultsStep(temp.store, PERMIT).execute(evaluated(row)),
     );
     expect(refused.code).toBe(Code.InvalidArgument);
     expect(refused.rawMessage).toBe(
-      evalRunOtherPluginToolMessage(
-        "mcp__plugin_other_github__search_issues",
-        "plugin_other_github",
-        "thermos",
-      ),
+      evalRunOtherPluginToolMessage("mcp__plugin_other_github__search_issues", "plugin_other_github"),
     );
     expect(refused.rawMessage).toBe(
-      "allow_tools entry 'mcp__plugin_other_github__search_issues' names MCP server 'plugin_other_github', which is not one of 'thermos''s; a try attaches no other plugin",
+      "allow_tools entry 'mcp__plugin_other_github__search_issues' names MCP server 'plugin_other_github', which is none of the plugins a try loads",
     );
   });
 
@@ -655,7 +676,7 @@ describe("ResolveEvalRunDefaults' refusals", () => {
     row.spec!.allowRealServers = true;
     row.spec!.realMcpServers = true;
     const refused = await failure(() =>
-      newResolveEvalRunDefaultsStep(temp.store).execute(evaluated(row)),
+      newResolveEvalRunDefaultsStep(temp.store, PERMIT).execute(evaluated(row)),
     );
     expect(refused.code).toBe(Code.InvalidArgument);
     expect(refused.rawMessage).toBe(EVAL_RUN_REAL_SERVERS_CONFLICT_MESSAGE);
@@ -666,7 +687,7 @@ describe("ResolveEvalRunDefaults' refusals", () => {
     const tools = ["Read", "Bash(npm test *)", "mcp__plugin_thermos_github__search_issues", "mcp__github__*"];
     row.spec!.allowTools = [...tools];
     const ctx = evaluated(row);
-    await newResolveEvalRunDefaultsStep(temp.store).execute(ctx);
+    await newResolveEvalRunDefaultsStep(temp.store, PERMIT).execute(ctx);
     expect(ctx.newState.spec?.allowTools).toEqual(tools);
     expect(ctx.newState.metadata?.id).toMatch(/^evr_/);
   });
@@ -695,19 +716,19 @@ describe("a failed start's write", () => {
       ),
     );
     expect(fault.code).toBe(Code.Internal);
-    expect(fault.rawMessage).toBe("failed to save the plugin eval");
+    expect(fault.rawMessage).toBe("failed to save the eval run");
   });
 });
 
 describe("a chain built wrong", () => {
   it("fails loudly when the evaluated plugin, the cancel's target or the delete's row was never stashed", async () => {
     const noPlugin = await failure(() =>
-      newResolveEvalRunDefaultsStep(temp.store).execute(
+      newResolveEvalRunDefaultsStep(temp.store, PERMIT).execute(
         createCtx(evalRow("", EvalRunPhase.unspecified)),
       ),
     );
     expect(noPlugin.code).toBe(Code.Internal);
-    expect(noPlugin.rawMessage).toBe("evaluated plugin not found in context");
+    expect(noPlugin.rawMessage).toBe("eval run subject not found in context");
 
     const bare = () =>
       new RequestContext(
@@ -726,7 +747,7 @@ describe("a chain built wrong", () => {
       newRefuseActiveEvalRunDeleteStep().execute(bare()),
     );
     expect(noExisting.code).toBe(Code.Internal);
-    expect(noExisting.rawMessage).toBe("existing plugin eval not found in context");
+    expect(noExisting.rawMessage).toBe("existing eval run not found in context");
   });
 
   it("refuses a plan with no spec, and answers a store fault listing a plugin's evals INTERNAL", async () => {
@@ -737,17 +758,17 @@ describe("a chain built wrong", () => {
     row.spec = undefined;
     const noSpec = await failure(() =>
       newPlanEvalRunStep({ readArchive: () => Promise.reject(new Error("unread")) }, catalog).execute(
-        createCtx(row),
+        planCtx(row),
       ),
     );
     expect(noSpec.code).toBe(Code.InvalidArgument);
-    expect(noSpec.rawMessage).toBe("spec is required for a plugin eval");
+    expect(noSpec.rawMessage).toBe("spec is required for an eval run");
 
     const faulty = {
       queryResources: () => Promise.reject(new Error("disk")),
     } as unknown as Store;
     const listed = await failure(() =>
-      newListEvalRunsByPluginStep(faulty, { authorize: () => Promise.resolve({ kind: "allow" }) }, silentLogger).execute(
+      newListEvalRunsBySubjectStep<typeof ListEvalRunsByPluginRequestSchema>("plugin", faulty, { authorize: () => Promise.resolve({ kind: "allow" }) }, silentLogger).execute(
         new RequestContext(
           ListEvalRunsByPluginRequestSchema,
           create(ListEvalRunsByPluginRequestSchema, { pluginId: "plg_1" }),

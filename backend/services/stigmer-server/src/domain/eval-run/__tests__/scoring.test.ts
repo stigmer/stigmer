@@ -16,6 +16,7 @@ import {
   EvalRunArmSchema,
   EvalRunCaseSchema,
   EvalRunCaseTargetSchema,
+  EvalRunPluginSchema,
   EvalRunStatusSchema,
   EvalRunTryState,
   EvalRunTrySchema,
@@ -82,7 +83,12 @@ describe("which graders score", () => {
       grader({ ...llm, focus: { kind: "mock_calls" } }),
       grader({ ...regex, target: { kind: "mock_calls" } }, 1, "both"),
     ];
-    expect(scoringOf(graders, true).map((g) => g.scored)).toEqual([true, false, false, true]);
+    expect(scoringOf(graders, true).map((g) => g.scored)).toEqual([
+      true,
+      false,
+      false,
+      true,
+    ]);
     expect(scoringOf(graders, false).every((g) => g.scored)).toBe(true);
   });
 
@@ -151,46 +157,51 @@ function tries(
 describe("the suite's summaries", () => {
   it("matches the hand-computed suite", () => {
     const status = create(EvalRunStatusSchema, {
-      cases: [
-        create(EvalRunCaseSchema, {
-          caseName: "a",
-          targets: [
-            create(EvalRunCaseTargetSchema, {
-              withPlugin: create(EvalRunArmSchema, {
-                tries: tries(1, 2 / 3, "not-graded"),
-              }),
-              withoutPlugin: create(EvalRunArmSchema, {
-                tries: tries(1 / 3, 0, 2 / 3),
-              }),
+      plugins: [
+        create(EvalRunPluginSchema, {
+          cases: [
+            create(EvalRunCaseSchema, {
+              caseName: "a",
+              targets: [
+                create(EvalRunCaseTargetSchema, {
+                  withPlugin: create(EvalRunArmSchema, {
+                    tries: tries(1, 2 / 3, "not-graded"),
+                  }),
+                  withoutPlugin: create(EvalRunArmSchema, {
+                    tries: tries(1 / 3, 0, 2 / 3),
+                  }),
+                }),
+              ],
+            }),
+            create(EvalRunCaseSchema, {
+              caseName: "b",
+              targets: [
+                create(EvalRunCaseTargetSchema, {
+                  withPlugin: create(EvalRunArmSchema, {
+                    tries: tries(1, 1, 1),
+                  }),
+                  withoutPlugin: create(EvalRunArmSchema, {
+                    tries: tries(0, 0, "pending"),
+                  }),
+                }),
+                create(EvalRunCaseTargetSchema, {
+                  notRunReason:
+                    "not run: model 'x' is not in Stigmer's catalog",
+                }),
+              ],
+            }),
+            create(EvalRunCaseSchema, {
+              caseName: "c",
+              notRunReason: "not run: env",
             }),
           ],
-        }),
-        create(EvalRunCaseSchema, {
-          caseName: "b",
-          targets: [
-            create(EvalRunCaseTargetSchema, {
-              withPlugin: create(EvalRunArmSchema, {
-                tries: tries(1, 1, 1),
-              }),
-              withoutPlugin: create(EvalRunArmSchema, {
-                tries: tries(0, 0, "pending"),
-              }),
-            }),
-            create(EvalRunCaseTargetSchema, {
-              notRunReason: "not run: model 'x' is not in Stigmer's catalog",
-            }),
-          ],
-        }),
-        create(EvalRunCaseSchema, {
-          caseName: "c",
-          notRunReason: "not run: env",
         }),
       ],
     });
 
     recomputeStatus(status, 0.8);
 
-    const a = status.cases[0]?.targets[0];
+    const a = status.plugins[0]!.cases[0]?.targets[0];
     expect(a?.withPlugin?.score).toBeCloseTo(5 / 6);
     expect(a?.withPlugin?.gradedTries).toBe(2);
     expect(a?.withPlugin?.perfectRuns).toBe(1);
@@ -199,13 +210,13 @@ describe("the suite's summaries", () => {
     expect(a?.passed).toBe(true);
     expect(a?.passK).toBe(false);
 
-    const b = status.cases[1]?.targets[0];
+    const b = status.plugins[0]!.cases[1]?.targets[0];
     expect(b?.withPlugin?.score).toBe(1);
     expect(b?.withPlugin?.perfectRuns).toBe(3);
     expect(b?.withoutPlugin?.score).toBe(0);
     expect(b?.delta).toBe(1);
     expect(b?.passK).toBe(true);
-    expect(status.cases[1]?.targets[1]?.passed).toBe(false);
+    expect(status.plugins[0]!.cases[1]?.targets[1]?.passed).toBe(false);
 
     expect(status.aggregates?.overallScore).toBeCloseTo(11 / 12);
     expect(status.aggregates?.casesPassed).toBe(2);
@@ -218,28 +229,36 @@ describe("the suite's summaries", () => {
 
   it("holds the threshold, and leaves the score and delta unset without graded tries", () => {
     const status = create(EvalRunStatusSchema, {
-      cases: [
-        create(EvalRunCaseSchema, {
-          caseName: "a",
-          targets: [
-            create(EvalRunCaseTargetSchema, {
-              withPlugin: create(EvalRunArmSchema, { tries: tries(0.5, 1) }),
-            }),
-            create(EvalRunCaseTargetSchema, {
-              withPlugin: create(EvalRunArmSchema, {
-                tries: tries("not-graded"),
-              }),
-              withoutPlugin: create(EvalRunArmSchema, { tries: tries(1) }),
+      plugins: [
+        create(EvalRunPluginSchema, {
+          cases: [
+            create(EvalRunCaseSchema, {
+              caseName: "a",
+              targets: [
+                create(EvalRunCaseTargetSchema, {
+                  withPlugin: create(EvalRunArmSchema, {
+                    tries: tries(0.5, 1),
+                  }),
+                }),
+                create(EvalRunCaseTargetSchema, {
+                  withPlugin: create(EvalRunArmSchema, {
+                    tries: tries("not-graded"),
+                  }),
+                  withoutPlugin: create(EvalRunArmSchema, { tries: tries(1) }),
+                }),
+              ],
             }),
           ],
         }),
       ],
     });
     recomputeStatus(status, 1);
-    expect(status.cases[0]?.targets[0]?.passed).toBe(false);
-    expect(status.cases[0]?.targets[0]?.delta).toBeUndefined();
-    expect(status.cases[0]?.targets[1]?.withPlugin?.score).toBeUndefined();
-    expect(status.cases[0]?.targets[1]?.delta).toBeUndefined();
+    expect(status.plugins[0]!.cases[0]?.targets[0]?.passed).toBe(false);
+    expect(status.plugins[0]!.cases[0]?.targets[0]?.delta).toBeUndefined();
+    expect(
+      status.plugins[0]!.cases[0]?.targets[1]?.withPlugin?.score,
+    ).toBeUndefined();
+    expect(status.plugins[0]!.cases[0]?.targets[1]?.delta).toBeUndefined();
     expect(status.aggregates?.casesPassed).toBe(0);
     expect(status.aggregates?.meanDelta).toBeUndefined();
     expect(status.aggregates?.overallScore).toBeCloseTo(0.75);
@@ -247,43 +266,47 @@ describe("the suite's summaries", () => {
 
   it("counts only the cases and targets whose tries ran", () => {
     const status = create(EvalRunStatusSchema, {
-      cases: [
-        create(EvalRunCaseSchema, {
-          caseName: "ran",
-          targets: [
-            create(EvalRunCaseTargetSchema, {
-              withPlugin: create(EvalRunArmSchema, { tries: tries(1, 1) }),
+      plugins: [
+        create(EvalRunPluginSchema, {
+          cases: [
+            create(EvalRunCaseSchema, {
+              caseName: "ran",
+              targets: [
+                create(EvalRunCaseTargetSchema, {
+                  withPlugin: create(EvalRunArmSchema, { tries: tries(1, 1) }),
+                }),
+                create(EvalRunCaseTargetSchema, {
+                  withPlugin: create(EvalRunArmSchema, {
+                    tries: tries("pending", "pending"),
+                  }),
+                }),
+              ],
             }),
-            create(EvalRunCaseTargetSchema, {
-              withPlugin: create(EvalRunArmSchema, {
-                tries: tries("pending", "pending"),
-              }),
+            create(EvalRunCaseSchema, {
+              caseName: "stopped-before-it-ran",
+              targets: [
+                create(EvalRunCaseTargetSchema, {
+                  withPlugin: create(EvalRunArmSchema, {
+                    tries: tries("pending", "pending"),
+                  }),
+                  withoutPlugin: create(EvalRunArmSchema, {
+                    tries: tries("pending", "pending"),
+                  }),
+                }),
+              ],
             }),
-          ],
-        }),
-        create(EvalRunCaseSchema, {
-          caseName: "stopped-before-it-ran",
-          targets: [
-            create(EvalRunCaseTargetSchema, {
-              withPlugin: create(EvalRunArmSchema, {
-                tries: tries("pending", "pending"),
-              }),
-              withoutPlugin: create(EvalRunArmSchema, {
-                tries: tries("pending", "pending"),
-              }),
-            }),
-          ],
-        }),
-        create(EvalRunCaseSchema, {
-          caseName: "only-not-graded",
-          targets: [
-            create(EvalRunCaseTargetSchema, {
-              withPlugin: create(EvalRunArmSchema, {
-                tries: tries("pending"),
-              }),
-              withoutPlugin: create(EvalRunArmSchema, {
-                tries: tries("not-graded"),
-              }),
+            create(EvalRunCaseSchema, {
+              caseName: "only-not-graded",
+              targets: [
+                create(EvalRunCaseTargetSchema, {
+                  withPlugin: create(EvalRunArmSchema, {
+                    tries: tries("pending"),
+                  }),
+                  withoutPlugin: create(EvalRunArmSchema, {
+                    tries: tries("not-graded"),
+                  }),
+                }),
+              ],
             }),
           ],
         }),
@@ -299,25 +322,31 @@ describe("the suite's summaries", () => {
 
   it("leaves a case whose finished tries were all not graded out of the totals, so platform failures never read as failed cases", () => {
     const status = create(EvalRunStatusSchema, {
-      cases: [
-        create(EvalRunCaseSchema, {
-          caseName: "graded",
-          targets: [
-            create(EvalRunCaseTargetSchema, {
-              withPlugin: create(EvalRunArmSchema, { tries: tries(0, "not-graded") }),
+      plugins: [
+        create(EvalRunPluginSchema, {
+          cases: [
+            create(EvalRunCaseSchema, {
+              caseName: "graded",
+              targets: [
+                create(EvalRunCaseTargetSchema, {
+                  withPlugin: create(EvalRunArmSchema, {
+                    tries: tries(0, "not-graded"),
+                  }),
+                }),
+              ],
             }),
-          ],
-        }),
-        create(EvalRunCaseSchema, {
-          caseName: "platform-failures",
-          targets: [
-            create(EvalRunCaseTargetSchema, {
-              withPlugin: create(EvalRunArmSchema, {
-                tries: tries("not-graded", "not-graded"),
-              }),
-              withoutPlugin: create(EvalRunArmSchema, {
-                tries: tries("not-graded", "not-graded"),
-              }),
+            create(EvalRunCaseSchema, {
+              caseName: "platform-failures",
+              targets: [
+                create(EvalRunCaseTargetSchema, {
+                  withPlugin: create(EvalRunArmSchema, {
+                    tries: tries("not-graded", "not-graded"),
+                  }),
+                  withoutPlugin: create(EvalRunArmSchema, {
+                    tries: tries("not-graded", "not-graded"),
+                  }),
+                }),
+              ],
             }),
           ],
         }),
@@ -335,23 +364,29 @@ describe("the suite's summaries", () => {
 
   it("leaves a case out of the totals when only its without-plugin tries were graded, whatever they scored", () => {
     const status = create(EvalRunStatusSchema, {
-      cases: [
-        create(EvalRunCaseSchema, {
-          caseName: "graded",
-          targets: [
-            create(EvalRunCaseTargetSchema, {
-              withPlugin: create(EvalRunArmSchema, { tries: tries(1) }),
+      plugins: [
+        create(EvalRunPluginSchema, {
+          cases: [
+            create(EvalRunCaseSchema, {
+              caseName: "graded",
+              targets: [
+                create(EvalRunCaseTargetSchema, {
+                  withPlugin: create(EvalRunArmSchema, { tries: tries(1) }),
+                }),
+              ],
             }),
-          ],
-        }),
-        create(EvalRunCaseSchema, {
-          caseName: "with-plugin-not-graded",
-          targets: [
-            create(EvalRunCaseTargetSchema, {
-              withPlugin: create(EvalRunArmSchema, {
-                tries: tries("not-graded", "not-graded"),
-              }),
-              withoutPlugin: create(EvalRunArmSchema, { tries: tries(1, 0) }),
+            create(EvalRunCaseSchema, {
+              caseName: "with-plugin-not-graded",
+              targets: [
+                create(EvalRunCaseTargetSchema, {
+                  withPlugin: create(EvalRunArmSchema, {
+                    tries: tries("not-graded", "not-graded"),
+                  }),
+                  withoutPlugin: create(EvalRunArmSchema, {
+                    tries: tries(1, 0),
+                  }),
+                }),
+              ],
             }),
           ],
         }),

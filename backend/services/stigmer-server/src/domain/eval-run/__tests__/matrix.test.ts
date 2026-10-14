@@ -63,7 +63,7 @@ function specOf(
   fields: Omit<MessageInitShape<typeof EvalRunSpecSchema>, "$typeName"> = {},
 ): EvalRunSpec {
   return create(EvalRunSpecSchema, {
-    pluginId: "plg_1",
+    subject: { case: "pluginId", value: "plg_1" },
     maxCostUsd: 5,
     ...fields,
   });

@@ -221,13 +221,12 @@ describe("load-suite", () => {
     const status = (await readEval(temp.store)).status!;
     expect(status.phase).toBe(EvalRunPhase.running);
     expect(status.triesTotal).toBe(4);
-    expect(status.provisionalDelta).toBe(false);
     expect(status.startedAt).toBeDefined();
-    expect(status.cases.map((c) => [c.caseName, c.notRunReason])).toEqual([
+    expect(status.plugins[0]!.cases.map((c) => [c.caseName, c.notRunReason])).toEqual([
       ["first-case", ""],
       ["other-plugin", "not run: plugins"],
     ]);
-    const first = status.cases[0]!;
+    const first = status.plugins[0]!.cases[0]!;
     expect(first.notes).toEqual([
       "max_turns 4 raised to the run's minimum of 10 tool rounds",
       "Bash not granted: the eval's allow_tools does not grant it",
@@ -247,7 +246,7 @@ describe("load-suite", () => {
     const plan = await build().suite[LOAD_SUITE_ACTIVITY_NAME](EVAL_ID);
     expect(plan).toMatchObject({ kind: "run", concurrency: 3 });
     expect(
-      (await readEval(temp.store)).status?.cases[0]?.targets[0]?.withoutPlugin,
+      (await readEval(temp.store)).status?.plugins[0]?.cases[0]?.targets[0]?.withoutPlugin,
     ).toBeUndefined();
   });
 
@@ -259,7 +258,7 @@ describe("load-suite", () => {
     const again = await suite[LOAD_SUITE_ACTIVITY_NAME](EVAL_ID);
     expect(again.kind).toBe("run");
     expect(
-      (await readEval(temp.store)).status?.cases[0]?.targets[0]?.withPlugin
+      (await readEval(temp.store)).status?.plugins[0]?.cases[0]?.targets[0]?.withPlugin
         ?.tries[0]?.state,
     ).toBe(EvalRunTryState.graded);
   });
@@ -337,7 +336,7 @@ describe("record-try and finish-eval", () => {
       graded(1),
     );
     const status = (await readEval(temp.store)).status!;
-    const target = status.cases[0]!.targets[0]!;
+    const target = status.plugins[0]!.cases[0]!.targets[0]!;
     expect(target.withPlugin?.score).toBeCloseTo(0.75);
     expect(target.withPlugin?.tries[0]).toMatchObject({
       sessionId: "ses_x",

@@ -88,7 +88,7 @@ async function saveEval(
 ): Promise<EvalRun> {
   const row = create(EvalRunSchema, {
     metadata: { id, name: id, org: ORG },
-    spec: { pluginId },
+    spec: { subject: { case: "pluginId", value: pluginId } },
     status: { phase },
   });
   await temp.store.saveResource(
@@ -162,7 +162,7 @@ describe("the shared reads", () => {
     await saveEval("evr_other", EvalRunPhase.completed, "plg_2");
     const { logger, lines } = recordingLogger();
 
-    const evals = await listEvalRuns(withBadRow("evr_bad"), logger, "plg_1");
+    const evals = await listEvalRuns(withBadRow("evr_bad"), logger, { kind: "plugin", id: "plg_1" });
 
     expect(evals.map((row) => row.metadata?.id)).toEqual(["evr_a"]);
     expect(lines).toEqual([
@@ -257,7 +257,7 @@ describe("the plugin-delete cascade", () => {
   }
 
   function cascade(store: Store) {
-    return newCascadeDeleteEvalRunsStep<PluginDelete>({
+    return newCascadeDeleteEvalRunsStep<PluginDelete>("plugin", {
       store,
       logger: silentLogger,
       authorizationLifecycle: undefined,
@@ -267,14 +267,14 @@ describe("the plugin-delete cascade", () => {
 
   it("does nothing in a composition that serves no evals", async () => {
     await saveEval("evr_a", EvalRunPhase.completed);
-    await newCascadeDeleteEvalRunsStep<PluginDelete>(undefined).execute(
+    await newCascadeDeleteEvalRunsStep<PluginDelete>("plugin", undefined).execute(
       deleteCtx("plg_1"),
     );
-    await newCascadeDeleteEvalRunsStep<PluginDelete>(undefined).execute(
+    await newCascadeDeleteEvalRunsStep<PluginDelete>("plugin", undefined).execute(
       deleteCtx(),
     );
     expect(
-      await listEvalRuns(temp.store, silentLogger, "plg_1"),
+      await listEvalRuns(temp.store, silentLogger, { kind: "plugin", id: "plg_1" }),
     ).toHaveLength(1);
   });
 

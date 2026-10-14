@@ -4,9 +4,9 @@
  * input, and counts an already-started workflow as success; a cancel asks
  * the workflow under the eval's id and answers "not-found" when none runs;
  * no engine connection is the port's typed error on both; any other
- * failure, the connection's deadline included, is thrown as it came. An
- * agent eval's port starts and cancels its own registered type under the
- * id `agent-eval/<eval id>`, byte for byte.
+ * failure, the connection's deadline included, is thrown as it came. The
+ * type `stigmer/evals/eval-run` and the id `eval-run/<eval run id>` are
+ * pinned byte for byte.
  */
 import type { Client } from "@temporalio/client";
 import {
@@ -16,9 +16,7 @@ import {
 import { describe, expect, it, vi } from "vitest";
 
 import {
-  RUN_AGENT_EVAL_WORKFLOW_TYPE,
   RUN_EVAL_RUN_WORKFLOW_TYPE,
-  runAgentEvalWorkflowId,
   runEvalRunWorkflowId,
 } from "../../../temporal/evals/names.js";
 import {
@@ -103,22 +101,18 @@ describe("the eval's workflow port", () => {
     ).rejects.toThrow("transport closed");
   });
 
-  it("starts and cancels an agent eval's workflow under its own type and id", async () => {
-    expect(RUN_AGENT_EVAL_WORKFLOW_TYPE).toBe("stigmer/evals/run-agent-eval");
-    expect(runAgentEvalWorkflowId("aev_1")).toBe("agent-eval/aev_1");
+  it("starts and cancels under the pinned type and id", async () => {
+    expect(RUN_EVAL_RUN_WORKFLOW_TYPE).toBe("stigmer/evals/eval-run");
+    expect(runEvalRunWorkflowId("evr_1")).toBe("eval-run/evr_1");
     const { client, start, getHandle } = engine({});
-    const port = newTemporalEvalRunWorkflows({
-      client: () => client,
-      taskQueue: "q",
-      workflow: { type: RUN_AGENT_EVAL_WORKFLOW_TYPE, idOf: runAgentEvalWorkflowId },
-    });
-    await port.start("aev_1");
+    const port = newTemporalEvalRunWorkflows({ client: () => client, taskQueue: "q" });
+    await port.start("evr_1");
     expect(start).toHaveBeenCalledWith(
-      "stigmer/evals/run-agent-eval",
-      expect.objectContaining({ workflowId: "agent-eval/aev_1", args: [{ evalId: "aev_1" }] }),
+      "stigmer/evals/eval-run",
+      expect.objectContaining({ workflowId: "eval-run/evr_1", args: [{ evalId: "evr_1" }] }),
     );
-    expect(await port.cancel("aev_1")).toBe("requested");
-    expect(getHandle).toHaveBeenCalledWith("agent-eval/aev_1");
+    expect(await port.cancel("evr_1")).toBe("requested");
+    expect(getHandle).toHaveBeenCalledWith("eval-run/evr_1");
   });
 
   it("is the port's typed error with no engine connection", async () => {

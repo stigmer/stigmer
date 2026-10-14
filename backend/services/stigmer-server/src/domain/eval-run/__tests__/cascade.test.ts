@@ -45,7 +45,7 @@ import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import { newSweepEvalRunsAfterDeleteStep } from "../cascade.js";
 import { EVAL_RUN_LABEL } from "../constants.js";
-import { newEnsureEvaluatedPluginStillExistsStep } from "../steps.js";
+import { newEnsureEvalRunSubjectStillExistsStep } from "../steps.js";
 import type { TrySessionDeleter } from "../tries.js";
 
 let temp: TempStore;
@@ -65,7 +65,7 @@ const PLUGIN: Plugin = create(PluginSchema, {
 function evalRow(id: string, phase: EvalRunPhase): EvalRun {
   return create(EvalRunSchema, {
     metadata: { id, name: id, org: "org_1" },
-    spec: { pluginId: "plg_1", maxCostUsd: 5 },
+    spec: { subject: { case: "pluginId", value: "plg_1" }, maxCostUsd: 5 },
     status: { phase },
   });
 }
@@ -147,7 +147,7 @@ describe("SweepEvalRunsAfterDelete", () => {
     );
     const deleted: string[] = [];
     const access = lifecycle();
-    await newSweepEvalRunsAfterDeleteStep({
+    await newSweepEvalRunsAfterDeleteStep("plugin", {
       store: temp.store,
       logger: silentLogger,
       authorizationLifecycle: access,
@@ -169,7 +169,7 @@ describe("SweepEvalRunsAfterDelete", () => {
     logger: Logger = silentLogger,
     sessions: TrySessionDeleter = { delete: () => Promise.resolve() },
   ) {
-    return newSweepEvalRunsAfterDeleteStep({
+    return newSweepEvalRunsAfterDeleteStep("plugin", {
       store: temp.store,
       logger,
       authorizationLifecycle: undefined,
@@ -298,12 +298,12 @@ describe("SweepEvalRunsAfterDelete", () => {
 
   it("does nothing in a composition with no evals, and is INTERNAL when the evals cannot be listed", async () => {
     await saved(evalRow("evr_kept", EvalRunPhase.pending));
-    await newSweepEvalRunsAfterDeleteStep(undefined).execute(deleteCtx());
+    await newSweepEvalRunsAfterDeleteStep("plugin", undefined).execute(deleteCtx());
     expect(await exists(ApiResourceKind.eval_run, "evr_kept")).toBe(true);
 
     const faulty = replacing(temp.store, "queryResources", () => Promise.reject(new Error("the store is down")));
     const fault = await failure(() =>
-      newSweepEvalRunsAfterDeleteStep({
+      newSweepEvalRunsAfterDeleteStep("plugin", {
         store: faulty,
         logger: silentLogger,
         authorizationLifecycle: undefined,
@@ -324,7 +324,7 @@ describe("EnsureEvaluatedPluginStillExists", () => {
     await temp.store.saveResource(ApiResourceKind.plugin, "plg_1", PluginSchema, PLUGIN);
     const row = await saved(evalRow("evr_1", EvalRunPhase.pending));
     const access = lifecycle();
-    await newEnsureEvaluatedPluginStillExistsStep(temp.store, access, silentLogger).execute(createCtx(row));
+    await newEnsureEvalRunSubjectStillExistsStep(temp.store, access, silentLogger).execute(createCtx(row));
     expect(await exists(ApiResourceKind.eval_run, "evr_1")).toBe(true);
     expect(access.cleaned).toEqual([]);
   });
@@ -333,7 +333,7 @@ describe("EnsureEvaluatedPluginStillExists", () => {
     const row = await saved(evalRow("evr_1", EvalRunPhase.pending));
     const access = lifecycle();
     const refused = await failure(() =>
-      newEnsureEvaluatedPluginStillExistsStep(temp.store, access, silentLogger).execute(createCtx(row)),
+      newEnsureEvalRunSubjectStillExistsStep(temp.store, access, silentLogger).execute(createCtx(row)),
     );
     expect(refused.code).toBe(Code.NotFound);
     expect(refused.rawMessage).toContain("plg_1");
@@ -345,14 +345,14 @@ describe("EnsureEvaluatedPluginStillExists", () => {
     const row = await saved(evalRow("evr_1", EvalRunPhase.pending));
     const unreadable = replacing(temp.store, "getResource", () => Promise.reject(new Error("the store is down")));
     const readFault = await failure(() =>
-      newEnsureEvaluatedPluginStillExistsStep(unreadable, undefined, silentLogger).execute(createCtx(row)),
+      newEnsureEvalRunSubjectStillExistsStep(unreadable, undefined, silentLogger).execute(createCtx(row)),
     );
     expect(readFault.code).toBe(Code.Internal);
     expect(readFault.rawMessage).toBe("failed to read the plugin to evaluate again");
 
     const undeletable = replacing(temp.store, "deleteResource", () => Promise.reject(new Error("the store is down")));
     const deleteFault = await failure(() =>
-      newEnsureEvaluatedPluginStillExistsStep(undeletable, undefined, silentLogger).execute(createCtx(row)),
+      newEnsureEvalRunSubjectStillExistsStep(undeletable, undefined, silentLogger).execute(createCtx(row)),
     );
     expect(deleteFault.code).toBe(Code.Internal);
     expect(deleteFault.rawMessage).toBe("failed to remove the plugin eval of a deleted plugin");

@@ -51,6 +51,7 @@ import {
 } from "../names.js";
 import type { SuiteCell, TryResult } from "../names.js";
 import {
+  EVAL_SUBJECT_GONE_ERROR,
   SUITE_UNREADABLE_ERROR,
   createSuiteActivities,
 } from "../suite-activities.js";
@@ -166,17 +167,18 @@ describe("load-suite at Temporal's attempt", () => {
 });
 
 describe("load-suite", () => {
-  it("plans nothing for an eval whose plugin is gone, and writes no status", async () => {
+  it("ends failed an eval run whose plugin is gone, planning nothing", async () => {
     await seedEval(temp.store);
     expect(await activities()[LOAD_SUITE_ACTIVITY_NAME](EVAL_ID)).toEqual({
       kind: "stop",
     });
     const status = (await readEval(temp.store)).status;
-    expect(status?.phase).toBe(EvalRunPhase.pending);
-    expect(status?.cases).toEqual([]);
+    expect(status?.phase).toBe(EvalRunPhase.failed);
+    expect(status?.error).toBe(EVAL_SUBJECT_GONE_ERROR);
+    expect(status?.plugins[0]?.cases).toEqual([]);
   });
 
-  it("plans an eval stored with no status, writing its skeleton", async () => {
+  it("plans an eval run stored with only its stamped plugins, writing its skeleton", async () => {
     await seedPlugin(temp.store);
     await temp.store.saveResource(
       ApiResourceKind.eval_run,
@@ -185,21 +187,22 @@ describe("load-suite", () => {
       create(EvalRunSchema, {
         metadata: { id: EVAL_ID, org: ORG, name: EVAL_ID },
         spec: create(EvalRunSpecSchema, {
-          pluginId: PLUGIN_ID,
+          subject: { case: "pluginId", value: PLUGIN_ID },
           pluginDigest: DIGEST,
           maxCostUsd: 5,
           runs: 1,
         }),
+        status: { plugins: [{ pluginId: PLUGIN_ID, pluginSlug: "thermos", pluginDigest: DIGEST, compared: true }] },
       }),
     );
-    expect((await readEval(temp.store)).status).toBeUndefined();
+    expect((await readEval(temp.store)).status?.phase).toBe(EvalRunPhase.unspecified);
 
     const plan = await activities()[LOAD_SUITE_ACTIVITY_NAME](EVAL_ID);
     expect(plan).toMatchObject({ kind: "run", org: ORG, concurrency: 1 });
     const status = (await readEval(temp.store)).status;
     expect(status?.phase).toBe(EvalRunPhase.running);
     expect(status?.triesTotal).toBe(2);
-    expect(status?.cases.map((planned) => planned.caseName)).toEqual([
+    expect(status?.plugins[0]?.cases.map((planned) => planned.caseName)).toEqual([
       "first-case",
       "other-plugin",
     ]);
@@ -253,7 +256,7 @@ describe("load-suite against an eval that ends while it reads", () => {
     const status = (await readEval(temp.store)).status;
     expect(status?.phase).toBe(EvalRunPhase.failed);
     expect(status?.error).toBe("the eval's workflow could not be started");
-    expect(status?.cases).toEqual([]);
+    expect(status?.plugins[0]?.cases).toEqual([]);
   });
 
   it("leaves the end when the suite cannot be read on the last attempt", async () => {
@@ -291,7 +294,7 @@ describe("record-try", () => {
       { ...CELL, arm: "without" },
       updated,
     );
-    const evalCase = (await readEval(temp.store)).status?.cases[0];
+    const evalCase = (await readEval(temp.store)).status?.plugins[0]?.cases[0];
     expect(
       evalCase?.notes.filter((note) => note === PLUGIN_UPDATED_NOTE),
     ).toHaveLength(1);
@@ -406,7 +409,7 @@ describe("finish-eval", () => {
     expect(status?.partialReason).toBe(EvalRunPartialReason.unspecified);
     expect(status?.finishedAt).toBeUndefined();
     expect(
-      status?.cases[0]?.targets[0]?.withPlugin?.tries[0]?.state,
+      status?.plugins[0]?.cases[0]?.targets[0]?.withPlugin?.tries[0]?.state,
       "the tries are left as the other writer left them",
     ).toBe(EvalRunTryState.pending);
   });

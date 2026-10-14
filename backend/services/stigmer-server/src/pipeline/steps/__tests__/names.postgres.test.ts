@@ -104,7 +104,6 @@ const CLAIMING_KINDS = [
   ApiResourceKind.score,
   ApiResourceKind.evaluator,
   ApiResourceKind.eval_run,
-  ApiResourceKind.agent_eval,
 ];
 
 describe("NAMED_KINDS", () => {

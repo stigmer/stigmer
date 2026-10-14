@@ -385,7 +385,7 @@ describe("start-try beside its main path", () => {
     const { cases, record } = build({
       wrap: (real) => async (evalId) => {
         const context = await real(evalId);
-        if (context?.kind !== "plugin") return context;
+        if (context === undefined) return context;
         const evalRun = { ...context.evalRun, spec: undefined };
         return { ...context, evalRun };
       },
@@ -403,9 +403,11 @@ describe("start-try beside its main path", () => {
     const { cases, record } = build({
       wrap: (real) => async (evalId) => {
         const context = await real(evalId);
-        if (context?.kind !== "plugin") return context;
-        const status = { ...context.plugin.status!, digest: "b".repeat(64) };
-        return { ...context, plugin: { ...context.plugin, status } };
+        // The plugin's head moves after the eval run planned its tries.
+        const head = await temp.store.getResource(ApiResourceKind.plugin, PLUGIN_ID, PluginSchema);
+        head.status!.digest = "b".repeat(64);
+        await temp.store.saveResource(ApiResourceKind.plugin, PLUGIN_ID, PluginSchema, head);
+        return context;
       },
     });
     expect(await cases[START_TRY_ACTIVITY_NAME](CELL)).toEqual({
