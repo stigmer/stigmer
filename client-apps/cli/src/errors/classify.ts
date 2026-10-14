@@ -4,10 +4,17 @@
 // still map to the right exit code.
 //
 // A refusal that carries a reason the CLI knows gets its own copy. Today
-// that is one: API_KEY_CREATED_BEFORE_SIGN_IN (stigmer/stigmer#1169), an
-// Unauthenticated whose fix is not "sign in again" but "sign in, then
-// create a new key". Its sentence is the server's, and it names the two
-// commands. Every other Unauthenticated keeps the generic sign-in copy.
+// there are two:
+//   - API_KEY_CREATED_BEFORE_SIGN_IN (stigmer/stigmer#1169), an
+//     Unauthenticated whose fix is not "sign in again" but "sign in, then
+//     create a new key". Its sentence is the server's, and it names the two
+//     commands. Every other Unauthenticated keeps the generic sign-in copy.
+//   - AGENT_HOURS_USED_UP, a FailedPrecondition from a Stigmer Cloud
+//     organization that has used its plan's agent hours. The server's
+//     sentence already names the hours, the plan and the reset date, so it
+//     is printed as is, with `stigmer usage hours` as the place to see the
+//     standing. A child organization's refusal names no plan (its parent
+//     manages it) and gets no hint: the hours are its parent's to read.
 
 import { Code, ConnectError } from "@connectrpc/connect";
 import { getErrorReason, StigmerError } from "@stigmer/sdk";
@@ -34,6 +41,11 @@ const MAX_CHAIN_DEPTH = 20;
 // The server's reason for refusing a key created before sign-in was turned
 // on (the apikey verifier; apis/ai/stigmer/iam/apikey/v1/README.md).
 const REASON_API_KEY_CREATED_BEFORE_SIGN_IN = "API_KEY_CREATED_BEFORE_SIGN_IN";
+
+// The cloud's refusal of new work once an organization's plan has no agent
+// hours left this month; its metadata `plan` is empty for a child
+// organization.
+const REASON_AGENT_HOURS_USED_UP = "AGENT_HOURS_USED_UP";
 
 export function classify(err: unknown): CliError | null {
   if (err === null || err === undefined) {
@@ -70,6 +82,18 @@ export function classify(err: unknown): CliError | null {
           "  stigmer auth login",
           "  stigmer apikey create --name <name>",
         ],
+      };
+    }
+    const reason = getErrorReason(err);
+    if (coded.code === Code.FailedPrecondition && reason?.reason === REASON_AGENT_HOURS_USED_UP) {
+      return {
+        exitCode: ExitCode.Usage,
+        code: coded.code,
+        cause: toError(err),
+        message: coded.message,
+        ...((reason.metadata.plan ?? "") === ""
+          ? {}
+          : { hints: ["See the organization's agent hours:", "  stigmer usage hours"] }),
       };
     }
     return classifyConnectCode(coded.code, coded.message, toError(err));

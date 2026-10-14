@@ -2246,9 +2246,15 @@ type RunUsageSummary struct {
 	// from the deployment's metered model calls.
 	IsEstimated bool `protobuf:"varint,11,opt,name=is_estimated,json=isEstimated,proto3" json:"is_estimated,omitempty"`
 	// Total tokens for this run (cache-inclusive, as the aggregate's).
-	TotalTokens   int64 `protobuf:"varint,12,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	TotalTokens int64 `protobuf:"varint,12,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
+	// Seconds an agent was working (thinking, calling tools, writing files),
+	// counted from the session's status events; waiting for a person is never
+	// working. A stretch of work is credited to the run whose start began it.
+	// This is the clock, never priced; a Stigmer Cloud plan's agent hours are
+	// its subscription's getAgentHours.
+	WorkingSeconds int64 `protobuf:"varint,13,opt,name=working_seconds,json=workingSeconds,proto3" json:"working_seconds,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *RunUsageSummary) Reset() {
@@ -2358,6 +2364,13 @@ func (x *RunUsageSummary) GetTotalTokens() int64 {
 	return 0
 }
 
+func (x *RunUsageSummary) GetWorkingSeconds() int64 {
+	if x != nil {
+		return x.WorkingSeconds
+	}
+	return 0
+}
+
 // Lightweight view of a session's usage within an agent report.
 type SessionUsageSummary struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -2371,9 +2384,15 @@ type SessionUsageSummary struct {
 	// ISO 8601 timestamp of the first run in this session.
 	FirstRunAt string `protobuf:"bytes,5,opt,name=first_run_at,json=firstRunAt,proto3" json:"first_run_at,omitempty"`
 	// ISO 8601 timestamp of the most recent run in this session.
-	LastRunAt     string `protobuf:"bytes,6,opt,name=last_run_at,json=lastRunAt,proto3" json:"last_run_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	LastRunAt string `protobuf:"bytes,6,opt,name=last_run_at,json=lastRunAt,proto3" json:"last_run_at,omitempty"`
+	// Seconds an agent was working (thinking, calling tools, writing files),
+	// counted from the session's status events; waiting for a person is never
+	// working. A stretch of work is credited to the run whose start began it.
+	// This is the clock, never priced; a Stigmer Cloud plan's agent hours are
+	// its subscription's getAgentHours.
+	WorkingSeconds int64 `protobuf:"varint,7,opt,name=working_seconds,json=workingSeconds,proto3" json:"working_seconds,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *SessionUsageSummary) Reset() {
@@ -2441,6 +2460,13 @@ func (x *SessionUsageSummary) GetLastRunAt() string {
 	return ""
 }
 
+func (x *SessionUsageSummary) GetWorkingSeconds() int64 {
+	if x != nil {
+		return x.WorkingSeconds
+	}
+	return 0
+}
+
 // Lightweight view of an agent's usage within an org report.
 type AgentUsageSummary struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -2452,9 +2478,15 @@ type AgentUsageSummary struct {
 	RunCount int32 `protobuf:"varint,3,opt,name=run_count,json=runCount,proto3" json:"run_count,omitempty"`
 	// Total tokens across all runs (cache-inclusive: the sum of each
 	// call's provider-reported total, including cached input tokens).
-	TotalTokens   int64 `protobuf:"varint,4,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	TotalTokens int64 `protobuf:"varint,4,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
+	// Seconds an agent was working (thinking, calling tools, writing files),
+	// counted from the session's status events; waiting for a person is never
+	// working. A stretch of work is credited to the run whose start began it.
+	// This is the clock, never priced; a Stigmer Cloud plan's agent hours are
+	// its subscription's getAgentHours.
+	WorkingSeconds int64 `protobuf:"varint,6,opt,name=working_seconds,json=workingSeconds,proto3" json:"working_seconds,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *AgentUsageSummary) Reset() {
@@ -2511,6 +2543,13 @@ func (x *AgentUsageSummary) GetRunCount() int32 {
 func (x *AgentUsageSummary) GetTotalTokens() int64 {
 	if x != nil {
 		return x.TotalTokens
+	}
+	return 0
+}
+
+func (x *AgentUsageSummary) GetWorkingSeconds() int64 {
+	if x != nil {
+		return x.WorkingSeconds
 	}
 	return 0
 }
@@ -3065,7 +3104,7 @@ const file_ai_stigmer_agentic_run_v1_io_proto_rawDesc = "" +
 	"\rharness_usage\x18\f \x03(\v2'.ai.stigmer.agentic.run.v1.HarnessUsageR\fharnessUsage\x12P\n" +
 	"\vtotal_usage\x18\r \x01(\v2/.ai.stigmer.agentic.run.v1.UsageReportAggregateR\n" +
 	"totalUsageJ\x04\b\x05\x10\x06J\x04\b\a\x10\bJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
-	"R\x1atotal_billable_cost_microsR\x12top_agents_by_costR\vdaily_costsR\x11harness_breakdown\"\xd3\x03\n" +
+	"R\x1atotal_billable_cost_microsR\x12top_agents_by_costR\vdaily_costsR\x11harness_breakdown\"\xfc\x03\n" +
 	"\x0fRunUsageSummary\x12\x15\n" +
 	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12\x1d\n" +
 	"\n" +
@@ -3079,7 +3118,8 @@ const file_ai_stigmer_agentic_run_v1_io_proto_rawDesc = "" +
 	"\x05phase\x18\n" +
 	" \x01(\x0e2#.ai.stigmer.agentic.run.v1.RunPhaseR\x05phase\x12!\n" +
 	"\fis_estimated\x18\v \x01(\bR\visEstimated\x12!\n" +
-	"\ftotal_tokens\x18\f \x01(\x03R\vtotalTokensJ\x04\b\a\x10\bR\x14billable_cost_micros\"\xd2\x01\n" +
+	"\ftotal_tokens\x18\f \x01(\x03R\vtotalTokens\x12'\n" +
+	"\x0fworking_seconds\x18\r \x01(\x03R\x0eworkingSecondsJ\x04\b\a\x10\bR\x14billable_cost_micros\"\xfb\x01\n" +
 	"\x13SessionUsageSummary\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x1b\n" +
@@ -3087,13 +3127,15 @@ const file_ai_stigmer_agentic_run_v1_io_proto_rawDesc = "" +
 	"\ftotal_tokens\x18\x03 \x01(\x03R\vtotalTokens\x12 \n" +
 	"\ffirst_run_at\x18\x05 \x01(\tR\n" +
 	"firstRunAt\x12\x1e\n" +
-	"\vlast_run_at\x18\x06 \x01(\tR\tlastRunAtJ\x04\b\x04\x10\x05R\x14billable_cost_micros\"\xa9\x01\n" +
+	"\vlast_run_at\x18\x06 \x01(\tR\tlastRunAt\x12'\n" +
+	"\x0fworking_seconds\x18\a \x01(\x03R\x0eworkingSecondsJ\x04\b\x04\x10\x05R\x14billable_cost_micros\"\xd2\x01\n" +
 	"\x11AgentUsageSummary\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12\x1d\n" +
 	"\n" +
 	"agent_name\x18\x02 \x01(\tR\tagentName\x12\x1b\n" +
 	"\trun_count\x18\x03 \x01(\x05R\brunCount\x12!\n" +
-	"\ftotal_tokens\x18\x04 \x01(\x03R\vtotalTokensJ\x04\b\x05\x10\x06R\x14billable_cost_micros\"\x86\x01\n" +
+	"\ftotal_tokens\x18\x04 \x01(\x03R\vtotalTokens\x12'\n" +
+	"\x0fworking_seconds\x18\x06 \x01(\x03R\x0eworkingSecondsJ\x04\b\x05\x10\x06R\x14billable_cost_micros\"\x86\x01\n" +
 	"\n" +
 	"DailyUsage\x12\x12\n" +
 	"\x04date\x18\x01 \x01(\tR\x04date\x12\x1b\n" +

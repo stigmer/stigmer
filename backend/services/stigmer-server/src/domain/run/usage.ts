@@ -11,6 +11,11 @@
  * throws fails the report rather than show metered runs as estimates.
  * A run counted from its runner's report is mapped by its harness, which
  * is its session's (one session read per distinct session of such runs).
+ * Every report also reads its runs' working time, the stretches of work
+ * each run started in its session's status events (one typed read of each
+ * distinct session's log, domain/session/events/working-time.ts), so a
+ * run created in a dated report's window brings its whole working time
+ * with its tokens; an open stretch counts up to the report's clock.
  * The arithmetic is usage-fold.ts beside this file. The session report's
  * per-run sub-agent count is the run's `session.thread_created` events,
  * one typed read of the session's log for every run
@@ -98,6 +103,7 @@ import { listIndexInstantOfMillis } from "../../store/list-index.js";
 import type { ListIndexQuery, ListIndexRow } from "../../store/list-index.js";
 
 import { threadCountsOf } from "../session/events/run-events.js";
+import { workingMillisOfSessions } from "../session/events/working-time.js";
 import { agentExecutionListIndex } from "./list-index.js";
 import { sessionIdOf } from "./target.js";
 import type { CountedRun } from "./usage-fold.js";
@@ -124,6 +130,8 @@ export interface UsageReportDeps {
   readonly listReadScope: ListReadScope | undefined;
   /** The composed meter — undefined = every run is counted from its runner's report. */
   readonly meteredUsageProvider: MeteredUsageProvider | undefined;
+  /** The clock an open stretch of work is counted up to (tests fix it); defaults to the wall clock. */
+  readonly now?: () => Date;
 }
 
 // Context keys for inter-step communication — Go's key strings, verbatim.
@@ -311,7 +319,9 @@ async function sessionHarnesses(
 /**
  * Each run with its source decided: one meter call for all of them, then
  * the session harness of every run that needs one (a run the meter did
- * not answer for, or a meter row that names no harness).
+ * not answer for, or a meter row that names no harness), then the working
+ * time of every run, one status read per distinct session. A store fault
+ * on that read fails the report, as a harness read's does.
  */
 async function countRuns(
   deps: UsageReportDeps,
@@ -344,11 +354,22 @@ async function countRuns(
       );
     }),
   );
+  let working: ReadonlyMap<string, number>;
+  try {
+    working = await workingMillisOfSessions(
+      deps.store,
+      runs.map((run) => sessionIdOf(run.spec)),
+      deps.now?.() ?? new Date(),
+    );
+  } catch (error) {
+    throw internalError(error, "failed to read session status events");
+  }
   return runs.map((run) =>
     countRun(
       run,
       meteredOf(run),
       harnesses.get(sessionIdOf(run.spec)) ?? Harness.NATIVE,
+      working.get(run.metadata?.id ?? "") ?? 0,
     ),
   );
 }

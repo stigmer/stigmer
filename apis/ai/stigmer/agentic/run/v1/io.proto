@@ -920,6 +920,13 @@ message RunUsageSummary {
 
   // Total tokens for this run (cache-inclusive, as the aggregate's).
   int64 total_tokens = 12;
+
+  // Seconds an agent was working (thinking, calling tools, writing files),
+  // counted from the session's status events; waiting for a person is never
+  // working. A stretch of work is credited to the run whose start began it.
+  // This is the clock, never priced; a Stigmer Cloud plan's agent hours are
+  // its subscription's getAgentHours.
+  int64 working_seconds = 13;
 }
 
 // Lightweight view of a session's usage within an agent report.
@@ -945,6 +952,13 @@ message SessionUsageSummary {
 
   // ISO 8601 timestamp of the most recent run in this session.
   string last_run_at = 6;
+
+  // Seconds an agent was working (thinking, calling tools, writing files),
+  // counted from the session's status events; waiting for a person is never
+  // working. A stretch of work is credited to the run whose start began it.
+  // This is the clock, never priced; a Stigmer Cloud plan's agent hours are
+  // its subscription's getAgentHours.
+  int64 working_seconds = 7;
 }
 
 // Lightweight view of an agent's usage within an org report.
@@ -967,6 +981,13 @@ message AgentUsageSummary {
   // reserved so neither is ever reused for a different field.
   reserved 5;
   reserved "billable_cost_micros";
+
+  // Seconds an agent was working (thinking, calling tools, writing files),
+  // counted from the session's status events; waiting for a person is never
+  // working. A stretch of work is credited to the run whose start began it.
+  // This is the clock, never priced; a Stigmer Cloud plan's agent hours are
+  // its subscription's getAgentHours.
+  int64 working_seconds = 6;
 }
 
 // Usage for a single UTC day within an org report.

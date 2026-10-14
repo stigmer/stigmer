@@ -5,7 +5,7 @@
  * round to whole percents and are 0 against a zero total.
  */
 import { describe, expect, it } from "vitest";
-import { formatCalls, formatCompactCount, formatTokens, sharePercent } from "../format";
+import { formatCalls, formatCompactCount, formatTokens, formatWorkingTime, sharePercent } from "../format";
 
 describe("formatCompactCount", () => {
   it.each([
@@ -25,6 +25,18 @@ describe("formatCompactCount", () => {
 
   it("takes the wire's int64 as a bigint", () => {
     expect(formatCompactCount(18_400n)).toBe("18.4k");
+  });
+});
+
+describe("formatWorkingTime", () => {
+  it("reads as a duration in hours and minutes, never days, and takes the wire's int64", () => {
+    expect(formatWorkingTime(0)).toBe("0s");
+    expect(formatWorkingTime(42n)).toBe("42s");
+    expect(formatWorkingTime(252)).toBe("4m 12s");
+    expect(formatWorkingTime(3_599)).toBe("59m 59s");
+    expect(formatWorkingTime(3_600)).toBe("1h 0m");
+    expect(formatWorkingTime(1_123_500n)).toBe("312h 5m");
+    expect(formatWorkingTime(-5)).toBe("0s");
   });
 });
 

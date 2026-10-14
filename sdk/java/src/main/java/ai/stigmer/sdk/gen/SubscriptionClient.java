@@ -2,8 +2,10 @@
 
 package ai.stigmer.sdk.gen;
 
+import ai.stigmer.billing.subscription.v1.AgentHours;
 import ai.stigmer.billing.subscription.v1.CancelSubscriptionInput;
 import ai.stigmer.billing.subscription.v1.ChangePlanInput;
+import ai.stigmer.billing.subscription.v1.GetAgentHoursInput;
 import ai.stigmer.billing.subscription.v1.GetEntitlementsInput;
 import ai.stigmer.billing.subscription.v1.GetEntitlementsOutput;
 import ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput;
@@ -52,6 +54,12 @@ public final class SubscriptionClient {
     public PeriodEstimate getPeriodEstimate(GetPeriodEstimateInput input) {
         try {
             return query.getPeriodEstimate(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public AgentHours getAgentHours(GetAgentHoursInput input) {
+        try {
+            return query.getAgentHours(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

@@ -216,12 +216,23 @@ rows:
     observability: launcher
     caller: primary
     needs: [keyless-org]
+  - id: billing.rpc.get-agent-hours.free-calendar-month
+    surface: billing
+    lane: >-
+      rpc.Subscription.getAgentHours
+    behavior: >-
+      For an organization that never subscribed, getAgentHours answers Free's standing: included_hours present, no per_agent_hour_micros (new work pauses at the allowance), window calendar_month from the current UTC month's first instant to the next month's, and working_seconds 0.
+    class: behavior
+    disposition: conformance
+    observability: launcher
+    caller: primary
+    needs: [keyless-org]
   - id: billing.rpc.subscription.outsider-permission-denied
     surface: billing
     lane: >-
       rpc.Subscription.changePlan
     behavior: >-
-      An outsider's changePlan answers PERMISSION_DENIED "unauthorized to change this organization's plan", its getEntitlements PERMISSION_DENIED "unauthorized to view this organization's entitlements", and its getPeriodEstimate PERMISSION_DENIED "unauthorized to view this organization's period estimate".
+      An outsider's changePlan answers PERMISSION_DENIED "unauthorized to change this organization's plan", its getEntitlements PERMISSION_DENIED "unauthorized to view this organization's entitlements", its getPeriodEstimate PERMISSION_DENIED "unauthorized to view this organization's period estimate", and its getAgentHours PERMISSION_DENIED "unauthorized to view this organization's agent hours".
     class: adversarial
     disposition: conformance
     observability: launcher

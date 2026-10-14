@@ -12,12 +12,21 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
+class AgentHoursWindow(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    agent_hours_window_unspecified: _ClassVar[AgentHoursWindow]
+    calendar_month: _ClassVar[AgentHoursWindow]
+    billing_period: _ClassVar[AgentHoursWindow]
+
 class PeriodEstimateLineKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     period_estimate_line_kind_unspecified: _ClassVar[PeriodEstimateLineKind]
     plan: _ClassVar[PeriodEstimateLineKind]
     child_orgs: _ClassVar[PeriodEstimateLineKind]
     agent_hours: _ClassVar[PeriodEstimateLineKind]
+agent_hours_window_unspecified: AgentHoursWindow
+calendar_month: AgentHoursWindow
+billing_period: AgentHoursWindow
 period_estimate_line_kind_unspecified: PeriodEstimateLineKind
 plan: PeriodEstimateLineKind
 child_orgs: PeriodEstimateLineKind
@@ -80,6 +89,28 @@ class PeriodEstimate(_message.Message):
     total_micros: int
     working_seconds: int
     def __init__(self, plan_id: _Optional[str] = ..., period_start: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., period_end: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., child_org_count: _Optional[int] = ..., lines: _Optional[_Iterable[_Union[PeriodEstimateLine, _Mapping]]] = ..., total_micros: _Optional[int] = ..., working_seconds: _Optional[int] = ...) -> None: ...
+
+class GetAgentHoursInput(_message.Message):
+    __slots__ = ("org",)
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    def __init__(self, org: _Optional[str] = ...) -> None: ...
+
+class AgentHours(_message.Message):
+    __slots__ = ("working_seconds", "included_hours", "per_agent_hour_micros", "window_start", "window_end", "window")
+    WORKING_SECONDS_FIELD_NUMBER: _ClassVar[int]
+    INCLUDED_HOURS_FIELD_NUMBER: _ClassVar[int]
+    PER_AGENT_HOUR_MICROS_FIELD_NUMBER: _ClassVar[int]
+    WINDOW_START_FIELD_NUMBER: _ClassVar[int]
+    WINDOW_END_FIELD_NUMBER: _ClassVar[int]
+    WINDOW_FIELD_NUMBER: _ClassVar[int]
+    working_seconds: int
+    included_hours: int
+    per_agent_hour_micros: int
+    window_start: _timestamp_pb2.Timestamp
+    window_end: _timestamp_pb2.Timestamp
+    window: AgentHoursWindow
+    def __init__(self, working_seconds: _Optional[int] = ..., included_hours: _Optional[int] = ..., per_agent_hour_micros: _Optional[int] = ..., window_start: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., window_end: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., window: _Optional[_Union[AgentHoursWindow, str]] = ...) -> None: ...
 
 class PeriodEstimateLine(_message.Message):
     __slots__ = ("kind", "amount_micros")

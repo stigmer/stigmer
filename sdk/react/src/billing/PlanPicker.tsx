@@ -5,6 +5,7 @@ import type { Plan } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
 import { Button } from "../button/index.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import {
+  formatAgentHoursTerms,
   formatChildOrgs,
   formatMonthlyFee,
   offeredFeatures,
@@ -68,6 +69,7 @@ export function PlanPicker({
       {plans.map((plan) => {
         const move = planMove(standing, plan, periodEnd);
         const managed = formatChildOrgs(plan.spec?.entitlements, plan.spec?.terms);
+        const hours = formatAgentHoursTerms(plan.spec?.entitlements, plan.spec?.terms);
         return (
           <PlanOption
             key={plan.metadata?.id ?? plan.metadata?.slug}
@@ -76,6 +78,7 @@ export function PlanPicker({
             features={[
               ...offeredFeatures(plan.spec?.entitlements).map((feature) => feature.label),
               ...(managed === "" ? [] : [managed]),
+              ...(hours === "" ? [] : [hours]),
             ]}
             current={move === null && standing.kind !== "free"}
             action={canManage && move !== null ? { label: actionLabel(move), move } : undefined}

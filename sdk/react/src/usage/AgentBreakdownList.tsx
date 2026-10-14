@@ -2,17 +2,18 @@
 
 /**
  * Ranked list of the organization's agents by tokens, each with its runs,
- * tokens, share of the organization's tokens and a proportional bar.
+ * working time, tokens, share of the organization's tokens and a
+ * proportional bar.
  *
  * Rows arrive ordered by the server (`top_agents`, most tokens first); the
  * list only lays them out. Usage is tokens, never money. The suite in
- * `__tests__/AgentBreakdownList.test.tsx` pins the cells, the share and the
+ * `__tests__/AgentBreakdownList.test.tsx` pins the cells (working time among them), the share and the
  * optional links.
  */
 
 import { cn } from "@stigmer/theme";
 import type { AgentUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import { formatCompactCount, sharePercent } from "./format.js";
+import { formatCompactCount, formatWorkingTime, sharePercent } from "./format.js";
 
 /** Props for {@link AgentBreakdownList}. */
 export interface AgentBreakdownListProps {
@@ -29,7 +30,7 @@ export interface AgentBreakdownListProps {
 /**
  * Renders a ranked list of agents by tokens with proportional bars.
  *
- * Each row shows the agent name, run count, tokens with their share of
+ * Each row shows the agent name, run count, working time, tokens with their share of
  * the organization's tokens, and a bar scaled to the top agent.
  */
 export function AgentBreakdownList({
@@ -54,11 +55,14 @@ export function AgentBreakdownList({
       >
         <div
           role="row"
-          className="stg:grid stg:grid-cols-[1fr_auto_auto] stg:gap-x-4 stg:border-b stg:border-border stg:px-3.5 stg:py-2 stg:text-[0.65rem] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground"
+          className="stg:grid stg:grid-cols-[1fr_auto_auto_auto] stg:gap-x-4 stg:border-b stg:border-border stg:px-3.5 stg:py-2 stg:text-[0.65rem] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground"
         >
           <span role="columnheader">Agent</span>
           <span role="columnheader" className="stg:text-right">
             Runs
+          </span>
+          <span role="columnheader" className="stg:text-right">
+            Working
           </span>
           <span role="columnheader" className="stg:text-right">
             Tokens
@@ -81,7 +85,7 @@ export function AgentBreakdownList({
             >
               <div
                 role="row"
-                className="stg:grid stg:grid-cols-[1fr_auto_auto] stg:gap-x-4"
+                className="stg:grid stg:grid-cols-[1fr_auto_auto_auto] stg:gap-x-4"
               >
                 <div role="cell" className="stg:min-w-0">
                   <NameTag
@@ -101,6 +105,12 @@ export function AgentBreakdownList({
                   className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-muted-foreground"
                 >
                   {agent.runCount}
+                </span>
+                <span
+                  role="cell"
+                  className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-muted-foreground"
+                >
+                  {formatWorkingTime(agent.workingSeconds)}
                 </span>
                 <span
                   role="cell"

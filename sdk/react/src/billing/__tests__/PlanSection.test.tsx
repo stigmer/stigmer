@@ -3,7 +3,9 @@
 // read-only view, the card door (leaving through the host's openUrl with
 // the plan to come back to), a subscribe, an active plan's estimate and
 // its switch and cancel copy (child organizations beyond those included
-// among its lines), the plans cheapest first and what a switch
+// among its lines), the agent hours used of those the plan includes on
+// every plan (pausing, priced, unlimited, past the allowance, and left out
+// where the server does not serve the read), the plans cheapest first and what a switch
 // down gives up, the reopened choice after a card was saved,
 // a child organization, and nothing at all where subscriptions are not
 // served.
@@ -12,14 +14,24 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
-import { create } from "@bufbuild/protobuf";
-import { PeriodEstimateLineKind, PeriodEstimateLineSchema, PeriodEstimateSchema } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
+import { clone, create } from "@bufbuild/protobuf";
+import { Code } from "@connectrpc/connect";
+import { StigmerError } from "@stigmer/sdk";
+import {
+  AgentHoursSchema,
+  AgentHoursWindow,
+  PeriodEstimateLineKind,
+  PeriodEstimateLineSchema,
+  PeriodEstimateSchema,
+} from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
+import { PlanSchema } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
+import { EntitlementLimitsSchema } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 import { SubscriptionState } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/status_pb";
 import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { PlanSection, type PlanSectionProps } from "../PlanSection";
-import { BUSINESS, NOW, RETIRED, TEAM, TEAM_ESTIMATE, notFound, subscription } from "./fixtures";
+import { BUSINESS, FREE_HOURS, NOW, RETIRED, TEAM, TEAM_ESTIMATE, USD, notFound, subscription } from "./fixtures";
 
 afterEach(cleanup);
 
@@ -31,6 +43,7 @@ function mockClient(options: { admin?: boolean; subscribed?: ReturnType<typeof s
         ? vi.fn().mockResolvedValue(options.subscribed)
         : vi.fn().mockRejectedValue(notFound()),
       getPeriodEstimate: vi.fn().mockResolvedValue(TEAM_ESTIMATE),
+      getAgentHours: vi.fn().mockResolvedValue(FREE_HOURS),
       changePlan: vi.fn().mockResolvedValue(subscription(SubscriptionState.active)),
       cancel: vi.fn().mockResolvedValue(subscription(SubscriptionState.canceled)),
     },
@@ -78,6 +91,18 @@ describe("PlanSection", () => {
       "https://stigmer.ai/contact-sales",
     );
     expect(within(plans).getAllByRole("button", { name: "Subscribe" })).toHaveLength(2);
+  });
+
+  it("says what agent hours a plan includes and what happens past them, and nothing for a plan that states none", async () => {
+    const client = mockClient();
+    const hourly = clone(PlanSchema, TEAM);
+    if (hourly.spec?.entitlements === undefined || hourly.spec.terms === undefined) throw new Error("TEAM has no terms");
+    hourly.spec.entitlements.limits = create(EntitlementLimitsSchema, { includedAgentHours: 25 });
+    hourly.spec.terms.perAgentHourMicros = USD / 2n;
+    client.plan.list.mockResolvedValue({ entries: [hourly, BUSINESS] });
+    renderSection(client);
+    expect(within(await planOption("Team")).getByText("25 agent hours a month, then $0.50 an hour")).toBeTruthy();
+    expect(within(await planOption("Business")).queryByText(/agent hour/)).toBeNull();
   });
 
   it("offers a viewer no choices", async () => {
@@ -166,6 +191,75 @@ describe("PlanSection", () => {
     expect(screen.getByText("$3.10")).toBeTruthy();
   });
 
+  it("shows Free's hours used of those included this month, when they reset and that new work pauses", async () => {
+    const client = mockClient();
+    renderSection(client);
+    expect(await screen.findByText("3.2 h of 10 h used this month")).toBeTruthy();
+    expect(client.subscription.getAgentHours.mock.calls[0]?.[0]).toMatchObject({ org: "acme" });
+    const meter = screen.getByRole("meter", { name: "Agent hours used" });
+    expect([meter.getAttribute("aria-valuenow"), meter.getAttribute("aria-valuemax")]).toEqual(["11520", "36000"]);
+    expect(screen.getByText("Resets Mar 1, 2027 (UTC). New work pauses at the allowance.")).toBeTruthy();
+    expect(screen.getByText(/automatic grading is never counted/)).toBeTruthy();
+  });
+
+  it("says new work is paused once a pausing plan's allowance is used, the meter full", async () => {
+    const client = mockClient();
+    client.subscription.getAgentHours.mockResolvedValue(create(AgentHoursSchema, { ...FREE_HOURS, workingSeconds: 37_000n }));
+    renderSection(client);
+    expect(await screen.findByText("10.3 h of 10 h used this month")).toBeTruthy();
+    expect(screen.getByRole("meter").getAttribute("aria-valuenow")).toBe("36000");
+    expect(
+      screen.getByText("The allowance is used: new work is paused until the count resets Mar 1, 2027 (UTC)."),
+    ).toBeTruthy();
+  });
+
+  it("gives a priced plan's hourly price past its allowance, on the period's invoice", async () => {
+    const client = mockClient({ subscribed: subscription(SubscriptionState.active) });
+    const priced = { ...FREE_HOURS, includedHours: 25, perAgentHourMicros: USD / 2n, window: AgentHoursWindow.billing_period };
+    client.subscription.getAgentHours.mockResolvedValue(create(AgentHoursSchema, { ...priced, workingSeconds: 66_240n }));
+    renderSection(client);
+    expect(await screen.findByText("18.4 h of 25 h used this period")).toBeTruthy();
+    expect(screen.getByText("Resets Mar 1, 2027 (UTC). Then $0.50 an hour, on this period's invoice.")).toBeTruthy();
+
+    cleanup();
+    client.subscription.getAgentHours.mockResolvedValue(create(AgentHoursSchema, { ...priced, workingSeconds: 93_600n }));
+    renderSection(client);
+    expect(
+      await screen.findByText("Past the allowance: each hour is $0.50 on this period's invoice. Resets Mar 1, 2027 (UTC)."),
+    ).toBeTruthy();
+  });
+
+  it("shows a plan with no allowance its hours used and no meter", async () => {
+    const client = mockClient({ subscribed: subscription(SubscriptionState.active) });
+    client.subscription.getAgentHours.mockResolvedValue(
+      create(AgentHoursSchema, {
+        workingSeconds: 66_240n,
+        windowEnd: FREE_HOURS.windowEnd,
+        window: AgentHoursWindow.billing_period,
+      }),
+    );
+    renderSection(client);
+    expect(await screen.findByText("18.4 h used this period")).toBeTruthy();
+    expect(screen.queryByRole("meter")).toBeNull();
+  });
+
+  it("leaves the hours out where the server does not serve the read, and says so on any other failure", async () => {
+    const client = mockClient();
+    client.subscription.getAgentHours.mockRejectedValue(
+      new StigmerError("unknown", "[unimplemented] getAgentHours", Code.Unimplemented),
+    );
+    renderSection(client);
+    await screen.findByRole("list", { name: "Plans" });
+    await waitFor(() => expect(client.subscription.getAgentHours).toHaveBeenCalled());
+    expect(screen.queryByText("Agent hours")).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    cleanup();
+    client.subscription.getAgentHours.mockRejectedValue(new StigmerError("internal", "the ledger is down", Code.Internal));
+    renderSection(client);
+    expect((await screen.findByRole("alert")).textContent).toContain("Agent hours could not be read");
+  });
+
   it("lists the plans cheapest first, and names what a switch down gives up but not a switch up", async () => {
     const client = mockClient({ subscribed: subscription(SubscriptionState.active, "pln_business") });
     renderSection(client);
@@ -215,6 +309,8 @@ describe("PlanSection", () => {
     expect(screen.getByText(/runs on its parent organization's plan/)).toBeTruthy();
     expect(screen.queryByRole("list", { name: "Plans" })).toBeNull();
     expect(client.subscription.getPeriodEstimate).not.toHaveBeenCalled();
+    expect(client.subscription.getAgentHours, "a child's hours are its parent's pool").not.toHaveBeenCalled();
+    expect(screen.queryByText("Agent hours")).toBeNull();
   });
 
   it("names no raw id when the parent cannot be shown", async () => {

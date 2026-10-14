@@ -53,7 +53,7 @@ stubs.orgReport = create(GetOrgUsageReportOutputSchema, {
   totalRuns: 4,
   totalAgents: 1,
   totalSessions: 2,
-  totalUsage: { totalTokens: 18_400n, llmCallCount: 12, servedBy },
+  totalUsage: { totalTokens: 18_400n, llmCallCount: 12, workingSeconds: 3_725n, servedBy },
   modelBreakdown: [
     { model: "claude-sonnet", provider: "anthropic", callCount: 12, inputTokens: 4_000n, outputTokens: 1_400n, totalTokens: 18_400n },
   ],
@@ -69,11 +69,12 @@ stubs.session = {
   cacheReadTokens: 13_000,
   cacheCreationTokens: 0,
   llmCallCount: 12,
+  workingSeconds: 3_725,
   modelBreakdown: [
     { model: "claude-sonnet", provider: "anthropic", totalTokens: 16_000, inputTokens: 3_000, outputTokens: 1_000, cacheCreationTokens: 0, cacheReadTokens: 12_000, callCount: 10 },
     { model: "composer-2", provider: "cursor", totalTokens: 2_400, inputTokens: 1_000, outputTokens: 400, cacheCreationTokens: 0, cacheReadTokens: 1_000, callCount: 0 },
   ],
-  runBreakdown: [{ runId: "run_1", resolvedModel: "claude-sonnet", totalTokens: 18_400, isEstimated: true }],
+  runBreakdown: [{ runId: "run_1", resolvedModel: "claude-sonnet", totalTokens: 18_400, isEstimated: true, workingSeconds: 3_725 }],
   servedBy: servedBy.map((s) => ({ ...s, totalTokens: Number(s.totalTokens) })),
   primaryModel: "claude-sonnet",
   primaryProvider: "anthropic",

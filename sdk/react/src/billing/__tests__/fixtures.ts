@@ -1,6 +1,7 @@
 // Plan and subscription fixtures for the plan surface's suites: the
 // launch catalog's shape (Team, Business with five child organizations,
-// a retired row), a subscription in any state, an estimate, and a Stigmer
+// a retired row), a subscription in any state, an estimate, Free's agent
+// hours, and a Stigmer
 // Cloud refusal carrying its ErrorInfo reason the way the SDK surfaces it.
 
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
@@ -12,8 +13,11 @@ import { PlanInstrument, PlanSpecSchema, PlanTermsSchema } from "@stigmer/protos
 import { PlanLifecycle } from "@stigmer/protos/ai/stigmer/billing/plan/v1/status_pb";
 import { SubscriptionSchema, type Subscription } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/api_pb";
 import {
+  AgentHoursSchema,
+  AgentHoursWindow,
   PeriodEstimateLineKind,
   PeriodEstimateSchema,
+  type AgentHours,
   type PeriodEstimate,
 } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
 import { SubscriptionState } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/status_pb";
@@ -79,6 +83,15 @@ export const TEAM_ESTIMATE: PeriodEstimate = create(PeriodEstimateSchema, {
   periodEnd: timestampFromDate(PERIOD_END),
   lines: [{ kind: PeriodEstimateLineKind.plan, amountMicros: 99n * USD }],
   totalMicros: 99n * USD,
+});
+
+/** Free's standing: 3.2 hours of its 10 used in its calendar month, which resets on the 1st. */
+export const FREE_HOURS: AgentHours = create(AgentHoursSchema, {
+  workingSeconds: 11_520n,
+  includedHours: 10,
+  windowStart: timestampFromDate(new Date("2027-02-01T00:00:00Z")),
+  windowEnd: timestampFromDate(new Date("2027-03-01T00:00:00Z")),
+  window: AgentHoursWindow.calendar_month,
 });
 
 /** A Stigmer Cloud refusal with its ErrorInfo reason, as the SDK throws it. */

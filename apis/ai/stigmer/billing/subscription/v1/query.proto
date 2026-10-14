@@ -64,4 +64,21 @@ service SubscriptionQueryController {
     option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view this organization's period estimate";
   }
+
+  // Read where the organization stands against its plan's agent hours.
+  //
+  // Answers for every plan, Free included: the working seconds the
+  // organization and its child organizations have used in the month its
+  // plan counts, the hours the plan includes and its price past them. The
+  // count is the one the estimate's working_seconds and the pause at the
+  // allowance read, so the three agree at the same instant.
+  //
+  // NOT_FOUND for a child organization: a child organization is on its
+  // parent's plan, whose pool is the parent's to read.
+  rpc getAgentHours(GetAgentHoursInput) returns (AgentHours) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_view_billing;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view this organization's agent hours";
+  }
 }

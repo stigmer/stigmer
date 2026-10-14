@@ -41,8 +41,8 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "/api.proto\032+ai/stigmer/billing/subscript" +
       "ion/v1/io.proto\0328ai/stigmer/commons/apir" +
       "esource/rpc_service_options.proto\032+ai/st" +
-      "igmer/commons/rpc/method_options.proto2\207" +
-      "\005\n\033SubscriptionQueryController\022\303\001\n\tgetFo" +
+      "igmer/commons/rpc/method_options.proto2\306" +
+      "\006\n\033SubscriptionQueryController\022\303\001\n\tgetFo" +
       "rOrg\022>.ai.stigmer.billing.subscription.v" +
       "1.GetSubscriptionForOrgInput\0320.ai.stigme" +
       "r.billing.subscription.v1.Subscription\"D" +
@@ -58,12 +58,16 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "ai.stigmer.billing.subscription.v1.Perio" +
       "dEstimate\"G\302\270\030C\010\033\020\036\"\003org*8unauthorized t" +
       "o view this organization\'s period estima" +
-      "te\032\004\240\377+GB\271\001B\nQueryProtoP\001\242\002\004ASBS\252\002\"Ai.St" +
-      "igmer.Billing.Subscription.V1\312\002\"Ai\\Stigm" +
-      "er\\Billing\\Subscription\\V1\342\002.Ai\\Stigmer\\" +
-      "Billing\\Subscription\\V1\\GPBMetadata\352\002&Ai" +
-      "::Stigmer::Billing::Subscription::V1b\006pr" +
-      "oto3"
+      "te\022\274\001\n\rgetAgentHours\0226.ai.stigmer.billin" +
+      "g.subscription.v1.GetAgentHoursInput\032..a" +
+      "i.stigmer.billing.subscription.v1.AgentH" +
+      "ours\"C\302\270\030?\010\033\020\036\"\003org*4unauthorized to vie" +
+      "w this organization\'s agent hours\032\004\240\377+GB" +
+      "\271\001B\nQueryProtoP\001\242\002\004ASBS\252\002\"Ai.Stigmer.Bil" +
+      "ling.Subscription.V1\312\002\"Ai\\Stigmer\\Billin" +
+      "g\\Subscription\\V1\342\002.Ai\\Stigmer\\Billing\\S" +
+      "ubscription\\V1\\GPBMetadata\352\002&Ai::Stigmer" +
+      "::Billing::Subscription::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

@@ -1,7 +1,7 @@
 // Accessibility audit — the plan surfaces.
 //
-// Covers the plan section on Free (the comparison list, its choices and the
-// Enterprise link), an active plan with its estimated invoice (the
+// Covers the plan section on Free (the comparison list, its choices, the
+// Enterprise link and the agent hours meter), an active plan with its estimated invoice (the
 // definition list of lines, the standing badge), the confirm dialog, and
 // the operator's plan catalog — each in light and dark against the shipped
 // stylesheet, at the settings canvas's width.
@@ -14,7 +14,7 @@ import { SubscriptionState } from "@stigmer/protos/ai/stigmer/billing/subscripti
 import { COLOR_MODES, auditA11y, renderAudited, resetAudit } from "../../__tests__/helpers/a11y-audit.js";
 import { PlanCatalogConsole } from "../../plan-catalog/PlanCatalogConsole.js";
 import { PlanSection } from "../PlanSection.js";
-import { BUSINESS, NOW, RETIRED, TEAM, TEAM_ESTIMATE, notFound, subscription } from "./fixtures.js";
+import { BUSINESS, FREE_HOURS, NOW, RETIRED, TEAM, TEAM_ESTIMATE, notFound, subscription } from "./fixtures.js";
 
 const CANVAS = { width: 720, height: 1100 } as const;
 
@@ -27,6 +27,7 @@ function client(subscribed: boolean): Stigmer {
         return subscription(SubscriptionState.active);
       },
       getPeriodEstimate: async () => TEAM_ESTIMATE,
+      getAgentHours: async () => FREE_HOURS,
     },
     iamPolicy: { checkMyPermission: async () => ({ isAuthorized: true }) },
   } as unknown as Stigmer;
@@ -41,6 +42,7 @@ describe("Plan surfaces a11y", () => {
       client: client(false),
     });
     await screen.findByRole("list", { name: "Plans" });
+    await screen.findByRole("meter", { name: "Agent hours used" });
     await auditA11y(container, `plan section free · ${mode}`);
   });
 
