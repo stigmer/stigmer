@@ -228,10 +228,9 @@ export function ConnectSlackChannel() {
 
   const previewFixtures = useMemo(
     () => [
-      connectFixture(AgentChannelQueryController, "getByAgent", () =>
+      connectFixture(AgentChannelQueryController, "listByAgent", () =>
         create(AgentChannelListSchema, {
-          totalCount: currentChannelsRef.current.length,
-          items: [...currentChannelsRef.current],
+          entries: [...currentChannelsRef.current],
         }),
       ),
       // The dialog's pre-OAuth advisory reads the org-wide list; empty
@@ -241,7 +240,7 @@ export function ConnectSlackChannel() {
       ),
       // No BYO channel apps: the dialog's "Connect as" states the
       // platform default, matching a first connect.
-      connectFixture(ChannelAppQueryController, "listByOrg", () =>
+      connectFixture(ChannelAppQueryController, "list", () =>
         create(ChannelAppsSchema, {}),
       ),
       // The panel gates its connect affordance on the caller's real
