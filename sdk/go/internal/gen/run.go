@@ -219,6 +219,7 @@ type RunInput struct {
 	ConversationCatchup    *ConversationCatchupInput
 	PluginEvalCase         *PluginEvalCaseContextInput
 	ReconcileFileReview    bool
+	ExcludedPluginIds      []string
 }
 
 // SessionSpecInput is the SDK input type for SessionSpec.
@@ -418,6 +419,7 @@ func (i *RunInput) toProto() (*runv1.Run, error) {
 		resource.Spec.PluginEvalCase = v
 	}
 	resource.Spec.ReconcileFileReview = i.ReconcileFileReview
+	resource.Spec.ExcludedPluginIds = i.ExcludedPluginIds
 	return resource, nil
 }
 
@@ -565,6 +567,7 @@ func RunInputFromProto(p *runv1.Run) *RunInput {
 		input.ConversationCatchup = conversationCatchupInputFromProto(s.GetConversationCatchup())
 		input.PluginEvalCase = pluginEvalCaseContextInputFromProto(s.GetPluginEvalCase())
 		input.ReconcileFileReview = s.GetReconcileFileReview()
+		input.ExcludedPluginIds = s.GetExcludedPluginIds()
 		input.SessionId = s.GetSessionId()
 		if ov := s.GetSessionSpec(); ov != nil {
 			input.SessionSpec = sessionSpecInputFromProto(ov)

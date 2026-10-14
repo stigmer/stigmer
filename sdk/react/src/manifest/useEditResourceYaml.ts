@@ -25,12 +25,20 @@ export type EditYamlValidation =
   | { readonly status: "valid"; readonly document: ManifestDocument };
 
 /**
- * What applying the current content will do — resolved against live
- * server state so renames surface as "create" before the user commits.
+ * What applying the current content will do, resolved against live server
+ * state by the lookup the apply makes (`stigmer.manifest.resolveTarget`):
+ * the document's id first, then its slug. A changed slug on a document
+ * that keeps its id is a rename.
  */
 export type EditYamlTarget =
-  | { readonly action: "update"; readonly slug: string }
+  /**
+   * The resource is updated under `slug`. `slugKept` when the document
+   * declares another slug and the kind has no rename.
+   */
+  | { readonly action: "update"; readonly slug: string; readonly slugKept: boolean }
   | { readonly action: "create"; readonly slug: string }
+  /** The resource is updated, then renamed from `from` to `slug`. */
+  | { readonly action: "rename"; readonly from: string; readonly slug: string }
   /** Existence lookup failed (offline, permissions) — wording degrades. */
   | { readonly action: "unknown"; readonly slug: string };
 
@@ -55,8 +63,8 @@ export interface UseEditResourceYamlReturn {
   /** Live validation of the current content. */
   readonly validation: EditYamlValidation;
   /**
-   * Create-vs-update preview for the current content, or `null` while
-   * validation fails or the existence check is in flight.
+   * What applying the current content will do (create, update or rename),
+   * or `null` while validation fails or the existence check is in flight.
    */
   readonly target: EditYamlTarget | null;
   /** `true` when the content contains `***REDACTED***` secret markers. */
@@ -86,9 +94,11 @@ const TARGET_CHECK_DEBOUNCE_MS = 400;
  * Seeds the editor from {@link serializeManifest} (full fidelity minus
  * system-managed state), validates every edit against the kind's generated
  * proto schema via {@link parseManifest} (strict — unknown fields fail
- * loudly), previews create-vs-update by resolving the edited document's
- * reference against the server, and applies through
- * `stigmer.manifest.apply()`.
+ * loudly), previews what applying will do through
+ * `stigmer.manifest.resolveTarget()` (the apply's own lookup, so the
+ * preview and the apply agree), and applies through
+ * `stigmer.manifest.apply()`, which renames a resource whose slug was
+ * edited.
  *
  * Guardrails beyond the raw engine:
  * - the edited document must stay the same kind as the source resource
@@ -187,7 +197,7 @@ export function useEditResourceYaml({
     return { status: "valid", document };
   }, [yaml, sourceKind]);
 
-  // Resolve create-vs-update against live state whenever the content
+  // Resolve what applying will do against live state whenever the content
   // becomes valid, debounced across keystrokes and cancellation-safe.
   const checkSeq = useRef(0);
   useEffect(() => {
@@ -201,19 +211,30 @@ export function useEditResourceYaml({
     setTarget(null);
 
     const timer = setTimeout(async () => {
-      let action: EditYamlTarget["action"];
+      let next: EditYamlTarget;
       try {
-        const existing = await stigmer.manifest.getByReference(
-          document.handler.yamlKind,
-          document.org,
-          document.slug,
-        );
-        action = existing !== null ? "update" : "create";
+        const resolved = await stigmer.manifest.resolveTarget(document);
+        switch (resolved.action) {
+          case "create":
+            next = { action: "create", slug: resolved.slug };
+            break;
+          case "update":
+            next = { action: "update", slug: resolved.slug, slugKept: resolved.slugKept };
+            break;
+          case "rename":
+            next = { action: "rename", from: resolved.from, slug: resolved.slug };
+            break;
+          /* v8 ignore next -- @preserve: the exhaustiveness guard over ManifestTarget; resolveTarget answers only the arms above */
+          default: {
+            const unhandled: never = resolved;
+            throw new Error(`unhandled target ${String(unhandled)}`);
+          }
+        }
       } catch {
-        action = "unknown";
+        next = { action: "unknown", slug: document.slug };
       }
       if (checkSeq.current === seq) {
-        setTarget({ action, slug: document.slug });
+        setTarget(next);
       }
     }, TARGET_CHECK_DEBOUNCE_MS);
 

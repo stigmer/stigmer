@@ -12,7 +12,7 @@ Headless "apply a YAML manifest" flow for any registry-supported kind —
 the console counterpart of `stigmer apply -f`.
 
 Orchestrates: paste or upload → strict parse against generated proto
-schemas (`parseManifest`) → per-document create-vs-update preview
+schemas (`parseManifest`) → per-document create, update or rename preview
 (server existence check) → sequential apply in dependency order with
 live per-document status.
 
@@ -71,9 +71,11 @@ result — the console's kind-agnostic "Edit YAML" flow.
 Seeds the editor from `serializeManifest` (full fidelity minus
 system-managed state), validates every edit against the kind's generated
 proto schema via `parseManifest` (strict — unknown fields fail
-loudly), previews create-vs-update by resolving the edited document's
-reference against the server, and applies through
-`stigmer.manifest.apply()`.
+loudly), previews what applying will do through
+`stigmer.manifest.resolveTarget()` (the apply's own lookup, so the
+preview and the apply agree), and applies through
+`stigmer.manifest.apply()`, which renames a resource whose slug was
+edited.
 
 Guardrails beyond the raw engine:
 - the edited document must stay the same kind as the source resource
@@ -104,7 +106,7 @@ function useEditResourceYaml(options: UseEditResourceYamlOptions): UseEditResour
     isDirty: { type: "boolean", description: "`true` when the content differs from the seeded serialization." },
     reset: { type: "() => void", description: "Discard edits and reseed from the resource." },
     setYaml: { type: "(value: string) => void", description: "Update the editor content (wire to the YAML editor's `onChange`)." },
-    target: { type: "EditYamlTarget | null", description: "Create-vs-update preview for the current content, or `null` while validation fails or the existence check is in flight." },
+    target: { type: "EditYamlTarget | null", description: "What applying the current content will do (create, update or rename), or `null` while validation fails or the existence check is in flight." },
     validation: { type: "EditYamlValidation", description: "Live validation of the current content.", typeDescriptionLink: "#edityamlvalidation" },
     yaml: { type: "string", description: "Current editor content." },
   }}
@@ -132,7 +134,8 @@ counterpart of `stigmer apply -f`, for every supported resource kind.
 Steps:
 1. Paste manifest YAML (or JSON) into the editor, or pick a file
 2. Each document is validated against its kind's generated proto schema
-   and previewed with a create-or-update badge resolved from server state
+   and previewed with a create, update or rename badge resolved from
+   server state by the apply's own lookup
 3. Apply runs the documents sequentially in dependency order with live
    per-document status; a failure stops the run and renders inline
 
@@ -176,9 +179,10 @@ Steps:
    stripped) and seeded into a CodeMirror editor
 2. Every edit is validated against the kind's generated proto schema;
    errors render inline with the exact schema complaint
-3. A live summary states what applying will do ("update X" / "create Y"),
-   resolved against server state — so a rename reads as a create
-4. Apply calls the kind's `apply` RPC (create-or-update by slug)
+3. A live summary states what applying will do ("update X", "create Y",
+   "rename X to Y"), resolved by the lookup the apply makes
+4. Apply calls `stigmer.manifest.apply()`: the server finds the resource
+   by its id, then its slug, and a changed slug renames it
 
 Redacted secret values (`***REDACTED***`) are explained inline: applying
 them preserves the stored secrets (the server's marker contract).
@@ -232,8 +236,10 @@ Shared by [`EditResourceYamlDialog`](#editresourceyamldialog) and [`ApplyManifes
 
 ### EditYamlTarget
 
-What applying the current content will do — resolved against live
-server state so renames surface as "create" before the user commits.
+What applying the current content will do, resolved against live server
+state by the lookup the apply makes (`stigmer.manifest.resolveTarget`):
+the document's id first, then its slug. A changed slug on a document
+that keeps its id is a rename.
 
 
 ### EditYamlValidation
@@ -256,7 +262,7 @@ One document of the manifest, with its preview and apply state.
 
 <TypeTable
   type={{
-    action: { type: "\"unknown\" | \"create\" | \"update\"", description: "What applying will do, resolved against live server state.", required: true },
+    action: { type: "\"unknown\" | \"create\" | \"update\" | \"rename\"", description: "What applying will do, resolved against live server state by the apply's own lookup (`stigmer.manifest.resolveTarget`): a document that carries an id and a new slug renames.", required: true },
     document: { type: "ManifestDocument", description: "The parsed document (kind handler, message, name/slug/org).", required: true },
     errorMessage: { type: "string", description: "User-facing failure message, present when `status` is `\"failed\"`." },
     result: { type: "AppliedManifest", description: "The applied resource, present when `status` is `\"applied\"`." },

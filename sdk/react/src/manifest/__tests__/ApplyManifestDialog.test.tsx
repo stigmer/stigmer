@@ -4,7 +4,8 @@
 // partial apply (some documents applied, a later one failed), and must
 // never fire when nothing applied. Historically onApplied's predecessor
 // had zero coverage and stayed unwired at every call site; this locks the
-// contract the list pages now depend on.
+// contract the list pages now depend on. And the preview badge names a
+// rename for a document that keeps its id under a new slug.
 
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
@@ -143,5 +144,13 @@ describe("ApplyManifestDialog — onApplied", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onApplied).not.toHaveBeenCalled();
+  });
+});
+
+describe("ApplyManifestDialog — preview badge", () => {
+  it("names a rename for a document the apply will rename", () => {
+    mockEntries = [{ ...entry("support-bot", "pending"), action: "rename" }];
+    render(<ApplyManifestDialog open onOpenChange={vi.fn()} org="acme" />);
+    expect(screen.getByText("Will rename")).toBeTruthy();
   });
 });

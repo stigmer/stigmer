@@ -151,8 +151,12 @@ spec:
       slug: product-catalog
 ```
 
-Each reference points to a Skill by its slug. When the Agent runs, Stigmer
-resolves these references and makes the Skill content available.
+You write each reference by the Skill's slug, and Stigmer stores the Skill's ID,
+so a renamed Skill stays attached
+([Resources](/docs/concepts/resources#what-a-reference-holds)). A reference with
+no `version` follows the latest: every turn loads the Skill's newest version at
+its start, and the run records the version each turn used. Name a tag or a
+version hash in `version` to hold a Skill at one version.
 
 You can also attach Skills at the [Session](/docs/concepts/sessions) level.
 Session-level Skills are merged with the Agent's Skills — this lets you

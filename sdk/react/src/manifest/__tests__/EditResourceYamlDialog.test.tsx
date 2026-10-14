@@ -1,7 +1,9 @@
 // Tests for the shared Edit-YAML dialog's apply-error affordance: the
 // server's refusal renders verbatim with Try-again/Dismiss — shared
 // by every kind (Agent, Schedule, Skill), so any apply-time guard
-// gets the same acknowledge-and-retry treatment.
+// gets the same acknowledge-and-retry treatment. And its summary of what
+// applying will do: an edited slug on a document that keeps its id reads
+// as a rename, and a kind that cannot rename says it keeps its slug.
 
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
@@ -113,5 +115,43 @@ describe("EditResourceYamlDialog — apply-error affordance", () => {
     editState = {};
     renderDialog();
     expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+  });
+});
+
+describe("EditResourceYamlDialog — what applying will do", () => {
+  it("reads an edited slug as a rename from the stored slug", () => {
+    editState = { target: { action: "rename", from: "test-bot", slug: "support-bot" } };
+    renderDialog();
+    expect(screen.getByText("Applying will rename test-bot to support-bot.")).toBeTruthy();
+  });
+
+  it("says a kind with no rename keeps its slug", () => {
+    editState = {
+      validation: {
+        status: "valid",
+        document: { handler: { displayName: "Agent Share" } } as never,
+      },
+      target: { action: "update", slug: "test-share", slugKept: true },
+    };
+    renderDialog();
+    expect(
+      screen.getByText("Applying will update test-share. Agent Share slugs do not change, so it keeps this slug."),
+    ).toBeTruthy();
+  });
+
+  it("says nothing about applying while the document is invalid", () => {
+    editState = {
+      validation: { status: "invalid", message: "unknown field spec.instructionz" },
+      target: { action: "update", slug: "clinic", slugKept: false },
+    };
+    renderDialog();
+    expect(screen.getByText("unknown field spec.instructionz")).toBeTruthy();
+    expect(screen.queryByText(/Applying will/)).toBeNull();
+  });
+
+  it("reads a new resource as a create", () => {
+    editState = { target: { action: "create", slug: "second-bot" } };
+    renderDialog();
+    expect(screen.getByText("Applying will create second-bot.")).toBeTruthy();
   });
 });

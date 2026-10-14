@@ -22,6 +22,11 @@ import { manifestHandlerForTypeName, manifestKinds } from "./registry.js";
  * The server ignores client-provided `status` on apply, so a fetched
  * proto (status included) is safe to send as-is.
  *
+ * The apply takes the message's slug as declared: a resource renamed by
+ * someone else after it was read is renamed back, which needs the
+ * permission to delete it (the etag does not cover the slug). Read the
+ * resource right before the edit, as the example does.
+ *
  * @param message - A resource proto of a registry-supported kind, with
  *   `metadata.name` set (always true for server-returned resources).
  * @returns A document ready for `ManifestClient.apply`.
