@@ -109,6 +109,8 @@ export class LocalTarget implements TargetProfile {
     perResourceGrants: false,
     authorizationQueries: false,
     accessHistory: "unimplemented",
+    // Open source's membership rule: a first sign-in joins every organization.
+    membershipOnArrival: true,
     // No license key: open source.
     licenseStatus: "absent",
   };

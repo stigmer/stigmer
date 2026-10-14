@@ -1,7 +1,7 @@
 // Pins how the enterprise target stands up and drives its licensed server:
 // setup spawns Enterprise's test entry under the repository's tsx loader on
 // a throwaway Postgres database, in the OIDC posture against the harness's
-// issuer, and signs the founder in (readiness, then provisionMyAccount, then
+// issuer with the relaxed outbound posture, and signs the founder in (readiness, then provisionMyAccount, then
 // the memory opt-in); people are fresh issuer subjects provisioned the same
 // way, the outsider granted nothing and the colleague `member` on the
 // tenancy by its organization's id; tenancies are organizations deleted once
@@ -20,6 +20,7 @@ import type { ConformanceClients } from "../../harness/clients";
 interface Spawn {
   readonly args: ReadonlyArray<string>;
   readonly env: Readonly<Record<string, string>>;
+  readonly readyTimeoutMs?: number;
 }
 
 const spawned: Spawn[] = [];
@@ -178,7 +179,7 @@ describe("the enterprise target", () => {
     );
   });
 
-  it("spawns the licensed test entry under the tsx loader on its own database, in the OIDC posture, and signs the founder in", async () => {
+  it("spawns the licensed test entry under the tsx loader on its own database, in the OIDC posture with relaxed egress, and signs the founder in", async () => {
     const target = new EnterpriseTarget();
     const seen = stubClients(target);
     await target.setup();
@@ -194,7 +195,9 @@ describe("the enterprise target", () => {
           DATABASE_URL: "postgres://db/1",
           STIGMER_OIDC_ISSUER: "http://127.0.0.1:9/issuer",
           STIGMER_OIDC_AUDIENCE: "https://conformance.stigmer.test/api",
+          STIGMER_OUTBOUND_EGRESS: "relaxed",
         },
+        readyTimeoutMs: 45_000,
       },
     ]);
     // Readiness presents the founder's token, then their first sign-in
@@ -277,6 +280,7 @@ describe("the enterprise target", () => {
         STIGMER_OIDC_ISSUER: "http://127.0.0.1:8/other",
         STIGMER_TEST_LICENSE_TERMS: '{"maxOrgs":1}',
       },
+      readyTimeoutMs: 45_000,
     });
     expect(readinessBearers.at(-1)).toBe("sibling-reader");
     expect(sibling.managedAgentsBaseUrl()).toBe("http://127.0.0.1:2");

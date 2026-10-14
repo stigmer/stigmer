@@ -6,6 +6,8 @@ implement the API:
 
 - the OSS TypeScript `stigmer-server` (the `local` / `local-execution`
   targets),
+- Stigmer Enterprise (`ee/server`), booted licensed as its own process (the
+  `enterprise` target),
 - the cloud edition — the TypeScript composition in stigmer-cloud that
   imports `@stigmer/server` and composes the cloud extensions onto it (the
   `cloud` / `cloud-execution` targets, pre-provisioned by stigmer-cloud's
@@ -259,6 +261,38 @@ wiring (the readers, the working agent through review, its prompt stability
 across sessions, the quality arm's eval) is proven hermetically by
 `benchmark-readers.harness.test.ts` on the execution lane, which
 asserts presence and shape and never a number.
+
+### The enterprise target (Class A vs a licensed Enterprise server)
+
+The `enterprise` target runs the Class A suite against Stigmer Enterprise
+running licensed. It spawns Enterprise's test entry,
+`ee/server/test/conformance/licensed-server.ts`, from source under the
+repository's tsx. That entry composes the shipped entry's units with a license
+it signs for itself, in memory, and a ring that trusts only that key. Nothing
+of it is built, published or put in an image, and no secret is read, so the
+lane runs on pull requests from forks.
+
+The posture is the one a licensed server needs:
+
+- Postgres: every spawned server gets a throwaway database from
+  `CONFORMANCE_POSTGRES_URL`.
+- People signed in through the harness's local issuer
+  (`STIGMER_OIDC_ISSUER`); the built-in Authorizer enforces the model on the
+  primary, which is the target's enforcing lane.
+- `STIGMER_OUTBOUND_EGRESS=relaxed`, the operator's opt-in, so the sign-in
+  arms reach the login and MCP servers the harness runs on this machine.
+  Enterprise's strict default is proven by its own composed suite.
+
+A sibling (`spawnSibling`) is the same entry on its own database, in the env
+the suite names: its issuer, and license terms through
+`STIGMER_TEST_LICENSE_TERMS` (the entry's header lists them).
+
+```bash
+make test-conformance-enterprise   # needs CONFORMANCE_POSTGRES_URL; installs ee/server's dependencies
+```
+
+CI runs it in `ci.conformance-enterprise.yaml` on every pull request that
+touches the server, `ee/`, the suite or the shared test machinery.
 
 ### Cloud targets (Class A and the execution class vs the cloud composition)
 
@@ -533,7 +567,8 @@ only to a runner bound to it (`vault-resolution`).
 **The enforcing lane** (`TargetProfile.enforcingLane()`, built by
 `harness/enforcing-lane.ts`): an authorization arm needs a server whose
 Authorizer enforces the model, with several real people on it — an owner, an
-admin, a member, a viewer, an outsider. The cloud's primary is that server; open
+admin, a member, a viewer, an outsider. The cloud's and Enterprise's primaries
+are that server (their people come from `harness/people.ts`); open
 source becomes one in the OIDC posture (the built-in Authorizer, directory and
 list scope of `@stigmer/server`, composed when `STIGMER_OIDC_ISSUER` is set).
 Rather than a target flag that could never be true of a sibling, the target
@@ -759,7 +794,7 @@ src/
                     + execution: temporal, runner-build, runner-process, runner-manager-process, mock-llm, llm-wire, mcp-server,
                       model-registry, git-workspace, global-setup-execution
                     + cloud: cloud-env, cloud-fixtures, fake-llm-upstream, fake-stripe, fake-discord-webhook, global-setup-cloud
-  targets/          target (interface + capabilities), local, local-execution, local-postgres, cloud, cloud-execution, index
+  targets/          target (interface + capabilities), local, local-execution, local-postgres, local-single-org, enterprise, cloud, cloud-execution, index
   contract/         errors, parity
   support/          naming, run-poll, runs, file-review, stigmer-mcp-stdio, working-agent (the benchmark's
                     working agent), agents, plugins, memories, skills, vaults, sessions,

@@ -28,7 +28,13 @@
 //     grants every arrival, is not this target's.
 //
 // The license the primary runs on is current and sets no organization
-// limit, because the suites create an organization per tenancy. A sibling
+// limit, because the suites create an organization per tenancy. Its
+// outbound posture is the operator's opt-in, STIGMER_OUTBOUND_EGRESS=relaxed:
+// the shared suite's sign-in arms dial login servers and MCP servers the
+// harness runs on this machine, which Enterprise's strict default refuses
+// by design. Strict is proven by Enterprise's own composed suite
+// (ee/server/src/editions/__tests__/enterprise-host-wiring.postgres.test.ts)
+// and on the wire by a strict sibling. A sibling
 // takes the terms, the egress posture and the creators rule the suite names
 // in its env (STIGMER_TEST_LICENSE_TERMS and the server's own variables),
 // with its own database.
@@ -63,6 +69,13 @@ import type {
   TargetProfile,
   TenancyContext,
 } from "./target";
+
+// How long a spawned server may take to print its ready line. The entry
+// transpiles Enterprise from source on every boot, so it starts slower than
+// the library's built entry; the harness's 20 s default (server-process.ts)
+// was missed on a loaded machine while every test passed. It stays inside
+// the suites' 60 s hook budget.
+const ENTERPRISE_READY_TIMEOUT_MS = 45_000;
 
 export class EnterpriseTarget implements TargetProfile {
   readonly name = "enterprise";
@@ -121,6 +134,9 @@ export class EnterpriseTarget implements TargetProfile {
     // The Enterprise server keeps the access history and serves its read to
     // the organization's owners.
     accessHistory: "served",
+    // A newcomer holds nothing: above open source a person joins by
+    // invitation or by a grant, never by signing in.
+    membershipOnArrival: false,
     // Cursor runs need no provider key here: no admission gates.
     cursorRunsAdmitted: true,
     // The primary runs on the license this target's entry signed.
@@ -150,7 +166,8 @@ export class EnterpriseTarget implements TargetProfile {
     this.storage = await provisionPostgresStorage();
     this.server = await spawnServer(process.execPath, {
       args: ["--import", tsxLoaderUrl(), entry],
-      env: { ...this.storage.serverEnv, ...this.oidcEnv(issuer) },
+      env: { ...this.storage.serverEnv, ...this.oidcEnv(issuer), STIGMER_OUTBOUND_EGRESS: "relaxed" },
+      readyTimeoutMs: ENTERPRISE_READY_TIMEOUT_MS,
     });
     // The founder: the first person, who founds every tenancy. The readiness
     // gate presents their token before the account exists (admitted
@@ -212,6 +229,7 @@ export class EnterpriseTarget implements TargetProfile {
       server = await spawnServer(process.execPath, {
         args: ["--import", tsxLoaderUrl(), entry],
         env: { ...storage.serverEnv, ...options.env },
+        readyTimeoutMs: ENTERPRISE_READY_TIMEOUT_MS,
       });
     } catch (error) {
       await storage.release();

@@ -277,6 +277,20 @@ export interface CapabilityFlags {
   // the edition sentence, never INTERNAL; where false, the suite PINS that
   // refusal on all four lanes.
   authorizationQueries: boolean;
+  // Open source's membership rule holds here: a person's first sign-in
+  // (provisionMyAccount) makes them a `member` of every organization that
+  // exists at that moment, so a self-hosted team needs no administrator to
+  // let people in. Seen on the target's OIDC sibling, the only place a
+  // second person exists on the open-source targets.
+  //
+  // True for the open-source targets. False for enterprise BY DESIGN: above
+  // open source the arm is skipped
+  // (backend/services/stigmer-server/src/domain/iampolicy/membership.ts),
+  // and a person joins an organization by invitation or by a grant. False
+  // for cloud, whose newcomers hold nothing either (it spawns no sibling, so
+  // the arms skip there regardless). Where false, the iampolicy suite's
+  // arrival arms skip.
+  membershipOnArrival: boolean;
   // How listAccessHistory answers the organization's owner here.
   //
   // `unimplemented` for the local OSS targets BY DESIGN: open source keeps

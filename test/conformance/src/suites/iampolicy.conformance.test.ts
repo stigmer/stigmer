@@ -108,7 +108,10 @@
 // of EVERY organization; and a real person's Members row carries the name the
 // issuer's userinfo gave (first + last, the cloud's precedence, observed on
 // open source). Each arm on its own organization. Where no sibling can be
-// spawned the arms skip VISIBLY with the target's reason.
+// spawned the arms skip VISIBLY with the target's reason. The arms that read
+// a newcomer's membership of the organizations that exist run only where the
+// edition has that rule (CapabilityFlags.membershipOnArrival): an Enterprise
+// sibling gives an arrival nothing.
 //
 // No separate trusted-local block: on `local` the creator IS the
 // operator, so the shared arms are the trusted-local proof.
@@ -138,6 +141,7 @@ import {
 } from "@stigmer/test-support/local-oidc-issuer";
 import { makeAgent } from "../support/agents";
 import { freshSubject } from "../support/identityaccounts";
+import { organizationSlug } from "../support/organizations";
 import {
   AUTHORIZATION_QUERIES_UNIMPLEMENTED_MESSAGE,
   BOOTSTRAP_POLICY_DENIED_MESSAGE,
@@ -870,8 +874,10 @@ describe.skipIf(!capabilities.perResourceGrants)(
         Code.FailedPrecondition,
         "a share with someone outside the agent's organization",
       );
+      // The organization by its slug, the name the sharer knows it by
+      // (stigmer#1862).
       expect(error.rawMessage).toBe(
-        `identity account '${outsider}' is not a member of organization '${org}'; add them to the organization before sharing its resources with them`,
+        `identity account '${outsider}' is not a member of organization '${await organizationSlug(clients.organizationQuery, org)}'; add them to the organization before sharing its resources with them`,
       );
       const roles = await clients.iamPolicyQuery.getPrincipalResourceRoles({
         principal: ref("identity_account", outsider),
@@ -1547,7 +1553,7 @@ describe("IamPolicy conformance — the membership rules on an OIDC sibling", ()
     expect(await rolesOf(founderId, org, founder.asPerson)).toEqual(["owner"]);
   });
 
-  it("[rpc:IdentityAccountCommandController.provisionMyAccount] a later arrival is a member of the organizations that already exist", async (ctx) => {
+  it.skipIf(!capabilities.membershipOnArrival)("[rpc:IdentityAccountCommandController.provisionMyAccount] a later arrival is a member of the organizations that already exist", async (ctx) => {
     const lane = siblingOrSkip(ctx);
     const founder = await newPerson(lane, "founder-2@example.com");
     await founder.provision();
@@ -1592,7 +1598,7 @@ describe("IamPolicy conformance — the membership rules on an OIDC sibling", ()
     ]);
   });
 
-  it("[rpc:IdentityAccountCommandController.provisionMyAccount] a revoked member who provisions again holds nothing — the rules run on the call that created the account", async (ctx) => {
+  it.skipIf(!capabilities.membershipOnArrival)("[rpc:IdentityAccountCommandController.provisionMyAccount] a revoked member who provisions again holds nothing — the rules run on the call that created the account", async (ctx) => {
     const lane = siblingOrSkip(ctx);
     const founder = await newPerson(lane, "founder-5@example.com");
     const founderId = await founder.provision();
@@ -1618,7 +1624,7 @@ describe("IamPolicy conformance — the membership rules on an OIDC sibling", ()
     expect(await rolesOf(founderId, org, founder.asPerson)).toEqual(["owner"]);
   });
 
-  it("[rpc:IdentityAccountCommandController.provisionMyAccount] a stranger who provisions while the founder is still idp-shaped is a member, never the admin of a row-less organization", async (ctx) => {
+  it.skipIf(!capabilities.membershipOnArrival)("[rpc:IdentityAccountCommandController.provisionMyAccount] a stranger who provisions while the founder is still idp-shaped is a member, never the admin of a row-less organization", async (ctx) => {
     const lane = siblingOrSkip(ctx);
     // The organization exists with ZERO role rows: its founder created it
     // before provisioning, so the lifecycle wrote nothing. The
@@ -1643,7 +1649,7 @@ describe("IamPolicy conformance — the membership rules on an OIDC sibling", ()
     expect(await rolesOf(founderId, org, founder.asPerson)).toEqual(["owner"]);
   });
 
-  it("[rpc:IdentityAccountCommandController.provisionMyAccount] a later arrival is a member of EVERY organization that exists, not only the first", async (ctx) => {
+  it.skipIf(!capabilities.membershipOnArrival)("[rpc:IdentityAccountCommandController.provisionMyAccount] a later arrival is a member of EVERY organization that exists, not only the first", async (ctx) => {
     const lane = siblingOrSkip(ctx);
     const first = await newPerson(lane, "founder-6@example.com");
     await first.provision();

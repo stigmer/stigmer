@@ -12,8 +12,13 @@
 // arm may create a fixture account. What runs on every target:
 //   - create over the wire is PERMISSION_DENIED with the byte-pinned copy
 //     and writes nothing;
-//   - get / getByEmail / getByIdpId answer the byte-pinned NOT_FOUND copy
-//     ("Identity account not found: <handle>", the cloud's Java copy);
+//   - getByEmail / getByIdpId answer the byte-pinned NOT_FOUND copy
+//     ("Identity account not found: <handle>", the cloud's Java copy), and
+//     so does get for an unknown id where the caller may read every
+//     account (trusted-local). Where the server enforces the model, get
+//     answers an id the caller may not read PERMISSION_DENIED whether or
+//     not an account holds it, so the answer never tells who has an
+//     account (stigmer-cloud#902);
 //   - getByIdpId (and getByEmail, where the caller has an email) find the
 //     caller's own account;
 //   - update round-trips preferences — the console's one write; an update
@@ -82,6 +87,9 @@ let target: TargetProfile;
 let clients: ConformanceClients;
 const capabilities = createTarget().capabilities;
 
+// get's annotation's refusal for an account the caller may not read.
+const GET_ACCOUNT_DENIED_MESSAGE = "unauthorized to get identity account";
+
 beforeAll(async () => {
   target = createTarget();
   await target.setup();
@@ -123,19 +131,52 @@ describe("IdentityAccount conformance — the shared RPC contract", () => {
     );
   });
 
-  it("[rpc:IdentityAccountQueryController.get] [rpc:IdentityAccountQueryController.getByEmail] [rpc:IdentityAccountQueryController.getByIdpId] get / getByEmail / getByIdpId answer the byte-pinned NOT_FOUND copy", async () => {
-    const byId = await expectGrpcCode(
-      () =>
-        clients.identityAccountQuery.get({
-          value: "ida_00000000000000000000000000",
-        }),
-      Code.NotFound,
-      "get for an unknown id",
-    );
-    expect(byId.rawMessage).toBe(
-      accountNotFoundMessage("ida_00000000000000000000000000"),
-    );
+  it.skipIf(capabilities.enforcingAuthorizer)(
+    "[rpc:IdentityAccountQueryController.get] get for an unknown id answers the byte-pinned NOT_FOUND copy where the caller may read every account",
+    async () => {
+      const byId = await expectGrpcCode(
+        () =>
+          clients.identityAccountQuery.get({
+            value: "ida_00000000000000000000000000",
+          }),
+        Code.NotFound,
+        "get for an unknown id",
+      );
+      expect(byId.rawMessage).toBe(
+        accountNotFoundMessage("ida_00000000000000000000000000"),
+      );
+    },
+  );
 
+  it.skipIf(!capabilities.enforcingAuthorizer)(
+    "[rpc:IdentityAccountQueryController.get] where the server enforces, get answers an id the caller may not read PERMISSION_DENIED with one copy, whether or not an account holds it",
+    async () => {
+      const provisionIdentity = target.provisionIdentity;
+      if (provisionIdentity === undefined) {
+        throw new Error(
+          `target "${target.name}" enforces the model but provisions no second person`,
+        );
+      }
+      const someone = await provisionIdentity.call(target);
+      const someoneId =
+        (await someone.identityAccountQuery.whoAmI({})).metadata?.id ?? "";
+      expect(someoneId, "the second person is provisioned").not.toBe("");
+
+      for (const [id, what] of [
+        ["ida_00000000000000000000000000", "get for an unknown id"],
+        [someoneId, "get for another person's account"],
+      ] as const) {
+        const refused = await expectGrpcCode(
+          () => clients.identityAccountQuery.get({ value: id }),
+          Code.PermissionDenied,
+          what,
+        );
+        expect(refused.rawMessage).toBe(GET_ACCOUNT_DENIED_MESSAGE);
+      }
+    },
+  );
+
+  it("[rpc:IdentityAccountQueryController.getByEmail] [rpc:IdentityAccountQueryController.getByIdpId] getByEmail / getByIdpId answer the byte-pinned NOT_FOUND copy", async () => {
     const email = `${uniqueName("nobody")}@example.com`;
     const byEmail = await expectGrpcCode(
       () => clients.identityAccountQuery.getByEmail({ value: email }),

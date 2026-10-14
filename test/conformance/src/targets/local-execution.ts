@@ -112,6 +112,8 @@ export class LocalExecutionTarget implements TargetProfile {
     perResourceGrants: false,
     authorizationQueries: false,
     accessHistory: "unimplemented",
+    // Open source's membership rule, as on `local`.
+    membershipOnArrival: true,
     // No license key: open source.
     licenseStatus: "absent",
   };

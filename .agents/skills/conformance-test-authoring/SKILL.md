@@ -24,7 +24,10 @@ repository is in [references/test-discipline.md](references/test-discipline.md).
 - A cross-edition contract (an RPC's behaviour every edition must share) is a
   Class A test under `test/conformance/src/suites/`, run by
   `make test-conformance` against the OSS server built from source; the
-  `local-postgres` target runs the same files over the Postgres driver.
+  `local-postgres` target runs the same files over the Postgres driver, and the
+  `enterprise` target against a licensed Enterprise server
+  (`make test-conformance-enterprise`). An arm that holds only where open
+  source's posture holds gates on its capability flag.
 - A runner behaviour read through run status is an execution-class test under
   `test/conformance/src/suites-execution/`, run by
   `make test-conformance-execution` (Temporal, the server and the runner from

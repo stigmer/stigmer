@@ -39,6 +39,7 @@ const ENTERPRISE_MATRIX: CapabilityFlags = {
   perResourceGrants: true,
   authorizationQueries: false,
   accessHistory: "served",
+  membershipOnArrival: false,
   cursorRunsAdmitted: true,
   licenseStatus: "licensed",
 };

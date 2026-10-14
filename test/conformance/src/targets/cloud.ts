@@ -147,6 +147,8 @@ export class CloudTarget implements TargetProfile {
     perResourceGrants: true,
     authorizationQueries: true,
     accessHistory: "plan-upgrade-required",
+    // A newcomer holds nothing until a grant or an invitation.
+    membershipOnArrival: false,
     // The Cloud holds no license key: its plans are subscriptions.
     licenseStatus: "absent",
     // The three cloud-capability surfaces, all served by the composition (the
