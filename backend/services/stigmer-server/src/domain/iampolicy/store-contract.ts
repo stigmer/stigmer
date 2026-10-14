@@ -725,6 +725,12 @@ const HISTORY_CASES: ReadonlyArray<PortContractDeclaration<IamPolicyStore>> = [
       assert.deepEqual(await keptChanges(store, orgs), ["globex:2"], "the next call takes the next oldest");
       assert.equal(await store.pruneChanges(cutoff, 2), 1, "a short last batch");
       assert.equal(await store.pruneChanges(cutoff, 2), 0, "nothing is left to remove");
+      await store.save(policyRow(orgRole("ida_late", "member", "globex")), recordOf("grant", "globex"));
+      assert.deepEqual(
+        await keptChanges(store, orgs),
+        ["globex:3"],
+        "an organization whose every change was removed continues its numbering",
+      );
       await assert.rejects(
         store.pruneChanges(cutoff, 0),
         "a limit that is not a positive integer must reject",
