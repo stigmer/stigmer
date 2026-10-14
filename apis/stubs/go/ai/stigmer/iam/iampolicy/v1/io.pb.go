@@ -1598,8 +1598,8 @@ type ListAccessHistoryInput struct {
 	// The previous response's next_page_token, to continue that read.
 	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Read oldest first, starting just after this entry's sequence; 0 reads
-	// from the first entry. Unset reads newest first. A tool that keeps its
-	// own copy passes the last sequence it holds.
+	// from the oldest entry the server still keeps. Unset reads newest first.
+	// A tool that keeps its own copy passes the last sequence it holds.
 	AfterSequence *int64 `protobuf:"varint,4,opt,name=after_sequence,json=afterSequence,proto3,oneof" json:"after_sequence,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1675,6 +1675,18 @@ type AccessHistoryPage struct {
 	// organization's administrators are not shown the entries about a child's
 	// resources.
 	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	// The lowest sequence the organization's history still holds, 0 when it
+	// holds none. A server that keeps the history for a limited time removes
+	// the oldest entries first, so an organization's kept entries are always
+	// one unbroken run ending at its newest. A tool that asked for what came
+	// after N and reads an oldest_sequence above N + 1 knows that N + 1 to
+	// oldest_sequence - 1 were removed by retention, not missed; any other
+	// gap in the numbers is a parent organization's administrator not being
+	// shown the entries about a child's resources.
+	OldestSequence int64 `protobuf:"varint,3,opt,name=oldest_sequence,json=oldestSequence,proto3" json:"oldest_sequence,omitempty"`
+	// How many days this server keeps the access history, 0 when it removes
+	// nothing. Entries older than this are removed.
+	RetentionDays int32 `protobuf:"varint,4,opt,name=retention_days,json=retentionDays,proto3" json:"retention_days,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1721,6 +1733,20 @@ func (x *AccessHistoryPage) GetNextPageToken() string {
 		return x.NextPageToken
 	}
 	return ""
+}
+
+func (x *AccessHistoryPage) GetOldestSequence() int64 {
+	if x != nil {
+		return x.OldestSequence
+	}
+	return 0
+}
+
+func (x *AccessHistoryPage) GetRetentionDays() int32 {
+	if x != nil {
+		return x.RetentionDays
+	}
+	return 0
 }
 
 // AccessHistoryEntry is one change to who has access to what: someone was
@@ -1958,10 +1984,12 @@ const file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x123\n" +
 	"\x0eafter_sequence\x18\x04 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x00R\rafterSequence\x88\x01\x01B\x11\n" +
-	"\x0f_after_sequence\"\x86\x01\n" +
+	"\x0f_after_sequence\"\xd6\x01\n" +
 	"\x11AccessHistoryPage\x12I\n" +
 	"\aentries\x18\x01 \x03(\v2/.ai.stigmer.iam.iampolicy.v1.AccessHistoryEntryR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xba\x04\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12'\n" +
+	"\x0foldest_sequence\x18\x03 \x01(\x03R\x0eoldestSequence\x12%\n" +
+	"\x0eretention_days\x18\x04 \x01(\x05R\rretentionDays\"\xba\x04\n" +
 	"\x12AccessHistoryEntry\x12\x1a\n" +
 	"\bsequence\x18\x01 \x01(\x03R\bsequence\x12;\n" +
 	"\voccurred_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\n" +

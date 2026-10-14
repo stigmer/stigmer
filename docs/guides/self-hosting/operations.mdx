@@ -413,10 +413,15 @@ the Organization's permission history, the
 while it exists. Each entry records access granted or removed, saying who made
 the change, why it was made, and when. It names the accounts and resources by
 ID, and keeps each access row as it stood, including the email and display name
-of the person who granted it. The server does not remove it yet. To erase a
-deleted Organization's history, delete its rows from the `iam_policy_history`
-and `iam_policy_history_heads` tables yourself, where `org` is the
-Organization's ID.
+of the person who granted it. The server removes it once it is older than the
+access history's window, if you set one: `STIGMER_ACCESS_HISTORY_RETENTION_DAYS`
+holds the number of days, and unset keeps every entry for good
+([How long it is kept](/docs/guides/authentication/access-history#how-long-it-is-kept)).
+To erase a deleted Organization's history sooner, delete its rows from the
+`iam_policy_history` table yourself, where `org` is the Organization's ID. Its
+row in `iam_policy_history_heads` holds only that ID, the last number it handed
+out and that number's time; it is what keeps the Organization's numbers from
+being reused, and you may delete it too.
 
 Some copies live outside what the server can reach, and each ages out on its own
 schedule:

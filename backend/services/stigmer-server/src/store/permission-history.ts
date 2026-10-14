@@ -23,14 +23,20 @@
  * back (rfc3339.ts `instantNotBefore`). An entry whose row is in no
  * organization is numbered in the "" lane.
  *
- * The table is append-only here: no member of the Store updates or deletes
- * an entry, and an organization's purge leaves its history in place.
+ * Removal. No member of the Store updates an entry, and an organization's
+ * purge leaves its history in place. One member removes: retention
+ * (`Store.prunePermissionHistory`) deletes the entries recorded before a
+ * cutoff, oldest first by time, then organization, then number. Because an
+ * organization's times never go back as its numbers rise, the entries
+ * older than any instant are a prefix of its numbers, so removal leaves
+ * each organization one unbroken run ending at its newest entry. The heads
+ * are never removed, so a number is never handed out twice.
  *
  * Reading. `Store.listPermissionHistory` reads one organization's entries
  * on the primary key, newest first below a number or oldest first above
  * one, a bounded page at a time (`PermissionHistoryPage`). Because numbers
  * are assigned in commit order with no gaps, "everything after N" read now
- * and again later never skips an entry.
+ * and again later never skips an entry above the oldest kept one.
  */
 import { fromBinary } from "@bufbuild/protobuf";
 
@@ -84,6 +90,24 @@ export type PermissionHistoryPage =
 export interface PermissionHistoryRecord extends PermissionHistoryEntry {
   readonly sequence: bigint;
   readonly occurredAt: string;
+}
+
+/**
+ * A retention batch in the drivers' terms: the cutoff as the fixed-width
+ * text the writers stamp (rfc3339.ts `instantNotBefore`), so comparing the
+ * column as bytes compares times, and the limit refused when it is not a
+ * positive integer.
+ */
+export function permissionHistoryPruneBounds(
+  before: Date,
+  limit: number,
+): { readonly cutoff: string; readonly limit: number } {
+  if (!Number.isSafeInteger(limit) || limit <= 0) {
+    throw new Error(
+      `permission history limit must be a positive integer, got ${limit}`,
+    );
+  }
+  return { cutoff: before.toISOString(), limit };
 }
 
 /** A page's bound and direction in the drivers' terms, its limit refused when it is not a positive integer. */

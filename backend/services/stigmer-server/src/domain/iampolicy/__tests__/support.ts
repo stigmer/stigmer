@@ -127,8 +127,10 @@ export function fakeIamPolicyStore(
   const rows = new Map<string, IamPolicy>();
   const changes: RecordedChange[] = [];
   // The history a store that keeps one reads back: each organization's
-  // changes numbered from 1, in the order they were made.
+  // changes numbered from 1, in the order they were made, from a head that
+  // a removal never resets.
   const history: PolicyChange[] = [];
+  const heads = new Map<string, bigint>();
   const keep = (
     change: PolicyChange["change"],
     policy: IamPolicy,
@@ -138,8 +140,8 @@ export function fakeIamPolicyStore(
       return;
     }
     const org = record.organizationId;
-    const sequence =
-      BigInt(history.filter((kept) => kept.organizationId === org).length) + 1n;
+    const sequence = (heads.get(org) ?? 0n) + 1n;
+    heads.set(org, sequence);
     history.push({
       sequence,
       occurredAt: new Date().toISOString(),
@@ -263,7 +265,32 @@ export function fakeIamPolicyStore(
         .reverse()
         .slice(0, page.limit);
     },
+    async pruneChanges(before, limit) {
+      if (!Number.isSafeInteger(limit) || limit <= 0) {
+        throw new Error(`limit must be a positive integer, got ${limit}`);
+      }
+      const cutoff = before.toISOString();
+      const removed = history
+        .filter((kept) => kept.occurredAt < cutoff)
+        .sort(oldestChangeFirst)
+        .slice(0, limit);
+      for (const change of removed) {
+        history.splice(history.indexOf(change), 1);
+      }
+      return removed.length;
+    },
   };
+}
+
+/** Retention's order: time, then organization, then number. */
+function oldestChangeFirst(a: PolicyChange, b: PolicyChange): number {
+  if (a.occurredAt !== b.occurredAt) {
+    return a.occurredAt < b.occurredAt ? -1 : 1;
+  }
+  if (a.organizationId !== b.organizationId) {
+    return a.organizationId < b.organizationId ? -1 : 1;
+  }
+  return a.sequence < b.sequence ? -1 : a.sequence > b.sequence ? 1 : 0;
 }
 
 /** A lifecycle that records the two policy hooks and can be told to fail either. */

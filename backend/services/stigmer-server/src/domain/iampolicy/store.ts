@@ -68,6 +68,16 @@
  * N", asked again later, never skips a change that committed late. A store
  * that keeps no history answers an empty list. The kit's history section
  * (`iamPolicyStoreContract` with `keepsHistory`) holds a store to this.
+ *
+ * Retention. A host may declare how long the history is kept; the
+ * library's retention runner (history-retention.ts) then calls
+ * `pruneChanges` with the cutoff, a batch at a time. A store removes the
+ * changes recorded before it oldest first, by time, then organization,
+ * then number. Because an organization's times never go back as its
+ * numbers rise, what goes is a prefix of its numbers: its kept changes
+ * stay one unbroken run ending at its newest, and "no gaps" holds above
+ * the oldest kept change. The numbering is never reset, so the next
+ * change continues it. A store that keeps no history answers 0.
  */
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 
@@ -153,4 +163,12 @@ export interface IamPolicyStore {
     org: string,
     page: PolicyChangePage,
   ): Promise<ReadonlyArray<PolicyChange>>;
+  /**
+   * Retention's removal: at most `limit` recorded changes from before
+   * `before`, across organizations, oldest first by time, then
+   * organization, then number; answers how many it removed. The numbering
+   * continues after a removal. 0 for a store that keeps no history. A
+   * limit that is not a positive integer rejects.
+   */
+  pruneChanges(before: Date, limit: number): Promise<number>;
 }

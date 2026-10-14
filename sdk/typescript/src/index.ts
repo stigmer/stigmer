@@ -47,6 +47,7 @@ export {
   accessHistoryJsonLine,
   type AccessHistoryEntry,
   type ExportAccessHistoryOptions,
+  type RemovedAccessHistory,
 } from "./access-history.js";
 
 // Error handling

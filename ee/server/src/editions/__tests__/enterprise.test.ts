@@ -10,7 +10,9 @@
  *     when it grants none), reports the license, signs the server's own
  *     tokens with open source's ring on its key ladder (a configured key
  *     that does not load refuses the boot), registers the grant scope, and
- *     refuses growth before an organization is written;
+ *     refuses growth before an organization is written, and declares the
+ *     access history's window when the operator set one (logged at boot
+ *     either way); with no key the window is not composed;
  *     `enterprise-identity` is the identity unit. Neither declares the
  *     require-authentication posture.
  *
@@ -173,6 +175,35 @@ describe("composeEnterprise: the verdict as units", () => {
     });
     const [growth] = license?.gateSteps?.get("org-create:pre-side-effect-gate") ?? [];
     await expect(growth?.execute(undefined as never)).rejects.toThrow(/license has ended/);
+  });
+
+  it("declares the operator's access-history window on the license unit, and logs how long the history is kept", async () => {
+    const signer = newTestSigner();
+    const claims = licenseClaims({ issuedAt: ISSUED, days: 365, graceDays: 30 });
+    const lines: string[] = [];
+    const logger = createLogger({
+      level: "info",
+      pretty: false,
+      write: (line: string) => {
+        lines.push(String((JSON.parse(line) as { message?: unknown }).message ?? ""));
+      },
+    });
+    const licensed = { licenseKey: writeTicket(signer, claims), ring: signer.ring, keyLoader: KEY_LOADER };
+    const [windowed] = await composeEnterprise(
+      { config: boot.config, logger },
+      { ...licensed, accessHistoryRetentionDays: 365 },
+    );
+    expect(windowed?.accessHistoryRetentionDays).toBe(365);
+    expect(lines).toContain("access history kept for 365 days");
+
+    lines.length = 0;
+    const [forGood] = await composeEnterprise({ config: boot.config, logger }, licensed);
+    expect(forGood?.accessHistoryRetentionDays).toBeUndefined();
+    expect(lines).toContain("access history kept for good");
+
+    expect(await composeEnterprise(boot, { licenseKey: undefined, accessHistoryRetentionDays: 365 })).toEqual([
+      openSourceEdition,
+    ]);
   });
 
   it("declares no organization limit when the license grants none", async () => {

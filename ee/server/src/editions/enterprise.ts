@@ -30,8 +30,12 @@
  * registers beside the identity unit (iam/policy/roles.ts; a single-instance
  * driver, so never inside that unit), refuses a new organization once the
  * license and its grace period have ended (after the library's own limit
- * on `org-create:pre-side-effect-gate`), and fills the account service from
- * the hand-over. `enterprise-identity` is the identity unit
+ * on `org-create:pre-side-effect-gate`), declares how long the access
+ * history is kept when the operator set a window
+ * (`STIGMER_ACCESS_HISTORY_RETENTION_DAYS`, editions/enterprise-config.ts;
+ * the library's retention runner removes what is older, and a lapsed
+ * license keeps its edition, so it keeps removing), and fills the account
+ * service from the hand-over. `enterprise-identity` is the identity unit
  * (extension/enterprise-identity.ts), unchanged in what it registers, over
  * the Postgres side built here, the account service, the guarded fetch,
  * the operator's issuer reserved and the same growth gate. The license is
@@ -136,6 +140,8 @@ export interface EnterpriseOptions {
   readonly keyLoader?: KeyLoaderOptions;
   /** Which addresses a person-written URL may reach; strict unless the operator chose relaxed. */
   readonly egress?: EgressPosture;
+  /** Days the access history is kept; absent keeps every entry. */
+  readonly accessHistoryRetentionDays?: number;
 }
 
 /** The units the license key decides (the header's verdict). */
@@ -171,6 +177,12 @@ export async function composeEnterprise(
     keyId: verdict.keyId,
     organizations: maxOrgs ?? "unlimited",
   });
+  const retentionDays = options.accessHistoryRetentionDays;
+  logger.info(
+    retentionDays === undefined
+      ? "access history kept for good"
+      : `access history kept for ${retentionDays} days`,
+  );
   if (egress === "relaxed") {
     logger.warn(
       `${OUTBOUND_EGRESS_VARIABLE}=relaxed: URLs anyone signed in writes may reach this server's private network`,
@@ -187,6 +199,7 @@ export async function composeEnterprise(
     name: ENTERPRISE_LICENSE_UNIT,
     edition: ServerEdition.enterprise,
     ...(maxOrgs === undefined ? {} : { orgLimit: maxOrgs }),
+    ...(retentionDays === undefined ? {} : { accessHistoryRetentionDays: retentionDays }),
     drivers: {
       licenseStatus: newLicenseStatusProvider({ keyId: verdict.keyId, claims: verdict.claims }),
       platformTokenKeys: openSourcePlatformTokenKeyRing(options.keyLoader),

@@ -117,6 +117,7 @@ import {
   SCHEMA_VERSION_27,
   SCHEMA_VERSION_28,
   SCHEMA_VERSION_29,
+  SCHEMA_VERSION_30,
   runMigrations,
 } from "../migrations.js";
 import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
@@ -3350,6 +3351,33 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
               fields: { kind: "agent", count: 1, ids: ["agt_b_bad"] },
             },
           ]);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("v30 indexes the permission history in retention's order and keeps every entry", async () => {
+        const client = await clientAt(SCHEMA_VERSION_29);
+        try {
+          await client.query(
+            `INSERT INTO iam_policy_history
+               (org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id,
+                principal_kind, principal_id, relation, resource_kind, resource_id, data)
+             VALUES ('acme', 1, '2026-01-01T00:00:00.000Z', 'granted', 'grant', 'ida_ana', 'user',
+                     'iamp_1', 'identity_account', 'ida_ana', 'member', 'organization', 'acme', '\\x00')`,
+          );
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_30);
+
+          expect(await version(client)).toBe(SCHEMA_VERSION_30);
+          const index = await client.query(
+            `SELECT indexdef FROM pg_indexes WHERE indexname = 'iam_policy_history_by_time'`,
+          );
+          expect((index.rows[0] as { indexdef: string } | undefined)?.indexdef).toMatch(
+            /ON public\.iam_policy_history USING btree \(occurred_at, org, sequence\)$/,
+          );
+          const kept = await client.query(`SELECT org, sequence FROM iam_policy_history`);
+          expect(kept.rows).toEqual([{ org: "acme", sequence: "1" }]);
         } finally {
           await client.end();
         }

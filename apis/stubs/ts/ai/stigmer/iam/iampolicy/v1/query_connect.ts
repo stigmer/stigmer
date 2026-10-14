@@ -203,7 +203,15 @@ export const IamPolicyQueryController = {
      * first, starting just after that entry, for a tool that keeps its own
      * copy: it asks for what came after the last entry it holds. Each
      * organization numbers its entries from 1 in the order they happened,
-     * with no gaps, so a reader that resumes after entry N never misses one.
+     * with no gaps above the oldest kept entry, so a reader that resumes
+     * after entry N never misses one the server still keeps.
+     *
+     * A server may keep the history for a limited time, set by its operator.
+     * It then removes the oldest entries first and never reuses a number:
+     * every page says how many days the server keeps the history
+     * (retention_days, 0 for good) and the oldest number it still holds
+     * (oldest_sequence), so a tool can tell entries that were removed from
+     * entries it missed.
      *
      * Only the organization's owners and administrators may read it, and a
      * parent organization's administrators for a child. A parent's

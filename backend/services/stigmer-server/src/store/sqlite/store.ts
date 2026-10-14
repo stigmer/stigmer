@@ -124,6 +124,7 @@ import {
   PERMISSION_HISTORY_COLUMNS,
   permissionHistoryBounds,
   permissionHistoryEntryOf,
+  permissionHistoryPruneBounds,
   permissionHistoryRecordOf,
 } from "../permission-history.js";
 import type {
@@ -1202,6 +1203,25 @@ export class SqliteStore implements Store {
       )
       .all(org, bound ?? null, bound ?? null, limit) as Array<Record<string, unknown>>;
     return rows.map(permissionHistoryRecordOf);
+  }
+
+  async prunePermissionHistory(before: Date, limit: number): Promise<number> {
+    const db = this.open();
+    const { cutoff, limit: batch } = permissionHistoryPruneBounds(before, limit);
+    // The Postgres driver's twin: no lock, the order the index keeps, the
+    // (org, sequence) tie-break across a batch boundary.
+    const result = db
+      .prepare(
+        `DELETE FROM iam_policy_history
+         WHERE (org, sequence) IN (
+           SELECT org, sequence FROM iam_policy_history
+           WHERE occurred_at < ?
+           ORDER BY occurred_at, org, sequence
+           LIMIT ?
+         )`,
+      )
+      .run(cutoff, batch);
+    return Number(result.changes);
   }
 
   async listAuditRecords(

@@ -38,8 +38,9 @@
  * itself (store/permission-history.ts): none for a held id or an id not
  * held. Open source keeps none: the record is not passed, and the same
  * facts ride the grant path's log lines. `listChanges` is the Store's
- * `listPermissionHistory`, each entry's bytes decoded back to the row; on
- * open source the table is empty, so it answers nothing.
+ * `listPermissionHistory`, each entry's bytes decoded back to the row, and
+ * `pruneChanges` the Store's `prunePermissionHistory`; on open source the
+ * table is empty, so they answer nothing and remove nothing.
  *
  * Store faults follow the store-fault mapping (domain/apikey/lookup.ts): a
  * typed ResourceNotFoundError reads as `undefined`; anything else
@@ -227,6 +228,10 @@ export function newResourceIamPolicyStore(
         organizationId: record.org,
         policy: fromBinary(IamPolicySchema, record.data),
       }));
+    },
+
+    pruneChanges(before, limit) {
+      return store.prunePermissionHistory(before, limit);
     },
 
     async findScopeTuple(resourceKind, resourceId) {

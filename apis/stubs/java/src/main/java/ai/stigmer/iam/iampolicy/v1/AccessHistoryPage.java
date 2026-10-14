@@ -175,6 +175,44 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int OLDEST_SEQUENCE_FIELD_NUMBER = 3;
+  private long oldestSequence_ = 0L;
+  /**
+   * <pre>
+   * The lowest sequence the organization's history still holds, 0 when it
+   * holds none. A server that keeps the history for a limited time removes
+   * the oldest entries first, so an organization's kept entries are always
+   * one unbroken run ending at its newest. A tool that asked for what came
+   * after N and reads an oldest_sequence above N + 1 knows that N + 1 to
+   * oldest_sequence - 1 were removed by retention, not missed; any other
+   * gap in the numbers is a parent organization's administrator not being
+   * shown the entries about a child's resources.
+   * </pre>
+   *
+   * <code>int64 oldest_sequence = 3 [json_name = "oldestSequence"];</code>
+   * @return The oldestSequence.
+   */
+  @java.lang.Override
+  public long getOldestSequence() {
+    return oldestSequence_;
+  }
+
+  public static final int RETENTION_DAYS_FIELD_NUMBER = 4;
+  private int retentionDays_ = 0;
+  /**
+   * <pre>
+   * How many days this server keeps the access history, 0 when it removes
+   * nothing. Entries older than this are removed.
+   * </pre>
+   *
+   * <code>int32 retention_days = 4 [json_name = "retentionDays"];</code>
+   * @return The retentionDays.
+   */
+  @java.lang.Override
+  public int getRetentionDays() {
+    return retentionDays_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -194,6 +232,12 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(nextPageToken_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, nextPageToken_);
+    }
+    if (oldestSequence_ != 0L) {
+      output.writeInt64(3, oldestSequence_);
+    }
+    if (retentionDays_ != 0) {
+      output.writeInt32(4, retentionDays_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -216,6 +260,14 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(nextPageToken_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, nextPageToken_);
     }
+    if (oldestSequence_ != 0L) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(3, oldestSequence_);
+    }
+    if (retentionDays_ != 0) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt32Size(4, retentionDays_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -235,6 +287,10 @@ private static final long serialVersionUID = 0L;
         .equals(other.getEntriesList())) return false;
     if (!getNextPageToken()
         .equals(other.getNextPageToken())) return false;
+    if (getOldestSequence()
+        != other.getOldestSequence()) return false;
+    if (getRetentionDays()
+        != other.getRetentionDays()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -252,6 +308,11 @@ private static final long serialVersionUID = 0L;
     }
     hash = (37 * hash) + NEXT_PAGE_TOKEN_FIELD_NUMBER;
     hash = (53 * hash) + getNextPageToken().hashCode();
+    hash = (37 * hash) + OLDEST_SEQUENCE_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getOldestSequence());
+    hash = (37 * hash) + RETENTION_DAYS_FIELD_NUMBER;
+    hash = (53 * hash) + getRetentionDays();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -395,6 +456,8 @@ private static final long serialVersionUID = 0L;
       }
       bitField0_ = (bitField0_ & ~0x00000001);
       nextPageToken_ = "";
+      oldestSequence_ = 0L;
+      retentionDays_ = 0;
       return this;
     }
 
@@ -444,6 +507,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.nextPageToken_ = nextPageToken_;
       }
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.oldestSequence_ = oldestSequence_;
+      }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.retentionDays_ = retentionDays_;
+      }
     }
 
     @java.lang.Override
@@ -489,6 +558,12 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000002;
         onChanged();
       }
+      if (other.getOldestSequence() != 0L) {
+        setOldestSequence(other.getOldestSequence());
+      }
+      if (other.getRetentionDays() != 0) {
+        setRetentionDays(other.getRetentionDays());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -533,6 +608,16 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 18
+            case 24: {
+              oldestSequence_ = input.readInt64();
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 24
+            case 32: {
+              retentionDays_ = input.readInt32();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 32
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -988,6 +1073,118 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       nextPageToken_ = value;
       bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+
+    private long oldestSequence_ ;
+    /**
+     * <pre>
+     * The lowest sequence the organization's history still holds, 0 when it
+     * holds none. A server that keeps the history for a limited time removes
+     * the oldest entries first, so an organization's kept entries are always
+     * one unbroken run ending at its newest. A tool that asked for what came
+     * after N and reads an oldest_sequence above N + 1 knows that N + 1 to
+     * oldest_sequence - 1 were removed by retention, not missed; any other
+     * gap in the numbers is a parent organization's administrator not being
+     * shown the entries about a child's resources.
+     * </pre>
+     *
+     * <code>int64 oldest_sequence = 3 [json_name = "oldestSequence"];</code>
+     * @return The oldestSequence.
+     */
+    @java.lang.Override
+    public long getOldestSequence() {
+      return oldestSequence_;
+    }
+    /**
+     * <pre>
+     * The lowest sequence the organization's history still holds, 0 when it
+     * holds none. A server that keeps the history for a limited time removes
+     * the oldest entries first, so an organization's kept entries are always
+     * one unbroken run ending at its newest. A tool that asked for what came
+     * after N and reads an oldest_sequence above N + 1 knows that N + 1 to
+     * oldest_sequence - 1 were removed by retention, not missed; any other
+     * gap in the numbers is a parent organization's administrator not being
+     * shown the entries about a child's resources.
+     * </pre>
+     *
+     * <code>int64 oldest_sequence = 3 [json_name = "oldestSequence"];</code>
+     * @param value The oldestSequence to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOldestSequence(long value) {
+
+      oldestSequence_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The lowest sequence the organization's history still holds, 0 when it
+     * holds none. A server that keeps the history for a limited time removes
+     * the oldest entries first, so an organization's kept entries are always
+     * one unbroken run ending at its newest. A tool that asked for what came
+     * after N and reads an oldest_sequence above N + 1 knows that N + 1 to
+     * oldest_sequence - 1 were removed by retention, not missed; any other
+     * gap in the numbers is a parent organization's administrator not being
+     * shown the entries about a child's resources.
+     * </pre>
+     *
+     * <code>int64 oldest_sequence = 3 [json_name = "oldestSequence"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearOldestSequence() {
+      bitField0_ = (bitField0_ & ~0x00000004);
+      oldestSequence_ = 0L;
+      onChanged();
+      return this;
+    }
+
+    private int retentionDays_ ;
+    /**
+     * <pre>
+     * How many days this server keeps the access history, 0 when it removes
+     * nothing. Entries older than this are removed.
+     * </pre>
+     *
+     * <code>int32 retention_days = 4 [json_name = "retentionDays"];</code>
+     * @return The retentionDays.
+     */
+    @java.lang.Override
+    public int getRetentionDays() {
+      return retentionDays_;
+    }
+    /**
+     * <pre>
+     * How many days this server keeps the access history, 0 when it removes
+     * nothing. Entries older than this are removed.
+     * </pre>
+     *
+     * <code>int32 retention_days = 4 [json_name = "retentionDays"];</code>
+     * @param value The retentionDays to set.
+     * @return This builder for chaining.
+     */
+    public Builder setRetentionDays(int value) {
+
+      retentionDays_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * How many days this server keeps the access history, 0 when it removes
+     * nothing. Entries older than this are removed.
+     * </pre>
+     *
+     * <code>int32 retention_days = 4 [json_name = "retentionDays"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearRetentionDays() {
+      bitField0_ = (bitField0_ & ~0x00000008);
+      retentionDays_ = 0;
       onChanged();
       return this;
     }

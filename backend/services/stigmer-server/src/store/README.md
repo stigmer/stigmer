@@ -75,11 +75,22 @@ go back. Lock order: Postgres takes a transaction-scoped advisory lock on the
 organization (`hashtextextended('iam_policy_history/' || org)`) before the row;
 SQLite runs under `BEGIN IMMEDIATE`. A write with no change takes no lock. Only
 the IamPolicy adapter hands a change, and only in a composition that keeps a
-history (`domain/iampolicy/resource-store.ts`); the table is append-only and an
-organization's purge leaves it in place. `Store.listPermissionHistory` reads one
-organization's entries on the primary key: newest first below a number, or
-oldest first above one, a bounded page at a time. The numbering is what makes
-"everything after N", asked again later, skip nothing.
+history (`domain/iampolicy/resource-store.ts`). An organization's purge leaves
+the history in place. `Store.listPermissionHistory` reads one organization's
+entries on the primary key: newest first below a number, or oldest first above
+one, a bounded page at a time. The numbering is what makes "everything after
+N", asked again later, skip nothing above the oldest kept entry.
+
+Retention is the one removal: `Store.prunePermissionHistory` deletes a batch of
+the entries recorded before a cutoff, ordered by time, then organization, then
+number, over the index `iam_policy_history_by_time` in that order. An
+organization's times never go back as its numbers rise, so what goes is always
+a prefix of its numbers and its kept entries stay one unbroken run; the
+`(org, sequence)` tie-break keeps entries sharing a millisecond in number order
+across a batch boundary. It takes no lock: an entry still being written is
+stamped after the cutoff. The heads are never removed, so a number is never
+handed out twice. The runner that calls it, and how long a history is kept, are
+the domain's (`domain/iampolicy/history-retention.ts`).
 
 ## Contract and continuity
 

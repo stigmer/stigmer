@@ -591,9 +591,10 @@ const consumerIamPolicyStore: IamPolicyStore = {
   countDistinctPrincipalsByResource: () => Promise.resolve(0),
   findScopeTuple: () => Promise.resolve(undefined),
   findByResourceKindAndRelation: () => Promise.resolve([]),
-  // A store that keeps no history answers none; one composed above open
-  // source keeps one and reads it back here.
+  // A store that keeps no history answers none and removes none; one
+  // composed above open source keeps one, reads it back and ages it out here.
   listChanges: () => Promise.resolve([]),
+  pruneChanges: () => Promise.resolve(0),
 };
 
 /**

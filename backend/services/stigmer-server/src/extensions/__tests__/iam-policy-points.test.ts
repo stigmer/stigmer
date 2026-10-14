@@ -47,6 +47,7 @@ const store: IamPolicyStore = {
   findScopeTuple: unimplemented,
   findByResourceKindAndRelation: unimplemented,
   listChanges: unimplemented,
+  pruneChanges: unimplemented,
 };
 
 const scope: PolicyGrantScope = {

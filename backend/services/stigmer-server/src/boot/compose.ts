@@ -103,6 +103,7 @@ import { newResourceIdentityAccountStore } from "../domain/identityaccount/resou
 import type { AccountsByCaller } from "../domain/identityaccount/resolve.js";
 import { registerIamPolicyServices } from "../domain/iampolicy/controller.js";
 import { newIamPolicyGrantPath } from "../domain/iampolicy/grant-path.js";
+import { AccessHistoryRetentionRunner } from "../domain/iampolicy/history-retention.js";
 import { nodeGuardedFetch } from "@stigmer/outbound/dial";
 import { isReleaseVersion } from "@stigmer/plugin-package/client";
 import { temporalConnectionEnv } from "@stigmer/temporal-codecs";
@@ -1660,6 +1661,19 @@ export async function composeServer(
       }),
     }),
   });
+  // Access-history retention, only when a host declares a window
+  // (`ServerExtension.accessHistoryRetentionDays`; the registry refuses one
+  // on open source): the composed policy store's history, the library's
+  // adapter or a host's own driver, aged out every hour. No window, no
+  // runner: every entry is kept.
+  const historyRetention =
+    extensions.accessHistoryRetentionDays === undefined
+      ? undefined
+      : new AccessHistoryRetentionRunner({
+          policies: iamPolicies,
+          retentionDays: extensions.accessHistoryRetentionDays,
+          logger,
+        });
   let inProcess: InProcessClients | undefined;
   function requireInProcess(): InProcessClients {
     if (inProcess === undefined) {
@@ -1767,6 +1781,7 @@ export async function composeServer(
       principalDisplay: extensions.drivers.principalDisplay,
       gateSteps: extensions.gateSteps,
       edition: extensions.edition,
+      retentionDays: extensions.accessHistoryRetentionDays,
       logger,
     });
     registerVaultServices(router, {
@@ -2385,6 +2400,8 @@ export async function composeServer(
       // The organization purge: a first pass over the deletion table now
       // (a purge a stopped server left unfinished resumes), then its loop.
       organizationPurge.start();
+      // Access-history retention: a first pass now, then hourly.
+      historyRetention?.start();
       // The sandbox driver's background work, when it has any: it reads the
       // store and the sandbox platform, never Temporal.
       if (sandboxLane.enabled) {
@@ -2487,6 +2504,9 @@ export async function composeServer(
       // The purge stops before the manager and the store: a stage in
       // flight may still terminate a run or write through the store.
       await organizationPurge.stop();
+      // Retention stops before the store too: a batch in flight deletes
+      // through it.
+      await historyRetention?.stop();
       // Workers stop before the transport drains: an in-flight activity
       // may still write through the store, which closes LAST.
       await temporalManager.close();

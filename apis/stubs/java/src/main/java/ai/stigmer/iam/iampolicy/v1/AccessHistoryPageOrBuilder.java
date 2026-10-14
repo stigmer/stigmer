@@ -86,4 +86,32 @@ public interface AccessHistoryPageOrBuilder extends
    */
   com.google.protobuf.ByteString
       getNextPageTokenBytes();
+
+  /**
+   * <pre>
+   * The lowest sequence the organization's history still holds, 0 when it
+   * holds none. A server that keeps the history for a limited time removes
+   * the oldest entries first, so an organization's kept entries are always
+   * one unbroken run ending at its newest. A tool that asked for what came
+   * after N and reads an oldest_sequence above N + 1 knows that N + 1 to
+   * oldest_sequence - 1 were removed by retention, not missed; any other
+   * gap in the numbers is a parent organization's administrator not being
+   * shown the entries about a child's resources.
+   * </pre>
+   *
+   * <code>int64 oldest_sequence = 3 [json_name = "oldestSequence"];</code>
+   * @return The oldestSequence.
+   */
+  long getOldestSequence();
+
+  /**
+   * <pre>
+   * How many days this server keeps the access history, 0 when it removes
+   * nothing. Entries older than this are removed.
+   * </pre>
+   *
+   * <code>int32 retention_days = 4 [json_name = "retentionDays"];</code>
+   * @return The retentionDays.
+   */
+  int getRetentionDays();
 }

@@ -65,8 +65,8 @@ public interface ListAccessHistoryInputOrBuilder extends
   /**
    * <pre>
    * Read oldest first, starting just after this entry's sequence; 0 reads
-   * from the first entry. Unset reads newest first. A tool that keeps its
-   * own copy passes the last sequence it holds.
+   * from the oldest entry the server still keeps. Unset reads newest first.
+   * A tool that keeps its own copy passes the last sequence it holds.
    * </pre>
    *
    * <code>optional int64 after_sequence = 4 [json_name = "afterSequence", (.buf.validate.field) = { ... }</code>
@@ -76,8 +76,8 @@ public interface ListAccessHistoryInputOrBuilder extends
   /**
    * <pre>
    * Read oldest first, starting just after this entry's sequence; 0 reads
-   * from the first entry. Unset reads newest first. A tool that keeps its
-   * own copy passes the last sequence it holds.
+   * from the oldest entry the server still keeps. Unset reads newest first.
+   * A tool that keeps its own copy passes the last sequence it holds.
    * </pre>
    *
    * <code>optional int64 after_sequence = 4 [json_name = "afterSequence", (.buf.validate.field) = { ... }</code>

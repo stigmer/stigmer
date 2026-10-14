@@ -7,11 +7,14 @@
 // an open-source server keeps none and says so, and that sentence reaches
 // the user as the server wrote it.
 //
-// `list` reads newest first, up to `--limit` entries, following pages.
-// `export` is the follow read: oldest first, after the last entry the
-// caller holds (`--after`), every page, one entry per line, through
-// `@stigmer/sdk`'s `exportAccessHistory`, so the console's download and
-// this command write the same lines.
+// `list` reads newest first, up to `--limit` entries, following pages,
+// and keeps the first page's word on retention: how many days the server
+// keeps the history. `export` is the follow read: oldest first, after the
+// last entry the caller holds (`--after`), every page, one entry per line,
+// through `@stigmer/sdk`'s `exportAccessHistory`, so the console's download
+// and this command write the same lines; when the server's retention
+// removed entries after the caller's, the export says so once, apart from
+// the lines.
 
 import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
@@ -20,12 +23,14 @@ import {
   AccessChange,
   AccessChangeCause,
   type AccessHistoryEntry,
+  type AccessHistoryPage,
   ListAccessHistoryInputSchema,
 } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import {
   accessHistoryJsonLine,
   exportAccessHistory,
   isDeletedReference,
+  type RemovedAccessHistory,
   type Stigmer,
 } from "@stigmer/sdk";
 import { UsageError } from "../errors/usage-error.js";
@@ -40,32 +45,71 @@ const MAX_SEQUENCE = BigInt("9223372036854775807");
 /** The most entries one page of the history returns. */
 const MAX_PAGE_SIZE = 100;
 
-/** The newest `limit` entries, newest first. */
+/** What `list` reads: the newest entries, and how long the server keeps the history. */
+export interface AccessHistoryListing {
+  readonly entries: AccessHistoryEntry[];
+  /** Days the server keeps the history; 0 for good. */
+  readonly retentionDays: number;
+}
+
+/** The newest `limit` entries, newest first, with the first page's retention window. */
 export async function listAccessHistory(
   client: AccessHistoryClient,
   org: string,
   limit: number,
-): Promise<AccessHistoryEntry[]> {
-  return readCursorPages(limit, (pageSize, pageToken) =>
-    client.iamPolicy.listAccessHistory(
+): Promise<AccessHistoryListing> {
+  let first: AccessHistoryPage | undefined;
+  const entries = await readCursorPages(limit, async (pageSize, pageToken) => {
+    const page = await client.iamPolicy.listAccessHistory(
       create(ListAccessHistoryInputSchema, {
         org,
         pageSize: Math.min(pageSize, MAX_PAGE_SIZE),
         pageToken,
       }),
-    ),
-  );
+    );
+    first ??= page;
+    return page;
+  });
+  return { entries, retentionDays: first?.retentionDays ?? 0 };
 }
 
-/** Writes every entry after `after`, oldest first, one JSON line each; answers how many it wrote. */
+/** The line `list` prints under its table: how long the server keeps the history. */
+export function retentionLine(retentionDays: number): string {
+  return retentionDays > 0
+    ? `Entries older than ${retentionDays} ${retentionDays === 1 ? "day" : "days"} are removed.\n`
+    : "Kept for good.\n";
+}
+
+/** The note `export` writes apart from the lines when the server removed entries after the caller's. */
+export function removedNote(removed: RemovedAccessHistory): string {
+  const run =
+    removed.first === removed.last
+      ? `entry ${removed.first} is`
+      : `entries ${removed.first} to ${removed.last} are`;
+  const why =
+    removed.retentionDays > 0
+      ? `this server removes entries older than ${removed.retentionDays} ${removed.retentionDays === 1 ? "day" : "days"}`
+      : "this server removed them";
+  return `${run} no longer kept: ${why}\n`;
+}
+
+/**
+ * Writes every entry after `after`, oldest first, one JSON line each, and
+ * a removed run, when there is one, as one note; answers how many lines it
+ * wrote.
+ */
 export async function exportAccessHistoryLines(
   client: AccessHistoryClient,
   org: string,
   after: bigint,
   write: (line: string) => void,
+  note: (line: string) => void,
 ): Promise<number> {
   let written = 0;
-  for await (const entry of exportAccessHistory(client.iamPolicy, org, { after })) {
+  const onRemoved = (removed: RemovedAccessHistory): void => {
+    note(removedNote(removed));
+  };
+  for await (const entry of exportAccessHistory(client.iamPolicy, org, { after, onRemoved })) {
     write(`${accessHistoryJsonLine(entry)}\n`);
     written += 1;
   }

@@ -799,6 +799,16 @@ export interface Store {
   ): Promise<PermissionHistoryRecord[]>;
 
   /**
+   * Retention's one removal (permission-history.ts): deletes at most
+   * `limit` permission-history entries recorded before `before`, across
+   * organizations, oldest first by time, then organization, then number,
+   * and answers how many it removed. The heads are never touched, so an
+   * organization's next entry continues its numbering. Rejects a limit
+   * that is not a positive integer.
+   */
+  prunePermissionHistory(before: Date, limit: number): Promise<number>;
+
+  /**
    * The one door for a write that must commit with session events
    * (session-events.ts states the contract): under the session's lock, the
    * committed row (undefined when absent) and the count of the session's

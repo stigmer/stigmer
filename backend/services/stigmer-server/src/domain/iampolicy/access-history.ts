@@ -36,6 +36,18 @@
  * and still carry a token; the numbers it shows have gaps where the left
  * out entries are.
  *
+ * Retention. Every page says how long the history is kept and the oldest
+ * number the organization still holds (`retention_days`,
+ * `oldest_sequence`), so a tool that asked after N can tell entries
+ * retention removed from entries left out for its caller. The window is
+ * the composition's declaration (`ServerExtension.accessHistoryRetentionDays`,
+ * 0 when none). The oldest number is the store's own first entry
+ * (`listChanges` after 0, one primary-key read), read after the page: two
+ * reads with no snapshot between them, so a retention pass between them
+ * could have removed entries the page just returned, and the answer is the
+ * smaller of the read and the page's lowest examined number. A page never
+ * reports an entry it returned as removed.
+ *
  * Naming happens at read time, never from the stored row's audit stamp: the
  * actor and the principal through the account resolver and the composed
  * principal display, as the access list names them (access-lists.ts), an
@@ -133,6 +145,8 @@ export interface AccessHistoryDeps {
   readonly principalDisplay: PrincipalDisplay | undefined;
   readonly gateSteps: ResolvedGateSteps;
   readonly edition: ServerEdition;
+  /** The declared access-history window in days; undefined keeps every entry. */
+  readonly retentionDays: number | undefined;
   readonly logger: Logger;
 }
 
@@ -250,13 +264,39 @@ async function readAccessHistory(
     : examined.filter((change) => aboutOrganization(change, input.org));
   const entries = await nameEntries(deps, displayResolver, kept);
   const last = examined.at(-1);
+  const lowestExamined = ascending ? examined.at(0) : last;
   return create(AccessHistoryPageSchema, {
     entries,
     nextPageToken:
       more && last !== undefined
         ? encodeAccessHistoryToken(last.sequence, fingerprint)
         : "",
+    oldestSequence: await oldestKeptSequence(deps, input.org, lowestExamined?.sequence),
+    retentionDays: deps.retentionDays ?? 0,
   });
+}
+
+/**
+ * The lowest number the organization still holds, 0 when none, never above
+ * the lowest the page examined: read after the page, a retention pass may
+ * have removed entries in between that the page returned.
+ */
+async function oldestKeptSequence(
+  deps: AccessHistoryDeps,
+  org: string,
+  lowestExamined: bigint | undefined,
+): Promise<bigint> {
+  let oldest: ReadonlyArray<PolicyChange>;
+  try {
+    oldest = await deps.policies.listChanges(org, { limit: 1, after: 0n });
+  } catch (error) {
+    throw internalError(error, "failed to read the access history");
+  }
+  const held = oldest.at(0)?.sequence;
+  if (held === undefined) {
+    return lowestExamined ?? 0n;
+  }
+  return lowestExamined !== undefined && lowestExamined < held ? lowestExamined : held;
 }
 
 /** Whether a change is about the organization itself rather than a resource in it. */

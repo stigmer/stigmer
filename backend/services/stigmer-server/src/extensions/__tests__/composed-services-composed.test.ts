@@ -180,6 +180,7 @@ describe("onComposed: a unit receives the composition's own instances", () => {
       findByResourceKindAndRelation: () => Promise.resolve([]),
       findScopeTuple: () => Promise.resolve(undefined),
       listChanges: () => Promise.resolve([]),
+      pruneChanges: () => Promise.resolve(0),
     };
     let received: ComposedServices | undefined;
     const server = await compose([
