@@ -19,18 +19,22 @@ import { FederationIssuerWizard } from "../FederationIssuerWizard";
  * the issuer's own passes for a preset left as filled.
  *
  * Also pins the sign-in settings the create call carries: neither account
- * creation nor a role unless chosen, and both once the admin chooses them.
+ * creation nor a role unless chosen, and both once the admin chooses them;
+ * and that Done on the success step hands the created issuer to onCreated.
  */
 
 const CREATED: FederationIssuer = create(FederationIssuerSchema, {
   metadata: { id: "issuer-1", name: "Acme", slug: "acme", org: "acme" },
 });
 
-function renderWizard(createIssuer: ReturnType<typeof vi.fn>) {
+function renderWizard(
+  createIssuer: ReturnType<typeof vi.fn>,
+  onCreated?: (issuer: FederationIssuer) => void,
+) {
   const client = { federationIssuer: { create: createIssuer } } as never;
   return render(
     <StigmerContext.Provider value={client}>
-      <FederationIssuerWizard org="acme" />
+      <FederationIssuerWizard org="acme" onCreated={onCreated} />
     </StigmerContext.Provider>,
   );
 }
@@ -128,5 +132,22 @@ describe("FederationIssuerWizard userinfo endpoint", () => {
     const input = createIssuer.mock.calls[0]![0];
     expect(input.userinfoEndpoint).toBe("https://acme.us.auth0.com/userinfo");
     expect(input.jwksUri).toBe("https://acme.us.auth0.com/.well-known/jwks.json");
+  });
+});
+
+describe("FederationIssuerWizard success", () => {
+  it("hands the created issuer to onCreated when Done is clicked", async () => {
+    const createIssuer = vi.fn(async (_input: FederationIssuerInput) => CREATED);
+    const onCreated = vi.fn();
+    renderWizard(createIssuer, onCreated);
+    await reachReview();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create federation issuer" }),
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Done" }));
+
+    expect(onCreated).toHaveBeenCalledTimes(1);
+    expect(onCreated.mock.calls[0]![0]).toBe(CREATED);
   });
 });

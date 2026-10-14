@@ -14,12 +14,13 @@
  *     who may create one, and names the organization's admins to a caller
  *     the server has refused;
  *   - a provider row offers edit only with `can_edit` and delete only with
- *     `can_delete` on that provider.
+ *     `can_delete` on that provider, and its Edit opens that issuer's
+ *     detail in place of the list.
  *
  * The data hooks and the permission check are stubbed; the panels are real.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
   FederationIssuerSchema,
@@ -179,6 +180,18 @@ describe("FederationIssuersSection", () => {
     renderSection("cloud");
     expect(screen.getByRole("button", { name: "Edit Acme Okta" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Delete Acme Okta" })).toBeTruthy();
+  });
+
+  it("opens the chosen issuer's detail in place of the list when its row's Edit is clicked", () => {
+    stubs.providers = [OKTA];
+    stubs.allowed = new Set(["can_edit"]);
+    renderSection("cloud");
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit Acme Okta" }));
+
+    expect(screen.getByRole("button", { name: /Back to list/ })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Acme Okta" })).toBeTruthy();
+    expect(screen.queryByRole("list", { name: "Federation issuers" })).toBeNull();
   });
 
 });
