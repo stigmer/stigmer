@@ -26,6 +26,7 @@ import {
   GetArtifactContentResponseSchema,
   type GetArtifactContentRequest,
   type GetArtifactContentResponse,
+  type ListRunsBySessionRequest,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -450,12 +451,13 @@ describe("resolveOffloadedOutputs", () => {
 // ---------------------------------------------------------------------------
 
 describe("fetchSessionTranscript", () => {
-  function fakeClient(overrides?: { totalPages?: number }) {
+  function fakeClient() {
     const artifacts = fakeArtifactClient({
       "artifacts/run_01a/toolcalls/c2.txt": { content: "full file" },
       "artifacts/run_01c/toolcalls/g1.txt": { content: "3 matches" },
     });
     const eventRequests: ListSessionEventsRequest[] = [];
+    const runRequests: ListRunsBySessionRequest[] = [];
     const log = allEvents();
     return {
       eventRequests,
@@ -471,15 +473,19 @@ describe("fetchSessionTranscript", () => {
           );
         },
       },
+      runRequests,
       run: {
         ...artifacts.client.run,
-        listBySession: () =>
-          Promise.resolve(
-            create(RunListSchema, {
-              totalPages: overrides?.totalPages ?? 1,
-              entries: allRuns(),
-            }),
-          ),
+        // Two pages: the first run, then the rest.
+        listBySession: (input: ListRunsBySessionRequest) => {
+          runRequests.push(input);
+          const runs = allRuns();
+          return Promise.resolve(
+            input.pageToken === ""
+              ? create(RunListSchema, { entries: runs.slice(0, 1), nextPageToken: "r2" })
+              : create(RunListSchema, { entries: runs.slice(1) }),
+          );
+        },
       },
     };
   }
@@ -507,10 +513,14 @@ describe("fetchSessionTranscript", () => {
     expect(Object.keys(t.resolvedOutputs)).toHaveLength(0);
   });
 
-  it("refuses to export when the server paginates the session's runs", async () => {
-    await expect(
-      fetchSessionTranscript(fakeClient({ totalPages: 2 }), "ses_01"),
-    ).rejects.toThrow(/2 pages .* single page/s);
+  it("reads every page of the session's runs", async () => {
+    const client = fakeClient();
+    const t = await fetchSessionTranscript(client, "ses_01", { includeSuperseded: true });
+    expect(client.runRequests.map((r) => [r.sessionId, r.pageToken])).toEqual([
+      ["ses_01", ""],
+      ["ses_01", "r2"],
+    ]);
+    expect(t.turns).toHaveLength(4);
   });
 });
 

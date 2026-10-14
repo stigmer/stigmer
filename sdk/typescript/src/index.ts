@@ -167,10 +167,16 @@ export {
 export {
   type DeleteResourceInput,
   type ResourceRef,
-  type Page,
-  type ListParams,
-  type ListResult,
 } from "./gen/types.js";
+// Page walking for the one list shape: each generated client's
+// `<method>All` iterators cover its own lists; these serve hand-written
+// reads and a caller that needs a whole list at once.
+export {
+  everyEntry,
+  readEveryPage,
+  READ_EVERY_PAGE_DEFAULT_CAP,
+  type ListPage,
+} from "./pages.js";
 // A stored reference as a ResourceRef input (its id, version and kind
 // kept): how a form reads the references it edits from a loaded resource.
 export { toResourceRefInput, toResourceRefInputs } from "./gen/proto-utils.js";
