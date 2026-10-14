@@ -54,7 +54,7 @@ describe("isResourceAvailable — a tier is a minimum edition", () => {
   });
 
   it("enterprise-tier kinds are available in enterprise and cloud, not local", () => {
-    // `invitation` is the example since `iam_policy` moved to open_source
+    // `invitation` is the example since `grant` moved to open_source
     // (the row half is served by every edition).
     expect(isResourceAvailable(ApiResourceKind.invitation, "local")).toBe(
       false,
@@ -67,7 +67,7 @@ describe("isResourceAvailable — a tier is a minimum edition", () => {
     expect(isResourceAvailable(ApiResourceKind.invitation, "cloud")).toBe(true);
   });
 
-  it("iam_policy is open_source since the row half moved into open source — served everywhere", () => {
+  it("grant is open_source since the row half moved into open source — served everywhere", () => {
     for (const mode of MODES) {
       expect(isResourceAvailable(ApiResourceKind.grant, mode), mode).toBe(
         true,

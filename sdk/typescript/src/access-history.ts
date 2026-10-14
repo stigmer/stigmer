@@ -1,7 +1,7 @@
 /**
  * Exporting an organization's access history: every time someone was
  * given or lost access, who did it, why and when
- * (`IamPolicyClient.listAccessHistory`).
+ * (`GrantClient.listAccessHistory`).
  *
  * The export is the history's follow read: oldest first, strictly after
  * the last entry the caller already holds, every page followed. Each
