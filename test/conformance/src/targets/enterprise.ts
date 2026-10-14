@@ -33,11 +33,10 @@
 // the shared suite's sign-in arms dial login servers and MCP servers the
 // harness runs on this machine, which Enterprise's strict default refuses
 // by design. Strict is proven by Enterprise's own composed suite
-// (ee/server/src/editions/__tests__/enterprise-host-wiring.postgres.test.ts)
-// and on the wire by a strict sibling. A sibling
-// takes the terms, the egress posture and the creators rule the suite names
-// in its env (STIGMER_TEST_LICENSE_TERMS and the server's own variables),
-// with its own database.
+// (ee/server/src/editions/__tests__/enterprise-host-wiring.postgres.test.ts).
+// A sibling takes the terms, the egress posture and the creators rule the
+// suite names in its env (STIGMER_TEST_LICENSE_TERMS and the server's own
+// variables), with its own database.
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import {
   startLocalOidcIssuer,

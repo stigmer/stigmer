@@ -8,7 +8,8 @@
  *     claims and the key id of the license it signed for itself;
  *   - a STIGMER_LICENSE_KEY in the environment refuses the boot, so a real
  *     key never meets the test ring by configuration;
- *   - license terms it does not know refuse the boot.
+ *   - license terms it does not know, and a term that is not a whole number
+ *     of at least its minimum, refuse the boot.
  *
  * The refusals come before the server reads its database and run
  * everywhere; the boot needs Postgres from TEST_DATABASE_URL (unset: skipped
@@ -128,8 +129,12 @@ describe("the conformance suite's licensed server refuses", () => {
     );
   }, BOOT_DEADLINE_MS + 5_000);
 
-  it("a term that is not a whole number", async () => {
-    await expect(spawnEntry({ STIGMER_TEST_LICENSE_TERMS: '{"maxOrgs":0}' })).rejects.toThrow(
+  it.each([
+    ["below its minimum", '{"maxOrgs":0}'],
+    ["a fraction", '{"maxOrgs":1.5}'],
+    ["a string", '{"maxOrgs":"5"}'],
+  ])("a term that is not a whole number of at least its minimum: %s", async (_case, terms) => {
+    await expect(spawnEntry({ STIGMER_TEST_LICENSE_TERMS: terms })).rejects.toThrow(
       /^exit 1:\n[\s\S]*^boot failed: STIGMER_TEST_LICENSE_TERMS\.maxOrgs must be a whole number of at least 1$/m,
     );
   }, BOOT_DEADLINE_MS + 5_000);
