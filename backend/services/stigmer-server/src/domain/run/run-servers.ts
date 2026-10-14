@@ -125,29 +125,6 @@ export function turnServerName(server: RunServer): string {
   }
 }
 
-/** A server's home in a sentence. */
-function describeHome(server: RunServer): string {
-  switch (server.home.kind) {
-    case "plugin":
-      return `plugin '${server.home.pluginName}' server '${server.entry.name}'`;
-    case "agent":
-      return `agent '${server.home.agentName}' server '${server.entry.name}'`;
-    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
-    default: {
-      const unreachable: never = server.home;
-      return unreachable;
-    }
-  }
-}
-
-/** Whether two servers are one: the same server of the same home. */
-function sameServer(a: RunServer, b: RunServer): boolean {
-  if (a.entry.name !== b.entry.name) return false;
-  if (a.home.kind === "agent" && b.home.kind === "agent") return a.home.agentId === b.home.agentId;
-  if (a.home.kind === "plugin" && b.home.kind === "plugin") return a.home.pluginId === b.home.pluginId;
-  return false;
-}
-
 /** What `runServers` reads: the run's agent (none for a run with no agent), its subagents, its plugins. */
 export interface RunServersInput {
   readonly agent: RunAgentHome | undefined;
@@ -157,7 +134,7 @@ export interface RunServersInput {
 
 /**
  * Every MCP server of the run: the agent's own, each subagent's own, then
- * each plugin's. Refuses two servers of different homes under one name.
+ * each plugin's. Refuses two agents of the run writing a server of one name.
  */
 export function runServers(input: RunServersInput): RunServer[] {
   const agents: RunAgentHome[] = [
@@ -169,21 +146,18 @@ export function runServers(input: RunServersInput): RunServer[] {
       spec: subagent.spec,
     })),
   ];
-  const servers = [...agents.flatMap(agentServersOf), ...input.plugins.flatMap(serversOf)];
-  const byName = new Map<string, RunServer>();
-  const gathered: RunServer[] = [];
-  for (const server of servers) {
-    const name = turnServerName(server);
-    const held = byName.get(name);
-    if (held !== undefined) {
-      if (sameServer(held, server)) continue;
-      throw failedPreconditionError(
-        `this conversation uses two MCP servers a turn would both name '${name}' (${describeHome(held)} and ` +
-          `${describeHome(server)}); rename one of them in its agent, or remove the subagent from the agent`,
-      );
+  const written = new Map<string, string>();
+  for (const agent of agents) {
+    for (const server of agent.spec.mcpServers) {
+      const holder = written.get(server.name);
+      if (holder !== undefined) {
+        throw failedPreconditionError(
+          `this conversation uses two MCP servers a turn would both name '${server.name}' (agent '${holder}' server '${server.name}' and ` +
+            `agent '${agent.name}' server '${server.name}'); rename one of them in its agent, or remove the subagent from the agent`,
+        );
+      }
+      written.set(server.name, agent.name);
     }
-    byName.set(name, server);
-    gathered.push(server);
   }
-  return gathered;
+  return [...agents.flatMap(agentServersOf), ...input.plugins.flatMap(serversOf)];
 }
