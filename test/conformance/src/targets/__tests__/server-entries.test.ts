@@ -79,15 +79,20 @@ describe("the server entry each local target spawns", () => {
   it("local spawns the library entry, for its primary and its siblings", async () => {
     const target = new LocalTarget();
     await target.setup();
-    await target.spawnSibling(SIBLING);
+    const sibling = await target.spawnSibling(SIBLING);
     expect(spawned).toEqual([["/library-server.mjs"], ["/library-server.mjs"]]);
+    // The Managed Agents lane is on each spawned server's unified port.
+    expect(target.managedAgentsBaseUrl()).toBe("http://127.0.0.1:1");
+    expect(sibling.managedAgentsBaseUrl()).toBe("http://127.0.0.1:1");
   });
 
   it("local-execution spawns the library entry, for its primary and its siblings", async () => {
     const target = new LocalExecutionTarget();
     await target.setup();
-    await target.spawnSibling(SIBLING);
+    const sibling = await target.spawnSibling(SIBLING);
     expect(spawned).toEqual([["/library-server.mjs"], ["/library-server.mjs"]]);
+    expect(target.managedAgentsBaseUrl()).toBe("http://127.0.0.1:1");
+    expect(sibling.managedAgentsBaseUrl()).toBe("http://127.0.0.1:1");
   });
 
   it("local-single-org spawns the shipped entry, and differs from local only in singleOrganization", async () => {

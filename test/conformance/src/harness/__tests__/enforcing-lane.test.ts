@@ -96,11 +96,14 @@ describe("newSiblingEnforcingLane", () => {
     } as unknown as ConformanceClients;
     const sibling: SiblingServer = {
       clientsPresenting: () => clients,
+      managedAgentsBaseUrl: () => "http://127.0.0.1:0",
       teardown: async () => {},
     };
 
     const { lane, close } = await newSiblingEnforcingLane({ spawnSibling: async () => sibling });
     try {
+      // The lane's Managed Agents address is its sibling's.
+      expect(lane.managedAgentsBaseUrl()).toBe("http://127.0.0.1:0");
       await lane.provisionMember({ org: "org_kept" });
     } finally {
       await close();
