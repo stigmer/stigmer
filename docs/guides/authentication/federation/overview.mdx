@@ -7,23 +7,23 @@ description:
 ---
 
 Identity federation lets users access Stigmer with tokens issued by an external
-authentication system. You register your auth provider as an Identity Provider,
-and Stigmer trusts its tokens. Federation is served by Stigmer Cloud and the
-Enterprise edition; the open-source self-hosted server does not serve Identity
-Providers.
+authentication system. Your identity provider (Auth0, Okta, …) is registered as
+a Federation Issuer, and Stigmer trusts its tokens. Federation is served by
+Stigmer Cloud and the Enterprise edition; the open-source self-hosted server
+does not serve Federation Issuers.
 
 Federation supports two provisioning modes:
 
 - **JIT provisioning** — Stigmer creates accounts and grants a sign-in role
   automatically when a user authenticates with a valid JWT. Your backend only
-  registers the Identity Provider. Best for platforms where all authenticated
+  registers the Federation Issuer. Best for platforms where all authenticated
   users should have Stigmer access.
 - **Manual provisioning** — Your platform backend creates federated accounts and
   grants roles via the API before users can authenticate. Best for platforms
   that need to control exactly who gets access and when.
 
-Whichever mode you choose, every token an Identity Provider vouches for is bound
-to one Organization and works there only: the Identity Provider's own
+Whichever mode you choose, every token a Federation Issuer vouches for is bound
+to one Organization and works there only: the Federation Issuer's own
 Organization, or the child organization an `externalIdClaim` claim names.
 
 ## When you need this
@@ -36,7 +36,7 @@ Agents, Sessions, and other resources without a separate Stigmer login.
 <Callout type="info">
   **Don't have an OIDC provider?** Use a
   [PlatformClient](/docs/guides/authentication/platform-client/overview)
-  instead. Your backend mints Stigmer tokens per user — no Identity Provider
+  instead. Your backend mints Stigmer tokens per user — no Federation Issuer
   registration or JWKS endpoint needed.
 </Callout>
 
@@ -49,12 +49,12 @@ credentials needed.
 
 ## Choose your provisioning mode
 
-|                      | JIT (automatic)                               | Manual (explicit)                              |
-| -------------------- | --------------------------------------------- | ---------------------------------------------- |
-| **Account creation** | Automatic on first JWT                        | Your backend calls `createFederatedAccount`    |
-| **Role assignment**  | Automatic (`signInRole`)                      | Your backend creates IAM Policies              |
-| **Setup steps**      | Register IdP with JIT enabled                 | Register IdP, provision accounts, grant access |
-| **Use when**         | All authenticated users should access Stigmer | You need gated, explicit access control        |
+|                      | JIT (automatic)                               | Manual (explicit)                                              |
+| -------------------- | --------------------------------------------- | -------------------------------------------------------------- |
+| **Account creation** | Automatic on first JWT                        | Your backend calls `createFederatedAccount`                    |
+| **Role assignment**  | Automatic (`signInRole`)                      | Your backend creates IAM Policies                              |
+| **Setup steps**      | Register a Federation Issuer with JIT enabled | Register a Federation Issuer, provision accounts, grant access |
+| **Use when**         | All authenticated users should access Stigmer | You need gated, explicit access control                        |
 
 ## Architecture
 
@@ -70,7 +70,7 @@ flowchart LR
     App["Platform app"]
   end
   subgraph stigmer ["Stigmer"]
-    SIdP["IdentityProvider"]
+    SIdP["FederationIssuer"]
     SAcct["IdentityAccount<br/>(federated)"]
     SPolicy["IamPolicy"]
     SAPI["Stigmer API"]
@@ -89,11 +89,11 @@ flowchart LR
 
 The setup and runtime differ by provisioning mode. With **manual provisioning**,
 your backend performs all four steps above before users authenticate. With **JIT
-provisioning**, your backend only registers the Identity Provider (step
+provisioning**, your backend only registers the Federation Issuer (step
 
 1. — Stigmer handles steps 2 and 3 automatically when a user first
    authenticates. Step 4 is the same regardless of mode: present a JWT, Stigmer
-   validates it against your Identity Provider's JWKS endpoint, resolves the
+   validates it against your Federation Issuer's JWKS endpoint, resolves the
    caller to a federated account, and checks IAM Policies.
 
 ## Prerequisites
@@ -115,8 +115,8 @@ All integration paths start with step 1. If you enable JIT provisioning in step
 
 <Cards>
   <Card
-    href="/docs/guides/authentication/federation/register-identity-provider"
-    title="1. Register an Identity Provider"
+    href="/docs/guides/authentication/federation/register-federation-issuer"
+    title="1. Register a Federation Issuer"
   >
     Create and configure the trust relationship between your auth system and
     Stigmer. Enable JIT provisioning here for automatic account and role setup.
@@ -144,14 +144,14 @@ All integration paths start with step 1. If you enable JIT provisioning in step
 </Cards>
 
 <Callout type="info">
-  **Using JIT provisioning?** If you enable JIT when you register your Identity
-  Provider (step 1), Stigmer handles account creation and role grants
+  **Using JIT provisioning?** If you enable JIT when you register your
+  Federation Issuer (step 1), Stigmer handles account creation and role grants
   automatically. Skip steps 2 and 3 and go straight to step 4.
 </Callout>
 
 ## Your own team's sign-in
 
-An Identity Provider is trust in tokens your platform sends with its calls to
+A Federation Issuer is trust in tokens your platform sends with its calls to
 Stigmer. It is not a way to sign in to the Stigmer web console. To have your
 team sign in to a self-hosted Stigmer with your company's identity provider
 (Okta, Microsoft Entra ID, Keycloak or any OIDC provider), make it the server's

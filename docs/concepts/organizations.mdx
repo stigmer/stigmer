@@ -29,7 +29,7 @@ graph TD
 ### Organizations
 
 An Organization is the top-level boundary. It owns all resources within it and
-controls access through identity providers and API keys.
+controls access through Federation Issuers and API keys.
 
 ```yaml
 apiVersion: tenancy.stigmer.ai/v1
@@ -172,7 +172,7 @@ its ordinary members screen; the child's member list and access history show it,
 and the child's own admins can remove them. Nobody owns a child when it is
 created: the parent's admins grant its first members and owner.
 
-A child's people sign in through the parent's Identity Provider, whose
+A child's people sign in through the parent's Federation Issuer, whose
 `external_id_claim` names each token's child by its `external_id`, or with
 tokens a PlatformClient of the parent mints for that child. On Stigmer Cloud a
 child runs on its parent's plan. An Organization can be deleted once every child
@@ -289,7 +289,7 @@ reference keeps pointing at its Organization across a rename.
 
 - Building a platform with federated authentication? The
   [Identity federation guide](/docs/guides/authentication/federation/overview)
-  walks through Identity Provider registration, account provisioning, and access
+  walks through Federation Issuer registration, account provisioning, and access
   granting.
 - Want to embed Stigmer without OIDC setup? The
   [PlatformClient guide](/docs/guides/authentication/platform-client/overview)

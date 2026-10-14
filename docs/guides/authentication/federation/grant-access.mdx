@@ -11,11 +11,11 @@ This page shows how to grant roles manually so federated users can access your
 Organization's resources.
 
 <Callout type="info">
-  **Using JIT provisioning?** If your Identity Provider sets a `signInRole`,
+  **Using JIT provisioning?** If your Federation Issuer sets a `signInRole`,
   Stigmer grants that role the first time an account signs in to an
   Organization. You don't need to create IAM Policies for that role. See [Enable
   JIT
-  provisioning](/docs/guides/authentication/federation/register-identity-provider#enable-jit-provisioning)
+  provisioning](/docs/guides/authentication/federation/register-federation-issuer#enable-jit-provisioning)
   for the automatic setup.
 </Callout>
 
@@ -149,9 +149,9 @@ Here's the combined pattern:
 
 ```typescript
 async function onboardUser(user: PlatformUser): Promise<void> {
-  const idpRef = {
+  const issuerRef = {
     org: "acme",
-    kind: "identity_provider",
+    kind: "federation_issuer",
     slug: "acme-cloud-auth",
   };
 
@@ -160,7 +160,7 @@ async function onboardUser(user: PlatformUser): Promise<void> {
   try {
     const existing = await stigmer.identityAccount.getByExternalSub({
       org: "acme",
-      identityProviderRef: idpRef,
+      federationIssuerRef: issuerRef,
       externalSub: user.oidcSubject,
     });
     accountId = existing.metadata.id;
@@ -169,7 +169,7 @@ async function onboardUser(user: PlatformUser): Promise<void> {
 
     const account = await stigmer.identityAccount.createFederatedAccount({
       org: "acme",
-      identityProviderRef: idpRef,
+      federationIssuerRef: issuerRef,
       externalSub: user.oidcSubject,
       email: user.email,
       firstName: user.firstName,
@@ -192,9 +192,9 @@ async function onboardUser(user: PlatformUser): Promise<void> {
 
 ```go
 func onboardUser(ctx context.Context, client *stigmer.Client, user PlatformUser, orgId string) error {
-  idpRef := &stigmer.ResourceRef{
+  issuerRef := &stigmer.ResourceRef{
     Org:  "acme",
-    Kind: "identity_provider",
+    Kind: "federation_issuer",
     Slug: "acme-cloud-auth",
   }
 
@@ -202,7 +202,7 @@ func onboardUser(ctx context.Context, client *stigmer.Client, user PlatformUser,
 
   existing, err := client.IdentityAccount.GetByExternalSub(ctx, &stigmer.ExternalSubLookup{
     Org:                 "acme",
-    IdentityProviderRef: idpRef,
+    FederationIssuerRef: issuerRef,
     ExternalSub:         user.OIDCSubject,
   })
   if err == nil {
@@ -210,7 +210,7 @@ func onboardUser(ctx context.Context, client *stigmer.Client, user PlatformUser,
   } else if status.Code(err) == codes.NotFound {
     account, createErr := client.IdentityAccount.CreateFederatedAccount(ctx, &stigmer.CreateFederatedAccountInput{
       Org:                 "acme",
-      IdentityProviderRef: idpRef,
+      FederationIssuerRef: issuerRef,
       ExternalSub:         user.OIDCSubject,
       Email:               user.Email,
       FirstName:           user.FirstName,
@@ -239,12 +239,12 @@ func onboardUser(ctx context.Context, client *stigmer.Client, user PlatformUser,
 
 ```python
 def onboard_user(client, user: PlatformUser, organization_id: str) -> None:
-    idp_ref = ResourceRef(org="acme", kind="identity_provider", slug="acme-cloud-auth")
+    issuer_ref = ResourceRef(org="acme", kind="federation_issuer", slug="acme-cloud-auth")
 
     try:
         existing = client.identity_accounts.get_by_external_sub(ExternalSubLookup(
             org="acme",
-            identity_provider_ref=idp_ref,
+            federation_issuer_ref=issuer_ref,
             external_sub=user.oidc_subject,
         ))
         account_id = existing.metadata.id
@@ -253,7 +253,7 @@ def onboard_user(client, user: PlatformUser, organization_id: str) -> None:
             raise
         account = client.identity_accounts.create_federated_account(CreateFederatedAccountInput(
             org="acme",
-            identity_provider_ref=idp_ref,
+            federation_issuer_ref=issuer_ref,
             external_sub=user.oidc_subject,
             email=user.email,
             first_name=user.first_name,
@@ -274,19 +274,19 @@ def onboard_user(client, user: PlatformUser, organization_id: str) -> None:
 
 ```java
 public void onboardUser(StigmerClient client, PlatformUser user, String organizationId) {
-    ResourceRef idpRef = ResourceRef.builder()
-        .org("acme").kind("identity_provider").slug("acme-cloud-auth").build();
+    ResourceRef issuerRef = ResourceRef.builder()
+        .org("acme").kind("federation_issuer").slug("acme-cloud-auth").build();
 
     String accountId;
 
     try {
         IdentityAccount existing = client.identityAccounts().getByExternalSub(ExternalSubLookup.builder()
-            .org("acme").identityProviderRef(idpRef).externalSub(user.getOidcSubject()).build());
+            .org("acme").federationIssuerRef(issuerRef).externalSub(user.getOidcSubject()).build());
         accountId = existing.getMetadata().getId();
     } catch (StatusRuntimeException e) {
         if (e.getStatus().getCode() != Status.Code.NOT_FOUND) throw e;
         IdentityAccount account = client.identityAccounts().createFederatedAccount(CreateFederatedAccountInput.builder()
-            .org("acme").identityProviderRef(idpRef).externalSub(user.getOidcSubject())
+            .org("acme").federationIssuerRef(issuerRef).externalSub(user.getOidcSubject())
             .email(user.getEmail()).firstName(user.getFirstName())
             .lastName(user.getLastName()).pictureUrl(user.getAvatarUrl()).build());
         accountId = account.getMetadata().getId();
@@ -355,9 +355,9 @@ client.iamPolicies().revokeOrgAccess(RevokeOrgAccessInput.builder()
   Revoking access doesn't delete the Identity Account. The user's account still
   exists but can no longer access any resources. If you also want to remove the
   account, call `identityAccount.delete` after revoking access. With a JIT
-  Identity Provider, keep the account instead: a deleted account is created
-  again, with the provider's sign-in role, at the user's next sign-in. A kept
-  account does not get the sign-in role back once it has signed in to the
+  Federation Issuer, keep the account instead: a deleted account is created
+  again, with the Federation Issuer's sign-in role, at the user's next sign-in.
+  A kept account does not get the sign-in role back once it has signed in to the
   Organization.
 </Callout>
 

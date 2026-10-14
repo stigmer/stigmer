@@ -1,13 +1,15 @@
 ---
-title: Register an Identity Provider
+title: Register a Federation Issuer
 description:
-  Create an Identity Provider in Stigmer to establish trust with your platform's
+  Create a Federation Issuer in Stigmer to establish trust with your platform's
   authentication system.
 ---
 
-An Identity Provider tells Stigmer how to validate JWTs from your authentication
-system. Once registered, Stigmer can verify tokens presented by your users and
-resolve them to federated Identity Accounts.
+Your identity provider (Auth0, Okta, …) is registered with Stigmer as a
+Federation Issuer: an outside issuer whose tokens Stigmer accepts. It tells
+Stigmer how to validate JWTs from your authentication system. Once registered,
+Stigmer can verify tokens presented by your users and resolve them to federated
+Identity Accounts.
 
 ## What you'll need
 
@@ -29,10 +31,10 @@ Gather these values from your OIDC provider before starting:
 </Callout>
 
 <Callout type="info">
-  **Use an audience that belongs to your organization.** An Identity Provider is
+  **Use an audience that belongs to your organization.** A Federation Issuer is
   identified by its issuer and its audience together, so several Organizations
   can federate with the same provider, such as a shared Auth0 tenant or Google,
-  each with its own registration. An audience that another Identity Provider
+  each with its own registration. An audience that another Federation Issuer
   already registered at the same issuer is refused, so register one of your own
   for Stigmer (an API identifier or a client ID) instead of a shared value.
 </Callout>
@@ -126,15 +128,15 @@ See the AWS docs:
 </Accordion>
 </Accordions>
 
-## Create the Identity Provider
+## Create the Federation Issuer
 
-Use the SDK to register an Identity Provider in your Organization.
+Use the SDK to register a Federation Issuer in your Organization.
 
 <SDKTabs>
 <Tab value="TypeScript">
 
 ```typescript
-const idp = await stigmer.identityProvider.create({
+const issuer = await stigmer.federationIssuer.create({
   name: "Acme Cloud Auth",
   org: "acme",
   slug: "acme-cloud-auth",
@@ -144,14 +146,14 @@ const idp = await stigmer.identityProvider.create({
   expectedAudience: "https://api.acme.com/stigmer",
 });
 
-console.log(`Created IdP: ${idp.metadata.id}`);
+console.log(`Created Federation Issuer: ${issuer.metadata.id}`);
 ```
 
 </Tab>
 <Tab value="Go">
 
 ```go
-idp, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityProviderInput{
+issuer, err := client.FederationIssuer.Create(ctx, &stigmer.FederationIssuerInput{
   Name:             "Acme Cloud Auth",
   Org:              "acme",
   Slug:             "acme-cloud-auth",
@@ -163,14 +165,14 @@ idp, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityProviderInput{
 if err != nil {
   log.Fatal(err)
 }
-fmt.Printf("Created IdP: %s\n", idp.Metadata.Id)
+fmt.Printf("Created Federation Issuer: %s\n", issuer.Metadata.Id)
 ```
 
 </Tab>
 <Tab value="Python">
 
 ```python
-idp = client.identity_providers.create(IdentityProviderInput(
+issuer = client.federation_issuers.create(FederationIssuerInput(
     name="Acme Cloud Auth",
     org="acme",
     slug="acme-cloud-auth",
@@ -180,14 +182,14 @@ idp = client.identity_providers.create(IdentityProviderInput(
     expected_audience="https://api.acme.com/stigmer",
 ))
 
-print(f"Created IdP: {idp.metadata.id}")
+print(f"Created Federation Issuer: {issuer.metadata.id}")
 ```
 
 </Tab>
 <Tab value="Java">
 
 ```java
-IdentityProvider idp = client.identityProviders().create(IdentityProviderInput.builder()
+FederationIssuer issuer = client.federationIssuers().create(FederationIssuerInput.builder()
     .name("Acme Cloud Auth")
     .org("acme")
     .slug("acme-cloud-auth")
@@ -197,7 +199,7 @@ IdentityProvider idp = client.identityProviders().create(IdentityProviderInput.b
     .expectedAudience("https://api.acme.com/stigmer")
     .build());
 
-System.out.println("Created IdP: " + idp.getMetadata().getId());
+System.out.println("Created Federation Issuer: " + issuer.getMetadata().getId());
 ```
 
 </Tab>
@@ -208,22 +210,22 @@ System.out.println("Created IdP: " + idp.getMetadata().getId());
 | Field                    | Required | Purpose                                                                                                                                                                                               |
 | ------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `name`                   | Yes      | Human-readable name shown in the console                                                                                                                                                              |
-| `org`                    | Yes      | The Organization slug that owns this Identity Provider                                                                                                                                                |
+| `org`                    | Yes      | The Organization slug that owns this Federation Issuer                                                                                                                                                |
 | `slug`                   | No       | URL-friendly identifier, unique within the Organization. Generated from `name` if omitted                                                                                                             |
 | `jwksUri`                | Yes      | JWKS endpoint URL. Stigmer fetches public keys from here to verify JWT signatures. Must be the `jwks_uri` each issuer's discovery document names                                                      |
 | `allowedIssuers`         | Yes      | List of `iss` values Stigmer accepts, at most 10. Tokens with a different issuer are rejected. Each must publish an OpenID Connect discovery document                                                 |
-| `expectedAudience`       | Yes      | The `aud` value Stigmer expects. Tokens without this audience are rejected. With the issuer, it identifies this Identity Provider across the platform                                                 |
-| `displayName`            | No       | Display name in the console. The console's provider list and detail show `name` when it is empty                                                                                                      |
+| `expectedAudience`       | Yes      | The `aud` value Stigmer expects. Tokens without this audience are rejected. With the issuer, it identifies this Federation Issuer across the platform                                                 |
+| `displayName`            | No       | Display name in the console. The console's Federation Issuer list and detail show `name` when it is empty                                                                                             |
 | `createAccountsOnSignIn` | No       | When `true`, Stigmer creates a federated account the first time a valid token arrives for a subject it has no account for. Defaults to `false`                                                        |
-| `signInRole`             | No       | The role an account receives the first time it signs in to an Organization through this provider. Options: `viewer`, `member`, `admin`. Unset grants nothing. Owner is not permitted                  |
+| `signInRole`             | No       | The role an account receives the first time it signs in to an Organization through this Federation Issuer. Options: `viewer`, `member`, `admin`. Unset grants nothing. Owner is not permitted         |
 | `externalIdClaim`        | No       | JWT claim name that names, by its external id, the child organization each token works in. Read on every token. See [Child organizations](/docs/guides/authentication/federation/child-organizations) |
 
 ## Which Organization a token works in
 
-Every token an Identity Provider vouches for is bound to one Organization and
+Every token a Federation Issuer vouches for is bound to one Organization and
 works there only, whatever roles the user holds elsewhere:
 
-- Without `externalIdClaim`, the token is bound to the Identity Provider's own
+- Without `externalIdClaim`, the token is bound to the Federation Issuer's own
   Organization (`acme` in the examples on this page).
 - With `externalIdClaim`, it is bound to the child organization of `acme` whose
   external id the claim carries. Stigmer reads the claim on every token and
@@ -241,7 +243,7 @@ Organization, or accept an invitation to another one.
 JIT (Just-In-Time) provisioning lets Stigmer create federated accounts and grant
 roles automatically when users sign in. Instead of your backend calling
 `createFederatedAccount` and `iamPolicy.create` for each user, you set two
-fields on the Identity Provider and Stigmer handles the rest:
+fields on the Federation Issuer and Stigmer handles the rest:
 
 - `createAccountsOnSignIn` creates the account the first time a valid token
   arrives for an unknown subject.
@@ -252,7 +254,7 @@ fields on the Identity Provider and Stigmer handles the rest:
 <Tab value="TypeScript">
 
 ```typescript
-const idp = await stigmer.identityProvider.create({
+const issuer = await stigmer.federationIssuer.create({
   name: "Acme Cloud Auth",
   org: "acme",
   slug: "acme-cloud-auth",
@@ -264,14 +266,14 @@ const idp = await stigmer.identityProvider.create({
   signInRole: "viewer",
 });
 
-console.log(`Created JIT-enabled IdP: ${idp.metadata.id}`);
+console.log(`Created JIT-enabled Federation Issuer: ${issuer.metadata.id}`);
 ```
 
 </Tab>
 <Tab value="Go">
 
 ```go
-idp, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityProviderInput{
+issuer, err := client.FederationIssuer.Create(ctx, &stigmer.FederationIssuerInput{
   Name:                   "Acme Cloud Auth",
   Org:                    "acme",
   Slug:                   "acme-cloud-auth",
@@ -285,14 +287,14 @@ idp, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityProviderInput{
 if err != nil {
   log.Fatal(err)
 }
-fmt.Printf("Created JIT-enabled IdP: %s\n", idp.Metadata.Id)
+fmt.Printf("Created JIT-enabled Federation Issuer: %s\n", issuer.Metadata.Id)
 ```
 
 </Tab>
 <Tab value="Python">
 
 ```python
-idp = client.identity_providers.create(IdentityProviderInput(
+issuer = client.federation_issuers.create(FederationIssuerInput(
     name="Acme Cloud Auth",
     org="acme",
     slug="acme-cloud-auth",
@@ -304,14 +306,14 @@ idp = client.identity_providers.create(IdentityProviderInput(
     sign_in_role="viewer",
 ))
 
-print(f"Created JIT-enabled IdP: {idp.metadata.id}")
+print(f"Created JIT-enabled Federation Issuer: {issuer.metadata.id}")
 ```
 
 </Tab>
 <Tab value="Java">
 
 ```java
-IdentityProvider idp = client.identityProviders().create(IdentityProviderInput.builder()
+FederationIssuer issuer = client.federationIssuers().create(FederationIssuerInput.builder()
     .name("Acme Cloud Auth")
     .org("acme")
     .slug("acme-cloud-auth")
@@ -323,7 +325,7 @@ IdentityProvider idp = client.identityProviders().create(IdentityProviderInput.b
     .signInRole("viewer")
     .build());
 
-System.out.println("Created JIT-enabled IdP: " + idp.getMetadata().getId());
+System.out.println("Created JIT-enabled Federation Issuer: " + issuer.getMetadata().getId());
 ```
 
 </Tab>
@@ -336,7 +338,7 @@ Stigmer:
    `email`, `given_name` and `family_name` (or `name`) and `picture` claims,
    reading the `userinfo_endpoint` only when the token carries no email
 2. Grants the **viewer** role on the Organization the token is bound to: the
-   Identity Provider's owning Organization here
+   Federation Issuer's owning Organization here
 
 On later sign-ins, Stigmer finds the existing account and proceeds: it does not
 refresh the profile or grant the role again. To change a user's profile, call
@@ -379,86 +381,86 @@ then binds each token to its child organization and grants nothing. See
   understand the runtime path from JWT to authorized response.
 </Callout>
 
-## Verify the Identity Provider
+## Verify the Federation Issuer
 
-After creation, confirm the Identity Provider is registered correctly:
+After creation, confirm the Federation Issuer is registered correctly:
 
 <SDKTabs>
 <Tab value="TypeScript">
 
 ```typescript
-const idp = await stigmer.identityProvider.getByReference({
+const issuer = await stigmer.federationIssuer.getByReference({
   org: "acme",
-  kind: "identity_provider",
+  kind: "federation_issuer",
   slug: "acme-cloud-auth",
 });
 
-console.log(`Name: ${idp.spec.displayName}`);
-console.log(`JWKS: ${idp.spec.jwksUri}`);
-console.log(`Issuers: ${idp.spec.allowedIssuers}`);
+console.log(`Name: ${issuer.spec.displayName}`);
+console.log(`JWKS: ${issuer.spec.jwksUri}`);
+console.log(`Issuers: ${issuer.spec.allowedIssuers}`);
 ```
 
 </Tab>
 <Tab value="Go">
 
 ```go
-idp, err := client.IdentityProvider.GetByReference(ctx, &stigmer.ApiResourceReference{
+issuer, err := client.FederationIssuer.GetByReference(ctx, &stigmer.ApiResourceReference{
   Org:  "acme",
-  Kind: "identity_provider",
+  Kind: "federation_issuer",
   Slug: "acme-cloud-auth",
 })
 if err != nil {
   log.Fatal(err)
 }
-fmt.Printf("Name: %s\n", idp.Spec.DisplayName)
-fmt.Printf("JWKS: %s\n", idp.Spec.JwksUri)
+fmt.Printf("Name: %s\n", issuer.Spec.DisplayName)
+fmt.Printf("JWKS: %s\n", issuer.Spec.JwksUri)
 ```
 
 </Tab>
 <Tab value="Python">
 
 ```python
-idp = client.identity_providers.get_by_reference(ApiResourceReference(
+issuer = client.federation_issuers.get_by_reference(ApiResourceReference(
     org="acme",
-    kind="identity_provider",
+    kind="federation_issuer",
     slug="acme-cloud-auth",
 ))
 
-print(f"Name: {idp.spec.display_name}")
-print(f"JWKS: {idp.spec.jwks_uri}")
+print(f"Name: {issuer.spec.display_name}")
+print(f"JWKS: {issuer.spec.jwks_uri}")
 ```
 
 </Tab>
 <Tab value="Java">
 
 ```java
-IdentityProvider idp = client.identityProviders().getByReference(ApiResourceReference.builder()
+FederationIssuer issuer = client.federationIssuers().getByReference(ApiResourceReference.builder()
     .org("acme")
-    .kind("identity_provider")
+    .kind("federation_issuer")
     .slug("acme-cloud-auth")
     .build());
 
-System.out.println("Name: " + idp.getSpec().getDisplayName());
-System.out.println("JWKS: " + idp.getSpec().getJwksUri());
+System.out.println("Name: " + issuer.getSpec().getDisplayName());
+System.out.println("JWKS: " + issuer.getSpec().getJwksUri());
 ```
 
 </Tab>
 </SDKTabs>
 
-## Multiple Identity Providers
+## Multiple Federation Issuers
 
-An Organization can have multiple Identity Providers. This is useful when your
+An Organization can have multiple Federation Issuers. This is useful when your
 platform uses different auth providers for different regions or customer
-segments. Use `listByOrg` to see all providers for an Organization:
+segments. Use `list` to see all Federation Issuers of an Organization:
 
 <SDKTabs>
 <Tab value="TypeScript">
 
 ```typescript
-const result = await stigmer.identityProvider.listByOrg({ org: "acme" });
+const result = await stigmer.federationIssuer.list({ org: "acme" });
 
-for (const idp of result.entries) {
-  console.log(`${idp.metadata.slug}: ${idp.spec.displayName}`);
+for (const issuer of result.entries) {
+  console.log(`${issuer.metadata.slug}: ${issuer.spec.displayName}`);
 }
 ```
 
@@ -466,14 +468,14 @@ for (const idp of result.entries) {
 <Tab value="Go">
 
 ```go
-result, err := client.IdentityProvider.ListByOrg(ctx, &stigmer.ListIdentityProvidersByOrgInput{
+result, err := client.FederationIssuer.List(ctx, &stigmer.ListFederationIssuersInput{
   Org: "acme",
 })
 if err != nil {
   log.Fatal(err)
 }
-for _, idp := range result.Entries {
-  fmt.Printf("%s: %s\n", idp.Metadata.Slug, idp.Spec.DisplayName)
+for _, issuer := range result.Entries {
+  fmt.Printf("%s: %s\n", issuer.Metadata.Slug, issuer.Spec.DisplayName)
 }
 ```
 
@@ -481,24 +483,24 @@ for _, idp := range result.Entries {
 <Tab value="Python">
 
 ```python
-result = client.identity_providers.list_by_org(ListIdentityProvidersByOrgInput(
+result = client.federation_issuers.list(ListFederationIssuersInput(
     org="acme",
 ))
 
-for idp in result.entries:
-    print(f"{idp.metadata.slug}: {idp.spec.display_name}")
+for issuer in result.entries:
+    print(f"{issuer.metadata.slug}: {issuer.spec.display_name}")
 ```
 
 </Tab>
 <Tab value="Java">
 
 ```java
-IdentityProviders result = client.identityProviders().listByOrg(ListIdentityProvidersByOrgInput.builder()
+FederationIssuers result = client.federationIssuers().list(ListFederationIssuersInput.builder()
     .org("acme")
     .build());
 
-for (IdentityProvider idp : result.getEntries()) {
-  System.out.println(idp.getMetadata().getSlug() + ": " + idp.getSpec().getDisplayName());
+for (FederationIssuer issuer : result.getEntries()) {
+  System.out.println(issuer.getMetadata().getSlug() + ": " + issuer.getSpec().getDisplayName());
 }
 ```
 
@@ -507,7 +509,7 @@ for (IdentityProvider idp : result.getEntries()) {
 
 ## What's next
 
-Your Identity Provider is registered. Stigmer can now validate JWTs from your
+Your Federation Issuer is registered. Stigmer can now validate JWTs from your
 auth system.
 
 **JIT provisioning enabled?** Your setup is complete. Skip to
@@ -519,5 +521,5 @@ unknown subjects will be rejected. Next:
 [Provision federated accounts](/docs/guides/authentication/federation/provision-federated-accounts)
 for your users so Stigmer can resolve their tokens to Identity Accounts.
 
-For the full Identity Provider API reference, see
-[IdentityProvider](/docs/sdk/resources/identity-provider).
+For the full Federation Issuer API reference, see
+[FederationIssuer](/docs/sdk/resources/federation-issuer).

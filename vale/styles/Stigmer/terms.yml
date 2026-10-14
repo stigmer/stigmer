@@ -32,8 +32,13 @@ swap:
   api key: API Key
   api keys: API Keys
   iam policy: IAM Policy
+  federation issuer: Federation Issuer
+  federation issuers: Federation Issuers
+  # Former name of a Federation Issuer. Lowercase "identity provider" keeps its
+  # everyday sense (the outside provider: Auth0, Okta), so it gets no rule.
+  '\bIdentity Provider\b': Federation Issuer
+  '\bIdentity Providers\b': Federation Issuers
   identity account: Identity Account
-  identity provider: Identity Provider
   '\borganization\b': Organization
   '\borganizations\b': Organizations
   '\bseedpack\b': Seedpack
