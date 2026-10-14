@@ -78,13 +78,13 @@ that the organization's admins manage them rather than that none is
 registered.
 
 
-### IdentityProvidersSection
+### FederationIssuersSection
 
-Settings section for configuring OIDC identity providers: the other
+Settings section for configuring OIDC federation issuers: the other
 platforms whose tokens the organization trusts.
 
-"New identity provider" is offered once the server confirms the caller
-holds `can_create_idp` on the organization. The list shows only the
+"New federation issuer" is offered once the server confirms the caller
+holds `can_create_federation_issuer` on the organization. The list shows only the
 providers the caller may view, so a caller who may not create providers
 is told that the organization's admins manage them rather than that none
 is configured.
@@ -274,6 +274,6 @@ them (`ServerInfo.singleOrg`, the open-source edition), where nobody ever
 names the organization: the first group is "General" rather than
 "Organization", and the organization's profile page (its name, slug and
 logo) is left out. Its preferences and members stay; Teams, Invitations
-and Identity Providers keep the edition gates their own pages apply.
+and Federation Issuers keep the edition gates their own pages apply.
 [`useSettingsNavGroups`](#usesettingsnavgroups) picks between the two.
 

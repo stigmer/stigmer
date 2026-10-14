@@ -1,5 +1,5 @@
 /**
- * Pins the identity-provider sign-in settings every provider form shares:
+ * Pins the federation-issuer sign-in settings every issuer form shares:
  *
  *   - the input sends what the admin set: the customer id claim trimmed,
  *     and an unset field as undefined so an update clears it;
@@ -27,7 +27,7 @@ const DELEGATION: SignInSettings = {
 };
 
 describe("toSignInInput", () => {
-  it("sends a delegation provider's customer id claim, trimmed", () => {
+  it("sends a delegation issuer's customer id claim, trimmed", () => {
     expect(
       toSignInInput({ ...DELEGATION, externalIdClaim: "  org_id " }),
     ).toEqual({

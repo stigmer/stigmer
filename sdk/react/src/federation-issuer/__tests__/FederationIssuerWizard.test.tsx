@@ -8,7 +8,7 @@ import {
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type { FederationIssuerInput } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
-import { FederationIssuerWizard } from "../IdentityProviderWizard";
+import { FederationIssuerWizard } from "../FederationIssuerWizard";
 
 /**
  * Pins the wizard's userinfo endpoint from preset to create payload: a
@@ -23,11 +23,11 @@ import { FederationIssuerWizard } from "../IdentityProviderWizard";
  */
 
 const CREATED: FederationIssuer = create(FederationIssuerSchema, {
-  metadata: { id: "idp-1", name: "Acme", slug: "acme", org: "acme" },
+  metadata: { id: "issuer-1", name: "Acme", slug: "acme", org: "acme" },
 });
 
 function renderWizard(createIdp: ReturnType<typeof vi.fn>) {
-  const client = { identityProvider: { create: createIdp } } as never;
+  const client = { federationIssuer: { create: createIdp } } as never;
   return render(
     <StigmerContext.Provider value={client}>
       <FederationIssuerWizard org="acme" />
@@ -53,14 +53,14 @@ async function reachReview() {
   await screen.findByLabelText("Userinfo endpoint");
 }
 
-describe("IdentityProviderWizard sign-in settings", () => {
-  it("a plain provider sends no account creation and no role by default", async () => {
+describe("FederationIssuerWizard sign-in settings", () => {
+  it("a plain issuer sends no account creation and no role by default", async () => {
     const createIssuer = vi.fn(async (_input: FederationIssuerInput) => CREATED);
     renderWizard(createIssuer);
     await reachReview();
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Create identity provider" }),
+      screen.getByRole("button", { name: "Create federation issuer" }),
     );
 
     await waitFor(() => expect(createIssuer).toHaveBeenCalledTimes(1));
@@ -82,7 +82,7 @@ describe("IdentityProviderWizard sign-in settings", () => {
       target: { value: String(IamRole.viewer) },
     });
     fireEvent.click(
-      screen.getByRole("button", { name: "Create identity provider" }),
+      screen.getByRole("button", { name: "Create federation issuer" }),
     );
 
     await waitFor(() => expect(createIssuer).toHaveBeenCalledTimes(1));
@@ -92,7 +92,7 @@ describe("IdentityProviderWizard sign-in settings", () => {
   });
 });
 
-describe("IdentityProviderWizard userinfo endpoint", () => {
+describe("FederationIssuerWizard userinfo endpoint", () => {
   it("fills a preset's userinfo endpoint, says when it is read, and sends it on create", async () => {
     const createIssuer = vi.fn(async (_input: FederationIssuerInput) => CREATED);
     renderWizard(createIssuer);
@@ -121,7 +121,7 @@ describe("IdentityProviderWizard userinfo endpoint", () => {
     expect(screen.queryByText(/token exchange/i)).toBeNull();
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Create identity provider" }),
+      screen.getByRole("button", { name: "Create federation issuer" }),
     );
 
     await waitFor(() => expect(createIssuer).toHaveBeenCalledTimes(1));

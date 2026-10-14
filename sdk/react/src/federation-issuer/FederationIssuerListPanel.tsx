@@ -7,23 +7,23 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
-import { useFederationIssuerList } from "./useIdentityProviderList.js";
-import { useDeleteFederationIssuer } from "./useDeleteIdentityProvider.js";
+import { useFederationIssuerList } from "./useFederationIssuerList.js";
+import { useDeleteFederationIssuer } from "./useDeleteFederationIssuer.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /** Props for {@link FederationIssuerListPanel}. */
 export interface FederationIssuerListPanelProps {
-  /** Id of the organization whose identity providers should be listed (a slug is also accepted). */
+  /** Id of the organization whose federation issuers should be listed (a slug is also accepted). */
   readonly org: string;
-  /** Fired when the user wants to edit an identity provider. */
-  readonly onEdit?: (idp: FederationIssuer) => void;
+  /** Fired when the user wants to edit a federation issuer. */
+  readonly onEdit?: (issuer: FederationIssuer) => void;
   /** Expose the refetch function so parents can trigger a list refresh. */
   readonly onRefetchRef?: (refetch: () => void) => void;
   /**
-   * Shown when the list is empty. Defaults to "No identity providers
-   * configured." The list holds only the providers the caller may view, so
-   * a host that knows the caller may not manage providers should say who
+   * Shown when the list is empty. Defaults to "No federation issuers
+   * configured." The list holds only the issuers the caller may view, so
+   * a host that knows the caller may not manage issuers should say who
    * does instead.
    */
   readonly emptyState?: ReactNode;
@@ -32,29 +32,29 @@ export interface FederationIssuerListPanelProps {
 }
 
 /**
- * Displays a list of {@link IdentityProvider} resources for an
+ * Displays a list of {@link FederationIssuer} resources for an
  * organization with inline delete confirmation.
  *
- * Each provider is rendered as a row showing name, slug, a JIT badge
+ * Each issuer is rendered as a row showing name, slug, a JIT badge
  * (when a first sign-in creates the person's account), and creation date. The edit and
  * delete buttons appear only on rows the caller may edit or delete
  * (`can_edit`, `can_delete`); delete opens an inline confirmation.
  *
- * Identity providers are admin-level resources with small cardinality
+ * Federation issuers are admin-level resources with small cardinality
  * (typically 1–3 per org), so the list is rendered without pagination.
  *
  * All visual properties flow through `--stgm-*` design tokens.
  *
  * @example
  * ```tsx
- * <IdentityProviderListPanel org="acme" />
+ * <FederationIssuerListPanel org="acme" />
  * ```
  *
  * @example
  * ```tsx
- * <IdentityProviderListPanel
+ * <FederationIssuerListPanel
  *   org="acme"
- *   onEdit={(idp) => navigate(`/settings/idp/${idp.metadata?.id}`)}
+ *   onEdit={(issuer) => navigate(`/settings/issuer/${issuer.metadata?.id}`)}
  *   onRefetchRef={(refetch) => { listRefetchRef.current = refetch; }}
  * />
  * ```
@@ -63,7 +63,7 @@ export function FederationIssuerListPanel({
   org,
   onEdit,
   onRefetchRef,
-  emptyState = "No identity providers configured.",
+  emptyState = "No federation issuers configured.",
   className,
 }: FederationIssuerListPanelProps) {
   const { federationIssuers, isLoading, error, refetch } =
@@ -78,7 +78,7 @@ export function FederationIssuerListPanel({
     return (
       <LoadingRegion
         className={cn("stg:space-y-2", className)}
-        label="Loading identity providers"
+        label="Loading federation issuers"
       >
         {Array.from({ length: 2 }, (_, i) => (
           <div
@@ -115,16 +115,16 @@ export function FederationIssuerListPanel({
     <div
       className={cn("stg:space-y-2", className)}
       role="list"
-      aria-label="Identity providers"
+      aria-label="Federation issuers"
     >
-      {federationIssuers.map((idp) => {
-        const id = idp.metadata?.id ?? "";
+      {federationIssuers.map((issuer) => {
+        const id = issuer.metadata?.id ?? "";
         return (
           <IssuerRow
             key={id}
-            federationIssuer={idp}
+            federationIssuer={issuer}
             isConfirming={confirmingId === id}
-            onEdit={onEdit ? () => onEdit(idp) : undefined}
+            onEdit={onEdit ? () => onEdit(issuer) : undefined}
             onConfirmDelete={() => setConfirmingId(id)}
             onCancelDelete={() => setConfirmingId(null)}
             onDeleted={() => {
@@ -139,7 +139,7 @@ export function FederationIssuerListPanel({
 }
 
 // ---------------------------------------------------------------------------
-// IdpRow (internal)
+// IssuerRow (internal)
 // ---------------------------------------------------------------------------
 
 function IssuerRow({
@@ -164,7 +164,7 @@ function IssuerRow({
   const name =
     spec?.displayName ||
     federationIssuer.metadata?.name ||
-    "Unnamed provider";
+    "Unnamed issuer";
   const slug = federationIssuer.metadata?.slug;
   const isJit = spec?.createAccountsOnSignIn;
   const createdAt =
@@ -268,7 +268,7 @@ function IssuerRow({
       <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
         {onEdit && (
           <PermissionGate
-            resource={{ kind: "identity_provider", id }}
+            resource={{ kind: "federation_issuer", id }}
             relation="can_edit"
           >
             <button
@@ -286,7 +286,7 @@ function IssuerRow({
           </PermissionGate>
         )}
         <PermissionGate
-          resource={{ kind: "identity_provider", id }}
+          resource={{ kind: "federation_issuer", id }}
           relation="can_delete"
         >
           <button

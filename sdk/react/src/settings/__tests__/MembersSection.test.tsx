@@ -32,8 +32,8 @@ vi.mock("../../organization/OrgProvider.js", () => ({
 }));
 const providers = vi.hoisted(() => ({ list: [] as FederationIssuer[] }));
 
-vi.mock("../../identity-provider/useIdentityProviderList.js", () => ({
-  useIdentityProviderList: () => ({ identityProviders: providers.list }),
+vi.mock("../../federation-issuer/useFederationIssuerList.js", () => ({
+  useFederationIssuerList: () => ({ federationIssuers: providers.list }),
 }));
 vi.mock("../../iam-policy/OrgMembersPanel.js", () => ({
   OrgMembersPanel: ({ org, serviceAccountsHref }: { org: string; serviceAccountsHref?: string }) => (
@@ -65,7 +65,7 @@ function provider(spec: {
   signInRole?: IamRole;
 }): FederationIssuer {
   return create(FederationIssuerSchema, {
-    metadata: { id: "idp-1", name: "Acme", org: "org_acme" },
+    metadata: { id: "issuer-1", name: "Acme", org: "org_acme" },
     spec,
   });
 }

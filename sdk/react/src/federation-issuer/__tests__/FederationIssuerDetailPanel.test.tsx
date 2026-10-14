@@ -9,25 +9,25 @@ import type { CheckMyPermissionInput } from "@stigmer/protos/ai/stigmer/iam/iamp
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { StigmerContext } from "../../context";
-import { FederationIssuerDetailPanel } from "../IdentityProviderDetailPanel";
+import { FederationIssuerDetailPanel } from "../FederationIssuerDetailPanel";
 
 /**
  * Pins three things about the detail panel:
  *
  *   - the save names the fields the form edits, each by its path, on the
- *     provider's id: a spec field the form does not list is not named, so
+ *     issuer's id: a spec field the form does not list is not named, so
  *     it keeps its stored value;
  *   - the Edit button is offered only to a caller the server says holds
- *     `can_edit` on the provider, so a member who may view a provider is
+ *     `can_edit` on the issuer, so a member who may view an issuer is
  *     never handed a form the server would refuse;
- *   - a provider's sign-in settings are edited as the admin sets them: a
- *     provider with none reads "None", and the save carries the account
+ *   - an issuer's sign-in settings are edited as the admin sets them: an
+ *     issuer with none reads "None", and the save carries the account
  *     creation and role the admin turns on.
  */
 
 const IDP: FederationIssuer = create(FederationIssuerSchema, {
   metadata: {
-    id: "idp-1",
+    id: "issuer-1",
     name: "Acme Okta",
     slug: "acme-okta",
     org: "acme",
@@ -50,7 +50,7 @@ function renderPanel(
   })),
 ) {
   const client = {
-    identityProvider: { update },
+    federationIssuer: { update },
     iamPolicy: { checkMyPermission },
   } as never;
   return render(
@@ -62,8 +62,8 @@ function renderPanel(
 
 afterEach(cleanup);
 
-describe("IdentityProviderDetailPanel save payload", () => {
-  it("names the fields the form edits on a display-name edit, on the provider's id", async () => {
+describe("FederationIssuerDetailPanel save payload", () => {
+  it("names the fields the form edits on a display-name edit, on the issuer's id", async () => {
     const update = vi.fn(async (_resource: FederationIssuer, _paths: string[]) => IDP);
     renderPanel(update);
 
@@ -97,13 +97,13 @@ describe("IdentityProviderDetailPanel save payload", () => {
       "spec.sign_in_role",
       "spec.external_id_claim",
     ]);
-    // An update names its provider by id.
+    // An update names its issuer by id.
     expect(sent.id).toBe(IDP.metadata?.id);
   });
 });
 
-describe("IdentityProviderDetailPanel edit gate", () => {
-  it("offers Edit only with can_edit on the provider", async () => {
+describe("FederationIssuerDetailPanel edit gate", () => {
+  it("offers Edit only with can_edit on the issuer", async () => {
     const checkMyPermission = vi.fn(async (_input: CheckMyPermissionInput) => ({
       isAuthorized: false,
     }));
@@ -116,8 +116,8 @@ describe("IdentityProviderDetailPanel edit gate", () => {
       ),
     );
     for (const [asked] of checkMyPermission.mock.calls) {
-      expect(asked.resource?.kind).toBe("identity_provider");
-      expect(asked.resource?.id).toBe("idp-1");
+      expect(asked.resource?.kind).toBe("federation_issuer");
+      expect(asked.resource?.id).toBe("issuer-1");
     }
     expect(screen.queryByRole("button", { name: "Rename" })).toBeNull();
     // The configuration stays readable; only the edit affordance is withheld.
@@ -126,9 +126,9 @@ describe("IdentityProviderDetailPanel edit gate", () => {
   });
 });
 
-describe("IdentityProviderDetailPanel sign-in settings", () => {
+describe("FederationIssuerDetailPanel sign-in settings", () => {
   const PLAIN: FederationIssuer = create(FederationIssuerSchema, {
-    metadata: { id: "idp-2", name: "Acme Auth", slug: "acme-auth", org: "acme" },
+    metadata: { id: "issuer-2", name: "Acme Auth", slug: "acme-auth", org: "acme" },
     spec: {
       displayName: "Acme Auth",
       jwksUri: "https://auth.acme.example/jwks",
@@ -139,7 +139,7 @@ describe("IdentityProviderDetailPanel sign-in settings", () => {
 
   function renderPlain(update: ReturnType<typeof vi.fn>) {
     const client = {
-      identityProvider: { update },
+      federationIssuer: { update },
       iamPolicy: { checkMyPermission: vi.fn(async () => ({ isAuthorized: true })) },
     } as never;
     return render(
@@ -179,7 +179,7 @@ describe("IdentityProviderDetailPanel sign-in settings", () => {
   });
 });
 
-describe("IdentityProviderDetailPanel rename", () => {
+describe("FederationIssuerDetailPanel rename", () => {
   it("renames through the kind's rename for whoever may delete it, and hands the renamed resource to onUpdated", async () => {
     const renamed = clone(FederationIssuerSchema, IDP);
     if (renamed.metadata !== undefined) {
@@ -188,7 +188,7 @@ describe("IdentityProviderDetailPanel rename", () => {
     const rename = vi.fn(async () => renamed);
     const onUpdated = vi.fn();
     const client = {
-      identityProvider: { rename },
+      federationIssuer: { rename },
       iamPolicy: { checkMyPermission: async () => ({ isAuthorized: true }) },
     } as never;
     render(

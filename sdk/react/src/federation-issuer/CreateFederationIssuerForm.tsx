@@ -11,15 +11,15 @@ import {
   toSignInInput,
   type SignInSettings,
 } from "./SignInSettings.js";
-import { useCreateFederationIssuer } from "./useCreateIdentityProvider.js";
+import { useCreateFederationIssuer } from "./useCreateFederationIssuer.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 /** Props for {@link CreateFederationIssuerForm}. */
 export interface CreateFederationIssuerFormProps {
   /** Organization id — the IdP will be created in this org (a slug is also accepted). */
   readonly org: string;
-  /** Fired with the newly created identity provider on success. */
-  readonly onCreated?: (idp: FederationIssuer) => void;
+  /** Fired with the newly created federation issuer on success. */
+  readonly onCreated?: (issuer: FederationIssuer) => void;
   /** Fired when the user cancels creation. */
   readonly onCancel?: () => void;
   /** Additional CSS class names for the root container. */
@@ -27,7 +27,7 @@ export interface CreateFederationIssuerFormProps {
 }
 
 /**
- * Form for creating a new identity provider within an organization: the
+ * Form for creating a new federation issuer within an organization: the
  * organization's trust in tokens another platform issues.
  *
  * Collects the required OIDC trust configuration: **name** (display
@@ -36,16 +36,16 @@ export interface CreateFederationIssuerFormProps {
  * the role granted on their first sign-in to the organization, and the
  * claim that binds a token to an organization.
  *
- * On success it fires `onCreated` with the full {@link IdentityProvider}
+ * On success it fires `onCreated` with the full {@link FederationIssuer}
  * response.
  *
  * All visual properties flow through `--stgm-*` design tokens.
  *
  * @example
  * ```tsx
- * <CreateIdentityProviderForm
+ * <CreateFederationIssuerForm
  *   org="acme"
- *   onCreated={(idp) => {
+ *   onCreated={(issuer) => {
  *     refetch();
  *     setShowForm(false);
  *   }}
@@ -88,7 +88,7 @@ export function CreateFederationIssuerForm({
 
       clearError();
       try {
-        const idp = await create({
+        const issuer = await create({
           name: trimmedName,
           org,
           jwksUri: trimmedJwksUri,
@@ -99,9 +99,9 @@ export function CreateFederationIssuerForm({
           expectedAudience: trimmedAudience,
           ...toSignInInput(signIn),
         });
-        onCreated?.(idp);
+        onCreated?.(issuer);
       } catch {
-        // error state is managed by useCreateIdentityProvider
+        // error state is managed by useCreateFederationIssuer
       }
     },
     [
@@ -187,7 +187,7 @@ export function CreateFederationIssuerForm({
           )}
         >
           {isCreating && <SpinnerIcon size={12} />}
-          Create identity provider
+          Create federation issuer
         </button>
 
         {onCancel && (

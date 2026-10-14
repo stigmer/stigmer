@@ -13,7 +13,7 @@ import {
   type SignInSettings,
 } from "./SignInSettings.js";
 import { ProviderPicker } from "./ProviderPicker.js";
-import { useCreateFederationIssuer } from "./useCreateIdentityProvider.js";
+import { useCreateFederationIssuer } from "./useCreateFederationIssuer.js";
 import { useOidcDiscovery } from "./useOidcDiscovery.js";
 import type { ProviderPreset, ProviderConfig } from "./presets.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
@@ -22,8 +22,8 @@ import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 export interface FederationIssuerWizardProps {
   /** Organization id — the IdP will be created in this org (a slug is also accepted). */
   readonly org: string;
-  /** Fired with the newly created identity provider on success. */
-  readonly onCreated?: (idp: FederationIssuer) => void;
+  /** Fired with the newly created federation issuer on success. */
+  readonly onCreated?: (issuer: FederationIssuer) => void;
   /** Fired when the user cancels the wizard. */
   readonly onCancel?: () => void;
   /** Additional CSS class names for the root container. */
@@ -33,7 +33,7 @@ export interface FederationIssuerWizardProps {
 type WizardStep = "pick" | "configure" | "review" | "success";
 
 /**
- * Multi-step wizard for creating a new identity provider: the
+ * Multi-step wizard for creating a new federation issuer: the
  * organization's trust in tokens another platform issues.
  *
  * Guides the user through three steps:
@@ -53,9 +53,9 @@ type WizardStep = "pick" | "configure" | "review" | "success";
  *
  * @example
  * ```tsx
- * <IdentityProviderWizard
+ * <FederationIssuerWizard
  *   org="acme"
- *   onCreated={(idp) => { refetch(); setShowWizard(false); }}
+ *   onCreated={(issuer) => { refetch(); setShowWizard(false); }}
  *   onCancel={() => setShowWizard(false)}
  * />
  * ```
@@ -144,7 +144,7 @@ export function FederationIssuerWizard({
       e.preventDefault();
       clearError();
       try {
-        const idp = await create({
+        const issuer = await create({
           name: name.trim(),
           org,
           displayName: name.trim(),
@@ -157,10 +157,10 @@ export function FederationIssuerWizard({
           userinfoEndpoint: userinfoEndpoint.trim() || undefined,
           ...toSignInInput(signIn),
         });
-        setCreatedIdp(idp);
+        setCreatedIdp(issuer);
         setStep("success");
       } catch {
-        // error state is managed by useCreateIdentityProvider
+        // error state is managed by useCreateFederationIssuer
       }
     },
     [
@@ -340,7 +340,7 @@ function ConfigureStep({
       {preset.variables.map((v) => (
         <FieldInput
           key={v.key}
-          id={`stgm-idp-var-${v.key}`}
+          id={`stgm-issuer-var-${v.key}`}
           label={v.label}
           value={vars[v.key] ?? ""}
           onChange={(val) => onVarChange(v.key, val)}
@@ -517,7 +517,7 @@ function ReviewStep({
           )}
         >
           {isCreating && <SpinnerIcon size={12} />}
-          Create identity provider
+          Create federation issuer
         </button>
         <TextButton onClick={onBack} disabled={isCreating}>
           Back
@@ -546,7 +546,7 @@ function SuccessStep({
   const displayName =
     federationIssuer.spec?.displayName ||
     federationIssuer.metadata?.name ||
-    "Identity provider";
+    "Federation issuer";
 
   const createsAccounts = signIn.createAccounts;
   const grantsRole = signIn.signInRole !== IamRole.iam_role_unspecified;
@@ -589,13 +589,13 @@ function SuccessStep({
               claim carries, and works there only.
             </>
           ) : (
-            "Tokens from this provider work in this organization only."
+            "Tokens from this issuer work in this organization only."
           )}
         </p>
 
         <p className="stg:text-[0.65rem] stg:text-muted-foreground">
           To verify the setup, have a user authenticate with a JWT from this
-          provider and confirm they can access the organization&apos;s resources.
+          issuer and confirm they can access the organization&apos;s resources.
         </p>
       </div>
 

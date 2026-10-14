@@ -270,7 +270,7 @@ const routes: RouteObject[] = [
               },
               { path: "memory", element: <MemorySection /> },
               { path: "invitations", element: <InvitationsSection /> },
-              { path: "identity-providers", element: <FederationIssuersSection /> },
+              { path: "federation-issuers", element: <FederationIssuersSection /> },
               { path: "platform-clients", element: <PlatformClientsSection /> },
               { path: "service-accounts", element: <ServiceAccountsSection /> },
               { path: "oauth-apps", element: <OAuthAppsSection /> },

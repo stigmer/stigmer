@@ -19,7 +19,7 @@ import type { CheckItem } from "../_shared/api-exchange/APIExchangeView";
 // ---------------------------------------------------------------------------
 
 export type MultiTenantJitStep =
-  | { view: "code-register-idp" }
+  | { view: "code-register-issuer" }
   | { view: "code-create-org" }
   | { view: "terminal-org-created" }
   | { view: "jwt-auth" }
@@ -31,8 +31,8 @@ export type MultiTenantJitStep =
 // ---------------------------------------------------------------------------
 
 export const REGISTER_ISSUER_JIT_CODE = [
-  "// register-idp.ts — IdP with JIT + externalIdClaim",
-  "const idp = await stigmer.identityProvider.create({",
+  "// register-issuer.ts — IdP with JIT + externalIdClaim",
+  "const issuer = await stigmer.federationIssuer.create({",
   '  name: "Acme Cloud Auth",',
   '  org: "acme",',
   '  slug: "acme-cloud-auth",',
@@ -98,9 +98,9 @@ export const multiTenantJitSteps: ScenarioStep<MultiTenantJitStep>[] = [
   // ── Setup (one-time) ──────────────────────────────────────────────────
   {
     delayMs: 0,
-    data: { view: "code-register-idp" },
+    data: { view: "code-register-issuer" },
     narration:
-      "Register your Identity Provider with JIT provisioning and an external ID claim. The three fields — create accounts on sign-in, sign-in role, and external ID claim — eliminate all per-user provisioning code.",
+      "Register your Federation Issuer with JIT provisioning and an external ID claim. The three fields — create accounts on sign-in, sign-in role, and external ID claim — eliminate all per-user provisioning code.",
   },
   {
     delayMs: 3500,

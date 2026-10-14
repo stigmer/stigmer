@@ -8,7 +8,7 @@ import { toError } from "../internal/toError.js";
 
 /** Return value of {@link useDeleteFederationIssuer}. */
 export interface UseDeleteFederationIssuerReturn {
-  /** Delete an identity provider. Resolves with the deleted resource for confirmation display. */
+  /** Delete a federation issuer. Resolves with the deleted resource for confirmation display. */
   readonly deleteProvider: (input: DeleteResourceInput) => Promise<FederationIssuer>;
   /** `true` while the delete request is in flight. */
   readonly isDeleting: boolean;
@@ -19,18 +19,18 @@ export interface UseDeleteFederationIssuerReturn {
 }
 
 /**
- * Mutation hook that wraps `identityProvider.delete()` with loading
+ * Mutation hook that wraps `federationIssuer.delete()` with loading
  * and error state.
  *
- * Deletes an identity provider by its resource ID. Returns the deleted
- * {@link IdentityProvider} on success so callers can confirm which
- * provider was removed.
+ * Deletes a federation issuer by its resource ID. Returns the deleted
+ * {@link FederationIssuer} on success so callers can confirm which
+ * issuer was removed.
  *
  * @example
  * ```tsx
- * const { deleteProvider, isDeleting, error } = useDeleteIdentityProvider();
+ * const { deleteProvider, isDeleting, error } = useDeleteFederationIssuer();
  *
- * await deleteProvider({ resourceId: "idp-abc123" });
+ * await deleteProvider({ resourceId: "issuer-abc123" });
  * refetch(); // refresh the list after deletion
  * ```
  */

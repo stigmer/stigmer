@@ -1,37 +1,37 @@
 export {
   useFederationIssuerList,
   type UseFederationIssuerListReturn,
-} from "./useIdentityProviderList.js";
+} from "./useFederationIssuerList.js";
 
 export {
   useFederationIssuer,
   type UseFederationIssuerReturn,
-} from "./useIdentityProvider.js";
+} from "./useFederationIssuer.js";
 
 export {
   useCreateFederationIssuer,
   type UseCreateFederationIssuerReturn,
-} from "./useCreateIdentityProvider.js";
+} from "./useCreateFederationIssuer.js";
 
 export {
   useUpdateFederationIssuer,
   type UseUpdateFederationIssuerReturn,
-} from "./useUpdateIdentityProvider.js";
+} from "./useUpdateFederationIssuer.js";
 
 export {
   useDeleteFederationIssuer,
   type UseDeleteFederationIssuerReturn,
-} from "./useDeleteIdentityProvider.js";
+} from "./useDeleteFederationIssuer.js";
 
 export {
   FederationIssuerListPanel,
   type FederationIssuerListPanelProps,
-} from "./IdentityProviderListPanel.js";
+} from "./FederationIssuerListPanel.js";
 
 export {
   CreateFederationIssuerForm,
   type CreateFederationIssuerFormProps,
-} from "./CreateIdentityProviderForm.js";
+} from "./CreateFederationIssuerForm.js";
 
 export {
   type ProviderPreset,
@@ -49,9 +49,9 @@ export {
 export {
   FederationIssuerWizard,
   type FederationIssuerWizardProps,
-} from "./IdentityProviderWizard.js";
+} from "./FederationIssuerWizard.js";
 
 export {
   FederationIssuerDetailPanel,
   type FederationIssuerDetailPanelProps,
-} from "./IdentityProviderDetailPanel.js";
+} from "./FederationIssuerDetailPanel.js";

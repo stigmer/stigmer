@@ -1,14 +1,14 @@
 "use client";
 
 /**
- * The sign-in settings every identity-provider form asks for the same way:
+ * The sign-in settings every federation-issuer form asks for the same way:
  * whether a person's first sign-in creates their account, the role an
  * account receives the first time it signs in to an organization, and the
  * customer id claim: the token claim that names one of this organization's
  * child organizations by its external id.
  *
- * Every token a provider vouches for is bound to one organization: the
- * child the customer id claim names, otherwise the provider's own. The
+ * Every token an issuer vouches for is bound to one organization: the
+ * child the customer id claim names, otherwise the issuer's own. The
  * sign-in role is granted once per account and organization, so a role an
  * admin removes later stays removed; "None" grants nothing, and the owner
  * role is never offered because ownership is assigned explicitly.
@@ -21,21 +21,21 @@ import type { FederationIssuerSpec } from "@stigmer/protos/ai/stigmer/iam/federa
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 
-/** The edit state of a provider's sign-in settings. */
+/** The edit state of an issuer's sign-in settings. */
 export interface SignInSettings {
   readonly createAccounts: boolean;
   readonly signInRole: IamRole;
   readonly externalIdClaim: string;
 }
 
-/** A new provider's settings: no accounts created, no role granted, no claim. */
+/** A new issuer's settings: no accounts created, no role granted, no claim. */
 export const EMPTY_SIGN_IN_SETTINGS: SignInSettings = {
   createAccounts: false,
   signInRole: IamRole.iam_role_unspecified,
   externalIdClaim: "",
 };
 
-/** The edit state for a stored provider's spec. */
+/** The edit state for a stored issuer's spec. */
 export function signInSettingsFromSpec(
   spec: FederationIssuerSpec | undefined,
 ): SignInSettings {
@@ -121,7 +121,7 @@ export function SignInSettingsSection({
         Sign-in
       </legend>
       <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-        What happens when someone signs in with a token from this provider.
+        What happens when someone signs in with a token from this issuer.
       </p>
 
       <div className="stg:space-y-0.5">
@@ -230,7 +230,7 @@ export function SignInSettingsSection({
           Optional. The token claim that names one of this
           organization&apos;s child organizations by its external id: each
           token is bound to that child organization and works there only.
-          When empty, tokens are bound to this provider&apos;s
+          When empty, tokens are bound to this issuer&apos;s
           organization.
         </p>
       </div>

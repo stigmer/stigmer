@@ -8,7 +8,7 @@ import { useFetch } from "../internal/useFetch.js";
 
 /** Return value of {@link useFederationIssuerList}. */
 export interface UseFederationIssuerListReturn {
-  /** All identity providers for the organization. Empty while loading or on error. */
+  /** All federation issuers for the organization. Empty while loading or on error. */
   readonly federationIssuers: readonly FederationIssuer[];
   /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
@@ -21,9 +21,9 @@ export interface UseFederationIssuerListReturn {
 }
 
 /**
- * Data hook that fetches all identity providers for an organization.
+ * Data hook that fetches all federation issuers for an organization.
  *
- * Identity providers are admin-level resources with small cardinality
+ * Federation issuers are admin-level resources with small cardinality
  * (typically 1–3 per org), so results are returned as a flat list
  * without pagination.
  *
@@ -32,16 +32,16 @@ export interface UseFederationIssuerListReturn {
  *
  * @example
  * ```tsx
- * function IdpSettings({ org }: { org: string }) {
- *   const { identityProviders, isLoading, error } = useIdentityProviderList(org);
+ * function IssuerSettings({ org }: { org: string }) {
+ *   const { federationIssuers, isLoading, error } = useFederationIssuerList(org);
  *
  *   if (isLoading) return <Skeleton />;
  *   if (error) return <ErrorMessage error={error} />;
  *
  *   return (
  *     <ul>
- *       {identityProviders.map((idp) => (
- *         <li key={idp.metadata?.id}>{idp.metadata?.name}</li>
+ *       {federationIssuers.map((issuer) => (
+ *         <li key={issuer.metadata?.id}>{issuer.metadata?.name}</li>
  *       ))}
  *     </ul>
  *   );
@@ -51,7 +51,7 @@ export interface UseFederationIssuerListReturn {
  * @example
  * ```tsx
  * // Skip fetching until org is known
- * const { identityProviders } = useIdentityProviderList(org ?? null);
+ * const { federationIssuers } = useFederationIssuerList(org ?? null);
  * ```
  */
 export function useFederationIssuerList(

@@ -8,7 +8,7 @@ import { toError } from "../internal/toError.js";
 
 /** Return value of {@link useCreateFederationIssuer}. */
 export interface UseCreateFederationIssuerReturn {
-  /** Submit an {@link IdentityProviderInput} to create a new identity provider. Resolves with the server-created resource. */
+  /** Submit an {@link FederationIssuerInput} to create a new federation issuer. Resolves with the server-created resource. */
   readonly create: (input: FederationIssuerInput) => Promise<FederationIssuer>;
   /** `true` while the create request is in flight. */
   readonly isCreating: boolean;
@@ -19,19 +19,19 @@ export interface UseCreateFederationIssuerReturn {
 }
 
 /**
- * Mutation hook that wraps `identityProvider.create()` with loading
+ * Mutation hook that wraps `federationIssuer.create()` with loading
  * and error state.
  *
- * Creates an identity provider resource within an organization. The
- * caller provides an {@link IdentityProviderInput} with the required
+ * Creates a federation issuer resource within an organization. The
+ * caller provides an {@link FederationIssuerInput} with the required
  * metadata (name, org) and spec fields (JWKS URI, allowed issuers,
  * expected audience).
  *
  * @example
  * ```tsx
- * const { create, isCreating, error } = useCreateIdentityProvider();
+ * const { create, isCreating, error } = useCreateFederationIssuer();
  *
- * const idp = await create({
+ * const issuer = await create({
  *   name: "Acme Platform",
  *   org: "acme",
  *   jwksUri: "https://acme.us.auth0.com/.well-known/jwks.json",

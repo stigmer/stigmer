@@ -55,8 +55,8 @@ export const LOOKUP_ORG_CODE = [
 export const PROVISION_GRANT_CODE = [
   "// onboard-tenant-user.ts — Provision user + grant access",
   "const account = await stigmer.identityAccount.createFederatedAccount({",
-  '  org: "acme",  // the Identity Provider\'s own Organization',
-  "  identityProviderRef: idpRef,",
+  '  org: "acme",  // the Federation Issuer\'s own Organization',
+  "  federationIssuerRef: issuerRef,",
   "  externalSub: user.oidcSubject,",
   "  email: user.email,",
   "  firstName: user.firstName,",
@@ -146,7 +146,7 @@ export const multiTenantSetupSteps: ScenarioStep<MultiTenantSetupStep>[] = [
     delayMs: 3500,
     data: { view: "code-provision-grant" },
     narration:
-      "Create Jane's federated account under your Identity Provider. Then grant her a viewer role in the child organization. The Organization boundary enforces isolation.",
+      "Create Jane's federated account under your Federation Issuer. Then grant her a viewer role in the child organization. The Organization boundary enforces isolation.",
   },
   {
     delayMs: 4000,

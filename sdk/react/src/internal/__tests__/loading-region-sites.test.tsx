@@ -28,7 +28,7 @@ import { BillingSection } from "../../billing/BillingSection.js";
 import { ChannelAppListPanel } from "../../channel-app/ChannelAppListPanel.js";
 import { VaultListPanel } from "../../vault/VaultListPanel.js";
 import { OrgMembersPanel } from "../../iam-policy/OrgMembersPanel.js";
-import { FederationIssuerListPanel } from "../../identity-provider/IdentityProviderListPanel.js";
+import { FederationIssuerListPanel } from "../../federation-issuer/FederationIssuerListPanel.js";
 import { InvitationRedemption } from "../../invitation/InvitationRedemption.js";
 import { OAuthAppListPanel } from "../../oauth-app/OAuthAppListPanel.js";
 import { PlatformClientListPanel } from "../../platform-client/PlatformClientListPanel.js";
@@ -115,8 +115,8 @@ const SITES: readonly Site[] = [
     ui: <OrgMembersPanel org="org_acme" />,
   },
   {
-    name: "IdentityProviderListPanel",
-    label: "Loading identity providers",
+    name: "FederationIssuerListPanel",
+    label: "Loading federation issuers",
     client: { federationIssuer: { listByOrg: pending } },
     ui: <FederationIssuerListPanel org="acme" />,
   },

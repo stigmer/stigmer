@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 
 /**
- * Subset of an OIDC Discovery document relevant for identity provider
+ * Subset of an OIDC Discovery document relevant for federation issuer
  * creation.
  */
 export interface OidcDiscoveryResult {
@@ -32,7 +32,7 @@ export interface UseOidcDiscoveryReturn {
  * Behavior hook that fetches an OIDC Discovery document from the
  * browser.
  *
- * Used by the "Custom OIDC" path in the identity provider creation
+ * Used by the "Custom OIDC" path in the federation issuer creation
  * wizard. The hook exposes an imperative `discover()` function
  * (rather than an effect-based pattern) because discovery is
  * triggered by user action ("Continue"), not by render.

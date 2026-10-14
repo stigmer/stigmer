@@ -1,5 +1,5 @@
 /**
- * Pins the sign-in settings the create form sends: a delegation provider
+ * Pins the sign-in settings the create form sends: a delegation issuer
  * sends what the admin set (account creation, the sign-in role and the
  * customer id claim), and nothing the admin left unset.
  */
@@ -19,14 +19,14 @@ import {
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type { FederationIssuerInput } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
-import { CreateFederationIssuerForm } from "../CreateIdentityProviderForm";
+import { CreateFederationIssuerForm } from "../CreateFederationIssuerForm";
 
 const CREATED: FederationIssuer = create(FederationIssuerSchema, {
-  metadata: { id: "idp-1", name: "Acme", slug: "acme", org: "acme" },
+  metadata: { id: "issuer-1", name: "Acme", slug: "acme", org: "acme" },
 });
 
 function renderForm(createIdp: ReturnType<typeof vi.fn>) {
-  const client = { identityProvider: { create: createIdp } } as never;
+  const client = { federationIssuer: { create: createIdp } } as never;
   render(
     <StigmerContext.Provider value={client}>
       <CreateFederationIssuerForm org="acme" />
@@ -48,14 +48,14 @@ function renderForm(createIdp: ReturnType<typeof vi.fn>) {
 
 function submitButton(): HTMLButtonElement {
   return screen.getByRole("button", {
-    name: "Create identity provider",
+    name: "Create federation issuer",
   }) as HTMLButtonElement;
 }
 
 afterEach(cleanup);
 
-describe("CreateIdentityProviderForm sign-in settings", () => {
-  it("sends a delegation provider's account creation, role and customer id claim", async () => {
+describe("CreateFederationIssuerForm sign-in settings", () => {
+  it("sends a delegation issuer's account creation, role and customer id claim", async () => {
     const createIssuer = vi.fn(async (_input: FederationIssuerInput) => CREATED);
     renderForm(createIssuer);
 

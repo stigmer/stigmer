@@ -14,17 +14,17 @@ import {
   toSignInInput,
   type SignInSettings,
 } from "./SignInSettings.js";
-import { useUpdateFederationIssuer } from "./useUpdateIdentityProvider.js";
+import { useUpdateFederationIssuer } from "./useUpdateFederationIssuer.js";
 import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 
 /** Props for {@link FederationIssuerDetailPanel}. */
 export interface FederationIssuerDetailPanelProps {
-  /** The identity provider resource to display and edit. */
+  /** The federation issuer resource to display and edit. */
   readonly federationIssuer: FederationIssuer;
   /** Fired with the updated resource after a successful save. */
-  readonly onUpdated?: (idp: FederationIssuer) => void;
+  readonly onUpdated?: (issuer: FederationIssuer) => void;
   /** Fired when the user clicks the back button. */
   readonly onBack?: () => void;
   /** Additional CSS class names for the root container. */
@@ -32,12 +32,12 @@ export interface FederationIssuerDetailPanelProps {
 }
 
 /**
- * View and edit panel for an existing identity provider: the
+ * View and edit panel for an existing federation issuer: the
  * organization's trust in tokens another platform issues.
  *
  * In **view mode**, displays all OIDC configuration fields in a
  * structured label/value layout, with an "Edit" button for a caller who
- * may edit the provider (`can_edit`).
+ * may edit the issuer (`can_edit`).
  *
  * In **edit mode**, fields become editable inputs, the sign-in settings
  * (account creation, sign-in role, customer id claim) among them. "Save" submits the update via
@@ -48,8 +48,8 @@ export interface FederationIssuerDetailPanelProps {
  *
  * @example
  * ```tsx
- * <IdentityProviderDetailPanel
- *   identityProvider={idp}
+ * <FederationIssuerDetailPanel
+ *   federationIssuer={issuer}
  *   onUpdated={(updated) => refetch()}
  *   onBack={() => setFlow({ phase: "idle" })}
  * />
@@ -122,7 +122,7 @@ export function FederationIssuerDetailPanel({
         setMode("view");
         onUpdated?.(updated);
       } catch {
-        // error state is managed by useUpdateIdentityProvider
+        // error state is managed by useUpdateFederationIssuer
       }
     },
     [
@@ -158,7 +158,7 @@ export function FederationIssuerDetailPanel({
             </button>
           )}
           <h3 className="stg:text-foreground stg:truncate stg:text-sm stg:font-semibold">
-            {spec?.displayName || meta?.name || "Identity Provider"}
+            {spec?.displayName || meta?.name || "Federation Issuer"}
           </h3>
           <div className="stg:flex stg:items-center stg:gap-2">
             {meta?.slug && (
@@ -172,7 +172,7 @@ export function FederationIssuerDetailPanel({
 
         {mode === "view" && (
           <PermissionGate
-            resource={{ kind: "identity_provider", id: meta?.id ?? "" }}
+            resource={{ kind: "federation_issuer", id: meta?.id ?? "" }}
             relation="can_edit"
           >
             <button
@@ -190,11 +190,11 @@ export function FederationIssuerDetailPanel({
         )}
       </div>
 
-      {/* Rename: for whoever may delete the provider. Sign-in does not
+      {/* Rename: for whoever may delete the issuer. Sign-in does not
           name its slug, so the people it signs in keep signing in. */}
       {mode === "view" && (
         <ResourceSlugField
-          kind="identity_provider"
+          kind="federation_issuer"
           resourceId={meta?.id || null}
           currentSlug={meta?.slug ?? ""}
           onRenamed={(renamed) => onUpdated?.(renamed as FederationIssuer)}
@@ -267,7 +267,7 @@ export function FederationIssuerDetailPanel({
 
           {error && (
             <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
-              {saveErrorMessage(error, "identity provider")}
+              {saveErrorMessage(error, "federation issuer")}
             </p>
           )}
 

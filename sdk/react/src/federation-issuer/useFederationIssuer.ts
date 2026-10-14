@@ -6,7 +6,7 @@ import { useFetch } from "../internal/useFetch.js";
 
 /** Return value of {@link useFederationIssuer}. */
 export interface UseFederationIssuerReturn {
-  /** The fetched IdentityProvider, or `null` while loading or on error. */
+  /** The fetched FederationIssuer, or `null` while loading or on error. */
   readonly federationIssuer: FederationIssuer | null;
   /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
@@ -19,25 +19,25 @@ export interface UseFederationIssuerReturn {
 }
 
 /**
- * Data hook that fetches a single IdentityProvider by ID.
+ * Data hook that fetches a single FederationIssuer by ID.
  *
  * Pass `null` to skip fetching (stable no-op). When the `id` changes,
  * the previous in-flight request is discarded and a fresh fetch begins.
  *
- * Returns the full proto {@link IdentityProvider} resource so consumers
+ * Returns the full proto {@link FederationIssuer} resource so consumers
  * have access to metadata, spec (JWKS URI, issuers, sign-in settings), and
  * status without additional calls.
  *
  * @example
  * ```tsx
- * function IdpDetail({ idpId }: { idpId: string }) {
- *   const { identityProvider, isLoading, error } = useIdentityProvider(idpId);
+ * function IssuerDetail({ issuerId }: { issuerId: string }) {
+ *   const { federationIssuer, isLoading, error } = useFederationIssuer(issuerId);
  *
  *   if (isLoading) return <Skeleton />;
  *   if (error) return <ErrorMessage error={error} />;
- *   if (!identityProvider) return <NotFound />;
+ *   if (!federationIssuer) return <NotFound />;
  *
- *   return <h1>{identityProvider.spec?.displayName}</h1>;
+ *   return <h1>{federationIssuer.spec?.displayName}</h1>;
  * }
  * ```
  */

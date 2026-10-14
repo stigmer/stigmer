@@ -18,7 +18,7 @@ export type ManagementNavId =
   | "org-profile"
   | "members"
   | "invitations"
-  | "identity-providers"
+  | "federation-issuers"
   | "api-keys"
   | "platform-clients"
   | "vaults"

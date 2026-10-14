@@ -9,7 +9,7 @@ import { toError } from "../internal/toError.js";
 /** Return value of {@link useUpdateFederationIssuer}. */
 export interface UseUpdateFederationIssuerReturn {
   /**
-   * Update an identity provider: the fields `paths` names take their values from
+   * Update a federation issuer: the fields `paths` names take their values from
    * `resource`, and every other field keeps its stored value. Resolves
    * with the updated resource.
    */
@@ -26,23 +26,23 @@ export interface UseUpdateFederationIssuerReturn {
 }
 
 /**
- * Mutation hook that wraps `identityProvider.update(resource, paths)` with
+ * Mutation hook that wraps `federationIssuer.update(resource, paths)` with
  * loading and error state.
  *
- * `resource` names the identity provider by `metadata.id`, and `paths` names the
+ * `resource` names the federation issuer by `metadata.id`, and `paths` names the
  * fields the update changes (proto field paths such as
  * `spec.display_name`). Every field it does not name keeps its stored value, so
- * a teammate's change to another field survives the save. A identity provider read
+ * a teammate's change to another field survives the save. A federation issuer read
  * carries `metadata.etag`: sent back, the update is refused (ABORTED,
- * reason `ETAG_MISMATCH`) if the identity provider changed since it was read.
+ * reason `ETAG_MISMATCH`) if the federation issuer changed since it was read.
  *
  * @example
  * ```tsx
- * const { update, isUpdating, error } = useUpdateIdentityProvider();
+ * const { update, isUpdating, error } = useUpdateFederationIssuer();
  *
  * await update(
  *   {
- *     metadata: { id: provider.metadata!.id, etag: provider.metadata!.etag },
+ *     metadata: { id: issuer.metadata!.id, etag: issuer.metadata!.etag },
  *     spec: { displayName: "Acme Platform" },
  *   },
  *   ["spec.display_name"],

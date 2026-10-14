@@ -1,16 +1,16 @@
 /**
- * Pins IdentityProvidersSection's edition posture and what it offers a
- * caller by the server's verdicts. Identity providers are administrative:
+ * Pins FederationIssuersSection's edition posture and what it offers a
+ * caller by the server's verdicts. Federation issuers are administrative:
  * an organization's admins and each provider's creator manage them, and the
  * list holds only the providers the caller may view, so the section must
  * neither offer what the server refuses nor call an empty list "nothing
  * configured" to someone who simply may not see it.
  *
- *   - where the edition does not serve identity providers (open source)
+ *   - where the edition does not serve federation issuers (open source)
  *     the section says so and never asks for a list;
- *   - "New identity provider" is offered only with `can_create_idp` on the
+ *   - "New federation issuer" is offered only with `can_create_federation_issuer` on the
  *     organization, checked on the organization's id;
- *   - an empty list reads "No identity providers configured." to a caller
+ *   - an empty list reads "No federation issuers configured." to a caller
  *     who may create one, and names the organization's admins to a caller
  *     the server has refused;
  *   - a provider row offers edit only with `can_edit` and delete only with
@@ -45,11 +45,11 @@ vi.mock("../../organization/OrgProvider.js", () => ({
     activeOrg: { metadata: { id: "org_acme", slug: "acme", name: "Acme" } },
   }),
 }));
-vi.mock("../../identity-provider/useIdentityProviderList.js", () => ({
-  useIdentityProviderList: (org: string | null) => {
+vi.mock("../../federation-issuer/useFederationIssuerList.js", () => ({
+  useFederationIssuerList: (org: string | null) => {
     stubs.listedOrg = org;
     return {
-      identityProviders: stubs.providers,
+      federationIssuers: stubs.providers,
       isLoading: false,
       isRefetching: false,
       error: null,
@@ -57,16 +57,16 @@ vi.mock("../../identity-provider/useIdentityProviderList.js", () => ({
     };
   },
 }));
-vi.mock("../../identity-provider/useDeleteIdentityProvider.js", () => ({
-  useDeleteIdentityProvider: () => ({
+vi.mock("../../federation-issuer/useDeleteFederationIssuer.js", () => ({
+  useDeleteFederationIssuer: () => ({
     deleteProvider: async () => {},
     isDeleting: false,
     error: null,
     clearError: () => {},
   }),
 }));
-vi.mock("../../identity-provider/useUpdateIdentityProvider.js", () => ({
-  useUpdateIdentityProvider: () => ({
+vi.mock("../../federation-issuer/useUpdateFederationIssuer.js", () => ({
+  useUpdateFederationIssuer: () => ({
     update: async () => {
       throw new Error("not under test");
     },
@@ -108,10 +108,10 @@ vi.mock("../../iam-policy/PermissionGate.js", () => ({
   }) => (verdict(resource.kind, resource.id, relation) ? <>{children}</> : null),
 }));
 
-import { FederationIssuersSection } from "../IdentityProvidersSection";
+import { FederationIssuersSection } from "../FederationIssuersSection";
 
 const OKTA = create(FederationIssuerSchema, {
-  metadata: { id: "idp_okta", name: "Acme Okta", slug: "acme-okta", org: "acme" },
+  metadata: { id: "fis_okta", name: "Acme Okta", slug: "acme-okta", org: "acme" },
   spec: { displayName: "Acme Okta" },
 });
 
@@ -131,38 +131,38 @@ afterEach(() => {
   stubs.checked = [];
 });
 
-describe("IdentityProvidersSection", () => {
-  it("says identity providers are not served on the open-source edition and lists nothing", () => {
+describe("FederationIssuersSection", () => {
+  it("says federation issuers are not served on the open-source edition and lists nothing", () => {
     renderSection("local");
-    expect(screen.getByText(/Identity providers are not available in local mode/)).toBeTruthy();
+    expect(screen.getByText(/Federation issuers are not available in local mode/)).toBeTruthy();
     // The list panel is never mounted, so the list hook is never called.
     expect(stubs.listedOrg).toBeUndefined();
-    expect(screen.queryByRole("button", { name: /New identity provider/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /New federation issuer/ })).toBeNull();
   });
 
-  it("offers New identity provider only with can_create_idp on the organization", () => {
+  it("offers New federation issuer only with can_create_federation_issuer on the organization", () => {
     renderSection("cloud");
-    expect(screen.queryByRole("button", { name: /New identity provider/ })).toBeNull();
-    expect(stubs.checked).toContainEqual(["organization", "org_acme", "can_create_idp"]);
+    expect(screen.queryByRole("button", { name: /New federation issuer/ })).toBeNull();
+    expect(stubs.checked).toContainEqual(["organization", "org_acme", "can_create_federation_issuer"]);
 
     cleanup();
-    stubs.allowed = new Set(["can_create_idp"]);
+    stubs.allowed = new Set(["can_create_federation_issuer"]);
     renderSection("cloud");
-    expect(screen.getByRole("button", { name: /New identity provider/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /New federation issuer/ })).toBeTruthy();
   });
 
   it("names the organization's admins, not an empty configuration, to a caller who may not create providers", () => {
     renderSection("cloud");
     expect(stubs.listedOrg).toBe("org_acme");
     expect(
-      screen.getByText("Identity providers are managed by your organization's admins."),
+      screen.getByText("Federation issuers are managed by your organization's admins."),
     ).toBeTruthy();
-    expect(screen.queryByText("No identity providers configured.")).toBeNull();
+    expect(screen.queryByText("No federation issuers configured.")).toBeNull();
 
     cleanup();
-    stubs.allowed = new Set(["can_create_idp"]);
+    stubs.allowed = new Set(["can_create_federation_issuer"]);
     renderSection("cloud");
-    expect(screen.getByText("No identity providers configured.")).toBeTruthy();
+    expect(screen.getByText("No federation issuers configured.")).toBeTruthy();
   });
 
   it("offers edit and delete on a provider row only with can_edit and can_delete on it", () => {
@@ -171,8 +171,8 @@ describe("IdentityProvidersSection", () => {
     expect(screen.getByText("acme-okta")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Edit Acme Okta" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Delete Acme Okta" })).toBeNull();
-    expect(stubs.checked).toContainEqual(["identity_provider", "idp_okta", "can_edit"]);
-    expect(stubs.checked).toContainEqual(["identity_provider", "idp_okta", "can_delete"]);
+    expect(stubs.checked).toContainEqual(["federation_issuer", "fis_okta", "can_edit"]);
+    expect(stubs.checked).toContainEqual(["federation_issuer", "fis_okta", "can_delete"]);
 
     cleanup();
     stubs.allowed = new Set(["can_edit", "can_delete"]);

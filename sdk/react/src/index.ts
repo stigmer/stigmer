@@ -1566,7 +1566,7 @@ export type {
   SlackChannelAppManifestInput,
 } from "./channel-app/index.js";
 
-// Identity Provider — data hooks, mutation hooks, styled components, presets, and guided wizard for managing the platforms whose tokens an organization trusts
+// Federation Issuer — data hooks, mutation hooks, styled components, presets, and guided wizard for managing the platforms whose tokens an organization trusts
 export {
   useFederationIssuerList,
   useFederationIssuer,
@@ -1580,7 +1580,7 @@ export {
   ProviderPicker,
   FederationIssuerWizard,
   FederationIssuerDetailPanel,
-} from "./identity-provider/index.js";
+} from "./federation-issuer/index.js";
 export type {
   UseFederationIssuerListReturn,
   UseFederationIssuerReturn,
@@ -1595,7 +1595,7 @@ export type {
   ProviderPickerProps,
   FederationIssuerWizardProps,
   FederationIssuerDetailPanelProps,
-} from "./identity-provider/index.js";
+} from "./federation-issuer/index.js";
 
 // Teams — an organization's named groups of people that access is shared
 // with as one (Enterprise and Cloud editions)
