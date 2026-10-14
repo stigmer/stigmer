@@ -33,6 +33,7 @@ import { create } from "@bufbuild/protobuf";
 import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { RunSchema, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   ENGINE_EVENT_TYPES,
   REINVOCATION_EVENT_TYPES,
@@ -42,6 +43,7 @@ import {
   reconcileTurnSettlement,
   regeneratesApprovedWrites,
   runEventsReader,
+  runFinishedWhileWaiting,
   runWroteEngineEvents,
   type ResolutionDeps,
 } from "../turn-context.js";
@@ -182,5 +184,30 @@ describe("regeneratesApprovedWrites", () => {
 
   it("a gate-less engine has nothing approved to apply", () => {
     expect(regeneratesApprovedWrites("none")).toBe(false);
+  });
+});
+
+describe("runFinishedWhileWaiting", () => {
+  /** A stub whose run reads back in `phase`; the read is counted. */
+  function depsIn(phase: RunPhase): { readonly deps: ResolutionDeps; readonly getExecution: ReturnType<typeof vi.fn> } {
+    const getExecution = vi.fn(async () => create(RunSchema, { status: create(RunStatusSchema, { phase }) }));
+    return { deps: { input: INPUT, client: { getExecution } } as unknown as ResolutionDeps, getExecution };
+  }
+
+  it("reads nothing for a turn that did not wait", async () => {
+    const { deps, getExecution } = depsIn(RunPhase.RUN_COMPLETED);
+    expect(await runFinishedWhileWaiting(deps, false)).toBeUndefined();
+    expect(getExecution).not.toHaveBeenCalled();
+  });
+
+  it("runs on when the run it waited for is still going", async () => {
+    const { deps, getExecution } = depsIn(RunPhase.RUN_IN_PROGRESS);
+    expect(await runFinishedWhileWaiting(deps, true)).toBeUndefined();
+    expect(getExecution).toHaveBeenCalledWith("aex_1");
+  });
+
+  it("settles as the stored phase when the run finished while it waited", async () => {
+    const { deps } = depsIn(RunPhase.RUN_COMPLETED);
+    expect((await runFinishedWhileWaiting(deps, true))?.status.phase).toBe(RunPhase.RUN_COMPLETED);
   });
 });
