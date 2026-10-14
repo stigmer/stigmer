@@ -3,15 +3,15 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.iam.apikey.v1.ApiKey;
-import ai.stigmer.iam.apikey.v1.ApiKeyAccountId;
 import ai.stigmer.iam.apikey.v1.ApiKeyCommandControllerGrpc;
 import ai.stigmer.iam.apikey.v1.ApiKeyHash;
 import ai.stigmer.iam.apikey.v1.ApiKeyId;
 import ai.stigmer.iam.apikey.v1.ApiKeyQueryControllerGrpc;
 import ai.stigmer.iam.apikey.v1.ApiKeys;
 import ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput;
+import ai.stigmer.iam.apikey.v1.ListApiKeysByAccountInput;
+import ai.stigmer.iam.apikey.v1.ListApiKeysInput;
 import ai.stigmer.iam.apikey.v1.UpdateApiKeyInput;
-import com.google.protobuf.Empty;
 import com.google.protobuf.FieldMask;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
@@ -65,15 +65,41 @@ public final class ApiKeyClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public ApiKeys findAll() {
+    public ApiKeys list(ListApiKeysInput input) {
         try {
-            return query.findAll(Empty.getDefaultInstance());
+            return query.list(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public ApiKeys findByAccount(String id) {
+    /**
+     * Every entry of {@code list}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<ApiKey> listAll(ListApiKeysInput input) {
+        return Pages.<ApiKeys, ApiKey>iterate(
+            input.getPageToken(),
+            token -> list(input.toBuilder().setPageToken(token).build()),
+            ApiKeys::getEntriesList,
+            ApiKeys::getNextPageToken);
+    }
+
+    public ApiKeys listByAccount(ListApiKeysByAccountInput input) {
         try {
-            return query.findByAccount(ApiKeyAccountId.newBuilder().setValue(id).build());
+            return query.listByAccount(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code listByAccount}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<ApiKey> listByAccountAll(ListApiKeysByAccountInput input) {
+        return Pages.<ApiKeys, ApiKey>iterate(
+            input.getPageToken(),
+            token -> listByAccount(input.toBuilder().setPageToken(token).build()),
+            ApiKeys::getEntriesList,
+            ApiKeys::getNextPageToken);
     }
 }

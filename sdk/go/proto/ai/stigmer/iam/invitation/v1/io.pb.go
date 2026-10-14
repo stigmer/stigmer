@@ -76,8 +76,8 @@ type Invitations struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Invitation entries.
 	Entries []*Invitation `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
-	// Set when more invitations may follow: pass it as page_token to
-	// continue. A page may be short, even empty, and still carry a token.
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
 	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -127,35 +127,36 @@ func (x *Invitations) GetNextPageToken() string {
 	return ""
 }
 
-// ListInvitationsByOrgInput specifies the organization whose invitations
+// ListInvitationsInput specifies the organization whose invitations
 // should be returned, newest first.
-type ListInvitationsByOrgInput struct {
+type ListInvitationsInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization slug to list invitations for.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// The most invitations to return; 0 returns every invitation and no
-	// token. A positive size is capped at 100.
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	// The previous response's next_page_token, to continue that list.
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
 	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ListInvitationsByOrgInput) Reset() {
-	*x = ListInvitationsByOrgInput{}
+func (x *ListInvitationsInput) Reset() {
+	*x = ListInvitationsInput{}
 	mi := &file_ai_stigmer_iam_invitation_v1_io_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ListInvitationsByOrgInput) String() string {
+func (x *ListInvitationsInput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ListInvitationsByOrgInput) ProtoMessage() {}
+func (*ListInvitationsInput) ProtoMessage() {}
 
-func (x *ListInvitationsByOrgInput) ProtoReflect() protoreflect.Message {
+func (x *ListInvitationsInput) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_stigmer_iam_invitation_v1_io_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -167,26 +168,26 @@ func (x *ListInvitationsByOrgInput) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListInvitationsByOrgInput.ProtoReflect.Descriptor instead.
-func (*ListInvitationsByOrgInput) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListInvitationsInput.ProtoReflect.Descriptor instead.
+func (*ListInvitationsInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_iam_invitation_v1_io_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *ListInvitationsByOrgInput) GetOrg() string {
+func (x *ListInvitationsInput) GetOrg() string {
 	if x != nil {
 		return x.Org
 	}
 	return ""
 }
 
-func (x *ListInvitationsByOrgInput) GetPageSize() int32 {
+func (x *ListInvitationsInput) GetPageSize() int32 {
 	if x != nil {
 		return x.PageSize
 	}
 	return 0
 }
 
-func (x *ListInvitationsByOrgInput) GetPageToken() string {
+func (x *ListInvitationsInput) GetPageToken() string {
 	if x != nil {
 		return x.PageToken
 	}
@@ -416,8 +417,8 @@ const file_ai_stigmer_iam_invitation_v1_io_proto_rawDesc = "" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"y\n" +
 	"\vInvitations\x12B\n" +
 	"\aentries\x18\x01 \x03(\v2(.ai.stigmer.iam.invitation.v1.InvitationR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x85\x01\n" +
-	"\x19ListInvitationsByOrgInput\x12\x19\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x80\x01\n" +
+	"\x14ListInvitationsInput\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
 	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
@@ -453,15 +454,15 @@ func file_ai_stigmer_iam_invitation_v1_io_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_iam_invitation_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_ai_stigmer_iam_invitation_v1_io_proto_goTypes = []any{
-	(*InvitationId)(nil),              // 0: ai.stigmer.iam.invitation.v1.InvitationId
-	(*Invitations)(nil),               // 1: ai.stigmer.iam.invitation.v1.Invitations
-	(*ListInvitationsByOrgInput)(nil), // 2: ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput
-	(*InvitationTokenInput)(nil),      // 3: ai.stigmer.iam.invitation.v1.InvitationTokenInput
-	(*RedeemInvitationInput)(nil),     // 4: ai.stigmer.iam.invitation.v1.RedeemInvitationInput
-	(*InvitationPreview)(nil),         // 5: ai.stigmer.iam.invitation.v1.InvitationPreview
-	(*Invitation)(nil),                // 6: ai.stigmer.iam.invitation.v1.Invitation
-	(v1.IamRole)(0),                   // 7: ai.stigmer.iam.v1.IamRole
-	(*timestamppb.Timestamp)(nil),     // 8: google.protobuf.Timestamp
+	(*InvitationId)(nil),          // 0: ai.stigmer.iam.invitation.v1.InvitationId
+	(*Invitations)(nil),           // 1: ai.stigmer.iam.invitation.v1.Invitations
+	(*ListInvitationsInput)(nil),  // 2: ai.stigmer.iam.invitation.v1.ListInvitationsInput
+	(*InvitationTokenInput)(nil),  // 3: ai.stigmer.iam.invitation.v1.InvitationTokenInput
+	(*RedeemInvitationInput)(nil), // 4: ai.stigmer.iam.invitation.v1.RedeemInvitationInput
+	(*InvitationPreview)(nil),     // 5: ai.stigmer.iam.invitation.v1.InvitationPreview
+	(*Invitation)(nil),            // 6: ai.stigmer.iam.invitation.v1.Invitation
+	(v1.IamRole)(0),               // 7: ai.stigmer.iam.v1.IamRole
+	(*timestamppb.Timestamp)(nil), // 8: google.protobuf.Timestamp
 }
 var file_ai_stigmer_iam_invitation_v1_io_proto_depIdxs = []int32{
 	6, // 0: ai.stigmer.iam.invitation.v1.Invitations.entries:type_name -> ai.stigmer.iam.invitation.v1.Invitation

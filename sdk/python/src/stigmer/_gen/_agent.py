@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Iterator
 
 import grpc
 
@@ -16,15 +17,12 @@ from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from google.protobuf import field_mask_pb2
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
-from ai.stigmer.search.v1 import query_pb2_grpc as search_query_pb2_grpc
-from ai.stigmer.search.v1 import io_pb2 as search_io_pb2
-from ai.stigmer.commons.rpc import pagination_pb2
 from ai.stigmer.agentic.plugin.v1 import hooks_pb2 as plugin_hooks_pb2
 from ai.stigmer.agentic.run.v1 import invocation_pb2 as run_invocation_pb2
 from ai.stigmer.agentic.vault.v1 import declaration_pb2 as vault_declaration_pb2
 
 from ._errors import wrap_error
-from ._types import ListParams, ListResult, ResourceRef
+from ._types import ResourceRef
 
 
 class AgentClient:
@@ -33,7 +31,6 @@ class AgentClient:
     def __init__(self, channel: grpc.Channel) -> None:
         self._command = command_pb2_grpc.AgentCommandControllerStub(channel)
         self._query = query_pb2_grpc.AgentQueryControllerStub(channel)
-        self._search = search_query_pb2_grpc.SearchServiceStub(channel)
 
     def apply(self, input: AgentInput) -> api_pb2.Agent:
         try:
@@ -93,36 +90,45 @@ class AgentClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def list(self, input: io_pb2.ListAgentsRequest) -> io_pb2.AgentList:
+        try:
+            return self._query.list(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def list_all(self, input: io_pb2.ListAgentsRequest) -> Iterator[api_pb2.Agent]:
+        """Every entry of ``list``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListAgentsRequest()
+        request.CopyFrom(input)
+        while True:
+            page = self.list(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
+
     def list_versions(self, input: version_pb2.ListAgentVersionsInput) -> version_pb2.ListAgentVersionsResponse:
         try:
             return self._query.listVersions(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def list_versions_all(self, input: version_pb2.ListAgentVersionsInput) -> Iterator[version_pb2.AgentVersionEntry]:
+        """Every entry of ``list_versions``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = version_pb2.ListAgentVersionsInput()
+        request.CopyFrom(input)
+        while True:
+            page = self.list_versions(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
+
     def get_version(self, input: version_pb2.GetAgentVersionInput) -> version_pb2.AgentVersionEntry:
         try:
             return self._query.getVersion(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
-    def list(self, params: ListParams) -> ListResult:
-        try:
-            req = search_io_pb2.SearchRequest(
-                kinds=[api_resource_kind_pb2.ApiResourceKind.agent],
-                query=params.query,
-                org=params.org,
-            )
-            if params.page is not None:
-                req.page.CopyFrom(pagination_pb2.PageInfo(
-                    num=params.page.num,
-                    size=params.page.size,
-                ))
-            resp = self._search.search(req)
-            return ListResult(
-                entries=list(resp.entries),
-                total_count=resp.total_count,
-                total_pages=resp.total_pages,
-            )
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

@@ -4,11 +4,13 @@ package gen
 
 import (
 	"context"
+	"iter"
 
 	agentsharev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentshare/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
@@ -72,14 +74,72 @@ func (a *AgentShareClient) GetByReference(ctx context.Context, ref ResourceRef) 
 	return resp, wrapErr(err)
 }
 
-func (a *AgentShareClient) GetByAgent(ctx context.Context, input *agentsharev1.GetAgentSharesByAgentRequest) (*agentsharev1.AgentShareList, error) {
-	resp, err := a.query.GetByAgent(ctx, input)
+func (a *AgentShareClient) ListByAgent(ctx context.Context, input *agentsharev1.ListAgentSharesByAgentRequest) (*agentsharev1.AgentShareList, error) {
+	resp, err := a.query.ListByAgent(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListByAgentAll returns every entry of ListByAgent, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (a *AgentShareClient) ListByAgentAll(ctx context.Context, input *agentsharev1.ListAgentSharesByAgentRequest) iter.Seq2[*agentsharev1.AgentShare, error] {
+	return func(yield func(*agentsharev1.AgentShare, error) bool) {
+		req := &agentsharev1.ListAgentSharesByAgentRequest{}
+		if input != nil {
+			req = proto.Clone(input).(*agentsharev1.ListAgentSharesByAgentRequest)
+		}
+		for {
+			page, err := a.ListByAgent(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 func (a *AgentShareClient) List(ctx context.Context, input *agentsharev1.ListAgentSharesRequest) (*agentsharev1.AgentShareList, error) {
 	resp, err := a.query.List(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListAll returns every entry of List, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (a *AgentShareClient) ListAll(ctx context.Context, input *agentsharev1.ListAgentSharesRequest) iter.Seq2[*agentsharev1.AgentShare, error] {
+	return func(yield func(*agentsharev1.AgentShare, error) bool) {
+		req := &agentsharev1.ListAgentSharesRequest{}
+		if input != nil {
+			req = proto.Clone(input).(*agentsharev1.ListAgentSharesRequest)
+		}
+		for {
+			page, err := a.List(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 func (a *AgentShareClient) GetSharedProfile(ctx context.Context, input *agentsharev1.GetSharedProfileRequest) (*agentsharev1.SharedAgentProfile, error) {

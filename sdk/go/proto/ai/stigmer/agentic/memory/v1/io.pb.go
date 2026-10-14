@@ -8,7 +8,6 @@ package memoryv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
@@ -75,8 +74,12 @@ type ListMemoriesRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization slug to scope the listing.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// Pagination options.
-	PageInfo      *rpc.PageInfo `protobuf:"bytes,2,opt,name=page_info,json=pageInfo,proto3" json:"page_info,omitempty"`
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
+	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -118,20 +121,28 @@ func (x *ListMemoriesRequest) GetOrg() string {
 	return ""
 }
 
-func (x *ListMemoriesRequest) GetPageInfo() *rpc.PageInfo {
+func (x *ListMemoriesRequest) GetPageSize() int32 {
 	if x != nil {
-		return x.PageInfo
+		return x.PageSize
 	}
-	return nil
+	return 0
+}
+
+func (x *ListMemoriesRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
 }
 
 // Response containing a paginated list of memories.
 type MemoryList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Total number of memories matching the query.
-	TotalCount int32 `protobuf:"varint,1,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	// Memories in the current page.
-	Items         []*Memory `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
+	Entries []*Memory `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
+	NextPageToken string `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -166,18 +177,18 @@ func (*MemoryList) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_memory_v1_io_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *MemoryList) GetTotalCount() int32 {
+func (x *MemoryList) GetEntries() []*Memory {
 	if x != nil {
-		return x.TotalCount
-	}
-	return 0
-}
-
-func (x *MemoryList) GetItems() []*Memory {
-	if x != nil {
-		return x.Items
+		return x.Entries
 	}
 	return nil
+}
+
+func (x *MemoryList) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
 }
 
 // The changes an update makes to a memory: the fields update_mask names,
@@ -244,17 +255,18 @@ var File_ai_stigmer_agentic_memory_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_memory_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"%ai/stigmer/agentic/memory/v1/io.proto\x12\x1cai.stigmer.agentic.memory.v1\x1a&ai/stigmer/agentic/memory/v1/api.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"(\n" +
+	"%ai/stigmer/agentic/memory/v1/io.proto\x12\x1cai.stigmer.agentic.memory.v1\x1a&ai/stigmer/agentic/memory/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"(\n" +
 	"\bMemoryId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"o\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x90\x01\n" +
 	"\x13ListMemoriesRequest\x12\x19\n" +
-	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12=\n" +
-	"\tpage_info\x18\x02 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\bpageInfo\"i\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
+	"\tpage_size\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"MemoryList\x12\x1f\n" +
-	"\vtotal_count\x18\x01 \x01(\x05R\n" +
-	"totalCount\x12:\n" +
-	"\x05items\x18\x02 \x03(\v2$.ai.stigmer.agentic.memory.v1.MemoryR\x05items\"\xe3\x02\n" +
+	"page_token\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageTokenJ\x04\b\x02\x10\x03R\tpage_info\"\x87\x01\n" +
+	"\n" +
+	"MemoryList\x12>\n" +
+	"\aentries\x18\x02 \x03(\v2$.ai.stigmer.agentic.memory.v1.MemoryR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\b\x01\x10\x02R\vtotal_count\"\xe3\x02\n" +
 	"\x11UpdateMemoryInput\x12H\n" +
 	"\bresource\x18\x01 \x01(\v2$.ai.stigmer.agentic.memory.v1.MemoryB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
@@ -280,20 +292,18 @@ var file_ai_stigmer_agentic_memory_v1_io_proto_goTypes = []any{
 	(*ListMemoriesRequest)(nil),   // 1: ai.stigmer.agentic.memory.v1.ListMemoriesRequest
 	(*MemoryList)(nil),            // 2: ai.stigmer.agentic.memory.v1.MemoryList
 	(*UpdateMemoryInput)(nil),     // 3: ai.stigmer.agentic.memory.v1.UpdateMemoryInput
-	(*rpc.PageInfo)(nil),          // 4: ai.stigmer.commons.rpc.PageInfo
-	(*Memory)(nil),                // 5: ai.stigmer.agentic.memory.v1.Memory
-	(*fieldmaskpb.FieldMask)(nil), // 6: google.protobuf.FieldMask
+	(*Memory)(nil),                // 4: ai.stigmer.agentic.memory.v1.Memory
+	(*fieldmaskpb.FieldMask)(nil), // 5: google.protobuf.FieldMask
 }
 var file_ai_stigmer_agentic_memory_v1_io_proto_depIdxs = []int32{
-	4, // 0: ai.stigmer.agentic.memory.v1.ListMemoriesRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
-	5, // 1: ai.stigmer.agentic.memory.v1.MemoryList.items:type_name -> ai.stigmer.agentic.memory.v1.Memory
-	5, // 2: ai.stigmer.agentic.memory.v1.UpdateMemoryInput.resource:type_name -> ai.stigmer.agentic.memory.v1.Memory
-	6, // 3: ai.stigmer.agentic.memory.v1.UpdateMemoryInput.update_mask:type_name -> google.protobuf.FieldMask
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	4, // 0: ai.stigmer.agentic.memory.v1.MemoryList.entries:type_name -> ai.stigmer.agentic.memory.v1.Memory
+	4, // 1: ai.stigmer.agentic.memory.v1.UpdateMemoryInput.resource:type_name -> ai.stigmer.agentic.memory.v1.Memory
+	5, // 2: ai.stigmer.agentic.memory.v1.UpdateMemoryInput.update_mask:type_name -> google.protobuf.FieldMask
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_memory_v1_io_proto_init() }

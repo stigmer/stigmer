@@ -26,12 +26,11 @@ var File_ai_stigmer_agentic_agentchannel_v1_query_proto protoreflect.FileDescrip
 
 const file_ai_stigmer_agentic_agentchannel_v1_query_proto_rawDesc = "" +
 	"\n" +
-	".ai/stigmer/agentic/agentchannel/v1/query.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a,ai/stigmer/agentic/agentchannel/v1/api.proto\x1a+ai/stigmer/agentic/agentchannel/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xd7\x04\n" +
+	".ai/stigmer/agentic/agentchannel/v1/query.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a,ai/stigmer/agentic/agentchannel/v1/api.proto\x1a+ai/stigmer/agentic/agentchannel/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xd9\x04\n" +
 	"\x1bAgentChannelQueryController\x12\x9f\x01\n" +
 	"\x03get\x122.ai.stigmer.agentic.agentchannel.v1.AgentChannelId\x1a0.ai.stigmer.agentic.agentchannel.v1.AgentChannel\"2¸\x18.\b\x01\x10/\"\x05value*!unauthorized to get agent channel\x12~\n" +
-	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a0.ai.stigmer.agentic.agentchannel.v1.AgentChannel\"\x04и\x18\x01\x12\x8c\x01\n" +
-	"\n" +
-	"getByAgent\x12B.ai.stigmer.agentic.agentchannel.v1.GetAgentChannelsByAgentRequest\x1a4.ai.stigmer.agentic.agentchannel.v1.AgentChannelList\"\x04и\x18\x01\x12\x80\x01\n" +
+	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a0.ai.stigmer.agentic.agentchannel.v1.AgentChannel\"\x04и\x18\x01\x12\x8e\x01\n" +
+	"\vlistByAgent\x12C.ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsByAgentRequest\x1a4.ai.stigmer.agentic.agentchannel.v1.AgentChannelList\"\x04и\x18\x01\x12\x80\x01\n" +
 	"\x04list\x12<.ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest\x1a4.ai.stigmer.agentic.agentchannel.v1.AgentChannelList\"\x04и\x18\x01\x1a\x04\xa0\xff+/B\xbf\x02\n" +
 	"&com.ai.stigmer.agentic.agentchannel.v1B\n" +
 	"QueryProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentchannel/v1;agentchannelv1\xa2\x02\x04ASAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3"
@@ -39,7 +38,7 @@ const file_ai_stigmer_agentic_agentchannel_v1_query_proto_rawDesc = "" +
 var file_ai_stigmer_agentic_agentchannel_v1_query_proto_goTypes = []any{
 	(*AgentChannelId)(nil),                   // 0: ai.stigmer.agentic.agentchannel.v1.AgentChannelId
 	(*apiresource.ApiResourceReference)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*GetAgentChannelsByAgentRequest)(nil),   // 2: ai.stigmer.agentic.agentchannel.v1.GetAgentChannelsByAgentRequest
+	(*ListAgentChannelsByAgentRequest)(nil),  // 2: ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsByAgentRequest
 	(*ListAgentChannelsRequest)(nil),         // 3: ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest
 	(*AgentChannel)(nil),                     // 4: ai.stigmer.agentic.agentchannel.v1.AgentChannel
 	(*AgentChannelList)(nil),                 // 5: ai.stigmer.agentic.agentchannel.v1.AgentChannelList
@@ -47,11 +46,11 @@ var file_ai_stigmer_agentic_agentchannel_v1_query_proto_goTypes = []any{
 var file_ai_stigmer_agentic_agentchannel_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController.get:input_type -> ai.stigmer.agentic.agentchannel.v1.AgentChannelId
 	1, // 1: ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController.getByReference:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2, // 2: ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController.getByAgent:input_type -> ai.stigmer.agentic.agentchannel.v1.GetAgentChannelsByAgentRequest
+	2, // 2: ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController.listByAgent:input_type -> ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsByAgentRequest
 	3, // 3: ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController.list:input_type -> ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest
 	4, // 4: ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController.get:output_type -> ai.stigmer.agentic.agentchannel.v1.AgentChannel
 	4, // 5: ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController.getByReference:output_type -> ai.stigmer.agentic.agentchannel.v1.AgentChannel
-	5, // 6: ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController.getByAgent:output_type -> ai.stigmer.agentic.agentchannel.v1.AgentChannelList
+	5, // 6: ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController.listByAgent:output_type -> ai.stigmer.agentic.agentchannel.v1.AgentChannelList
 	5, // 7: ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController.list:output_type -> ai.stigmer.agentic.agentchannel.v1.AgentChannelList
 	4, // [4:8] is the sub-list for method output_type
 	0, // [0:4] is the sub-list for method input_type

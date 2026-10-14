@@ -72,20 +72,12 @@
           "description": "Get an organization by ID."
         },
         {
-          "name": "Find",
-          "inputType": "FindApiResourcesRequest",
-          "inputFullType": "ai.stigmer.commons.apiresource.FindApiResourcesRequest",
-          "outputType": "OrganizationList",
-          "outputFullType": "ai.stigmer.tenancy.organization.v1.OrganizationList",
-          "description": "List organizations with pagination and filtering."
-        },
-        {
-          "name": "FindMyOrganizations",
-          "inputType": "Empty",
-          "inputFullType": "google.protobuf.Empty",
+          "name": "ListMine",
+          "inputType": "ListMyOrganizationsInput",
+          "inputFullType": "ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput",
           "outputType": "Organizations",
           "outputFullType": "ai.stigmer.tenancy.organization.v1.Organizations",
-          "description": "Find organizations the authenticated user is a member of.\n Returns only organizations the caller has access to."
+          "description": "List the organizations the authenticated caller is a member of.\n Returns only organizations the caller has access to."
         },
         {
           "name": "GetByExternalId",
@@ -214,55 +206,11 @@
       ]
     },
     {
-      "name": "FindApiResourcesRequest",
-      "description": "Input for find (list) operations with pagination",
-      "protoType": "ai.stigmer.commons.apiresource.FindApiResourcesRequest",
-      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "name": "ListMyOrganizationsInput",
+      "description": "Input for listing the organizations the caller is a member of.",
+      "protoType": "ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput",
+      "protoFile": "apis/ai/stigmer/tenancy/organization/v1/io.proto",
       "fields": [
-        {
-          "name": "Org",
-          "jsonName": "org",
-          "protoField": "org",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Organization to filter by, by id or slug",
-          "required": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "Kind",
-          "jsonName": "kind",
-          "protoField": "kind",
-          "type": {
-            "kind": "string"
-          },
-          "description": "API resource kind (optional filter)",
-          "required": false
-        },
-        {
-          "name": "Page",
-          "jsonName": "page",
-          "protoField": "page",
-          "type": {
-            "kind": "message",
-            "messageType": "PageInfo"
-          },
-          "description": "Pagination info",
-          "required": false
-        },
-        {
-          "name": "PageNumber",
-          "jsonName": "pageNumber",
-          "protoField": "page_number",
-          "type": {
-            "kind": "int32"
-          },
-          "description": "Page number (1-indexed) - deprecated, use page.num",
-          "required": false
-        },
         {
           "name": "PageSize",
           "jsonName": "pageSize",
@@ -270,40 +218,21 @@
           "type": {
             "kind": "int32"
           },
-          "description": "Number of items per page (default: 20, max: 100) - deprecated, use page.size",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "OrganizationList",
-      "description": "Response for a paginated organization list query.",
-      "protoType": "ai.stigmer.tenancy.organization.v1.OrganizationList",
-      "protoFile": "apis/ai/stigmer/tenancy/organization/v1/io.proto",
-      "fields": [
-        {
-          "name": "TotalPages",
-          "jsonName": "totalPages",
-          "protoField": "total_pages",
-          "type": {
-            "kind": "int32"
-          },
-          "description": "Total number of pages.",
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
           "required": false
         },
         {
-          "name": "Entries",
-          "jsonName": "entries",
-          "protoField": "entries",
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
           "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "Organization"
-            }
+            "kind": "string"
           },
-          "description": "Organizations in the current page.",
-          "required": false
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
+          }
         }
       ]
     },
@@ -325,6 +254,16 @@
             }
           },
           "description": "Organization resources in this list.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Set when more entries may follow: pass it as page_token to continue.\n A page may be short, even empty, and still carry a token.",
           "required": false
         }
       ]
@@ -392,7 +331,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "The most children to return; 0 returns every child and no token. A\n positive size is capped at 100.",
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
           "required": false
         },
         {
@@ -402,7 +341,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The previous response's next_page_token, to continue that list.",
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
           "required": false,
           "validation": {
             "maxLength": 1024
@@ -437,7 +376,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Set when more children may follow: pass it as page_token to continue.",
+          "description": "Set when more entries may follow: pass it as page_token to continue.\n A page may be short, even empty, and still carry a token.",
           "required": false
         }
       ]

@@ -17,7 +17,7 @@ import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import type { MethodSchema, ServiceDefinition, ServiceSchemaFile } from "./gen-common.js";
+import type { MethodSchema, PagedList, ServiceDefinition, ServiceSchemaFile } from "./gen-common.js";
 import {
   goProtoFieldName,
   goQuote,
@@ -31,7 +31,10 @@ import {
   isValuedOneofScalar,
   protoTypeToGoImportPath,
   protoTypeToPackageAlias,
-  searchListSupersedesMethod,
+  assertUniqueSdkMethodNames,
+  pageIteratorName,
+  pagedListOf,
+  sdkMethodName,
 } from "./gen-common.js";
 import { apiResourceKindEnumNames } from "./resource-kind.js";
 import type { ResourceGenInfo, SdkResourceConfig } from "./sdk-resource-config.js";
@@ -240,11 +243,12 @@ function generateResourceClient(
   let needsFieldmaskpb = false;
   let needsApiResource = false;
   let needsApiResourceRef = false;
-  const needsSearch = schema.listVia === "SearchService";
+  assertUniqueSdkMethodNames(schema);
+  let needsPaging = false;
   const hasInputType = specSchema !== null;
   for (const svc of schema.services) {
     for (const m of svc.methods) {
-      if (searchListSupersedesMethod(schema, m)) continue;
+      if (pagedListOf(schema, m) !== undefined) needsPaging = true;
       if (m.serverStreaming === true) needsIO = true;
       if (m.inputFullType.includes("commons.apiresource")) needsApiResource = true;
       if (m.inputType === "ApiResourceReference") needsApiResourceRef = true;
@@ -315,9 +319,6 @@ function generateResourceClient(
   for (const svc of schema.services) {
     bodyBuf.push(`\t${svc.role} ${alias}.${svc.name}Client\n`);
   }
-  if (needsSearch) {
-    bodyBuf.push("\tsearch searchv1.SearchServiceClient\n");
-  }
   bodyBuf.push("}\n\n");
 
   bodyBuf.push(`func New${cfg.clientName}(conn grpc.ClientConnInterface) *${cfg.clientName} {\n`);
@@ -325,23 +326,19 @@ function generateResourceClient(
   for (const svc of schema.services) {
     bodyBuf.push(`\t\t${svc.role}: ${alias}.New${svc.name}Client(conn),\n`);
   }
-  if (needsSearch) {
-    bodyBuf.push("\t\tsearch: searchv1.NewSearchServiceClient(conn),\n");
-  }
   bodyBuf.push("\t}\n}\n\n");
 
   for (const svc of schema.services) {
     for (const m of svc.methods) {
-      if (searchListSupersedesMethod(schema, m)) continue;
       generateMethod(bodyBuf, m, svc, schema, cfg, alias, hasInputType);
+      const paged = pagedListOf(schema, m);
+      if (paged !== undefined) {
+        generatePageIterator(bodyBuf, svc, m, paged, schema, cfg, alias);
+      }
       if (m.serverStreaming === true) {
         genInfo.streamTypes.push(cfg.protoResType + m.name + "Stream");
       }
     }
-  }
-
-  if (needsSearch) {
-    generateSearchList(bodyBuf, cfg);
   }
 
   if (specSchema !== null) {
@@ -362,6 +359,7 @@ function generateResourceClient(
   buf.push("import (\n");
   buf.push('\t"context"\n');
   if (needsIO) buf.push('\t"io"\n');
+  if (needsPaging) buf.push('\t"iter"\n');
   if (needsTimestamppb) buf.push('\t"time"\n');
   buf.push("\n");
   buf.push(`\t${alias} ${goQuote(importPath)}\n`);
@@ -388,12 +386,8 @@ function generateResourceClient(
   if (needsApiResource || hasInputType) {
     buf.push('\tapiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"\n');
   }
-  if (needsSearch || needsApiResourceRef || needsRefKindOverride) {
+  if (needsApiResourceRef || needsRefKindOverride) {
     buf.push('\tapiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"\n');
-  }
-  if (needsSearch) {
-    buf.push('\trpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"\n');
-    buf.push('\tsearchv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/search/v1"\n');
   }
   if (crossPkgImports.size > 0) {
     const aliases: string[] = [];
@@ -417,6 +411,9 @@ function generateResourceClient(
     buf.push('\t"google.golang.org/protobuf/types/known/timestamppb"\n');
   }
   buf.push('\t"google.golang.org/grpc"\n');
+  if (needsPaging) {
+    buf.push('\t"google.golang.org/protobuf/proto"\n');
+  }
   buf.push(")\n\n");
 
   buf.push(body);
@@ -456,23 +453,23 @@ function generateMethod(
   const isApiResRefInput = m.inputType === "ApiResourceReference";
 
   if (emptyInput && emptyOutput) {
-    buf.push(`func (${receiver} *${cfg.clientName}) ${m.name}(ctx context.Context) error {\n`);
+    buf.push(`func (${receiver} *${cfg.clientName}) ${sdkMethodName(svc, m)}(ctx context.Context) error {\n`);
     buf.push(`\t_, err := ${receiver}.${svc.role}.${m.name}(ctx, &emptypb.Empty{})\n`);
     buf.push("\treturn wrapErr(err)\n}\n\n");
   } else if (emptyInput) {
-    buf.push(`func (${receiver} *${cfg.clientName}) ${m.name}(ctx context.Context) (*${outputPkg}.${outputType}, error) {\n`);
+    buf.push(`func (${receiver} *${cfg.clientName}) ${sdkMethodName(svc, m)}(ctx context.Context) (*${outputPkg}.${outputType}, error) {\n`);
     buf.push(`\tresp, err := ${receiver}.${svc.role}.${m.name}(ctx, &emptypb.Empty{})\n`);
     buf.push("\treturn resp, wrapErr(err)\n}\n\n");
   } else if (emptyOutput && isIDInput) {
-    buf.push(`func (${receiver} *${cfg.clientName}) ${m.name}(ctx context.Context, id string) error {\n`);
+    buf.push(`func (${receiver} *${cfg.clientName}) ${sdkMethodName(svc, m)}(ctx context.Context, id string) error {\n`);
     buf.push(`\t_, err := ${receiver}.${svc.role}.${m.name}(ctx, &${inputPkg}.${m.inputType}{Value: id})\n`);
     buf.push("\treturn wrapErr(err)\n}\n\n");
   } else if (emptyOutput) {
-    buf.push(`func (${receiver} *${cfg.clientName}) ${m.name}(ctx context.Context, input *${inputPkg}.${inputType}) error {\n`);
+    buf.push(`func (${receiver} *${cfg.clientName}) ${sdkMethodName(svc, m)}(ctx context.Context, input *${inputPkg}.${inputType}) error {\n`);
     buf.push(`\t_, err := ${receiver}.${svc.role}.${m.name}(ctx, input)\n`);
     buf.push("\treturn wrapErr(err)\n}\n\n");
   } else if (isUpdateInput) {
-    buf.push(`func (${receiver} *${cfg.clientName}) ${m.name}(ctx context.Context, resource *${outputPkg}.${cfg.protoResType}, paths []string) (*${outputPkg}.${outputType}, error) {\n`);
+    buf.push(`func (${receiver} *${cfg.clientName}) ${sdkMethodName(svc, m)}(ctx context.Context, resource *${outputPkg}.${cfg.protoResType}, paths []string) (*${outputPkg}.${outputType}, error) {\n`);
     buf.push(`\tresp, err := ${receiver}.${svc.role}.${m.name}(ctx, &${inputPkg}.${inputType}{\n`);
     buf.push("\t\tResource:   resource,\n");
     buf.push("\t\tUpdateMask: &fieldmaskpb.FieldMask{Paths: paths},\n");
@@ -480,21 +477,21 @@ function generateMethod(
     buf.push("\treturn resp, wrapErr(err)\n}\n\n");
   } else if (isResourceInput && hasInputType) {
     const inputTypeName = cfg.inputPrefix + "Input";
-    buf.push(`func (${receiver} *${cfg.clientName}) ${m.name}(ctx context.Context, input *${inputTypeName}) (*${outputPkg}.${outputType}, error) {\n`);
+    buf.push(`func (${receiver} *${cfg.clientName}) ${sdkMethodName(svc, m)}(ctx context.Context, input *${inputTypeName}) (*${outputPkg}.${outputType}, error) {\n`);
     buf.push("\treq, err := input.toProto()\n");
     buf.push("\tif err != nil {\n\t\treturn nil, invalidInputErr(err)\n\t}\n");
     buf.push(`\tresp, err := ${receiver}.${svc.role}.${m.name}(ctx, req)\n`);
     buf.push("\treturn resp, wrapErr(err)\n}\n\n");
   } else if (isResourceInput && !hasInputType) {
-    buf.push(`func (${receiver} *${cfg.clientName}) ${m.name}(ctx context.Context, input *${inputPkg}.${inputType}) (*${outputPkg}.${outputType}, error) {\n`);
+    buf.push(`func (${receiver} *${cfg.clientName}) ${sdkMethodName(svc, m)}(ctx context.Context, input *${inputPkg}.${inputType}) (*${outputPkg}.${outputType}, error) {\n`);
     buf.push(`\tresp, err := ${receiver}.${svc.role}.${m.name}(ctx, input)\n`);
     buf.push("\treturn resp, wrapErr(err)\n}\n\n");
   } else if (isIDInput) {
-    buf.push(`func (${receiver} *${cfg.clientName}) ${m.name}(ctx context.Context, id string) (*${outputPkg}.${outputType}, error) {\n`);
+    buf.push(`func (${receiver} *${cfg.clientName}) ${sdkMethodName(svc, m)}(ctx context.Context, id string) (*${outputPkg}.${outputType}, error) {\n`);
     buf.push(`\tresp, err := ${receiver}.${svc.role}.${m.name}(ctx, &${inputPkg}.${m.inputType}{Value: id})\n`);
     buf.push("\treturn resp, wrapErr(err)\n}\n\n");
   } else if (isDeleteInput) {
-    buf.push(`func (${receiver} *${cfg.clientName}) ${m.name}(ctx context.Context, input *DeleteResourceInput) (*${outputPkg}.${outputType}, error) {\n`);
+    buf.push(`func (${receiver} *${cfg.clientName}) ${sdkMethodName(svc, m)}(ctx context.Context, input *DeleteResourceInput) (*${outputPkg}.${outputType}, error) {\n`);
     buf.push(`\tresp, err := ${receiver}.${svc.role}.${m.name}(ctx, &apiresource.ApiResourceDeleteInput{\n`);
     buf.push("\t\tResourceId:     input.ResourceID,\n");
     buf.push("\t\tVersionMessage: input.VersionMessage,\n");
@@ -502,12 +499,12 @@ function generateMethod(
     buf.push("\t})\n\treturn resp, wrapErr(err)\n}\n\n");
   } else if (isApiResRefInput) {
     const kindConst = "apiresourcekind.ApiResourceKind_" + cfg.resourceKind;
-    buf.push(`func (${receiver} *${cfg.clientName}) ${m.name}(ctx context.Context, ref ResourceRef) (*${outputPkg}.${outputType}, error) {\n`);
+    buf.push(`func (${receiver} *${cfg.clientName}) ${sdkMethodName(svc, m)}(ctx context.Context, ref ResourceRef) (*${outputPkg}.${outputType}, error) {\n`);
     buf.push(`\tref.Kind = ${kindConst}\n`);
     buf.push(`\tresp, err := ${receiver}.${svc.role}.${m.name}(ctx, ref.toProto())\n`);
     buf.push("\treturn resp, wrapErr(err)\n}\n\n");
   } else {
-    buf.push(`func (${receiver} *${cfg.clientName}) ${m.name}(ctx context.Context, input *${inputPkg}.${inputType}) (*${outputPkg}.${outputType}, error) {\n`);
+    buf.push(`func (${receiver} *${cfg.clientName}) ${sdkMethodName(svc, m)}(ctx context.Context, input *${inputPkg}.${inputType}) (*${outputPkg}.${outputType}, error) {\n`);
     buf.push(`\tresp, err := ${receiver}.${svc.role}.${m.name}(ctx, input)\n`);
     buf.push("\treturn resp, wrapErr(err)\n}\n\n");
   }
@@ -544,7 +541,7 @@ function generateStreamingMethod(
     buf.push(`func (s *${streamTypeName}) CloseSend() error {\n`);
     buf.push("\treturn wrapErr(s.stream.CloseSend())\n}\n\n");
 
-    buf.push(`func (${receiver} *${cfg.clientName}) ${m.name}(ctx context.Context, opts ...grpc.CallOption) (*${streamTypeName}, error) {\n`);
+    buf.push(`func (${receiver} *${cfg.clientName}) ${sdkMethodName(svc, m)}(ctx context.Context, opts ...grpc.CallOption) (*${streamTypeName}, error) {\n`);
     buf.push(`\tstream, err := ${receiver}.${svc.role}.${m.name}(ctx, opts...)\n`);
   } else {
     buf.push(`// ${streamTypeName} wraps the server stream for ${m.name}.\n`);
@@ -557,10 +554,10 @@ function generateStreamingMethod(
     buf.push("\tif err != nil {\n\t\tif err == io.EOF {\n\t\t\treturn nil, io.EOF\n\t\t}\n\t\treturn nil, wrapErr(err)\n\t}\n\treturn msg, nil\n}\n\n");
 
     if (isIDInput) {
-      buf.push(`func (${receiver} *${cfg.clientName}) ${m.name}(ctx context.Context, id string) (*${streamTypeName}, error) {\n`);
+      buf.push(`func (${receiver} *${cfg.clientName}) ${sdkMethodName(svc, m)}(ctx context.Context, id string) (*${streamTypeName}, error) {\n`);
       buf.push(`\tstream, err := ${receiver}.${svc.role}.${m.name}(ctx, &${inputPkg}.${m.inputType}{Value: id})\n`);
     } else {
-      buf.push(`func (${receiver} *${cfg.clientName}) ${m.name}(ctx context.Context, input *${inputPkg}.${inputType}) (*${streamTypeName}, error) {\n`);
+      buf.push(`func (${receiver} *${cfg.clientName}) ${sdkMethodName(svc, m)}(ctx context.Context, input *${inputPkg}.${inputType}) (*${streamTypeName}, error) {\n`);
       buf.push(`\tstream, err := ${receiver}.${svc.role}.${m.name}(ctx, input)\n`);
     }
   }
@@ -568,26 +565,44 @@ function generateStreamingMethod(
   buf.push(`\treturn &${streamTypeName}{stream: stream}, nil\n}\n\n`);
 }
 
-function generateSearchList(buf: string[], cfg: SdkResourceConfig): void {
+// The page iterator beside a paged list: every entry, page after page,
+// following NextPageToken from the token the input names. It reads a copy
+// of the input, so the caller's request is never changed.
+function generatePageIterator(
+  buf: string[],
+  svc: ServiceDefinition,
+  m: MethodSchema,
+  paged: PagedList,
+  schema: ServiceSchemaFile,
+  cfg: SdkResourceConfig,
+  alias: string,
+): void {
   const receiver = cfg.clientName.slice(0, 1).toLowerCase();
-  const kindConst = "apiresourcekind.ApiResourceKind_" + cfg.resourceKind;
-
-  buf.push(`func (${receiver} *${cfg.clientName}) List(ctx context.Context, params *ListParams) (*ListResult, error) {\n`);
-  buf.push("\treq := &searchv1.SearchRequest{\n");
-  buf.push(`\t\tKinds: []apiresourcekind.ApiResourceKind{${kindConst}},\n`);
-  buf.push("\t\tQuery: params.Query,\n");
-  buf.push("\t\tOrg:   params.Org,\n");
+  const [inputPkg, inputType] = resolveType(m.inputFullType, m.inputType, schema.package, alias);
+  const [entryPkg, entryType] = resolveType(paged.entryFullType, paged.entryType, schema.package, alias);
+  const method = sdkMethodName(svc, m);
+  const name = pageIteratorName(method);
+  buf.push(`// ${name} returns every entry of ${method}, page after page: it follows\n`);
+  buf.push("// NextPageToken from the token input names until the list ends. The\n");
+  buf.push("// sequence yields the first error and stops; breaking out of the loop\n");
+  buf.push("// stops the reads.\n");
+  buf.push(`func (${receiver} *${cfg.clientName}) ${name}(ctx context.Context, input *${inputPkg}.${inputType}) iter.Seq2[*${entryPkg}.${entryType}, error] {\n`);
+  buf.push(`\treturn func(yield func(*${entryPkg}.${entryType}, error) bool) {\n`);
+  buf.push(`\t\treq := &${inputPkg}.${inputType}{}\n`);
+  buf.push("\t\tif input != nil {\n");
+  buf.push(`\t\t\treq = proto.Clone(input).(*${inputPkg}.${inputType})\n`);
+  buf.push("\t\t}\n");
+  buf.push("\t\tfor {\n");
+  buf.push(`\t\t\tpage, err := ${receiver}.${method}(ctx, req)\n`);
+  buf.push("\t\t\tif err != nil {\n\t\t\t\tyield(nil, err)\n\t\t\t\treturn\n\t\t\t}\n");
+  buf.push("\t\t\tfor _, entry := range page.GetEntries() {\n");
+  buf.push("\t\t\t\tif !yield(entry, nil) {\n\t\t\t\t\treturn\n\t\t\t\t}\n");
+  buf.push("\t\t\t}\n");
+  buf.push("\t\t\tif page.GetNextPageToken() == \"\" {\n\t\t\t\treturn\n\t\t\t}\n");
+  buf.push("\t\t\treq.PageToken = page.GetNextPageToken()\n");
+  buf.push("\t\t}\n");
   buf.push("\t}\n");
-  buf.push("\tif params.Page != nil {\n");
-  buf.push("\t\treq.Page = &rpc.PageInfo{Num: params.Page.Num, Size: params.Page.Size}\n");
-  buf.push("\t}\n");
-  buf.push(`\tresp, err := ${receiver}.search.Search(ctx, req)\n`);
-  buf.push("\tif err != nil {\n\t\treturn nil, wrapErr(err)\n\t}\n");
-  buf.push("\treturn &ListResult{\n");
-  buf.push("\t\tEntries:    resp.GetEntries(),\n");
-  buf.push("\t\tTotalCount: resp.GetTotalCount(),\n");
-  buf.push("\t\tTotalPages: resp.GetTotalPages(),\n");
-  buf.push("\t}, nil\n}\n\n");
+  buf.push("}\n\n");
 }
 
 // =========================================================================
@@ -1585,9 +1600,6 @@ function generateSDKTypesFile(sdkRootDir: string, resources: GoResourceGenInfo[]
   buf.push("// Shared SDK types.\n");
   buf.push("type DeleteResourceInput = gen.DeleteResourceInput\n");
   buf.push("type ResourceRef = gen.ResourceRef\n");
-  buf.push("type Page = gen.Page\n");
-  buf.push("type ListParams = gen.ListParams\n");
-  buf.push("type ListResult = gen.ListResult\n");
 
   fs.writeFileSync(path.join(sdkRootDir, "types.go"), gofmt(buf.join(""), "types.go"));
 }
@@ -1828,7 +1840,6 @@ function generateGenTypes(outputDir: string): void {
     "// Code generated by stigmer-codegen. DO NOT EDIT.\n\n" +
     "package gen\n\n" +
     `import (
-	searchv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/search/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
@@ -1855,26 +1866,6 @@ func (r ResourceRef) toProto() *apiresource.ApiResourceReference {
 		Version: r.Version,
 		Kind:    r.Kind,
 	}
-}
-
-// Page specifies offset-based pagination.
-type Page struct {
-	Num  int32
-	Size int32
-}
-
-// ListParams configures a SearchService-backed list query.
-type ListParams struct {
-	Org   string
-	Query string
-	Page  *Page
-}
-
-// ListResult holds the response from a SearchService-backed list.
-type ListResult struct {
-	Entries    []*searchv1.SearchResult
-	TotalCount int32
-	TotalPages int32
 }
 
 // ResourceRefFromProto creates a ResourceRef from a proto ApiResourceReference.

@@ -13,7 +13,7 @@ import { type ApiResourceAuditActor } from "@stigmer/protos/ai/stigmer/commons/a
 import { IdentityAccountSchema, type IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import { IdentityAccountIdSchema, UpdateIdentityAccountInputSchema, CreateFederatedAccountInputSchema, UpdateFederatedAccountInputSchema, DeprovisionFederatedAccountInputSchema, CreateServiceAccountInputSchema, IdentityAccountEmailSchema, IdpIdSchema, ExternalSubLookupSchema, ListWithIdentityOrgSchema, IdentityAccountsListSchema, type CreateFederatedAccountInput, type UpdateFederatedAccountInput, type DeprovisionFederatedAccountInput, type CreateServiceAccountInput, type IdentityAccountEmail, type ExternalSubLookup, type ListWithIdentityOrg, type IdentityAccountsList } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
+import { IdentityAccountIdSchema, UpdateIdentityAccountInputSchema, CreateFederatedAccountInputSchema, UpdateFederatedAccountInputSchema, DeprovisionFederatedAccountInputSchema, CreateServiceAccountInputSchema, IdentityAccountEmailSchema, IdpIdSchema, ExternalSubLookupSchema, ListServiceAccountsInputSchema, IdentityAccountsListSchema, type CreateFederatedAccountInput, type UpdateFederatedAccountInput, type DeprovisionFederatedAccountInput, type CreateServiceAccountInput, type IdentityAccountEmail, type ExternalSubLookup, type ListServiceAccountsInput, type IdentityAccountsList } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { IdentityAccountSpecSchema, IdentityAccountPreferencesSchema, type IdentityAccountPreferences } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 
@@ -105,10 +105,24 @@ export class IdentityAccountClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async listServiceAccounts(input: ListWithIdentityOrg): Promise<IdentityAccountsList> {
+  async listServiceAccounts(input: ListServiceAccountsInput): Promise<IdentityAccountsList> {
     try {
       return await this.query.listServiceAccounts(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `listServiceAccounts`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listServiceAccountsAll(input: MessageInitShape<typeof ListServiceAccountsInputSchema>): AsyncGenerator<IdentityAccountsList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.listServiceAccounts(create(ListServiceAccountsInputSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 
   async getActorInfo(id: string): Promise<ApiResourceAuditActor> {

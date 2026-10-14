@@ -2,32 +2,27 @@
 
 import { wrapError } from "./errors.js";
 import { stripUndefined } from "./proto-utils.js";
-import { type ListParams, type ListResult, type ResourceRef } from "./types.js";
-import { create } from "@bufbuild/protobuf";
+import { type ResourceRef } from "./types.js";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
-import { PluginIdSchema, PushPluginRequestSchema, CreatePluginArtifactUploadUrlRequestSchema, PluginArtifactUploadUrlSchema, ListPluginToolsInputSchema, ListPluginToolsOutputSchema, GetArtifactRequestSchema, GetArtifactResponseSchema, PluginArtifactDownloadUrlSchema, ListPluginVersionsInputSchema, ListPluginVersionsResponseSchema, type PushPluginRequest, type CreatePluginArtifactUploadUrlRequest, type PluginArtifactUploadUrl, type ListPluginToolsInput, type ListPluginToolsOutput, type GetArtifactRequest, type GetArtifactResponse, type PluginArtifactDownloadUrl, type ListPluginVersionsInput, type ListPluginVersionsResponse } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+import { PluginIdSchema, PushPluginRequestSchema, CreatePluginArtifactUploadUrlRequestSchema, PluginArtifactUploadUrlSchema, ListPluginToolsInputSchema, ListPluginToolsOutputSchema, ListPluginsRequestSchema, PluginListSchema, GetArtifactRequestSchema, GetArtifactResponseSchema, PluginArtifactDownloadUrlSchema, ListPluginVersionsInputSchema, ListPluginVersionsResponseSchema, type PushPluginRequest, type CreatePluginArtifactUploadUrlRequest, type PluginArtifactUploadUrl, type ListPluginToolsInput, type ListPluginToolsOutput, type ListPluginsRequest, type PluginList, type GetArtifactRequest, type GetArtifactResponse, type PluginArtifactDownloadUrl, type ListPluginVersionsInput, type ListPluginVersionsResponse } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import { PluginSpecSchema, PluginDialect, PluginAuthorSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema, ApiResourceMetadataVersionSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
-import { SearchRequestSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 
 /** Provides operations on plugin resources. */
 export class PluginClient {
   private readonly command: Client<typeof PluginCommandController>;
   private readonly query: Client<typeof PluginQueryController>;
-  private readonly search: Client<typeof SearchService>;
 
   constructor(transport: Transport) {
     this.command = createClient(PluginCommandController, transport);
     this.query = createClient(PluginQueryController, transport);
-    this.search = createClient(SearchService, transport);
   }
 
   async push(input: PushPluginRequest): Promise<Plugin> {
@@ -72,6 +67,26 @@ export class PluginClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  async list(input: ListPluginsRequest): Promise<PluginList> {
+    try {
+      return await this.query.list(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `list`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listAll(input: MessageInitShape<typeof ListPluginsRequestSchema>): AsyncGenerator<PluginList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.list(create(ListPluginsRequestSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
+  }
+
   async getArtifact(input: GetArtifactRequest): Promise<GetArtifactResponse> {
     try {
       return await this.query.getArtifact(input);
@@ -90,20 +105,18 @@ export class PluginClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async list(params: ListParams): Promise<ListResult> {
-    try {
-      const resp = await this.search.search(create(SearchRequestSchema, {
-        kinds: [ApiResourceKind.plugin],
-        query: params.query,
-        org: params.org,
-        page: params.page ? create(PageInfoSchema, params.page) : undefined,
-      }));
-      return {
-        entries: resp.entries,
-        totalCount: resp.totalCount,
-        totalPages: resp.totalPages,
-      };
-    } catch (e) { throw wrapError(e); }
+  /**
+   * Every entry of `listVersions`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listVersionsAll(input: MessageInitShape<typeof ListPluginVersionsInputSchema>): AsyncGenerator<ListPluginVersionsResponse["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.listVersions(create(ListPluginVersionsInputSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 }
 

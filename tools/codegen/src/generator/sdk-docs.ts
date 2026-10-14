@@ -20,7 +20,6 @@ import {
   isSpecialType,
   isUpdateInputType,
   pascalToSnake,
-  searchListSupersedesMethod,
   tsClientFieldName,
   tsMethodName,
   tsProtoFieldName,
@@ -816,7 +815,6 @@ function docCollectMethods(schema: ServiceSchemaFile): MethodSchema[] {
   const methods: MethodSchema[] = [];
   for (const svc of schema.services) {
     for (const m of svc.methods) {
-      if (searchListSupersedesMethod(schema, m)) continue;
       methods.push(m);
     }
   }

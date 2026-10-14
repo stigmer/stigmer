@@ -6,7 +6,7 @@ import ai.stigmer.agentic.channelapp.v1.ChannelApp;
 import ai.stigmer.agentic.channelapp.v1.ChannelAppCommandControllerGrpc;
 import ai.stigmer.agentic.channelapp.v1.ChannelAppQueryControllerGrpc;
 import ai.stigmer.agentic.channelapp.v1.ChannelApps;
-import ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput;
+import ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput;
 import ai.stigmer.agentic.channelapp.v1.UpdateChannelAppInput;
 import ai.stigmer.commons.apiresource.ApiResourceDeleteInput;
 import ai.stigmer.commons.apiresource.ApiResourceId;
@@ -77,9 +77,22 @@ public final class ChannelAppClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public ChannelApps listByOrg(ListChannelAppsByOrgInput input) {
+    public ChannelApps list(ListChannelAppsInput input) {
         try {
-            return query.listByOrg(input);
+            return query.list(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code list}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<ChannelApp> listAll(ListChannelAppsInput input) {
+        return Pages.<ChannelApps, ChannelApp>iterate(
+            input.getPageToken(),
+            token -> list(input.toBuilder().setPageToken(token).build()),
+            ChannelApps::getEntriesList,
+            ChannelApps::getNextPageToken);
     }
 }

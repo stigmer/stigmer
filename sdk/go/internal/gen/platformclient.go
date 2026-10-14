@@ -4,6 +4,7 @@ package gen
 
 import (
 	"context"
+	"iter"
 	"time"
 
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
@@ -11,6 +12,7 @@ import (
 	platformclientv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/platformclient/v1"
 	iamv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -77,9 +79,38 @@ func (p *PlatformClientClient) GetByReference(ctx context.Context, ref ResourceR
 	return resp, wrapErr(err)
 }
 
-func (p *PlatformClientClient) ListByOrg(ctx context.Context, input *platformclientv1.ListPlatformClientsByOrgInput) (*platformclientv1.PlatformClients, error) {
-	resp, err := p.query.ListByOrg(ctx, input)
+func (p *PlatformClientClient) List(ctx context.Context, input *platformclientv1.ListPlatformClientsInput) (*platformclientv1.PlatformClients, error) {
+	resp, err := p.query.List(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListAll returns every entry of List, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (p *PlatformClientClient) ListAll(ctx context.Context, input *platformclientv1.ListPlatformClientsInput) iter.Seq2[*platformclientv1.PlatformClient, error] {
+	return func(yield func(*platformclientv1.PlatformClient, error) bool) {
+		req := &platformclientv1.ListPlatformClientsInput{}
+		if input != nil {
+			req = proto.Clone(input).(*platformclientv1.ListPlatformClientsInput)
+		}
+		for {
+			page, err := p.List(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 func (p *PlatformClientClient) MintUserToken(ctx context.Context, input *platformclientv1.MintUserTokenRequest) (*platformclientv1.MintUserTokenResponse, error) {

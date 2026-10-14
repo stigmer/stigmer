@@ -10,7 +10,7 @@ import ai.stigmer.iam.identityprovider.v1.IdentityProvider;
 import ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandControllerGrpc;
 import ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryControllerGrpc;
 import ai.stigmer.iam.identityprovider.v1.IdentityProviders;
-import ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput;
+import ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersInput;
 import ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput;
 import com.google.protobuf.FieldMask;
 import io.grpc.Channel;
@@ -77,9 +77,22 @@ public final class IdentityProviderClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public IdentityProviders listByOrg(ListIdentityProvidersByOrgInput input) {
+    public IdentityProviders list(ListIdentityProvidersInput input) {
         try {
-            return query.listByOrg(input);
+            return query.list(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code list}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<IdentityProvider> listAll(ListIdentityProvidersInput input) {
+        return Pages.<IdentityProviders, IdentityProvider>iterate(
+            input.getPageToken(),
+            token -> list(input.toBuilder().setPageToken(token).build()),
+            IdentityProviders::getEntriesList,
+            IdentityProviders::getNextPageToken);
     }
 }

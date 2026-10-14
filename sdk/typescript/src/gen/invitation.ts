@@ -2,13 +2,13 @@
 
 import { wrapError } from "./errors.js";
 import { stripUndefined, toTimestamp } from "./proto-utils.js";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { InvitationSchema, type Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
 import { InvitationCommandController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/command_pb";
-import { InvitationIdSchema, RedeemInvitationInputSchema, ListInvitationsByOrgInputSchema, InvitationsSchema, InvitationTokenInputSchema, InvitationPreviewSchema, type RedeemInvitationInput, type ListInvitationsByOrgInput, type Invitations, type InvitationTokenInput, type InvitationPreview } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/io_pb";
+import { InvitationIdSchema, RedeemInvitationInputSchema, ListInvitationsInputSchema, InvitationsSchema, InvitationTokenInputSchema, InvitationPreviewSchema, type RedeemInvitationInput, type ListInvitationsInput, type Invitations, type InvitationTokenInput, type InvitationPreview } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/io_pb";
 import { InvitationQueryController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/query_pb";
 import { InvitationSpecSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/spec_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -47,10 +47,24 @@ export class InvitationClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async listByOrg(input: ListInvitationsByOrgInput): Promise<Invitations> {
+  async list(input: ListInvitationsInput): Promise<Invitations> {
     try {
-      return await this.query.listByOrg(input);
+      return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `list`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listAll(input: MessageInitShape<typeof ListInvitationsInputSchema>): AsyncGenerator<Invitations["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.list(create(ListInvitationsInputSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 
   async getByToken(input: InvitationTokenInput): Promise<InvitationPreview> {

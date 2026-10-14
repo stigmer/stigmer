@@ -4,10 +4,12 @@ package gen
 
 import (
 	"context"
+	"iter"
 
 	scorev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/score/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
@@ -56,9 +58,67 @@ func (s *ScoreClient) ListByRun(ctx context.Context, input *scorev1.ListScoresBy
 	return resp, wrapErr(err)
 }
 
+// ListByRunAll returns every entry of ListByRun, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (s *ScoreClient) ListByRunAll(ctx context.Context, input *scorev1.ListScoresByRunRequest) iter.Seq2[*scorev1.Score, error] {
+	return func(yield func(*scorev1.Score, error) bool) {
+		req := &scorev1.ListScoresByRunRequest{}
+		if input != nil {
+			req = proto.Clone(input).(*scorev1.ListScoresByRunRequest)
+		}
+		for {
+			page, err := s.ListByRun(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
+}
+
 func (s *ScoreClient) ListBySession(ctx context.Context, input *scorev1.ListScoresBySessionRequest) (*scorev1.ScoreList, error) {
 	resp, err := s.query.ListBySession(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListBySessionAll returns every entry of ListBySession, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (s *ScoreClient) ListBySessionAll(ctx context.Context, input *scorev1.ListScoresBySessionRequest) iter.Seq2[*scorev1.Score, error] {
+	return func(yield func(*scorev1.Score, error) bool) {
+		req := &scorev1.ListScoresBySessionRequest{}
+		if input != nil {
+			req = proto.Clone(input).(*scorev1.ListScoresBySessionRequest)
+		}
+		for {
+			page, err := s.ListBySession(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 func (s *ScoreClient) GetAgentQualityReport(ctx context.Context, input *scorev1.GetAgentQualityReportRequest) (*scorev1.AgentQualityReport, error) {
@@ -69,6 +129,35 @@ func (s *ScoreClient) GetAgentQualityReport(ctx context.Context, input *scorev1.
 func (s *ScoreClient) ListFlaggedByAgent(ctx context.Context, input *scorev1.ListFlaggedScoresByAgentRequest) (*scorev1.ScoreList, error) {
 	resp, err := s.query.ListFlaggedByAgent(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListFlaggedByAgentAll returns every entry of ListFlaggedByAgent, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (s *ScoreClient) ListFlaggedByAgentAll(ctx context.Context, input *scorev1.ListFlaggedScoresByAgentRequest) iter.Seq2[*scorev1.Score, error] {
+	return func(yield func(*scorev1.Score, error) bool) {
+		req := &scorev1.ListFlaggedScoresByAgentRequest{}
+		if input != nil {
+			req = proto.Clone(input).(*scorev1.ListFlaggedScoresByAgentRequest)
+		}
+		for {
+			page, err := s.ListFlaggedByAgent(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 // ScoreInput holds the fields for creating or applying a Score.

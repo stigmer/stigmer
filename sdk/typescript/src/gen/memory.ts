@@ -63,6 +63,20 @@ export class MemoryClient {
       return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
   }
+
+  /**
+   * Every entry of `list`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listAll(input: MessageInitShape<typeof ListMemoriesRequestSchema>): AsyncGenerator<MemoryList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.list(create(ListMemoriesRequestSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
+  }
 }
 
 /** Input for creating or applying a Memory. */

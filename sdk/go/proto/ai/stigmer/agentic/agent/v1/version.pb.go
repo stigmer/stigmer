@@ -141,11 +141,11 @@ type ListAgentVersionsInput struct {
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// Agent slug (unique within the organization).
 	Slug string `protobuf:"bytes,2,opt,name=slug,proto3" json:"slug,omitempty"`
-	// Opaque token for offset pagination.
-	// Empty string or omitted for the first page.
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
 	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	// Maximum number of versions to return per page.
-	// Server may return fewer. Default is 50, max is 100.
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
 	PageSize      int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -213,11 +213,10 @@ func (x *ListAgentVersionsInput) GetPageSize() int32 {
 type ListAgentVersionsResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Ordered list of versions (newest first).
-	Versions []*AgentVersionEntry `protobuf:"bytes,1,rep,name=versions,proto3" json:"versions,omitempty"`
-	// Token for fetching the next page. Empty when no more pages exist.
+	Entries []*AgentVersionEntry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
 	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
-	// Total number of versions across all pages.
-	TotalCount    int32 `protobuf:"varint,3,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -252,9 +251,9 @@ func (*ListAgentVersionsResponse) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agent_v1_version_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *ListAgentVersionsResponse) GetVersions() []*AgentVersionEntry {
+func (x *ListAgentVersionsResponse) GetEntries() []*AgentVersionEntry {
 	if x != nil {
-		return x.Versions
+		return x.Entries
 	}
 	return nil
 }
@@ -264,13 +263,6 @@ func (x *ListAgentVersionsResponse) GetNextPageToken() string {
 		return x.NextPageToken
 	}
 	return ""
-}
-
-func (x *ListAgentVersionsResponse) GetTotalCount() int32 {
-	if x != nil {
-		return x.TotalCount
-	}
-	return 0
 }
 
 // GetAgentVersionInput requests one version of an agent by its hash.
@@ -414,18 +406,16 @@ const file_ai_stigmer_agentic_agent_v1_version_proto_rawDesc = "" +
 	"\n" +
 	"is_current\x18\x05 \x01(\bR\tisCurrent\x12\x18\n" +
 	"\amessage\x18\x06 \x01(\tR\amessage\x12K\n" +
-	"\rspec_snapshot\x18\a \x01(\v2&.ai.stigmer.agentic.agent.v1.AgentSpecR\fspecSnapshotJ\x04\b\b\x10\tR\x0egit_provenance\"\x8a\x01\n" +
+	"\rspec_snapshot\x18\a \x01(\v2&.ai.stigmer.agentic.agent.v1.AgentSpecR\fspecSnapshotJ\x04\b\b\x10\tR\x0egit_provenance\"\x9d\x01\n" +
 	"\x16ListAgentVersionsInput\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1a\n" +
-	"\x04slug\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04slug\x12\x1d\n" +
+	"\x04slug\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04slug\x12'\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tR\tpageToken\x12\x1b\n" +
-	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\"\xb0\x01\n" +
-	"\x19ListAgentVersionsResponse\x12J\n" +
-	"\bversions\x18\x01 \x03(\v2..ai.stigmer.agentic.agent.v1.AgentVersionEntryR\bversions\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n" +
-	"\vtotal_count\x18\x03 \x01(\x05R\n" +
-	"totalCount\"s\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12$\n" +
+	"\tpage_size\x18\x04 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\"\xa0\x01\n" +
+	"\x19ListAgentVersionsResponse\x12H\n" +
+	"\aentries\x18\x01 \x03(\v2..ai.stigmer.agentic.agent.v1.AgentVersionEntryR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenJ\x04\b\x03\x10\x04R\vtotal_count\"s\n" +
 	"\x14GetAgentVersionInput\x12!\n" +
 	"\bagent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\aagentId\x128\n" +
 	"\fversion_hash\x18\x02 \x01(\tB\x15\xbaH\x12r\x102\x0e^[a-f0-9]{64}$R\vversionHash\"\xa1\x01\n" +
@@ -462,7 +452,7 @@ var file_ai_stigmer_agentic_agent_v1_version_proto_depIdxs = []int32{
 	5, // 0: ai.stigmer.agentic.agent.v1.AgentVersionEntry.applied_at:type_name -> google.protobuf.Timestamp
 	6, // 1: ai.stigmer.agentic.agent.v1.AgentVersionEntry.applied_by:type_name -> ai.stigmer.commons.apiresource.ApiResourceAuditActor
 	7, // 2: ai.stigmer.agentic.agent.v1.AgentVersionEntry.spec_snapshot:type_name -> ai.stigmer.agentic.agent.v1.AgentSpec
-	0, // 3: ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse.versions:type_name -> ai.stigmer.agentic.agent.v1.AgentVersionEntry
+	0, // 3: ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse.entries:type_name -> ai.stigmer.agentic.agent.v1.AgentVersionEntry
 	4, // [4:4] is the sub-list for method output_type
 	4, // [4:4] is the sub-list for method input_type
 	4, // [4:4] is the sub-list for extension type_name

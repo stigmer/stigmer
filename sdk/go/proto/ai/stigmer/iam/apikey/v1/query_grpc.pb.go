@@ -11,7 +11,6 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -22,8 +21,8 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	ApiKeyQueryController_Get_FullMethodName           = "/ai.stigmer.iam.apikey.v1.ApiKeyQueryController/get"
 	ApiKeyQueryController_GetByKeyHash_FullMethodName  = "/ai.stigmer.iam.apikey.v1.ApiKeyQueryController/getByKeyHash"
-	ApiKeyQueryController_FindAll_FullMethodName       = "/ai.stigmer.iam.apikey.v1.ApiKeyQueryController/findAll"
-	ApiKeyQueryController_FindByAccount_FullMethodName = "/ai.stigmer.iam.apikey.v1.ApiKeyQueryController/findByAccount"
+	ApiKeyQueryController_List_FullMethodName          = "/ai.stigmer.iam.apikey.v1.ApiKeyQueryController/list"
+	ApiKeyQueryController_ListByAccount_FullMethodName = "/ai.stigmer.iam.apikey.v1.ApiKeyQueryController/listByAccount"
 )
 
 // ApiKeyQueryControllerClient is the client API for ApiKeyQueryController service.
@@ -39,15 +38,15 @@ type ApiKeyQueryControllerClient interface {
 	// List all API keys belonging to the authenticated user.
 	//
 	// Returns only the keys that speak for the identity account in the auth
-	// header; a service account's keys are listed with findByAccount.
-	FindAll(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ApiKeys, error)
+	// header; a service account's keys are listed with listByAccount.
+	List(ctx context.Context, in *ListApiKeysInput, opts ...grpc.CallOption) (*ApiKeys, error)
 	// List the API keys that speak for an identity account.
 	//
 	// An organization's admins list a service account's keys with it; a person
 	// lists their own.
 	//
 	// Authorization: Requires can_view on the identity account.
-	FindByAccount(ctx context.Context, in *ApiKeyAccountId, opts ...grpc.CallOption) (*ApiKeys, error)
+	ListByAccount(ctx context.Context, in *ListApiKeysByAccountInput, opts ...grpc.CallOption) (*ApiKeys, error)
 }
 
 type apiKeyQueryControllerClient struct {
@@ -78,20 +77,20 @@ func (c *apiKeyQueryControllerClient) GetByKeyHash(ctx context.Context, in *ApiK
 	return out, nil
 }
 
-func (c *apiKeyQueryControllerClient) FindAll(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ApiKeys, error) {
+func (c *apiKeyQueryControllerClient) List(ctx context.Context, in *ListApiKeysInput, opts ...grpc.CallOption) (*ApiKeys, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ApiKeys)
-	err := c.cc.Invoke(ctx, ApiKeyQueryController_FindAll_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, ApiKeyQueryController_List_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *apiKeyQueryControllerClient) FindByAccount(ctx context.Context, in *ApiKeyAccountId, opts ...grpc.CallOption) (*ApiKeys, error) {
+func (c *apiKeyQueryControllerClient) ListByAccount(ctx context.Context, in *ListApiKeysByAccountInput, opts ...grpc.CallOption) (*ApiKeys, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ApiKeys)
-	err := c.cc.Invoke(ctx, ApiKeyQueryController_FindByAccount_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, ApiKeyQueryController_ListByAccount_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -111,15 +110,15 @@ type ApiKeyQueryControllerServer interface {
 	// List all API keys belonging to the authenticated user.
 	//
 	// Returns only the keys that speak for the identity account in the auth
-	// header; a service account's keys are listed with findByAccount.
-	FindAll(context.Context, *emptypb.Empty) (*ApiKeys, error)
+	// header; a service account's keys are listed with listByAccount.
+	List(context.Context, *ListApiKeysInput) (*ApiKeys, error)
 	// List the API keys that speak for an identity account.
 	//
 	// An organization's admins list a service account's keys with it; a person
 	// lists their own.
 	//
 	// Authorization: Requires can_view on the identity account.
-	FindByAccount(context.Context, *ApiKeyAccountId) (*ApiKeys, error)
+	ListByAccount(context.Context, *ListApiKeysByAccountInput) (*ApiKeys, error)
 }
 
 // UnimplementedApiKeyQueryControllerServer should be embedded to have
@@ -135,11 +134,11 @@ func (UnimplementedApiKeyQueryControllerServer) Get(context.Context, *ApiKeyId) 
 func (UnimplementedApiKeyQueryControllerServer) GetByKeyHash(context.Context, *ApiKeyHash) (*ApiKey, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByKeyHash not implemented")
 }
-func (UnimplementedApiKeyQueryControllerServer) FindAll(context.Context, *emptypb.Empty) (*ApiKeys, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FindAll not implemented")
+func (UnimplementedApiKeyQueryControllerServer) List(context.Context, *ListApiKeysInput) (*ApiKeys, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
-func (UnimplementedApiKeyQueryControllerServer) FindByAccount(context.Context, *ApiKeyAccountId) (*ApiKeys, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FindByAccount not implemented")
+func (UnimplementedApiKeyQueryControllerServer) ListByAccount(context.Context, *ListApiKeysByAccountInput) (*ApiKeys, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListByAccount not implemented")
 }
 func (UnimplementedApiKeyQueryControllerServer) testEmbeddedByValue() {}
 
@@ -197,38 +196,38 @@ func _ApiKeyQueryController_GetByKeyHash_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ApiKeyQueryController_FindAll_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(emptypb.Empty)
+func _ApiKeyQueryController_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListApiKeysInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ApiKeyQueryControllerServer).FindAll(ctx, in)
+		return srv.(ApiKeyQueryControllerServer).List(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ApiKeyQueryController_FindAll_FullMethodName,
+		FullMethod: ApiKeyQueryController_List_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ApiKeyQueryControllerServer).FindAll(ctx, req.(*emptypb.Empty))
+		return srv.(ApiKeyQueryControllerServer).List(ctx, req.(*ListApiKeysInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ApiKeyQueryController_FindByAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ApiKeyAccountId)
+func _ApiKeyQueryController_ListByAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListApiKeysByAccountInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ApiKeyQueryControllerServer).FindByAccount(ctx, in)
+		return srv.(ApiKeyQueryControllerServer).ListByAccount(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ApiKeyQueryController_FindByAccount_FullMethodName,
+		FullMethod: ApiKeyQueryController_ListByAccount_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ApiKeyQueryControllerServer).FindByAccount(ctx, req.(*ApiKeyAccountId))
+		return srv.(ApiKeyQueryControllerServer).ListByAccount(ctx, req.(*ListApiKeysByAccountInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -249,12 +248,12 @@ var ApiKeyQueryController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ApiKeyQueryController_GetByKeyHash_Handler,
 		},
 		{
-			MethodName: "findAll",
-			Handler:    _ApiKeyQueryController_FindAll_Handler,
+			MethodName: "list",
+			Handler:    _ApiKeyQueryController_List_Handler,
 		},
 		{
-			MethodName: "findByAccount",
-			Handler:    _ApiKeyQueryController_FindByAccount_Handler,
+			MethodName: "listByAccount",
+			Handler:    _ApiKeyQueryController_ListByAccount_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

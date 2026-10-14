@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	IdentityProviderQueryController_Get_FullMethodName            = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/get"
 	IdentityProviderQueryController_GetByReference_FullMethodName = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/getByReference"
-	IdentityProviderQueryController_ListByOrg_FullMethodName      = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/listByOrg"
+	IdentityProviderQueryController_List_FullMethodName           = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/list"
 )
 
 // IdentityProviderQueryControllerClient is the client API for IdentityProviderQueryController service.
@@ -41,9 +41,8 @@ type IdentityProviderQueryControllerClient interface {
 	// List the identity providers of an organization that the caller may view.
 	//
 	// Returns the IdentityProviders whose metadata.org matches the input org and
-	// that the caller could get by id. Typically a small set (1-3 per org), so
-	// results are not paginated.
-	ListByOrg(ctx context.Context, in *ListIdentityProvidersByOrgInput, opts ...grpc.CallOption) (*IdentityProviders, error)
+	// that the caller could get by id, newest first, one page at a time.
+	List(ctx context.Context, in *ListIdentityProvidersInput, opts ...grpc.CallOption) (*IdentityProviders, error)
 }
 
 type identityProviderQueryControllerClient struct {
@@ -74,10 +73,10 @@ func (c *identityProviderQueryControllerClient) GetByReference(ctx context.Conte
 	return out, nil
 }
 
-func (c *identityProviderQueryControllerClient) ListByOrg(ctx context.Context, in *ListIdentityProvidersByOrgInput, opts ...grpc.CallOption) (*IdentityProviders, error) {
+func (c *identityProviderQueryControllerClient) List(ctx context.Context, in *ListIdentityProvidersInput, opts ...grpc.CallOption) (*IdentityProviders, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(IdentityProviders)
-	err := c.cc.Invoke(ctx, IdentityProviderQueryController_ListByOrg_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, IdentityProviderQueryController_List_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -100,9 +99,8 @@ type IdentityProviderQueryControllerServer interface {
 	// List the identity providers of an organization that the caller may view.
 	//
 	// Returns the IdentityProviders whose metadata.org matches the input org and
-	// that the caller could get by id. Typically a small set (1-3 per org), so
-	// results are not paginated.
-	ListByOrg(context.Context, *ListIdentityProvidersByOrgInput) (*IdentityProviders, error)
+	// that the caller could get by id, newest first, one page at a time.
+	List(context.Context, *ListIdentityProvidersInput) (*IdentityProviders, error)
 }
 
 // UnimplementedIdentityProviderQueryControllerServer should be embedded to have
@@ -118,8 +116,8 @@ func (UnimplementedIdentityProviderQueryControllerServer) Get(context.Context, *
 func (UnimplementedIdentityProviderQueryControllerServer) GetByReference(context.Context, *apiresource.ApiResourceReference) (*IdentityProvider, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByReference not implemented")
 }
-func (UnimplementedIdentityProviderQueryControllerServer) ListByOrg(context.Context, *ListIdentityProvidersByOrgInput) (*IdentityProviders, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListByOrg not implemented")
+func (UnimplementedIdentityProviderQueryControllerServer) List(context.Context, *ListIdentityProvidersInput) (*IdentityProviders, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
 func (UnimplementedIdentityProviderQueryControllerServer) testEmbeddedByValue() {}
 
@@ -177,20 +175,20 @@ func _IdentityProviderQueryController_GetByReference_Handler(srv interface{}, ct
 	return interceptor(ctx, in, info, handler)
 }
 
-func _IdentityProviderQueryController_ListByOrg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListIdentityProvidersByOrgInput)
+func _IdentityProviderQueryController_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListIdentityProvidersInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(IdentityProviderQueryControllerServer).ListByOrg(ctx, in)
+		return srv.(IdentityProviderQueryControllerServer).List(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: IdentityProviderQueryController_ListByOrg_FullMethodName,
+		FullMethod: IdentityProviderQueryController_List_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IdentityProviderQueryControllerServer).ListByOrg(ctx, req.(*ListIdentityProvidersByOrgInput))
+		return srv.(IdentityProviderQueryControllerServer).List(ctx, req.(*ListIdentityProvidersInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -211,8 +209,8 @@ var IdentityProviderQueryController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _IdentityProviderQueryController_GetByReference_Handler,
 		},
 		{
-			MethodName: "listByOrg",
-			Handler:    _IdentityProviderQueryController_ListByOrg_Handler,
+			MethodName: "list",
+			Handler:    _IdentityProviderQueryController_List_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -73,7 +73,10 @@ func (x *IdentityProviderId) GetValue() string {
 type IdentityProviders struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Identity provider entries.
-	Entries       []*IdentityProvider `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	Entries []*IdentityProvider `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -115,31 +118,43 @@ func (x *IdentityProviders) GetEntries() []*IdentityProvider {
 	return nil
 }
 
-// IdentityProviderList is a paginated response containing identity providers.
-type IdentityProviderList struct {
+func (x *IdentityProviders) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+// ListIdentityProvidersInput specifies the organization whose identity
+// providers should be returned.
+type ListIdentityProvidersInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Total number of pages available.
-	TotalPages int32 `protobuf:"varint,1,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
-	// Identity providers in the current page.
-	Entries       []*IdentityProvider `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Organization slug to list identity providers for.
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *IdentityProviderList) Reset() {
-	*x = IdentityProviderList{}
+func (x *ListIdentityProvidersInput) Reset() {
+	*x = ListIdentityProvidersInput{}
 	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *IdentityProviderList) String() string {
+func (x *ListIdentityProvidersInput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*IdentityProviderList) ProtoMessage() {}
+func (*ListIdentityProvidersInput) ProtoMessage() {}
 
-func (x *IdentityProviderList) ProtoReflect() protoreflect.Message {
+func (x *ListIdentityProvidersInput) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -151,68 +166,28 @@ func (x *IdentityProviderList) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use IdentityProviderList.ProtoReflect.Descriptor instead.
-func (*IdentityProviderList) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListIdentityProvidersInput.ProtoReflect.Descriptor instead.
+func (*ListIdentityProvidersInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *IdentityProviderList) GetTotalPages() int32 {
+func (x *ListIdentityProvidersInput) GetOrg() string {
 	if x != nil {
-		return x.TotalPages
+		return x.Org
+	}
+	return ""
+}
+
+func (x *ListIdentityProvidersInput) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
 	}
 	return 0
 }
 
-func (x *IdentityProviderList) GetEntries() []*IdentityProvider {
+func (x *ListIdentityProvidersInput) GetPageToken() string {
 	if x != nil {
-		return x.Entries
-	}
-	return nil
-}
-
-// ListIdentityProvidersByOrgInput specifies the organization whose identity
-// providers should be returned.
-type ListIdentityProvidersByOrgInput struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Organization slug to list identity providers for.
-	Org           string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListIdentityProvidersByOrgInput) Reset() {
-	*x = ListIdentityProvidersByOrgInput{}
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListIdentityProvidersByOrgInput) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListIdentityProvidersByOrgInput) ProtoMessage() {}
-
-func (x *ListIdentityProvidersByOrgInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListIdentityProvidersByOrgInput.ProtoReflect.Descriptor instead.
-func (*ListIdentityProvidersByOrgInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *ListIdentityProvidersByOrgInput) GetOrg() string {
-	if x != nil {
-		return x.Org
+		return x.PageToken
 	}
 	return ""
 }
@@ -235,7 +210,7 @@ type UpdateIdentityProviderInput struct {
 
 func (x *UpdateIdentityProviderInput) Reset() {
 	*x = UpdateIdentityProviderInput{}
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[4]
+	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -247,7 +222,7 @@ func (x *UpdateIdentityProviderInput) String() string {
 func (*UpdateIdentityProviderInput) ProtoMessage() {}
 
 func (x *UpdateIdentityProviderInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[4]
+	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -260,7 +235,7 @@ func (x *UpdateIdentityProviderInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateIdentityProviderInput.ProtoReflect.Descriptor instead.
 func (*UpdateIdentityProviderInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *UpdateIdentityProviderInput) GetResource() *IdentityProvider {
@@ -283,15 +258,15 @@ const file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"+ai/stigmer/iam/identityprovider/v1/io.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a,ai/stigmer/iam/identityprovider/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"5\n" +
 	"\x12IdentityProviderId\x12\x1f\n" +
-	"\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"c\n" +
+	"\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"\x8b\x01\n" +
 	"\x11IdentityProviders\x12N\n" +
-	"\aentries\x18\x01 \x03(\v24.ai.stigmer.iam.identityprovider.v1.IdentityProviderR\aentries\"\x87\x01\n" +
-	"\x14IdentityProviderList\x12\x1f\n" +
-	"\vtotal_pages\x18\x01 \x01(\x05R\n" +
-	"totalPages\x12N\n" +
-	"\aentries\x18\x02 \x03(\v24.ai.stigmer.iam.identityprovider.v1.IdentityProviderR\aentries\"<\n" +
-	"\x1fListIdentityProvidersByOrgInput\x12\x19\n" +
-	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\x88\x03\n" +
+	"\aentries\x18\x01 \x03(\v24.ai.stigmer.iam.identityprovider.v1.IdentityProviderR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x86\x01\n" +
+	"\x1aListIdentityProvidersInput\x12\x19\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x88\x03\n" +
 	"\x1bUpdateIdentityProviderInput\x12X\n" +
 	"\bresource\x18\x01 \x01(\v24.ai.stigmer.iam.identityprovider.v1.IdentityProviderB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
@@ -311,26 +286,24 @@ func file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_iam_identityprovider_v1_io_proto_goTypes = []any{
-	(*IdentityProviderId)(nil),              // 0: ai.stigmer.iam.identityprovider.v1.IdentityProviderId
-	(*IdentityProviders)(nil),               // 1: ai.stigmer.iam.identityprovider.v1.IdentityProviders
-	(*IdentityProviderList)(nil),            // 2: ai.stigmer.iam.identityprovider.v1.IdentityProviderList
-	(*ListIdentityProvidersByOrgInput)(nil), // 3: ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput
-	(*UpdateIdentityProviderInput)(nil),     // 4: ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput
-	(*IdentityProvider)(nil),                // 5: ai.stigmer.iam.identityprovider.v1.IdentityProvider
-	(*fieldmaskpb.FieldMask)(nil),           // 6: google.protobuf.FieldMask
+	(*IdentityProviderId)(nil),          // 0: ai.stigmer.iam.identityprovider.v1.IdentityProviderId
+	(*IdentityProviders)(nil),           // 1: ai.stigmer.iam.identityprovider.v1.IdentityProviders
+	(*ListIdentityProvidersInput)(nil),  // 2: ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersInput
+	(*UpdateIdentityProviderInput)(nil), // 3: ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput
+	(*IdentityProvider)(nil),            // 4: ai.stigmer.iam.identityprovider.v1.IdentityProvider
+	(*fieldmaskpb.FieldMask)(nil),       // 5: google.protobuf.FieldMask
 }
 var file_ai_stigmer_iam_identityprovider_v1_io_proto_depIdxs = []int32{
-	5, // 0: ai.stigmer.iam.identityprovider.v1.IdentityProviders.entries:type_name -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
-	5, // 1: ai.stigmer.iam.identityprovider.v1.IdentityProviderList.entries:type_name -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
-	5, // 2: ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput.resource:type_name -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
-	6, // 3: ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput.update_mask:type_name -> google.protobuf.FieldMask
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	4, // 0: ai.stigmer.iam.identityprovider.v1.IdentityProviders.entries:type_name -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
+	4, // 1: ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput.resource:type_name -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
+	5, // 2: ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput.update_mask:type_name -> google.protobuf.FieldMask
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_identityprovider_v1_io_proto_init() }
@@ -345,7 +318,7 @@ func file_ai_stigmer_iam_identityprovider_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDesc), len(file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

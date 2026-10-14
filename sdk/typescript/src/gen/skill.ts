@@ -2,32 +2,27 @@
 
 import { wrapError } from "./errors.js";
 import { stripUndefined } from "./proto-utils.js";
-import { type ListParams, type ListResult, type ResourceRef } from "./types.js";
-import { create } from "@bufbuild/protobuf";
+import { type ResourceRef } from "./types.js";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { SkillSchema, type Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
-import { SkillIdSchema, PushSkillRequestSchema, CreateSkillArtifactUploadUrlRequestSchema, SkillArtifactUploadUrlSchema, PushSkillFromRunArtifactRequestSchema, GetArtifactRequestSchema, GetArtifactResponseSchema, SkillArtifactDownloadUrlSchema, ListSkillVersionsInputSchema, ListSkillVersionsResponseSchema, type PushSkillRequest, type CreateSkillArtifactUploadUrlRequest, type SkillArtifactUploadUrl, type PushSkillFromRunArtifactRequest, type GetArtifactRequest, type GetArtifactResponse, type SkillArtifactDownloadUrl, type ListSkillVersionsInput, type ListSkillVersionsResponse } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
+import { SkillIdSchema, PushSkillRequestSchema, CreateSkillArtifactUploadUrlRequestSchema, SkillArtifactUploadUrlSchema, PushSkillFromRunArtifactRequestSchema, ListSkillsRequestSchema, SkillListSchema, GetArtifactRequestSchema, GetArtifactResponseSchema, SkillArtifactDownloadUrlSchema, ListSkillVersionsInputSchema, ListSkillVersionsResponseSchema, type PushSkillRequest, type CreateSkillArtifactUploadUrlRequest, type SkillArtifactUploadUrl, type PushSkillFromRunArtifactRequest, type ListSkillsRequest, type SkillList, type GetArtifactRequest, type GetArtifactResponse, type SkillArtifactDownloadUrl, type ListSkillVersionsInput, type ListSkillVersionsResponse } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import { SkillSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema, ApiResourceMetadataVersionSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
-import { SearchRequestSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 
 /** Provides operations on skill resources. */
 export class SkillClient {
   private readonly command: Client<typeof SkillCommandController>;
   private readonly query: Client<typeof SkillQueryController>;
-  private readonly search: Client<typeof SearchService>;
 
   constructor(transport: Transport) {
     this.command = createClient(SkillCommandController, transport);
     this.query = createClient(SkillQueryController, transport);
-    this.search = createClient(SearchService, transport);
   }
 
   async push(input: PushSkillRequest): Promise<Skill> {
@@ -72,6 +67,26 @@ export class SkillClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  async list(input: ListSkillsRequest): Promise<SkillList> {
+    try {
+      return await this.query.list(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `list`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listAll(input: MessageInitShape<typeof ListSkillsRequestSchema>): AsyncGenerator<SkillList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.list(create(ListSkillsRequestSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
+  }
+
   async getArtifact(input: GetArtifactRequest): Promise<GetArtifactResponse> {
     try {
       return await this.query.getArtifact(input);
@@ -90,20 +105,18 @@ export class SkillClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async list(params: ListParams): Promise<ListResult> {
-    try {
-      const resp = await this.search.search(create(SearchRequestSchema, {
-        kinds: [ApiResourceKind.skill],
-        query: params.query,
-        org: params.org,
-        page: params.page ? create(PageInfoSchema, params.page) : undefined,
-      }));
-      return {
-        entries: resp.entries,
-        totalCount: resp.totalCount,
-        totalPages: resp.totalPages,
-      };
-    } catch (e) { throw wrapError(e); }
+  /**
+   * Every entry of `listVersions`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listVersionsAll(input: MessageInitShape<typeof ListSkillVersionsInputSchema>): AsyncGenerator<ListSkillVersionsResponse["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.listVersions(create(ListSkillVersionsInputSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 }
 

@@ -50,4 +50,17 @@ public final class PluginEvalClient {
             return query.listByPlugin(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
+
+    /**
+     * Every entry of {@code listByPlugin}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<PluginEval> listByPluginAll(ListPluginEvalsByPluginRequest input) {
+        return Pages.<PluginEvalList, PluginEval>iterate(
+            input.getPageToken(),
+            token -> listByPlugin(input.toBuilder().setPageToken(token).build()),
+            PluginEvalList::getEntriesList,
+            PluginEvalList::getNextPageToken);
+    }
 }

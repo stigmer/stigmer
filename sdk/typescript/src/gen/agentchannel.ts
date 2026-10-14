@@ -8,9 +8,9 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { AgentChannelSchema, type AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
 import { ChannelConversationCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_command_pb";
-import { ReplyToConversationInputSchema, ConversationControlInputSchema, ChannelConversationSchema, EscalateConversationInputSchema, ListChannelConversationsInputSchema, ChannelConversationListSchema, GetChannelConversationInputSchema, GetConversationTimelineInputSchema, ConversationTimelineSchema, GetConversationMediaDownloadUrlInputSchema, ConversationMediaDownloadUrlSchema, type ReplyToConversationInput, type ConversationControlInput, type ChannelConversation, type EscalateConversationInput, type ListChannelConversationsInput, type ChannelConversationList, type GetChannelConversationInput, type GetConversationTimelineInput, type ConversationTimeline, type GetConversationMediaDownloadUrlInput, type ConversationMediaDownloadUrl } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+import { ReplyToConversationInputSchema, ConversationControlInputSchema, ChannelConversationSchema, EscalateConversationInputSchema, ListChannelConversationsInputSchema, ChannelConversationListSchema, CountChannelConversationsInputSchema, ChannelConversationCountSchema, GetChannelConversationInputSchema, ListConversationTimelineInputSchema, ConversationTimelineSchema, GetConversationMediaDownloadUrlInputSchema, ConversationMediaDownloadUrlSchema, type ReplyToConversationInput, type ConversationControlInput, type ChannelConversation, type EscalateConversationInput, type ListChannelConversationsInput, type ChannelConversationList, type CountChannelConversationsInput, type ChannelConversationCount, type GetChannelConversationInput, type ListConversationTimelineInput, type ConversationTimeline, type GetConversationMediaDownloadUrlInput, type ConversationMediaDownloadUrl } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
 import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_query_pb";
-import { AgentChannelIdSchema, UpdateAgentChannelInputSchema, InitiateChannelInstallInputSchema, InitiateChannelInstallOutputSchema, CompleteChannelInstallInputSchema, GetAgentChannelsByAgentRequestSchema, AgentChannelListSchema, ListAgentChannelsRequestSchema, type InitiateChannelInstallInput, type InitiateChannelInstallOutput, type CompleteChannelInstallInput, type GetAgentChannelsByAgentRequest, type AgentChannelList, type ListAgentChannelsRequest } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
+import { AgentChannelIdSchema, UpdateAgentChannelInputSchema, InitiateChannelInstallInputSchema, InitiateChannelInstallOutputSchema, CompleteChannelInstallInputSchema, ListAgentChannelsByAgentRequestSchema, AgentChannelListSchema, ListAgentChannelsRequestSchema, type InitiateChannelInstallInput, type InitiateChannelInstallOutput, type CompleteChannelInstallInput, type ListAgentChannelsByAgentRequest, type AgentChannelList, type ListAgentChannelsRequest } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
 import { ChannelMessageCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_command_pb";
 import { SendChannelMessageOutputSchema, SendChannelMessageInputSchema, ListChannelTemplatesInputSchema, ChannelTemplatesSchema, ListMessagingChannelsInputSchema, MessagingChannelsSchema, type SendChannelMessageOutput, type SendChannelMessageInput, type ListChannelTemplatesInput, type ChannelTemplates, type ListMessagingChannelsInput, type MessagingChannels } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_query_pb";
@@ -109,7 +109,27 @@ export class AgentChannelClient {
 
   async listConversations(input: ListChannelConversationsInput): Promise<ChannelConversationList> {
     try {
-      return await this.channelConversationQuery.listConversations(input);
+      return await this.channelConversationQuery.list(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `listConversations`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listConversationsAll(input: MessageInitShape<typeof ListChannelConversationsInputSchema>): AsyncGenerator<ChannelConversationList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.listConversations(create(ListChannelConversationsInputSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
+  }
+
+  async countConversations(input: CountChannelConversationsInput): Promise<ChannelConversationCount> {
+    try {
+      return await this.channelConversationQuery.countConversations(input);
     } catch (e) { throw wrapError(e); }
   }
 
@@ -119,10 +139,24 @@ export class AgentChannelClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async getTimeline(input: GetConversationTimelineInput): Promise<ConversationTimeline> {
+  async listTimeline(input: ListConversationTimelineInput): Promise<ConversationTimeline> {
     try {
-      return await this.channelConversationQuery.getTimeline(input);
+      return await this.channelConversationQuery.listTimeline(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `listTimeline`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listTimelineAll(input: MessageInitShape<typeof ListConversationTimelineInputSchema>): AsyncGenerator<ConversationTimeline["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.listTimeline(create(ListConversationTimelineInputSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 
   async getMediaDownloadUrl(input: GetConversationMediaDownloadUrlInput): Promise<ConversationMediaDownloadUrl> {
@@ -161,16 +195,44 @@ export class AgentChannelClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async getByAgent(input: GetAgentChannelsByAgentRequest): Promise<AgentChannelList> {
+  async listByAgent(input: ListAgentChannelsByAgentRequest): Promise<AgentChannelList> {
     try {
-      return await this.query.getByAgent(input);
+      return await this.query.listByAgent(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `listByAgent`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listByAgentAll(input: MessageInitShape<typeof ListAgentChannelsByAgentRequestSchema>): AsyncGenerator<AgentChannelList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.listByAgent(create(ListAgentChannelsByAgentRequestSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 
   async list(input: ListAgentChannelsRequest): Promise<AgentChannelList> {
     try {
       return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `list`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listAll(input: MessageInitShape<typeof ListAgentChannelsRequestSchema>): AsyncGenerator<AgentChannelList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.list(create(ListAgentChannelsRequestSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 }
 

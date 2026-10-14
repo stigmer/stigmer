@@ -72,7 +72,10 @@ func (x *LicenseId) GetValue() string {
 type Licenses struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// License entries.
-	Entries       []*License `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	Entries []*License `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -114,12 +117,25 @@ func (x *Licenses) GetEntries() []*License {
 	return nil
 }
 
+func (x *Licenses) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
 // ListLicensesInput selects which licenses to list.
 type ListLicensesInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// When set, only licenses issued to this customer (LicenseCustomer.id)
 	// are returned; every license otherwise.
-	CustomerId    string `protobuf:"bytes,1,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
+	CustomerId string `protobuf:"bytes,1,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -161,18 +177,36 @@ func (x *ListLicensesInput) GetCustomerId() string {
 	return ""
 }
 
+func (x *ListLicensesInput) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListLicensesInput) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
 var File_ai_stigmer_billing_license_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_license_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"&ai/stigmer/billing/license/v1/io.proto\x12\x1dai.stigmer.billing.license.v1\x1a'ai/stigmer/billing/license/v1/api.proto\x1a\x1bbuf/validate/validate.proto\",\n" +
 	"\tLicenseId\x12\x1f\n" +
-	"\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"L\n" +
+	"\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"t\n" +
 	"\bLicenses\x12@\n" +
-	"\aentries\x18\x01 \x03(\v2&.ai.stigmer.billing.license.v1.LicenseR\aentries\"4\n" +
+	"\aentries\x18\x01 \x03(\v2&.ai.stigmer.billing.license.v1.LicenseR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x83\x01\n" +
 	"\x11ListLicensesInput\x12\x1f\n" +
 	"\vcustomer_id\x18\x01 \x01(\tR\n" +
-	"customerIdB\x99\x02\n" +
+	"customerId\x12$\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageTokenB\x99\x02\n" +
 	"!com.ai.stigmer.billing.license.v1B\aIoProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/license/v1;licensev1\xa2\x02\x04ASBL\xaa\x02\x1dAi.Stigmer.Billing.License.V1\xca\x02\x1dAi\\Stigmer\\Billing\\License\\V1\xe2\x02)Ai\\Stigmer\\Billing\\License\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Billing::License::V1b\x06proto3"
 
 var (

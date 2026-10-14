@@ -115,10 +115,38 @@ export class RunClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  /**
+   * Every entry of `list`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listAll(input: MessageInitShape<typeof ListRunsRequestSchema>): AsyncGenerator<RunList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.list(create(ListRunsRequestSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
+  }
+
   async listBySession(input: ListRunsBySessionRequest): Promise<RunList> {
     try {
       return await this.query.listBySession(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `listBySession`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listBySessionAll(input: MessageInitShape<typeof ListRunsBySessionRequestSchema>): AsyncGenerator<RunList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.listBySession(create(ListRunsBySessionRequestSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 
   async *subscribe(id: string, signal?: AbortSignal): AsyncGenerator<Run> {

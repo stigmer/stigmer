@@ -11,7 +11,7 @@ import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInput
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { OAuthAppSchema, type OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/command_pb";
-import { UpdateOAuthAppInputSchema, ListOAuthAppsByOrgInputSchema, OAuthAppsSchema, type ListOAuthAppsByOrgInput, type OAuthApps } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/io_pb";
+import { UpdateOAuthAppInputSchema, ListOAuthAppsInputSchema, OAuthAppsSchema, type ListOAuthAppsInput, type OAuthApps } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/io_pb";
 import { OAuthAppQueryController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/query_pb";
 import { OAuthAppSpecSchema, VendorApprovalStatus, TokenEndpointAuthMethod } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
 
@@ -71,10 +71,24 @@ export class OAuthAppClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async listByOrg(input: ListOAuthAppsByOrgInput): Promise<OAuthApps> {
+  async list(input: ListOAuthAppsInput): Promise<OAuthApps> {
     try {
-      return await this.query.listByOrg(input);
+      return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `list`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listAll(input: MessageInitShape<typeof ListOAuthAppsInputSchema>): AsyncGenerator<OAuthApps["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.list(create(ListOAuthAppsInputSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 }
 

@@ -4,12 +4,14 @@ package gen
 
 import (
 	"context"
+	"iter"
 	"time"
 
 	vaultv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/vault/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -141,6 +143,35 @@ func (v *VaultClient) GetByExternalId(ctx context.Context, input *vaultv1.GetVau
 func (v *VaultClient) List(ctx context.Context, input *vaultv1.ListVaultsRequest) (*vaultv1.VaultList, error) {
 	resp, err := v.query.List(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListAll returns every entry of List, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (v *VaultClient) ListAll(ctx context.Context, input *vaultv1.ListVaultsRequest) iter.Seq2[*vaultv1.Vault, error] {
+	return func(yield func(*vaultv1.Vault, error) bool) {
+		req := &vaultv1.ListVaultsRequest{}
+		if input != nil {
+			req = proto.Clone(input).(*vaultv1.ListVaultsRequest)
+		}
+		for {
+			page, err := v.List(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 func (v *VaultClient) FetchValues(ctx context.Context, input *vaultv1.FetchExecutionValuesInput) (*vaultv1.ExecutionValues, error) {

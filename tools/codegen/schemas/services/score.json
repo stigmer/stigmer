@@ -53,7 +53,7 @@
           "inputFullType": "ai.stigmer.agentic.score.v1.ListScoresByRunRequest",
           "outputType": "ScoreList",
           "outputFullType": "ai.stigmer.agentic.score.v1.ScoreList",
-          "description": "List every score of a run."
+          "description": "List the scores of a run, newest first."
         },
         {
           "name": "ListBySession",
@@ -61,7 +61,7 @@
           "inputFullType": "ai.stigmer.agentic.score.v1.ListScoresBySessionRequest",
           "outputType": "ScoreList",
           "outputFullType": "ai.stigmer.agentic.score.v1.ScoreList",
-          "description": "List every score of every run in a session."
+          "description": "List the scores of every run in a session, newest first."
         },
         {
           "name": "GetAgentQualityReport",
@@ -118,7 +118,7 @@
     },
     {
       "name": "ListScoresByRunRequest",
-      "description": "ListScoresByRunRequest lists every score of one run.\n\n A run's scores are returned whole: a run has a handful.",
+      "description": "ListScoresByRunRequest lists the scores of one run, newest first.",
       "protoType": "ai.stigmer.agentic.score.v1.ListScoresByRunRequest",
       "protoFile": "apis/ai/stigmer/agentic/score/v1/io.proto",
       "fields": [
@@ -134,6 +134,29 @@
           "validation": {
             "minLength": 1
           }
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
+          }
         }
       ]
     },
@@ -144,19 +167,9 @@
       "protoFile": "apis/ai/stigmer/agentic/score/v1/io.proto",
       "fields": [
         {
-          "name": "TotalCount",
-          "jsonName": "totalCount",
-          "protoField": "total_count",
-          "type": {
-            "kind": "int32"
-          },
-          "description": "Number of scores in this response. On a paged list it counts this page\n only; follow next_page_token for the rest.",
-          "required": false
-        },
-        {
-          "name": "Items",
-          "jsonName": "items",
-          "protoField": "items",
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
           "type": {
             "kind": "array",
             "elementType": {
@@ -174,14 +187,14 @@
           "type": {
             "kind": "string"
           },
-          "description": "Set when more scores may follow: pass it as page_token to continue. A\n page may hold fewer scores than page_size, even none, and still carry a\n token. Empty when the list is complete, and always empty on the lists\n of one run or one session, which are returned whole.",
+          "description": "Set when more entries may follow: pass it as page_token to continue.\n A page may be short, even empty, and still carry a token.",
           "required": false
         }
       ]
     },
     {
       "name": "ListScoresBySessionRequest",
-      "description": "ListScoresBySessionRequest lists every score of every run in a session.\n\n A session's scores are returned whole, as its runs are: a conversation\n is read as one.",
+      "description": "ListScoresBySessionRequest lists the scores of every run in a session,\n newest first.",
       "protoType": "ai.stigmer.agentic.score.v1.ListScoresBySessionRequest",
       "protoFile": "apis/ai/stigmer/agentic/score/v1/io.proto",
       "fields": [
@@ -196,6 +209,29 @@
           "required": false,
           "validation": {
             "minLength": 1
+          }
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
           }
         }
       ]
@@ -380,7 +416,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "The most scores to return, at most 100; zero returns a page of 100.\n Follow next_page_token for the rest.",
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
           "required": false
         },
         {
@@ -391,7 +427,10 @@
             "kind": "string"
           },
           "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
-          "required": false
+          "required": false,
+          "validation": {
+            "maxLength": 1024
+          }
         }
       ]
     }

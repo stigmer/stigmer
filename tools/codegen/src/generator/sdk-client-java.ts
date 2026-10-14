@@ -9,7 +9,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import type { MethodSchema, ServiceDefinition, ServiceSchemaFile } from "./gen-common.js";
-import { firstMemberWinsOrder, goQuote, hasExplicitPresence, isEmptyType, isIDType, isRealOneofMember, isSpecialType, isUpdateInputType, isValuedOneofScalar, searchListSupersedesMethod, tsClientFieldName } from "./gen-common.js";
+import { firstMemberWinsOrder, goQuote, hasExplicitPresence, isEmptyType, isIDType, isRealOneofMember, isSpecialType, isUpdateInputType, isValuedOneofScalar, assertUniqueSdkMethodNames, pageIteratorName, pagedListOf, sdkMethodName, tsClientFieldName } from "./gen-common.js";
 import { javaCamel, javaCapCamel } from "./lang-names.js";
 import { apiResourceKindEnumNames } from "./resource-kind.js";
 import type { ResourceGenInfo, SdkResourceConfig } from "./sdk-resource-config.js";
@@ -341,9 +341,7 @@ function generateJavaErrorCode(outputDir: string): void {
 function generateJavaSharedTypes(outputDir: string): void {
   generateJavaDeleteResourceInput(outputDir);
   generateJavaResourceRef(outputDir);
-  generateJavaPage(outputDir);
-  generateJavaListParams(outputDir);
-  generateJavaListResult(outputDir);
+  generateJavaPages(outputDir);
   generateJavaStigmerStream(outputDir);
   generateJavaStigmerBidiStream(outputDir);
   generateJavaProtoConvert(outputDir);
@@ -445,80 +443,52 @@ function generateJavaResourceRef(outputDir: string): void {
   writeJavaFile(outputDir, "ResourceRef.java", JAVA_GEN_PACKAGE, imports, body);
 }
 
-function generateJavaPage(outputDir: string): void {
-  const body = `public final class Page {
-    private final int num;
-    private final int size;
+function generateJavaPages(outputDir: string): void {
+  const body = `/**
+ * Walks a paged list one entry at a time: every list takes page_size and
+ * page_token and answers entries and next_page_token, so one walker serves
+ * them all. Each page is read as the iteration reaches it.
+ */
+public final class Pages {
+    private Pages() {}
 
-    public Page(int num, int size) {
-        this.num = num;
-        this.size = size;
-    }
+    /**
+     * Every entry of a list, from the page {@code firstToken} names ("" for
+     * the first), following each page's next token until it is empty.
+     */
+    public static <P, E> Iterable<E> iterate(
+            String firstToken,
+            java.util.function.Function<String, P> read,
+            java.util.function.Function<P, java.util.List<E>> entries,
+            java.util.function.Function<P, String> nextToken) {
+        return () -> new java.util.Iterator<E>() {
+            private java.util.Iterator<E> page = java.util.Collections.emptyIterator();
+            private String token = firstToken;
+            private boolean done = false;
 
-    public int getNum() { return num; }
-    public int getSize() { return size; }
-}
-`;
-  writeJavaFile(outputDir, "Page.java", JAVA_GEN_PACKAGE, new JavaImportSet(), body);
-}
+            @Override
+            public boolean hasNext() {
+                while (!page.hasNext() && !done) {
+                    P current = read.apply(token);
+                    page = entries.apply(current).iterator();
+                    token = nextToken.apply(current);
+                    done = token.isEmpty();
+                }
+                return page.hasNext();
+            }
 
-function generateJavaListParams(outputDir: string): void {
-  const body = `public final class ListParams {
-    private final String org;
-    private final String query;
-    private final Page page;
-
-    private ListParams(Builder builder) {
-        this.org = builder.org;
-        this.query = builder.query;
-        this.page = builder.page;
-    }
-
-    public String getOrg() { return org; }
-    public String getQuery() { return query; }
-    public Page getPage() { return page; }
-
-    public static Builder builder() { return new Builder(); }
-
-    public static final class Builder {
-        private String org;
-        private String query;
-        private Page page;
-
-        private Builder() {}
-
-        public Builder org(String org) { this.org = org; return this; }
-        public Builder query(String query) { this.query = query; return this; }
-        public Builder page(Page page) { this.page = page; return this; }
-
-        public ListParams build() { return new ListParams(this); }
+            @Override
+            public E next() {
+                if (!hasNext()) {
+                    throw new java.util.NoSuchElementException();
+                }
+                return page.next();
+            }
+        };
     }
 }
 `;
-  writeJavaFile(outputDir, "ListParams.java", JAVA_GEN_PACKAGE, new JavaImportSet(), body);
-}
-
-function generateJavaListResult(outputDir: string): void {
-  const imports = new JavaImportSet();
-  imports.add("ai.stigmer.search.v1.SearchResult");
-
-  const body = `public final class ListResult {
-    private final java.util.List<SearchResult> entries;
-    private final int totalCount;
-    private final int totalPages;
-
-    ListResult(java.util.List<SearchResult> entries, int totalCount, int totalPages) {
-        this.entries = entries;
-        this.totalCount = totalCount;
-        this.totalPages = totalPages;
-    }
-
-    public java.util.List<SearchResult> getEntries() { return entries; }
-    public int getTotalCount() { return totalCount; }
-    public int getTotalPages() { return totalPages; }
-}
-`;
-  writeJavaFile(outputDir, "ListResult.java", JAVA_GEN_PACKAGE, imports, body);
+  writeJavaFile(outputDir, "Pages.java", JAVA_GEN_PACKAGE, new JavaImportSet(), body);
 }
 
 function generateJavaStigmerStream(outputDir: string): void {
@@ -714,6 +684,7 @@ final class ProtoConvert {
 // =========================================================================
 
 function generateJavaClientClass(schema: ServiceSchemaFile, cfg: SdkResourceConfig, hasInputType: boolean): [string, ResourceGenInfo] {
+  assertUniqueSdkMethodNames(schema);
   const imports = new JavaImportSet();
   imports.add("io.grpc.Channel");
   imports.add("io.grpc.StatusRuntimeException");
@@ -725,16 +696,17 @@ function generateJavaClientClass(schema: ServiceSchemaFile, cfg: SdkResourceConf
     streamTypes: [],
   };
 
-  const needsSearch = schema.listVia === "SearchService";
-
   for (const svc of schema.services) {
     imports.add(schema.package + "." + svc.name + "Grpc");
   }
 
   for (const svc of schema.services) {
     for (const m of svc.methods) {
-      if (searchListSupersedesMethod(schema, m)) continue;
       imports.add(resolveJavaFQCN(m.outputFullType));
+      const paged = pagedListOf(schema, m);
+      if (paged !== undefined) {
+        imports.add(resolveJavaFQCN(paged.entryFullType));
+      }
 
       if (isIDType(m.inputType)) {
         imports.add(resolveJavaFQCN(m.inputFullType));
@@ -757,14 +729,6 @@ function generateJavaClientClass(schema: ServiceSchemaFile, cfg: SdkResourceConf
         genInfo.streamTypes.push(cfg.protoResType + m.name + "Stream");
       }
     }
-  }
-
-  if (needsSearch) {
-    imports.add("ai.stigmer.search.v1.SearchRequest");
-    imports.add("ai.stigmer.search.v1.SearchResponse");
-    imports.add("ai.stigmer.search.v1.SearchServiceGrpc");
-    imports.add("ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind");
-    imports.add("ai.stigmer.commons.rpc.PageInfo");
   }
 
   const svcNeedsBidi = new Set<string>();
@@ -793,9 +757,6 @@ function generateJavaClientClass(schema: ServiceSchemaFile, cfg: SdkResourceConf
       body.push(`    private final ${svc.name}Grpc.${svc.name}Stub ${svc.role}Async;\n`);
     }
   }
-  if (needsSearch) {
-    body.push("    private final SearchServiceGrpc.SearchServiceBlockingStub search;\n");
-  }
   body.push("\n");
 
   const ctorVisibility = JAVA_EXTENSIBLE_CLIENTS.has(cfg.clientName) ? "protected " : "";
@@ -806,26 +767,22 @@ function generateJavaClientClass(schema: ServiceSchemaFile, cfg: SdkResourceConf
       body.push(`        this.${svc.role}Async = ${svc.name}Grpc.newStub(channel);\n`);
     }
   }
-  if (needsSearch) {
-    body.push("        this.search = SearchServiceGrpc.newBlockingStub(channel);\n");
-  }
   body.push("    }\n");
 
   for (const svc of schema.services) {
     for (const m of svc.methods) {
-      if (searchListSupersedesMethod(schema, m)) continue;
       body.push("\n");
       if (m.serverStreaming === true) {
         generateJavaStreamingMethod(body, m, svc, imports);
       } else {
         generateJavaMethod(body, m, svc, cfg, hasInputType, imports);
       }
+      const paged = pagedListOf(schema, m);
+      if (paged !== undefined) {
+        body.push("\n");
+        generateJavaPageIterator(body, svc, m, paged.entryType);
+      }
     }
-  }
-
-  if (needsSearch) {
-    body.push("\n");
-    generateJavaSearchList(body, cfg);
   }
 
   body.push("}\n");
@@ -860,7 +817,7 @@ function generateJavaMethod(
   const isApiResRefIn = m.inputType === "ApiResourceReference";
 
   const outputType = emptyOutput ? "void" : m.outputType;
-  const methodName = javaMethodLower(m.name);
+  const methodName = javaMethodLower(sdkMethodName(svc, m));
   const role = svc.role;
   const returnKw = emptyOutput ? "" : "return ";
 
@@ -944,7 +901,7 @@ function generateJavaMethod(
 function generateJavaStreamingMethod(buf: string[], m: MethodSchema, svc: ServiceDefinition, imports: JavaImportSet): void {
   const isIDIn = isIDType(m.inputType);
   const outputType = m.outputType;
-  const methodName = javaMethodLower(m.name);
+  const methodName = javaMethodLower(sdkMethodName(svc, m));
 
   if (m.clientStreaming === true) {
     imports.add(resolveJavaFQCN(m.inputFullType));
@@ -975,26 +932,22 @@ function generateJavaStreamingMethod(buf: string[], m: MethodSchema, svc: Servic
   }
 }
 
-function generateJavaSearchList(buf: string[], cfg: SdkResourceConfig): void {
-  buf.push("    public ListResult list(ListParams params) {\n");
-  buf.push("        try {\n");
-  buf.push("            SearchRequest.Builder req = SearchRequest.newBuilder()\n");
-  buf.push(`                .addKinds(ApiResourceKind.${cfg.resourceKind});\n`);
-  buf.push("            if (params.getOrg() != null) {\n");
-  buf.push("                req.setOrg(params.getOrg());\n");
-  buf.push("            }\n");
-  buf.push("            if (params.getQuery() != null) {\n");
-  buf.push("                req.setQuery(params.getQuery());\n");
-  buf.push("            }\n");
-  buf.push("            if (params.getPage() != null) {\n");
-  buf.push("                req.setPage(PageInfo.newBuilder()\n");
-  buf.push("                    .setNum(params.getPage().getNum())\n");
-  buf.push("                    .setSize(params.getPage().getSize())\n");
-  buf.push("                    .build());\n");
-  buf.push("            }\n");
-  buf.push("            SearchResponse resp = search.search(req.build());\n");
-  buf.push("            return new ListResult(resp.getEntriesList(), resp.getTotalCount(), resp.getTotalPages());\n");
-  buf.push("        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }\n");
+// The page iterator beside a paged list: every entry, page after page,
+// following next_page_token from the token the input names. Each page is
+// read as the iteration reaches it.
+function generateJavaPageIterator(buf: string[], svc: ServiceDefinition, m: MethodSchema, entryType: string): void {
+  const methodName = javaMethodLower(sdkMethodName(svc, m));
+  buf.push("    /**\n");
+  buf.push(`     * Every entry of {@code ${methodName}}, page after page: follows next_page_token\n`);
+  buf.push("     * from the token the input names until the list ends. Each page is read\n");
+  buf.push("     * as the iteration reaches it.\n");
+  buf.push("     */\n");
+  buf.push(`    public Iterable<${entryType}> ${javaMethodLower(pageIteratorName(sdkMethodName(svc, m)))}(${m.inputType} input) {\n`);
+  buf.push(`        return Pages.<${m.outputType}, ${entryType}>iterate(\n`);
+  buf.push("            input.getPageToken(),\n");
+  buf.push(`            token -> ${methodName}(input.toBuilder().setPageToken(token).build()),\n`);
+  buf.push(`            ${m.outputType}::getEntriesList,\n`);
+  buf.push(`            ${m.outputType}::getNextPageToken);\n`);
   buf.push("    }\n");
 }
 

@@ -8,7 +8,6 @@ package agentchannelv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
@@ -71,37 +70,41 @@ func (x *AgentChannelId) GetValue() string {
 }
 
 // Input for retrieving all channels of a specific agent.
-type GetAgentChannelsByAgentRequest struct {
+type ListAgentChannelsByAgentRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Identifier of the agent whose channels to retrieve.
 	AgentId string `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
-	// Pagination options.
-	PageInfo *rpc.PageInfo `protobuf:"bytes,2,opt,name=page_info,json=pageInfo,proto3" json:"page_info,omitempty"`
 	// Organization slug to scope the results to.
 	//
 	// When set, only channels whose metadata.org matches are returned — the
 	// org-context view a console tab needs. When empty, results are bounded
 	// only by the caller's view permissions, which for a member of several
 	// organizations spans all of them.
-	Org           string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
+	Org string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
+	PageSize int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetAgentChannelsByAgentRequest) Reset() {
-	*x = GetAgentChannelsByAgentRequest{}
+func (x *ListAgentChannelsByAgentRequest) Reset() {
+	*x = ListAgentChannelsByAgentRequest{}
 	mi := &file_ai_stigmer_agentic_agentchannel_v1_io_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetAgentChannelsByAgentRequest) String() string {
+func (x *ListAgentChannelsByAgentRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetAgentChannelsByAgentRequest) ProtoMessage() {}
+func (*ListAgentChannelsByAgentRequest) ProtoMessage() {}
 
-func (x *GetAgentChannelsByAgentRequest) ProtoReflect() protoreflect.Message {
+func (x *ListAgentChannelsByAgentRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_stigmer_agentic_agentchannel_v1_io_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -113,28 +116,35 @@ func (x *GetAgentChannelsByAgentRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetAgentChannelsByAgentRequest.ProtoReflect.Descriptor instead.
-func (*GetAgentChannelsByAgentRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListAgentChannelsByAgentRequest.ProtoReflect.Descriptor instead.
+func (*ListAgentChannelsByAgentRequest) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentchannel_v1_io_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *GetAgentChannelsByAgentRequest) GetAgentId() string {
+func (x *ListAgentChannelsByAgentRequest) GetAgentId() string {
 	if x != nil {
 		return x.AgentId
 	}
 	return ""
 }
 
-func (x *GetAgentChannelsByAgentRequest) GetPageInfo() *rpc.PageInfo {
-	if x != nil {
-		return x.PageInfo
-	}
-	return nil
-}
-
-func (x *GetAgentChannelsByAgentRequest) GetOrg() string {
+func (x *ListAgentChannelsByAgentRequest) GetOrg() string {
 	if x != nil {
 		return x.Org
+	}
+	return ""
+}
+
+func (x *ListAgentChannelsByAgentRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListAgentChannelsByAgentRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
 	}
 	return ""
 }
@@ -142,10 +152,11 @@ func (x *GetAgentChannelsByAgentRequest) GetOrg() string {
 // Response containing a paginated list of agent channels.
 type AgentChannelList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Total number of agent channels matching the query.
-	TotalCount int32 `protobuf:"varint,1,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	// Agent channels in the current page.
-	Items         []*AgentChannel `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
+	Entries []*AgentChannel `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
+	NextPageToken string `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -180,18 +191,18 @@ func (*AgentChannelList) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentchannel_v1_io_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *AgentChannelList) GetTotalCount() int32 {
+func (x *AgentChannelList) GetEntries() []*AgentChannel {
 	if x != nil {
-		return x.TotalCount
-	}
-	return 0
-}
-
-func (x *AgentChannelList) GetItems() []*AgentChannel {
-	if x != nil {
-		return x.Items
+		return x.Entries
 	}
 	return nil
+}
+
+func (x *AgentChannelList) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
 }
 
 // Input for listing agent channels within an organization.
@@ -201,8 +212,12 @@ type ListAgentChannelsRequest struct {
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// Filter by metadata labels. AND semantics: all labels must match.
 	Labels map[string]string `protobuf:"bytes,2,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Pagination options.
-	PageInfo      *rpc.PageInfo `protobuf:"bytes,3,opt,name=page_info,json=pageInfo,proto3" json:"page_info,omitempty"`
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
+	PageSize int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -251,11 +266,18 @@ func (x *ListAgentChannelsRequest) GetLabels() map[string]string {
 	return nil
 }
 
-func (x *ListAgentChannelsRequest) GetPageInfo() *rpc.PageInfo {
+func (x *ListAgentChannelsRequest) GetPageSize() int32 {
 	if x != nil {
-		return x.PageInfo
+		return x.PageSize
 	}
-	return nil
+	return 0
+}
+
+func (x *ListAgentChannelsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
 }
 
 // Input for starting a provider install flow.
@@ -512,24 +534,27 @@ var File_ai_stigmer_agentic_agentchannel_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentchannel_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/agentic/agentchannel/v1/io.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a,ai/stigmer/agentic/agentchannel/v1/api.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\".\n" +
+	"+ai/stigmer/agentic/agentchannel/v1/io.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a,ai/stigmer/agentic/agentchannel/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\".\n" +
 	"\x0eAgentChannelId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x94\x01\n" +
-	"\x1eGetAgentChannelsByAgentRequest\x12!\n" +
-	"\bagent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\aagentId\x12=\n" +
-	"\tpage_info\x18\x02 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\bpageInfo\x12\x10\n" +
-	"\x03org\x18\x03 \x01(\tR\x03org\"{\n" +
-	"\x10AgentChannelList\x12\x1f\n" +
-	"\vtotal_count\x18\x01 \x01(\x05R\n" +
-	"totalCount\x12F\n" +
-	"\x05items\x18\x02 \x03(\v20.ai.stigmer.agentic.agentchannel.v1.AgentChannelR\x05items\"\x91\x02\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xb6\x01\n" +
+	"\x1fListAgentChannelsByAgentRequest\x12!\n" +
+	"\bagent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\aagentId\x12\x10\n" +
+	"\x03org\x18\x03 \x01(\tR\x03org\x12$\n" +
+	"\tpage_size\x18\x04 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageTokenJ\x04\b\x02\x10\x03R\tpage_info\"\x99\x01\n" +
+	"\x10AgentChannelList\x12J\n" +
+	"\aentries\x18\x02 \x03(\v20.ai.stigmer.agentic.agentchannel.v1.AgentChannelR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\b\x01\x10\x02R\vtotal_count\"\xb2\x02\n" +
 	"\x18ListAgentChannelsRequest\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12`\n" +
-	"\x06labels\x18\x02 \x03(\v2H.ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest.LabelsEntryR\x06labels\x12=\n" +
-	"\tpage_info\x18\x03 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\bpageInfo\x1a9\n" +
+	"\x06labels\x18\x02 \x03(\v2H.ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest.LabelsEntryR\x06labels\x12$\n" +
+	"\tpage_size\x18\x04 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"F\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x03\x10\x04R\tpage_info\"F\n" +
 	"\x1bInitiateChannelInstallInput\x12'\n" +
 	"\vresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"resourceId\"\x7f\n" +
@@ -563,31 +588,28 @@ func file_ai_stigmer_agentic_agentchannel_v1_io_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_agentic_agentchannel_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_ai_stigmer_agentic_agentchannel_v1_io_proto_goTypes = []any{
-	(*AgentChannelId)(nil),                 // 0: ai.stigmer.agentic.agentchannel.v1.AgentChannelId
-	(*GetAgentChannelsByAgentRequest)(nil), // 1: ai.stigmer.agentic.agentchannel.v1.GetAgentChannelsByAgentRequest
-	(*AgentChannelList)(nil),               // 2: ai.stigmer.agentic.agentchannel.v1.AgentChannelList
-	(*ListAgentChannelsRequest)(nil),       // 3: ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest
-	(*InitiateChannelInstallInput)(nil),    // 4: ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallInput
-	(*InitiateChannelInstallOutput)(nil),   // 5: ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallOutput
-	(*CompleteChannelInstallInput)(nil),    // 6: ai.stigmer.agentic.agentchannel.v1.CompleteChannelInstallInput
-	(*UpdateAgentChannelInput)(nil),        // 7: ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput
-	nil,                                    // 8: ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest.LabelsEntry
-	(*rpc.PageInfo)(nil),                   // 9: ai.stigmer.commons.rpc.PageInfo
-	(*AgentChannel)(nil),                   // 10: ai.stigmer.agentic.agentchannel.v1.AgentChannel
-	(*fieldmaskpb.FieldMask)(nil),          // 11: google.protobuf.FieldMask
+	(*AgentChannelId)(nil),                  // 0: ai.stigmer.agentic.agentchannel.v1.AgentChannelId
+	(*ListAgentChannelsByAgentRequest)(nil), // 1: ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsByAgentRequest
+	(*AgentChannelList)(nil),                // 2: ai.stigmer.agentic.agentchannel.v1.AgentChannelList
+	(*ListAgentChannelsRequest)(nil),        // 3: ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest
+	(*InitiateChannelInstallInput)(nil),     // 4: ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallInput
+	(*InitiateChannelInstallOutput)(nil),    // 5: ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallOutput
+	(*CompleteChannelInstallInput)(nil),     // 6: ai.stigmer.agentic.agentchannel.v1.CompleteChannelInstallInput
+	(*UpdateAgentChannelInput)(nil),         // 7: ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput
+	nil,                                     // 8: ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest.LabelsEntry
+	(*AgentChannel)(nil),                    // 9: ai.stigmer.agentic.agentchannel.v1.AgentChannel
+	(*fieldmaskpb.FieldMask)(nil),           // 10: google.protobuf.FieldMask
 }
 var file_ai_stigmer_agentic_agentchannel_v1_io_proto_depIdxs = []int32{
-	9,  // 0: ai.stigmer.agentic.agentchannel.v1.GetAgentChannelsByAgentRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
-	10, // 1: ai.stigmer.agentic.agentchannel.v1.AgentChannelList.items:type_name -> ai.stigmer.agentic.agentchannel.v1.AgentChannel
-	8,  // 2: ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest.labels:type_name -> ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest.LabelsEntry
-	9,  // 3: ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
-	10, // 4: ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput.resource:type_name -> ai.stigmer.agentic.agentchannel.v1.AgentChannel
-	11, // 5: ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput.update_mask:type_name -> google.protobuf.FieldMask
-	6,  // [6:6] is the sub-list for method output_type
-	6,  // [6:6] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	9,  // 0: ai.stigmer.agentic.agentchannel.v1.AgentChannelList.entries:type_name -> ai.stigmer.agentic.agentchannel.v1.AgentChannel
+	8,  // 1: ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest.labels:type_name -> ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest.LabelsEntry
+	9,  // 2: ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput.resource:type_name -> ai.stigmer.agentic.agentchannel.v1.AgentChannel
+	10, // 3: ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput.update_mask:type_name -> google.protobuf.FieldMask
+	4,  // [4:4] is the sub-list for method output_type
+	4,  // [4:4] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentchannel_v1_io_proto_init() }

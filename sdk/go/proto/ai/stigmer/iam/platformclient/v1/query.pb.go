@@ -26,28 +26,28 @@ var File_ai_stigmer_iam_platformclient_v1_query_proto protoreflect.FileDescripto
 
 const file_ai_stigmer_iam_platformclient_v1_query_proto_rawDesc = "" +
 	"\n" +
-	",ai/stigmer/iam/platformclient/v1/query.proto\x12 ai.stigmer.iam.platformclient.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a*ai/stigmer/iam/platformclient/v1/api.proto\x1a)ai/stigmer/iam/platformclient/v1/io.proto2\x92\x04\n" +
+	",ai/stigmer/iam/platformclient/v1/query.proto\x12 ai.stigmer.iam.platformclient.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a*ai/stigmer/iam/platformclient/v1/api.proto\x1a)ai/stigmer/iam/platformclient/v1/io.proto2\x88\x04\n" +
 	"\x1dPlatformClientQueryController\x12\x9d\x01\n" +
 	"\x03get\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a0.ai.stigmer.iam.platformclient.v1.PlatformClient\"5¸\x181\b\x01\x10\x17\"\x05value*$unauthorized to view platform client\x12~\n" +
-	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a0.ai.stigmer.iam.platformclient.v1.PlatformClient\"\x04и\x18\x01\x12\xca\x01\n" +
-	"\tlistByOrg\x12?.ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput\x1a1.ai.stigmer.iam.platformclient.v1.PlatformClients\"I¸\x18E\b\x01\x10\x1e\"\x03org*:unauthorized to list platform clients in this organization\x1a\x04\xa0\xff+\x17B\xb5\x02\n" +
+	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a0.ai.stigmer.iam.platformclient.v1.PlatformClient\"\x04и\x18\x01\x12\xc0\x01\n" +
+	"\x04list\x12:.ai.stigmer.iam.platformclient.v1.ListPlatformClientsInput\x1a1.ai.stigmer.iam.platformclient.v1.PlatformClients\"I¸\x18E\b\x01\x10\x1e\"\x03org*:unauthorized to list platform clients in this organization\x1a\x04\xa0\xff+\x17B\xb5\x02\n" +
 	"$com.ai.stigmer.iam.platformclient.v1B\n" +
 	"QueryProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/platformclient/v1;platformclientv1\xa2\x02\x04ASIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3"
 
 var file_ai_stigmer_iam_platformclient_v1_query_proto_goTypes = []any{
 	(*apiresource.ApiResourceId)(nil),        // 0: ai.stigmer.commons.apiresource.ApiResourceId
 	(*apiresource.ApiResourceReference)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*ListPlatformClientsByOrgInput)(nil),    // 2: ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput
+	(*ListPlatformClientsInput)(nil),         // 2: ai.stigmer.iam.platformclient.v1.ListPlatformClientsInput
 	(*PlatformClient)(nil),                   // 3: ai.stigmer.iam.platformclient.v1.PlatformClient
 	(*PlatformClients)(nil),                  // 4: ai.stigmer.iam.platformclient.v1.PlatformClients
 }
 var file_ai_stigmer_iam_platformclient_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.iam.platformclient.v1.PlatformClientQueryController.get:input_type -> ai.stigmer.commons.apiresource.ApiResourceId
 	1, // 1: ai.stigmer.iam.platformclient.v1.PlatformClientQueryController.getByReference:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2, // 2: ai.stigmer.iam.platformclient.v1.PlatformClientQueryController.listByOrg:input_type -> ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput
+	2, // 2: ai.stigmer.iam.platformclient.v1.PlatformClientQueryController.list:input_type -> ai.stigmer.iam.platformclient.v1.ListPlatformClientsInput
 	3, // 3: ai.stigmer.iam.platformclient.v1.PlatformClientQueryController.get:output_type -> ai.stigmer.iam.platformclient.v1.PlatformClient
 	3, // 4: ai.stigmer.iam.platformclient.v1.PlatformClientQueryController.getByReference:output_type -> ai.stigmer.iam.platformclient.v1.PlatformClient
-	4, // 5: ai.stigmer.iam.platformclient.v1.PlatformClientQueryController.listByOrg:output_type -> ai.stigmer.iam.platformclient.v1.PlatformClients
+	4, // 5: ai.stigmer.iam.platformclient.v1.PlatformClientQueryController.list:output_type -> ai.stigmer.iam.platformclient.v1.PlatformClients
 	3, // [3:6] is the sub-list for method output_type
 	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

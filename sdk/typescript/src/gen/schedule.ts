@@ -9,7 +9,7 @@ import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/ru
 import { RunConfigSchema, AgentInvocationSchema, type RunConfig, type AgentInvocation } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
-import { ScheduleIdSchema, UpdateScheduleInputSchema, ScheduleTriggerResultSchema, GetSchedulesByAgentRequestSchema, ScheduleListSchema, ListSchedulesRequestSchema, ListScheduleFiresRequestSchema, ScheduleFireListSchema, type ScheduleTriggerResult, type GetSchedulesByAgentRequest, type ScheduleList, type ListSchedulesRequest, type ListScheduleFiresRequest, type ScheduleFireList } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+import { ScheduleIdSchema, UpdateScheduleInputSchema, ScheduleTriggerResultSchema, ListSchedulesByAgentRequestSchema, ScheduleListSchema, ListSchedulesRequestSchema, ListScheduleFiresRequestSchema, ScheduleFireListSchema, type ScheduleTriggerResult, type ListSchedulesByAgentRequest, type ScheduleList, type ListSchedulesRequest, type ListScheduleFiresRequest, type ScheduleFireList } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
 import { ScheduleSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
 import { Harness, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -83,10 +83,24 @@ export class ScheduleClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async getByAgent(input: GetSchedulesByAgentRequest): Promise<ScheduleList> {
+  async listByAgent(input: ListSchedulesByAgentRequest): Promise<ScheduleList> {
     try {
-      return await this.query.getByAgent(input);
+      return await this.query.listByAgent(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `listByAgent`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listByAgentAll(input: MessageInitShape<typeof ListSchedulesByAgentRequestSchema>): AsyncGenerator<ScheduleList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.listByAgent(create(ListSchedulesByAgentRequestSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 
   async list(input: ListSchedulesRequest): Promise<ScheduleList> {
@@ -95,10 +109,38 @@ export class ScheduleClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  /**
+   * Every entry of `list`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listAll(input: MessageInitShape<typeof ListSchedulesRequestSchema>): AsyncGenerator<ScheduleList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.list(create(ListSchedulesRequestSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
+  }
+
   async listFires(input: ListScheduleFiresRequest): Promise<ScheduleFireList> {
     try {
       return await this.query.listFires(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `listFires`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listFiresAll(input: MessageInitShape<typeof ListScheduleFiresRequestSchema>): AsyncGenerator<ScheduleFireList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.listFires(create(ListScheduleFiresRequestSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 }
 

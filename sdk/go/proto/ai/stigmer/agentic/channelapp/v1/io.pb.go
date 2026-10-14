@@ -27,7 +27,10 @@ const (
 type ChannelApps struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Channel app entries.
-	Entries       []*ChannelApp `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	Entries []*ChannelApp `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -69,30 +72,43 @@ func (x *ChannelApps) GetEntries() []*ChannelApp {
 	return nil
 }
 
-// ListChannelAppsByOrgInput specifies the organization whose channel
+func (x *ChannelApps) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+// ListChannelAppsInput specifies the organization whose channel
 // apps should be returned.
-type ListChannelAppsByOrgInput struct {
+type ListChannelAppsInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization slug to list channel apps for.
-	Org           string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ListChannelAppsByOrgInput) Reset() {
-	*x = ListChannelAppsByOrgInput{}
+func (x *ListChannelAppsInput) Reset() {
+	*x = ListChannelAppsInput{}
 	mi := &file_ai_stigmer_agentic_channelapp_v1_io_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ListChannelAppsByOrgInput) String() string {
+func (x *ListChannelAppsInput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ListChannelAppsByOrgInput) ProtoMessage() {}
+func (*ListChannelAppsInput) ProtoMessage() {}
 
-func (x *ListChannelAppsByOrgInput) ProtoReflect() protoreflect.Message {
+func (x *ListChannelAppsInput) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_stigmer_agentic_channelapp_v1_io_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -104,14 +120,28 @@ func (x *ListChannelAppsByOrgInput) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListChannelAppsByOrgInput.ProtoReflect.Descriptor instead.
-func (*ListChannelAppsByOrgInput) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListChannelAppsInput.ProtoReflect.Descriptor instead.
+func (*ListChannelAppsInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_channelapp_v1_io_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *ListChannelAppsByOrgInput) GetOrg() string {
+func (x *ListChannelAppsInput) GetOrg() string {
 	if x != nil {
 		return x.Org
+	}
+	return ""
+}
+
+func (x *ListChannelAppsInput) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListChannelAppsInput) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
 	}
 	return ""
 }
@@ -180,11 +210,15 @@ var File_ai_stigmer_agentic_channelapp_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_channelapp_v1_io_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/channelapp/v1/io.proto\x12 ai.stigmer.agentic.channelapp.v1\x1a*ai/stigmer/agentic/channelapp/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"U\n" +
+	")ai/stigmer/agentic/channelapp/v1/io.proto\x12 ai.stigmer.agentic.channelapp.v1\x1a*ai/stigmer/agentic/channelapp/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"}\n" +
 	"\vChannelApps\x12F\n" +
-	"\aentries\x18\x01 \x03(\v2,.ai.stigmer.agentic.channelapp.v1.ChannelAppR\aentries\"6\n" +
-	"\x19ListChannelAppsByOrgInput\x12\x19\n" +
-	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\xf4\x02\n" +
+	"\aentries\x18\x01 \x03(\v2,.ai.stigmer.agentic.channelapp.v1.ChannelAppR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x80\x01\n" +
+	"\x14ListChannelAppsInput\x12\x19\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\xf4\x02\n" +
 	"\x15UpdateChannelAppInput\x12P\n" +
 	"\bresource\x18\x01 \x01(\v2,.ai.stigmer.agentic.channelapp.v1.ChannelAppB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
@@ -206,11 +240,11 @@ func file_ai_stigmer_agentic_channelapp_v1_io_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_agentic_channelapp_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_ai_stigmer_agentic_channelapp_v1_io_proto_goTypes = []any{
-	(*ChannelApps)(nil),               // 0: ai.stigmer.agentic.channelapp.v1.ChannelApps
-	(*ListChannelAppsByOrgInput)(nil), // 1: ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput
-	(*UpdateChannelAppInput)(nil),     // 2: ai.stigmer.agentic.channelapp.v1.UpdateChannelAppInput
-	(*ChannelApp)(nil),                // 3: ai.stigmer.agentic.channelapp.v1.ChannelApp
-	(*fieldmaskpb.FieldMask)(nil),     // 4: google.protobuf.FieldMask
+	(*ChannelApps)(nil),           // 0: ai.stigmer.agentic.channelapp.v1.ChannelApps
+	(*ListChannelAppsInput)(nil),  // 1: ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput
+	(*UpdateChannelAppInput)(nil), // 2: ai.stigmer.agentic.channelapp.v1.UpdateChannelAppInput
+	(*ChannelApp)(nil),            // 3: ai.stigmer.agentic.channelapp.v1.ChannelApp
+	(*fieldmaskpb.FieldMask)(nil), // 4: google.protobuf.FieldMask
 }
 var file_ai_stigmer_agentic_channelapp_v1_io_proto_depIdxs = []int32{
 	3, // 0: ai.stigmer.agentic.channelapp.v1.ChannelApps.entries:type_name -> ai.stigmer.agentic.channelapp.v1.ChannelApp

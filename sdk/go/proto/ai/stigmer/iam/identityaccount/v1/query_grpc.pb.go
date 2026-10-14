@@ -71,7 +71,7 @@ type IdentityAccountQueryControllerClient interface {
 	// role was removed, so it can still be found and deleted.
 	//
 	// Authorization: Requires can_create_identity_account on the organization.
-	ListServiceAccounts(ctx context.Context, in *ListWithIdentityOrg, opts ...grpc.CallOption) (*IdentityAccountsList, error)
+	ListServiceAccounts(ctx context.Context, in *ListServiceAccountsInput, opts ...grpc.CallOption) (*IdentityAccountsList, error)
 	// Get lightweight actor information for an identity account.
 	GetActorInfo(ctx context.Context, in *IdentityAccountId, opts ...grpc.CallOption) (*apiresource.ApiResourceAuditActor, error)
 }
@@ -134,7 +134,7 @@ func (c *identityAccountQueryControllerClient) GetByExternalSub(ctx context.Cont
 	return out, nil
 }
 
-func (c *identityAccountQueryControllerClient) ListServiceAccounts(ctx context.Context, in *ListWithIdentityOrg, opts ...grpc.CallOption) (*IdentityAccountsList, error) {
+func (c *identityAccountQueryControllerClient) ListServiceAccounts(ctx context.Context, in *ListServiceAccountsInput, opts ...grpc.CallOption) (*IdentityAccountsList, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(IdentityAccountsList)
 	err := c.cc.Invoke(ctx, IdentityAccountQueryController_ListServiceAccounts_FullMethodName, in, out, cOpts...)
@@ -195,7 +195,7 @@ type IdentityAccountQueryControllerServer interface {
 	// role was removed, so it can still be found and deleted.
 	//
 	// Authorization: Requires can_create_identity_account on the organization.
-	ListServiceAccounts(context.Context, *ListWithIdentityOrg) (*IdentityAccountsList, error)
+	ListServiceAccounts(context.Context, *ListServiceAccountsInput) (*IdentityAccountsList, error)
 	// Get lightweight actor information for an identity account.
 	GetActorInfo(context.Context, *IdentityAccountId) (*apiresource.ApiResourceAuditActor, error)
 }
@@ -222,7 +222,7 @@ func (UnimplementedIdentityAccountQueryControllerServer) GetByIdpId(context.Cont
 func (UnimplementedIdentityAccountQueryControllerServer) GetByExternalSub(context.Context, *ExternalSubLookup) (*IdentityAccount, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByExternalSub not implemented")
 }
-func (UnimplementedIdentityAccountQueryControllerServer) ListServiceAccounts(context.Context, *ListWithIdentityOrg) (*IdentityAccountsList, error) {
+func (UnimplementedIdentityAccountQueryControllerServer) ListServiceAccounts(context.Context, *ListServiceAccountsInput) (*IdentityAccountsList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListServiceAccounts not implemented")
 }
 func (UnimplementedIdentityAccountQueryControllerServer) GetActorInfo(context.Context, *IdentityAccountId) (*apiresource.ApiResourceAuditActor, error) {
@@ -339,7 +339,7 @@ func _IdentityAccountQueryController_GetByExternalSub_Handler(srv interface{}, c
 }
 
 func _IdentityAccountQueryController_ListServiceAccounts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListWithIdentityOrg)
+	in := new(ListServiceAccountsInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -351,7 +351,7 @@ func _IdentityAccountQueryController_ListServiceAccounts_Handler(srv interface{}
 		FullMethod: IdentityAccountQueryController_ListServiceAccounts_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IdentityAccountQueryControllerServer).ListServiceAccounts(ctx, req.(*ListWithIdentityOrg))
+		return srv.(IdentityAccountQueryControllerServer).ListServiceAccounts(ctx, req.(*ListServiceAccountsInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }

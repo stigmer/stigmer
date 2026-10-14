@@ -5,20 +5,18 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.agentic.agent.v1.Agent;
 import ai.stigmer.agentic.agent.v1.AgentCommandControllerGrpc;
 import ai.stigmer.agentic.agent.v1.AgentId;
+import ai.stigmer.agentic.agent.v1.AgentList;
 import ai.stigmer.agentic.agent.v1.AgentQueryControllerGrpc;
 import ai.stigmer.agentic.agent.v1.AgentVersionEntry;
 import ai.stigmer.agentic.agent.v1.GetAgentVersionInput;
 import ai.stigmer.agentic.agent.v1.ListAgentVersionsInput;
 import ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse;
+import ai.stigmer.agentic.agent.v1.ListAgentsRequest;
 import ai.stigmer.agentic.agent.v1.TagAgentVersionInput;
 import ai.stigmer.agentic.agent.v1.UpdateAgentInput;
 import ai.stigmer.commons.apiresource.RenameInput;
 import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
-import ai.stigmer.commons.rpc.PageInfo;
-import ai.stigmer.search.v1.SearchRequest;
-import ai.stigmer.search.v1.SearchResponse;
-import ai.stigmer.search.v1.SearchServiceGrpc;
 import com.google.protobuf.FieldMask;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
@@ -27,12 +25,10 @@ import io.grpc.StatusRuntimeException;
 public final class AgentClient {
     private final AgentCommandControllerGrpc.AgentCommandControllerBlockingStub command;
     private final AgentQueryControllerGrpc.AgentQueryControllerBlockingStub query;
-    private final SearchServiceGrpc.SearchServiceBlockingStub search;
 
     AgentClient(Channel channel) {
         this.command = AgentCommandControllerGrpc.newBlockingStub(channel);
         this.query = AgentQueryControllerGrpc.newBlockingStub(channel);
-        this.search = SearchServiceGrpc.newBlockingStub(channel);
     }
 
     public Agent apply(AgentInput input) {
@@ -92,36 +88,47 @@ public final class AgentClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    public AgentList list(ListAgentsRequest input) {
+        try {
+            return query.list(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code list}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<Agent> listAll(ListAgentsRequest input) {
+        return Pages.<AgentList, Agent>iterate(
+            input.getPageToken(),
+            token -> list(input.toBuilder().setPageToken(token).build()),
+            AgentList::getEntriesList,
+            AgentList::getNextPageToken);
+    }
+
     public ListAgentVersionsResponse listVersions(ListAgentVersionsInput input) {
         try {
             return query.listVersions(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    /**
+     * Every entry of {@code listVersions}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<AgentVersionEntry> listVersionsAll(ListAgentVersionsInput input) {
+        return Pages.<ListAgentVersionsResponse, AgentVersionEntry>iterate(
+            input.getPageToken(),
+            token -> listVersions(input.toBuilder().setPageToken(token).build()),
+            ListAgentVersionsResponse::getEntriesList,
+            ListAgentVersionsResponse::getNextPageToken);
+    }
+
     public AgentVersionEntry getVersion(GetAgentVersionInput input) {
         try {
             return query.getVersion(input);
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
-    }
-
-    public ListResult list(ListParams params) {
-        try {
-            SearchRequest.Builder req = SearchRequest.newBuilder()
-                .addKinds(ApiResourceKind.agent);
-            if (params.getOrg() != null) {
-                req.setOrg(params.getOrg());
-            }
-            if (params.getQuery() != null) {
-                req.setQuery(params.getQuery());
-            }
-            if (params.getPage() != null) {
-                req.setPage(PageInfo.newBuilder()
-                    .setNum(params.getPage().getNum())
-                    .setSize(params.getPage().getSize())
-                    .build());
-            }
-            SearchResponse resp = search.search(req.build());
-            return new ListResult(resp.getEntriesList(), resp.getTotalCount(), resp.getTotalPages());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

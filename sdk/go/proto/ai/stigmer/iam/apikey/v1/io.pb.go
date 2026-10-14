@@ -28,7 +28,10 @@ const (
 type ApiKeys struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API key entries.
-	Entries       []*ApiKey `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	Entries []*ApiKey `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -68,6 +71,13 @@ func (x *ApiKeys) GetEntries() []*ApiKey {
 		return x.Entries
 	}
 	return nil
+}
+
+func (x *ApiKeys) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
 }
 
 // ApiKeyId identifies an API key by its unique identifier.
@@ -162,29 +172,33 @@ func (x *ApiKeyHash) GetValue() string {
 	return ""
 }
 
-// ApiKeyAccountId names the identity account whose keys are listed.
-type ApiKeyAccountId struct {
+// Input for listing the caller's own API keys, newest first.
+type ListApiKeysInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Identity account id the keys speak for.
-	Value         string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
+	PageSize int32 `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ApiKeyAccountId) Reset() {
-	*x = ApiKeyAccountId{}
+func (x *ListApiKeysInput) Reset() {
+	*x = ListApiKeysInput{}
 	mi := &file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ApiKeyAccountId) String() string {
+func (x *ListApiKeysInput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ApiKeyAccountId) ProtoMessage() {}
+func (*ListApiKeysInput) ProtoMessage() {}
 
-func (x *ApiKeyAccountId) ProtoReflect() protoreflect.Message {
+func (x *ListApiKeysInput) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -196,14 +210,88 @@ func (x *ApiKeyAccountId) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ApiKeyAccountId.ProtoReflect.Descriptor instead.
-func (*ApiKeyAccountId) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListApiKeysInput.ProtoReflect.Descriptor instead.
+func (*ListApiKeysInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_iam_apikey_v1_io_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *ApiKeyAccountId) GetValue() string {
+func (x *ListApiKeysInput) GetPageSize() int32 {
 	if x != nil {
-		return x.Value
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListApiKeysInput) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+// Input for listing the API keys that speak for one identity account,
+// newest first.
+type ListApiKeysByAccountInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The identity account whose keys are listed.
+	AccountId string `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListApiKeysByAccountInput) Reset() {
+	*x = ListApiKeysByAccountInput{}
+	mi := &file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListApiKeysByAccountInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListApiKeysByAccountInput) ProtoMessage() {}
+
+func (x *ListApiKeysByAccountInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListApiKeysByAccountInput.ProtoReflect.Descriptor instead.
+func (*ListApiKeysByAccountInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_apikey_v1_io_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ListApiKeysByAccountInput) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *ListApiKeysByAccountInput) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListApiKeysByAccountInput) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
 	}
 	return ""
 }
@@ -226,7 +314,7 @@ type CreateServiceAccountKeyInput struct {
 
 func (x *CreateServiceAccountKeyInput) Reset() {
 	*x = CreateServiceAccountKeyInput{}
-	mi := &file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes[4]
+	mi := &file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -238,7 +326,7 @@ func (x *CreateServiceAccountKeyInput) String() string {
 func (*CreateServiceAccountKeyInput) ProtoMessage() {}
 
 func (x *CreateServiceAccountKeyInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes[4]
+	mi := &file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -251,7 +339,7 @@ func (x *CreateServiceAccountKeyInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateServiceAccountKeyInput.ProtoReflect.Descriptor instead.
 func (*CreateServiceAccountKeyInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_apikey_v1_io_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_iam_apikey_v1_io_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *CreateServiceAccountKeyInput) GetServiceAccountId() string {
@@ -300,7 +388,7 @@ type UpdateApiKeyInput struct {
 
 func (x *UpdateApiKeyInput) Reset() {
 	*x = UpdateApiKeyInput{}
-	mi := &file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes[5]
+	mi := &file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -312,7 +400,7 @@ func (x *UpdateApiKeyInput) String() string {
 func (*UpdateApiKeyInput) ProtoMessage() {}
 
 func (x *UpdateApiKeyInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes[5]
+	mi := &file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -325,7 +413,7 @@ func (x *UpdateApiKeyInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateApiKeyInput.ProtoReflect.Descriptor instead.
 func (*UpdateApiKeyInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_apikey_v1_io_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_iam_apikey_v1_io_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *UpdateApiKeyInput) GetResource() *ApiKey {
@@ -346,16 +434,25 @@ var File_ai_stigmer_iam_apikey_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_apikey_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"!ai/stigmer/iam/apikey/v1/io.proto\x12\x18ai.stigmer.iam.apikey.v1\x1a\"ai/stigmer/iam/apikey/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"E\n" +
+	"!ai/stigmer/iam/apikey/v1/io.proto\x12\x18ai.stigmer.iam.apikey.v1\x1a\"ai/stigmer/iam/apikey/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"m\n" +
 	"\aApiKeys\x12:\n" +
-	"\aentries\x18\x01 \x03(\v2 .ai.stigmer.iam.apikey.v1.ApiKeyR\aentries\"(\n" +
+	"\aentries\x18\x01 \x03(\v2 .ai.stigmer.iam.apikey.v1.ApiKeyR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"(\n" +
 	"\bApiKeyId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"*\n" +
 	"\n" +
 	"ApiKeyHash\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"/\n" +
-	"\x0fApiKeyAccountId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xd5\x01\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"a\n" +
+	"\x10ListApiKeysInput\x12$\n" +
+	"\tpage_size\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x91\x01\n" +
+	"\x19ListApiKeysByAccountInput\x12%\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\taccountId\x12$\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\xd5\x01\n" +
 	"\x1cCreateServiceAccountKeyInput\x124\n" +
 	"\x12service_account_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x10serviceAccountId\x12\x1f\n" +
 	"\x04name\x18\x02 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\x04name\x129\n" +
@@ -381,23 +478,24 @@ func file_ai_stigmer_iam_apikey_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_apikey_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_ai_stigmer_iam_apikey_v1_io_proto_goTypes = []any{
 	(*ApiKeys)(nil),                      // 0: ai.stigmer.iam.apikey.v1.ApiKeys
 	(*ApiKeyId)(nil),                     // 1: ai.stigmer.iam.apikey.v1.ApiKeyId
 	(*ApiKeyHash)(nil),                   // 2: ai.stigmer.iam.apikey.v1.ApiKeyHash
-	(*ApiKeyAccountId)(nil),              // 3: ai.stigmer.iam.apikey.v1.ApiKeyAccountId
-	(*CreateServiceAccountKeyInput)(nil), // 4: ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput
-	(*UpdateApiKeyInput)(nil),            // 5: ai.stigmer.iam.apikey.v1.UpdateApiKeyInput
-	(*ApiKey)(nil),                       // 6: ai.stigmer.iam.apikey.v1.ApiKey
-	(*timestamppb.Timestamp)(nil),        // 7: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil),        // 8: google.protobuf.FieldMask
+	(*ListApiKeysInput)(nil),             // 3: ai.stigmer.iam.apikey.v1.ListApiKeysInput
+	(*ListApiKeysByAccountInput)(nil),    // 4: ai.stigmer.iam.apikey.v1.ListApiKeysByAccountInput
+	(*CreateServiceAccountKeyInput)(nil), // 5: ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput
+	(*UpdateApiKeyInput)(nil),            // 6: ai.stigmer.iam.apikey.v1.UpdateApiKeyInput
+	(*ApiKey)(nil),                       // 7: ai.stigmer.iam.apikey.v1.ApiKey
+	(*timestamppb.Timestamp)(nil),        // 8: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil),        // 9: google.protobuf.FieldMask
 }
 var file_ai_stigmer_iam_apikey_v1_io_proto_depIdxs = []int32{
-	6, // 0: ai.stigmer.iam.apikey.v1.ApiKeys.entries:type_name -> ai.stigmer.iam.apikey.v1.ApiKey
-	7, // 1: ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput.expires_at:type_name -> google.protobuf.Timestamp
-	6, // 2: ai.stigmer.iam.apikey.v1.UpdateApiKeyInput.resource:type_name -> ai.stigmer.iam.apikey.v1.ApiKey
-	8, // 3: ai.stigmer.iam.apikey.v1.UpdateApiKeyInput.update_mask:type_name -> google.protobuf.FieldMask
+	7, // 0: ai.stigmer.iam.apikey.v1.ApiKeys.entries:type_name -> ai.stigmer.iam.apikey.v1.ApiKey
+	8, // 1: ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput.expires_at:type_name -> google.protobuf.Timestamp
+	7, // 2: ai.stigmer.iam.apikey.v1.UpdateApiKeyInput.resource:type_name -> ai.stigmer.iam.apikey.v1.ApiKey
+	9, // 3: ai.stigmer.iam.apikey.v1.UpdateApiKeyInput.update_mask:type_name -> google.protobuf.FieldMask
 	4, // [4:4] is the sub-list for method output_type
 	4, // [4:4] is the sub-list for method input_type
 	4, // [4:4] is the sub-list for extension type_name
@@ -417,7 +515,7 @@ func file_ai_stigmer_iam_apikey_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_apikey_v1_io_proto_rawDesc), len(file_ai_stigmer_iam_apikey_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

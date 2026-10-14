@@ -3,14 +3,13 @@
 import { wrapError } from "./errors.js";
 import { stripUndefined } from "./proto-utils.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
-import { EmptySchema } from "@bufbuild/protobuf/wkt";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { type RenameInput, type FindApiResourcesRequest } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { type RenameInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { OrganizationSchema, type Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
-import { OrganizationIdSchema, UpdateOrganizationInputSchema, UpdateOrganizationPoliciesInputSchema, OrganizationListSchema, OrganizationsSchema, OrganizationExternalLookupSchema, ListChildOrgsInputSchema, ChildOrgListSchema, type UpdateOrganizationPoliciesInput, type OrganizationList, type Organizations, type OrganizationExternalLookup, type ListChildOrgsInput, type ChildOrgList } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
+import { OrganizationIdSchema, UpdateOrganizationInputSchema, UpdateOrganizationPoliciesInputSchema, ListMyOrganizationsInputSchema, OrganizationsSchema, OrganizationExternalLookupSchema, ListChildOrgsInputSchema, ChildOrgListSchema, type UpdateOrganizationPoliciesInput, type ListMyOrganizationsInput, type Organizations, type OrganizationExternalLookup, type ListChildOrgsInput, type ChildOrgList } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 import { OrganizationSpecSchema, OrganizationPreferencesSchema, OrganizationPoliciesSchema, type OrganizationPreferences, type OrganizationPolicies } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
 
@@ -66,16 +65,24 @@ export class OrganizationClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async find(input: FindApiResourcesRequest): Promise<OrganizationList> {
+  async listMine(input: ListMyOrganizationsInput): Promise<Organizations> {
     try {
-      return await this.query.find(input);
+      return await this.query.listMine(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async findMyOrganizations(): Promise<Organizations> {
-    try {
-      return await this.query.findMyOrganizations(create(EmptySchema, {}));
-    } catch (e) { throw wrapError(e); }
+  /**
+   * Every entry of `listMine`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listMineAll(input: MessageInitShape<typeof ListMyOrganizationsInputSchema>): AsyncGenerator<Organizations["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.listMine(create(ListMyOrganizationsInputSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 
   async getByExternalId(input: OrganizationExternalLookup): Promise<Organization> {
@@ -88,6 +95,20 @@ export class OrganizationClient {
     try {
       return await this.query.listChildOrgs(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `listChildOrgs`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listChildOrgsAll(input: MessageInitShape<typeof ListChildOrgsInputSchema>): AsyncGenerator<ChildOrgList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.listChildOrgs(create(ListChildOrgsInputSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 }
 

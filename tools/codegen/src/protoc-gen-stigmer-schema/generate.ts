@@ -46,10 +46,6 @@ function resourceNamespaces(moduleFiles: DescFile[]): string[] {
     .map((v) => v.name);
 }
 
-// Resources that use SearchService for listing — a server-side indexing
-// concern mirrored from the Go tool.
-const SEARCH_LIST_RESOURCES = new Set(["agent", "skill", "plugin"]);
-
 // Curated commons types/enums for SDK reference documentation; internal
 // types like AuthorizationConfig and ApiResourceKindMeta are excluded.
 const SDK_FACING_COMMONS_TYPES = new Set([
@@ -80,8 +76,7 @@ export function generateSchemas(moduleFiles: DescFile[], ctx: ExtractContext): O
       const group = groupFiles(moduleFiles, `ai/stigmer/${ns}/${sub}/v1/`);
       const schema = extractServiceSchemas(group, ctx);
       if (schema === null || schema.services.length === 0) continue;
-      const listVia = SEARCH_LIST_RESOURCES.has(sub) ? "SearchService" : "";
-      out.push(jsonFile(`services/${sub}.json`, serviceSchemaStruct(sub, listVia, schema)));
+      out.push(jsonFile(`services/${sub}.json`, serviceSchemaStruct(sub, schema)));
     }
   }
 
@@ -89,7 +84,7 @@ export function generateSchemas(moduleFiles: DescFile[], ctx: ExtractContext): O
   const searchGroup = groupFiles(moduleFiles, "ai/stigmer/search/v1/");
   const searchSchema = extractServiceSchemas(searchGroup, ctx);
   if (searchSchema !== null && searchSchema.services.length > 0) {
-    out.push(jsonFile("services/search.json", serviceSchemaStruct("search", "", searchSchema)));
+    out.push(jsonFile("services/search.json", serviceSchemaStruct("search", searchSchema)));
   }
 
   // Commons shared types and enums for SDK docs.

@@ -2,20 +2,18 @@
 
 package ai.stigmer.sdk.gen;
 
-import ai.stigmer.commons.apiresource.FindApiResourcesRequest;
 import ai.stigmer.commons.apiresource.RenameInput;
 import ai.stigmer.tenancy.organization.v1.ChildOrgList;
 import ai.stigmer.tenancy.organization.v1.ListChildOrgsInput;
+import ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput;
 import ai.stigmer.tenancy.organization.v1.Organization;
 import ai.stigmer.tenancy.organization.v1.OrganizationCommandControllerGrpc;
 import ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup;
 import ai.stigmer.tenancy.organization.v1.OrganizationId;
-import ai.stigmer.tenancy.organization.v1.OrganizationList;
 import ai.stigmer.tenancy.organization.v1.OrganizationQueryControllerGrpc;
 import ai.stigmer.tenancy.organization.v1.Organizations;
 import ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput;
 import ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput;
-import com.google.protobuf.Empty;
 import com.google.protobuf.FieldMask;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
@@ -75,16 +73,23 @@ public final class OrganizationClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public OrganizationList find(FindApiResourcesRequest input) {
+    public Organizations listMine(ListMyOrganizationsInput input) {
         try {
-            return query.find(input);
+            return query.listMine(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public Organizations findMyOrganizations() {
-        try {
-            return query.findMyOrganizations(Empty.getDefaultInstance());
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    /**
+     * Every entry of {@code listMine}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<Organization> listMineAll(ListMyOrganizationsInput input) {
+        return Pages.<Organizations, Organization>iterate(
+            input.getPageToken(),
+            token -> listMine(input.toBuilder().setPageToken(token).build()),
+            Organizations::getEntriesList,
+            Organizations::getNextPageToken);
     }
 
     public Organization getByExternalId(OrganizationExternalLookup input) {
@@ -97,5 +102,18 @@ public final class OrganizationClient {
         try {
             return query.listChildOrgs(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code listChildOrgs}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<Organization> listChildOrgsAll(ListChildOrgsInput input) {
+        return Pages.<ChildOrgList, Organization>iterate(
+            input.getPageToken(),
+            token -> listChildOrgs(input.toBuilder().setPageToken(token).build()),
+            ChildOrgList::getEntriesList,
+            ChildOrgList::getNextPageToken);
     }
 }

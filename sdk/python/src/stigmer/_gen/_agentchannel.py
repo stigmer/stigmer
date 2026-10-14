@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Iterator
 
 import grpc
 
@@ -108,7 +109,25 @@ class AgentChannelClient:
 
     def list_conversations(self, input: conversation_io_pb2.ListChannelConversationsInput) -> conversation_io_pb2.ChannelConversationList:
         try:
-            return self._channelConversationQuery.listConversations(input)
+            return self._channelConversationQuery.list(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def list_conversations_all(self, input: conversation_io_pb2.ListChannelConversationsInput) -> Iterator[conversation_io_pb2.ChannelConversation]:
+        """Every entry of ``list_conversations``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = conversation_io_pb2.ListChannelConversationsInput()
+        request.CopyFrom(input)
+        while True:
+            page = self.list_conversations(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
+
+    def count_conversations(self, input: conversation_io_pb2.CountChannelConversationsInput) -> conversation_io_pb2.ChannelConversationCount:
+        try:
+            return self._channelConversationQuery.countConversations(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -118,11 +137,23 @@ class AgentChannelClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def get_timeline(self, input: conversation_io_pb2.GetConversationTimelineInput) -> conversation_io_pb2.ConversationTimeline:
+    def list_timeline(self, input: conversation_io_pb2.ListConversationTimelineInput) -> conversation_io_pb2.ConversationTimeline:
         try:
-            return self._channelConversationQuery.getTimeline(input)
+            return self._channelConversationQuery.listTimeline(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
+
+    def list_timeline_all(self, input: conversation_io_pb2.ListConversationTimelineInput) -> Iterator[conversation_io_pb2.ConversationTimelineItem]:
+        """Every entry of ``list_timeline``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = conversation_io_pb2.ListConversationTimelineInput()
+        request.CopyFrom(input)
+        while True:
+            page = self.list_timeline(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
 
     def get_media_download_url(self, input: conversation_io_pb2.GetConversationMediaDownloadUrlInput) -> conversation_io_pb2.ConversationMediaDownloadUrl:
         try:
@@ -162,17 +193,41 @@ class AgentChannelClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def get_by_agent(self, input: io_pb2.GetAgentChannelsByAgentRequest) -> io_pb2.AgentChannelList:
+    def list_by_agent(self, input: io_pb2.ListAgentChannelsByAgentRequest) -> io_pb2.AgentChannelList:
         try:
-            return self._query.getByAgent(input)
+            return self._query.listByAgent(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
+
+    def list_by_agent_all(self, input: io_pb2.ListAgentChannelsByAgentRequest) -> Iterator[api_pb2.AgentChannel]:
+        """Every entry of ``list_by_agent``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListAgentChannelsByAgentRequest()
+        request.CopyFrom(input)
+        while True:
+            page = self.list_by_agent(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
 
     def list(self, input: io_pb2.ListAgentChannelsRequest) -> io_pb2.AgentChannelList:
         try:
             return self._query.list(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
+
+    def list_all(self, input: io_pb2.ListAgentChannelsRequest) -> Iterator[api_pb2.AgentChannel]:
+        """Every entry of ``list``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListAgentChannelsRequest()
+        request.CopyFrom(input)
+        while True:
+            page = self.list(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
 
 
 @dataclass

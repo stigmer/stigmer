@@ -4,11 +4,13 @@ package gen
 
 import (
 	"context"
+	"iter"
 
 	agentchannelv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentchannel/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
@@ -100,7 +102,41 @@ func (a *AgentChannelClient) Escalate(ctx context.Context, input *agentchannelv1
 }
 
 func (a *AgentChannelClient) ListConversations(ctx context.Context, input *agentchannelv1.ListChannelConversationsInput) (*agentchannelv1.ChannelConversationList, error) {
-	resp, err := a.channelConversationQuery.ListConversations(ctx, input)
+	resp, err := a.channelConversationQuery.List(ctx, input)
+	return resp, wrapErr(err)
+}
+
+// ListConversationsAll returns every entry of ListConversations, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (a *AgentChannelClient) ListConversationsAll(ctx context.Context, input *agentchannelv1.ListChannelConversationsInput) iter.Seq2[*agentchannelv1.ChannelConversation, error] {
+	return func(yield func(*agentchannelv1.ChannelConversation, error) bool) {
+		req := &agentchannelv1.ListChannelConversationsInput{}
+		if input != nil {
+			req = proto.Clone(input).(*agentchannelv1.ListChannelConversationsInput)
+		}
+		for {
+			page, err := a.ListConversations(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
+}
+
+func (a *AgentChannelClient) CountConversations(ctx context.Context, input *agentchannelv1.CountChannelConversationsInput) (*agentchannelv1.ChannelConversationCount, error) {
+	resp, err := a.channelConversationQuery.CountConversations(ctx, input)
 	return resp, wrapErr(err)
 }
 
@@ -109,9 +145,38 @@ func (a *AgentChannelClient) GetConversation(ctx context.Context, input *agentch
 	return resp, wrapErr(err)
 }
 
-func (a *AgentChannelClient) GetTimeline(ctx context.Context, input *agentchannelv1.GetConversationTimelineInput) (*agentchannelv1.ConversationTimeline, error) {
-	resp, err := a.channelConversationQuery.GetTimeline(ctx, input)
+func (a *AgentChannelClient) ListTimeline(ctx context.Context, input *agentchannelv1.ListConversationTimelineInput) (*agentchannelv1.ConversationTimeline, error) {
+	resp, err := a.channelConversationQuery.ListTimeline(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListTimelineAll returns every entry of ListTimeline, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (a *AgentChannelClient) ListTimelineAll(ctx context.Context, input *agentchannelv1.ListConversationTimelineInput) iter.Seq2[*agentchannelv1.ConversationTimelineItem, error] {
+	return func(yield func(*agentchannelv1.ConversationTimelineItem, error) bool) {
+		req := &agentchannelv1.ListConversationTimelineInput{}
+		if input != nil {
+			req = proto.Clone(input).(*agentchannelv1.ListConversationTimelineInput)
+		}
+		for {
+			page, err := a.ListTimeline(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 func (a *AgentChannelClient) GetMediaDownloadUrl(ctx context.Context, input *agentchannelv1.GetConversationMediaDownloadUrlInput) (*agentchannelv1.ConversationMediaDownloadUrl, error) {
@@ -145,14 +210,72 @@ func (a *AgentChannelClient) GetByReference(ctx context.Context, ref ResourceRef
 	return resp, wrapErr(err)
 }
 
-func (a *AgentChannelClient) GetByAgent(ctx context.Context, input *agentchannelv1.GetAgentChannelsByAgentRequest) (*agentchannelv1.AgentChannelList, error) {
-	resp, err := a.query.GetByAgent(ctx, input)
+func (a *AgentChannelClient) ListByAgent(ctx context.Context, input *agentchannelv1.ListAgentChannelsByAgentRequest) (*agentchannelv1.AgentChannelList, error) {
+	resp, err := a.query.ListByAgent(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListByAgentAll returns every entry of ListByAgent, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (a *AgentChannelClient) ListByAgentAll(ctx context.Context, input *agentchannelv1.ListAgentChannelsByAgentRequest) iter.Seq2[*agentchannelv1.AgentChannel, error] {
+	return func(yield func(*agentchannelv1.AgentChannel, error) bool) {
+		req := &agentchannelv1.ListAgentChannelsByAgentRequest{}
+		if input != nil {
+			req = proto.Clone(input).(*agentchannelv1.ListAgentChannelsByAgentRequest)
+		}
+		for {
+			page, err := a.ListByAgent(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 func (a *AgentChannelClient) List(ctx context.Context, input *agentchannelv1.ListAgentChannelsRequest) (*agentchannelv1.AgentChannelList, error) {
 	resp, err := a.query.List(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListAll returns every entry of List, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (a *AgentChannelClient) ListAll(ctx context.Context, input *agentchannelv1.ListAgentChannelsRequest) iter.Seq2[*agentchannelv1.AgentChannel, error] {
+	return func(yield func(*agentchannelv1.AgentChannel, error) bool) {
+		req := &agentchannelv1.ListAgentChannelsRequest{}
+		if input != nil {
+			req = proto.Clone(input).(*agentchannelv1.ListAgentChannelsRequest)
+		}
+		for {
+			page, err := a.List(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 // AgentChannelInput holds the fields for creating or applying a AgentChannel.

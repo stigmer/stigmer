@@ -72,7 +72,13 @@ func (x *AgentEvalId) GetValue() string {
 type ListAgentEvalsByAgentRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ID of the agent.
-	AgentId       string `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	AgentId string `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -114,13 +120,28 @@ func (x *ListAgentEvalsByAgentRequest) GetAgentId() string {
 	return ""
 }
 
+func (x *ListAgentEvalsByAgentRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListAgentEvalsByAgentRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
 // AgentEvalList is a list of agent evals.
 type AgentEvalList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Number of evals in the list.
-	TotalCount int32 `protobuf:"varint,1,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	// The evals, newest first.
-	Items         []*AgentEval `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
+	Entries []*AgentEval `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
+	NextPageToken string `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -155,18 +176,18 @@ func (*AgentEvalList) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agenteval_v1_io_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *AgentEvalList) GetTotalCount() int32 {
+func (x *AgentEvalList) GetEntries() []*AgentEval {
 	if x != nil {
-		return x.TotalCount
-	}
-	return 0
-}
-
-func (x *AgentEvalList) GetItems() []*AgentEval {
-	if x != nil {
-		return x.Items
+		return x.Entries
 	}
 	return nil
+}
+
+func (x *AgentEvalList) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
 }
 
 var File_ai_stigmer_agentic_agenteval_v1_io_proto protoreflect.FileDescriptor
@@ -175,14 +196,16 @@ const file_ai_stigmer_agentic_agenteval_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"(ai/stigmer/agentic/agenteval/v1/io.proto\x12\x1fai.stigmer.agentic.agenteval.v1\x1a)ai/stigmer/agentic/agenteval/v1/api.proto\x1a\x1bbuf/validate/validate.proto\"0\n" +
 	"\vAgentEvalId\x12!\n" +
-	"\x05value\x18\x01 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\x05value\"E\n" +
+	"\x05value\x18\x01 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\x05value\"\x94\x01\n" +
 	"\x1cListAgentEvalsByAgentRequest\x12%\n" +
 	"\bagent_id\x18\x01 \x01(\tB\n" +
-	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\aagentId\"r\n" +
-	"\rAgentEvalList\x12\x1f\n" +
-	"\vtotal_count\x18\x01 \x01(\x05R\n" +
-	"totalCount\x12@\n" +
-	"\x05items\x18\x02 \x03(\v2*.ai.stigmer.agentic.agenteval.v1.AgentEvalR\x05itemsB\xa7\x02\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\aagentId\x12$\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x90\x01\n" +
+	"\rAgentEvalList\x12D\n" +
+	"\aentries\x18\x02 \x03(\v2*.ai.stigmer.agentic.agenteval.v1.AgentEvalR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\b\x01\x10\x02R\vtotal_countB\xa7\x02\n" +
 	"#com.ai.stigmer.agentic.agenteval.v1B\aIoProtoP\x01ZVgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agenteval/v1;agentevalv1\xa2\x02\x04ASAA\xaa\x02\x1fAi.Stigmer.Agentic.Agenteval.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Agenteval\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Agenteval\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Agenteval::V1b\x06proto3"
 
 var (
@@ -205,7 +228,7 @@ var file_ai_stigmer_agentic_agenteval_v1_io_proto_goTypes = []any{
 	(*AgentEval)(nil),                    // 3: ai.stigmer.agentic.agenteval.v1.AgentEval
 }
 var file_ai_stigmer_agentic_agenteval_v1_io_proto_depIdxs = []int32{
-	3, // 0: ai.stigmer.agentic.agenteval.v1.AgentEvalList.items:type_name -> ai.stigmer.agentic.agenteval.v1.AgentEval
+	3, // 0: ai.stigmer.agentic.agenteval.v1.AgentEvalList.entries:type_name -> ai.stigmer.agentic.agenteval.v1.AgentEval
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name

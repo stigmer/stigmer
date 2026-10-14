@@ -4,12 +4,14 @@ package gen
 
 import (
 	"context"
+	"iter"
 
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	identityproviderv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityprovider/v1"
 	iamv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
@@ -77,9 +79,38 @@ func (i *IdentityProviderClient) GetByReference(ctx context.Context, ref Resourc
 	return resp, wrapErr(err)
 }
 
-func (i *IdentityProviderClient) ListByOrg(ctx context.Context, input *identityproviderv1.ListIdentityProvidersByOrgInput) (*identityproviderv1.IdentityProviders, error) {
-	resp, err := i.query.ListByOrg(ctx, input)
+func (i *IdentityProviderClient) List(ctx context.Context, input *identityproviderv1.ListIdentityProvidersInput) (*identityproviderv1.IdentityProviders, error) {
+	resp, err := i.query.List(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListAll returns every entry of List, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (i *IdentityProviderClient) ListAll(ctx context.Context, input *identityproviderv1.ListIdentityProvidersInput) iter.Seq2[*identityproviderv1.IdentityProvider, error] {
+	return func(yield func(*identityproviderv1.IdentityProvider, error) bool) {
+		req := &identityproviderv1.ListIdentityProvidersInput{}
+		if input != nil {
+			req = proto.Clone(input).(*identityproviderv1.ListIdentityProvidersInput)
+		}
+		for {
+			page, err := i.List(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 // IdentityProviderInput holds the fields for creating or applying a IdentityProvider.

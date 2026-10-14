@@ -9,6 +9,7 @@ import ai.stigmer.agentic.agentchannel.v1.AgentChannelList;
 import ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryControllerGrpc;
 import ai.stigmer.agentic.agentchannel.v1.ChannelConversation;
 import ai.stigmer.agentic.agentchannel.v1.ChannelConversationCommandControllerGrpc;
+import ai.stigmer.agentic.agentchannel.v1.ChannelConversationCount;
 import ai.stigmer.agentic.agentchannel.v1.ChannelConversationList;
 import ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryControllerGrpc;
 import ai.stigmer.agentic.agentchannel.v1.ChannelMessageCommandControllerGrpc;
@@ -18,16 +19,18 @@ import ai.stigmer.agentic.agentchannel.v1.CompleteChannelInstallInput;
 import ai.stigmer.agentic.agentchannel.v1.ConversationControlInput;
 import ai.stigmer.agentic.agentchannel.v1.ConversationMediaDownloadUrl;
 import ai.stigmer.agentic.agentchannel.v1.ConversationTimeline;
+import ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem;
+import ai.stigmer.agentic.agentchannel.v1.CountChannelConversationsInput;
 import ai.stigmer.agentic.agentchannel.v1.EscalateConversationInput;
-import ai.stigmer.agentic.agentchannel.v1.GetAgentChannelsByAgentRequest;
 import ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput;
 import ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput;
-import ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput;
 import ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallInput;
 import ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallOutput;
+import ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsByAgentRequest;
 import ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest;
 import ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput;
 import ai.stigmer.agentic.agentchannel.v1.ListChannelTemplatesInput;
+import ai.stigmer.agentic.agentchannel.v1.ListConversationTimelineInput;
 import ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput;
 import ai.stigmer.agentic.agentchannel.v1.MessagingChannels;
 import ai.stigmer.agentic.agentchannel.v1.ReplyToConversationInput;
@@ -128,7 +131,26 @@ public final class AgentChannelClient {
 
     public ChannelConversationList listConversations(ListChannelConversationsInput input) {
         try {
-            return channelConversationQuery.listConversations(input);
+            return channelConversationQuery.list(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code listConversations}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<ChannelConversation> listConversationsAll(ListChannelConversationsInput input) {
+        return Pages.<ChannelConversationList, ChannelConversation>iterate(
+            input.getPageToken(),
+            token -> listConversations(input.toBuilder().setPageToken(token).build()),
+            ChannelConversationList::getEntriesList,
+            ChannelConversationList::getNextPageToken);
+    }
+
+    public ChannelConversationCount countConversations(CountChannelConversationsInput input) {
+        try {
+            return channelConversationQuery.countConversations(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
@@ -138,10 +160,23 @@ public final class AgentChannelClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public ConversationTimeline getTimeline(GetConversationTimelineInput input) {
+    public ConversationTimeline listTimeline(ListConversationTimelineInput input) {
         try {
-            return channelConversationQuery.getTimeline(input);
+            return channelConversationQuery.listTimeline(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code listTimeline}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<ConversationTimelineItem> listTimelineAll(ListConversationTimelineInput input) {
+        return Pages.<ConversationTimeline, ConversationTimelineItem>iterate(
+            input.getPageToken(),
+            token -> listTimeline(input.toBuilder().setPageToken(token).build()),
+            ConversationTimeline::getEntriesList,
+            ConversationTimeline::getNextPageToken);
     }
 
     public ConversationMediaDownloadUrl getMediaDownloadUrl(GetConversationMediaDownloadUrlInput input) {
@@ -180,15 +215,41 @@ public final class AgentChannelClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public AgentChannelList getByAgent(GetAgentChannelsByAgentRequest input) {
+    public AgentChannelList listByAgent(ListAgentChannelsByAgentRequest input) {
         try {
-            return query.getByAgent(input);
+            return query.listByAgent(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code listByAgent}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<AgentChannel> listByAgentAll(ListAgentChannelsByAgentRequest input) {
+        return Pages.<AgentChannelList, AgentChannel>iterate(
+            input.getPageToken(),
+            token -> listByAgent(input.toBuilder().setPageToken(token).build()),
+            AgentChannelList::getEntriesList,
+            AgentChannelList::getNextPageToken);
     }
 
     public AgentChannelList list(ListAgentChannelsRequest input) {
         try {
             return query.list(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code list}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<AgentChannel> listAll(ListAgentChannelsRequest input) {
+        return Pages.<AgentChannelList, AgentChannel>iterate(
+            input.getPageToken(),
+            token -> list(input.toBuilder().setPageToken(token).build()),
+            AgentChannelList::getEntriesList,
+            AgentChannelList::getNextPageToken);
     }
 }

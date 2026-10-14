@@ -72,12 +72,12 @@
           "description": "Get an identity provider by its organization-scoped reference (org/slug).\n\n Resolves a human-readable reference like \"acme/planton\" to the full\n IdentityProvider resource."
         },
         {
-          "name": "ListByOrg",
-          "inputType": "ListIdentityProvidersByOrgInput",
-          "inputFullType": "ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput",
+          "name": "List",
+          "inputType": "ListIdentityProvidersInput",
+          "inputFullType": "ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersInput",
           "outputType": "IdentityProviders",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProviders",
-          "description": "List the identity providers of an organization that the caller may view.\n\n Returns the IdentityProviders whose metadata.org matches the input org and\n that the caller could get by id. Typically a small set (1-3 per org), so\n results are not paginated."
+          "description": "List the identity providers of an organization that the caller may view.\n\n Returns the IdentityProviders whose metadata.org matches the input org and\n that the caller could get by id, newest first, one page at a time."
         }
       ]
     }
@@ -259,9 +259,9 @@
       ]
     },
     {
-      "name": "ListIdentityProvidersByOrgInput",
-      "description": "ListIdentityProvidersByOrgInput specifies the organization whose identity\n providers should be returned.",
-      "protoType": "ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput",
+      "name": "ListIdentityProvidersInput",
+      "description": "ListIdentityProvidersInput specifies the organization whose identity\n providers should be returned.",
+      "protoType": "ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersInput",
       "protoFile": "apis/ai/stigmer/iam/identityprovider/v1/io.proto",
       "fields": [
         {
@@ -275,6 +275,29 @@
           "required": false,
           "validation": {
             "minLength": 1
+          }
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
           }
         }
       ]
@@ -297,6 +320,16 @@
             }
           },
           "description": "Identity provider entries.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Set when more entries may follow: pass it as page_token to continue.\n A page may be short, even empty, and still carry a token.",
           "required": false
         }
       ]

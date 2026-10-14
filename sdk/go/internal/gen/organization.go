@@ -4,11 +4,12 @@ package gen
 
 import (
 	"context"
+	"iter"
 
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	organizationv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/tenancy/organization/v1"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
@@ -71,14 +72,38 @@ func (o *OrganizationClient) Get(ctx context.Context, id string) (*organizationv
 	return resp, wrapErr(err)
 }
 
-func (o *OrganizationClient) Find(ctx context.Context, input *apiresource.FindApiResourcesRequest) (*organizationv1.OrganizationList, error) {
-	resp, err := o.query.Find(ctx, input)
+func (o *OrganizationClient) ListMine(ctx context.Context, input *organizationv1.ListMyOrganizationsInput) (*organizationv1.Organizations, error) {
+	resp, err := o.query.ListMine(ctx, input)
 	return resp, wrapErr(err)
 }
 
-func (o *OrganizationClient) FindMyOrganizations(ctx context.Context) (*organizationv1.Organizations, error) {
-	resp, err := o.query.FindMyOrganizations(ctx, &emptypb.Empty{})
-	return resp, wrapErr(err)
+// ListMineAll returns every entry of ListMine, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (o *OrganizationClient) ListMineAll(ctx context.Context, input *organizationv1.ListMyOrganizationsInput) iter.Seq2[*organizationv1.Organization, error] {
+	return func(yield func(*organizationv1.Organization, error) bool) {
+		req := &organizationv1.ListMyOrganizationsInput{}
+		if input != nil {
+			req = proto.Clone(input).(*organizationv1.ListMyOrganizationsInput)
+		}
+		for {
+			page, err := o.ListMine(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 func (o *OrganizationClient) GetByExternalId(ctx context.Context, input *organizationv1.OrganizationExternalLookup) (*organizationv1.Organization, error) {
@@ -89,6 +114,35 @@ func (o *OrganizationClient) GetByExternalId(ctx context.Context, input *organiz
 func (o *OrganizationClient) ListChildOrgs(ctx context.Context, input *organizationv1.ListChildOrgsInput) (*organizationv1.ChildOrgList, error) {
 	resp, err := o.query.ListChildOrgs(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListChildOrgsAll returns every entry of ListChildOrgs, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (o *OrganizationClient) ListChildOrgsAll(ctx context.Context, input *organizationv1.ListChildOrgsInput) iter.Seq2[*organizationv1.Organization, error] {
+	return func(yield func(*organizationv1.Organization, error) bool) {
+		req := &organizationv1.ListChildOrgsInput{}
+		if input != nil {
+			req = proto.Clone(input).(*organizationv1.ListChildOrgsInput)
+		}
+		for {
+			page, err := o.ListChildOrgs(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 // OrganizationInput holds the fields for creating or applying a Organization.

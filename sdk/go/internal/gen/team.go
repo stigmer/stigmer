@@ -4,11 +4,13 @@ package gen
 
 import (
 	"context"
+	"iter"
 
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	teamv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/team/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
@@ -67,9 +69,38 @@ func (t *TeamClient) GetByReference(ctx context.Context, ref ResourceRef) (*team
 	return resp, wrapErr(err)
 }
 
-func (t *TeamClient) ListByOrg(ctx context.Context, input *teamv1.ListTeamsByOrgInput) (*teamv1.Teams, error) {
-	resp, err := t.query.ListByOrg(ctx, input)
+func (t *TeamClient) List(ctx context.Context, input *teamv1.ListTeamsInput) (*teamv1.Teams, error) {
+	resp, err := t.query.List(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListAll returns every entry of List, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (t *TeamClient) ListAll(ctx context.Context, input *teamv1.ListTeamsInput) iter.Seq2[*teamv1.Team, error] {
+	return func(yield func(*teamv1.Team, error) bool) {
+		req := &teamv1.ListTeamsInput{}
+		if input != nil {
+			req = proto.Clone(input).(*teamv1.ListTeamsInput)
+		}
+		for {
+			page, err := t.List(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 // TeamInput holds the fields for creating or applying a Team.

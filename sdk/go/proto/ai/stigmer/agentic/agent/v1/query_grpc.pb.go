@@ -22,6 +22,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	AgentQueryController_Get_FullMethodName            = "/ai.stigmer.agentic.agent.v1.AgentQueryController/get"
 	AgentQueryController_GetByReference_FullMethodName = "/ai.stigmer.agentic.agent.v1.AgentQueryController/getByReference"
+	AgentQueryController_List_FullMethodName           = "/ai.stigmer.agentic.agent.v1.AgentQueryController/list"
 	AgentQueryController_ListVersions_FullMethodName   = "/ai.stigmer.agentic.agent.v1.AgentQueryController/listVersions"
 	AgentQueryController_GetVersion_FullMethodName     = "/ai.stigmer.agentic.agent.v1.AgentQueryController/getVersion"
 )
@@ -42,6 +43,11 @@ type AgentQueryControllerClient interface {
 	// - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
 	// - SHA256 hash (64 hex chars) → Returns the exact immutable version
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*Agent, error)
+	// List an organization's agents, newest first.
+	//
+	// Returns the agents of the input org that the caller may view, one page
+	// at a time. Search finds agents by their words; list browses them.
+	List(ctx context.Context, in *ListAgentsRequest, opts ...grpc.CallOption) (*AgentList, error)
 	// List version history for an agent.
 	//
 	// Returns all historical versions, newest first. Each entry carries the
@@ -84,6 +90,16 @@ func (c *agentQueryControllerClient) GetByReference(ctx context.Context, in *api
 	return out, nil
 }
 
+func (c *agentQueryControllerClient) List(ctx context.Context, in *ListAgentsRequest, opts ...grpc.CallOption) (*AgentList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AgentList)
+	err := c.cc.Invoke(ctx, AgentQueryController_List_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *agentQueryControllerClient) ListVersions(ctx context.Context, in *ListAgentVersionsInput, opts ...grpc.CallOption) (*ListAgentVersionsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListAgentVersionsResponse)
@@ -120,6 +136,11 @@ type AgentQueryControllerServer interface {
 	// - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
 	// - SHA256 hash (64 hex chars) → Returns the exact immutable version
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*Agent, error)
+	// List an organization's agents, newest first.
+	//
+	// Returns the agents of the input org that the caller may view, one page
+	// at a time. Search finds agents by their words; list browses them.
+	List(context.Context, *ListAgentsRequest) (*AgentList, error)
 	// List version history for an agent.
 	//
 	// Returns all historical versions, newest first. Each entry carries the
@@ -146,6 +167,9 @@ func (UnimplementedAgentQueryControllerServer) Get(context.Context, *AgentId) (*
 }
 func (UnimplementedAgentQueryControllerServer) GetByReference(context.Context, *apiresource.ApiResourceReference) (*Agent, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByReference not implemented")
+}
+func (UnimplementedAgentQueryControllerServer) List(context.Context, *ListAgentsRequest) (*AgentList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
 func (UnimplementedAgentQueryControllerServer) ListVersions(context.Context, *ListAgentVersionsInput) (*ListAgentVersionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListVersions not implemented")
@@ -209,6 +233,24 @@ func _AgentQueryController_GetByReference_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentQueryController_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAgentsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentQueryControllerServer).List(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentQueryController_List_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentQueryControllerServer).List(ctx, req.(*ListAgentsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AgentQueryController_ListVersions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListAgentVersionsInput)
 	if err := dec(in); err != nil {
@@ -259,6 +301,10 @@ var AgentQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getByReference",
 			Handler:    _AgentQueryController_GetByReference_Handler,
+		},
+		{
+			MethodName: "list",
+			Handler:    _AgentQueryController_List_Handler,
 		},
 		{
 			MethodName: "listVersions",

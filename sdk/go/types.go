@@ -110,6 +110,3 @@ type SessionStreamEventsStream = gen.SessionStreamEventsStream
 // Shared SDK types.
 type DeleteResourceInput = gen.DeleteResourceInput
 type ResourceRef = gen.ResourceRef
-type Page = gen.Page
-type ListParams = gen.ListParams
-type ListResult = gen.ListResult

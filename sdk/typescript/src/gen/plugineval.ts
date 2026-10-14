@@ -3,7 +3,7 @@
 import { wrapError } from "./errors.js";
 import { stripUndefined } from "./proto-utils.js";
 import { type ResourceRef } from "./types.js";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { PluginEvalSchema, type PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { PluginEvalCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/command_pb";
@@ -53,6 +53,20 @@ export class PluginEvalClient {
     try {
       return await this.query.listByPlugin(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `listByPlugin`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listByPluginAll(input: MessageInitShape<typeof ListPluginEvalsByPluginRequestSchema>): AsyncGenerator<PluginEvalList["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.listByPlugin(create(ListPluginEvalsByPluginRequestSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 }
 

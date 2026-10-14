@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Iterator
 
 import grpc
 
@@ -73,11 +74,23 @@ class IdentityProviderClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def list_by_org(self, input: io_pb2.ListIdentityProvidersByOrgInput) -> io_pb2.IdentityProviders:
+    def list(self, input: io_pb2.ListIdentityProvidersInput) -> io_pb2.IdentityProviders:
         try:
-            return self._query.listByOrg(input)
+            return self._query.list(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
+
+    def list_all(self, input: io_pb2.ListIdentityProvidersInput) -> Iterator[api_pb2.IdentityProvider]:
+        """Every entry of ``list``, page after page: follows ``next_page_token``
+        from the token the input names until the list ends."""
+        request = io_pb2.ListIdentityProvidersInput()
+        request.CopyFrom(input)
+        while True:
+            page = self.list(request)
+            yield from page.entries
+            if not page.next_page_token:
+                return
+            request.page_token = page.next_page_token
 
 
 @dataclass

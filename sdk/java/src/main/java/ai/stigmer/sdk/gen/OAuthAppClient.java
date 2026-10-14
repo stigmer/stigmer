@@ -6,7 +6,7 @@ import ai.stigmer.commons.apiresource.ApiResourceDeleteInput;
 import ai.stigmer.commons.apiresource.ApiResourceId;
 import ai.stigmer.commons.apiresource.RenameInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
-import ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput;
+import ai.stigmer.iam.oauthapp.v1.ListOAuthAppsInput;
 import ai.stigmer.iam.oauthapp.v1.OAuthApp;
 import ai.stigmer.iam.oauthapp.v1.OAuthAppCommandControllerGrpc;
 import ai.stigmer.iam.oauthapp.v1.OAuthAppQueryControllerGrpc;
@@ -77,9 +77,22 @@ public final class OAuthAppClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public OAuthApps listByOrg(ListOAuthAppsByOrgInput input) {
+    public OAuthApps list(ListOAuthAppsInput input) {
         try {
-            return query.listByOrg(input);
+            return query.list(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code list}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<OAuthApp> listAll(ListOAuthAppsInput input) {
+        return Pages.<OAuthApps, OAuthApp>iterate(
+            input.getPageToken(),
+            token -> list(input.toBuilder().setPageToken(token).build()),
+            OAuthApps::getEntriesList,
+            OAuthApps::getNextPageToken);
     }
 }

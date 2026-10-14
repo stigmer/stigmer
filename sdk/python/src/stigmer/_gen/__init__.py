@@ -32,9 +32,6 @@ from ._team import TeamClient, TeamInput
 from ._vault import VaultClient, VaultInput, VaultSecretInput, VaultConnectionInput, VaultConnectionSignInInput
 from ._types import (
     DeleteResourceInput,
-    ListParams,
-    ListResult,
-    Page,
     ResourceRef,
 )
 from ._errors import (
@@ -143,9 +140,6 @@ __all__ = [
     "VaultConnectionInput",
     "VaultConnectionSignInInput",
     "DeleteResourceInput",
-    "ListParams",
-    "ListResult",
-    "Page",
     "ResourceRef",
     "ErrorCode",
     "StigmerError",

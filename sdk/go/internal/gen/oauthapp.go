@@ -4,11 +4,13 @@ package gen
 
 import (
 	"context"
+	"iter"
 
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	oauthappv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/oauthapp/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
@@ -76,9 +78,38 @@ func (o *OAuthAppClient) GetByReference(ctx context.Context, ref ResourceRef) (*
 	return resp, wrapErr(err)
 }
 
-func (o *OAuthAppClient) ListByOrg(ctx context.Context, input *oauthappv1.ListOAuthAppsByOrgInput) (*oauthappv1.OAuthApps, error) {
-	resp, err := o.query.ListByOrg(ctx, input)
+func (o *OAuthAppClient) List(ctx context.Context, input *oauthappv1.ListOAuthAppsInput) (*oauthappv1.OAuthApps, error) {
+	resp, err := o.query.List(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// ListAll returns every entry of List, page after page: it follows
+// NextPageToken from the token input names until the list ends. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (o *OAuthAppClient) ListAll(ctx context.Context, input *oauthappv1.ListOAuthAppsInput) iter.Seq2[*oauthappv1.OAuthApp, error] {
+	return func(yield func(*oauthappv1.OAuthApp, error) bool) {
+		req := &oauthappv1.ListOAuthAppsInput{}
+		if input != nil {
+			req = proto.Clone(input).(*oauthappv1.ListOAuthAppsInput)
+		}
+		for {
+			page, err := o.List(ctx, req)
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+			for _, entry := range page.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if page.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = page.GetNextPageToken()
+		}
+	}
 }
 
 // OAuthAppInput holds the fields for creating or applying a OAuthApp.

@@ -9,7 +9,7 @@ import ai.stigmer.iam.invitation.v1.InvitationPreview;
 import ai.stigmer.iam.invitation.v1.InvitationQueryControllerGrpc;
 import ai.stigmer.iam.invitation.v1.InvitationTokenInput;
 import ai.stigmer.iam.invitation.v1.Invitations;
-import ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput;
+import ai.stigmer.iam.invitation.v1.ListInvitationsInput;
 import ai.stigmer.iam.invitation.v1.RedeemInvitationInput;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
@@ -48,10 +48,23 @@ public final class InvitationClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public Invitations listByOrg(ListInvitationsByOrgInput input) {
+    public Invitations list(ListInvitationsInput input) {
         try {
-            return query.listByOrg(input);
+            return query.list(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code list}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<Invitation> listAll(ListInvitationsInput input) {
+        return Pages.<Invitations, Invitation>iterate(
+            input.getPageToken(),
+            token -> list(input.toBuilder().setPageToken(token).build()),
+            Invitations::getEntriesList,
+            Invitations::getNextPageToken);
     }
 
     public InvitationPreview getByToken(InvitationTokenInput input) {

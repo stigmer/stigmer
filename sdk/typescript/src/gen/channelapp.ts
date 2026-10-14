@@ -7,7 +7,7 @@ import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ChannelAppSchema, type ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
-import { UpdateChannelAppInputSchema, ListChannelAppsByOrgInputSchema, ChannelAppsSchema, type ListChannelAppsByOrgInput, type ChannelApps } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
+import { UpdateChannelAppInputSchema, ListChannelAppsInputSchema, ChannelAppsSchema, type ListChannelAppsInput, type ChannelApps } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
 import { ChannelAppSpecSchema, SlackChannelAppConfigSchema, WhatsAppChannelAppConfigSchema, type SlackChannelAppConfig, type WhatsAppChannelAppConfig } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -71,10 +71,24 @@ export class ChannelAppClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async listByOrg(input: ListChannelAppsByOrgInput): Promise<ChannelApps> {
+  async list(input: ListChannelAppsInput): Promise<ChannelApps> {
     try {
-      return await this.query.listByOrg(input);
+      return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
+  }
+
+  /**
+   * Every entry of `list`, page after page: follows `nextPageToken`
+   * until the list ends. Breaking out of the loop stops the reads.
+   */
+  async *listAll(input: MessageInitShape<typeof ListChannelAppsInputSchema>): AsyncGenerator<ChannelApps["entries"][number]> {
+    let pageToken = input.pageToken ?? "";
+    for (;;) {
+      const page = await this.list(create(ListChannelAppsInputSchema, { ...input, pageToken }));
+      yield* page.entries;
+      if (page.nextPageToken === "") return;
+      pageToken = page.nextPageToken;
+    }
   }
 }
 

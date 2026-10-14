@@ -44,4 +44,17 @@ public final class PlanClient {
             return query.list(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
+
+    /**
+     * Every entry of {@code list}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<Plan> listAll(ListPlansInput input) {
+        return Pages.<Plans, Plan>iterate(
+            input.getPageToken(),
+            token -> list(input.toBuilder().setPageToken(token).build()),
+            Plans::getEntriesList,
+            Plans::getNextPageToken);
+    }
 }
