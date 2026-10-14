@@ -17,6 +17,8 @@ import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchan
 import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
 import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
@@ -26,8 +28,6 @@ import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
-import { SearchResultSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 import { createNodeClient, normalizeEndpoint } from "@stigmer/sdk/node";
@@ -73,10 +73,9 @@ const renamedOrg = create(OrganizationSchema, {
   metadata: { name: "Globex", slug: "globex", id: "org_01jbbbbbbbbbbbbbbbbbbbbbbb" },
 });
 
-// Second org/API-key entries so the list tests can pin the
-// dispatcher-applied --limit slice — both RPCs are unpaginated (Empty
-// request), the exact shape that shipped ignoring the flag when handlers
-// owned rendering (stigmer/stigmer#312).
+// Second org/API-key entries so the list tests can pin --limit on lists
+// whose fakes answer one page whatever size is asked: the dispatcher's
+// slice still binds the flag (stigmer/stigmer#312).
 const secondOrg = create(OrganizationSchema, {
   apiVersion: "tenancy.stigmer.ai/v1",
   kind: "Organization",
@@ -90,41 +89,29 @@ const secondApiKey = create(ApiKeySchema, {
   spec: { fingerprint: "ef01", neverExpires: true },
 });
 
-const knownSearchResult = create(SearchResultSchema, {
-  kind: ApiResourceKind.agent,
-  id: "agt_1",
-  name: "Reviewer",
-  slug: "reviewer",
-  qualifiedSlug: `${ACME_ID}/reviewer`,
-  org: ACME_ID,
-  description: "reviews code",
+// An agent in an organization the caller cannot see, which output names by
+// its id as given, and a second agent in acme, so the table proves one
+// organization lookup per distinct organization, never per row.
+const hiddenAgent = create(AgentSchema, {
+  apiVersion: "agentic.stigmer.ai/v1",
+  kind: "Agent",
+  metadata: { name: "Linter", slug: "linter", org: HIDDEN_ORG_ID, id: "agt_2" },
+  spec: { description: "lints code" },
 });
 
-// A result in an organization the caller cannot see, and one whose qualified
-// slug does not lead with its org: both print as the server gave them.
-const hiddenSearchResult = create(SearchResultSchema, {
-  kind: ApiResourceKind.agent,
-  id: "agt_2",
-  name: "Linter",
-  slug: "linter",
-  qualifiedSlug: `${HIDDEN_ORG_ID}/linter`,
-  org: HIDDEN_ORG_ID,
-  description: "lints code",
+const formatterAgent = create(AgentSchema, {
+  apiVersion: "agentic.stigmer.ai/v1",
+  kind: "Agent",
+  metadata: { name: "Formatter", slug: "formatter", org: ACME_ID, id: "agt_3" },
+  spec: { description: "formats code" },
 });
 
-const unqualifiedSearchResult = create(SearchResultSchema, {
-  kind: ApiResourceKind.agent,
-  id: "agt_3",
-  name: "Formatter",
-  slug: "formatter",
-  qualifiedSlug: "formatter",
-  org: ACME_ID,
-  description: "formats code",
-});
+// Every agent list request, so a test can see the pages the CLI walked.
+const agentListRequests: Array<{ pageSize: number; pageToken: string }> = [];
 
-// More kinds wired into get-bindings and list alongside this test. A plugin
-// lists via the SearchService (it is search-indexed); a vault and the two
-// channel kinds list via their dedicated query RPCs. The vault carries entry
+// More kinds wired into get-bindings and list alongside this test: a
+// plugin, a vault and the two channel kinds, each listed by its own list
+// RPC. The vault carries entry
 // names with blank values, as every vault read does.
 const knownVault = create(VaultSchema, {
   apiVersion: "agentic.stigmer.ai/v1",
@@ -137,14 +124,11 @@ const knownVault = create(VaultSchema, {
   },
 });
 
-const knownPluginSearchResult = create(SearchResultSchema, {
-  kind: ApiResourceKind.plugin,
-  id: "plg_1",
-  name: "clinic-kit",
-  slug: "clinic-kit",
-  qualifiedSlug: `${ACME_ID}/clinic-kit`,
-  org: ACME_ID,
-  description: "clinic tools plugin",
+const knownPlugin = create(PluginSchema, {
+  apiVersion: "agentic.stigmer.ai/v1",
+  kind: "Plugin",
+  metadata: { name: "clinic-kit", slug: "clinic-kit", org: ACME_ID, id: "plg_1" },
+  spec: { description: "clinic tools plugin" },
 });
 
 // Spec/status populated to exercise every AGENT_CHANNEL_TABLE column:
@@ -182,7 +166,7 @@ const knownChannelApp = create(ChannelAppSchema, {
 });
 
 // Second entry (slack arm) so the list tests cover both provider derivations
-// and the client-side --limit slice (listByOrg has no pagination).
+// and the --limit slice.
 const secondChannelApp = create(ChannelAppSchema, {
   apiVersion: "agentic.stigmer.ai/v1",
   kind: "ChannelApp",
@@ -264,23 +248,24 @@ beforeAll(async () => {
         if (req.slug !== "reviewer") throw new ConnectError("agent not found", Code.NotFound);
         return knownAgent;
       },
-    });
-    router.service(SearchService, {
-      // Kind-aware: search-backed list sends a single-kind query, so the
-      // plugin arm proves the kind actually rode the request.
-      search: (req) => {
-        if (req.kinds.length === 1 && req.kinds[0] === ApiResourceKind.plugin) {
-          return { entries: [knownPluginSearchResult], totalCount: 1, totalPages: 1 };
+      // Two pages, so a list proves the CLI follows the token.
+      list: (req) => {
+        if (req.org !== "acme") throw new ConnectError("org is required", Code.InvalidArgument);
+        agentListRequests.push({ pageSize: req.pageSize, pageToken: req.pageToken });
+        if (req.pageToken === "") {
+          return { entries: [knownAgent, hiddenAgent].slice(0, req.pageSize), nextPageToken: "agents-2" };
         }
-        return {
-          entries: [knownSearchResult, hiddenSearchResult, unqualifiedSearchResult],
-          totalCount: 3,
-          totalPages: 1,
-        };
+        return { entries: [formatterAgent] };
+      },
+    });
+    router.service(PluginQueryController, {
+      list: (req) => {
+        if (req.org !== "acme") throw new ConnectError("org is required", Code.InvalidArgument);
+        return { entries: [knownPlugin] };
       },
     });
     router.service(OrganizationQueryController, {
-      findMyOrganizations: () => ({ entries: [knownOrg, secondOrg] }),
+      listMine: () => ({ entries: [knownOrg, secondOrg] }),
       // The server resolves an earlier slug and an id to the organization.
       get: (req) => {
         orgGets.push(req.value);
@@ -296,7 +281,7 @@ beforeAll(async () => {
       },
     });
     router.service(ApiKeyQueryController, {
-      findAll: () => ({ entries: [knownApiKey, secondApiKey] }),
+      list: () => ({ entries: [knownApiKey, secondApiKey] }),
     });
     router.service(VaultQueryController, {
       get: (req) => {
@@ -309,7 +294,7 @@ beforeAll(async () => {
       },
       list: (req) => {
         if (req.org !== "acme") throw new ConnectError("unexpected org", Code.InvalidArgument);
-        return { totalCount: 1, items: [knownVault] };
+        return { entries: [knownVault] };
       },
     });
     router.service(AgentChannelQueryController, {
@@ -323,7 +308,7 @@ beforeAll(async () => {
       },
       list: (req) => {
         if (req.org !== "acme") throw new ConnectError("org is required", Code.InvalidArgument);
-        return { totalCount: 1, items: [knownChannel] };
+        return { entries: [knownChannel] };
       },
     });
     router.service(ChannelAppQueryController, {
@@ -335,7 +320,7 @@ beforeAll(async () => {
         if (req.slug !== "clinic-meta-app") throw new ConnectError("channel app not found", Code.NotFound);
         return knownChannelApp;
       },
-      listByOrg: (req) => {
+      list: (req) => {
         if (req.org !== "acme") throw new ConnectError("org is required", Code.InvalidArgument);
         return { entries: [knownChannelApp, secondChannelApp] };
       },
@@ -350,9 +335,9 @@ beforeAll(async () => {
         return pausedSchedule;
       },
       list: (req) => {
-        if (req.org === "orphans") return { totalCount: 1, items: [orphanedSchedule] };
+        if (req.org === "orphans") return { entries: [orphanedSchedule] };
         if (req.org !== "acme") throw new ConnectError("org is required", Code.InvalidArgument);
-        return { totalCount: 2, items: [pausedSchedule, disabledSchedule] };
+        return { entries: [pausedSchedule, disabledSchedule] };
       },
     });
     // A server that holds several organizations, so an empty org is refused.
@@ -393,7 +378,7 @@ describe("get integration", () => {
     });
   });
 
-  it("resolves an organization by slug through findMyOrganizations", async () => {
+  it("resolves an organization by slug through listMine", async () => {
     const { message } = await fetchResource(client, ApiResourceKind.organization, {
       kind: "ref",
       org: "acme",
@@ -539,18 +524,38 @@ describe("get integration", () => {
 });
 
 describe("list integration", () => {
-  it("lists agents via the search service as JSON, the organization ids as the wire carries them", async () => {
+  it("lists agents through their list RPC as JSON, every page, the organization ids as the wire carries them", async () => {
     orgGets.length = 0;
+    agentListRequests.length = 0;
     const out = await listResources(client, ApiResourceKind.agent, "acme", 50, "json");
     expect(JSON.parse(out)).toEqual(
-      [knownSearchResult, hiddenSearchResult, unqualifiedSearchResult].map((entry) =>
-        toJson(SearchResultSchema, entry, { useProtoFieldName: true }),
-      ),
+      [knownAgent, hiddenAgent, formatterAgent].map((entry) => toJson(AgentSchema, entry, { useProtoFieldName: true })),
     );
+    expect(agentListRequests).toEqual([
+      { pageSize: 50, pageToken: "" },
+      { pageSize: 48, pageToken: "agents-2" },
+    ]);
     expect(orgGets).toEqual([]);
   });
 
-  it("lists organizations via findMyOrganizations as JSON", async () => {
+  it("stops reading pages once --limit is met", async () => {
+    agentListRequests.length = 0;
+    const out = await listResources(client, ApiResourceKind.agent, "acme", 1, "json");
+    expect(JSON.parse(out)).toEqual([toJson(AgentSchema, knownAgent, { useProtoFieldName: true })]);
+    expect(agentListRequests).toEqual([{ pageSize: 1, pageToken: "" }]);
+  });
+
+  it("reads every page for --limit 0", async () => {
+    agentListRequests.length = 0;
+    const out = await listResources(client, ApiResourceKind.agent, "acme", 0, "json");
+    expect(JSON.parse(out)).toHaveLength(3);
+    expect(agentListRequests).toEqual([
+      { pageSize: 100, pageToken: "" },
+      { pageSize: 100, pageToken: "agents-2" },
+    ]);
+  });
+
+  it("lists organizations via listMine as JSON", async () => {
     const out = await listResources(client, ApiResourceKind.organization, "acme", 50, "json");
     expect(JSON.parse(out)).toEqual([
       toJson(OrganizationSchema, knownOrg, { useProtoFieldName: true }),
@@ -558,12 +563,12 @@ describe("list integration", () => {
     ]);
   });
 
-  it("applies --limit to organizations (findMyOrganizations has no pagination)", async () => {
+  it("applies --limit to organizations", async () => {
     const out = await listResources(client, ApiResourceKind.organization, "acme", 1, "json");
     expect(JSON.parse(out)).toEqual([toJson(OrganizationSchema, knownOrg, { useProtoFieldName: true })]);
   });
 
-  it("lists API keys via findAll as JSON", async () => {
+  it("lists API keys via list as JSON", async () => {
     const out = await listResources(client, ApiResourceKind.api_key, "acme", 50, "json");
     expect(JSON.parse(out)).toEqual([
       toJson(ApiKeySchema, knownApiKey, { useProtoFieldName: true }),
@@ -571,29 +576,27 @@ describe("list integration", () => {
     ]);
   });
 
-  it("applies --limit to API keys (findAll has no pagination)", async () => {
+  it("applies --limit to API keys", async () => {
     const out = await listResources(client, ApiResourceKind.api_key, "acme", 1, "json");
     expect(JSON.parse(out)).toEqual([toJson(ApiKeySchema, knownApiKey, { useProtoFieldName: true })]);
   });
 
-  it("renders a human table for search-backed lists, naming each organization by slug once", async () => {
+  it("renders a human agent table, naming each organization by slug once", async () => {
     orgGets.length = 0;
     const out = await listResources(client, ApiResourceKind.agent, "acme", 50, "table");
     expect(out).toContain("NAME");
     expect(out).toContain("acme/reviewer");
+    expect(out).toContain("acme/formatter");
     expect(out).not.toContain(`${ACME_ID}/reviewer`);
-    // One the caller cannot see, and one not led by its org, print as given.
+    // One the caller cannot see prints by the id the wire carries.
     expect(out).toContain(`${HIDDEN_ORG_ID}/linter`);
-    expect(out.split("\n").find((line) => line.includes("formats code"))).toMatch(/^formatter\s/);
     // Two rows name acme: one lookup per distinct organization, never per row.
     expect([...orgGets].sort()).toEqual([ACME_ID, HIDDEN_ORG_ID]);
   });
 
-  it("lists plugins via the search service as JSON", async () => {
+  it("lists plugins through their list RPC as JSON", async () => {
     const out = await listResources(client, ApiResourceKind.plugin, "acme", 50, "json");
-    expect(JSON.parse(out)).toEqual([
-      toJson(SearchResultSchema, knownPluginSearchResult, { useProtoFieldName: true }),
-    ]);
+    expect(JSON.parse(out)).toEqual([toJson(PluginSchema, knownPlugin, { useProtoFieldName: true })]);
   });
 
   it("renders a human table for plugin lists", async () => {
@@ -633,7 +636,7 @@ describe("list integration", () => {
     expect(out).toContain("true"); // spec.enabled
   });
 
-  it("lists channel apps via listByOrg as JSON", async () => {
+  it("lists channel apps via list as JSON", async () => {
     const out = await listResources(client, ApiResourceKind.channel_app, "acme", 50, "json");
     expect(JSON.parse(out)).toEqual([
       toJson(ChannelAppSchema, knownChannelApp, { useProtoFieldName: true }),
@@ -651,7 +654,7 @@ describe("list integration", () => {
     expect(out).not.toContain("***REDACTED***");
   });
 
-  it("applies --limit client-side for channel apps (listByOrg has no pagination)", async () => {
+  it("applies --limit to channel apps", async () => {
     const out = await listResources(client, ApiResourceKind.channel_app, "acme", 1, "json");
     expect(JSON.parse(out)).toEqual([toJson(ChannelAppSchema, knownChannelApp, { useProtoFieldName: true })]);
   });

@@ -32,7 +32,7 @@ function fakeClient(run: Run, scores: Score[], sessionRuns: Run[] = [run]): Stig
       get: async () => run,
       listBySession: async () => ({ entries: sessionRuns }),
     },
-    score: { listByRun: async () => ({ items: scores }) },
+    score: { listByRun: async () => ({ entries: scores, nextPageToken: "" }) },
   } as unknown as Stigmer;
 }
 
@@ -118,7 +118,7 @@ describe("writeEvalCaseFromRun", () => {
         get: async () => newSessionRun,
         listBySession: async () => ((sessionReads += 1), { entries: [] }),
       },
-      score: { listByRun: async () => ({ items: [] }) },
+      score: { listByRun: async () => ({ entries: [], nextPageToken: "" }) },
     } as unknown as Stigmer;
     const alone = fakeFolder();
     await writeEvalCaseFromRun(newSessionClient, "run_1", { name: "a" }, alone.io);

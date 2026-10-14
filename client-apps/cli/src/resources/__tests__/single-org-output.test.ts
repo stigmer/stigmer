@@ -68,7 +68,7 @@ describe("the delete warning", () => {
 
 describe("renderAgentVersionHistory with no versions", () => {
   const empty = {
-    agent: { listVersions: async () => ({ versions: [], totalCount: 0 }) },
+    agent: { listVersions: async () => ({ entries: [], nextPageToken: "" }) },
   } as unknown as Stigmer;
 
   it("names org/slug when an organization was named", async () => {
@@ -80,7 +80,7 @@ describe("renderAgentVersionHistory with no versions", () => {
   it("names the organization by slug when given its id", async () => {
     const id = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
     const knowingAcme = {
-      agent: { listVersions: async () => ({ versions: [], totalCount: 0 }) },
+      agent: { listVersions: async () => ({ entries: [], nextPageToken: "" }) },
       organization: {
         get: async (value: string) => {
           if (value !== id) throw new Error("organization not found");

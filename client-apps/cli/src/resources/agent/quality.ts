@@ -59,7 +59,7 @@ import {
   renderProtoYaml,
   renderTable,
 } from "../../output/index.js";
-import { readCursorPages, type CursorPage } from "../cursor-pages.js";
+import { readCursorPages } from "../cursor-pages.js";
 import { oneLine } from "../run-scores.js";
 import { resolveAgent } from "./resolve.js";
 
@@ -156,15 +156,12 @@ export async function showAgentQuality(
   const agentId = agent.metadata?.id ?? "";
 
   if (options.flagged) {
-    // The server answers page_size 0 with one page of 100 and a token, not
-    // the whole list, so --limit 0 walks every page instead.
-    const limit = options.limit === 0 ? Number.POSITIVE_INFINITY : options.limit;
-    const scores = await readFlaggedPages(limit, async (pageSize, pageToken) => {
-      const page = await client.score.listFlaggedByAgent(
+    // --limit 0 walks every page: no request asks for the whole list.
+    const scores = await readCursorPages(options.limit, (pageSize, pageToken) =>
+      client.score.listFlaggedByAgent(
         create(ListFlaggedScoresByAgentRequestSchema, { org, agentId, days: options.days, pageSize, pageToken }),
-      );
-      return { entries: page.items, nextPageToken: page.nextPageToken };
-    });
+      ),
+    );
     return renderFlaggedScores(scores, options.format);
   }
 
@@ -178,31 +175,6 @@ export async function showAgentQuality(
     return renderQualityReport(report, agentLabel(agent, ref), new Map(), options.format);
   }
   return renderQualityReport(report, agentLabel(agent, ref), await versionTags(client, agent, report), "table");
-}
-
-/** The most flagged scores the server returns in one page. */
-const FLAGGED_PAGE_SIZE = 100;
-
-/**
- * Up to `limit` flagged scores, or every one when `limit` is infinite,
- * following tokens a page of 100 at a time: the flagged list never answers
- * with the whole list in one response.
- */
-async function readFlaggedPages(
-  limit: number,
-  read: (pageSize: number, pageToken: string) => Promise<CursorPage<Score>>,
-): Promise<Score[]> {
-  if (Number.isFinite(limit)) {
-    return readCursorPages(limit, read);
-  }
-  const entries: Score[] = [];
-  let pageToken = "";
-  do {
-    const page = await read(FLAGGED_PAGE_SIZE, pageToken);
-    entries.push(...page.entries);
-    pageToken = page.nextPageToken;
-  } while (pageToken !== "");
-  return entries;
 }
 
 function agentLabel(agent: Agent, ref: string): string {
@@ -223,7 +195,7 @@ async function versionTags(client: Stigmer, agent: Agent, report: AgentQualityRe
     const history = await client.agent.listVersions(
       create(ListAgentVersionsInputSchema, { org: agent.metadata?.org ?? "", slug, pageSize: VERSION_HISTORY_PAGE_SIZE }),
     );
-    return new Map(history.versions.filter((entry) => entry.tag !== "").map((entry) => [entry.versionHash, entry.tag]));
+    return new Map(history.entries.filter((entry) => entry.tag !== "").map((entry) => [entry.versionHash, entry.tag]));
   } catch {
     return new Map();
   }

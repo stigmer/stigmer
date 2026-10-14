@@ -24,7 +24,6 @@ import { create } from "@bufbuild/protobuf";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import {
-  GetAgentSharesByAgentRequestSchema,
   RotateShareLinkInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
 import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
@@ -197,18 +196,16 @@ async function resolveCanonicalShare(
   agent: Agent,
   shareOrg: string,
 ): Promise<AgentShare | null> {
-  const result = await client.agentShare.getByAgent(
-    create(GetAgentSharesByAgentRequestSchema, {
-      agentId: agent.metadata?.id ?? "",
-      org: shareOrg,
-    }),
-  );
   const agentSlug = agent.metadata?.slug ?? "";
-  return (
-    result.items.find((share) => share.metadata?.slug === agentSlug) ??
-    result.items[0] ??
-    null
-  );
+  let first: AgentShare | null = null;
+  for await (const share of client.agentShare.listByAgentAll({
+    agentId: agent.metadata?.id ?? "",
+    org: shareOrg,
+  })) {
+    if (share.metadata?.slug === agentSlug) return share;
+    first ??= share;
+  }
+  return first;
 }
 
 // Unspecified means the organization by contract: a link reaches anyone on

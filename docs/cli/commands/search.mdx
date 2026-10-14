@@ -31,12 +31,12 @@ stigmer search agents "data" --output json
 
 ## Options
 
-| Flag             | Type     | Default | Description                         |
-| ---------------- | -------- | ------- | ----------------------------------- |
-| `--json`         | `bool`   |         | shorthand for --output json         |
-| `--output`, `-o` | `string` |         | output format: table, json, or yaml |
-| `--page`         | `string` | `1`     | page number (1-indexed)             |
-| `--page-size`    | `string` | `20`    | results per page (max 100)          |
+| Flag             | Type     | Default | Description                                                |
+| ---------------- | -------- | ------- | ---------------------------------------------------------- |
+| `--json`         | `bool`   |         | shorthand for --output json                                |
+| `--output`, `-o` | `string` |         | output format: table, json, or yaml                        |
+| `--page-size`    | `string` | `20`    | results per page (max 100)                                 |
+| `--page-token`   | `string` |         | continue a search from the token the previous page printed |
 
 ### Supported resource types
 
@@ -46,13 +46,19 @@ stigmer search agents "data" --output json
 
 ### Pagination
 
-Results are paginated by default (20 per page). Use `--page` and `--page-size`
-to navigate through large result sets:
+Results come one page at a time (20 per page, at most 100 with `--page-size`).
+When more follow, the table ends with how many results match and the command
+that reads the next page, carrying its `--page-token`:
 
 ```bash
-# Page 2 with 50 results per page
-stigmer search agents "test" --page 2 --page-size 50
+stigmer search agents "test" --page-size 50
+# ...
+# 120 results match.
+# See the next page with: stigmer search agents test --page-size 50 --page-token <token>
 ```
+
+A token continues the search it came from: the same query in the same
+organization.
 
 ## Examples
 

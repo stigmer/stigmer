@@ -1,21 +1,24 @@
-// Pins readCursorPages, the walk behind `list session` and `list runs`:
-// a --limit above the server's page cap takes several reads, a short page
-// that still carries a token is followed, each read asks only for what is
-// missing, and a limit of zero is one whole-list request.
+// Pins readCursorPages, the walk behind every `list`: a --limit above the
+// server's page maximum takes several reads, a short page that still
+// carries a token is followed, each read asks only for what is missing (at
+// most a full page), and a limit of zero walks every page, because no
+// request asks the server for the whole list.
 import { describe, expect, it } from "vitest";
 import { type CursorPage, readCursorPages } from "../cursor-pages.js";
 
-const SERVER_CAP = 100;
+const SERVER_MAX = 100;
+const SERVER_DEFAULT = 50;
 
-// A server over `total` rows that caps pages and answers `short` rows on
-// the page whose token is listed there (a scope refusing most of a batch).
+// A server over `total` rows that reads page_size 0 as its default page,
+// caps pages at its maximum, and answers `short` rows on the page whose
+// token is listed there (a scope refusing most of a batch).
 function fakeServer(total: number, short: ReadonlyMap<string, number> = new Map()) {
   const asked: Array<{ pageSize: number; pageToken: string }> = [];
   const read = async (pageSize: number, pageToken: string): Promise<CursorPage<number>> => {
     asked.push({ pageSize, pageToken });
     const start = pageToken === "" ? 0 : Number(pageToken);
-    if (pageSize === 0) return { entries: range(start, total), nextPageToken: "" };
-    const size = Math.min(pageSize, SERVER_CAP, short.get(pageToken) ?? Number.POSITIVE_INFINITY);
+    const wanted = pageSize === 0 ? SERVER_DEFAULT : Math.min(pageSize, SERVER_MAX);
+    const size = Math.min(wanted, short.get(pageToken) ?? Number.POSITIVE_INFINITY);
     const end = Math.min(start + size, total);
     return { entries: range(start, end), nextPageToken: end < total ? String(end) : "" };
   };
@@ -27,11 +30,11 @@ function range(from: number, to: number): number[] {
 }
 
 describe("readCursorPages", () => {
-  it("reads past the server's page cap until the limit is met", async () => {
+  it("reads past the server's page maximum until the limit is met", async () => {
     const server = fakeServer(500);
     const rows = await readCursorPages(250, server.read);
     expect(rows).toEqual(range(0, 250));
-    expect(server.asked.map((a) => a.pageSize)).toEqual([250, 150, 50]);
+    expect(server.asked.map((a) => a.pageSize)).toEqual([100, 100, 50]);
   });
 
   it("follows a short page that carries a token", async () => {
@@ -47,9 +50,13 @@ describe("readCursorPages", () => {
     expect(server.asked).toHaveLength(1);
   });
 
-  it("sends one page_size 0 request for a limit of zero", async () => {
-    const server = fakeServer(150);
-    expect(await readCursorPages(0, server.read)).toHaveLength(150);
-    expect(server.asked).toEqual([{ pageSize: 0, pageToken: "" }]);
+  it("walks every page for a limit of zero, never asking for the whole list", async () => {
+    const server = fakeServer(250);
+    expect(await readCursorPages(0, server.read)).toEqual(range(0, 250));
+    expect(server.asked).toEqual([
+      { pageSize: 100, pageToken: "" },
+      { pageSize: 100, pageToken: "100" },
+      { pageSize: 100, pageToken: "200" },
+    ]);
   });
 });

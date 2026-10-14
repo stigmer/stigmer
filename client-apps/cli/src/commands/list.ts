@@ -21,7 +21,7 @@ export function registerList(program: Command): void {
   const list = program
     .command("list <type>")
     .description("list resources of a type (or 'list types' for available types)")
-    .option("--limit <n>", "maximum number of results", String(DEFAULT_LIMIT))
+    .option("--limit <n>", "maximum number of results (0 reads every page)", String(DEFAULT_LIMIT))
     .option("--verb <verb>", "filter to types supporting this verb (only for 'list types')")
     .action((type: string, options: ListFlags, command: Command) => runList(type, options, command));
   addReadFlags(list);

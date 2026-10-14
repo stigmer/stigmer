@@ -4,7 +4,7 @@ import { APPLY_HANDLERS } from "../../resources/apply/handlers.js";
 import { DELETE_HANDLERS } from "../../resources/delete.js";
 import { GET_BINDINGS } from "../../resources/get-bindings.js";
 import { isRunAlias } from "../../resources/runs.js";
-import { LIST_HANDLERS, SEARCH_KINDS } from "../../resources/list.js";
+import { LIST_HANDLERS } from "../../resources/list.js";
 import { VALIDATE_SCHEMAS } from "../../resources/validate.js";
 import { normalizeAlias } from "../aliases.js";
 import { defaultRegistry } from "../registry.js";
@@ -238,14 +238,14 @@ describe("registry — verb/dispatch conformance", () => {
       specialCases: new Map([
         [
           ApiResourceKind.organization,
-          "fetchOrganization in resources/get.ts (not org-scoped; a slug resolves via findMyOrganizations)",
+          "fetchOrganization in resources/get.ts (not org-scoped; a slug resolves via listMine)",
         ],
       ]),
     },
     {
       label: "list",
       verb: Verb.List,
-      wired: new Set([...LIST_HANDLERS.keys(), ...SEARCH_KINDS]),
+      wired: new Set(LIST_HANDLERS.keys()),
       specialCases: new Map(),
     },
     {
