@@ -113,24 +113,26 @@ function spawnEntry(env: Readonly<Record<string, string>>): Promise<Booted> {
   });
 }
 
+// Each refusal still loads tsx and the server before it refuses, so an arm
+// outlasts the boot's deadline, not vitest's 5 s default.
 describe("the conformance suite's licensed server refuses", () => {
   it("a STIGMER_LICENSE_KEY in its environment, naming the shipped entry", async () => {
     await expect(spawnEntry({ STIGMER_LICENSE_KEY: "a.real.key" })).rejects.toThrow(
       /^exit 1:\n[\s\S]*^boot failed: STIGMER_LICENSE_KEY is set, and this test server signs its own license.*dist\/main\.js/m,
     );
-  });
+  }, BOOT_DEADLINE_MS + 5_000);
 
   it("license terms it does not know", async () => {
     await expect(spawnEntry({ STIGMER_TEST_LICENSE_TERMS: '{"seats":5}' })).rejects.toThrow(
       /^exit 1:\n[\s\S]*^boot failed: STIGMER_TEST_LICENSE_TERMS has an unknown field "seats"/m,
     );
-  });
+  }, BOOT_DEADLINE_MS + 5_000);
 
   it("a term that is not a whole number", async () => {
     await expect(spawnEntry({ STIGMER_TEST_LICENSE_TERMS: '{"maxOrgs":0}' })).rejects.toThrow(
       /^exit 1:\n[\s\S]*^boot failed: STIGMER_TEST_LICENSE_TERMS\.maxOrgs must be a whole number of at least 1$/m,
     );
-  });
+  }, BOOT_DEADLINE_MS + 5_000);
 });
 
 describe.skipIf(TEST_DATABASE_URL === undefined)("the conformance suite's licensed server", () => {

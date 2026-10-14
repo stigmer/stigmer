@@ -27,6 +27,9 @@ const spawned: Spawn[] = [];
 const stopped: string[] = [];
 const released: string[] = [];
 const readinessBearers: string[] = [];
+// The log tail each readiness gate would print on failure.
+const logTails: string[] = [];
+let failNextReadiness = false;
 let databases = 0;
 let failNextSpawn = false;
 let issuerClosed = false;
@@ -44,7 +47,7 @@ vi.mock("@stigmer/test-support/server-process", () => ({
     }
     spawned.push(options);
     const baseUrl = `http://127.0.0.1:${spawned.length}`;
-    return { baseUrl, logTail: () => "", stop: async () => void stopped.push(baseUrl) };
+    return { baseUrl, logTail: () => `log of ${baseUrl}`, stop: async () => void stopped.push(baseUrl) };
   },
 }));
 
@@ -80,8 +83,13 @@ vi.mock("../../harness/clients", () => ({
 }));
 
 vi.mock("../../harness/grpc-ready", () => ({
-  awaitGrpcReady: async (clients: { readinessBearer?: string }) => {
+  awaitGrpcReady: async (clients: { readinessBearer?: string }, logTail: () => string) => {
     readinessBearers.push(clients.readinessBearer ?? "");
+    logTails.push(logTail());
+    if (failNextReadiness) {
+      failNextReadiness = false;
+      throw new Error("gRPC readiness gate failed");
+    }
   },
 }));
 
@@ -149,6 +157,8 @@ beforeEach(() => {
   stopped.length = 0;
   released.length = 0;
   readinessBearers.length = 0;
+  logTails.length = 0;
+  failNextReadiness = false;
   databases = 0;
   failNextSpawn = false;
   issuerClosed = false;
@@ -208,8 +218,19 @@ describe("the enterprise target", () => {
     expect(minted(founderToken ?? "")).toEqual({ sub: expect.stringMatching(/^auth0\|conformance-/), ttlSeconds: EIGHT_HOURS });
     expect(seen.memoryUpdates).toHaveLength(1);
     expect(target.clients()).toBe(target.clientsPresenting(founderToken ?? ""));
+    expect(logTails, "a failed readiness prints the primary's log").toEqual(["log of http://127.0.0.1:1"]);
     expect(target.httpBaseUrl()).toBe("http://127.0.0.1:1");
     expect(target.managedAgentsBaseUrl()).toBe("http://127.0.0.1:1");
+  });
+
+  it("builds clients that present nothing, or exactly the bearer given, against its server", async () => {
+    const target = new EnterpriseTarget();
+    stubClients(target);
+    await target.setup();
+    vi.restoreAllMocks();
+
+    expect(target.anonymousClients()).toEqual({ readinessBearer: "" });
+    expect(target.clientsPresenting("someone's token")).toEqual({ readinessBearer: "someone's token" });
   });
 
   it("signs a fresh outsider in and grants nothing; grants the colleague member on the tenancy by the organization's id", async () => {
@@ -262,6 +283,10 @@ describe("the enterprise target", () => {
       expect.objectContaining({ relation: "member" }),
       expect.objectContaining({ relation: "admin" }),
     ]);
+    await lane.provisionIdentity();
+    expect(seen.grants, "the lane's outsider is granted nothing").toHaveLength(2);
+    await lane.cleanupTenancy(tenancy);
+    expect(seen.deletedOrganizations).toEqual([{ value: ORG_ID }]);
   });
 
   it("spawns a sibling of the same entry on its own database in the suite's env, and stops it with its database", async () => {
@@ -286,6 +311,20 @@ describe("the enterprise target", () => {
     expect(sibling.managedAgentsBaseUrl()).toBe("http://127.0.0.1:2");
 
     await sibling.teardown();
+    expect(stopped).toEqual(["http://127.0.0.1:2"]);
+    expect(released).toEqual(["postgres://db/2"]);
+  });
+
+  it("stops a sibling and drops its database when its readiness fails, printing its log", async () => {
+    const target = new EnterpriseTarget();
+    stubClients(target);
+    await target.setup();
+
+    failNextReadiness = true;
+    await expect(target.spawnSibling({ env: {}, readinessBearer: "sibling-reader" })).rejects.toThrow(
+      "gRPC readiness gate failed",
+    );
+    expect(logTails.at(-1)).toBe("log of http://127.0.0.1:2");
     expect(stopped).toEqual(["http://127.0.0.1:2"]);
     expect(released).toEqual(["postgres://db/2"]);
   });

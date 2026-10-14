@@ -18,7 +18,7 @@
 //     account (trusted-local). Where the server enforces the model, get
 //     answers an id the caller may not read PERMISSION_DENIED whether or
 //     not an account holds it, so the answer never tells who has an
-//     account (stigmer-cloud#902);
+//     account (#1074);
 //   - getByIdpId (and getByEmail, where the caller has an email) find the
 //     caller's own account;
 //   - update round-trips preferences — the console's one write; an update
