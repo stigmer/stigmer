@@ -28,7 +28,7 @@ import { Switch } from "../switch/Switch.js";
 import { VaultPicker } from "../vault/VaultPicker.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
-import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
+import { UNSTYLED_FIELDSET, UNSTYLED_LIST } from "../internal/element-resets.js";
 import { keptReference } from "../internal/kept-reference.js";
 
 /** The roles a first sign-in may grant; owner is never offered, since ownership is assigned explicitly. */
@@ -299,7 +299,7 @@ function EmbeddingForm({ org, stored, canEdit, serviceAccountsHref, refetch, onU
           </button>
         </div>
         {draft.allowedOrigins.length > 0 && (
-          <ul className="stg:flex stg:flex-wrap stg:gap-1.5" aria-label="Allowed origins">
+          <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-wrap stg:gap-1.5")} aria-label="Allowed origins">
             {draft.allowedOrigins.map((origin) => (
               <li
                 key={origin}
