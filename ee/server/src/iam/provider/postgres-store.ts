@@ -10,10 +10,11 @@
  *                (`iam_identity_provider_org_slug`). No read uses the
  *                slug: a reference and CheckDuplicate resolve a
  *                provider's name through the library's name table. Its
- *                `org` prefix serves the organization's list and sweep;
- *                the list's newest-first sort runs over the
- *                organization's few rows (an organization keeps a few
- *                providers at most).
+ *                `org` prefix serves the organization's sweep.
+ *   org,         the organization's list, newest first like every list,
+ *   created_at   over the `(org, created_at DESC, id COLLATE "C" DESC)`
+ *                index through the shared keyset source
+ *                (postgres/keyset.ts).
  *   deleting_since  the delete mark: null while the provider is live. Read
  *                with the row, never on its own, so it has no index.
  *   route        the side table's primary key, the pair (canonical issuer,
@@ -39,6 +40,7 @@ import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityp
 import type { GuardedRead } from "@stigmer/server";
 import { stampEtag } from "@stigmer/server";
 
+import { pageOrgRows } from "../../postgres/keyset.js";
 import { inTransaction } from "../../postgres/transaction.js";
 import { routesOf, type ProviderRoute } from "./routes.js";
 import type {
@@ -189,8 +191,8 @@ export function newIdentityProviderStore(pool: Pool): IdentityProviderStore {
       return queryOne("WHERE id = $1", [id]);
     },
 
-    findByOrg(org) {
-      return query("WHERE org = $1 ORDER BY created_at DESC, id DESC", [org]);
+    pageByOrg(org, after, limit) {
+      return pageOrgRows(pool, { table: TABLE, org, after, limit });
     },
 
     async findIdsByOrg(org): Promise<ReadonlyArray<string>> {

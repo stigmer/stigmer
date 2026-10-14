@@ -26,7 +26,9 @@ import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identitypr
 import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/spec_pb";
 
-import type { GuardedRead } from "@stigmer/server";
+import type { GuardedRead, ListIndexCursor, ListIndexRow } from "@stigmer/server";
+
+import { pageNewestFirst } from "../../../__test-utils__/in-memory-keyset.js";
 
 import { routesOf, type ProviderRoute } from "../routes.js";
 import type {
@@ -157,14 +159,28 @@ export class InMemoryProviderStore implements IdentityProviderStore {
     return Promise.resolve(this.copy(this.rows.get(id)));
   }
 
-  findByOrg(org: string): Promise<ReadonlyArray<IdentityProvider>> {
-    return Promise.resolve(
-      [...this.order]
-        .reverse()
-        .map((id) => this.rows.get(id))
-        .filter((row): row is IdentityProvider => row?.metadata?.org === org)
-        .map((row) => clone(IdentityProviderSchema, row)),
-    );
+  pageByOrg(
+    org: string,
+    after: ListIndexCursor | undefined,
+    limit: number | undefined,
+  ): Promise<ReadonlyArray<ListIndexRow>> {
+    const entries = [...this.rows.values()]
+      .filter((row) => row.metadata?.org === org)
+      .map((row) => ({
+        id: row.metadata?.id ?? "",
+        data: toBinary(IdentityProviderSchema, row),
+        createdAt: row.status?.audit?.specAudit?.createdAt,
+      }));
+    return Promise.resolve(pageNewestFirst(entries, after, limit));
+  }
+
+  /** The organization's providers, newest first: the suites' read of what a list would hold. */
+  inOrg(org: string): ReadonlyArray<IdentityProvider> {
+    return [...this.order]
+      .reverse()
+      .map((id) => this.rows.get(id))
+      .filter((row): row is IdentityProvider => row?.metadata?.org === org)
+      .map((row) => clone(IdentityProviderSchema, row));
   }
 
   findIdsByOrg(org: string): Promise<ReadonlyArray<string>> {

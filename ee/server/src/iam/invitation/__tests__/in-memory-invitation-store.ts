@@ -29,6 +29,7 @@ import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { ListIndexCursor, ListIndexRow } from "@stigmer/server";
 
+import { pageNewestFirst } from "../../../__test-utils__/in-memory-keyset.js";
 import {
   ledgerSeconds,
   type InvitationStore,
@@ -76,19 +77,14 @@ export class InMemoryInvitationStore implements InvitationStore {
     after: ListIndexCursor | undefined,
     limit: number | undefined,
   ): Promise<ReadonlyArray<ListIndexRow>> {
-    const rows = [...this.rows.values()]
+    const entries = [...this.rows.values()]
       .filter((entry) => entry.metadata?.org === org)
-      .map((entry) => {
-        const id = entry.metadata?.id ?? "";
-        return {
-          id,
-          data: toBinary(InvitationSchema, entry),
-          cursor: { createdAt: cursorInstant(entry), id },
-        };
-      })
-      .sort((a, b) => compareNewestFirst(a.cursor, b.cursor))
-      .filter((row) => after === undefined || compareNewestFirst(after, row.cursor) < 0);
-    return Promise.resolve(limit === undefined ? rows : rows.slice(0, limit));
+      .map((entry) => ({
+        id: entry.metadata?.id ?? "",
+        data: toBinary(InvitationSchema, entry),
+        createdAt: entry.status?.audit?.specAudit?.createdAt,
+      }));
+    return Promise.resolve(pageNewestFirst(entries, after, limit));
   }
 
   findIdsByOrg(org: string): Promise<ReadonlyArray<string>> {
@@ -170,24 +166,6 @@ export class InMemoryInvitationStore implements InvitationStore {
 }
 
 /** The row's creation instant as the Postgres store renders a cursor: UTC, microseconds. */
-function cursorInstant(invitation: Invitation): string {
-  const createdAt = invitation.status?.audit?.specAudit?.createdAt;
-  if (createdAt === undefined) {
-    return "";
-  }
-  const iso = new Date(Number(createdAt.seconds) * 1000).toISOString().slice(0, 19);
-  const micros = String(Math.floor(createdAt.nanos / 1000)).padStart(6, "0");
-  return `${iso}.${micros}Z`;
-}
-
-/** Negative when `a` comes first: the newer instant, then the greater id in byte order. */
-function compareNewestFirst(a: ListIndexCursor, b: ListIndexCursor): number {
-  if (a.createdAt !== b.createdAt) {
-    return a.createdAt > b.createdAt ? -1 : 1;
-  }
-  return a.id === b.id ? 0 : a.id > b.id ? -1 : 1;
-}
-
 /** A stored invitation as the create chain shapes one: an active link with its token and creation time. */
 export function storedInvitation(fields: {
   id: string;

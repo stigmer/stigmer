@@ -25,7 +25,7 @@
  *     with `get`'s copy on a denial, and answers a missing slug NOT_FOUND
  *     only to a viewer of the organization and `get`'s denial to anyone
  *     else, after asking only the organization's `can_view`;
- *   - listByOrg answers the organization's teams, newest first;
+ *   - list answers the organization's teams, newest first;
  *   - rename asks can_delete on the team, keeps its id, moves its name so
  *     the old slug still leads to it and is refused to a create with
  *     SLUG_RESERVED, takes its old slug back, and stamps the audit; an
@@ -277,7 +277,7 @@ describe("create", () => {
     const failed = await failure(r.commands.create(newTeam("SRE")));
     expect(failed.code).toBe(Code.Internal);
     expect(failed.rawMessage).toBe("failed to create authorization tuples");
-    expect((await r.teams.listByOrg("acme")).map((team) => team.metadata?.slug)).toContain("sre");
+    expect(r.teams.inOrg("acme").map((team) => team.metadata?.slug)).toContain("sre");
   });
 
   it("refuses a team in an organization whose plan lacks teams, writing nothing, and creates one where it has them", async () => {
@@ -299,7 +299,7 @@ describe("create", () => {
     expect(refused.findDetails(ErrorInfoSchema).map((info) => [info.reason, info.metadata])).toEqual([
       ["PLAN_UPGRADE_REQUIRED", { feature: "teams", org: "acme" }],
     ]);
-    expect(await r.teams.listByOrg("acme")).toEqual([]);
+    expect(r.teams.inOrg("acme")).toEqual([]);
     expect(r.created).toEqual([]);
 
     expect((await r.commands.create(newTeam("SRE", "paying"))).metadata?.org).toBe("paying");
@@ -312,7 +312,7 @@ describe("create", () => {
     const denied = await failure(r.commands.create(newTeam("SRE")));
     expect(denied.code).toBe(Code.PermissionDenied);
     expect(denied.rawMessage).toBe("unauthorized to create team in this organization");
-    expect(await r.teams.listByOrg("acme")).toEqual([]);
+    expect(r.teams.inOrg("acme")).toEqual([]);
     expect(r.created).toEqual([]);
   });
 });
@@ -589,13 +589,13 @@ describe("reads", () => {
     expect(inProcess.rawMessage).toBe("slug or id is required in reference");
   });
 
-  it("listByOrg answers the organization's teams, newest first", async () => {
+  it("list answers the organization's teams, newest first", async () => {
     const r = rig();
     await r.seed(storedTeam({ id: "tm_a", org: "acme", slug: "a" }));
     await r.seed(storedTeam({ id: "tm_x", org: "other", slug: "x" }));
     await r.seed(storedTeam({ id: "tm_b", org: "acme", slug: "b" }));
 
-    const listed = await r.queries.listByOrg({ org: "acme" });
+    const listed = await r.queries.list({ org: "acme" });
     expect(listed.entries.map((team) => team.metadata?.id)).toEqual(["tm_b", "tm_a"]);
     expect(r.checks).toEqual([
       {

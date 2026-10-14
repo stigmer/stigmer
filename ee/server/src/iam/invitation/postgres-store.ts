@@ -7,14 +7,10 @@
  * concurrent redemptions and their releases identically.
  *
  * The list pages over the `(org, created_at DESC, id COLLATE "C" DESC)`
- * index. A row's cursor is its `created_at` rendered in UTC at the column's
- * full microsecond precision, so the comparison against it never rounds a
- * row out of the list; a cursor that is not a real instant at
- * microseconds, UTC, continues nothing rather than failing the cast.
- * `findIdsByOrg` rides the same index.
+ * index through the keyset source every Enterprise list shares
+ * (postgres/keyset.ts). `findIdsByOrg` rides the same index.
  */
 import type { Pool } from "pg";
-import type { ListIndexCursor, ListIndexRow } from "@stigmer/server";
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import { timestampDate, TimestampSchema } from "@bufbuild/protobuf/wkt";
 
@@ -25,6 +21,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
 import { InvitationState } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/enum_pb";
 
+import { pageOrgRows } from "../../postgres/keyset.js";
 import { inTransaction } from "../../postgres/transaction.js";
 import {
   ledgerSeconds,
@@ -32,23 +29,6 @@ import {
   type RedemptionOutcome,
   type ReleaseOutcome,
 } from "./store.js";
-
-/** The cursor's instant as `pageByOrg` renders it: UTC, six fractional digits. */
-const CURSOR_INSTANT = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3})\d{3}Z$/;
-
-/**
- * Whether `cursor` is one this store renders: an instant in the format, a
- * real date Postgres can hold (year 0001 on), and an id Postgres can carry
- * as text (no NUL).
- */
-function isCursor(cursor: ListIndexCursor): boolean {
-  const millis = CURSOR_INSTANT.exec(cursor.createdAt)?.[1];
-  if (millis === undefined || millis.startsWith("0000") || cursor.id.includes("\u0000")) {
-    return false;
-  }
-  const parsed = Date.parse(`${millis}Z`);
-  return !Number.isNaN(parsed) && new Date(parsed).toISOString() === `${millis}Z`;
-}
 
 export function newInvitationStore(pool: Pool): InvitationStore {
   function decode(data: Buffer): Invitation {
@@ -135,35 +115,8 @@ export function newInvitationStore(pool: Pool): InvitationStore {
       return queryOne("WHERE token = $1", [token]);
     },
 
-    async pageByOrg(org, after, limit): Promise<ReadonlyArray<ListIndexRow>> {
-      if (after !== undefined && !isCursor(after)) {
-        return [];
-      }
-      const params: unknown[] = [org];
-      let continueAfter = "";
-      if (after !== undefined) {
-        params.push(after.createdAt, after.id);
-        continueAfter = `AND (created_at, id COLLATE "C") < ($2::timestamptz, $3 COLLATE "C")`;
-      }
-      let window = "";
-      if (limit !== undefined) {
-        params.push(limit);
-        window = `LIMIT $${params.length}`;
-      }
-      const result = await pool.query<{ id: string; data: Buffer; cursor_at: string }>(
-        `SELECT id, data,
-                to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_at
-           FROM ee.iam_invitation
-          WHERE org = $1 ${continueAfter}
-          ORDER BY created_at DESC, id COLLATE "C" DESC
-          ${window}`,
-        params,
-      );
-      return result.rows.map((row) => ({
-        id: row.id,
-        data: new Uint8Array(row.data),
-        cursor: { createdAt: row.cursor_at, id: row.id },
-      }));
+    pageByOrg(org, after, limit) {
+      return pageOrgRows(pool, { table: "ee.iam_invitation", org, after, limit });
     },
 
     async findIdsByOrg(org): Promise<ReadonlyArray<string>> {

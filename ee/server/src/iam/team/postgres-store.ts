@@ -10,7 +10,9 @@
  *                reference and CheckDuplicate resolve a team's name
  *                through the library's name table
  *   org,         the organization's list, newest first like every list,
- *   created_at   and the organization delete's sweep
+ *   created_at   over the `(org, created_at DESC, id COLLATE "C" DESC)`
+ *                index through the shared keyset source
+ *                (postgres/keyset.ts), and the organization delete's sweep
  *
  * A slug changes only through `modifyById` (the rename chain's write),
  * which writes the payload and the slug column together under the row's
@@ -25,6 +27,7 @@
  */
 import type { Pool } from "pg";
 
+import { pageOrgRows } from "../../postgres/keyset.js";
 import { inTransaction } from "../../postgres/transaction.js";
 import { fromBinary, toBinary } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
@@ -142,8 +145,8 @@ export function newTeamStore(pool: Pool): TeamStore {
       return query("WHERE id = ANY($1)", [[...ids]]);
     },
 
-    listByOrg(org): Promise<ReadonlyArray<Team>> {
-      return query("WHERE org = $1 ORDER BY created_at DESC, id DESC", [org]);
+    pageByOrg(org, after, limit) {
+      return pageOrgRows(pool, { table: TABLE, org, after, limit });
     },
 
     async findIdsByOrg(org): Promise<ReadonlyArray<string>> {

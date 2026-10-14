@@ -120,7 +120,7 @@ describe("no key: the open-source server", () => {
     expect((await createClient(PlatformQueryController, owner.transport).getLicenseStatus({})).state).toBe(
       LicenseState.absent,
     );
-    const held = await createClient(OrganizationQueryController, owner.transport).findMyOrganizations({});
+    const held = await createClient(OrganizationQueryController, owner.transport).listMine({});
     expect(held.entries.map((org) => org.metadata?.slug)).toEqual(["stigmer"]);
   });
 });

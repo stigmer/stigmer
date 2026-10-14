@@ -11,6 +11,8 @@
  *     the names the adapters key their typed outcomes on;
  *   - a database that ran v2 moves to v3, losing the access move tickets
  *     and the single sign-on column and index, and nothing else;
+ *   - a database at v3 moves to v4, its team and provider list indexes
+ *     ordering ids in byte order;
  *   - each claim is the database's: a team's slug per organization, a
  *     provider's route, a provider's slug per organization, and an
  *     invitation's token are each refused with a unique violation naming
@@ -94,7 +96,7 @@ describe.skipIf(!TEST_DATABASE_URL)("the Enterprise schema chain", () => {
     expect(schemasBefore).not.toContain("ee");
     expect(await schemas()).toEqual([...schemasBefore, "ee"].sort());
     expect(await ledger()).toEqual([ENTERPRISE_SCHEMA_VERSION]);
-    expect(ENTERPRISE_SCHEMA_VERSION).toBe(3);
+    expect(ENTERPRISE_SCHEMA_VERSION).toBe(4);
   });
 
   it("changes nothing when it runs again", async () => {
@@ -132,6 +134,7 @@ describe.skipIf(!TEST_DATABASE_URL)("the Enterprise schema chain", () => {
 
   it("gives every table exactly the indexes its adapter reads by, under the names its outcomes key on", async () => {
     expect(await indexesOf("iam_identity_provider")).toEqual([
+      "iam_identity_provider_org_created",
       "iam_identity_provider_org_slug",
       "iam_identity_provider_pkey",
     ]);
@@ -169,12 +172,40 @@ describe.skipIf(!TEST_DATABASE_URL)("the Enterprise schema chain", () => {
         expect(atV2.tables).toContain("iam_access_move_tickets");
         expect(atV2.columns).toContain("is_sso");
         expect(atV2.indexes).toContain("iam_identity_provider_one_live_sso");
-        await runEnterpriseMigrations(client);
+        await runEnterpriseMigrations(client, { through: 3 });
         expect(await tables()).toEqual(atV2.tables.filter((t) => t !== "iam_access_move_tickets"));
         expect(await providerColumns()).toEqual(atV2.columns.filter((c) => c !== "is_sso"));
         expect(await providerIndexes()).toEqual(atV2.indexes.filter((i) => i !== "iam_identity_provider_one_live_sso"));
         const ledger = await earlier.pool.query<{ version: number }>("SELECT version FROM ee.schema_version");
         expect(ledger.rows).toEqual([{ version: 3 }]);
+      } finally {
+        client.release();
+      }
+    } finally {
+      await earlier.drop();
+    }
+  });
+
+  it("brings a database at v3 to v4, whose team and provider list indexes order ids in byte order", async () => {
+    const earlier = await provisionEnterpriseDatabase({ migrate: false });
+    try {
+      const client = await earlier.pool.connect();
+      try {
+        await runEnterpriseMigrations(client, { through: 3 });
+        const definition = async (name: string) =>
+          (
+            await earlier.pool.query<{ indexdef: string }>(
+              "SELECT indexdef FROM pg_indexes WHERE schemaname = 'ee' AND indexname = $1",
+              [name],
+            )
+          ).rows[0]?.indexdef;
+        expect(await definition("idx_iam_team_org_created")).not.toContain('COLLATE "C"');
+        expect(await definition("iam_identity_provider_org_created")).toBeUndefined();
+        await runEnterpriseMigrations(client);
+        expect(await definition("idx_iam_team_org_created")).toContain('id COLLATE "C" DESC');
+        expect(await definition("iam_identity_provider_org_created")).toContain('id COLLATE "C" DESC');
+        const ledger = await earlier.pool.query<{ version: number }>("SELECT version FROM ee.schema_version");
+        expect(ledger.rows).toEqual([{ version: 4 }]);
       } finally {
         client.release();
       }

@@ -32,11 +32,17 @@
  * reconcile wants every provider, the verifier's issuer-cache rebuild
  * every live one, and provider cardinality is platform-scale, not
  * tenant-scale.
+ *
+ * `pageByOrg` is the organization's list as a row source for the library's
+ * page loop (`readPage`): newest first, ties broken by id in byte order,
+ * continuing strictly after a cursor. The cursor comes back from the client
+ * inside an unsigned page token, so it can be any text: one the store would
+ * never render continues nothing, an empty page, rather than a fault.
  */
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 
 import type { ProviderRoute } from "./routes.js";
-import type { GuardedWritePort } from "@stigmer/server";
+import type { GuardedWritePort, ListIndexCursor, ListIndexRow } from "@stigmer/server";
 
 /** A new provider's outcomes: written, or a claim another provider already holds. */
 export type ProviderInsertOutcome =
@@ -85,8 +91,16 @@ export interface IdentityProviderStore
   /** The row and its route claims; an unknown id is a no-op. */
   deleteById(id: string): Promise<void>;
   findById(id: string): Promise<IdentityProvider | undefined>;
-  /** The organization's providers, newest first. */
-  findByOrg(org: string): Promise<ReadonlyArray<IdentityProvider>>;
+  /**
+   * The organization's rows after `after` (from the newest when undefined),
+   * newest first and ids in byte order, at most `limit` (every one when
+   * undefined): the list's row source.
+   */
+  pageByOrg(
+    org: string,
+    after: ListIndexCursor | undefined,
+    limit: number | undefined,
+  ): Promise<ReadonlyArray<ListIndexRow>>;
   /** The ids of the organization's providers (the organization delete's sweep). */
   findIdsByOrg(org: string): Promise<ReadonlyArray<string>>;
   /** Answered from the route side table (the check IS the constraint). */

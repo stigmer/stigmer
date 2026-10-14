@@ -62,7 +62,7 @@ export interface UnaryChainDeps {
 }
 
 export interface UnaryChainNames {
-  /** The pipeline's name in logs, e.g. "team-list-by-org". */
+  /** The pipeline's name in logs, e.g. "team-list". */
   readonly chain: string;
   /** The domain step's name in logs, e.g. "ListTeams". */
   readonly step: string;

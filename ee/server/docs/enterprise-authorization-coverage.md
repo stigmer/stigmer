@@ -22,7 +22,7 @@ In short:
 | IdentityProviderCommandController.delete | config: can_delete on identity_provider (field resource_id), error_msg yes | chain-with-Authorize |
 | IdentityProviderQueryController.get | config: can_view on identity_provider (field value), error_msg yes | chain-with-Authorize |
 | IdentityProviderQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: newLoadProviderByReferenceStep, then guard: AuthorizeResolvedTarget — the loaded row is authorized as `get`; a missing slug or id is NOT_FOUND only to a caller who holds `can_create_idp` on the organization, and `get`'s denial to anyone else) |
-| IdentityProviderQueryController.listByOrg | config: can_view on organization (field org), error_msg yes | chain-with-Authorize |
+| IdentityProviderQueryController.list | config: can_view on organization (field org), error_msg yes | chain-with-Authorize |
 
 ## Invitation
 
@@ -32,7 +32,7 @@ In short:
 | InvitationCommandController.revoke | config: can_edit on invitation (field value), error_msg yes | chain-with-Authorize |
 | InvitationCommandController.redeem | is_skip_authorization | chain-with-Authorize (by design: the token is the authorization; guard: newRefuseNonPersonCallerStep, guard: refuseBoundElsewhere and guard: refuseExistingMember — only a person may redeem, never through a credential bound to another organization (a limited API key, a PlatformClient user token, a federated token naming another tenant), and never into an organization where they already hold a role; deleting: organizationRefusal — the link's organization is read through the in-process organization lane, which answers not found for one being deleted, so the link is refused as gone) |
 | InvitationQueryController.get | config: can_view on invitation (field value), error_msg yes | chain-with-Authorize |
-| InvitationQueryController.listByOrg | config: can_view_access on organization (field org), error_msg yes | chain-with-Authorize |
+| InvitationQueryController.list | config: can_view_access on organization (field org), error_msg yes | chain-with-Authorize |
 | InvitationQueryController.getByToken | is_public | chain-with-Authorize (by design: the acceptance page's preview of the invitation its token names, shown before the person signs in; deleting: inert, the delete's pre-delete slot removes every invitation of the organization before it answers, and the purge any written after) |
 
 ## Team
@@ -45,7 +45,7 @@ In short:
 | TeamCommandController.delete | config: can_delete on team (field resource_id), error_msg yes | chain-with-Authorize |
 | TeamQueryController.get | config: can_view on team (field value), error_msg yes | chain-with-Authorize |
 | TeamQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: newLoadTeamByReferenceStep, then guard: AuthorizeResolvedTarget — the loaded row is authorized as `get`; a missing slug or id is NOT_FOUND only to a caller who holds `can_view` on the organization, and `get`'s denial to anyone else) |
-| TeamQueryController.listByOrg | config: can_view on organization (field org), error_msg yes | chain-with-Authorize |
+| TeamQueryController.list | config: can_view on organization (field org), error_msg yes | chain-with-Authorize |
 
 ## Refusals beside authorization
 

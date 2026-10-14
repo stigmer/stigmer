@@ -39,7 +39,7 @@
  *     copy, and answers a missing slug NOT_FOUND only to the
  *     organization's admins, and `get`'s denial to anyone else, a viewer of
  *     the organization included;
- *   - listByOrg offers the organization's rows, newest first, to the list
+ *   - list offers the organization's rows, newest first, to the list
  *     read scope and answers only what it allows;
  *   - a provider whose delete did not finish refuses an update and an
  *     apply, FAILED_PRECONDITION, with copy that says to delete it again,
@@ -240,7 +240,7 @@ function rig(
 ): Rig {
   const store = options.store ?? new InMemoryProviderStore();
   const names = inMemoryNames(async (key) =>
-    (await store.findByOrg(key.org)).find((held) => held.metadata?.slug === key.name)?.metadata?.id,
+    store.inOrg(key.org).find((held) => held.metadata?.slug === key.name)?.metadata?.id,
   );
   const underlying = scripted({ ...PUBLISHED, ...options.answers });
   const checks: AuthzCheck[] = [];
@@ -531,7 +531,7 @@ describe("create", () => {
     const failed = await failure(r.commands.create(provider()));
     expect(failed.code).toBe(Code.Internal);
     expect(failed.rawMessage).toBe("failed to create authorization tuples");
-    expect((await r.store.findByOrg("acme")).map((held) => held.metadata?.slug)).toContain("acme-platform");
+    expect(r.store.inOrg("acme").map((held) => held.metadata?.slug)).toContain("acme-platform");
     expect(r.invalidations).toBe(1);
   });
 
@@ -909,14 +909,14 @@ describe("reads", () => {
     ]);
   });
 
-  it("listByOrg offers the organization's rows newest first and answers only what the scope allows", async () => {
+  it("list offers the organization's rows newest first and answers only what the scope allows", async () => {
     const r = rig({ listable: (id) => id !== "idp_b" });
     await r.store.insert(storedProvider({ id: "idp_a", org: "acme", slug: "idp-a" }));
     await r.store.insert(storedProvider({ id: "idp_x", org: "other", slug: "x" }));
     await r.store.insert(storedProvider({ id: "idp_b", org: "acme", slug: "idp-b" }));
     await r.store.insert(storedProvider({ id: "idp_c", org: "acme", slug: "c" }));
 
-    const listed = await r.queries.listByOrg({ org: "acme" });
+    const listed = await r.queries.list({ org: "acme" });
     expect(listed.entries.map((row) => row.metadata?.id)).toEqual(["idp_c", "idp_a"]);
     expect(r.offered.map((entries) => entries.map((e) => e.id))).toEqual([["idp_c", "idp_b", "idp_a"]]);
     expect(r.checks).toEqual([

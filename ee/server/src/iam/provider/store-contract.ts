@@ -28,6 +28,9 @@
  *     slug is free in the table and the new one taken, keeps the routes,
  *     refuses a change of a route as a programming error,
  *     and answers undefined for an unknown id, writing nothing;
+ *   - an organization's list is newest first, ties broken by id in byte
+ *     order, strictly after a cursor and at most a limit, and no other
+ *     organization's;
  *   - a delete frees the provider's routes, and an unknown id resolves;
  *   - a provider marked as being deleted leaves the routing read
  *     (`findLive`) and is not live, while every other
@@ -71,12 +74,18 @@ function provider(fields: {
   issuers: ReadonlyArray<string>;
   audience?: string;
   displayName?: string;
+  /** Minutes after the shared creation instant, to order a list. */
+  minute?: number;
 }): IdentityProvider {
+  const created =
+    fields.minute === undefined
+      ? CREATED
+      : timestampFromDate(new Date(Date.UTC(2026, 8, 1, 0, fields.minute)));
   return create(IdentityProviderSchema, {
     apiVersion: "iam.stigmer.ai/v1",
     kind: "IdentityProvider",
     metadata: { id: fields.id, org: fields.org, slug: fields.slug, name: fields.slug },
-    status: { audit: { specAudit: { createdAt: CREATED, updatedAt: CREATED } } },
+    status: { audit: { specAudit: { createdAt: created, updatedAt: created } } },
     spec: {
       displayName: fields.displayName ?? fields.slug,
       allowedIssuers: [...fields.issuers],
@@ -190,6 +199,40 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityProviderStore>> = [
       assert.equal((await store.findById("idp_c1"))?.spec?.displayName, "okta");
       assert.equal(await store.findProviderIdByRoute("https://okta.contract.test", AUDIENCE), "idp_c1");
       assert.deepEqual(await store.findIdsByOrg("acme"), ["idp_c1"]);
+    },
+  ],
+  [
+    "the list is newest first, ties by id in byte order, strictly after a cursor and at most a limit",
+    async ({ store }) => {
+      for (const [id, minute] of [
+        ["idp_k_old", 1],
+        ["idp_k_a", 2],
+        ["idp_k_B", 2],
+        ["idp_k_new", 3],
+      ] as const) {
+        await store.insert(
+          provider({
+            id,
+            org: "keyset",
+            slug: id.replaceAll("_", "-").toLowerCase(),
+            issuers: [`https://${id}.contract.test`],
+            minute,
+          }),
+        );
+      }
+      await store.insert(provider({ id: "idp_k_other", org: "elsewhere", slug: "k-other", issuers: ["https://k-other.contract.test"] }));
+
+      // Byte order puts "B" (0x42) before "a" (0x61), so newest first reads
+      // idp_k_a before idp_k_B; a collation-aware order would not.
+      const all = await store.pageByOrg("keyset", undefined, undefined);
+      assert.deepEqual(all.map((row) => row.id), ["idp_k_new", "idp_k_a", "idp_k_B", "idp_k_old"]);
+      assert.deepEqual(all[1]?.cursor, { createdAt: "2026-09-01T00:02:00.000000Z", id: "idp_k_a" });
+
+      const first = await store.pageByOrg("keyset", undefined, 2);
+      assert.deepEqual(first.map((row) => row.id), ["idp_k_new", "idp_k_a"]);
+      const rest = await store.pageByOrg("keyset", first[1]?.cursor, 2);
+      assert.deepEqual(rest.map((row) => row.id), ["idp_k_B", "idp_k_old"]);
+      assert.deepEqual(await store.pageByOrg("keyset", rest[1]?.cursor, 2), []);
     },
   ],
   [
@@ -358,6 +401,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityProviderStore>> = [
       await disconnect();
       await assert.rejects(store.findProviderIdByRoute("https://any.contract.test", AUDIENCE));
       await assert.rejects(store.findById("idp_any"));
+      await assert.rejects(store.pageByOrg("acme", undefined, undefined));
       await assert.rejects(store.findAll());
       await assert.rejects(store.findLive());
       await assert.rejects(store.isLive("idp_any"), "an outage never reads as 'not live'");

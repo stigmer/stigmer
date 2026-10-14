@@ -24,7 +24,11 @@
  * Stigmer has no single sign-on of its own, and an identity provider is
  * trust in another platform's tokens. The two versions stay as written so
  * a database that ran them moves forward instead of sitting ahead of the
- * chain.
+ * chain. v4 gives the team and identity provider lists the keyset index
+ * invitations page over, `(org, created_at DESC, id COLLATE "C" DESC)`:
+ * every list pages by token, newest first with ties in byte order
+ * (postgres/keyset.ts), and the team index's default-collation id could not
+ * serve that order.
  *
  * The tables carry no foreign keys: an organization's rows go with it
  * through the unit's purge stage, and the policy rows that reference a
@@ -33,7 +37,7 @@
 import type { PoolClient } from "pg";
 
 /** Whatever version a database at this build's schema holds. */
-export const ENTERPRISE_SCHEMA_VERSION = 3;
+export const ENTERPRISE_SCHEMA_VERSION = 4;
 
 /** Advisory lock key for this chain: ASCII "STGMRE" + 0x01. */
 export const ENTERPRISE_MIGRATION_LOCK_KEY = 0x5354474d524501n;
@@ -150,6 +154,18 @@ export const ENTERPRISE_MIGRATIONS: ReadonlyArray<{
       `DROP TABLE ee.iam_access_move_tickets`,
       `DROP INDEX ee.iam_identity_provider_one_live_sso`,
       `ALTER TABLE ee.iam_identity_provider DROP COLUMN is_sso`,
+    ],
+  },
+  {
+    version: 4,
+    statements: [
+      // The team and provider lists page by token over the same keyset as
+      // invitations: newest first, ties broken by id in byte order.
+      `DROP INDEX ee.idx_iam_team_org_created`,
+      `CREATE INDEX idx_iam_team_org_created
+         ON ee.iam_team (org, created_at DESC, id COLLATE "C" DESC)`,
+      `CREATE INDEX iam_identity_provider_org_created
+         ON ee.iam_identity_provider (org, created_at DESC, id COLLATE "C" DESC)`,
     ],
   },
 ];

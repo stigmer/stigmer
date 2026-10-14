@@ -75,17 +75,17 @@ function oneTeam() {
   return create(TeamsSchema, { entries: [create(TeamSchema, { metadata: { id: "team_1" } })] });
 }
 
-/** One RPC over the chain: listByOrg answering one team, or throwing what the test injects. */
+/** One RPC over the chain: list answering one team, or throwing what the test injects. */
 function clientFor(
   authorizer: Authorizer,
   logger: Logger,
   domain: () => Promise<unknown> = async () => oneTeam(),
 ) {
-  const method = TeamQueryController.method.listByOrg;
+  const method = TeamQueryController.method.list;
   const transport = createRouterTransport(
     (router) => {
       router.service(TeamQueryController, {
-        listByOrg: (input, ctx) =>
+        list: (input, ctx) =>
           runUnaryChain(
             NAMES,
             method,
@@ -120,7 +120,7 @@ describe("runUnaryChain", () => {
       ran++;
       return oneTeam();
     });
-    const teams = await client.listByOrg({ org: "org_1" });
+    const teams = await client.list({ org: "org_1" });
     expect(teams.entries.map((team) => team.metadata?.id)).toEqual(["team_1"]);
     expect(ran).toBe(1);
   });
@@ -131,7 +131,7 @@ describe("runUnaryChain", () => {
       ran++;
       return create(TeamsSchema);
     });
-    const error = await failure(client.listByOrg({ org: "org_1" }));
+    const error = await failure(client.list({ org: "org_1" }));
     expect(error.code).toBe(Code.PermissionDenied);
     expect(error.rawMessage.length).toBeGreaterThan(0);
     expect(ran).toBe(0);
@@ -144,14 +144,14 @@ describe("runUnaryChain", () => {
       return create(TeamsSchema);
     });
     // org is required (`min_len = 1`) on the proto; the empty request fails validation.
-    const error = await failure(client.listByOrg({}));
+    const error = await failure(client.list({}));
     expect(error.code).toBe(Code.InvalidArgument);
     expect(ran).toBe(0);
   });
 
   it("an authorizer outage answers INTERNAL and never the outage's own text", async () => {
     const client = clientFor(outage, recordingLogger());
-    const error = await failure(client.listByOrg({ org: "org_1" }));
+    const error = await failure(client.list({ org: "org_1" }));
     expect(error.code).toBe(Code.Internal);
     expect(error.rawMessage).not.toContain("the authorizer's backend is unreachable");
   });
@@ -163,7 +163,7 @@ describe("runUnaryChain", () => {
         Code.NotFound,
       );
     });
-    const error = await failure(client.listByOrg({ org: "org_1" }));
+    const error = await failure(client.list({ org: "org_1" }));
     expect(error.code).toBe(Code.NotFound);
     expect(error.rawMessage).toBe("Record not found for org: org_1");
   });
@@ -173,7 +173,7 @@ describe("runUnaryChain", () => {
     const client = clientFor(allow, logger, async () => {
       throw new Error("relation store.missing does not exist");
     });
-    const error = await failure(client.listByOrg({ org: "org_1" }));
+    const error = await failure(client.list({ org: "org_1" }));
     expect(error.code).toBe(Code.Internal);
     expect(error.rawMessage).not.toContain("store.missing");
     expect(JSON.stringify(logger.warnings)).toContain("ListTeamsByOrg");
@@ -182,7 +182,7 @@ describe("runUnaryChain", () => {
 
   it("runs the shaping steps after ValidateProto and before the domain step, with the kind on the context", async () => {
     const order: string[] = [];
-    const method = TeamQueryController.method.listByOrg;
+    const method = TeamQueryController.method.list;
     const shaping: PipelineStep<typeof method.input>[] = ["First", "Second"].map(
       (name) => ({
         name,
@@ -194,7 +194,7 @@ describe("runUnaryChain", () => {
     const transport = createRouterTransport(
       (router) => {
         router.service(TeamQueryController, {
-          listByOrg: (input, ctx) =>
+          list: (input, ctx) =>
             runUnaryChain(
               NAMES,
               method,
@@ -211,7 +211,7 @@ describe("runUnaryChain", () => {
       },
       { router: { interceptors: [identityInterceptor()] } },
     );
-    await createClient(TeamQueryController, transport).listByOrg({ org: "org_1" });
+    await createClient(TeamQueryController, transport).list({ org: "org_1" });
     expect(order).toEqual(["First:team", "Second:team", "Domain:team"]);
 
     // A denial never reaches a shaping step either.
@@ -219,7 +219,7 @@ describe("runUnaryChain", () => {
     const denied = createRouterTransport(
       (router) => {
         router.service(TeamQueryController, {
-          listByOrg: (input, ctx) =>
+          list: (input, ctx) =>
             runUnaryChain(
               NAMES,
               method,
@@ -234,7 +234,7 @@ describe("runUnaryChain", () => {
       { router: { interceptors: [identityInterceptor()] } },
     );
     const error = await failure(
-      createClient(TeamQueryController, denied).listByOrg({ org: "org_1" }),
+      createClient(TeamQueryController, denied).list({ org: "org_1" }),
     );
     expect(error.code).toBe(Code.PermissionDenied);
     expect(order).toEqual([]);

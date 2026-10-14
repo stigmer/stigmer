@@ -18,9 +18,15 @@
  * `findAll` is a deliberate full-table read for the boot's
  * organization-link reconcile, which must see every row an organization's
  * admins manage; teams are few per organization and die with it.
+ *
+ * `pageByOrg` is the organization's list as a row source for the library's
+ * page loop (`readPage`): newest first, ties broken by id in byte order,
+ * continuing strictly after a cursor. The cursor comes back from the client
+ * inside an unsigned page token, so it can be any text: one the store would
+ * never render continues nothing, an empty page, rather than a fault.
  */
 import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
-import type { GuardedWritePort } from "@stigmer/server";
+import type { GuardedWritePort, ListIndexCursor, ListIndexRow } from "@stigmer/server";
 
 /** The insert's two outcomes; nothing else about a new row can be in question. */
 export type TeamInsertOutcome =
@@ -43,8 +49,16 @@ export interface TeamStore extends GuardedWritePort<Team> {
   findById(id: string): Promise<Team | undefined>;
   /** The teams of these ids that exist, in no particular order. */
   findByIds(ids: ReadonlyArray<string>): Promise<ReadonlyArray<Team>>;
-  /** The organization's teams, newest first. */
-  listByOrg(org: string): Promise<ReadonlyArray<Team>>;
+  /**
+   * The organization's rows after `after` (from the newest when undefined),
+   * newest first and ids in byte order, at most `limit` (every one when
+   * undefined): the list's row source.
+   */
+  pageByOrg(
+    org: string,
+    after: ListIndexCursor | undefined,
+    limit: number | undefined,
+  ): Promise<ReadonlyArray<ListIndexRow>>;
   /** The ids of the organization's teams (the organization delete's sweep). */
   findIdsByOrg(org: string): Promise<ReadonlyArray<string>>;
   /** Every team, oldest first (the boot's organization-link reconcile). */

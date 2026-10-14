@@ -1,6 +1,6 @@
 /**
  * The Invitation RPCs as extension services: create, revoke and redeem on
- * the command side; get, listByOrg and the public getByToken preview on
+ * the command side; get, list and the public getByToken preview on
  * the query side. Invitation is an enterprise-tier kind open source
  * registers no service for, so these are its only handlers; every one
  * runs the composition's unary chain (Authorize from the proto annotation,
@@ -40,7 +40,7 @@
  *               refuses with the honest copy re-read from the row, and a
  *               failed grant releases its own record
  *   get         Authorize (`can_view` on the invitation) → LoadTarget
- *   listByOrg   the organization's rows, newest first, a page at a time
+ *   list        the organization's rows, newest first, a page at a time
  *               through the library's page loop (`readPage`, over the
  *               store's keyset read), each page narrowed by the list read
  *               scope to the ones the caller could `get`; `page_size` 0
@@ -275,10 +275,10 @@ export function invitationQueries(deps: InvitationLaneDeps): Queries {
           steps: [newLoadInvitationStep(deps.store, (id) => id.value)],
         },
       ),
-    listByOrg: (input, ctx) =>
+    list: (input, ctx) =>
       runUnaryChain(
-        { chain: "invitation-list-by-org", step: "ListInvitations" },
-        method.listByOrg,
+        { chain: "invitation-list", step: "ListInvitations" },
+        method.list,
         input,
         ctx,
         deps,
