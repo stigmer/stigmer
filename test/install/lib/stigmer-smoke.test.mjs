@@ -252,9 +252,16 @@ const OTHER_ORG = { metadata: { id: "acme", slug: "acme", name: "acme" } };
 const AGENT_CREATE = "ai.stigmer.agentic.agent.v1.AgentCommandController/create";
 const AEX_CREATE = "ai.stigmer.agentic.run.v1.RunCommandController/create";
 const AEX_GET = "ai.stigmer.agentic.run.v1.RunQueryController/get";
+const LIST_EVENTS = "ai.stigmer.agentic.session.v1.SessionQueryController/listEvents";
 const REPLY = "This is the Stigmer fake model's default reply; no real model was called.";
 
-function agentLane(executionAt, aexCreate = () => ({ metadata: { id: "aex_smoke_1" } })) {
+/**
+ * A lane for one agent run. `executionAt` answers each poll of the run;
+ * `events` answers the session's event list, newest first as the line asks
+ * for it (a page of the run's agent.message events, from {@link
+ * agentMessage}).
+ */
+function agentLane(executionAt, { aexCreate = () => ({ metadata: { id: "aex_smoke_1" } }), events = () => page([agentMessage(REPLY)]) } = {}) {
   return serveConnectLane({
     // A server that holds several organizations: the line makes its own.
     [SERVER_INFO]: () => ({ edition: "oss", version: "3.41.0" }),
@@ -262,22 +269,38 @@ function agentLane(executionAt, aexCreate = () => ({ metadata: { id: "aex_smoke_
     [AGENT_CREATE]: () => ({ metadata: { id: "agt_smoke_1", slug: "smoke-agent" } }),
     [AEX_CREATE]: aexCreate,
     [AEX_GET]: executionAt,
+    [LIST_EVENTS]: events,
   });
 }
 
-function completedWith(messages) {
-  return { metadata: { id: "aex_smoke_1" }, status: { phase: "RUN_COMPLETED", messages } };
+/** A completed run in the session `ses_smoke_1`; its reply is in the session's log, not on it. */
+function completed() {
+  return { metadata: { id: "aex_smoke_1" }, spec: { sessionId: "ses_smoke_1" }, status: { phase: "RUN_COMPLETED" } };
+}
+
+/** One agent.message event of `aex_smoke_1`, as listEvents answers it in JSON; `threadId` names a sub-agent's thread. */
+function agentMessage(text, threadId) {
+  return {
+    seq: "7",
+    sessionId: "ses_smoke_1",
+    runId: "aex_smoke_1",
+    ...(threadId === undefined ? {} : { threadId }),
+    agentMessage: { id: "aex_smoke_1.m0", content: [{ type: "text", text }] },
+  };
+}
+
+function page(events) {
+  return { events };
 }
 
 test("an agent run starts a conversation on the agent's reference", async () => {
   const sent = [];
-  const lane = await agentLane(
-    () => completedWith([{ type: "MESSAGE_AI", content: REPLY }]),
-    (_n, body) => {
+  const lane = await agentLane(completed, {
+    aexCreate: (_n, body) => {
       sent.push(body.spec);
       return { metadata: { id: "aex_smoke_1" } };
     },
-  );
+  });
   try {
     await runAgentToReply(lane.baseUrl, 10_000, { expectText: REPLY });
     assert.deepEqual(sent, [
@@ -293,9 +316,8 @@ test("an agent run starts a conversation on the agent's reference", async () => 
 
 test("an agent run on a server that predates agent references names the agent by id", async () => {
   const sent = [];
-  const lane = await agentLane(
-    () => completedWith([{ type: "MESSAGE_AI", content: REPLY }]),
-    (_n, body) => {
+  const lane = await agentLane(completed, {
+    aexCreate: (_n, body) => {
       sent.push(body.spec);
       return body.spec.sessionSpec === undefined
         ? { metadata: { id: "aex_smoke_1" } }
@@ -308,7 +330,7 @@ test("an agent run on a server that predates agent references names the agent by
             },
           };
     },
-  );
+  });
   try {
     const result = await runAgentToReply(lane.baseUrl, 10_000, { expectText: REPLY });
     assert.equal(result.executionId, "aex_smoke_1");
@@ -319,14 +341,13 @@ test("an agent run on a server that predates agent references names the agent by
 });
 
 test("an agent run passes on the model's reply, and yields the ids an upgrade reads back", async () => {
-  const lane = await agentLane((n) =>
-    n === 1
-      ? { status: { phase: "RUN_IN_PROGRESS", messages: [] } }
-      : completedWith([
-          { type: "MESSAGE_HUMAN", content: "Say hello." },
-          { type: "MESSAGE_AI", content: REPLY },
-        ]),
-  );
+  const asked = [];
+  const lane = await agentLane((n) => (n === 1 ? { status: { phase: "RUN_IN_PROGRESS" } } : completed()), {
+    events: (_n, body) => {
+      asked.push(body);
+      return page([agentMessage(REPLY)]);
+    },
+  });
   try {
     const result = await runAgentToReply(lane.baseUrl, 10_000, { expectText: REPLY });
     assert.deepEqual(result, {
@@ -337,18 +358,51 @@ test("an agent run passes on the model's reply, and yields the ids an upgrade re
       reply: REPLY,
     });
     assert.equal(lane.calls(AEX_GET), 2);
+    // The reply is read once the run completed, from that run's newest
+    // agent.message in its session's log.
+    assert.deepEqual(asked.at(-1), {
+      sessionId: "ses_smoke_1",
+      runId: "aex_smoke_1",
+      types: ["agent.message"],
+      order: "desc",
+      pageSize: 100,
+    });
+  } finally {
+    await lane.close();
+  }
+});
+
+test("an agent run's reply is its newest message on the session's own thread, never a sub-agent's", async () => {
+  const lane = await agentLane(completed, {
+    events: () =>
+      page([
+        agentMessage("a sub-agent's later words", "sub_1"),
+        { ...agentMessage(""), agentMessage: { id: "aex_smoke_1.m1", content: [{ type: "text", text: "This is the " }, { type: "redacted" }, { type: "text", text: "reply" }] } },
+        agentMessage(REPLY),
+      ]),
+  });
+  try {
+    const result = await runAgentToReply(lane.baseUrl, 10_000, { expectText: "This is the reply" });
+    assert.equal(result.reply, "This is the reply");
+  } finally {
+    await lane.close();
+  }
+});
+
+test("an agent run that names no session fails, rather than reading no reply", async () => {
+  const lane = await agentLane(() => ({ metadata: { id: "aex_smoke_1" }, status: { phase: "RUN_COMPLETED" } }));
+  try {
+    await assert.rejects(runAgentToReply(lane.baseUrl, 10_000, { expectText: REPLY }), /names no session to read its reply from/);
+    assert.equal(lane.calls(LIST_EVENTS), 1, "only the routing probe reached the event list");
   } finally {
     await lane.close();
   }
 });
 
 test("an agent run that completes without the model's reply fails, naming both texts", async () => {
-  const lane = await agentLane(() =>
-    completedWith([
-      { type: "MESSAGE_AI", content: REPLY },
-      { type: "MESSAGE_AI", content: "something else answered" },
-    ]),
-  );
+  const lane = await agentLane(completed, {
+    events: () => page([agentMessage("something else answered"), agentMessage(REPLY)]),
+  });
   try {
     await assert.rejects(
       runAgentToReply(lane.baseUrl, 10_000, { expectText: REPLY }),
@@ -537,11 +591,15 @@ test("compareState names an execution that is no longer COMPLETED", () => {
  * `workflows` names one (LEGACY_WORKFLOW_APIS), that workflow run API, until
  * `lane.upgrade()`, which serves the current run API and no workflow API over
  * the same rows with their phases renamed, as the store's enum numbers read
- * after the rename. An unrouted procedure answers as the Connect adapter
- * does: a bare 404.
+ * after the rename. A run's reply is where its server keeps it: in the
+ * session's event log on the current API (`lane.loseReply(id)` empties a
+ * run's), on the run's status on an API from before the log, which the
+ * upgrade does not carry into the log. An unrouted procedure answers as the
+ * Connect adapter does: a bare 404.
  */
 async function stateLane(api = RUN_APIS.current, workflows = undefined) {
   const rows = new Map();
+  const replies = new Map();
   let n = 0;
   const create = (prefix, extra = {}) => (body) => {
     n += 1;
@@ -565,24 +623,44 @@ async function stateLane(api = RUN_APIS.current, workflows = undefined) {
           },
           [`${served.service}QueryController/get`]: get,
         };
-  const routesFor = (speaks, served) =>
-    new Map(Object.entries({
+  const routesFor = (speaks, served) => {
+    const logged = speaks === RUN_APIS.current;
+    const loggedRoutes = logged
+      ? {
+          [LIST_EVENTS]: (body) => ({
+            events: (replies.get(body.runId) ?? []).map((text) => ({
+              runId: body.runId,
+              sessionId: body.sessionId,
+              agentMessage: { id: `${body.runId}.m0`, content: [{ type: "text", text }] },
+            })),
+          }),
+        }
+      : {};
+    return new Map(Object.entries({
       [SERVER_INFO]: () => ({ edition: "oss", version: "3.41.0" }),
       [ORG_CREATE]: create("org"),
       ...workflowRoutes(served),
       [AGENT_CREATE]: create("agt"),
       [`${speaks.agentService}CommandController/create`]: (body) => {
         assert.equal(body.kind, speaks.agentKind);
-        return create("aex", {
-          status: { phase: `${speaks.phasePrefix}COMPLETED`, messages: [{ type: "MESSAGE_AI", content: REPLY }] },
-        })(body);
+        if (!logged) {
+          return create("aex", {
+            spec: { sessionId: "ses_state" },
+            status: { phase: `${speaks.phasePrefix}COMPLETED`, messages: [{ type: "MESSAGE_AI", content: REPLY }] },
+          })(body);
+        }
+        const row = create("aex", { spec: { sessionId: "ses_state" }, status: { phase: `${speaks.phasePrefix}COMPLETED` } })(body);
+        replies.set(row.metadata.id, [REPLY]);
+        return row;
       },
       "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/get": get,
       "ai.stigmer.agentic.agent.v1.AgentQueryController/get": get,
       [`${speaks.agentService}QueryController/get`]: get,
       "ai.stigmer.agentic.agent.v1.AgentQueryController/getByReference": (body) =>
         [...rows.values()].find((row) => row.metadata.slug === body.slug && body.kind === "agent"),
+      ...loggedRoutes,
     }));
+  };
   let routes = routesFor(api, workflows);
   const server = createServer((request, response) => {
     let raw = "";
@@ -603,6 +681,7 @@ async function stateLane(api = RUN_APIS.current, workflows = undefined) {
   return {
     baseUrl: `http://127.0.0.1:${server.address().port}`,
     lose: (id) => rows.delete(id),
+    loseReply: (id) => replies.delete(id),
     rename: (id, name) => {
       rows.get(id).metadata.name = name;
     },
@@ -637,6 +716,21 @@ test("recorded state that reads back whole survives", async () => {
   }
 });
 
+test("a reply the session's log lost fails the survival check, named", async () => {
+  const lane = await stateLane();
+  try {
+    const recorded = await recordState(lane.baseUrl, 10_000, { expectText: REPLY });
+    assert.equal(recorded.reply, REPLY);
+    lane.loseReply(recorded.ids.agentExecutionId);
+    await assert.rejects(
+      assertStateSurvived(lane.baseUrl, recorded),
+      new RegExp(`agentExecution\\.reply: was ${JSON.stringify(REPLY).replace(/[.;']/g, "\\$&")}, now ""`),
+    );
+  } finally {
+    await lane.close();
+  }
+});
+
 test("a lost agent execution and a renamed agent both fail the survival check, named", async () => {
   const lane = await stateLane();
   try {
@@ -660,7 +754,11 @@ test("state recorded through the run API before the rename reads back whole thro
     assert.equal(await runApiOf(lane.baseUrl), RUN_APIS.beforeRunRename);
     const recorded = await recordState(lane.baseUrl, 10_000, { expectText: REPLY });
     assert.equal(recorded.snapshot.agentExecution.phase, "COMPLETED");
-    assert.equal(recorded.snapshot.agentExecution.reply, REPLY);
+    // A release from before the session event log answered with the reply
+    // on the run's status; the log does not carry it over, so it is read to
+    // prove the base ran and left out of what must survive.
+    assert.equal(recorded.reply, REPLY);
+    assert.equal(recorded.snapshot.agentExecution.reply, undefined);
     lane.upgrade();
     assert.equal(await runApiOf(lane.baseUrl), RUN_APIS.current);
     await assertStateSurvived(lane.baseUrl, recorded);
@@ -741,7 +839,7 @@ test("a base that still serves workflows records one completed workflow run, und
       // The run's organization joins the ids, and reads back with the rest.
       assert.equal(recorded.ids.workflowOrgId, recorded.workflowRun?.orgId);
       assert.equal(recorded.snapshot.workflowOrg?.id, recorded.workflowRun?.orgId);
-      assert.equal(recorded.snapshot.agentExecution.reply, REPLY);
+      assert.equal(recorded.reply, REPLY);
     } finally {
       await lane.close();
     }

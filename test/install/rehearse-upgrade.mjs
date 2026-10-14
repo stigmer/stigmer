@@ -28,7 +28,10 @@
  *      (or the CLI's runtime) are the ones running;
  *   4. reads every recorded resource back and compares it field by field:
  *      nothing lost, nothing renamed, the run still COMPLETED, the agent's
- *      reply intact, the agent still found by its org/slug reference; after
+ *      reply intact (where the base kept it in the session event log: a
+ *      release before the log kept it on the run's status, which the log
+ *      does not carry over), the agent still found by its org/slug
+ *      reference; after
  *      a base that recorded a workflow run, requires the workflow API gone
  *      (an unrouted procedure) from a server that booted over the store
  *      holding that run;
@@ -440,7 +443,7 @@ async function main() {
     // before runs were named runs (`--to`) still starts its runs there.
     const api = await runApiOf(baseUrl);
     await assertStateSurvived(baseUrl, recorded);
-    log(`read back unchanged: ${Object.keys(recorded.snapshot).join(", ")}; the old reply: ${recorded.snapshot.agentExecution.reply}`);
+    log(`read back unchanged: ${Object.keys(recorded.snapshot).join(", ")}; the old reply: ${recorded.reply}`);
     // The legacy workflow arm (stigmer#1989).
     if (recorded.workflowRun !== undefined) {
       await assertWorkflowApiGone(baseUrl);

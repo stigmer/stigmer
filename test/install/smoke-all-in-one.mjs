@@ -67,10 +67,10 @@ import process from "node:process";
 import {
   assertArtifactLane,
   assertConsoleServed,
-  lastAiReply,
   pollUntil,
   readAgentExecution,
   runAgentToReply,
+  runReply,
   sleep,
   readSingleOrganization,
   waitForServing,
@@ -201,7 +201,7 @@ async function main() {
     if (agentAfter.status?.phase !== "RUN_COMPLETED") {
       throw new Error(`agent execution ${run.executionId} not completed after restart: ${JSON.stringify(agentAfter.status)}`);
     }
-    if (lastAiReply(agentAfter) !== run.reply) {
+    if ((await runReply(restartedBase, agentAfter)) !== run.reply) {
       throw new Error(`agent execution ${run.executionId} lost its reply across the restart: ${JSON.stringify(agentAfter.status)}`);
     }
     log("state survived docker restart, the agent's reply included");
