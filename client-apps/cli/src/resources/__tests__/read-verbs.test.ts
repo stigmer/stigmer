@@ -19,6 +19,8 @@ import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/age
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
+import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
+import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
@@ -129,6 +131,13 @@ const knownPlugin = create(PluginSchema, {
   kind: "Plugin",
   metadata: { name: "clinic-kit", slug: "clinic-kit", org: ACME_ID, id: "plg_1" },
   spec: { description: "clinic tools plugin" },
+});
+
+const knownSkill = create(SkillSchema, {
+  apiVersion: "agentic.stigmer.ai/v1",
+  kind: "Skill",
+  metadata: { name: "triage", slug: "triage", org: ACME_ID, id: "skl_1" },
+  spec: { description: "triage a ticket" },
 });
 
 // Spec/status populated to exercise every AGENT_CHANNEL_TABLE column:
@@ -256,6 +265,12 @@ beforeAll(async () => {
           return { entries: [knownAgent, hiddenAgent].slice(0, req.pageSize), nextPageToken: "agents-2" };
         }
         return { entries: [formatterAgent] };
+      },
+    });
+    router.service(SkillQueryController, {
+      list: (req) => {
+        if (req.org !== "acme") throw new ConnectError("org is required", Code.InvalidArgument);
+        return { entries: [knownSkill] };
       },
     });
     router.service(PluginQueryController, {
@@ -592,6 +607,11 @@ describe("list integration", () => {
     expect(out).toContain(`${HIDDEN_ORG_ID}/linter`);
     // Two rows name acme: one lookup per distinct organization, never per row.
     expect([...orgGets].sort()).toEqual([ACME_ID, HIDDEN_ORG_ID]);
+  });
+
+  it("lists skills through their list RPC as JSON", async () => {
+    const out = await listResources(client, ApiResourceKind.skill, "acme", 50, "json");
+    expect(JSON.parse(out)).toEqual([toJson(SkillSchema, knownSkill, { useProtoFieldName: true })]);
   });
 
   it("lists plugins through their list RPC as JSON", async () => {
