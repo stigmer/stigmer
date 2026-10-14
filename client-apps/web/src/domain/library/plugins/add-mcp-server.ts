@@ -1,8 +1,9 @@
 /**
  * The one spelling of the link that opens the Plugins list with the "Add
  * MCP server" form open: the Library's Add menu links here, and the list
- * page reads the parameter back. An MCP server lives in a plugin, so
- * adding one is adding a plugin of one server.
+ * page reads the parameter back. Outside an agent's own MCP servers, a
+ * server lives in a plugin, so adding one here is adding a plugin of one
+ * server.
  */
 
 /** The query parameter, and its value, that open the form on arrival. */

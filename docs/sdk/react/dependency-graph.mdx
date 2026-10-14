@@ -115,16 +115,17 @@ is needed.
 
 Nodes are navigable when `ref` is defined (plugins, skills and
 subagents). A dependency deleted since it was attached has no `ref`
-and is labelled "deleted \<kind>".
+and is labelled "deleted \<kind>". An MCP server the agent writes itself
+is part of the agent, not a resource of its own, so it has no `ref`.
 
 <TypeTable
   type={{
-    children: { type: "readonly DependencyNode[]", description: "Child nodes. Empty array for leaf nodes (plugins, skills, subagents).", required: true },
+    children: { type: "readonly DependencyNode[]", description: "Child nodes. Empty array for leaf nodes (plugins, MCP servers, skills, subagents).", required: true },
     description: { type: "string", description: "Short description, if available." },
-    id: { type: "string", description: "Deterministic identifier. Format: `{kind}:{slug}` for referenced resources (`subagent:{slug}` for a listed agent), `{kind}:deleted:{index}` for one deleted since it was attached, or `agent:{slug}` for the root.", required: true },
+    id: { type: "string", description: "Deterministic identifier. Format: `{kind}:{slug}` for referenced resources (`subagent:{slug}` for a listed agent), `{kind}:deleted:{index}` for one deleted since it was attached, `mcp-server:{name}` for a server the agent writes, or `agent:{slug}` for the root.", required: true },
     kind: { type: "NodeKind", description: "What kind of resource this node represents.", required: true, typeDescriptionLink: "#nodekind" },
-    label: { type: "string", description: "Primary display label (the slug for referenced resources, the name for the root).", required: true },
-    metadata: { type: "Readonly<Record<string, string>>", description: "Key-value metadata displayed as secondary info. Examples: `{ tools: \"3 tools\" }`, `{ version: \"1a2b3c4d\" }`." },
+    label: { type: "string", description: "Primary display label (the slug for referenced resources, the name for the root and an MCP server).", required: true },
+    metadata: { type: "Readonly<Record<string, string>>", description: "Key-value metadata displayed as secondary info. Examples: `{ tools: \"3 tools\" }`, `{ version: \"1a2b3c4d\" }`, `{ host: \"mcp.linear.app\" }`." },
     qualifiedLabel: { type: "string", description: "Qualified label shown when the resource belongs to a different org than the agent (e.g., `\"other-org/shared-server\"`). Undefined when the resource is in the same org as the parent agent." },
     ref: { type: "{ org: string; slug: string }", description: "Navigation reference for clickable nodes. Defined for plugins, skills and subagents (standalone resources). Undefined for the root agent." },
   }}
@@ -149,6 +150,7 @@ Resource kind in a dependency tree.
 
 - `"agent"` — the root agent (always the tree root)
 - `"plugin"` — a plugin referenced via `plugins`
+- `"mcp-server"` — an MCP server the agent writes itself (`mcpServers`), by its name
 - `"skill"` — a skill referenced via `skillRefs`
 - `"subagent"` — a saved agent referenced via `subagents`, at its pinned version
 
@@ -159,7 +161,7 @@ Resource kind in a dependency tree.
   type={{
     agentName: { type: "string", description: "Display name of the agent (used as the root node label).", required: true },
     agentOrg: { type: "string", description: "Id of the agent's organization, as its `metadata.org` stores it (compared with each reference's org for cross-org label detection).", required: true },
-    spec: { type: "{ plugins: readonly DependencyReference[]; skillRefs: readonly DependencyReference[]; subagents: readonly (DependencyReference & { version: string })[] } | undefined", description: "The agent's spec containing dependency references. Pass `undefined` while the agent is loading — the hook returns `null` for `tree` and `true` for `isEmpty`.", required: true },
+    spec: { type: "{ mcpServers?: readonly { name: string; url: string }[]; plugins: readonly DependencyReference[]; skillRefs: readonly DependencyReference[]; subagents: readonly (DependencyReference & { version: string })[] } | undefined", description: "The agent's spec containing dependency references. Pass `undefined` while the agent is loading — the hook returns `null` for `tree` and `true` for `isEmpty`.", required: true },
   }}
 />
 

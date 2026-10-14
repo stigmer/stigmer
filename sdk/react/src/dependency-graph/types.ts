@@ -3,10 +3,11 @@
  *
  * - `"agent"` — the root agent (always the tree root)
  * - `"plugin"` — a plugin referenced via `plugins`
+ * - `"mcp-server"` — an MCP server the agent writes itself (`mcpServers`), by its name
  * - `"skill"` — a skill referenced via `skillRefs`
  * - `"subagent"` — a saved agent referenced via `subagents`, at its pinned version
  */
-export type NodeKind = "agent" | "plugin" | "skill" | "subagent";
+export type NodeKind = "agent" | "plugin" | "mcp-server" | "skill" | "subagent";
 
 /**
  * A single node in the agent dependency tree.
@@ -19,18 +20,20 @@ export type NodeKind = "agent" | "plugin" | "skill" | "subagent";
  *
  * Nodes are navigable when `ref` is defined (plugins, skills and
  * subagents). A dependency deleted since it was attached has no `ref`
- * and is labelled "deleted <kind>".
+ * and is labelled "deleted <kind>". An MCP server the agent writes itself
+ * is part of the agent, not a resource of its own, so it has no `ref`.
  */
 export interface DependencyNode {
   /**
    * Deterministic identifier. Format: `{kind}:{slug}` for referenced
    * resources (`subagent:{slug}` for a listed agent), `{kind}:deleted:{index}`
-   * for one deleted since it was attached, or `agent:{slug}` for the root.
+   * for one deleted since it was attached, `mcp-server:{name}` for a server
+   * the agent writes, or `agent:{slug}` for the root.
    */
   readonly id: string;
   /** What kind of resource this node represents. */
   readonly kind: NodeKind;
-  /** Primary display label (the slug for referenced resources, the name for the root). */
+  /** Primary display label (the slug for referenced resources, the name for the root and an MCP server). */
   readonly label: string;
   /**
    * Qualified label shown when the resource belongs to a different org
@@ -42,10 +45,11 @@ export interface DependencyNode {
   readonly description?: string;
   /**
    * Key-value metadata displayed as secondary info.
-   * Examples: `{ tools: "3 tools" }`, `{ version: "1a2b3c4d" }`.
+   * Examples: `{ tools: "3 tools" }`, `{ version: "1a2b3c4d" }`,
+   * `{ host: "mcp.linear.app" }`.
    */
   readonly metadata?: Readonly<Record<string, string>>;
-  /** Child nodes. Empty array for leaf nodes (plugins, skills, subagents). */
+  /** Child nodes. Empty array for leaf nodes (plugins, MCP servers, skills, subagents). */
   readonly children: readonly DependencyNode[];
   /**
    * Navigation reference for clickable nodes. Defined for plugins,
@@ -108,6 +112,8 @@ export interface UseDependencyGraphOptions {
    */
   readonly spec: {
     readonly plugins: readonly DependencyReference[];
+    /** The MCP servers the agent writes itself; absent reads as none. */
+    readonly mcpServers?: readonly { readonly name: string; readonly url: string }[];
     readonly skillRefs: readonly DependencyReference[];
     readonly subagents: readonly (DependencyReference & {
       /** The version hash the server pinned when the agent was saved. */

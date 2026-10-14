@@ -8,13 +8,14 @@ description: install an MCP server as a plugin of its own
 
 Install an MCP server as a plugin of its own.
 
-An MCP server lives in a plugin. `stigmer mcp add <name> <url>` is the short way
-to a plugin holding one server, as Claude Code's `claude mcp add` adds one: it
-writes a plugin named `<name>` whose MCP configuration names one server,
-`<name>`, at `<url>`, and installs it in your organization exactly as
-`stigmer install` installs a plugin. Use it like any other plugin:
-`stigmer run --plugin <name>` for a conversation, or list it under an agent's
-`spec.plugins`.
+An agent lists its own MCP servers under `spec.mcp_servers`, which only an
+organization's admins may add or change; anywhere else, a server lives in a
+plugin. `stigmer mcp add <name> <url>` is the short way to a plugin holding one
+server, as Claude Code's `claude mcp add` adds one: it writes a plugin named
+`<name>` whose MCP configuration names one server, `<name>`, at `<url>`, and
+installs it in your organization exactly as `stigmer install` installs a plugin.
+Use it like any other plugin: `stigmer run --plugin <name>` for a conversation,
+or list it under an agent's `spec.plugins`.
 
 `stigmer mcp-server` is a different command: it starts Stigmer's own MCP server
 for your IDE.

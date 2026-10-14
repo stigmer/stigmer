@@ -16,6 +16,7 @@ interface DependencyTreeNodeProps {
 const KIND_LABELS: Record<NodeKind, string> = {
   agent: "Agent",
   plugin: "Plugin",
+  "mcp-server": "MCP server",
   skill: "Skill",
   subagent: "Subagent",
 };
@@ -178,6 +179,8 @@ export function DependencyTreeNode({
 function kindBadgeClasses(kind: NodeKind): string {
   switch (kind) {
     case "plugin":
+    // An agent's own server is a tool source as a plugin is: one hue.
+    case "mcp-server":
       return "stg:bg-[var(--stgm-status-running-subtle)] stg:text-[var(--stgm-status-running)]";
     case "skill":
       return "stg:bg-[var(--stgm-status-pending-subtle)] stg:text-[var(--stgm-status-pending)]";
@@ -207,9 +210,30 @@ function NodeIcon({
       return <AgentIcon className={className} />;
     case "plugin":
       return <PluginIcon className={className} />;
+    case "mcp-server":
+      return <ServerIcon className={className} />;
     case "skill":
       return <SkillIcon className={className} />;
   }
+}
+
+function ServerIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="2.5" y="2.5" width="11" height="4.5" rx="1" />
+      <rect x="2.5" y="9" width="11" height="4.5" rx="1" />
+      <path d="M5 4.75h.01M5 11.25h.01" strokeWidth="2" />
+    </svg>
+  );
 }
 
 function AgentIcon({ className }: { readonly className?: string }) {

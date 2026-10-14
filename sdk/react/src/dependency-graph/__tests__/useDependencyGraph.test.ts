@@ -3,7 +3,9 @@
  * node per plugin, skill and subagent, each with a navigation ref, and a
  * qualified label (the org's slug, then the resource's) for a reference into
  * another organization. A subagent is a saved agent of its own, so its node
- * is a link at its pinned version, never a subtree.
+ * is a link at its pinned version, never a subtree. An MCP server the agent
+ * writes itself is a leaf named by its name with the host it dials, linking
+ * nowhere, and an agent with only servers has dependencies.
  */
 import { describe, it, expect } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
@@ -62,19 +64,39 @@ describe("useDependencyGraph", () => {
     expect(relative.ref).toEqual({ org: "acme", slug: "local-guide" });
   });
 
-  it("orders children to mirror the Overview sections: plugins, skills, subagents", () => {
+  it("orders children to mirror the Overview sections: plugins, MCP servers, skills, subagents", () => {
     const { tree } = graphFor({
       plugins: [{ org: "acme", slug: "github" }],
+      mcpServers: [{ name: "zendesk", url: "https://acme-co.zendesk.com/mcp" }],
       skillRefs: [{ org: "acme", slug: "triage-guide" }],
       subagents: [{ org: "acme", slug: "researcher", version: "f".repeat(64) }],
     });
 
     expect(tree!.root.children.map((c) => c.kind)).toEqual([
       "plugin",
+      "mcp-server",
       "skill",
       "subagent",
     ]);
-    expect(tree!.nodeCount).toBe(4);
+    expect(tree!.nodeCount).toBe(5);
+  });
+
+  it("draws an agent's own MCP server as a leaf by its name and host, linking nowhere", () => {
+    const { tree, isEmpty } = graphFor({
+      ...emptySpec,
+      mcpServers: [{ name: "zendesk", url: "https://acme-co.zendesk.com/mcp" }],
+    });
+
+    // An agent with only its own servers has dependencies: the tab appears.
+    expect(isEmpty).toBe(false);
+    expect(tree!.nodeCount).toBe(2);
+    expect(tree!.root.children[0]).toEqual({
+      id: "mcp-server:zendesk",
+      kind: "mcp-server",
+      label: "zendesk",
+      metadata: { host: "acme-co.zendesk.com" },
+      children: [],
+    });
   });
 
   it("stays empty when no dependencies exist at all", () => {

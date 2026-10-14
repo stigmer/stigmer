@@ -1,4 +1,4 @@
-import type { ResourceRef } from "@stigmer/sdk";
+import type { AgentMcpServerInput, ResourceRef } from "@stigmer/sdk";
 import type { EnvVarEntry } from "../../resource-creation/types.js";
 
 export type { EnvVarEntry } from "../../resource-creation/types.js";
@@ -28,6 +28,12 @@ export interface AgentWizardData {
   // --- Step 2: Capabilities ---
   /** Plugins the agent uses, each whole: its skills, agents, hooks and MCP servers. */
   readonly plugins: ResourceRef[];
+  /**
+   * MCP servers the agent writes itself, each by name, URL and headers.
+   * Only an organization's admins may save an agent with one; the step
+   * offers them to no one else.
+   */
+  readonly mcpServers: AgentMcpServerInput[];
   /** Skill references. */
   readonly skillRefs: ResourceRef[];
   /** Environment variable declarations. */
@@ -44,6 +50,7 @@ export function createInitialWizardData(): AgentWizardData {
     iconUrl: "",
     instructions: "",
     plugins: [],
+    mcpServers: [],
     skillRefs: [],
     env: [],
   };

@@ -68,6 +68,44 @@ const flow = useAddPluginToAgent({ plugin: { org, slug }, name: "linear", server
 ```
 
 
+### useCanCreatePlugin
+
+Mirrors the server's bar for pointing an organization's runs at a new
+address, `can_create_plugin` on the organization: installing a plugin,
+and adding or changing an MCP server an agent writes itself (the agent
+save's MCP servers guard asks the same permission). Its admins hold it;
+a member does not.
+
+The answer is the server's own self-check, which asks the authorizer
+the save asks, so the console and the server agree in every edition.
+Unlike a creation gate it fails closed: it gates edit controls on pages
+a member also reads, so a member never sees a control the server would
+refuse, even while the answer is in flight or when the check fails.
+
+Pass `null` for `org` while it loads: `allowed` stays `false`.
+
+**Signature**
+
+```tsx
+function useCanCreatePlugin(org: string | null): UseCanCreatePluginReturn
+```
+
+<TypeTable
+  type={{
+    org: { type: "string | null", description: "The organization's id, or `null` while loading.", required: true },
+  }}
+/>
+
+**Returns** — `UseCanCreatePluginReturn`
+
+<TypeTable
+  type={{
+    allowed: { type: "boolean", description: "Whether the viewer may install a plugin, or add or change an agent's MCP servers, in the organization." },
+    isLoading: { type: "boolean", description: "`true` while the server's answer is in flight." },
+  }}
+/>
+
+
 ### useInstallPlugin
 
 Behaviour hook that installs (or upgrades) a plugin from a prepared
@@ -465,7 +503,7 @@ argument to hold the hook idle.
 **Signature**
 
 ```tsx
-function usePluginServerSignIn(org: string | null, server: McpServerEntry | null, onSignedIn?: (address: string) => void): UsePluginServerSignInReturn
+function usePluginServerSignIn(org: string | null, server: McpServerEntry | null, onSignedIn?: (address: string) => void, options?: UsePluginServerSignInOptions): UsePluginServerSignInReturn
 ```
 
 <TypeTable
@@ -473,6 +511,7 @@ function usePluginServerSignIn(org: string | null, server: McpServerEntry | null
     org: { type: "string | null", description: "", required: true },
     server: { type: "McpServerEntry | null", description: "", required: true },
     onSignedIn: { type: "(address: string) => void", description: "Called with the address when a sign-in started here lands." },
+    options: { type: "UsePluginServerSignInOptions", description: "UsePluginServerSignInOptions." },
   }}
 />
 
@@ -482,14 +521,14 @@ function usePluginServerSignIn(org: string | null, server: McpServerEntry | null
   type={{
     address: { type: "string | null", description: "The address a login for this server is saved at; `null` for a local program." },
     connection: { type: "VaultConnection | null", description: "The login saved at exactly this address, when there is one: what \"Sign out\" removes." },
-    declaredVariables: { type: "readonly string[]", description: "The variables an `api-key` server reads, in the plugin's order." },
+    declaredVariables: { type: "readonly string[]", description: "The variables an `api-key` server reads, in the plugin's order, leaving out any the runner fills." },
     error: { type: "Error | null", description: "The read error, or the last sign-in or sign-out error, or `null`." },
     isSigningIn: { type: "boolean", description: "" },
     isSigningOut: { type: "boolean", description: "" },
     kind: { type: "PluginServerSignInKind", description: "", typeDescriptionLink: "#pluginserversigninkind" },
     phase: { type: "VaultSignInPhase", description: "The sign-in's phase; `idle` when none is running.", typeDescriptionLink: "/docs/sdk/react/vault#vaultsigninphase" },
     refetch: { type: "() => void", description: "Read My vault again." },
-    signIn: { type: "() => void", description: "Start the sign-in. Call from a click handler so the popup is allowed. A no-op unless `kind` is `sign-in-needed`." },
+    signIn: { type: "() => void", description: "Start the sign-in. Call from a click handler so the popup is allowed. A no-op unless `kind` is `sign-in-needed` or `sign-in-available`." },
     signOut: { type: "() => Promise<void>", description: "Remove the login saved at this address from My vault." },
   }}
 />
@@ -689,6 +728,27 @@ Adds a plugin to an existing agent's `plugins`.
   onClose={() => setAdding(false)}
   onAgentClick={({ org, slug }) => navigateToDetail("agents", org, slug)}
 />
+```
+
+
+### HeaderRowsEditor
+
+Edits the headers an MCP server is sent with.
+
+**Props** — `HeaderRowsEditorProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "" },
+    disabled: { type: "boolean", description: "" },
+    onChange: { type: "(rows: readonly HeaderRow[]) => void", description: "Called with the rows after every change.", required: true },
+    rows: { type: "readonly HeaderRow[]", description: "", required: true },
+  }}
+/>
+
+```tsx
+const [rows, setRows] = useState<readonly HeaderRow[]>([]);
+<HeaderRowsEditor rows={rows} onChange={setRows} />
 ```
 
 
@@ -940,6 +1000,7 @@ Renders [`usePluginServerSignIn`](#usepluginserversignin) for one server.
   type={{
     className: { type: "string", description: "" },
     onSignedIn: { type: "(address: string) => void", description: "Called with the address when a sign-in started from this cell lands." },
+    optionalSignIn: { type: "boolean", description: "Offer a sign-in to a server with no sign-in record that sends no `Authorization` header (an agent's own server); see usePluginServerSignIn." },
     org: { type: "string", description: "The organization whose My vault holds the login.", required: true },
     server: { type: "McpServerEntry", description: "The server, from the plugin's `status.mcp_servers`.", required: true },
   }}
@@ -1199,6 +1260,28 @@ The account half of an `owner/repo` slug.
 
 ```tsx
 function githubOwner(repo: string): string
+```
+
+
+### HeaderRow
+
+One header being edited: its name and value, under an id stable for the edit.
+
+<TypeTable
+  type={{
+    id: { type: "number", description: "", required: true },
+    key: { type: "string", description: "", required: true },
+    value: { type: "string", description: "", required: true },
+  }}
+/>
+
+
+### headerRowsOf
+
+`headers` as rows, in their order, numbered from 1.
+
+```tsx
+function headerRowsOf(headers: Readonly<Record<string, string>>): HeaderRow[]
 ```
 
 
@@ -1743,6 +1826,17 @@ Options for [`usePluginSearch`](#usepluginsearch). Delegates to the shared resou
 ### UsePluginSearchReturn
 
 Return value of [`usePluginSearch`](#usepluginsearch). Delegates to the shared resource search return.
+
+
+### UsePluginServerSignInOptions
+
+Options for [`usePluginServerSignIn`](#usepluginserversignin).
+
+<TypeTable
+  type={{
+    optionalSignIn: { type: "boolean", description: "Offer a sign-in to an HTTP server with no sign-in record that sends no `Authorization` header: an MCP server an agent writes itself, whose run reads a login at its address when one is saved." },
+  }}
+/>
 
 
 ### withPlugin

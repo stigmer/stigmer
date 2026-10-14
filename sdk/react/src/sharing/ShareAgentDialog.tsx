@@ -38,6 +38,7 @@ import { useRotateShareLink } from "./useRotateShareLink.js";
 import { useShareToolReadiness } from "./useShareToolReadiness.js";
 import { trimTrailing } from "../internal/trim.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
+import { agentUsesTools } from "../agent/runServers.js";
 
 /** Maximum length of each visitor message (proto: `string.max_len = 300`). */
 const MAX_MESSAGE_LENGTH = 300;
@@ -977,7 +978,7 @@ function ResetLinkControl({
  * Public audience only; the section disappears for
  * org shares, whose member sessions carry no share linkage.
  *
- * Expanded by default when the agent lists plugins — for those agents
+ * Expanded by default when the agent dials MCP servers, its own or its plugins' — for those agents
  * this is essential configuration, not an advanced option.
  */
 function ToolCredentialsSection({
@@ -996,9 +997,9 @@ function ToolCredentialsSection({
     successMessage: string,
   ) => Promise<boolean>;
 }) {
-  const usesPlugins = (agent.spec?.plugins?.length ?? 0) > 0;
+  const usesTools = agentUsesTools(agent.spec);
   const [expanded, setExpanded] = useState(
-    usesPlugins || draft.vaults.length > 0,
+    usesTools || draft.vaults.length > 0,
   );
 
   const handleChange = useCallback(
