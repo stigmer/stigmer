@@ -287,6 +287,23 @@ export const LANES = {
       ".github/workflows/ci.conformance.yaml",
     ],
   },
+  "ci.conformance-enterprise.yaml": {
+    paths: [
+      // What ci.conformance.yaml runs on: the server, the suite, the shared
+      // test machinery and the contract.
+      "backend/**",
+      "test/conformance/**",
+      "test/support/**",
+      "apis/**",
+      // Stigmer Enterprise, run from source by the target, and its lockfile.
+      "ee/**",
+      // What the lane sets up and installs from (ci.all-in-one says why).
+      ".nvmrc",
+      "package.json",
+      "package-lock.json",
+      ".github/workflows/ci.conformance-enterprise.yaml",
+    ],
+  },
   "ci.conformance-execution.yaml": {
     paths: [
       "backend/**",

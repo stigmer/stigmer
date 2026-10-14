@@ -7,6 +7,7 @@ import {
   useToolCredentialsReadiness,
   type ToolCredentialsReadiness,
 } from "../vault/useToolCredentialsReadiness.js";
+import { agentUsesTools } from "../agent/runServers.js";
 
 /**
  * Channel-scoped wrapper over {@link useToolCredentialsReadiness}:
@@ -21,7 +22,7 @@ import {
  *
  * The check runs only when serving is enabled (a paused channel serves
  * no traffic), the deployment is cloud (the channel runtime is
- * cloud-only), and the agent lists plugins (whose servers read keys).
+ * cloud-only), and the agent dials MCP servers (its own or its plugins', which read keys).
  */
 export function useChannelToolReadiness(
   agent: Agent,
@@ -29,8 +30,8 @@ export function useChannelToolReadiness(
   vaults: readonly ResourceRef[],
 ): ToolCredentialsReadiness {
   const deploymentMode = useDeploymentMode();
-  const usesPlugins = (agent.spec?.plugins?.length ?? 0) > 0;
-  const applicable = enabled && deploymentMode === "cloud" && usesPlugins;
+  const usesTools = agentUsesTools(agent.spec);
+  const applicable = enabled && deploymentMode === "cloud" && usesTools;
 
   return useToolCredentialsReadiness(applicable, vaults);
 }

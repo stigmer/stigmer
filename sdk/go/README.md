@@ -65,14 +65,42 @@ The client provides sub-clients for each resource type:
 
 | Sub-client              | Resource        | Operations |
 |-------------------------|-----------------|------------|
-| `client.Agent`          | Agent           | Get, GetByReference, Create, Update, Apply, Delete, List |
-| `client.Skill`          | Skill           | Get, GetByReference, Push, GetArtifact, Delete, List |
-| `client.Plugin`         | Plugin          | Get, GetByReference, Push, ListTools, GetArtifact, ListVersions, UpdateVisibility, Delete, List |
-| `client.Session`        | Session         | Get, Create, Update, Apply, Delete, List, ListByAgent, ListEvents, StreamEvents, ConfirmToolUse, GrantPermission, Interrupt, ReviewFileChanges |
-| `client.Vault`          | Vault           | Get, GetByReference, GetMine, GetByExternalId, Create, Update, UpdateVisibility, Delete, List, SetSecrets, RemoveSecrets, SetConnection, RemoveConnections, StartSignIn, CompleteSignIn, CreateConnectLink, GetConnectLink, StartConnectLink, CompleteConnectLink |
-| `client.Run`            | Run             | Get, Create, List, ListBySession, Pause, Resume, Terminate, Recover, UploadAttachment, GetArtifactDownloadUrl |
+| `client.Agent`          | Agent           | Get, GetByReference, Create, Update, Apply, UpdateVisibility, Rename, Delete, TagVersion, List, ListAll, ListVersions, ListVersionsAll, GetVersion |
+| `client.Skill`          | Skill           | Get, GetByReference, Push, CreateArtifactUploadUrl, PushFromRunArtifact, UpdateVisibility, Delete, List, ListAll, GetArtifact, GetArtifactDownloadUrl, ListVersions, ListVersionsAll |
+| `client.Plugin`         | Plugin          | Get, GetByReference, Push, CreateArtifactUploadUrl, UpdateVisibility, Delete, ListTools, List, ListAll, GetArtifact, GetArtifactDownloadUrl, ListVersions, ListVersionsAll |
+| `client.Session`        | Session         | Get, Create, Update, Apply, UpdateSubject, ReviewFileChanges, ConfirmToolUse, GrantPermission, Interrupt, Delete, AppendEvents, BindHarnessState, List, ListAll, ListByAgent, ListByAgentAll, ListByChannel, ListByChannelAll, ListEvents, StreamEvents |
+| `client.Vault`          | Vault           | Get, GetByReference, GetMine, GetByExternalId, Create, Update, UpdateVisibility, Rename, Delete, List, ListAll, SetSecrets, RemoveSecrets, SetConnection, RemoveConnections, StartSignIn, CompleteSignIn, CreateConnectLink, GetConnectLink, StartConnectLink, CompleteConnectLink, FetchValues |
+| `client.Run`            | Run             | Get, Create, Update, UpdateStatus, Delete, List, ListAll, ListBySession, ListBySessionAll, Pause, Resume, Terminate, Recover, UploadAttachment, GetArtifactDownloadUrl, GetArtifactContent, GetRunUsageReport, GetSessionUsageReport, GetAgentUsageReport, GetOrgUsageReport, GetRunSummary |
 | `client.Search`         | Cross-resource  | Query |
 | `client.Billing`        | Billing         | GetOrCreateBillingAccount, GetBillingAccount, CreateBillingPortalSession, CreatePaymentMethodSetupSession + operator pricing methods |
+
+A rename changes the slug people type; the id stays, so everything that points
+at the resource keeps working, and the old slug reads for 30 days. A list's
+`Labels` returns only the resources carrying every label given.
+
+```go
+renamed, err := client.Agent.Rename(ctx, &apiresource.RenameInput{
+    ResourceId: agent.GetMetadata().GetId(),
+    Slug:       "support-bot",
+})
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Println(renamed.GetMetadata().GetSlug())
+
+support, err := client.Agent.List(ctx, &agentv1.ListAgentsRequest{
+    Org:    "my-org",
+    Labels: map[string]string{"team": "support"},
+})
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Println(len(support.GetEntries()))
+```
+
+`apiresource` is
+`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource` and
+`agentv1` is `github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1`.
 
 ## Billing
 

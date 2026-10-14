@@ -6,11 +6,12 @@ import type { ResourceRef } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ChannelToolCredentials } from "../ChannelToolCredentials.js";
 import { ChevronIcon } from "./icons.js";
+import { agentUsesTools } from "../../agent/runServers.js";
 
 /**
  * Collapsible vault section for the connect dialogs' create mode (the
  * ShareAgentDialog ToolCredentialsSection pattern). Expanded by default
- * when the agent lists plugins — for those agents this is essential
+ * when the agent dials MCP servers, its own or its plugins' — for those agents this is essential
  * configuration, not an advanced option: without a vault, every channel
  * message that needs a tool is refused.
  *
@@ -30,8 +31,8 @@ export function ToolCredentialsSection({
   readonly onChange: (refs: ResourceRef[]) => void;
   readonly disabled: boolean;
 }) {
-  const usesPlugins = (agent.spec?.plugins?.length ?? 0) > 0;
-  const [expanded, setExpanded] = useState(usesPlugins || value.length > 0);
+  const usesTools = agentUsesTools(agent.spec);
+  const [expanded, setExpanded] = useState(usesTools || value.length > 0);
 
   return (
     <section>

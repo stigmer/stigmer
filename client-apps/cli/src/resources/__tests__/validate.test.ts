@@ -31,6 +31,16 @@ describe("validateDocument", () => {
     ).not.toThrow();
   });
 
+  it.each(["mcp_servers", "mcpServers"])("accepts an agent writing its own MCP servers under %s", (field) => {
+    expect(() =>
+      validateDocument(agentSchema, {
+        kind: "Agent",
+        metadata: { name: "Support", slug: "support", org: "acme" },
+        spec: { [field]: [{ name: "zendesk", url: "https://acme-co.zendesk.com/mcp", headers: { "X-Api-Key": "${ZENDESK_KEY}" } }] },
+      }),
+    ).not.toThrow();
+  });
+
   it("refuses an agent listing mcp_server_usages, naming the way forward", () => {
     expect(() =>
       validateDocument(agentSchema, {
@@ -38,7 +48,7 @@ describe("validateDocument", () => {
         metadata: { name: "Reviewer" },
         spec: { mcp_server_usages: [{ mcp_server_ref: { slug: "github" } }] },
       }),
-    ).toThrow(/stigmer mcp add <name> <url>.*`plugins`/);
+    ).toThrow(/mcp_server_usages is no longer read\. An agent lists its own MCP servers under `mcp_servers`.*`stigmer mcp add <name> <url>`/);
   });
 
   it("refuses an agent writing sub_agents, naming the way forward", () => {

@@ -52,6 +52,7 @@ Every resource type has a typed client accessible as a property on `StigmerClien
 
 ```python
 from ai.stigmer.agentic.agent.v1 import io_pb2 as agent_io_pb2
+from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from stigmer import StigmerClient, AgentInput, ResourceRef
 
 with StigmerClient("sk_live_abc123") as client:
@@ -76,6 +77,12 @@ with StigmerClient("sk_live_abc123") as client:
     current.spec.description = "Updated description"
     updated = client.agents.update(current, ["spec.description"])
 
+    # Rename: change the slug people type. The id stays, so everything that
+    # points at the agent keeps working; the old slug reads for 30 days.
+    renamed = client.agents.rename(
+        apiresource_io_pb2.RenameInput(resource_id="agent-id", slug="support-bot")
+    )
+
     # Delete
     deleted = client.agents.delete("agent-id")
 
@@ -86,6 +93,11 @@ with StigmerClient("sk_live_abc123") as client:
     # Every agent, page after page: list_all follows the tokens.
     for a in client.agents.list_all(agent_io_pb2.ListAgentsRequest(org="my-org")):
         print(a.metadata.slug)
+
+    # Only the agents carrying every label given.
+    support = client.agents.list(
+        agent_io_pb2.ListAgentsRequest(org="my-org", labels={"team": "support"})
+    )
 ```
 
 ## Cross-Resource Search

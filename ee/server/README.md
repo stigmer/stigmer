@@ -62,4 +62,8 @@ npm run typecheck
 npm test
 ```
 
-The suites that need Postgres read `TEST_DATABASE_URL` and skip by name without it; `STIGMER_TEST_GATE=1` makes a missing database a failure instead. `docs/enterprise-authorization-coverage.md` is the authorization inventory of the RPCs the unit serves, held to the served methods by the unit's own test.
+The suites that need Postgres read `TEST_DATABASE_URL` and skip by name without it; `STIGMER_TEST_GATE=1` makes a missing database a failure instead. `npm run typecheck` also checks `test/conformance`.
+
+The repository's conformance suite (`test/conformance` at the root) runs against a licensed Enterprise server as its `enterprise` target (`make test-conformance-enterprise`, and the `ci.conformance-enterprise.yaml` lane on every pull request touching the server, this package or the suite). It spawns `test/conformance/licensed-server.ts` from source under tsx: the shipped entry's composition with a license that process signs for itself and a ring trusting only that key. The file is outside `src/`, so it is in no build, no published package and no image; it refuses to start when `STIGMER_LICENSE_KEY` is set, and reads its license terms from `STIGMER_TEST_LICENSE_TERMS` (its header has the fields). `src/editions/__tests__/licensed-server.postgres.test.ts` boots it and pins its refusals.
+
+`docs/enterprise-authorization-coverage.md` is the authorization inventory of the RPCs the unit serves, held to the served methods by the unit's own test.

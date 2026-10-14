@@ -6,9 +6,11 @@
  * and its first tool call, Sign out beside a login saved at its address,
  * one sentence when a key does.
  *
- * Two surfaces render it and must say the same thing: the plugin's page,
- * beside each MCP server, and the session composer, for a server of the
- * agent's plugins nobody has signed in to yet. All state lives in
+ * Three surfaces render it and must say the same thing: the plugin's
+ * page, beside each MCP server; the session composer, for a server of the
+ * agent's plugins nobody has signed in to yet; and the agent's page,
+ * beside each MCP server the agent writes itself, where a sign-in is
+ * offered quietly rather than owed (`optionalSignIn`). All state lives in
  * `usePluginServerSignIn`; this file only renders it. Signing out asks
  * once inline, as removing any vault entry does, because the login cannot
  * be read back.
@@ -29,6 +31,13 @@ export interface PluginServerSignInProps {
   readonly server: McpServerEntry;
   /** Called with the address when a sign-in started from this cell lands. */
   readonly onSignedIn?: (address: string) => void;
+  /**
+   * Offer a sign-in to a server with no sign-in record that sends no
+   * `Authorization` header (an agent's own server); see
+   * {@link usePluginServerSignIn}.
+   * @default false
+   */
+  readonly optionalSignIn?: boolean;
   readonly className?: string;
 }
 
@@ -40,8 +49,8 @@ export interface PluginServerSignInProps {
  * <PluginServerSignIn org="acme" server={plugin.status.mcpServers[0]} />
  * ```
  */
-export function PluginServerSignIn({ org, server, onSignedIn, className }: PluginServerSignInProps) {
-  const signIn = usePluginServerSignIn(org, server, onSignedIn);
+export function PluginServerSignIn({ org, server, onSignedIn, optionalSignIn = false, className }: PluginServerSignInProps) {
+  const signIn = usePluginServerSignIn(org, server, onSignedIn, { optionalSignIn });
   return <PluginServerSignInView name={server.name} signIn={signIn} className={className} />;
 }
 
@@ -124,6 +133,16 @@ function PluginServerSignInView({
             </span>
           )}
           <Button variant="primary" size="sm" onClick={signIn.signIn} disabled={signIn.isSigningIn} aria-label={`Sign in to ${name}`}>
+            {signIn.isSigningIn ? phaseLabel(signIn.phase) : "Sign in"}
+          </Button>
+        </span>
+      );
+    case "sign-in-available":
+      return (
+        <span className={cn(root, "stg:text-muted-foreground")}>
+          {failure}
+          <span>Sign in only if this server asks for one.</span>
+          <Button variant="ghost" size="xs" onClick={signIn.signIn} disabled={signIn.isSigningIn} aria-label={`Sign in to ${name}`}>
             {signIn.isSigningIn ? phaseLabel(signIn.phase) : "Sign in"}
           </Button>
         </span>

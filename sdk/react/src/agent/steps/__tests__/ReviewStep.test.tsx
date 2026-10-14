@@ -2,7 +2,8 @@
  * The agent wizard's review step names the organization the agent is created
  * in by its slug, which a person reads, while the manifest it previews (and
  * submits) names the org by its id. The plugins the wizard holds are
- * counted and go into the manifest, and none leaves `plugins` out.
+ * counted and go into the manifest, and none leaves `plugins` out; so do
+ * the MCP servers the agent writes itself, under `mcp_servers`.
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
@@ -46,5 +47,20 @@ describe("ReviewStep (agent)", () => {
     expect(screen.getByText(/slug: linear/)).toBeTruthy();
     expect(buildAgentInput(ACME_ID, withPlugins).plugins).toEqual([{ org: ACME_ID, slug: "linear" }]);
     expect(buildAgentInput(ACME_ID, data).plugins).toBeUndefined();
+  });
+
+  it("counts the agent's own MCP servers and previews them in the manifest", async () => {
+    const zendesk = { name: "zendesk", url: "https://acme-co.zendesk.com/mcp", headers: { "X-Api-Key": "${ZENDESK_KEY}" } };
+    const withServers = { ...data, mcpServers: [zendesk] };
+    render(<ReviewStep org={ACME_ID} data={withServers} isCreating={false} error={null} />, {
+      wrapper: orgWrapper(),
+    });
+
+    const count = await screen.findByText("1 added");
+    expect(count.previousElementSibling?.textContent).toBe("MCP servers");
+    expect(screen.getByText(/mcp_servers:/)).toBeTruthy();
+    expect(screen.getByText(/url: https:\/\/acme-co.zendesk.com\/mcp/)).toBeTruthy();
+    expect(buildAgentInput(ACME_ID, withServers).mcpServers).toEqual([zendesk]);
+    expect(buildAgentInput(ACME_ID, data).mcpServers).toBeUndefined();
   });
 });

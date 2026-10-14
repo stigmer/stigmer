@@ -7,10 +7,12 @@ import { OrgProvider } from "../../organization/OrgProvider";
 import { useApplyManifest } from "../useApplyManifest";
 
 // The hook runs the real manifest engine (parseManifest from @stigmer/sdk);
-// only the network-facing manifest client is mocked.
+// only the network-facing manifest client is mocked. Its resolveTarget is
+// the SDK's preview of an apply (pinned in the SDK's manifest-slug tests);
+// here it answers each document's action.
 function createMockStigmer(overrides: {
   apply?: (...args: unknown[]) => Promise<unknown>;
-  getByReference?: (...args: unknown[]) => Promise<unknown>;
+  resolveTarget?: (...args: unknown[]) => Promise<unknown>;
 } = {}) {
   return {
     manifest: {
@@ -26,7 +28,7 @@ function createMockStigmer(overrides: {
             id: "res_01",
           }),
         ),
-      getByReference: overrides.getByReference ?? vi.fn().mockResolvedValue(null),
+      resolveTarget: overrides.resolveTarget ?? vi.fn().mockResolvedValue({ action: "create", slug: "s" }),
     },
   } as never;
 }
@@ -143,9 +145,9 @@ describe("useApplyManifest", () => {
   });
 
   it("marks existing resources as updates in the preview", async () => {
-    const getByReference = vi.fn().mockResolvedValue({ metadata: {} });
+    const resolveTarget = vi.fn().mockResolvedValue({ action: "update", slug: "s", slugKept: false });
     const { result } = renderHook(() => useApplyManifest("acme"), {
-      wrapper: wrapper(createMockStigmer({ getByReference })),
+      wrapper: wrapper(createMockStigmer({ resolveTarget })),
     });
 
     act(() => {
@@ -154,6 +156,34 @@ describe("useApplyManifest", () => {
     await act(settleValidation);
 
     expect(result.current.entries![0].action).toBe("update");
+  });
+
+  it("marks a document that keeps its id under a new slug as a rename", async () => {
+    const resolveTarget = vi.fn().mockResolvedValue({ action: "rename", from: "old", slug: "s" });
+    const { result } = renderHook(() => useApplyManifest("acme"), {
+      wrapper: wrapper(createMockStigmer({ resolveTarget })),
+    });
+
+    act(() => {
+      result.current.setContent(AGENT_YAML);
+    });
+    await act(settleValidation);
+
+    expect(result.current.entries![0].action).toBe("rename");
+  });
+
+  it("degrades to create-or-update when the lookup fails", async () => {
+    const resolveTarget = vi.fn().mockRejectedValue(new Error("offline"));
+    const { result } = renderHook(() => useApplyManifest("acme"), {
+      wrapper: wrapper(createMockStigmer({ resolveTarget })),
+    });
+
+    act(() => {
+      result.current.setContent(AGENT_YAML);
+    });
+    await act(settleValidation);
+
+    expect(result.current.entries![0].action).toBe("unknown");
   });
 
   it("applies all documents sequentially and reports success", async () => {

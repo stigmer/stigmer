@@ -4,6 +4,7 @@ import { useCallback, useState, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { PluginIcon } from "../plugin/PluginIcon.js";
+import { McpServerIcon } from "../plugin/McpServerIcon.js";
 import type { DependencyNode, NodeKind } from "./types.js";
 
 interface DependencyTreeNodeProps {
@@ -16,6 +17,7 @@ interface DependencyTreeNodeProps {
 const KIND_LABELS: Record<NodeKind, string> = {
   agent: "Agent",
   plugin: "Plugin",
+  "mcp-server": "MCP server",
   skill: "Skill",
   subagent: "Subagent",
 };
@@ -178,6 +180,8 @@ export function DependencyTreeNode({
 function kindBadgeClasses(kind: NodeKind): string {
   switch (kind) {
     case "plugin":
+    // An agent's own server is a tool source as a plugin is: one hue.
+    case "mcp-server":
       return "stg:bg-[var(--stgm-status-running-subtle)] stg:text-[var(--stgm-status-running)]";
     case "skill":
       return "stg:bg-[var(--stgm-status-pending-subtle)] stg:text-[var(--stgm-status-pending)]";
@@ -207,6 +211,8 @@ function NodeIcon({
       return <AgentIcon className={className} />;
     case "plugin":
       return <PluginIcon className={className} />;
+    case "mcp-server":
+      return <McpServerIcon className={className} />;
     case "skill":
       return <SkillIcon className={className} />;
   }

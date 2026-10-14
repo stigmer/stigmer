@@ -236,8 +236,8 @@ the gRPC channel shuts down cleanly.
 ## Resource clients
 
 Every SDK organizes the API around **resource clients**. Each resource has its
-own client with methods like `get`, `create`, `list`, `apply`, `update`, and
-`delete`.
+own client with methods like `get`, `create`, `list`, `apply`, `update`,
+`rename`, and `delete`.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -372,6 +372,113 @@ try {
     throw e;
 }
 ```
+</Tab>
+</SDKTabs>
+
+## Update and apply
+
+There are two ways to change a resource.
+
+`update` changes the fields you name and keeps every other one. Read the
+resource, change it, then pass the paths you changed (`spec.instructions`); `*`
+names every path. Two callers changing different fields at once never undo each
+other. Visibility, a slug and a Vault's secrets each have their own method
+(`updateVisibility`, `rename`, `setSecrets`), and an update that names one is
+refused.
+
+`apply` sends the whole resource as you want it, as a manifest does. The server
+finds the resource by its `metadata.id`, then by its slug, creates it when
+neither finds one, and otherwise makes it match. A manifest applied with
+`stigmer.manifest.apply` that keeps the ID under a new slug renames the
+resource.
+
+An update that sends back the `metadata.etag` it read asks for a freshness check:
+if anyone changed the resource since, it is refused with the `aborted` code
+instead of overwriting their change. Its reason is `ETAG_MISMATCH` (read again
+and redo the change) or `WRITE_CONFLICT` (the resource kept changing while the
+save ran: try again). Without an etag, the last write wins.
+
+`rename` changes a resource's slug, the name people type. Its ID stays, so
+everything that points at it keeps working, and the old slug keeps leading to it
+for reading for 30 days. Renaming needs the permission to delete the resource.
+[Resources](/docs/concepts/resources) explains the rules every kind follows.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+import { getErrorReason, StigmerError } from "@stigmer/sdk";
+
+const current = await stigmer.agent.get(id);
+try {
+  await stigmer.agent.update(
+    {
+      metadata: { id: current.metadata?.id, etag: current.metadata?.etag },
+      spec: { instructions: "Answer in French." },
+    },
+    ["spec.instructions"],
+  );
+} catch (err) {
+  if (err instanceof StigmerError && err.code === "aborted") {
+    console.log(getErrorReason(err)?.reason); // ETAG_MISMATCH or WRITE_CONFLICT
+  }
+  throw err;
+}
+```
+
+`getErrorReason(err)` reads the reason the server gave.
+</Tab>
+<Tab value="Go">
+```go
+current, err := client.Agent.Get(ctx, id)
+if err != nil {
+    log.Fatal(err)
+}
+current.Spec.Instructions = "Answer in French."
+_, err = client.Agent.Update(ctx, current, []string{"spec.instructions"})
+var stigmerErr *stigmer.Error
+if errors.As(err, &stigmerErr) && stigmerErr.Code == stigmer.CodeAborted {
+    log.Println("the agent changed since it was read: read it again")
+}
+```
+
+The Go error carries the code; the reason is not exposed.
+</Tab>
+<Tab value="Python">
+```python
+from stigmer import ErrorCode, StigmerError
+
+current = client.agents.get(id)
+current.spec.instructions = "Answer in French."
+try:
+    client.agents.update(current, ["spec.instructions"])
+except StigmerError as err:
+    if err.code == ErrorCode.ABORTED:
+        print("the agent changed since it was read: read it again")
+    raise
+```
+
+The Python error carries the code; the reason is not exposed.
+</Tab>
+<Tab value="Java">
+```java
+import ai.stigmer.sdk.gen.ErrorCode;
+import ai.stigmer.sdk.gen.StigmerException;
+
+var current = client.agent.get(id);
+var changed = current.toBuilder()
+    .setSpec(current.getSpec().toBuilder().setInstructions("Answer in French."))
+    .build();
+try {
+    client.agent.update(changed, java.util.List.of("spec.instructions"));
+} catch (StigmerException e) {
+    if (e.getCode() == ErrorCode.ABORTED) {
+        System.out.println("the agent changed since it was read: read it again");
+    }
+    throw e;
+}
+```
+
+The Java exception carries the code; the reason is not exposed.
 </Tab>
 </SDKTabs>
 

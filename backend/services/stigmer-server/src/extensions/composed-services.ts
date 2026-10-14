@@ -38,6 +38,7 @@
  *     must hand THIS one, never its own instance, to its consumers.
  */
 import type { Transport } from "@connectrpc/connect";
+import type { ApiResourceRef } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 
 import type { CreateAccount } from "../domain/identityaccount/provisioning.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
@@ -77,6 +78,18 @@ export type ComposedIamPolicies = Pick<
   IamPolicyStore,
   "findByResource" | "findScopeTuple" | "findByResourceKindAndRelation"
 >;
+
+/**
+ * Which organization a resource belongs to, answered as the IamPolicy
+ * domain answers it for its change records (domain/iampolicy/grant-path.ts
+ * `organizationOf`): through the resource's scope links, else its stored
+ * row's `metadata.org`; "" when neither names one. A unit's grant gate
+ * asks it where a scope link may be absent: open source's own
+ * authorization seeds none, so the policy rows alone cannot say.
+ */
+export interface ResourceOrganizations {
+  organizationOf(resource: ApiResourceRef): Promise<string>;
+}
 
 export interface ComposedServices {
   /** The one Authorizer the Authorize step of every chain calls. */
@@ -121,6 +134,8 @@ export interface ComposedServices {
   readonly identityAccounts: ComposedIdentityAccounts;
   /** The policy store binding's reads. */
   readonly iamPolicies: ComposedIamPolicies;
+  /** The organization a resource belongs to, on every posture. */
+  readonly resourceOrganizations: ResourceOrganizations;
   /**
    * The store's one name table (pipeline/steps/names.ts): a unit whose
    * named kind keeps its rows in its own table (a team, an identity

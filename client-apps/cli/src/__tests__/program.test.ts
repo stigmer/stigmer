@@ -146,12 +146,13 @@ describe("buildProgram", () => {
     expect(stderr).toContain("stigmer runs");
   });
 
-  it("answers the retired connect mcp-server with connect plugin and mcp add", async () => {
+  it("answers the retired connect mcp-server with an agent's own mcp_servers, connect plugin and mcp add", async () => {
     const { program, stderr } = capturedProgram("connect");
     await expect(program.parseAsync(["connect", "mcp-server", "github"], { from: "user" })).rejects.toMatchObject({
       code: "commander.unknownCommand",
     });
     expect(stderr()).toContain("unknown command 'mcp-server'");
+    expect(stderr()).toContain("`mcp_servers`");
     expect(stderr()).toContain("stigmer connect plugin <plugin>");
     expect(stderr()).toContain("stigmer mcp add <name> <url>");
   });

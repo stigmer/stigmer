@@ -293,7 +293,7 @@ describe("MessageThread", () => {
 
     renderThread(conv);
 
-    expect(screen.getAllByTestId("loaded-versions-marker").map((m) => m.textContent)).toEqual(["Deleted skill updated"]);
+    expect(screen.getAllByTestId("loaded-versions-marker").map((m) => m.textContent)).toEqual(["A deleted skill was updated"]);
   });
 
   it("renders the turn's to-dos as an inline card", () => {

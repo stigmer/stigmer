@@ -71,6 +71,8 @@ export { AgentCreationDenied } from "./AgentCreationDenied.js";
 export type { AgentCreationDeniedProps } from "./AgentCreationDenied.js";
 export { useCanCreateAgent } from "./useCanCreateAgent.js";
 export type { UseCanCreateAgentReturn } from "./useCanCreateAgent.js";
+export { AgentMcpServersSection } from "./AgentMcpServersSection.js";
+export type { AgentMcpServersSectionProps } from "./AgentMcpServersSection.js";
 export type {
   AgentCreationWizardProps,
   AgentCreationResult,

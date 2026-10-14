@@ -1,5 +1,5 @@
 // Pins the edition boundary the open-source targets declare: none of them
-// claims a surface only the hosted edition serves.
+// claims a surface only an edition above open source serves.
 //
 // A target's capability flags decide which arms run and which pin a refusal.
 // A flag flipped to true on an open-source target would silently skip the
@@ -17,9 +17,11 @@ import { LocalTarget } from "../local";
 import { LocalExecutionTarget } from "../local-execution";
 import { LocalPostgresExecutionTarget, LocalPostgresTarget } from "../local-postgres";
 
-// The surfaces only the hosted edition composes. Each is false on every
-// open-source target, by the edition boundary, not as a gap.
-const HOSTED_ONLY: ReadonlyArray<keyof CapabilityFlags> = [
+// The surfaces only an edition above open source composes: the Cloud's own,
+// and the ones Enterprise shares with it (many organizations, federation,
+// per-resource grants). Each is false on every open-source target, by the
+// edition boundary, not as a gap.
+const ABOVE_OPEN_SOURCE: ReadonlyArray<keyof CapabilityFlags> = [
   "multiTenant",
   "channelMessaging",
   "billingGates",
@@ -39,8 +41,8 @@ const HOSTED_ONLY: ReadonlyArray<keyof CapabilityFlags> = [
 describe("the open-source targets' capability flags", () => {
   const targets = [new LocalTarget(), new LocalExecutionTarget(), new LocalPostgresTarget(), new LocalPostgresExecutionTarget()];
 
-  it.each(targets.map((t) => [t.name, t] as const))("%s claims no surface only the hosted edition serves", (_name, target) => {
-    const claimed = HOSTED_ONLY.filter((flag) => target.capabilities[flag]);
+  it.each(targets.map((t) => [t.name, t] as const))("%s claims no surface only an edition above open source serves", (_name, target) => {
+    const claimed = ABOVE_OPEN_SOURCE.filter((flag) => target.capabilities[flag]);
     expect(claimed).toEqual([]);
   });
 

@@ -28,6 +28,7 @@ import { useDependencyGraph } from "../dependency-graph/useDependencyGraph.js";
 import { AgentToolLists, hasToolLists } from "./AgentToolLists.js";
 import { AgentHooksSection } from "./AgentHooksSection.js";
 import { AgentSubagentsSection } from "./AgentSubagentsSection.js";
+import { AgentMcpServersSection } from "./AgentMcpServersSection.js";
 import { AgentRunDefaultsSection, type AgentRunDefaultsSave } from "./AgentRunDefaultsSection.js";
 import type { DependencyNode } from "../dependency-graph/types.js";
 import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea.js";
@@ -182,8 +183,10 @@ export interface AgentDetailViewProps {
  * Fetches the agent via {@link useAgent} internally and renders its
  * full configuration inside a {@link ResourceDetailShell}: a
  * standardized header with action bar, followed by structured content
- * sections (instructions, plugins, tool lists, hooks, skills,
- * subagents, and environment variables). Sections with no data are
+ * sections (instructions, plugins, the agent's own MCP servers, tool
+ * lists, hooks, skills, subagents, and environment variables). The MCP
+ * servers are edited only by the organization's admins
+ * ({@link AgentMcpServersSection}). Sections with no data are
  * omitted entirely — reducing visual noise per Nielsen heuristic #8.
  * The Evals tab runs the eval cases of the agent's plugins on the agent
  * and compares its versions ({@link AgentEvalsTab}).
@@ -677,6 +680,7 @@ function AgentOverview({
   const showDescription = editable || !!description;
   const showInstructions = editable || !!spec?.instructions;
   const showPlugins = editable || (spec && spec.plugins.length > 0);
+  const showMcpServers = editable || (spec && spec.mcpServers.length > 0);
   const showSkills = editable || (spec && spec.skillRefs.length > 0);
   const showSubagents = editable || (spec && spec.subagents.length > 0);
   const showToolLists = !!spec && hasToolLists(spec);
@@ -786,6 +790,18 @@ function AgentOverview({
             />
           )}
         </Section>
+      )}
+
+      {showMcpServers && (
+        <AgentMcpServersSection
+          servers={spec?.mcpServers ?? []}
+          org={agentOrg}
+          editable={editable}
+          isSaving={isSaving}
+          error={errorFor("mcpServers")}
+          onSave={(servers) => saveField?.("mcpServers", servers) ?? Promise.resolve(false)}
+          onEditStart={clearSaveError}
+        />
       )}
 
       {showToolLists && spec && (

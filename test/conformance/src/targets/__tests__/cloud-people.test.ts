@@ -210,6 +210,49 @@ describe("the cloud target's people", () => {
     expect(execution.managedAgentsBaseUrl()).toBe("http://127.0.0.1:9");
   });
 
+  it("lends its enforcing lane an unprovisioned caller: a tenant token for a fresh subject, never provisioned", async () => {
+    const target = new CloudTarget();
+    primaryStub(target);
+    await target.setup();
+    const { presented } = presentingStub(target);
+
+    await (await target.enforcingLane()).unprovisionedCaller?.();
+
+    expect(presented).toHaveLength(1);
+    expect(subjectOf(presented[0] ?? "")).toMatch(/^auth0\|lane-unprovisioned-/);
+  });
+
+  it("names a tenancy by its organization's id for the lane's role grants, and mints no unprovisioned caller after teardown", async () => {
+    const target = new CloudTarget();
+    const granted: unknown[] = [];
+    primaryStub(target, {
+      organizationCommand: {
+        create: async () => ({ metadata: { slug: "conformance-acme", id: ORG_ID } }),
+      },
+      iamPolicyCommand: {
+        create: async (input: unknown) => (granted.push(input), {}),
+        delete: async () => ({}),
+      },
+    });
+    await target.setup();
+    vi.spyOn(target, "clientsPresenting").mockReturnValue({
+      identityAccountCommand: { provisionMyAccount: async () => ({ metadata: { id: "ida_admin" } }) },
+      identityAccountQuery: { whoAmI: async () => ({ metadata: { id: "ida_admin" } }) },
+    } as unknown as ConformanceClients);
+    const lane = await target.enforcingLane();
+
+    await lane.provisionWithRole(await target.provisionTenancy(), "admin");
+    expect(granted).toEqual([
+      expect.objectContaining({ relation: "member", resource: expect.objectContaining({ id: ORG_ID }) }),
+      expect.objectContaining({ relation: "admin", resource: expect.objectContaining({ id: ORG_ID }) }),
+    ]);
+
+    await target.teardown();
+    await expect(lane.unprovisionedCaller?.()).rejects.toThrow(
+      "CloudTarget.setup() must be called before enforcingLane()",
+    );
+  });
+
   it("forgets the tenant at teardown", async () => {
     const target = new CloudTarget();
     primaryStub(target);

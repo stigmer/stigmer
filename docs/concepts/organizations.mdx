@@ -290,9 +290,11 @@ what a person can run they can also read. A reference that fails either check is
 refused with the field and the reason named, rather than failing later at run
 time.
 
-This keeps resource definitions portable — they reference resources by name, not
-by internal IDs. Stigmer stores a reference's Organization by id, so a stored
-reference keeps pointing at its Organization across a rename.
+You write a reference by slug, which keeps a file portable, and Stigmer stores
+the ID the slug named, the Organization's included. A stored reference keeps
+pointing at its resource and its Organization across a rename, and never at a
+new resource that takes a deleted one's name.
+[Resources](/docs/concepts/resources#what-a-reference-holds) explains the forms.
 
 ## What's next
 

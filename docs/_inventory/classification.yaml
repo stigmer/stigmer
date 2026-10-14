@@ -563,6 +563,15 @@ pages:
     why:
       The engine-selection fork is structure; the existing mermaid carries it.
 
+  concepts/resources:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      Every resource has a permanent ID and a renamable slug, is pointed at by
+      ID, changes by apply or by a named update with an optional freshness
+      check, lists in pages, and carries labels to filter and tags to find.
+    medium: none
+
   concepts/organizations:
     fate: keep
     diataxis: explanation

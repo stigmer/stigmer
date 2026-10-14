@@ -1,7 +1,8 @@
 // `stigmer mcp add <name> <url> [--header K=V ...]`: install the MCP server
 // at an address as a plugin named <name>, the way Claude Code's `claude mcp
-// add` adds one. An MCP server lives only in a plugin, so this is the short
-// way to a plugin holding one server; the plugin is then used like any
+// add` adds one. A server lives in a plugin or in an agent's own
+// `mcp_servers` (which only an organization's admins write); this is the
+// short way to a plugin holding one server, which is then used like any
 // other (`stigmer run --plugin <name>`, an agent's `plugins`) and removed
 // with `stigmer delete plugin <name>`.
 //

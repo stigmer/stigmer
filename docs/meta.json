@@ -29,6 +29,7 @@
     "concepts/runners",
     "guides/runners",
     "concepts/harnesses",
+    "concepts/resources",
     "concepts/organizations",
     "concepts/identity",
     "guides/authentication",

@@ -17,11 +17,14 @@
 // A write the server refuses for naming a renamed-away slug (SLUG_RENAMED)
 // is answered with the slug the resource has now, read as the caller by the
 // old one; a caller who may not read it gets the server's words. Every
-// manifest kind with a rename binds it, beside its read by reference.
+// manifest kind with a rename binds it, beside its read by reference. A kind
+// with no rename keeps its slug, and the apply warns that the file's slug
+// was not applied.
 
 import { create, type Message } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { RenameInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -277,6 +280,47 @@ describe("applyMessage declared-slug follow-up", () => {
     await expect(applyMessage(controller, handler, manifest, "", false)).rejects.toThrow(
       /Organization spec applied \(Organization visibility cannot be changed declaratively.*\), but the manifest's slug change was rejected/,
     );
+  });
+});
+
+describe("applyMessage on a kind that cannot rename", () => {
+  it("lands the spec and warns that the file's new slug was not applied", async () => {
+    const stored = create(SessionSchema, { metadata: { id: "ses-1", name: "triage", slug: "triage", org: "acme" } });
+    const handler: ApplyHandler = {
+      kind: ApiResourceKind.session,
+      displayName: "Session",
+      schema: SessionSchema,
+      applyOrder: 14,
+      apply: () => Promise.resolve(stored),
+    };
+    const manifest = create(SessionSchema, { metadata: { id: "ses-1", name: "triage", slug: "triage-q3", org: "acme" } });
+
+    const outcome = await applyMessage(controller, handler, manifest, "acme", false);
+
+    expect(outcome.result.status).toBe("success");
+    expect(outcome.warning).toBe(
+      "Session slugs do not change: the file's metadata.slug 'triage-q3' was not applied, and the slug stays 'triage'",
+    );
+    expect((outcome.applied as { metadata?: { slug?: string } }).metadata?.slug).toBe("triage");
+  });
+
+  it("stays quiet when the file names the stored slug, or carries no id", async () => {
+    const stored = create(SessionSchema, { metadata: { id: "ses-1", name: "triage", slug: "triage", org: "acme" } });
+    const handler: ApplyHandler = {
+      kind: ApiResourceKind.session,
+      displayName: "Session",
+      schema: SessionSchema,
+      applyOrder: 14,
+      apply: () => Promise.resolve(stored),
+    };
+
+    for (const metadata of [
+      { id: "ses-1", name: "triage", slug: "triage", org: "acme" },
+      { name: "triage", slug: "triage", org: "acme" },
+    ]) {
+      const outcome = await applyMessage(controller, handler, create(SessionSchema, { metadata }), "acme", false);
+      expect(outcome.warning).toBeUndefined();
+    }
   });
 });
 

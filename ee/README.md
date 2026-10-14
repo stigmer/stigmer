@@ -17,7 +17,9 @@ issued. Without a key, the Enterprise server is the open-source server
 exactly, and may run anywhere.
 
 Nothing outside this directory imports from it, so the open-source server,
-its libraries and its images contain no Enterprise code.
+its libraries and its images contain no Enterprise code. The conformance suite
+starts this package's test server by path to prove it
+(`server/test/conformance/licensed-server.ts`).
 
 ## Contributing
 

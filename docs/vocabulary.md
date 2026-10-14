@@ -36,13 +36,13 @@ have been replaced with pointers to this document:
 Five contexts, each with its own register. When the quick-reference table says
 "use X in context Y," this section explains why.
 
-| Context                    | Audience                                   | Register                                                                           | Example                                                                         |
-| -------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| **Sales site**             | Technical founders choosing infrastructure | Business-outcome language. No jargon. Lead with what they gain.                    | "Teach your Agent your domain."                                                 |
-| **Quickstart / tutorials** | Developers following steps                 | Action-oriented. Introduce Stigmer terms with a plain-language gloss on first use. | "Create a Skill (a piece of domain knowledge your Agent can use)."              |
-| **Concepts / how-to**      | Developers building understanding          | Explanatory. Use Stigmer terms as proper nouns. Analogies welcome.                 | "A Skill is like a training manual for your Agent."                             |
-| **Reference / SDK**        | Developers looking up specifics            | Precise. Use API field names. Assume familiarity with the platform.                | "`spec.skill_refs`---list of Skill IDs attached to this Agent."                 |
-| **README / GitHub**        | Developers evaluating Stigmer              | Developer-direct. CLI-first. Technical credibility.                                | "Versioned knowledge artifacts. A Skill is a directory with a `SKILL.md` file." |
+| Context                    | Audience                                   | Register                                                                           | Example                                                                            |
+| -------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **Sales site**             | Technical founders choosing infrastructure | Business-outcome language. No jargon. Lead with what they gain.                    | "Teach your Agent your domain."                                                    |
+| **Quickstart / tutorials** | Developers following steps                 | Action-oriented. Introduce Stigmer terms with a plain-language gloss on first use. | "Create a Skill (a piece of domain knowledge your Agent can use)."                 |
+| **Concepts / how-to**      | Developers building understanding          | Explanatory. Use Stigmer terms as proper nouns. Analogies welcome.                 | "A Skill is like a training manual for your Agent."                                |
+| **Reference / SDK**        | Developers looking up specifics            | Precise. Use API field names. Assume familiarity with the platform.                | "`spec.skill_refs`---the Skills this Agent loads, each a reference by slug or ID." |
+| **README / GitHub**        | Developers evaluating Stigmer              | Developer-direct. CLI-first. Technical credibility.                                | "Versioned knowledge artifacts. A Skill is a directory with a `SKILL.md` file."    |
 
 **Rule of thumb**: move left in the table for simpler language, move right for
 more precise language. Never use a right-column term in a left-column context.
@@ -83,6 +83,8 @@ definitions, API names, and examples follow below.
 | **Agent Channel**      | ---              | ---                                    | channel, Agent Channel | AgentChannel, `kind: AgentChannel`              | Agent Channel      |
 | **Channel App**        | ---              | ---                                    | Channel App            | ChannelApp, `kind: ChannelApp`                  | Channel App        |
 | **Schedule**           | ---              | ---                                    | schedule, Schedule     | Schedule, `kind: Schedule`                      | Schedule           |
+| **Label**              | ---              | label                                  | label                  | `metadata.labels`, `labels` filter              | label              |
+| **Tag**                | ---              | tag                                    | tag                    | `metadata.tags`                                 | tag                |
 
 <!-- vale Stigmer.terms = YES -->
 
@@ -1637,19 +1639,136 @@ exactly where they left off.
 
 #### Resource model (apiVersion, kind, metadata, spec)
 
-Stigmer resources follow a declarative model inspired by Kubernetes resource
-conventions. Every resource has four top-level fields: `apiVersion`, `kind`,
-`metadata`, and `spec`.
+Stigmer resources are declarative: a file states what a resource should be, and
+the server makes it so. Every resource has the same top-level fields:
+`apiVersion`, `kind`, `metadata`, `spec`, and `status` where the system records
+state.
 
-- **apiVersion**: Always `agentic.stigmer.ai/v1` for current resources.
+- **apiVersion**: The kind's group and version: `agentic.stigmer.ai/v1` for
+  Agents, Skills, Plugins and their kin, `iam.stigmer.ai/v1` for identity kinds
+  such as Federation Issuer.
 - **kind**: The resource type (for example, `Agent`, `Skill`, `Plugin`).
-- **metadata**: Contains `name` and optional labels.
+- **metadata**: the ID, `slug`, `name`, `org`, `visibility`, `labels`, `tags`,
+  and `etag`; the entries below explain each.
 - **spec**: The resource-specific configuration.
 - **Context rule**: Show by example in quickstart (the reader sees the YAML
   structure). Explain the pattern in concepts. Define the fields in reference.
   Never mention on the sales site.
-- **Do not say**: "Kubernetes-style resources" or "CRD-like definitions"---the
-  document writer role explicitly prohibits Kubernetes analogies.
+- **Do not say**: "Kubernetes-style resources" or "CRD-like definitions" on the
+  sales site or in introductory pages, where an infrastructure analogy is a
+  barrier. A reference page may name the Kubernetes label syntax or the API
+  design rule (AIP) a behaviour follows, as the proto comments do, because the
+  reader can look the exact rule up.
+
+---
+
+#### Slug and ID
+
+Every resource has two names. The ID is permanent and assigned by the server
+(`agt_…`); the slug is the short name people type, unique within its
+Organization, and it can be renamed.
+
+- **Capitalize**: No. Prose writes "ID"; the field is `metadata.id`.
+- **API surface**: `metadata.id`, `metadata.slug`; `rename` on every kind whose
+  slug may change. After a rename the old slug keeps leading to the resource for
+  reading for 30 days, and nothing else of the kind can take it then. A write
+  that names the old slug is refused with `SLUG_RENAMED`, and a create or rename
+  that asks for it is refused with `SLUG_RESERVED`.
+- **Context rule**: "slug" in reference, concepts and how-to; in tutorials,
+  gloss it on first use ("the slug, the short name in the URL"). On the sales
+  site, describe the benefit: "rename anything without breaking what uses it."
+- **Do not say**: "the name" for the slug where `metadata.name` (the display
+  name) could be meant; "fixed once created" for a slug.
+
+---
+
+#### Reference
+
+How one resource names another: an Agent's Skills, Plugins and subagents, a
+Schedule's Agent. A person writes a reference by slug, by ID or both; the server
+stores the ID; every answer names it by the target's current slug.
+
+- **Capitalize**: No.
+- **API surface**: `ApiResourceReference`: `org`, `kind`, `slug` or the ID, and
+  `version`. A renamed target keeps every reference to it working. A deleted
+  target's references come back with an empty slug, and a new resource that
+  takes the deleted one's name is never bound to them. A Skill or Plugin
+  reference's `version` is read at the start of each turn, and the run records
+  what it loaded; a subagent's is fixed when the listing Agent is saved.
+- **Context rule**: Concepts and reference. In tutorials, "the Skills your Agent
+  uses."
+- **Do not say**: "list of Skill IDs" for `skill_refs`: a person writes slugs.
+
+---
+
+#### Update and apply
+
+Two ways to change a resource. An update changes the fields it names and keeps
+every other one; an apply states the whole resource, as a file does, and creates
+it when it does not exist yet.
+
+- **Capitalize**: No.
+- **API surface**: `update(Update<Kind>Input)`: the resource named by
+  `metadata.id`, plus an `update_mask` of paths (`spec.instructions`); `*` names
+  every path. `apply(<Kind>)`: found by `metadata.id`, then by slug. Either
+  carries the `metadata.etag` it read to ask for a freshness check, refused with
+  `ABORTED` and `ETAG_MISMATCH` when the resource changed since; without one,
+  the last write wins. A file is applied as it is written, never as a freshness
+  check: an etag in it is dropped. Visibility, a slug and a vault's secrets each
+  change only through their own RPC.
+- **Context rule**: "apply" for files and the CLI (`stigmer apply -f`); "update"
+  for SDK code that changes one field. In concepts, "a change names only the
+  fields it changes."
+- **Do not say**: "full spec replacement" or "always provide complete state" for
+  an update.
+
+---
+
+#### Page
+
+One slice of a list. Every list returns a page of entries and a token for the
+next; the list is complete when the token is empty.
+
+- **Capitalize**: No.
+- **API surface**: request `page_size` (0 for the default 50, at most 100) and
+  `page_token`; response `entries` and `next_page_token`. No list returns a
+  total. The SDKs walk every page with an iterator.
+- **Context rule**: Reference and SDK guides. Elsewhere, "the list loads more as
+  you scroll."
+- **Do not say**: `PageInfo`, "page number" or "total count": none exists.
+
+---
+
+#### Label
+
+A key and value set on a resource to group and filter it (`team: support`). A
+list filtered by labels returns only the resources that carry every one.
+
+- **Capitalize**: No.
+- **API surface**: `metadata.labels`, at most 64; the `labels` filter on every
+  resource list. A key is an optional DNS-style prefix and a slash, then a name
+  of at most 63 characters; a value is empty or follows the name rule. The
+  `stigmer.ai/` prefix is the platform's and refused from clients.
+- **Context rule**: Concepts, how-to and reference. In reference, name the
+  syntax as the proto comment does (the Kubernetes label form).
+- **Do not say**: "tag" for a label. "annotation": the field was retired, and
+  `metadata.annotations` is reserved.
+
+---
+
+#### Tag
+
+A search word on a resource (`billing`, `refunds`). Tags help people find a
+resource; they never filter a list.
+
+- **Capitalize**: No.
+- **API surface**: `metadata.tags`, at most 20, each lowercase letters, digits
+  and hyphens, at most 50 characters (GitHub's topic form). A Plugin's tags come
+  from its manifest's `keywords`.
+- **Context rule**: Concepts, how-to and reference.
+- **Do not say**: "label" for a tag. A Skill version tag (`stable`, `latest`) is
+  a version's name, not a search word; say "version tag" where both could be
+  meant.
 
 ---
 
@@ -1934,3 +2053,22 @@ organization names its parent in `parent_org`, carries the parent's customer id
 in `external_id`, and is reached through `external_id_claim` and shared with at
 `visibility_child_orgs`. See
 [Parent organization, child organization](#parent-organization-child-organization).
+
+---
+
+### 7. Resource-contract words---RESOLVED
+
+**What**: Pages and comments written before the one resource contract described
+names, references, writes and lists in words that no longer hold.
+
+**Resolution**: Each retired word has a replacement, defined in its entry:
+
+- "fixed once created" for a slug: renamed through `rename` (Slug and ID).
+- "list of Skill IDs" for `skill_refs`: references written by slug or ID
+  (Reference).
+- "full spec replacement" and "always provide complete state" for an update: an
+  update changes the fields its mask names (Update and apply).
+- `PageInfo`, `page_number` and `total_count` on a list: a page of `entries` and
+  a `next_page_token` (Page).
+- `annotations` in metadata: retired and reserved; use labels to filter and tags
+  to find (Label, Tag).

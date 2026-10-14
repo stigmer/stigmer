@@ -43,6 +43,20 @@ export const PLATFORM_VARIABLES: ReadonlySet<string> = new Set([
   "STIGMER_SERVER_ADDRESS",
 ]);
 
+/**
+ * The platform variables the runner always fills, over anything a run
+ * planned: who is calling and the conversation. They are no requirement,
+ * so no vault value is read for them and no person is asked for them. The
+ * Stigmer server's address is the one platform variable a person may set:
+ * a value saved for it wins, and the runner fills it only when nothing is
+ * (stigmer/stigmer#1446), so it stays the optional key it is declared.
+ * The server's run planning and the console's reading of what a run needs
+ * both skip these names, from this one set.
+ */
+export const RUNNER_FILLED_VARIABLES: ReadonlySet<string> = new Set(
+  [...PLATFORM_VARIABLES].filter((name) => name !== "STIGMER_SERVER_ADDRESS"),
+);
+
 const USER_CONFIG_PATTERN = /\$\{user_config\.([A-Za-z_][A-Za-z0-9_]*)\}/g;
 
 /**

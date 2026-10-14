@@ -71,14 +71,7 @@ my-skill/
 
 ## Version Resolution
 
-Skills are the only versioned resource type in the platform. Version resolution follows this precedence:
-
-| `version` Value | Resolution |
-|---|---|
-| Empty / omitted | Latest version (most recently published) |
-| `latest` | Same as empty — latest version |
-| Tag name (e.g., `stable`) | Resolves to the version tagged with this name. Tags are mutable — `stable` may point to different content over time. |
-| 64-char hex hash | Immutable reference to an exact version by content hash. Always resolves to the same content. |
+A skill reference's `version` is read at the start of each turn: empty or `latest` follows each new push, a tag follows the tag, and a 64-character hash is that exact version. [resource-references.md](resource-references.md#when-a-version-is-read) states the rule for every kind.
 
 For production agents that need reproducible behavior, pin skills to a specific content hash. For agents that should always use the latest knowledge, omit the version field.
 

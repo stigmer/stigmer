@@ -1,7 +1,11 @@
 /**
- * Test support for the license suites: a fresh Ed25519 signer per call and
- * a ticket writer that builds the issuer's exact format from parts, so a
- * suite can sign good keys and hand-craft every malformed one.
+ * Test support for the license suites: a fresh Ed25519 signer per call, a
+ * ticket writer that builds the issuer's exact format from parts, so a
+ * suite can sign good keys and hand-craft every malformed one, and the
+ * claims a current or lapsed license carries. The composed suites and the
+ * conformance suite's licensed server (this package's
+ * test/conformance/licensed-server.ts) sign with these; nothing here
+ * imports a test runner, so a process can.
  *
  * The private key lives only in the test's memory; the public half is
  * exported raw (the JWK `x`), the form the trusted ring holds.
@@ -9,7 +13,8 @@
 import { generateKeyPairSync, sign, type KeyObject } from "node:crypto";
 import { readFileSync } from "node:fs";
 
-import { fromJson, toJson, type JsonValue } from "@bufbuild/protobuf";
+import { clone, fromJson, toJson, type JsonValue } from "@bufbuild/protobuf";
+import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
 import {
   LicenseClaimsSchema,
@@ -89,4 +94,25 @@ export function goldenVector(): GoldenVector {
     claims: fromJson(LicenseClaimsSchema, raw.claims),
     ticket: raw.ticket,
   };
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Claims valid from `issuedAt` for `days`, then a grace period of `graceDays`; `maxOrgs` absent grants no limit. */
+export function licenseClaims(options: {
+  readonly issuedAt: Date;
+  readonly days: number;
+  readonly graceDays: number;
+  readonly maxOrgs?: number;
+}): LicenseClaims {
+  const claims = clone(LicenseClaimsSchema, goldenVector().claims);
+  const expires = new Date(options.issuedAt.getTime() + options.days * DAY_MS);
+  claims.issuedAt = timestampFromDate(options.issuedAt);
+  claims.expiresAt = timestampFromDate(expires);
+  claims.graceUntil = timestampFromDate(new Date(expires.getTime() + options.graceDays * DAY_MS));
+  const limits = claims.entitlements?.limits;
+  if (limits !== undefined) {
+    limits.maxOrgs = options.maxOrgs;
+  }
+  return claims;
 }

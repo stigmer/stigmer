@@ -527,6 +527,16 @@ test-conformance-postgres: build-ts-stubs ## Run gRPC conformance CRUD suite on 
 	@echo "=== conformance: CRUD contract (local-postgres) ==="
 	CONFORMANCE_TARGET=local-postgres npm run test -w @stigmer/conformance
 
+.PHONY: test-conformance-enterprise
+test-conformance-enterprise: build-ts-stubs $(EE_DIR)/node_modules ## Run gRPC conformance CRUD suite against a licensed Enterprise server (needs CONFORMANCE_POSTGRES_URL; see `make postgres-dev`)
+	@test -n "$$CONFORMANCE_POSTGRES_URL" || { \
+		echo "error: CONFORMANCE_POSTGRES_URL is not set — a licensed Enterprise server runs on Postgres only."; \
+		echo "  start one: make postgres-dev"; \
+		exit 1; \
+	}
+	@echo "=== conformance: CRUD contract (enterprise) ==="
+	CONFORMANCE_TARGET=enterprise npm run test -w @stigmer/conformance
+
 .PHONY: test-conformance-postgres-execution
 test-conformance-postgres-execution: build-runner ## Run gRPC conformance execution suite on the Postgres driver (needs CONFORMANCE_POSTGRES_URL + the `temporal` and `stigmer` CLIs)
 	@test -n "$$CONFORMANCE_POSTGRES_URL" || { \

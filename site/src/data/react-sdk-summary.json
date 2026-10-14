@@ -19,7 +19,7 @@
       "title": "Agent",
       "description": "Hooks and components for agent definitions, search, setup orchestration, and detail views.",
       "hooks": 11,
-      "components": 7
+      "components": 8
     },
     {
       "slug": "agent-eval",
@@ -214,8 +214,8 @@
       "slug": "plugin",
       "title": "plugin",
       "description": "",
-      "hooks": 18,
-      "components": 21
+      "hooks": 19,
+      "components": 22
     },
     {
       "slug": "plugin-eval",

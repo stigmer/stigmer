@@ -1,0 +1,97 @@
+# =============================================================================
+# gRPC Conformance Suite (enterprise target)
+# =============================================================================
+# Runs the shared gRPC conformance suite, the one every edition is held to,
+# against a licensed Stigmer Enterprise server started as its own process:
+# Enterprise's test entry (ee/server/test/conformance/licensed-server.ts),
+# which composes the shipped entry's units with a license it signs for
+# itself, on Postgres, with its people signed in through the harness's local
+# issuer (test/conformance/src/targets/enterprise.ts). Nothing here reads a
+# secret, so the lane runs on pull requests from forks too.
+#
+# A workflow of its own, not a job in ci.conformance.yaml, for the reason
+# ci.conformance-execution.yaml gives: this family needs what the CRUD job
+# does not (Enterprise's own install), and it runs on every change to ee/,
+# which must not rerun the open-source targets. Enterprise runs from source
+# under tsx, so nothing of it is built here; the suite's global setup builds
+# the server it composes onto. The harness's unit arms, which cover the
+# target, run in ci.conformance.yaml.
+#
+# When it runs (its list in scripts/ci-lanes.mjs): what ci.conformance.yaml
+# runs on, ee/, and this file.
+# =============================================================================
+
+name: ci.conformance-enterprise
+
+on:
+  # Called by ci.gate.yaml when scripts/ci-lanes.mjs finds the change needs
+  # this lane (the path list and its reasons live there); `Gate` is the
+  # required check.
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  # Inside the gate a missing test dependency fails instead of skipping
+  # (the Postgres helpers read it); a caller's env does not reach a called
+  # workflow, so each lane sets it itself.
+  STIGMER_TEST_GATE: "1"
+
+jobs:
+  conformance-enterprise:
+    name: Conformance (enterprise)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Every server the target spawns gets its own throwaway database here;
+    # the pinned major is the one the compose stack ships.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      # Both the suite and the server import the built proto stubs (dist),
+      # and the session-log fold (dist) the SDK and the server read events
+      # with, which reads the tool vocabulary (dist).
+      - name: Build proto stubs and the session-log fold
+        run: |
+          npm run build -w @stigmer/protos
+          npm run build -w @stigmer/tool-vocabulary
+          npm run build -w @stigmer/session-log
+
+      # Both standalone packages install from their own lockfiles, in
+      # ci.ee.yaml's order: Enterprise links the server with `file:`.
+      - name: Install server dependencies
+        working-directory: backend/services/stigmer-server
+        run: npm ci
+
+      - name: Install Enterprise dependencies
+        working-directory: ee/server
+        run: npm ci
+
+      - name: Run conformance suite (enterprise)
+        env:
+          CONFORMANCE_TARGET: enterprise
+          CONFORMANCE_POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
+        run: npm run test -w @stigmer/conformance
