@@ -17,13 +17,13 @@
 import { timestampMs } from "@bufbuild/protobuf/wkt";
 import { create } from "@bufbuild/protobuf";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ListRunsBySessionRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { CriterionResult, ScoreSource } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 import { ListScoresByRunRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
 import { caseFromRun, suggestCaseName, type Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../errors/index.js";
 import { readCursorPages } from "./cursor-pages.js";
+import { listRunsBySession } from "./session.js";
 
 /** The options as commander hands them over. */
 export interface ToEvalCaseFlags {
@@ -137,9 +137,9 @@ function thumbsDownComment(scores: readonly Score[]): string {
 async function continuesConversation(client: Stigmer, run: Run): Promise<boolean> {
   const target = run.spec?.target;
   if (target?.case !== "sessionId" || target.value === "") return false;
-  const list = await client.run.listBySession(create(ListRunsBySessionRequestSchema, { sessionId: target.value }));
+  const runs = await listRunsBySession(client, target.value);
   const id = run.metadata?.id ?? "";
-  const others = list.entries.filter((entry) => entry.metadata?.id !== id);
+  const others = runs.filter((entry) => entry.metadata?.id !== id);
   const at = createdMs(run);
   if (at === undefined) return others.length > 0;
   return others.some((entry) => (createdMs(entry) ?? Number.POSITIVE_INFINITY) < at);
