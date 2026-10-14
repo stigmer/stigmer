@@ -175,7 +175,7 @@ describe.skipIf(!enforcementServed)(
     });
 
     it("[rpc:TokenService.mintUserToken] an admin service account mints into its organization and is refused in an unrelated one", async () => {
-      const context = await tenancy();
+      const context = await tenancy({ signInRole: IamRole.member });
       const other = await tenancy();
       const admin = await minter(context.org);
       const token = await mintUserToken(admin.as, context.org, uniqueName("user"));
