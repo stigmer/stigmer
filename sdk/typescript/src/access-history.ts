@@ -31,9 +31,9 @@ import {
   AccessHistoryEntrySchema,
   ListAccessHistoryInputSchema,
   type AccessHistoryEntry,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
 
-import type { IamPolicyClient } from "./gen/iampolicy.js";
+import type { GrantClient } from "./gen/grant.js";
 
 export type { AccessHistoryEntry };
 
@@ -71,7 +71,7 @@ export interface ExportAccessHistoryOptions {
  * first, following every page until the newest entry.
  */
 export async function* exportAccessHistory(
-  client: Pick<IamPolicyClient, "listAccessHistory">,
+  client: Pick<GrantClient, "listAccessHistory">,
   org: string,
   options: ExportAccessHistoryOptions = {},
 ): AsyncGenerator<AccessHistoryEntry, void, undefined> {

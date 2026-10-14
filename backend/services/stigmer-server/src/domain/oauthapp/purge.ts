@@ -9,7 +9,7 @@ import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oautha
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
-import { newCleanupIamPoliciesStep } from "../../pipeline/steps/authorization-tuples.js";
+import { newCleanupGrantsStep } from "../../pipeline/steps/authorization-tuples.js";
 import { newDeleteResourceStep } from "../../pipeline/steps/delete.js";
 import { newReleaseNamesStep } from "../../pipeline/steps/names.js";
 import type { SecretService } from "../../encryption/encryption.js";
@@ -37,7 +37,7 @@ export function newOAuthAppPurge(deps: OAuthAppPurgeDeps): KindPurge {
     steps: [
       newDeleteResourceStep(deps.store),
       newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.oauth_app),
-      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+      newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger),
       newDestroySecretBackingStateStep<DeleteInput, typeof OAuthAppSchema>(
         deps.secretService,
         deps.logger,

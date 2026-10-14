@@ -57,7 +57,7 @@ import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apireso
 import type { ArtifactStorageDriverFactory } from "../artifactstorage/artifact-storage.js";
 import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
-import type { IamPolicyStore } from "../domain/iampolicy/store.js";
+import type { GrantStore } from "../domain/grant/store.js";
 import type { SecretCodec } from "../encryption/codec.js";
 import type { ModelCatalogProvider } from "../modelcatalog/model-catalog-provider.js";
 import type { VisitorErrorPolicy } from "../pipeline/interceptors/error-boundary.js";
@@ -72,7 +72,7 @@ import type { OutboundEgressPolicy } from "./outbound-egress.js";
 import type { ListReadScope } from "./list-read-scope.js";
 import type { MeteredUsageProvider } from "./metered-usage.js";
 import type { OrganizationDirectory } from "./organization-directory.js";
-import type { PolicyGrantScope } from "./policy-grant-scope.js";
+import type { GrantScope } from "./policy-grant-scope.js";
 import type { PrincipalDisplay } from "./principal-display.js";
 import type { ResourceAuthorizationLifecycle } from "./resource-authorization.js";
 import type { ResourceRowReader } from "./resource-row-reader.js";
@@ -243,7 +243,7 @@ export interface ExtensionDrivers {
    * adapter over the generic Store installs at the compose.ts
    * consumption site — OSS behavior byte-identical.
    */
-  readonly iamPolicyStore?: IamPolicyStore;
+  readonly grantStore?: GrantStore;
   /**
    * The policy grant scope (single-instance point):
    * which kinds a user may grant a role on in this edition, with which
@@ -255,7 +255,7 @@ export interface ExtensionDrivers {
    * site — the organization grants its four proto roles, nothing else
    * grants anything.
    */
-  readonly policyGrantScope?: PolicyGrantScope;
+  readonly grantScope?: GrantScope;
   /**
    * The authorization-query engine (single-instance point): the tuple-half
    * questions — checkAuthorization, the two

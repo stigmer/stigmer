@@ -25,7 +25,7 @@ import {
   type AccessHistoryEntry,
   type AccessHistoryPage,
   ListAccessHistoryInputSchema,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
 import {
   accessHistoryJsonLine,
   exportAccessHistory,
@@ -37,7 +37,7 @@ import { UsageError } from "../errors/usage-error.js";
 import { readCursorPages } from "./cursor-pages.js";
 
 /** The client these helpers call. */
-export type AccessHistoryClient = Pick<Stigmer, "iamPolicy">;
+export type AccessHistoryClient = Pick<Stigmer, "grant">;
 
 /** The largest sequence there can be: a 64-bit signed integer. */
 const MAX_SEQUENCE = BigInt("9223372036854775807");
@@ -60,7 +60,7 @@ export async function listAccessHistory(
 ): Promise<AccessHistoryListing> {
   let first: AccessHistoryPage | undefined;
   const entries = await readCursorPages(limit, async (pageSize, pageToken) => {
-    const page = await client.iamPolicy.listAccessHistory(
+    const page = await client.grant.listAccessHistory(
       create(ListAccessHistoryInputSchema, {
         org,
         pageSize: Math.min(pageSize, MAX_PAGE_SIZE),
@@ -109,7 +109,7 @@ export async function exportAccessHistoryLines(
   const onRemoved = (removed: RemovedAccessHistory): void => {
     note(removedNote(removed));
   };
-  for await (const entry of exportAccessHistory(client.iamPolicy, org, { after, onRemoved })) {
+  for await (const entry of exportAccessHistory(client.grant, org, { after, onRemoved })) {
     write(`${accessHistoryJsonLine(entry)}\n`);
     written += 1;
   }

@@ -26,7 +26,7 @@ import { internalError } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { RequestContext } from "../../pipeline/request-context.js";
-import { newCleanupIamPoliciesStep } from "../../pipeline/steps/authorization-tuples.js";
+import { newCleanupGrantsStep } from "../../pipeline/steps/authorization-tuples.js";
 import {
   RESOURCE_ID_KEY,
   newDeleteResourceStep,
@@ -63,7 +63,7 @@ export function vaultDeleteSteps<Input extends DescMessage>(
   return [
     newDeleteResourceStep<Input>(deps.store),
     newReleaseNamesStep<Input>(deps.store, deps.logger, ApiResourceKind.vault),
-    newCleanupIamPoliciesStep<Input>(deps.authorizationLifecycle, deps.logger),
+    newCleanupGrantsStep<Input>(deps.authorizationLifecycle, deps.logger),
     newDestroySecretBackingStateStep<Input, typeof VaultSchema>(
       deps.secretService,
       deps.logger,

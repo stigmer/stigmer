@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useDeploymentMode } from "../deployment-mode.js";
-import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { useOptionalOrg } from "../organization/OrgProvider.js";
 import { useSingleOrg } from "../server-info.js";
 import {

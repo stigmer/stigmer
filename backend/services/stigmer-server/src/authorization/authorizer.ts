@@ -57,7 +57,7 @@ import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
 import type { Logger } from "../boot/logger.js";
-import type { IamPolicyStore } from "../domain/iampolicy/store.js";
+import type { GrantStore } from "../domain/grant/store.js";
 import type {
   Authorizer,
   AuthzCheck,
@@ -104,7 +104,7 @@ export const NOT_FOUND_EXEMPT_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.platform,
   ApiResourceKind.identity_account,
   ApiResourceKind.federation_issuer,
-  ApiResourceKind.iam_policy,
+  ApiResourceKind.grant,
   ApiResourceKind.invitation,
   ApiResourceKind.team,
 ]);
@@ -125,7 +125,7 @@ export const UNSERVED_KIND_DENY_REASON =
 export interface BuiltInAuthorizerDeps {
   readonly store: Store;
   /** The port the grant path writes through — the person's rows are read from the same instance. */
-  readonly policies: IamPolicyStore;
+  readonly policies: GrantStore;
   /** The account port: the caller's account, and identity_account targets. */
   readonly accounts: AccountsByCaller;
   /** The served edition (`extensions.edition`); above `oss`, boot has checked every served kind's rows are readable. */

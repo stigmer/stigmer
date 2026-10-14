@@ -40,9 +40,9 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
+import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
@@ -69,7 +69,7 @@ import {
   resetOperatorIdentityForTests,
   setOperatorIdentity,
 } from "../../../pipeline/steps/defaults.js";
-import { orgRole } from "../../iampolicy/__tests__/support.js";
+import { orgRole } from "../../grant/__tests__/support.js";
 import {
   seedOrganizations,
   organizationId,
@@ -91,9 +91,9 @@ import {
 } from "./service-account-support.js";
 import type { SignInServer } from "./service-account-support.js";
 
-async function policiesIn(server: ComposedServer): Promise<IamPolicy[]> {
-  const rows = await server.store.listResources(ApiResourceKind.iam_policy);
-  return rows.map((row) => fromBinary(IamPolicySchema, row));
+async function grantsIn(server: ComposedServer): Promise<Grant[]> {
+  const rows = await server.store.listResources(ApiResourceKind.grant);
+  return rows.map((row) => fromBinary(GrantSchema, row));
 }
 
 async function serviceAccountRowsIn(server: ComposedServer) {
@@ -178,7 +178,7 @@ describe("service accounts with sign-in on (built-in Authorizer)", () => {
     // Provisioned after both exist: a member of each (arm 5).
     adminId = await provision(at, ADMIN);
     await provision(at, MEMBER);
-    await createClient(IamPolicyCommandController, at.as(FOUNDER)).create(
+    await createClient(GrantCommandController, at.as(FOUNDER)).create(
       orgRole(adminId, "admin", acme),
     );
   });
@@ -239,7 +239,7 @@ describe("service accounts with sign-in on (built-in Authorizer)", () => {
       IamRole.viewer,
     );
     const id = account.metadata?.id ?? "";
-    const held = (await policiesIn(at.server)).filter(
+    const held = (await grantsIn(at.server)).filter(
       (p) => p.spec?.principal?.id === id,
     );
     expect(
@@ -463,11 +463,11 @@ describe("service accounts with sign-in on (built-in Authorizer)", () => {
 
     it("keeps a service account whose role was revoked, so it can still be deleted", async () => {
       const revoked = made[0] ?? "";
-      await createClient(IamPolicyCommandController, at.as(FOUNDER)).delete(
+      await createClient(GrantCommandController, at.as(FOUNDER)).delete(
         orgRole(revoked, "member", listed),
       );
       expect(
-        (await policiesIn(at.server)).some(
+        (await grantsIn(at.server)).some(
           (p) => p.spec?.principal?.id === revoked,
         ),
       ).toBe(false);
@@ -620,7 +620,7 @@ describe("createServiceAccount under a composition's own lifecycle", () => {
     const orphan = list.entries.find((a) => a.metadata?.name === "link-fails");
     expect(orphan).toBeDefined();
     expect(
-      (await policiesIn(at.server)).some(
+      (await grantsIn(at.server)).some(
         (p) => p.spec?.principal?.id === orphan?.metadata?.id,
       ),
     ).toBe(false);

@@ -13,8 +13,8 @@
 import { create } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ApiResourceRefView } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
-import { ApiResourceRefViewSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import type { ApiResourceRefView } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+import { ApiResourceRefViewSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
 import type { PrincipalDisplay } from "@stigmer/server";
 
 import { TEAM_KIND_NAME } from "./removal.js";

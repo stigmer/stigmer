@@ -8,7 +8,7 @@
  * so it can be given one again or deleted. Not exported from the package
  * barrel.
  */
-import type { PrincipalAccess } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import type { PrincipalAccess } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
 import type { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { iamRoleFromString } from "@stigmer/sdk";
 

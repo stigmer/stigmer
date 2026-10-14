@@ -43,7 +43,7 @@ import type { DescMessage, Message, MessageShape } from "@bufbuild/protobuf";
 import { create, fromBinary } from "@bufbuild/protobuf";
 
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 
 import type { Logger } from "../../../boot/logger.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
@@ -57,7 +57,7 @@ import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js"
 import { metadataOf } from "../../../pipeline/steps/shapes.js";
 import type { Store } from "../../../store/interface.js";
 import type { ListIndexDeclaration } from "../../../store/list-index.js";
-import type { IamPolicyGrantPath } from "../../iampolicy/grant-path.js";
+import type { GrantPath } from "../../grant/grant-path.js";
 
 /** How many rows of a kind one batch removes. */
 export const KIND_PURGE_BATCH = 50;
@@ -83,7 +83,7 @@ export interface KindPurgeDeps {
   readonly store: Store;
   readonly logger: Logger;
   /** The one grant path: each removed row's policy rows are revoked through it. */
-  readonly grantPath: Pick<IamPolicyGrantPath, "cleanupResource">;
+  readonly grantPath: Pick<GrantPath, "cleanupResource">;
 }
 
 export interface KindPurgeSpec<

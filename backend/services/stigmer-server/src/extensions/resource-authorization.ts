@@ -90,8 +90,8 @@
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { OwnerAttributionType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
 import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
-import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import type { OrganizationPolicies } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
 
 import type { CallerIdentity } from "./identity.js";
@@ -261,8 +261,8 @@ export interface OrganizationPoliciesChangedEvent {
  * duplicate arm the FIRST writer's row, whose id may be a legacy random
  * one on a composition that predates derived ids.
  */
-export interface PolicyGrantedEvent {
-  readonly policy: IamPolicy;
+export interface GrantedEvent {
+  readonly policy: Grant;
   /** True when the triple was already held and this grant wrote nothing. */
   readonly duplicate: boolean;
 }
@@ -273,9 +273,9 @@ export interface PolicyGrantedEvent {
  * row found for it, or `undefined` on the absent arm — the spec alone is
  * enough to name the tuple a composition still deletes then.
  */
-export interface PolicyRevokedEvent {
-  readonly spec: IamPolicySpec;
-  readonly policy: IamPolicy | undefined;
+export interface RevokedEvent {
+  readonly spec: GrantSpec;
+  readonly policy: Grant | undefined;
 }
 
 /**
@@ -335,13 +335,13 @@ export interface ResourceAuthorizationLifecycle {
    * persist, on the duplicate arm too; a throw fails the grant with the
    * row in place. Absent method = rows are the record (the OSS posture).
    */
-  onPolicyGranted?(event: PolicyGrantedEvent): Promise<void>;
+  onGranted?(event: GrantedEvent): Promise<void>;
   /**
    * OPTIONAL: synchronous, BEFORE the row
    * delete; a throw leaves row and tuple for the retry. Absent method =
    * rows are the record (the OSS posture).
    */
-  onPolicyRevoked?(event: PolicyRevokedEvent): Promise<void>;
+  onRevoked?(event: RevokedEvent): Promise<void>;
   /**
    * OPTIONAL: synchronous, BEFORE a row naming an account on an
    * organization is deleted, ahead of that row's `onPolicyRevoked`. A

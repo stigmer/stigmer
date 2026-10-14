@@ -47,7 +47,7 @@ const SCAN_PAGE = 500;
 /** Kinds whose rows `metadata.org` does not place (kind-purge.ts's `belongsTo` and `rows`). */
 const REFUSED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.api_key,
-  ApiResourceKind.iam_policy,
+  ApiResourceKind.grant,
   ApiResourceKind.identity_account,
 ]);
 

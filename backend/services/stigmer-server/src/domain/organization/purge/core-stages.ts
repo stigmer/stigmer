@@ -83,7 +83,7 @@ import type { ExecutionEngineStateProvider } from "../../run/engine.js";
 import { EngineWorkflowNotFoundError } from "../../run/engine.js";
 import { agentExecutionListIndex } from "../../run/list-index.js";
 import { isTerminalExecutionPhase } from "../../run/phases.js";
-import type { IamPolicyGrantPath } from "../../iampolicy/grant-path.js";
+import type { GrantPath } from "../../grant/grant-path.js";
 import { sessionListIndex } from "../../session/list-index.js";
 import { newReleaseExternalIdStep } from "../children.js";
 import { organizationListIndex } from "../list-index.js";
@@ -281,7 +281,7 @@ export function newChildrenStage(store: Store): OrganizationPurgeStage {
 export interface FinalStageDeps {
   readonly store: Store;
   readonly logger: Logger;
-  readonly grantPath: IamPolicyGrantPath;
+  readonly grantPath: GrantPath;
   /** The organization's lifecycle (the composed driver, or open source's role lifecycle). */
   readonly lifecycle: ResourceAuthorizationLifecycle | undefined;
   /**

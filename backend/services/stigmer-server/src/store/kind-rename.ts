@@ -75,9 +75,9 @@ import { reflect } from "@bufbuild/protobuf/reflect";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 
-import { policyIdFor } from "../domain/iampolicy/constants.js";
+import { grantIdFor } from "../domain/grant/constants.js";
 
 /** One rename of a kind, as one step applies it. */
 export interface KindRename {
@@ -124,7 +124,7 @@ export const KIND_TABLES: ReadonlyArray<string> = [
 ];
 
 /** The `kind` column value of the grant rows a step reads. */
-export const KIND_RENAME_POLICY_KIND = "iam_policy";
+export const KIND_RENAME_GRANT_KIND = "iam_policy";
 
 /** How many rows of a kind a step decodes per page. */
 export const KIND_RENAME_PAGE_SIZE = 500;
@@ -146,7 +146,7 @@ export function renamedKindRow(rename: KindRename, data: Uint8Array): Uint8Array
 }
 
 /** What a step made of one grant row. */
-export interface RekeyedPolicy {
+export interface RekeyedGrant {
   /** The id the policy's renamed triple derives. */
   readonly id: string;
   /** The row's new bytes, its metadata id the new one. */
@@ -158,8 +158,8 @@ export interface RekeyedPolicy {
  * renamed kind, or undefined when it names neither. Throws when the bytes
  * do not decode.
  */
-export function rekeyedPolicy(rename: KindRename, data: Uint8Array): RekeyedPolicy | undefined {
-  const policy = fromBinary(IamPolicySchema, data);
+export function rekeyedGrant(rename: KindRename, data: Uint8Array): RekeyedGrant | undefined {
+  const policy = fromBinary(GrantSchema, data);
   const spec = policy.spec;
   if (spec === undefined) {
     return undefined;
@@ -175,11 +175,11 @@ export function rekeyedPolicy(rename: KindRename, data: Uint8Array): RekeyedPoli
   if (!changed) {
     return undefined;
   }
-  const id = policyIdFor(spec);
+  const id = grantIdFor(spec);
   if (policy.metadata !== undefined) {
     policy.metadata.id = id;
   }
-  return { id, data: toBinary(IamPolicySchema, policy) };
+  return { id, data: toBinary(GrantSchema, policy) };
 }
 
 /** A step's failure for a row it cannot read (the module header). */

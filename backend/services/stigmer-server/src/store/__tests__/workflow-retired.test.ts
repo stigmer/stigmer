@@ -32,10 +32,10 @@ import {
   RETIRED_WORKFLOW_TABLES,
   WORKFLOW_CHILD_ENDED_ERROR,
   migrateAgentRunRow,
-  policyNamesRetiredWorkflowKind,
+  grantNamesRetiredWorkflowKind,
   unreadableRetiredWorkflowRowError,
 } from "../workflow-retired.js";
-import { policyRow } from "./retired-instance-rows.js";
+import { grantRow } from "./retired-instance-rows.js";
 import { WORKFLOW_LINEAGE_LABELS, agentRunRow } from "./retired-workflow-rows.js";
 
 const ORG = "org_01jz0000000000000000000000";
@@ -239,15 +239,15 @@ describe("policyNamesRetiredWorkflowKind", () => {
     { principal: "team:tm_1", resource: "agent_run:aex_1", named: false },
   ])("$principal -> $resource: $named", ({ principal, resource, named }) => {
     expect(
-      policyNamesRetiredWorkflowKind(
-        policyRow({ id: "iam_1", principal, relation: "viewer", resource }),
+      grantNamesRetiredWorkflowKind(
+        grantRow({ id: "iam_1", principal, relation: "viewer", resource }),
       ),
     ).toBe(named);
   });
 
   it("throws on bytes that do not decode", () => {
     expect(() =>
-      policyNamesRetiredWorkflowKind(new Uint8Array([0x22, 0xff])),
+      grantNamesRetiredWorkflowKind(new Uint8Array([0x22, 0xff])),
     ).toThrow();
   });
 });

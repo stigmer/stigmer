@@ -69,13 +69,13 @@ import { abortedError, failedPreconditionError } from "@stigmer/server";
 
 import type { IdentityAccountService } from "./account/port.js";
 import { resolveCreateRace } from "./account/port.js";
-import type { IamPolicyGrantPathClient } from "./policy/grant-path-client.js";
+import type { GrantPathClient } from "./grant/grant-path-client.js";
 import { ISSUER_BEING_DELETED_MESSAGE } from "./issuer/steps.js";
 import type { FederationIssuerStore } from "./issuer/store.js";
 
 export interface CloudIdentityFederationDeps {
   readonly accounts: IdentityAccountService;
-  readonly policies: IamPolicyGrantPathClient;
+  readonly policies: GrantPathClient;
   /** The FederationIssuer rows — the controller's IdP-exists precondition, create's delete check and deprovision's provider read them. */
   readonly providers: Pick<FederationIssuerStore, "findById" | "isLive">;
   /**

@@ -1,0 +1,950 @@
+/**
+ * IamPolicy controller — the ROW half of the IamPolicy contract served
+ * ONCE by @stigmer/server in
+ * every edition, all fourteen RPCs. The behavioural reference is the
+ * cloud's former iam/policy/handlers.ts (the Java pipelines rendered flat),
+ * which this module replaced; the byte-pinned copy moved with it
+ * (constants.ts). The cloud keeps what differs per
+ * edition and registers it: its row store (`drivers.iamPolicyStore`), its
+ * grant scope (`drivers.policyGrantScope`), its OpenFGA query engine
+ * (`drivers.authorizationQueries`) and the tuple mirror in the lifecycle
+ * driver's two policy hooks — and reaches the write lanes here as
+ * in-process RPCs, never through an exported constructor.
+ *
+ * Shape. The six command RPCs are pipeline chains, each
+ * `Authorize → ValidateProto → <one domain step>` (steps.ts), with the two
+ * owner steps before the write on `create`, `delete` and `revokeOrgAccess`
+ * (owner is assigned by owners, steps.ts's last section): the write is
+ * the grant path's, the annotation drives position 1, and the executor's
+ * fault mapping covers a store fault from inside the path. The eight
+ * query RPCs are direct handlers over `authorizeDirect` (the cloud's
+ * shape; the identity-account lookups' precedent). No chain here splices
+ * a tuple step: a policy is the authorization record, not a protected
+ * resource — the cloud builds policies outside any chain, no RPC
+ * authorizes against a policy (the model declares the `iam_policy` type
+ * only because it declares every open-source kind), and seeding scope
+ * links for a row would recurse (the ts-server guideline records this
+ * exception).
+ *
+ * What the cloud's handlers recorded as surprises, kept or corrected:
+ *   - `delete` and `create` are idempotent (absent → the default instance;
+ *     held → the row). `delete` now authorizes BEFORE it loads (the
+ *     annotation names the spec's resource), so a caller without
+ *     `can_grant_access` hears PERMISSION_DENIED even for an absent
+ *     triple — strictly safer than the cloud's silent default instance.
+ *   - `create` validates the role BEFORE it writes (the cloud's order): a
+ *     held row under a role the kind does not grant is refused, never
+ *     answered as a duplicate. It also grants to PEOPLE and TEAMS only
+ *     (since 2026-09-14): any other principal is INVALID_ARGUMENT, and a
+ *     team only on the roles its kind lets a team hold (steps.ts) and,
+ *     where an edition serves teams, only a team the create gate slot
+ *     admits — a row naming a resource as its principal is the
+ *     structural link the hierarchy walk follows, `bootstrapPolicy`'s to
+ *     write, and through this lane would have let a right on one
+ *     organization list another's members. The cloud's former create had
+ *     the gap; this lane closes it in every edition.
+ *   - `checkMyPermission`, `checkAuthorization` and
+ *     `listAuthorizedResourceIds` skip position 1 by proto option (IAM
+ *     authorizing IAM would recurse); trust is authentication plus the
+ *     principal-trust rule, compared against the caller's ACCOUNT
+ *     (`accountForCaller` — the trusted-local interceptor stamps
+ *     the operator's email, so the stamp alone would never match).
+ *   - `listAuthorizedPrincipalIds` is annotation-driven: the same target `listResourceAccessByPrincipal` checks.
+ *   - `get` is the one load-then-authorize lane: its target is the ROW's
+ *     resource, handed to the annotation's evaluation as an override.
+ *   - the three system RPCs (`bootstrapPolicy`, `cleanupResourcePolicies`,
+ *     `bootstrapRevokeOrgAccess`) admit the platform's own pipelines only
+ *     (`isPlatformPipelineCaller`) and refuse a wire user
+ *     PERMISSION_DENIED with the annotation's own `error_msg`, BEFORE the
+ *     chain — under the permissive Authorizer the annotation alone would
+ *     admit anyone. Position 1 still runs the static platform
+ *     check, so the cloud's `can_bootstrap_iam` FGA check is unchanged.
+ *   - every kind string that came off the wire passes the domain's wire
+ *     refusals BEFORE position 1 (since 2026-09-14):
+ *     INVALID_ARGUMENT with the pinned copy, on every lane, in every
+ *     edition. This is not input validation moved ahead of authorization
+ *     — it is naming the authorization target. A kind string that names
+ *     no kind names nothing to authorize against, so there is no
+ *     position-1 question to ask; `checkMyPermission` refuses an unknown
+ *     permission name first for the same reason, and the cloud's former
+ *     handlers kept this order (`kindFromSpecString` before
+ *     `authorizeRpc`), so the wire did not change when they retired. Safe by
+ *     construction: the protovalidate interceptor (chain position 3) has
+ *     validated every request before a handler runs, so both refs are
+ *     present. The resolver's "resolution never throws" rule
+ *     (steps/authorize.ts) is untouched — its unknown-kind deny remains
+ *     the backstop for a stored row on `get`, the one kind string that is
+ *     not wire input.
+ *
+ * `checkMyPermission` has one definition, in this order:
+ * UNAUTHENTICATED for an empty identity; the relation must be an
+ * IamPermission name; the resource kind must be known; contextual
+ * policies ride the query engine or refuse UNIMPLEMENTED; then (1) a kind
+ * this edition does not serve is `false` — nobody holds a permission on a
+ * kind that does not exist here, which is what keeps the operator-only
+ * settings navigation hidden on open source; (2) `can_grant_access` on a
+ * kind outside the grant scope is `false` — the console's PermissionGate
+ * hides grant controls with no new SDK surface; (3) the composed
+ * Authorizer: allow → true, deny and not-found → false, unavailable →
+ * INTERNAL, never softened into a denial.
+ *
+ * Proven by __tests__/controller.test.ts (every arm, over a router
+ * transport with fakes), __tests__/iampolicy.test.ts (the composed
+ * trusted-local server) and the iampolicy conformance suite.
+ */
+import { create } from "@bufbuild/protobuf";
+import type { DescMessage, DescMethod } from "@bufbuild/protobuf";
+import { getOption } from "@bufbuild/protobuf";
+import { EmptySchema } from "@bufbuild/protobuf/wkt";
+import type { Empty } from "@bufbuild/protobuf/wkt";
+import { Code, ConnectError } from "@connectrpc/connect";
+import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
+
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { config as rpcAuthorizationConfig } from "@stigmer/protos/ai/stigmer/commons/rpc/method_options_pb";
+import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
+import type {
+  CheckAuthorizationInput,
+  CheckAuthorizationResult,
+  CheckMyPermissionInput,
+  GetPrincipalsCountInput,
+  GrantId,
+  ListAuthorizedPrincipalIdsInput,
+  ListAuthorizedResourceIdsInput,
+  ListResourceAccessInput,
+  PrincipalResourceInput,
+  RevokeOrgAccessInput,
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+import {
+  AuthorizedPrincipalIdsListSchema,
+  AuthorizedResourceIdsListSchema,
+  CheckAuthorizationResultSchema,
+  PrincipalResourceRolesSchema,
+  PrincipalsCountSchema,
+  ResourceAccessByPrincipalListSchema,
+  RevokeOrgAccessInputSchema,
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
+import type {
+  ApiResourceRef,
+  GrantSpec,
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+import {
+  ApiResourceRefSchema,
+  GrantSpecSchema,
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import type { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+
+import type { Logger } from "../../boot/logger.js";
+import type { AuthorizationQueryEngine } from "../../extensions/authorization-queries.js";
+import type { CredentialBinding } from "../../extensions/credential-binding.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
+import { stepsForSlot } from "../../extensions/gate-slots.js";
+import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
+import { isPlatformPipelineCaller } from "../../extensions/identity.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
+import type { GrantScope } from "../../extensions/policy-grant-scope.js";
+import type { PrincipalDisplay } from "../../extensions/principal-display.js";
+import {
+  kindByEnumName,
+  kindEnumName,
+  kindServedByEdition,
+} from "../../pipeline/apiresource-meta.js";
+import { internalError } from "../../pipeline/errors.js";
+import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
+import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
+import { newPipeline } from "../../pipeline/pipeline.js";
+import { RequestContext } from "../../pipeline/request-context.js";
+import {
+  AUTHORIZATION_UNAVAILABLE_MESSAGE,
+  authorizeDirect,
+  evaluateAuthorizer,
+  newAuthorizeStep,
+} from "../../pipeline/steps/authorize.js";
+import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
+import { accountForCaller } from "../identityaccount/resolve.js";
+import type { AccountsByCaller } from "../identityaccount/resolve.js";
+import { listAccessHistory } from "./access-history.js";
+import { buildPrincipalAccessList, resolveHierarchy } from "./access-lists.js";
+import {
+  AUTHENTICATION_REQUIRED_MESSAGE,
+  AUTHORIZATION_QUERIES_UNIMPLEMENTED_MESSAGE,
+  grantNotFoundMessage,
+  unknownPermissionMessage,
+} from "./constants.js";
+import type { GrantChangeCause } from "./change.js";
+import { newAccountDisplayResolver } from "./display-resolver.js";
+import type { AccountsByIds } from "./display-resolver.js";
+import type { GrantPath } from "./grant-path.js";
+import { permissionByEnumName } from "./permissions.js";
+import {
+  assignableRelations,
+  isAssignableRole,
+  roleInfoFromRelation,
+} from "./roles.js";
+import {
+  GRANT_RESULT_KEY,
+  newAuthorizeOwnerAssignmentStep,
+  newCleanupResourceStep,
+  newGrantStep,
+  newKeepOneOwnerStep,
+  newRefuseServiceAccountMembershipChangeStep,
+  newRefuseServiceAccountOrgAccessStep,
+  newRefuseServiceAccountOwnerStep,
+  newRevokeOrgAccessStep,
+  newRevokeStep,
+  newValidateGrantableRoleStep,
+  orgAccessOwnerRoleChange,
+  specOwnerRoleChange,
+} from "./steps.js";
+import type { GrantStore } from "./store.js";
+import {
+  refsOf,
+  requireKnownPrincipalKind,
+  requireKnownResourceKind,
+  requireWellFormedTriple,
+} from "./wire-refusals.js";
+
+/**
+ * The Java pre-migration `_self` principal alias — rejected with a
+ * pointer at checkMyPermission (kept only for the precise error copy).
+ */
+const SELF_PRINCIPAL_ID = "_self";
+
+/** The reads this controller makes of the identity-account port: the caller's account and display enrichment. */
+export type GrantAccounts = AccountsByCaller & AccountsByIds;
+
+export interface GrantControllerDeps {
+  readonly grantPath: GrantPath;
+  readonly policies: GrantStore;
+  readonly accounts: GrantAccounts;
+  /** The ONE composed Authorizer — position 1 of every chain and every direct handler's `authorizeDirect`. */
+  readonly authorizer: Authorizer;
+  /** The composed grant scope, or open source's organization-only default (compose.ts installs it at the `??` site). */
+  readonly grantScope: GrantScope;
+  /** The composed query engine — undefined = the tuple-half RPCs refuse UNIMPLEMENTED. */
+  readonly queries: AuthorizationQueryEngine | undefined;
+  /**
+   * The credential binding (authorization/credential-binding.ts): the two
+   * self-query lanes ask the engine, which takes no caller, so a bound
+   * person's answers are narrowed here to what the credential may reach.
+   */
+  readonly credentialBinding: CredentialBinding;
+  /** The composed principal display — undefined = a non-person grantee renders in the id fallback shape. */
+  readonly principalDisplay: PrincipalDisplay | undefined;
+  /**
+   * The merged gate steps; `create` splices
+   * `iam-policy-create:pre-side-effect-gate` and `listAccessHistory`
+   * `iam-policy-list-access-history:pre-read`.
+   */
+  readonly gateSteps: ResolvedGateSteps;
+  /**
+   * The served edition — `checkMyPermission`'s first arm reads a kind's
+   * tier against it, and `listAccessHistory` is refused on open source,
+   * which keeps no history (access-history.ts).
+   */
+  readonly edition: ServerEdition;
+  /**
+   * The composition's access-history window in days
+   * (`ServerExtension.accessHistoryRetentionDays`), which every page of
+   * the history states; undefined when none is declared (kept for good).
+   */
+  readonly retentionDays: number | undefined;
+  readonly logger: Logger;
+}
+
+/** Registers both IamPolicy services on the router (routes stage). */
+export function registerGrantServices(
+  router: ConnectRouter,
+  deps: GrantControllerDeps,
+): void {
+  const displayResolver = newAccountDisplayResolver(deps.accounts);
+  const command = GrantCommandController.method;
+
+  router.service(GrantCommandController, {
+    create: (spec, ctx) => createGrant(deps, spec, ctx),
+    delete: (spec, ctx) => deleteGrant(deps, spec, ctx),
+    bootstrapGrant: (spec, ctx) => {
+      guardSystemRpc(command.bootstrapGrant, callerIdentityOf(ctx));
+      return grantThroughChain(
+        deps,
+        command.bootstrapGrant,
+        spec,
+        ctx,
+        false,
+        "structural",
+      );
+    },
+    cleanupResourceGrants: (ref, ctx) => {
+      guardSystemRpc(command.cleanupResourceGrants, callerIdentityOf(ctx));
+      return cleanupResourceGrants(deps, ref, ctx);
+    },
+    revokeOrgAccess: (input, ctx) =>
+      revokeOrgAccess(deps, command.revokeOrgAccess, input, ctx, true),
+    bootstrapRevokeOrgAccess: (input, ctx) => {
+      guardSystemRpc(command.bootstrapRevokeOrgAccess, callerIdentityOf(ctx));
+      return revokeOrgAccess(
+        deps,
+        command.bootstrapRevokeOrgAccess,
+        input,
+        ctx,
+        false,
+      );
+    },
+  });
+
+  router.service(GrantQueryController, {
+    get: (id, ctx) => get(deps, id, ctx),
+    checkMyPermission: (input, ctx) => checkMyPermission(deps, input, ctx),
+    checkAuthorization: (input, ctx) => checkAuthorization(deps, input, ctx),
+    listAuthorizedResourceIds: (input, ctx) =>
+      listAuthorizedResourceIds(deps, input, ctx),
+    listAuthorizedPrincipalIds: (input, ctx) =>
+      listAuthorizedPrincipalIds(deps, input, ctx),
+    listResourceAccessByPrincipal: (input, ctx) =>
+      listResourceAccessByPrincipal(deps, displayResolver, input, ctx),
+    getPrincipalResourceRoles: (input, ctx) =>
+      getPrincipalResourceRoles(deps, input, ctx),
+    getPrincipalsCount: (input, ctx) => getPrincipalsCount(deps, input, ctx),
+    listAccessHistory: (input, ctx) =>
+      listAccessHistory(deps, displayResolver, input, ctx),
+  });
+}
+
+function kindOf(ctx: HandlerContext): ApiResourceKind {
+  return ctx.values.get(apiResourceKindKey);
+}
+
+/**
+ * The admission rule of the three system RPCs: the platform's own
+ * pipelines only, refused with the RPC's own annotation copy — the proto
+ * owns that sentence, so no second pinned copy exists here.
+ */
+function guardSystemRpc(method: DescMethod, caller: CallerIdentity): void {
+  if (isPlatformPipelineCaller(caller)) {
+    return;
+  }
+  throw new ConnectError(
+    getOption(method, rpcAuthorizationConfig).errorMsg,
+    Code.PermissionDenied,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// The command chains
+// ---------------------------------------------------------------------------
+
+/**
+ * `create`: the wire refusal, then Authorize → ValidateProto →
+ * RefuseServiceAccountMembershipChange → ValidateGrantableRole →
+ * RefuseServiceAccountOwner → AuthorizeOwnerAssignment →
+ * [iam-policy-create:pre-side-effect-gate] → Grant.
+ */
+function createGrant(
+  deps: GrantControllerDeps,
+  spec: GrantSpec,
+  ctx: HandlerContext,
+): Promise<Grant> {
+  requireWellFormedTriple(spec);
+  return grantThroughChain(
+    deps,
+    GrantCommandController.method.create,
+    spec,
+    ctx,
+    true,
+    "grant",
+  );
+}
+
+/**
+ * The grant chain both `create` and `bootstrapPolicy` run; only the user
+ * lane validates the role, asks for an owner's authority when it grants
+ * owner, and runs the create gate slot — bootstrap writes structural
+ * relations no scope would admit and no edition gates. `cause` is the
+ * lane's door, recorded with every access row it writes.
+ */
+async function grantThroughChain(
+  deps: GrantControllerDeps,
+  method: DescMethod,
+  spec: GrantSpec,
+  ctx: HandlerContext,
+  validateRole: boolean,
+  cause: GrantChangeCause,
+): Promise<Grant> {
+  const reqCtx = new RequestContext(
+    GrantSpecSchema,
+    spec,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  const pipeline = newPipeline<typeof GrantSpecSchema>(
+    `iampolicy-${method.localName}`,
+    deps.logger,
+  )
+    .addStep(newAuthorizeStep(method, deps.authorizer))
+    .addStep(newValidateProtoStep());
+  if (validateRole) {
+    pipeline.addStep(newRefuseServiceAccountMembershipChangeStep(deps.accounts));
+    pipeline.addStep(newValidateGrantableRoleStep(deps.grantScope));
+    pipeline.addStep(newRefuseServiceAccountOwnerStep(deps.accounts));
+    pipeline.addStep(
+      newAuthorizeOwnerAssignmentStep(deps.authorizer, specOwnerRoleChange),
+    );
+    for (const step of stepsForSlot<typeof GrantSpecSchema>(
+      deps.gateSteps,
+      "iam-policy-create:pre-side-effect-gate",
+    )) {
+      pipeline.addStep(step);
+    }
+  }
+  await pipeline
+    .addStep(newGrantStep(deps.grantPath, cause))
+    .build()
+    .execute(reqCtx);
+  return grantResultOf(reqCtx, method);
+}
+
+/**
+ * `delete`: the wire refusal, then Authorize →
+ * RefuseServiceAccountMembershipChange → ValidateProto →
+ * AuthorizeOwnerAssignment → KeepOneOwner → Revoke; the revoked row, or the
+ * default instance.
+ */
+async function deleteGrant(
+  deps: GrantControllerDeps,
+  spec: GrantSpec,
+  ctx: HandlerContext,
+): Promise<Grant> {
+  requireWellFormedTriple(spec);
+  const method = GrantCommandController.method.delete;
+  const reqCtx = new RequestContext(
+    GrantSpecSchema,
+    spec,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<typeof GrantSpecSchema>("iampolicy-delete", deps.logger)
+    .addStep(newAuthorizeStep(method, deps.authorizer))
+    .addStep(newRefuseServiceAccountMembershipChangeStep(deps.accounts))
+    .addStep(newValidateProtoStep())
+    .addStep(
+      newAuthorizeOwnerAssignmentStep(deps.authorizer, specOwnerRoleChange),
+    )
+    .addStep(newKeepOneOwnerStep(deps.policies, specOwnerRoleChange))
+    .addStep(newRevokeStep(deps.grantPath))
+    .build()
+    .execute(reqCtx);
+  return grantResultOf(reqCtx, method);
+}
+
+/**
+ * `revokeOrgAccess` and its system twin share one chain: Authorize →
+ * ValidateProto → RevokeOrgAccess, and on the caller lane
+ * AuthorizeOwnerAssignment → KeepOneOwner before the revoke. The twin's
+ * platform-pipeline callers hold no organization role, and removing an
+ * account is theirs to decide.
+ */
+async function revokeOrgAccess(
+  deps: GrantControllerDeps,
+  method: DescMethod,
+  input: RevokeOrgAccessInput,
+  ctx: HandlerContext,
+  guardOwners: boolean,
+): Promise<Empty> {
+  const reqCtx = new RequestContext(
+    RevokeOrgAccessInputSchema,
+    input,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  const pipeline = newPipeline<typeof RevokeOrgAccessInputSchema>(
+    `iampolicy-${method.localName}`,
+    deps.logger,
+  )
+    .addStep(newAuthorizeStep(method, deps.authorizer))
+    .addStep(newRefuseServiceAccountOrgAccessStep(deps.accounts))
+    .addStep(newValidateProtoStep());
+  if (guardOwners) {
+    const ownerRoleChange = orgAccessOwnerRoleChange(deps.policies);
+    pipeline
+      .addStep(newAuthorizeOwnerAssignmentStep(deps.authorizer, ownerRoleChange))
+      .addStep(newKeepOneOwnerStep(deps.policies, ownerRoleChange));
+  }
+  await pipeline
+    .addStep(newRevokeOrgAccessStep(deps.grantPath))
+    .build()
+    .execute(reqCtx);
+  return create(EmptySchema);
+}
+
+async function cleanupResourceGrants(
+  deps: GrantControllerDeps,
+  ref: ApiResourceRef,
+  ctx: HandlerContext,
+): Promise<Empty> {
+  const method = GrantCommandController.method.cleanupResourceGrants;
+  const reqCtx = new RequestContext(
+    ApiResourceRefSchema,
+    ref,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<typeof ApiResourceRefSchema>(
+    "iampolicy-cleanupResourcePolicies",
+    deps.logger,
+  )
+    .addStep(newAuthorizeStep(method, deps.authorizer))
+    .addStep(newValidateProtoStep())
+    .addStep(newCleanupResourceStep(deps.grantPath))
+    .build()
+    .execute(reqCtx);
+  return create(EmptySchema);
+}
+
+function grantResultOf<Desc extends DescMessage>(
+  reqCtx: RequestContext<Desc>,
+  method: DescMethod,
+): Grant {
+  const result = reqCtx.get(GRANT_RESULT_KEY);
+  if (result === undefined) {
+    throw internalError(
+      new Error(`${method.localName} pipeline completed without a policy`),
+      "policy not found in context",
+    );
+  }
+  return result as Grant;
+}
+
+// ---------------------------------------------------------------------------
+// The direct query handlers
+// ---------------------------------------------------------------------------
+
+/** `get`: load THEN authorize — the target is the row's resource. */
+async function get(
+  deps: GrantControllerDeps,
+  id: GrantId,
+  ctx: HandlerContext,
+): Promise<Grant> {
+  const policy = await read(
+    () => deps.policies.findById(id.value),
+    "failed to load IAM policy",
+  );
+  if (policy === undefined) {
+    throw new ConnectError(grantNotFoundMessage(id.value), Code.NotFound);
+  }
+  // A stored row is not wire input: its kind resolves without a refusal
+  // sentence (a legacy row with an unknown kind is the Authorizer's to
+  // deny, as position 1 would), and its id is the target.
+  const { resource } = refsOf(specOfRow(policy));
+  await authorizeDirect(
+    GrantQueryController.method.get,
+    deps.authorizer,
+    callerIdentityOf(ctx),
+    id,
+    { resourceKind: kindByEnumName(resource.kind), resourceId: resource.id },
+  );
+  return policy;
+}
+
+/** The one definition — see the module header for the order and its reasons. */
+async function checkMyPermission(
+  deps: GrantControllerDeps,
+  input: CheckMyPermissionInput,
+  ctx: HandlerContext,
+): Promise<CheckAuthorizationResult> {
+  const caller = requireAuthenticated(callerIdentityOf(ctx));
+  const permission = permissionByEnumName(input.relation);
+  if (permission === undefined) {
+    throw new ConnectError(
+      unknownPermissionMessage(input.relation),
+      Code.InvalidArgument,
+    );
+  }
+  const resource = requireRef(input.resource);
+  const resourceKind = requireKnownResourceKind(resource.kind);
+
+  if (input.contextualGrants.length > 0) {
+    const engine = requireQueryEngine(deps);
+    const principal = create(ApiResourceRefSchema, {
+      kind: kindEnumName(ApiResourceKind.identity_account),
+      id: await callerPrincipalId(deps, caller),
+    });
+    const policy = create(GrantSpecSchema, {
+      principal,
+      relation: input.relation,
+      resource,
+    });
+    if (!(await bindingReaches(deps, caller, policy))) {
+      return create(CheckAuthorizationResultSchema, { isAuthorized: false });
+    }
+    const allowed = await engine.check(policy, input.contextualGrants);
+    return create(CheckAuthorizationResultSchema, { isAuthorized: allowed });
+  }
+
+  // Arm 1: nobody holds a permission on a kind this edition does not serve.
+  if (!kindServedByEdition(resourceKind, deps.edition)) {
+    return create(CheckAuthorizationResultSchema, { isAuthorized: false });
+  }
+  // Arm 2: a grant target outside the composed scope is nobody's to grant.
+  if (
+    permission === IamPermission.can_grant_access &&
+    deps.grantScope.grantableRoles(resourceKind).length === 0
+  ) {
+    return create(CheckAuthorizationResultSchema, { isAuthorized: false });
+  }
+  // Arm 3: the composed Authorizer's answer, an outage never softened.
+  const decision = await evaluateAuthorizer(deps.authorizer, caller, {
+    permission,
+    resourceKind,
+    resourceId: resource.id,
+  });
+  switch (decision.kind) {
+    case "allow":
+      return create(CheckAuthorizationResultSchema, { isAuthorized: true });
+    case "deny":
+    case "not-found":
+      return create(CheckAuthorizationResultSchema, { isAuthorized: false });
+    case "unavailable":
+      throw internalError(decision.cause, AUTHORIZATION_UNAVAILABLE_MESSAGE);
+    default: {
+      const exhaustive: never = decision;
+      throw internalError(
+        new Error(`unknown decision ${JSON.stringify(exhaustive)}`),
+        AUTHORIZATION_UNAVAILABLE_MESSAGE,
+      );
+    }
+  }
+}
+
+async function checkAuthorization(
+  deps: GrantControllerDeps,
+  input: CheckAuthorizationInput,
+  ctx: HandlerContext,
+): Promise<CheckAuthorizationResult> {
+  const caller = requireAuthenticated(callerIdentityOf(ctx));
+  const policy = requireInputGrant(input.grant);
+  await enforcePrincipalTrust(deps, caller, policy.principal);
+  requireWellFormedTriple(policy);
+  const engine = requireQueryEngine(deps);
+  if (!(await bindingReaches(deps, caller, policy))) {
+    return create(CheckAuthorizationResultSchema, { isAuthorized: false });
+  }
+  const allowed = await engine.check(policy, input.contextualGrants);
+  return create(CheckAuthorizationResultSchema, { isAuthorized: allowed });
+}
+
+/**
+ * Whether the caller's credential may reach the policy's resource at all:
+ * always for an unbound caller; for a bound one, the binding's verdict
+ * (authorization/credential-binding.ts), so the engine is never asked about
+ * another organization's resource on a bound person's behalf. Every lane
+ * that hands the engine a caller's question asks this first: the engine
+ * takes no caller and cannot be bound where it is composed. The relation
+ * is passed as asked, so the one cross-organization path (a blueprint
+ * the bound organization's parent shares with its children) answers only to the permission names that
+ * read or run it; a role relation such as `viewer` on such a blueprint
+ * answers false for a bound caller, the narrower answer.
+ */
+async function bindingReaches(
+  deps: GrantControllerDeps,
+  caller: CallerIdentity,
+  policy: GrantSpec,
+): Promise<boolean> {
+  try {
+    const verdict = await deps.credentialBinding.verdict(caller, {
+      kind: kindByEnumName(policy.resource?.kind ?? ""),
+      id: policy.resource?.id ?? "",
+      permission: policy.relation,
+    });
+    return verdict !== "outside";
+  } catch (error) {
+    throw internalError(error, AUTHORIZATION_UNAVAILABLE_MESSAGE);
+  }
+}
+
+/** The skip lane with no resource: trust on the principal, then the engine. */
+async function listAuthorizedResourceIds(
+  deps: GrantControllerDeps,
+  input: ListAuthorizedResourceIdsInput,
+  ctx: HandlerContext,
+) {
+  const caller = requireAuthenticated(callerIdentityOf(ctx));
+  const principal = requireRef(input.principal);
+  await enforcePrincipalTrust(deps, caller, principal);
+  requireKnownPrincipalKind(principal.kind);
+  requireKnownResourceKind(input.resourceKind);
+  const engine = requireQueryEngine(deps);
+  const resourceIds = await engine.listResourceIds(
+    principal,
+    input.relation,
+    input.resourceKind,
+    input.contextualGrants,
+  );
+  let reachable: ReadonlySet<string>;
+  try {
+    reachable = await deps.credentialBinding.narrowIds(
+      caller,
+      kindByEnumName(input.resourceKind),
+      new Set(resourceIds),
+      input.relation,
+    );
+  } catch (error) {
+    throw internalError(error, AUTHORIZATION_UNAVAILABLE_MESSAGE);
+  }
+  return create(AuthorizedResourceIdsListSchema, {
+    resourceIds: resourceIds.filter((id) => reachable.has(id)),
+  });
+}
+
+async function listAuthorizedPrincipalIds(
+  deps: GrantControllerDeps,
+  input: ListAuthorizedPrincipalIdsInput,
+  ctx: HandlerContext,
+) {
+  const resource = requireRef(input.resource);
+  requireKnownResourceKind(resource.kind);
+  requireKnownPrincipalKind(input.principalKind);
+  await authorizeDirect(
+    GrantQueryController.method.listAuthorizedPrincipalIds,
+    deps.authorizer,
+    callerIdentityOf(ctx),
+    input,
+  );
+  const engine = requireQueryEngine(deps);
+  const principalIds = await engine.listPrincipalIds(
+    resource,
+    input.relation,
+    input.principalKind,
+    input.contextualGrants,
+  );
+  return create(AuthorizedPrincipalIdsListSchema, {
+    principalIds: [...principalIds],
+  });
+}
+
+async function listResourceAccessByPrincipal(
+  deps: GrantControllerDeps,
+  displayResolver: ReturnType<typeof newAccountDisplayResolver>,
+  input: ListResourceAccessInput,
+  ctx: HandlerContext,
+) {
+  const resource = requireRef(input.resource);
+  requireKnownResourceKind(resource.kind);
+  await authorizeDirect(
+    GrantQueryController.method.listResourceAccessByPrincipal,
+    deps.authorizer,
+    callerIdentityOf(ctx),
+    input,
+  );
+  const entries = await read(async () => {
+    const hierarchy = await resolveHierarchy(
+      deps.policies,
+      resource.kind,
+      resource.id,
+      input.includeInherited,
+    );
+    return buildPrincipalAccessList(
+      deps.policies,
+      displayResolver,
+      deps.principalDisplay,
+      hierarchy,
+    );
+  }, "failed to list resource access");
+  return create(ResourceAccessByPrincipalListSchema, {
+    entries: [...entries],
+  });
+}
+
+async function getPrincipalResourceRoles(
+  deps: GrantControllerDeps,
+  input: PrincipalResourceInput,
+  ctx: HandlerContext,
+) {
+  const resource = requireRef(input.resource);
+  const principal = requireRef(input.principal);
+  requireKnownResourceKind(resource.kind);
+  requireKnownPrincipalKind(principal.kind);
+  await authorizeDirect(
+    GrantQueryController.method.getPrincipalResourceRoles,
+    deps.authorizer,
+    callerIdentityOf(ctx),
+    input,
+  );
+  const rows = await read(
+    () =>
+      deps.policies.findByPrincipalAndResource(
+        principal.kind,
+        principal.id,
+        resource.kind,
+        resource.id,
+      ),
+    "failed to load principal roles",
+  );
+  const roles = rows
+    .map((policy) => policy.spec?.relation ?? "")
+    .filter(isAssignableRole)
+    .map((relation) =>
+      roleInfoFromRelation(relation, kindByEnumName(resource.kind)),
+    );
+  return create(PrincipalResourceRolesSchema, { roles });
+}
+
+async function getPrincipalsCount(
+  deps: GrantControllerDeps,
+  input: GetPrincipalsCountInput,
+  ctx: HandlerContext,
+) {
+  // The wire's "" means any principal kind (the port's `undefined`).
+  const principalKind =
+    input.principalKind === "" ? undefined : input.principalKind;
+  if (principalKind !== undefined) {
+    requireKnownPrincipalKind(principalKind);
+  }
+  await authorizeDirect(
+    GrantQueryController.method.getPrincipalsCount,
+    deps.authorizer,
+    callerIdentityOf(ctx),
+    input,
+  );
+  const count = await read(
+    () =>
+      deps.policies.countDistinctPrincipalsByResource(
+        kindEnumName(ApiResourceKind.organization),
+        input.org,
+        principalKind,
+        assignableRelations(),
+      ),
+    "failed to count principals",
+  );
+  return create(PrincipalsCountSchema, { count });
+}
+
+// ---------------------------------------------------------------------------
+// Shared rules
+// ---------------------------------------------------------------------------
+
+/** Java's authenticated-caller precondition on the check handlers. */
+function requireAuthenticated(caller: CallerIdentity): CallerIdentity {
+  if (caller.identityId === "") {
+    throw new ConnectError(
+      AUTHENTICATION_REQUIRED_MESSAGE,
+      Code.Unauthenticated,
+    );
+  }
+  return caller;
+}
+
+/**
+ * The principal the caller IS, for the engine and the trust rule: the
+ * account `accountForCaller` resolves (the trusted-local stamp is an
+ * email; a composition verifier that ran before any row existed stamps
+ * a subject), else the stamped identity — an unprovisioned subject
+ * matches no tuple, which is the cloud's answer for it too.
+ */
+async function callerPrincipalId(
+  deps: GrantControllerDeps,
+  caller: CallerIdentity,
+): Promise<string> {
+  const account = await read(
+    () => accountForCaller(deps.accounts, caller),
+    "failed to resolve the caller's account",
+  );
+  return account?.metadata?.id ?? caller.identityId;
+}
+
+/**
+ * The Java EnforcePrincipalTrust rules in order: the platform's own
+ * pipelines (`machine`, `internal`) may ask about any principal; a user
+ * only about their own account.
+ */
+async function enforcePrincipalTrust(
+  deps: GrantControllerDeps,
+  caller: CallerIdentity,
+  principal: ApiResourceRef | undefined,
+): Promise<void> {
+  if (caller.callerClass === "machine" || caller.callerClass === "internal") {
+    return;
+  }
+  if (principal?.kind !== kindEnumName(ApiResourceKind.identity_account)) {
+    throw new ConnectError(
+      "Only self identity_account permission checks are supported",
+      Code.InvalidArgument,
+    );
+  }
+  const requestedId = principal.id;
+  if (requestedId === "" || requestedId === SELF_PRINCIPAL_ID) {
+    throw new ConnectError(
+      `The '${SELF_PRINCIPAL_ID}' principal alias is not supported — ` +
+        "use checkMyPermission for self permission checks",
+      Code.InvalidArgument,
+    );
+  }
+  if (requestedId !== (await callerPrincipalId(deps, caller))) {
+    throw new ConnectError(
+      "Principal must be the authenticated caller",
+      Code.PermissionDenied,
+    );
+  }
+}
+
+/** The tuple-half capability, or the edition's UNIMPLEMENTED — never INTERNAL. */
+function requireQueryEngine(
+  deps: GrantControllerDeps,
+): AuthorizationQueryEngine {
+  if (deps.queries === undefined) {
+    throw new ConnectError(
+      AUTHORIZATION_QUERIES_UNIMPLEMENTED_MESSAGE,
+      Code.Unimplemented,
+    );
+  }
+  return deps.queries;
+}
+
+/** Boundary-validated required refs — absence here is a contract bug. */
+function requireRef(ref: ApiResourceRef | undefined): ApiResourceRef {
+  if (ref === undefined) {
+    throw internalError(
+      new Error("required reference missing after boundary validation"),
+      "required reference missing after boundary validation",
+    );
+  }
+  return ref;
+}
+
+/** Boundary-validated required policy input — absence here is a contract bug. */
+function requireInputGrant(policy: GrantSpec | undefined): GrantSpec {
+  if (policy === undefined) {
+    throw internalError(
+      new Error("required policy missing after boundary validation"),
+      "required policy missing after boundary validation",
+    );
+  }
+  return policy;
+}
+
+/** A stored row's spec — a row without one is corrupt storage, an infrastructure fault. */
+function specOfRow(policy: Grant): GrantSpec {
+  if (policy.spec === undefined) {
+    throw internalError(
+      new Error(
+        `policy ${policy.metadata?.id ?? "?"} has no spec — corrupt row`,
+      ),
+      "failed to load IAM policy",
+    );
+  }
+  return policy.spec;
+}
+
+/** A direct handler's store read: a fault is INTERNAL with a static message, never "not found". */
+async function read<T>(
+  operation: () => Promise<T>,
+  message: string,
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    throw internalError(error, message);
+  }
+}

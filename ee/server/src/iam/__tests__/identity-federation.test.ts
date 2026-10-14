@@ -40,7 +40,7 @@ import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/ap
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import {
   CreateFederatedAccountInputSchema,
   DeprovisionFederatedAccountInputSchema,
@@ -53,7 +53,7 @@ import { createLogger, DuplicateAccountError } from "@stigmer/server";
 
 import type { IdentityAccountService, NewAccountRequest } from "../account/port.js";
 import { newIdentityFederation } from "../identity-federation.js";
-import type { IamPolicyGrantPathClient } from "../policy/grant-path-client.js";
+import type { GrantPathClient } from "../grant/grant-path-client.js";
 
 const CALLER: CallerIdentity = {
   identityId: "ida_platform_admin",
@@ -210,7 +210,7 @@ function harness(
       recorded.revoked.push({ accountId, org });
       return Promise.resolve();
     },
-  } as unknown as IamPolicyGrantPathClient;
+  } as unknown as GrantPathClient;
   // The provider a reference's id names: gone after the first read when
   // asked, and so when another provider took its slug (a new id).
   const providers = {

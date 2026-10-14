@@ -26,16 +26,16 @@
  */
 import { describe, expect, it } from "vitest";
 
-import type { IamPolicyStore } from "../../domain/iampolicy/store.js";
+import type { GrantStore } from "../../domain/grant/store.js";
 import type { AuthorizationQueryEngine } from "../authorization-queries.js";
-import type { PolicyGrantScope } from "../policy-grant-scope.js";
+import type { GrantScope } from "../policy-grant-scope.js";
 import type { PrincipalDisplay } from "../principal-display.js";
 import { resolveExtensions } from "../registry.js";
 import type { ResourceAuthorizationLifecycle } from "../resource-authorization.js";
 
 const unimplemented = () => Promise.reject(new Error("not exercised here"));
 
-const store: IamPolicyStore = {
+const store: GrantStore = {
   save: unimplemented,
   deleteById: unimplemented,
   findById: unimplemented,
@@ -51,7 +51,7 @@ const store: IamPolicyStore = {
   lastChangeSequence: unimplemented,
 };
 
-const scope: PolicyGrantScope = {
+const scope: GrantScope = {
   grantableRoles: () => [],
 };
 
@@ -63,21 +63,21 @@ const engine: AuthorizationQueryEngine = {
 
 describe("the iamPolicyStore driver point", () => {
   it("is undefined with no extensions — the OSS adapter serves", () => {
-    expect(resolveExtensions([]).drivers.iamPolicyStore).toBeUndefined();
+    expect(resolveExtensions([]).drivers.grantStore).toBeUndefined();
   });
 
   it("carries the one registered instance through", () => {
     const resolved = resolveExtensions([
-      { name: "cloud-iam", drivers: { iamPolicyStore: store } },
+      { name: "cloud-iam", drivers: { grantStore: store } },
     ]);
-    expect(resolved.drivers.iamPolicyStore).toBe(store);
+    expect(resolved.drivers.grantStore).toBe(store);
   });
 
   it("throws on a second registration, naming both units", () => {
     expect(() =>
       resolveExtensions([
-        { name: "store-a", drivers: { iamPolicyStore: store } },
-        { name: "store-b", drivers: { iamPolicyStore: store } },
+        { name: "store-a", drivers: { grantStore: store } },
+        { name: "store-b", drivers: { grantStore: store } },
       ]),
     ).toThrowError(
       /extension 'store-b' registers an IamPolicyStore, but 'store-a' already did/,
@@ -87,21 +87,21 @@ describe("the iamPolicyStore driver point", () => {
 
 describe("the policyGrantScope driver point", () => {
   it("is undefined with no extensions — open source grants on organizations only", () => {
-    expect(resolveExtensions([]).drivers.policyGrantScope).toBeUndefined();
+    expect(resolveExtensions([]).drivers.grantScope).toBeUndefined();
   });
 
   it("carries the one registered instance through", () => {
     const resolved = resolveExtensions([
-      { name: "cloud-iam", drivers: { policyGrantScope: scope } },
+      { name: "cloud-iam", drivers: { grantScope: scope } },
     ]);
-    expect(resolved.drivers.policyGrantScope).toBe(scope);
+    expect(resolved.drivers.grantScope).toBe(scope);
   });
 
   it("throws on a second registration, naming both units", () => {
     expect(() =>
       resolveExtensions([
-        { name: "scope-a", drivers: { policyGrantScope: scope } },
-        { name: "scope-b", drivers: { policyGrantScope: scope } },
+        { name: "scope-a", drivers: { grantScope: scope } },
+        { name: "scope-b", drivers: { grantScope: scope } },
       ]),
     ).toThrowError(
       /extension 'scope-b' registers a PolicyGrantScope, but 'scope-a' already did/,
@@ -169,8 +169,8 @@ describe("the widened ResourceAuthorizationLifecycle contract", () => {
   it("a lifecycle carrying the two policy hooks resolves with both intact — the cloud's tuple driver", () => {
     const tupleDriver: ResourceAuthorizationLifecycle = {
       ...resourceHooks,
-      onPolicyGranted: unimplemented,
-      onPolicyRevoked: unimplemented,
+      onGranted: unimplemented,
+      onRevoked: unimplemented,
     };
     const resolved = resolveExtensions([
       {
@@ -180,10 +180,10 @@ describe("the widened ResourceAuthorizationLifecycle contract", () => {
     ]);
     expect(resolved.drivers.resourceAuthorizationLifecycle).toBe(tupleDriver);
     expect(
-      resolved.drivers.resourceAuthorizationLifecycle?.onPolicyGranted,
+      resolved.drivers.resourceAuthorizationLifecycle?.onGranted,
     ).toBe(unimplemented);
     expect(
-      resolved.drivers.resourceAuthorizationLifecycle?.onPolicyRevoked,
+      resolved.drivers.resourceAuthorizationLifecycle?.onRevoked,
     ).toBe(unimplemented);
   });
 
@@ -197,7 +197,7 @@ describe("the widened ResourceAuthorizationLifecycle contract", () => {
     ]);
     expect(resolved.drivers.resourceAuthorizationLifecycle).toBe(minimal);
     expect(
-      resolved.drivers.resourceAuthorizationLifecycle?.onPolicyGranted,
+      resolved.drivers.resourceAuthorizationLifecycle?.onGranted,
     ).toBeUndefined();
   });
 });

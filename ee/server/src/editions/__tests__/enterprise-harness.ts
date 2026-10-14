@@ -28,13 +28,13 @@ import type { Pool } from "pg";
 
 import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import {
   ApiResourceRefSchema,
-  IamPolicySpecSchema,
+  GrantSpecSchema,
   type ApiResourceRef,
-  type IamPolicySpec,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+  type GrantSpec,
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
 import type { FederationIssuer, FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
@@ -276,8 +276,8 @@ export function ref(kind: string, id: string): ApiResourceRef {
   return create(ApiResourceRefSchema, { kind, id });
 }
 
-export function grant(principal: ApiResourceRef, relation: string, resource: ApiResourceRef): IamPolicySpec {
-  return create(IamPolicySpecSchema, { principal, relation, resource });
+export function grant(principal: ApiResourceRef, relation: string, resource: ApiResourceRef): GrantSpec {
+  return create(GrantSpecSchema, { principal, relation, resource });
 }
 
 /** The refusal `work` ends in. */
@@ -333,10 +333,10 @@ export async function keysOf(server: ComposedServer, accountId: string): Promise
 }
 
 /** How many policy rows name `id` as an identity account, principal or resource. */
-export async function policyRowsNaming(server: ComposedServer, id: string): Promise<number> {
-  const rows = await server.store.listResources(ApiResourceKind.iam_policy);
+export async function grantRowsNaming(server: ComposedServer, id: string): Promise<number> {
+  const rows = await server.store.listResources(ApiResourceKind.grant);
   return rows
-    .map((data) => fromBinary(IamPolicySchema, data))
+    .map((data) => fromBinary(GrantSchema, data))
     .filter(
       (policy) =>
         (policy.spec?.principal?.kind === "identity_account" && policy.spec.principal.id === id) ||

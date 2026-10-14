@@ -57,8 +57,8 @@ import { createClient } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
@@ -67,7 +67,7 @@ import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/
 import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";
 import type { ComposedServer } from "../../boot/compose.js";
-import { SERVER_ORGANIZATION_ROLES_KEY } from "../../domain/iampolicy/constants.js";
+import { SERVER_ORGANIZATION_ROLES_KEY } from "../../domain/grant/constants.js";
 import { accountIdFor } from "../../domain/identityaccount/constants.js";
 import {
   SINGLE_ORGANIZATION_SLUG,
@@ -115,9 +115,9 @@ async function serverOrganization(
 
 /** `principal:relation@organization|by:actor` per row, sorted: the whole role state of the store. */
 async function rolesIn(store: Store): Promise<ReadonlyArray<string>> {
-  const rows = await store.listResources(ApiResourceKind.iam_policy);
+  const rows = await store.listResources(ApiResourceKind.grant);
   return rows
-    .map((bytes) => fromBinary(IamPolicySchema, bytes))
+    .map((bytes) => fromBinary(GrantSchema, bytes))
     .map(
       (row) =>
         `${row.spec?.principal?.id}:${row.spec?.relation}@${row.spec?.resource?.id}` +
@@ -211,7 +211,7 @@ describe("roles on the server's organization (composed server, OIDC with no unit
   });
 
   it("boot 3: a role removed after the pass stays removed — a reboot hands nothing back", async () => {
-    await createClient(IamPolicyCommandController, asFirst()).revokeOrgAccess({
+    await createClient(GrantCommandController, asFirst()).revokeOrgAccess({
       identityAccountId: secondId(),
       org: "stigmer",
     });
@@ -423,7 +423,7 @@ describe("a sign-in install upgraded with its one organization (composed server,
       IdentityAccountCommandController,
       transportFor(port, fakeJwt(SECOND, "second@example.com")),
     ).provisionMyAccount({});
-    await createClient(IamPolicyCommandController, asFirst()).revokeOrgAccess({
+    await createClient(GrantCommandController, asFirst()).revokeOrgAccess({
       identityAccountId: secondId(),
       org: "acme",
     });
@@ -590,7 +590,7 @@ describe("a server that cannot make its organization (composed server, OIDC; its
       IdentityAccountCommandController,
       transportFor(port, fakeJwt(SECOND, "second@example.com")),
     ).provisionMyAccount({});
-    await createClient(IamPolicyCommandController, asFirst()).revokeOrgAccess({
+    await createClient(GrantCommandController, asFirst()).revokeOrgAccess({
       identityAccountId: secondId(),
       org: "acme",
     });

@@ -22,18 +22,18 @@ import { describe, expect, it } from "vitest";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 
-import { policyIdFor } from "../../domain/iampolicy/constants.js";
+import { grantIdFor } from "../../domain/grant/constants.js";
 import {
   FEDERATION_ISSUER_RENAME_V30,
   RUN_RENAME_V18,
   RUN_RENAME_V21,
-  rekeyedPolicy,
+  rekeyedGrant,
   renamedKindRow,
   unreadableKindRenameRowError,
 } from "../kind-rename.js";
-import { policyRow } from "./retired-instance-rows.js";
+import { grantRow } from "./retired-instance-rows.js";
 import {
   AGENT_RUN_NAMES,
   EXECUTION_NAMES,
@@ -79,9 +79,9 @@ describe.each([
 
   describe("rekeyedPolicy", () => {
     it("re-keys a grant on a run to the id its renamed triple derives", () => {
-      const rekeyed = rekeyedPolicy(
+      const rekeyed = rekeyedGrant(
         rename,
-        policyRow({
+        grantRow({
           id: "iamp_old",
           principal: "identity_account:ida_1",
           relation: "viewer",
@@ -89,31 +89,31 @@ describe.each([
         }),
       );
       expect(rekeyed).toBeDefined();
-      const migrated = fromBinary(IamPolicySchema, rekeyed!.data);
+      const migrated = fromBinary(GrantSchema, rekeyed!.data);
       expect(migrated.spec?.resource).toMatchObject({ kind: toKind, id: "aex_1" });
-      expect(rekeyed!.id).toBe(policyIdFor(migrated.spec!));
+      expect(rekeyed!.id).toBe(grantIdFor(migrated.spec!));
       expect(migrated.metadata?.id).toBe(rekeyed!.id);
       expect(rekeyed!.id).not.toBe("iamp_old");
     });
 
     it("re-keys a grant whose principal is a run", () => {
-      const rekeyed = rekeyedPolicy(
+      const rekeyed = rekeyedGrant(
         rename,
-        policyRow({
+        grantRow({
           id: "iamp_old",
           principal: `${fromKind}:aex_1`,
           relation: "viewer",
           resource: "session:ses_1",
         }),
       );
-      expect(fromBinary(IamPolicySchema, rekeyed!.data).spec?.principal?.kind).toBe(toKind);
+      expect(fromBinary(GrantSchema, rekeyed!.data).spec?.principal?.kind).toBe(toKind);
     });
 
     it("leaves a grant with no spec alone", () => {
       expect(
-        rekeyedPolicy(
+        rekeyedGrant(
           rename,
-          toBinary(IamPolicySchema, create(IamPolicySchema, { metadata: { id: "iamp_bare" } })),
+          toBinary(GrantSchema, create(GrantSchema, { metadata: { id: "iamp_bare" } })),
         ),
       ).toBeUndefined();
     });
@@ -121,9 +121,9 @@ describe.each([
     it("leaves a grant on another kind, or on the kind already renamed, alone", () => {
       for (const resource of ["agent:agt_1", `${toKind}:aex_1`]) {
         expect(
-          rekeyedPolicy(
+          rekeyedGrant(
             rename,
-            policyRow({ id: "iamp_other", principal: "identity_account:ida_1", relation: "viewer", resource }),
+            grantRow({ id: "iamp_other", principal: "identity_account:ida_1", relation: "viewer", resource }),
           ),
         ).toBeUndefined();
       }
@@ -174,12 +174,12 @@ describe("v30", () => {
   });
 
   it("re-keys a grant on an identity provider to the federation issuer's triple, keeping its id", () => {
-    const rekeyed = rekeyedPolicy(
+    const rekeyed = rekeyedGrant(
       FEDERATION_ISSUER_RENAME_V30,
-      policyRow({ id: "iamp_old", principal: "identity_account:ida_1", relation: "viewer", resource: "identity_provider:idp_1" }),
+      grantRow({ id: "iamp_old", principal: "identity_account:ida_1", relation: "viewer", resource: "identity_provider:idp_1" }),
     );
-    const migrated = fromBinary(IamPolicySchema, rekeyed!.data);
+    const migrated = fromBinary(GrantSchema, rekeyed!.data);
     expect(migrated.spec?.resource).toMatchObject({ kind: "federation_issuer", id: "idp_1" });
-    expect(rekeyed!.id).toBe(policyIdFor(migrated.spec!));
+    expect(rekeyed!.id).toBe(grantIdFor(migrated.spec!));
   });
 });

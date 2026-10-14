@@ -53,7 +53,7 @@ import {
   type AuthorizationQueryEngine,
   type Authorizer,
   type ChildOrganizations,
-  type ComposedIamPolicies,
+  type ComposedGrants,
   type ComposedIdentityAccounts,
   type ListReadScope,
   type ResourceAuthorizationLifecycle,
@@ -203,7 +203,7 @@ function rig(store: InMemoryIssuerStore = new InMemoryIssuerStore()): Rig {
     resourceAuthorizationLifecycle: LIFECYCLE,
     childOrganizations: refusingPort<ChildOrganizations>("childOrganizations"),
     identityAccounts: refusingPort<ComposedIdentityAccounts>("identityAccounts"),
-    iamPolicies: refusingPort<ComposedIamPolicies>("iamPolicies"),
+    grants: refusingPort<ComposedGrants>("iamPolicies"),
     inProcessTransport: organizations,
     resourceNames: inMemoryNames().resourceNames,
   });

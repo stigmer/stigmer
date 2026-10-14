@@ -20,7 +20,7 @@
 import { useCallback, useId, useRef, useState } from "react";
 import { getUserMessage } from "@stigmer/sdk";
 import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
-import { PermissionGate } from "../iam-policy/PermissionGate.js";
+import { PermissionGate } from "../grant/PermissionGate.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { useVaultSignIn } from "../vault/useVaultSignIn.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";

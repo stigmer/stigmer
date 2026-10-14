@@ -50,8 +50,8 @@ function makeAgent() {
 
 function permissionCheckOf(client: unknown) {
   return (
-    client as { iamPolicy: { checkMyPermission: ReturnType<typeof vi.fn> } }
-  ).iamPolicy.checkMyPermission;
+    client as { grant: { checkMyPermission: ReturnType<typeof vi.fn> } }
+  ).grant.checkMyPermission;
 }
 
 function askedBars(client: unknown): PermissionInput[] {

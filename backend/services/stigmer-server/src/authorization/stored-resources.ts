@@ -28,7 +28,7 @@ import type { Message } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import type { StoredResources } from "../domain/iampolicy/grant-path.js";
+import type { StoredResources } from "../domain/grant/grant-path.js";
 import { kindByEnumName } from "../pipeline/apiresource-meta.js";
 import { createdByOf } from "../pipeline/steps/authorization-facts.js";
 import { metadataOf } from "../pipeline/steps/shapes.js";

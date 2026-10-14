@@ -60,7 +60,7 @@ import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
 import { ALL_ORGANIZATIONS } from "../../extensions/organization-directory.js";
 import type { OrganizationDirectory } from "../../extensions/organization-directory.js";
-import type { IamPolicyGrantPath } from "../iampolicy/grant-path.js";
+import type { GrantPath } from "../grant/grant-path.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError } from "../../pipeline/errors.js";
@@ -181,7 +181,7 @@ export interface OrganizationControllerDeps {
   /** The composed slot registrations — this domain's create and delete slots. */
   readonly gateSteps: ResolvedGateSteps;
   /** The one grant path: the delete revokes the organization's rows through it before its row goes. */
-  readonly grantPath: IamPolicyGrantPath;
+  readonly grantPath: GrantPath;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The composed query directory — undefined = OSS single-tenant behavior. */

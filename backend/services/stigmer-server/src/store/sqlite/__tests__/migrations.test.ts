@@ -98,7 +98,7 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -138,7 +138,7 @@ import {
 import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
 import { ENVIRONMENT_RETIRED_PAGE_SIZE } from "../../environment-retired.js";
 import {
-  policyRow,
+  grantRow,
   retiredInstanceRow,
   retiredSessionRow,
   sessionBytes,
@@ -175,7 +175,7 @@ import {
 } from "../../__tests__/retired-workflow-rows.js";
 import { materializeGoFixture } from "./support.js";
 import { agentExecutionListIndex } from "../../../domain/run/list-index.js";
-import { iamPolicyListIndex } from "../../../domain/iampolicy/list-index.js";
+import { grantListIndex } from "../../../domain/grant/list-index.js";
 import { KIND_TABLES, KIND_RENAME_PAGE_SIZE } from "../../kind-rename.js";
 import {
   AGENT_RUN_NAMES,
@@ -184,7 +184,7 @@ import {
   RUN_RENAME_ORG,
   runBytes,
 } from "../../__tests__/run-rename-rows.js";
-import { policyIdFor } from "../../../domain/iampolicy/constants.js";
+import { grantIdFor } from "../../../domain/grant/constants.js";
 
 const cleanups: Array<() => void | Promise<void>> = [];
 
@@ -1188,7 +1188,7 @@ describe("v14: sessions name their agent and the agent instance rows leave", () 
       },
       onAgent,
     ]) {
-      insert(setup, "iam_policy", policy.id, policyRow(policy));
+      insert(setup, "iam_policy", policy.id, grantRow(policy));
       setup
         .prepare(
           `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('iam_policy', ?, 'principal', ?, '')`,
@@ -1214,7 +1214,7 @@ describe("v14: sessions name their agent and the agent instance rows leave", () 
       ).map((row) => row.id);
     expect(ids("resources")).toEqual(["iam_on_agent"]);
     expect(ids("resource_list_keys")).toEqual(["iam_on_agent"]);
-    expect(data(db, "iam_policy", "iam_on_agent")).toEqual(policyRow(onAgent));
+    expect(data(db, "iam_policy", "iam_on_agent")).toEqual(grantRow(onAgent));
     expect(count(db, "resource_audit", "iam_policy")).toBe(1);
   });
 
@@ -1583,7 +1583,7 @@ describe("v17: the workflow instance rows and the grants naming them leave", () 
 
   function seedGrants(db: DatabaseSync): void {
     for (const grant of [...retiredGrants, keptGrant]) {
-      insert(db, "iam_policy", grant.id, policyRow(grant));
+      insert(db, "iam_policy", grant.id, grantRow(grant));
       db.prepare(
         `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('iam_policy', ?, 'principal', ?, '')`,
       ).run(grant.id, grant.principal.split(":")[1] ?? "");
@@ -1607,16 +1607,16 @@ describe("v17: the workflow instance rows and the grants naming them leave", () 
     for (const table of ["resources", "resource_audit", "resource_list_keys"]) {
       expect(count(db, table, "workflow_instance")).toBe(0);
     }
-    const policyIds = (table: string) =>
+    const grantIds = (table: string) =>
       (
         db
           .prepare(`SELECT id FROM ${table} WHERE kind = 'iam_policy' ORDER BY id`)
           .all() as Array<{ id: string }>
       ).map((r) => r.id);
-    expect(policyIds("resources")).toEqual([keptGrant.id]);
-    expect(policyIds("resource_list_keys")).toEqual([keptGrant.id]);
+    expect(grantIds("resources")).toEqual([keptGrant.id]);
+    expect(grantIds("resource_list_keys")).toEqual([keptGrant.id]);
     expect(row(db, "iam_policy", keptGrant.id)).toEqual({
-      data: policyRow(keptGrant),
+      data: grantRow(keptGrant),
       updated_at: SEEDED_AT,
     });
     expect(count(db, "resource_audit", "iam_policy")).toBe(1);
@@ -1634,7 +1634,7 @@ describe("v17: the workflow instance rows and the grants naming them leave", () 
         setup,
         "iam_policy",
         id,
-        policyRow({
+        grantRow({
           id,
           principal: "identity_account:ida_1",
           relation: "viewer",
@@ -1665,7 +1665,7 @@ describe("v17: the workflow instance rows and the grants naming them leave", () 
     seedInstances(setup);
     // A retired grant ahead of the broken one in id order is deleted
     // first; the failure must take that delete back.
-    insert(setup, "iam_policy", "iam_a_retired", policyRow({ ...retiredGrants[0]!, id: "iam_a_retired" }));
+    insert(setup, "iam_policy", "iam_a_retired", grantRow({ ...retiredGrants[0]!, id: "iam_a_retired" }));
     insert(setup, "iam_policy", "iam_z_broken", new Uint8Array([0x22, 0xff]));
     setup.close();
 
@@ -1676,7 +1676,7 @@ describe("v17: the workflow instance rows and the grants naming them leave", () 
     );
     expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_17 - 1);
     expect(row(db, "iam_policy", "iam_a_retired").data).toEqual(
-      policyRow({ ...retiredGrants[0]!, id: "iam_a_retired" }),
+      grantRow({ ...retiredGrants[0]!, id: "iam_a_retired" }),
     );
     expect(count(db, "resources", "workflow_instance")).toBe(2);
   });
@@ -1708,7 +1708,7 @@ describe("v17: the workflow instance rows and the grants naming them leave", () 
       setup,
       "iam_policy",
       "iam_on_public",
-      policyRow({
+      grantRow({
         id: "iam_on_public",
         principal: "identity_account:ida_1",
         relation: "viewer",
@@ -1825,7 +1825,7 @@ describe("v18: agent executions are runs", () => {
       )
       .run(RUN_RENAME_ORG, SEEDED_AT);
     for (const grant of [runGrant, keptGrant]) {
-      insertPlain(setup, "iam_policy", grant.id, policyRow(grant));
+      insertPlain(setup, "iam_policy", grant.id, grantRow(grant));
       setup
         .prepare(
           `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('iam_policy', ?, 'principal', ?, '')`,
@@ -1836,7 +1836,7 @@ describe("v18: agent executions are runs", () => {
       .prepare(
         `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('iam_policy', ?, ?, '', '')`,
       )
-      .run(runGrant.id, policyRow(runGrant));
+      .run(runGrant.id, grantRow(runGrant));
     setup.close();
 
     const db = new DatabaseSync(dbPath);
@@ -1865,17 +1865,17 @@ describe("v18: agent executions are runs", () => {
 
     // The grant on the run moves to the id its renamed triple derives; its
     // history stays under the old id. The grant on the agent is untouched.
-    const rekeyedId = policyIdFor(
+    const rekeyedId = grantIdFor(
       fromBinary(
-        IamPolicySchema,
-        policyRow({ ...runGrant, resource: "agent_run:aex_1" }),
+        GrantSchema,
+        grantRow({ ...runGrant, resource: "agent_run:aex_1" }),
       ).spec!,
     );
     expect(row(db, "iam_policy", runGrant.id)).toBeUndefined();
-    const rekeyed = fromBinary(IamPolicySchema, row(db, "iam_policy", rekeyedId)!.data);
+    const rekeyed = fromBinary(GrantSchema, row(db, "iam_policy", rekeyedId)!.data);
     expect(rekeyed.metadata?.id).toBe(rekeyedId);
     expect(rekeyed.spec?.resource).toMatchObject({ kind: "agent_run", id: "aex_1" });
-    expect(row(db, "iam_policy", keptGrant.id)?.data).toEqual(policyRow(keptGrant));
+    expect(row(db, "iam_policy", keptGrant.id)?.data).toEqual(grantRow(keptGrant));
     expect(
       db
         .prepare(`SELECT resource_id FROM resource_audit WHERE kind = 'iam_policy'`)
@@ -1885,11 +1885,11 @@ describe("v18: agent executions are runs", () => {
     // The store the server opens (at the head, past v21) finds the run
     // through the key its list reads, and the grant through its principal
     // under the id v21 derived for it in turn.
-    const headId = policyIdFor(
-      fromBinary(IamPolicySchema, policyRow({ ...runGrant, resource: "run:aex_1" })).spec!,
+    const headId = grantIdFor(
+      fromBinary(GrantSchema, grantRow({ ...runGrant, resource: "run:aex_1" })).spec!,
     );
     const store = SqliteStore.open(dbPath, undefined, {
-      listIndexes: [agentExecutionListIndex, iamPolicyListIndex],
+      listIndexes: [agentExecutionListIndex, grantListIndex],
     });
     cleanups.push(() => store.close());
     const ids = async (
@@ -1899,8 +1899,8 @@ describe("v18: agent executions are runs", () => {
     ): Promise<string[]> =>
       (await store.queryResources(index, { anyKey: [{ name, value }] })).map((r) => r.id);
     expect(await ids(agentExecutionListIndex, "session", "ses_1")).toEqual(["aex_1"]);
-    expect(await ids(iamPolicyListIndex, "principal", "ida_2")).toEqual([headId]);
-    expect(await ids(iamPolicyListIndex, "principal", "ida_3")).toEqual([keptGrant.id]);
+    expect(await ids(grantListIndex, "principal", "ida_2")).toEqual([headId]);
+    expect(await ids(grantListIndex, "principal", "ida_3")).toEqual([keptGrant.id]);
   });
 
   it("reads runs across keyset pages, missing none past the first page", () => {
@@ -1936,7 +1936,7 @@ describe("v18: agent executions are runs", () => {
 
   it("a grant that does not decode fails the step, names the row, and leaves the database at v17", () => {
     const { dbPath, db: setup } = v17Database();
-    insertPlain(setup, "iam_policy", runGrant.id, policyRow(runGrant));
+    insertPlain(setup, "iam_policy", runGrant.id, grantRow(runGrant));
     insertPlain(setup, "iam_policy", "iamp_bad", new Uint8Array([0x22, 0xff]));
     setup.close();
 
@@ -1946,7 +1946,7 @@ describe("v18: agent executions are runs", () => {
       /the iam_policy row iamp_bad cannot be read for the rename of executions to runs/,
     );
     expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_17);
-    expect(row(db, "iam_policy", runGrant.id)?.data).toEqual(policyRow(runGrant));
+    expect(row(db, "iam_policy", runGrant.id)?.data).toEqual(grantRow(runGrant));
   });
 });
 
@@ -2023,7 +2023,7 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
     db.prepare(
       `INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES ('agent', ?, 'reviewer', 'agt_1', 'current', ?)`,
     ).run(ORG, SEEDED_AT);
-    insert(db, "iam_policy", keptGrant.id, policyRow(keptGrant));
+    insert(db, "iam_policy", keptGrant.id, grantRow(keptGrant));
     listKey(db, "iam_policy", keptGrant.id, "principal", "ida_9");
   }
 
@@ -2048,12 +2048,12 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
       { id: "iam_on_artifact", principal: "identity_account:ida_3", relation: "viewer", resource: "artifact:art_wf" },
     ];
     for (const grant of grants) {
-      insert(db, "iam_policy", grant.id, policyRow(grant));
+      insert(db, "iam_policy", grant.id, grantRow(grant));
       listKey(db, "iam_policy", grant.id, "principal", grant.principal.split(":")[1] ?? "");
     }
     db.prepare(
       `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('iam_policy', 'iam_on_workflow', ?, '', '')`,
-    ).run(policyRow(grants[0]!));
+    ).run(grantRow(grants[0]!));
   }
 
   /** Artifacts a workflow step and an agent run produced, with their list keys. */
@@ -2169,7 +2169,7 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
       .all() as Array<{ id: string; data: Uint8Array }>;
     expect(policies.map((p) => p.id)).toEqual([keptGrant.id]);
     for (const policy of policies) {
-      const spec = fromBinary(IamPolicySchema, policy.data).spec;
+      const spec = fromBinary(GrantSchema, policy.data).spec;
       expect(GONE_KINDS).not.toContain(spec?.resource?.kind);
       expect(GONE_KINDS).not.toContain(spec?.principal?.kind);
     }
@@ -2224,7 +2224,7 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
     // The store the server opens migrates on to the head (v21 renames the
     // kind) and reads every kept run as a run.
     const store = SqliteStore.open(dbPath, undefined, {
-      listIndexes: [CONTRACT_SESSION_INDEX, agentExecutionListIndex, iamPolicyListIndex],
+      listIndexes: [CONTRACT_SESSION_INDEX, agentExecutionListIndex, grantListIndex],
     });
     cleanups.push(() => store.close());
     // v34 stamps each kept run with its etag.
@@ -2337,7 +2337,7 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
       setup,
       "iam_policy",
       "iam_on_instance",
-      policyRow({
+      grantRow({
         id: "iam_on_instance",
         principal: "identity_account:ida_4",
         relation: "viewer",
@@ -2409,7 +2409,7 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
         setup,
         "iam_policy",
         grantId(i),
-        policyRow({
+        grantRow({
           id: grantId(i),
           principal: "identity_account:ida_1",
           relation: "viewer",
@@ -2448,7 +2448,7 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
       // back.
       const good = agentRunRow({ id: "aex_a_good", org: ORG, sessionId: "ses_1", parent: "wex_1" });
       insert(setup, "agent_run", "aex_a_good", good);
-      const retired = policyRow({
+      const retired = grantRow({
         id: "iam_a_retired",
         principal: "identity_account:ida_1",
         relation: "viewer",
@@ -2615,7 +2615,7 @@ describe("v21: the agent run is a run", () => {
     resource: "agent:agt_1",
   };
   const headId = (grant: { principal: string; relation: string; resource: string; id: string }) =>
-    policyIdFor(fromBinary(IamPolicySchema, policyRow(grant)).spec!);
+    grantIdFor(fromBinary(GrantSchema, grantRow(grant)).spec!);
 
   /** Seeds one run of `kind` the way that release stored it, with its audit, list key, name and grants. */
   function seedRun(db: DatabaseSync, kind: string, names: typeof AGENT_RUN_NAMES): Uint8Array {
@@ -2633,7 +2633,7 @@ describe("v21: the agent run is a run", () => {
     for (const grant of [runGrant(kind), ownerGrant(kind), keptGrant]) {
       db.prepare(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('iam_policy', ?, ?, ?)`).run(
         grant.id,
-        policyRow(grant),
+        grantRow(grant),
         SEEDED_AT,
       );
       db.prepare(
@@ -2666,17 +2666,17 @@ describe("v21: the agent run is a run", () => {
       id: string;
     }>).map((p) => p.id);
     expect(policies).toEqual([keptGrant.id, ofRun, onRun].sort());
-    expect(fromBinary(IamPolicySchema, row(db, "iam_policy", onRun)!.data).spec?.resource).toMatchObject({
+    expect(fromBinary(GrantSchema, row(db, "iam_policy", onRun)!.data).spec?.resource).toMatchObject({
       kind: "run",
       id: "aex_1",
     });
-    expect(fromBinary(IamPolicySchema, row(db, "iam_policy", ofRun)!.data).spec?.principal).toMatchObject({
+    expect(fromBinary(GrantSchema, row(db, "iam_policy", ofRun)!.data).spec?.principal).toMatchObject({
       kind: "run",
       id: "aex_1",
     });
-    expect(row(db, "iam_policy", keptGrant.id)?.data).toEqual(policyRow(keptGrant));
+    expect(row(db, "iam_policy", keptGrant.id)?.data).toEqual(grantRow(keptGrant));
 
-    const store = SqliteStore.open(dbPath, undefined, { listIndexes: [agentExecutionListIndex, iamPolicyListIndex] });
+    const store = SqliteStore.open(dbPath, undefined, { listIndexes: [agentExecutionListIndex, grantListIndex] });
     cleanups.push(() => store.close());
     const run = await store.getResource(ApiResourceKind.run, "aex_1", RunSchema);
     expect(run?.kind).toBe("Run");
@@ -2684,8 +2684,8 @@ describe("v21: the agent run is a run", () => {
     const ids = async (index: Parameters<typeof store.queryResources>[0], name: string, value: string) =>
       (await store.queryResources(index, { anyKey: [{ name, value }] })).map((r) => r.id);
     expect(await ids(agentExecutionListIndex, "session", "ses_1")).toEqual(["aex_1"]);
-    expect(await ids(iamPolicyListIndex, "principal", "ida_2")).toEqual([onRun]);
-    expect(await ids(iamPolicyListIndex, "principal", "ida_3")).toEqual([keptGrant.id]);
+    expect(await ids(grantListIndex, "principal", "ida_2")).toEqual([onRun]);
+    expect(await ids(grantListIndex, "principal", "ida_3")).toEqual([keptGrant.id]);
   }
 
   it("renames the run kind in every table, rewrites the rows that spell it and re-keys grants on runs, from a store at v20", async () => {
@@ -2796,14 +2796,14 @@ describe("v22: environments and the sign-in grant table leave the store", () => 
       ).run(ORG, id, id, SEEDED_AT);
     }
     for (const grant of [keptGrant, ...retiredGrants]) {
-      insert(db, "iam_policy", grant.id, policyRow(grant));
+      insert(db, "iam_policy", grant.id, grantRow(grant));
       db.prepare(
         `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('iam_policy', ?, 'principal', ?, '')`,
       ).run(grant.id, grant.principal.split(":")[1] ?? "");
     }
     db.prepare(
       `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('iam_policy', 'iamp_on_env', ?, '', '')`,
-    ).run(policyRow(retiredGrants[0]!));
+    ).run(grantRow(retiredGrants[0]!));
     db.prepare(
       `INSERT INTO oauth_grant (identity_account_id, resource_id, org_id, environment_id, created_at, updated_at)
        VALUES ('', 'mcp_1', ?, 'env_managed', 1, 1)`,
@@ -2831,10 +2831,10 @@ describe("v22: environments and the sign-in grant table leave the store", () => 
       .prepare(`SELECT id FROM resources WHERE kind = 'iam_policy' ORDER BY id`)
       .all() as Array<{ id: string }>;
     expect(policies.map((p) => p.id)).toEqual([keptGrant.id]);
-    const policyKeys = db
+    const grantKeys = db
       .prepare(`SELECT id FROM resource_list_keys WHERE kind = 'iam_policy' ORDER BY id`)
       .all() as Array<{ id: string }>;
-    expect(policyKeys.map((k) => k.id)).toEqual([keptGrant.id]);
+    expect(grantKeys.map((k) => k.id)).toEqual([keptGrant.id]);
     // A removed grant keeps its history, as the store deletes a policy.
     expect(count(db, "resource_audit", "iam_policy")).toBe(1);
     const kept = db.prepare(`SELECT data FROM resources WHERE kind = 'agent' AND id = 'agt_1'`).get() as {
@@ -2855,7 +2855,7 @@ describe("v22: environments and the sign-in grant table leave the store", () => 
     for (let i = 0; i < total; i++) {
       const id = `iamp_${String(i).padStart(4, "0")}`;
       const resource = i % 2 === 0 ? `environment:env_${i}` : "agent:agt_1";
-      insert(setup, "iam_policy", id, policyRow({ id, principal: "identity_account:ida_1", relation: "viewer", resource }));
+      insert(setup, "iam_policy", id, grantRow({ id, principal: "identity_account:ida_1", relation: "viewer", resource }));
     }
     setup.close();
 
@@ -3440,7 +3440,7 @@ describe("v37: the platform client rows and the grants naming them leave", () =>
 
   function seedGrants(db: DatabaseSync): void {
     for (const grant of [...retiredGrants, keptGrant]) {
-      insert(db, "iam_policy", grant.id, policyRow(grant));
+      insert(db, "iam_policy", grant.id, grantRow(grant));
       db.prepare(
         `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('iam_policy', ?, 'principal', ?, '')`,
       ).run(grant.id, grant.principal.split(":")[1] ?? "");
@@ -3465,13 +3465,13 @@ describe("v37: the platform client rows and the grants naming them leave", () =>
     for (const table of KIND_TABLES) {
       expect(count(db, table, "platform_client"), table).toBe(0);
     }
-    const policyIds = (table: string) =>
+    const grantIds = (table: string) =>
       (
         db.prepare(`SELECT id FROM ${table} WHERE kind = 'iam_policy' ORDER BY id`).all() as Array<{ id: string }>
       ).map((r) => r.id);
-    expect(policyIds("resources")).toEqual([keptGrant.id]);
-    expect(policyIds("resource_list_keys")).toEqual([keptGrant.id]);
-    expect(row(db, "iam_policy", keptGrant.id)).toEqual({ data: policyRow(keptGrant), updated_at: SEEDED_AT });
+    expect(grantIds("resources")).toEqual([keptGrant.id]);
+    expect(grantIds("resource_list_keys")).toEqual([keptGrant.id]);
+    expect(row(db, "iam_policy", keptGrant.id)).toEqual({ data: grantRow(keptGrant), updated_at: SEEDED_AT });
     expect(count(db, "resource_audit", "iam_policy")).toBe(1);
     expect(row(db, "identity_account", "ida_app_user")).toEqual({ data: appUser, updated_at: SEEDED_AT });
   });
@@ -3486,7 +3486,7 @@ describe("v37: the platform client rows and the grants naming them leave", () =>
         setup,
         "iam_policy",
         id,
-        policyRow({
+        grantRow({
           id,
           principal: "identity_account:ida_1",
           relation: "viewer",
@@ -3510,7 +3510,7 @@ describe("v37: the platform client rows and the grants naming them leave", () =>
   it("a grant that does not decode fails the step, names the row, rolls back, and leaves the database at v36", () => {
     const { dbPath, db: setup } = v36Database();
     seedClient(setup);
-    insert(setup, "iam_policy", "iam_a_retired", policyRow({ ...retiredGrants[0]!, id: "iam_a_retired" }));
+    insert(setup, "iam_policy", "iam_a_retired", grantRow({ ...retiredGrants[0]!, id: "iam_a_retired" }));
     insert(setup, "iam_policy", "iam_z_broken", new Uint8Array([0x22, 0xff]));
     setup.close();
 
@@ -3521,7 +3521,7 @@ describe("v37: the platform client rows and the grants naming them leave", () =>
     );
     expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_37 - 1);
     expect(row(db, "iam_policy", "iam_a_retired").data).toEqual(
-      policyRow({ ...retiredGrants[0]!, id: "iam_a_retired" }),
+      grantRow({ ...retiredGrants[0]!, id: "iam_a_retired" }),
     );
     expect(count(db, "resources", "platform_client")).toBe(1);
   });
@@ -3544,7 +3544,7 @@ describe("v37: the platform client rows and the grants naming them leave", () =>
       setup,
       "iam_policy",
       "iam_on_early",
-      policyRow({
+      grantRow({
         id: "iam_on_early",
         principal: "identity_account:ida_1",
         relation: "viewer",

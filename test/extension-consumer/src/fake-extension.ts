@@ -50,14 +50,14 @@ import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/qu
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
-import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
-import type { ApiResourceRefView } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
-import { ApiResourceRefViewSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import type { ApiResourceRefView } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+import { ApiResourceRefViewSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
 import { MintGuestTokenResponseSchema } from "@stigmer/protos/ai/stigmer/iam/token/v1/token_pb";
 import type {
   ApiResourceRef,
-  IamPolicySpec,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+  GrantSpec,
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import { TeamCommandController } from "@stigmer/protos/ai/stigmer/iam/team/v1/command_pb";
@@ -75,10 +75,10 @@ import {
   createLogger,
   DuplicateAccountError,
   fittedSlug,
-  DuplicatePolicyError,
+  DuplicateGrantError,
   EncryptionScope,
   EncryptionUnavailableError,
-  iamPolicyStoreContract,
+  grantStoreContract,
   identityAccountStoreContract,
   identityIdForSubject,
   InvalidTokenError,
@@ -142,7 +142,7 @@ import type {
   ChannelRuntime,
   ChildOrganizationLinkedEvent,
   ChildOrganizations,
-  ComposedIamPolicies,
+  ComposedGrants,
   ComposedIdentityAccounts,
   ComposedServer,
   CreateAccountInput,
@@ -151,9 +151,9 @@ import type {
   ServerBoot,
   GateSlotName,
   GuestTokenMinting,
-  IamPolicyStore,
-  IamPolicyStoreContractCase,
-  IamPolicyStoreContractFixture,
+  GrantStore,
+  GrantStoreContractCase,
+  GrantStoreContractFixture,
   IdentityAccountStore,
   IdentityAccountStoreContractCase,
   IdentityAccountStoreContractFixture,
@@ -168,7 +168,7 @@ import type {
   PipelineStep,
   PlatformTokenKeyRing,
   PlatformTokenSigningOptions,
-  PolicyGrantScope,
+  GrantScope,
   PortContractBody,
   PortContractCase,
   PortContractDeclaration,
@@ -442,10 +442,10 @@ const consumerGuestTokenMinting: GuestTokenMinting = {
  * triple; answer it as the duplicate) works over a consumer driver exactly
  * as over the OSS adapter.
  */
-const consumerIamPolicyStore: IamPolicyStore = {
-  save: (policy: IamPolicy) =>
+const consumerGrantStore: GrantStore = {
+  save: (policy: Grant) =>
     Promise.reject(
-      new DuplicatePolicyError(
+      new DuplicateGrantError(
         `IAM policy '${policy.metadata?.id ?? ""}' already exists`,
       ),
     ),
@@ -472,10 +472,10 @@ const consumerIamPolicyStore: IamPolicyStore = {
  * is held to. Compile-only here: this package proves the exported shape,
  * not a fake's behavior.
  */
-export function consumerIamPolicyStoreContract(): ReadonlyArray<IamPolicyStoreContractCase> {
-  return iamPolicyStoreContract(
-    async (): Promise<IamPolicyStoreContractFixture> => ({
-      store: consumerIamPolicyStore,
+export function consumerGrantStoreContract(): ReadonlyArray<GrantStoreContractCase> {
+  return grantStoreContract(
+    async (): Promise<GrantStoreContractFixture> => ({
+      store: consumerGrantStore,
       disconnect: () => Promise.resolve(),
       cleanup: () => Promise.resolve(),
     }),
@@ -483,8 +483,8 @@ export function consumerIamPolicyStoreContract(): ReadonlyArray<IamPolicyStoreCo
   );
 }
 
-export async function runConsumerIamPolicyStoreContract(): Promise<void> {
-  for (const contractCase of consumerIamPolicyStoreContract()) {
+export async function runConsumerGrantStoreContract(): Promise<void> {
+  for (const contractCase of consumerGrantStoreContract()) {
     await contractCase.run();
   }
 }
@@ -504,7 +504,7 @@ const consumerOutboundEgress: OutboundEgressPolicy = strictEgressPolicy();
  * about the edition, not a lookup. This one admits a single per-resource
  * grant, the narrowing a composition would make.
  */
-const consumerPolicyGrantScope: PolicyGrantScope = {
+const consumerGrantScope: GrantScope = {
   grantableRoles: (kind: ApiResourceKind) =>
     kind === ApiResourceKind.agent ? [IamRole.viewer] : [],
 };
@@ -518,8 +518,8 @@ const consumerPolicyGrantScope: PolicyGrantScope = {
  */
 const consumerAuthorizationQueries: AuthorizationQueryEngine = {
   check: (
-    policy: IamPolicySpec,
-    contextualPolicies: ReadonlyArray<IamPolicySpec>,
+    policy: GrantSpec,
+    contextualPolicies: ReadonlyArray<GrantSpec>,
   ) =>
     Promise.resolve(
       policy.principal?.kind === "identity_account" &&
@@ -1390,12 +1390,12 @@ export const consumerBoundDenial: string = BOUND_ELSEWHERE_DENY_REASON;
  * grant gate read the composition's one binding, never a store of their
  * own.
  */
-let consumerIamPolicies: ComposedIamPolicies | undefined;
+let consumerGrants: ComposedGrants | undefined;
 export async function consumerScopeLinkOf(
   resourceKind: string,
   resourceId: string,
 ): Promise<string | undefined> {
-  const link = await consumerIamPolicies?.findScopeTuple(
+  const link = await consumerGrants?.findScopeTuple(
     resourceKind,
     resourceId,
   );
@@ -1419,7 +1419,7 @@ export const fakeExtension: ServerExtension = {
     consumerCredentialBinding = composed.credentialBinding;
     consumerChildOrganizations = composed.childOrganizations;
     consumerIdentityAccounts = composed.identityAccounts;
-    consumerIamPolicies = composed.iamPolicies;
+    consumerGrants = composed.grants;
   },
   identityVerifiers: [verifier, consumerGuestTokenVerifier],
   // Post-authentication caller guards, serving
@@ -1503,8 +1503,8 @@ export const fakeExtension: ServerExtension = {
     // The IamPolicy seams: the IamPolicy domain served over the
     // consumer's own store, the kinds it grants on, and the tuple-half
     // queries only its authorization backend can answer.
-    iamPolicyStore: consumerIamPolicyStore,
-    policyGrantScope: consumerPolicyGrantScope,
+    grantStore: consumerGrantStore,
+    grantScope: consumerGrantScope,
     authorizationQueries: consumerAuthorizationQueries,
     // How the consumer's access lists name a team grantee.
     principalDisplay: consumerPrincipalDisplay,

@@ -49,7 +49,7 @@ import { internalError } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import {
-  newCleanupIamPoliciesStep,
+  newCleanupGrantsStep,
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newAuthorizeResolvedTargetStep } from "../../pipeline/steps/authorize-resolved-target.js";
@@ -252,7 +252,7 @@ async function deleteScore(
     .addStep(newDeleteResourceStep(deps.store))
     .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.score))
     .addStep(
-      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+      newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger),
     )
     .build()
     .execute(reqCtx);

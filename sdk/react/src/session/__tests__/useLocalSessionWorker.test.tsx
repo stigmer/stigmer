@@ -7,7 +7,7 @@ import { ExecutionTargetContext } from "../../execution-target-context";
 import { RunnerAdapterContext } from "../../runner-adapter";
 import type { RunnerAdapter } from "../../runner-adapter";
 import { useLocalSessionWorker } from "../useLocalSessionWorker";
-import type { UseWhoAmIReturn } from "../../iam-policy/useWhoAmI";
+import type { UseWhoAmIReturn } from "../../grant/useWhoAmI";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 
 // The signed-in account the hook compares a session's creator against.

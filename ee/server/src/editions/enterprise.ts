@@ -110,7 +110,7 @@ import {
 
 import { newEnterpriseIdentityExtension } from "../extension/enterprise-identity.js";
 import { newGrowthGateStep } from "../iam/growth-gate.js";
-import { newKindMetaPolicyGrantScope } from "../iam/policy/roles.js";
+import { newKindMetaGrantScope } from "../iam/grant/roles.js";
 import { newLicenseGrowthGate } from "../license/growth.js";
 import { newLicenseStatusProvider } from "../license/status.js";
 import { trustedLicenseKeys } from "../license/trusted-keys.js";
@@ -217,7 +217,7 @@ export async function composeEnterprise(
       licenseStatus: newLicenseStatusProvider({ keyId: verdict.keyId, claims: verdict.claims }),
       platformTokenKeys: openSourcePlatformTokenKeyRing(options.keyLoader),
       outboundEgress: egressPolicy,
-      policyGrantScope: newKindMetaPolicyGrantScope(),
+      grantScope: newKindMetaGrantScope(),
     },
     gateSteps: new Map<GateSlotName, ReadonlyArray<PipelineStep<DescMessage>>>([
       [

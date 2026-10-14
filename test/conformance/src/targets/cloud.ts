@@ -16,7 +16,7 @@
 // and OpenAI keys always, and a Cursor key only when the invoking shell
 // supplies a real one in CURSOR_API_KEY.
 import { createClient } from "@connectrpc/connect";
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import {
   CLOUD_ENV,
@@ -410,7 +410,7 @@ export class CloudTarget implements TargetProfile {
       );
     }
     const person = await this.newPerson("provisionMember");
-    await this.clients().iamPolicyCommand.create(organizationMemberGrant(organizationId, person.accountId));
+    await this.clients().grantCommand.create(organizationMemberGrant(organizationId, person.accountId));
     return this.clientsPresenting(person.token);
   }
 

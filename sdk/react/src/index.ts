@@ -1168,8 +1168,8 @@ export {
   usePrincipalsCount,
   useAccessHistory,
   useWhoAmI,
-  useCreateIamPolicy,
-  useDeleteIamPolicy,
+  useCreateGrant,
+  useDeleteGrant,
   useRevokeOrgAccess,
   useShareFlow,
   useGranteeCandidates,
@@ -1183,7 +1183,7 @@ export {
   OrgMembersPanel,
   SharePanel,
   PermissionGate,
-} from "./iam-policy/index.js";
+} from "./grant/index.js";
 export type {
   AccessHistoryRetention,
   UseAccessHistoryOptions,
@@ -1197,8 +1197,8 @@ export type {
   UsePrincipalsCountReturn,
   UseWhoAmIOptions,
   UseWhoAmIReturn,
-  UseCreateIamPolicyReturn,
-  UseDeleteIamPolicyReturn,
+  UseCreateGrantReturn,
+  UseDeleteGrantReturn,
   UseRevokeOrgAccessReturn,
   UseShareFlowReturn,
   ShareFlowResource,
@@ -1219,7 +1219,7 @@ export type {
   OrgMembersPanelProps,
   SharePanelProps,
   PermissionGateProps,
-} from "./iam-policy/index.js";
+} from "./grant/index.js";
 
 // Access — unified "Manage access" experience (visibility + people) as one
 // dialog, with a kebab hook and a visible-button trigger.

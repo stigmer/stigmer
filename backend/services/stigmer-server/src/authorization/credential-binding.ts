@@ -99,7 +99,7 @@ import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
-import type { IamPolicyStore } from "../domain/iampolicy/store.js";
+import type { GrantStore } from "../domain/grant/store.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
 import type {
   Authorizer,
@@ -187,7 +187,7 @@ export interface CredentialBindingDeps {
   /** The readers of the kinds units keep themselves (`drivers.resourceRowReaders`). */
   readonly rowReaders?: ReadonlyMap<ApiResourceKind, ResourceRowReader>;
   /** The IamPolicy port the composition bound (a composition may keep the rows in its own table). */
-  readonly policies: Pick<IamPolicyStore, "findById">;
+  readonly policies: Pick<GrantStore, "findById">;
   /**
    * The identity-account port the composition bound, for the same reason:
    * a service account belongs to an organization, so a bound credential
@@ -242,7 +242,7 @@ export function newCredentialBinding(
     if (reader !== undefined) {
       return reader.findById(id);
     }
-    if (kind === ApiResourceKind.iam_policy) {
+    if (kind === ApiResourceKind.grant) {
       return deps.policies.findById(id);
     }
     if (kind === ApiResourceKind.identity_account && deps.identityAccounts !== undefined) {

@@ -32,7 +32,7 @@ import {
   AccessHistoryEntrySchema,
   AccessHistoryPageSchema,
   type ListAccessHistoryInput,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -75,7 +75,7 @@ vi.mock("../../../backend.js", async () => {
     connectBackend: () => ({
       config: loadConfig(),
       stigmer: {
-        iamPolicy: {
+        grant: {
           listAccessHistory: async (input: ListAccessHistoryInput) => {
             backend.reads.push(input);
             if (backend.refuse) {

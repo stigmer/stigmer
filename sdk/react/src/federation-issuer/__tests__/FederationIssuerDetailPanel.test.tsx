@@ -5,7 +5,7 @@ import {
   FederationIssuerSchema,
   type FederationIssuer,
 } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
-import type { CheckMyPermissionInput } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import type { CheckMyPermissionInput } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { StigmerContext } from "../../context";

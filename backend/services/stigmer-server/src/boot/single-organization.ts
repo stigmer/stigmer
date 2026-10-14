@@ -73,7 +73,7 @@ import { ORGANIZATION_SLUG_RESERVED } from "../domain/organization/names.js";
 import {
   SERVER_ORGANIZATION_ROLES_KEY,
   SERVER_ORGANIZATION_ROLES_OWED,
-} from "../domain/iampolicy/constants.js";
+} from "../domain/grant/constants.js";
 import type { Store } from "../store/interface.js";
 
 /** The in-process edge that makes the organization: the whole create chain, as the given caller. */

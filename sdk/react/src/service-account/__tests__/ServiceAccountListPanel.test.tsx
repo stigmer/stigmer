@@ -23,7 +23,7 @@ import {
   IdentityAccountsListSchema,
   type ListServiceAccountsInput,
 } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
-import { ResourceAccessByPrincipalListSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import { ResourceAccessByPrincipalListSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
 import { StigmerContext } from "../../context";
 import { ServiceAccountListPanel } from "../ServiceAccountListPanel";
 

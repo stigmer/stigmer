@@ -13,7 +13,7 @@
  * and the retry resumes, because the grant path revokes row by row, each
  * tuple before its row, and stops at the first failure.
  *
- * The cleanup is the grant path's `cleanupResourcePolicies`, which finds
+ * The cleanup is the grant path's `cleanupResourceGrants`, which finds
  * the team's rows in both directions: the memberships and the organization
  * link as resource, every `team:<id>#member` share as principal.
  *
@@ -24,10 +24,10 @@
 import { create } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import type { Logger, NameTable } from "@stigmer/server";
 
-import type { IamPolicyGrantPathClient } from "../policy/grant-path-client.js";
+import type { GrantPathClient } from "../grant/grant-path-client.js";
 import type { TeamStore } from "./store.js";
 
 /** The team's kind as an `ApiResourceRef.kind` spells it. */
@@ -53,13 +53,13 @@ export interface TeamRemovalDeps {
   readonly teams: Pick<TeamStore, "findById" | "findIdsByOrg" | "deleteById">;
   /** The server's one name table: a removed team's slug is let go after its row. */
   readonly names: NameTable;
-  readonly policies: Pick<IamPolicyGrantPathClient, "cleanupResourcePolicies">;
+  readonly policies: Pick<GrantPathClient, "cleanupResourceGrants">;
   readonly logger: Logger;
 }
 
 export function newTeamRemoval(deps: TeamRemovalDeps): TeamRemoval {
   async function remove(id: string, actingFor: string): Promise<void> {
-    await deps.policies.cleanupResourcePolicies(
+    await deps.policies.cleanupResourceGrants(
       create(ApiResourceRefSchema, { kind: TEAM_KIND_NAME, id }),
       actingFor,
     );

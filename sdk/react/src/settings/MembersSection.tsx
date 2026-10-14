@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { OrgMembersPanel } from "../iam-policy/OrgMembersPanel.js";
+import { OrgMembersPanel } from "../grant/OrgMembersPanel.js";
 import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
 import { useOrg } from "../organization/OrgProvider.js";
 import { useFederationIssuerList } from "../federation-issuer/useFederationIssuerList.js";

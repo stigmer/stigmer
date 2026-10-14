@@ -378,7 +378,7 @@ export async function cleanUpDeletedResource(
  * (RevokeOrganizationPolicies, domain/organization/steps.ts), and this
  * step is only its backstop there.
  */
-export function newCleanupIamPoliciesStep<Desc extends DescMessage>(
+export function newCleanupGrantsStep<Desc extends DescMessage>(
   lifecycle: ResourceAuthorizationLifecycle | undefined,
   logger: Logger,
 ): PipelineStep<Desc> {

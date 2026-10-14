@@ -40,7 +40,7 @@ import type { StoreLogger } from "../logger.js";
 import {
   AGENT_KIND as RETIREMENT_AGENT_KIND,
   PLUGIN_KIND,
-  POLICY_KIND as RETIREMENT_POLICY_KIND,
+  GRANT_KIND_AT_STEP as RETIREMENT_POLICY_KIND,
   RETIRED_MCP_SERVER_KIND,
   RETIREMENT_PAGE_SIZE as SERVER_RETIREMENT_PAGE_SIZE,
   RetirementFacts,
@@ -50,7 +50,7 @@ import {
   migrateAgentRow,
   migrateSessionRow as migrateSessionRowForPlugins,
   pluginFactsOf,
-  policyNamesRetired,
+  grantNamesRetired,
   serverFactsOf,
   unreadableRowError as unreadableRetiredServerRowError,
 } from "../mcp-server-retired.js";
@@ -65,14 +65,14 @@ import {
 
 import {
   AGENT_KIND,
-  POLICY_KIND,
+  GRANT_KIND_AT_STEP,
   RETIRED_INSTANCE_KIND,
   RETIREMENT_PAGE_SIZE,
   SESSION_KIND,
   agentFactsOf,
   instanceAgentIdOf,
   migrateSessionRow,
-  policyNamesRetiredInstance,
+  grantNamesRetiredInstance,
   unreadableRowError,
 } from "../agent-instance-retired.js";
 import type { InstanceAgent } from "../agent-instance-retired.js";
@@ -101,37 +101,37 @@ import {
 import {
   RETIRED_WORKFLOW_INSTANCE_KIND,
   WORKFLOW_RETIREMENT_PAGE_SIZE,
-  WORKFLOW_RETIREMENT_POLICY_KIND,
-  policyNamesRetiredWorkflowInstance,
+  WORKFLOW_RETIREMENT_GRANT_KIND,
+  grantNamesRetiredWorkflowInstance,
   unreadableWorkflowRowError,
 } from "../workflow-instance-retired.js";
 import {
   PLATFORM_CLIENT_RETIRED_PAGE_SIZE,
-  PLATFORM_CLIENT_RETIRED_POLICY_KIND,
+  PLATFORM_CLIENT_RETIRED_GRANT_KIND,
   RETIRED_PLATFORM_CLIENT_KIND,
-  policyNamesRetiredPlatformClient,
+  grantNamesRetiredPlatformClient,
   unreadablePlatformClientRowError,
 } from "../platform-client-retired.js";
 import {
   KIND_TABLES,
   KIND_RENAME_PAGE_SIZE,
-  KIND_RENAME_POLICY_KIND,
+  KIND_RENAME_GRANT_KIND,
   RUN_RENAME_V18,
   RUN_RENAME_V21,
-  rekeyedPolicy,
+  rekeyedGrant,
   renamedKindRow,
   unreadableKindRenameRowError,
 } from "../kind-rename.js";
-import type { KindRename, RekeyedPolicy } from "../kind-rename.js";
+import type { KindRename, RekeyedGrant } from "../kind-rename.js";
 import {
   AGENT_RUN_KIND,
   AGENT_RUN_RETIRED_PAGE_SIZE,
   RETIRED_WORKFLOW_KINDS,
   RETIRED_WORKFLOW_TABLES,
   WORKFLOW_RETIRED_PAGE_SIZE,
-  WORKFLOW_RETIRED_POLICY_KIND,
+  WORKFLOW_RETIRED_GRANT_KIND,
   migrateAgentRunRow,
-  policyNamesRetiredWorkflowKind,
+  grantNamesRetiredWorkflowKind,
   unreadableRetiredWorkflowRowError,
 } from "../workflow-retired.js";
 import {
@@ -153,10 +153,10 @@ import {
 import type { NameAtRewrite } from "../references-by-id.js";
 import {
   ENVIRONMENT_RETIRED_PAGE_SIZE,
-  ENVIRONMENT_RETIRED_POLICY_KIND,
+  ENVIRONMENT_RETIRED_GRANT_KIND,
   RETIRED_ENVIRONMENT_KIND,
   RETIRED_ENVIRONMENT_TABLES,
-  policyNamesRetiredEnvironment,
+  grantNamesRetiredEnvironment,
   unreadableRetiredEnvironmentRowError,
 } from "../environment-retired.js";
 import { RETIRED_EXECUTION_CONTEXT_KIND } from "../execution-context-retired.js";
@@ -891,22 +891,22 @@ function migrateToV14(db: DatabaseSync): void {
     }
   }
 
-  const retiredPolicies: string[] = [];
-  for (const row of pages(POLICY_KIND)) {
+  const retiredGrantIds: string[] = [];
+  for (const row of pages(GRANT_KIND_AT_STEP)) {
     try {
-      if (policyNamesRetiredInstance(row.data)) {
-        retiredPolicies.push(row.id);
+      if (grantNamesRetiredInstance(row.data)) {
+        retiredGrantIds.push(row.id);
       }
     } catch (error) {
-      throw unreadableRowError(POLICY_KIND, row.id, error);
+      throw unreadableRowError(GRANT_KIND_AT_STEP, row.id, error);
     }
   }
-  const deletePolicy = ["resource_list_keys", "resources"].map((table) =>
+  const deleteGrant = ["resource_list_keys", "resources"].map((table) =>
     db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
   );
-  for (const id of retiredPolicies) {
-    for (const statement of deletePolicy) {
-      statement.run(POLICY_KIND, id);
+  for (const id of retiredGrantIds) {
+    for (const statement of deleteGrant) {
+      statement.run(GRANT_KIND_AT_STEP, id);
     }
   }
 
@@ -993,21 +993,21 @@ function migrateToV17(db: DatabaseSync): void {
   const page = db.prepare(
     `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
   );
-  const retiredPolicies: string[] = [];
+  const retiredGrantIds: string[] = [];
   for (let after = ""; ; ) {
     const rows = page.all(
-      WORKFLOW_RETIREMENT_POLICY_KIND,
+      WORKFLOW_RETIREMENT_GRANT_KIND,
       after,
       WORKFLOW_RETIREMENT_PAGE_SIZE,
     ) as Array<{ id: string; data: Uint8Array }>;
     for (const row of rows) {
       try {
-        if (policyNamesRetiredWorkflowInstance(row.data)) {
-          retiredPolicies.push(row.id);
+        if (grantNamesRetiredWorkflowInstance(row.data)) {
+          retiredGrantIds.push(row.id);
         }
       } catch (error) {
         throw unreadableWorkflowRowError(
-          WORKFLOW_RETIREMENT_POLICY_KIND,
+          WORKFLOW_RETIREMENT_GRANT_KIND,
           row.id,
           error,
         );
@@ -1018,12 +1018,12 @@ function migrateToV17(db: DatabaseSync): void {
     }
     after = rows[rows.length - 1]!.id;
   }
-  const deletePolicy = ["resource_list_keys", "resources"].map((table) =>
+  const deleteGrant = ["resource_list_keys", "resources"].map((table) =>
     db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
   );
-  for (const id of retiredPolicies) {
-    for (const statement of deletePolicy) {
-      statement.run(WORKFLOW_RETIREMENT_POLICY_KIND, id);
+  for (const id of retiredGrantIds) {
+    for (const statement of deleteGrant) {
+      statement.run(WORKFLOW_RETIREMENT_GRANT_KIND, id);
     }
   }
 
@@ -1094,28 +1094,28 @@ function renameKind(db: DatabaseSync, rename: KindRename): void {
     db.prepare(`UPDATE ${table} SET kind = ? WHERE kind = ?`).run(toKind, fromKind);
   }
 
-  const rekeyed: Array<{ from: string; policy: RekeyedPolicy }> = [];
-  for (const row of resources(KIND_RENAME_POLICY_KIND)) {
+  const rekeyed: Array<{ from: string; policy: RekeyedGrant }> = [];
+  for (const row of resources(KIND_RENAME_GRANT_KIND)) {
     try {
-      const policy = rekeyedPolicy(rename, row.data);
+      const policy = rekeyedGrant(rename, row.data);
       if (policy !== undefined) {
         rekeyed.push({ from: row.id, policy });
       }
     } catch (error) {
-      throw unreadableKindRenameRowError(rename, KIND_RENAME_POLICY_KIND, row.id, error);
+      throw unreadableKindRenameRowError(rename, KIND_RENAME_GRANT_KIND, row.id, error);
     }
   }
-  const deletePolicy = ["resource_list_keys", "resources"].map((table) =>
+  const deleteGrant = ["resource_list_keys", "resources"].map((table) =>
     db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
   );
-  const insertPolicy = db.prepare(
+  const insertGrant = db.prepare(
     `INSERT INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, datetime('now'))`,
   );
   for (const { from, policy } of rekeyed) {
-    for (const statement of deletePolicy) {
-      statement.run(KIND_RENAME_POLICY_KIND, from);
+    for (const statement of deleteGrant) {
+      statement.run(KIND_RENAME_GRANT_KIND, from);
     }
-    insertPolicy.run(KIND_RENAME_POLICY_KIND, policy.id, policy.data);
+    insertGrant.run(KIND_RENAME_GRANT_KIND, policy.id, policy.data);
   }
 }
 
@@ -1160,29 +1160,29 @@ function migrateToV19(db: DatabaseSync): void {
     }
   };
 
-  const retiredPolicies: string[] = [];
+  const retiredGrantIds: string[] = [];
   for (const row of pages(
-    WORKFLOW_RETIRED_POLICY_KIND,
+    WORKFLOW_RETIRED_GRANT_KIND,
     WORKFLOW_RETIRED_PAGE_SIZE,
   )) {
     try {
-      if (policyNamesRetiredWorkflowKind(row.data)) {
-        retiredPolicies.push(row.id);
+      if (grantNamesRetiredWorkflowKind(row.data)) {
+        retiredGrantIds.push(row.id);
       }
     } catch (error) {
       throw unreadableRetiredWorkflowRowError(
-        WORKFLOW_RETIRED_POLICY_KIND,
+        WORKFLOW_RETIRED_GRANT_KIND,
         row.id,
         error,
       );
     }
   }
-  const deletePolicy = ["resource_list_keys", "resources"].map((table) =>
+  const deleteGrant = ["resource_list_keys", "resources"].map((table) =>
     db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
   );
-  for (const id of retiredPolicies) {
-    for (const statement of deletePolicy) {
-      statement.run(WORKFLOW_RETIRED_POLICY_KIND, id);
+  for (const id of retiredGrantIds) {
+    for (const statement of deleteGrant) {
+      statement.run(WORKFLOW_RETIRED_GRANT_KIND, id);
     }
   }
 
@@ -1270,21 +1270,21 @@ function migrateToV22(db: DatabaseSync): void {
   const page = db.prepare(
     `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
   );
-  const retiredPolicies: string[] = [];
+  const retiredGrantIds: string[] = [];
   for (let after = ""; ; ) {
     const rows = page.all(
-      ENVIRONMENT_RETIRED_POLICY_KIND,
+      ENVIRONMENT_RETIRED_GRANT_KIND,
       after,
       ENVIRONMENT_RETIRED_PAGE_SIZE,
     ) as Array<{ id: string; data: Uint8Array }>;
     for (const row of rows) {
       try {
-        if (policyNamesRetiredEnvironment(row.data)) {
-          retiredPolicies.push(row.id);
+        if (grantNamesRetiredEnvironment(row.data)) {
+          retiredGrantIds.push(row.id);
         }
       } catch (error) {
         throw unreadableRetiredEnvironmentRowError(
-          ENVIRONMENT_RETIRED_POLICY_KIND,
+          ENVIRONMENT_RETIRED_GRANT_KIND,
           row.id,
           error,
         );
@@ -1295,12 +1295,12 @@ function migrateToV22(db: DatabaseSync): void {
     }
     after = rows[rows.length - 1]!.id;
   }
-  const deletePolicy = ["resource_list_keys", "resources"].map((table) =>
+  const deleteGrant = ["resource_list_keys", "resources"].map((table) =>
     db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
   );
-  for (const id of retiredPolicies) {
-    for (const statement of deletePolicy) {
-      statement.run(ENVIRONMENT_RETIRED_POLICY_KIND, id);
+  for (const id of retiredGrantIds) {
+    for (const statement of deleteGrant) {
+      statement.run(ENVIRONMENT_RETIRED_GRANT_KIND, id);
     }
   }
 
@@ -1534,16 +1534,16 @@ function migrateToV26(db: DatabaseSync, logger: StoreLogger): void {
 
   const serverIds = facts.serverIds();
   const memberSkillIds = facts.memberSkillIds();
-  const retiredPolicies: string[] = [];
+  const retiredGrantIds: string[] = [];
   forEachRow(RETIREMENT_POLICY_KIND, (row) => {
-    if (policyNamesRetired(row.data, serverIds, memberSkillIds)) {
-      retiredPolicies.push(row.id);
+    if (grantNamesRetired(row.data, serverIds, memberSkillIds)) {
+      retiredGrantIds.push(row.id);
     }
   });
   const deleteRow = ["resource_list_keys", "resources"].map((table) =>
     db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
   );
-  for (const id of retiredPolicies) {
+  for (const id of retiredGrantIds) {
     for (const statement of deleteRow) {
       statement.run(RETIREMENT_POLICY_KIND, id);
     }
@@ -1979,21 +1979,21 @@ function migrateToV37(db: DatabaseSync): void {
   const page = db.prepare(
     `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
   );
-  const retiredPolicies: string[] = [];
+  const retiredGrantIds: string[] = [];
   for (let after = ""; ; ) {
     const rows = page.all(
-      PLATFORM_CLIENT_RETIRED_POLICY_KIND,
+      PLATFORM_CLIENT_RETIRED_GRANT_KIND,
       after,
       PLATFORM_CLIENT_RETIRED_PAGE_SIZE,
     ) as Array<{ id: string; data: Uint8Array }>;
     for (const row of rows) {
       try {
-        if (policyNamesRetiredPlatformClient(row.data)) {
-          retiredPolicies.push(row.id);
+        if (grantNamesRetiredPlatformClient(row.data)) {
+          retiredGrantIds.push(row.id);
         }
       } catch (error) {
         throw unreadablePlatformClientRowError(
-          PLATFORM_CLIENT_RETIRED_POLICY_KIND,
+          PLATFORM_CLIENT_RETIRED_GRANT_KIND,
           row.id,
           error,
         );
@@ -2004,12 +2004,12 @@ function migrateToV37(db: DatabaseSync): void {
     }
     after = rows[rows.length - 1]!.id;
   }
-  const deletePolicy = ["resource_list_keys", "resources"].map((table) =>
+  const deleteGrant = ["resource_list_keys", "resources"].map((table) =>
     db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
   );
-  for (const id of retiredPolicies) {
-    for (const statement of deletePolicy) {
-      statement.run(PLATFORM_CLIENT_RETIRED_POLICY_KIND, id);
+  for (const id of retiredGrantIds) {
+    for (const statement of deleteGrant) {
+      statement.run(PLATFORM_CLIENT_RETIRED_GRANT_KIND, id);
     }
   }
   for (const table of KIND_TABLES) {

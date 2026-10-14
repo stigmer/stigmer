@@ -211,7 +211,7 @@ describe("tier truthfulness against the empty composition", () => {
 
   it("iam_policy is open_source and served — the row half lives in open source", () => {
     const served = servedKindSegments(server.routes);
-    expect(getKindMeta(ApiResourceKind.iam_policy).tier).toBe(
+    expect(getKindMeta(ApiResourceKind.grant).tier).toBe(
       ResourceTier.open_source,
     );
     expect(served.has("iampolicy")).toBe(true);

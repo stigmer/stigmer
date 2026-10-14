@@ -36,7 +36,7 @@
  */
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import type { IamPolicyStore } from "../domain/iampolicy/store.js";
+import type { GrantStore } from "../domain/grant/store.js";
 import type { CallerIdentity } from "../extensions/identity.js";
 import type { ResourceRowReader } from "../extensions/resource-row-reader.js";
 import type { OrganizationDirectory } from "../extensions/organization-directory.js";
@@ -52,7 +52,7 @@ import { resolvePerson } from "./person.js";
 
 export interface BuiltInOrganizationDirectoryDeps {
   readonly store: Store;
-  readonly policies: IamPolicyStore;
+  readonly policies: GrantStore;
   readonly accounts: AccountsByCaller;
   /** The readers of the kinds units keep themselves (`drivers.resourceRowReaders`), handed to every tuple source. */
   readonly rowReaders?: ReadonlyMap<ApiResourceKind, ResourceRowReader>;

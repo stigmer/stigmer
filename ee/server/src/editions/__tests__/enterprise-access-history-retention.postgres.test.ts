@@ -24,8 +24,8 @@
 import { createClient } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
-import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
+import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import type { Transport } from "@connectrpc/connect";
 
@@ -109,7 +109,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history's retention
     acme = await createOrganization(alice, "acme");
     const raj = await signIn(booted, issuer, "operator|raj");
     const mia = await signIn(booted, issuer, "operator|mia");
-    const policies = createClient(IamPolicyCommandController, alice.transport);
+    const policies = createClient(GrantCommandController, alice.transport);
     await policies.create(grant(ref("identity_account", raj.accountId), "member", ref("organization", acme)));
     await policies.create(grant(ref("identity_account", mia.accountId), "member", ref("organization", acme)));
 
@@ -158,7 +158,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history's retention
   }, BOOTS);
 
   it("says on every page how long the history is kept and where the kept history starts", async () => {
-    const query = createClient(IamPolicyQueryController, asAlice());
+    const query = createClient(GrantQueryController, asAlice());
     const follow = await query.listAccessHistory({ org: acme, afterSequence: 0n });
     expect(follow.entries[0]?.sequence).toBe(3n);
     expect(follow.oldestSequence).toBe(3n);
@@ -177,10 +177,10 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history's retention
   it("continues the numbering after the removal", async () => {
     const head = (await headOf(acme)) ?? 0;
     const lee = await signIn(booted as BootedServer, issuer, "operator|lee");
-    await createClient(IamPolicyCommandController, asAlice()).create(
+    await createClient(GrantCommandController, asAlice()).create(
       grant(ref("identity_account", lee.accountId), "member", ref("organization", acme)),
     );
-    const newest = await createClient(IamPolicyQueryController, asAlice()).listAccessHistory({
+    const newest = await createClient(GrantQueryController, asAlice()).listAccessHistory({
       org: acme,
       pageSize: 1,
     });
@@ -195,7 +195,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history's retention
 
     booted = await boot(undefined);
 
-    const page = await createClient(IamPolicyQueryController, asAlice()).listAccessHistory({
+    const page = await createClient(GrantQueryController, asAlice()).listAccessHistory({
       org: acme,
       afterSequence: 0n,
     });

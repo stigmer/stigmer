@@ -52,12 +52,12 @@ import {
   migrateAgentRow,
   migrateSessionRow,
   pluginFactsOf,
-  policyNamesRetired,
+  grantNamesRetired,
   renamedToolEntry,
   serverFactsOf,
   unreadableRowError,
 } from "../mcp-server-retired.js";
-import { policyRow } from "./retired-instance-rows.js";
+import { grantRow } from "./retired-instance-rows.js";
 import {
   PLUGIN_LABEL,
   PLUGIN_VERSION_LABEL,
@@ -724,18 +724,18 @@ describe("policyNamesRetired", () => {
     ],
     ["an agent", "identity_account:acc_1", "agent:agt_1", false],
   ])("%s: %s", (_label, principal, resource, expected) => {
-    const data = policyRow({
+    const data = grantRow({
       id: "pol_1",
       principal,
       relation: "owner",
       resource,
     });
-    expect(policyNamesRetired(data, servers, skills)).toBe(expected);
+    expect(grantNamesRetired(data, servers, skills)).toBe(expected);
   });
 
   it("throws on bytes that do not decode", () => {
     expect(() =>
-      policyNamesRetired(new Uint8Array([0xff, 0xff, 0xff]), servers, skills),
+      grantNamesRetired(new Uint8Array([0xff, 0xff, 0xff]), servers, skills),
     ).toThrow();
   });
 });

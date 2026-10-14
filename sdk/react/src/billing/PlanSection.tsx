@@ -5,7 +5,7 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { cn } from "@stigmer/theme";
 import { getUserMessage, isUnimplemented } from "@stigmer/sdk";
 import { ApiResourceKind, useResourceAvailable } from "../deployment-mode.js";
-import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { ChangePlanDialog } from "./ChangePlanDialog.js";
 import { PlanCard } from "./PlanCard.js";
 import { PlanPicker } from "./PlanPicker.js";

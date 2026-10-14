@@ -20,7 +20,7 @@
 // organization they hold a role in, which is what the suites' founder,
 // member and outsider are. Minted user tokens appear only in the suites
 // that test them.
-import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import type { DirectLoginTenant } from "../targets/target";
 import type { ConformanceClients } from "./clients";
 import { newDirectLoginTenant, readDirectLoginTenantMaterial } from "./direct-login-tenant";
@@ -141,6 +141,6 @@ export async function provisionConsolePerson(
 // create as the org's owner (never bootstrapPolicy, which is the operator
 // lane for grants the ordinary create cannot express). The general form,
 // any role, is the enforcing lane's `organizationRoleGrant`.
-export function organizationMemberGrant(organizationId: string, identityAccountId: string): IamPolicySpec {
+export function organizationMemberGrant(organizationId: string, identityAccountId: string): GrantSpec {
   return organizationRoleGrant(organizationId, identityAccountId, "member");
 }

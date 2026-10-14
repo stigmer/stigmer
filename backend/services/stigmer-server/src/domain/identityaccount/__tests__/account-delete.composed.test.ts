@@ -31,7 +31,7 @@ import {
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
@@ -40,7 +40,7 @@ import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { serviceAccountRefusedMessage } from "../../../pipeline/steps/refuse-service-account.js";
 import type { Store } from "../../../store/interface.js";
 import { apiKeyListIndex } from "../../apikey/list-index.js";
-import { iamPolicyListIndex } from "../../iampolicy/list-index.js";
+import { grantListIndex } from "../../grant/list-index.js";
 import { accountIdFor } from "../constants.js";
 import {
   bootSignInServer,
@@ -84,9 +84,9 @@ async function keysOf(...owners: string[]): Promise<string[]> {
 
 /** Every stored policy row naming `id`, as principal or resource. */
 async function rowsNaming(id: string): Promise<string[]> {
-  const rows = await at.server.store.listResources(ApiResourceKind.iam_policy);
+  const rows = await at.server.store.listResources(ApiResourceKind.grant);
   return rows
-    .map((row) => fromBinary(IamPolicySchema, row))
+    .map((row) => fromBinary(GrantSchema, row))
     .filter((p) => p.spec?.principal?.id === id || p.spec?.resource?.id === id)
     .map((p) => `${p.spec?.relation}@${p.spec?.resource?.id}`);
 }
@@ -214,7 +214,7 @@ describe("a fault before the row goes fails the delete with everything in place"
       // Only the read of the deleted account's own rows: the admin's
       // authorization reads the admin's rows through the same index.
       if (
-        declaration === iamPolicyListIndex &&
+        declaration === grantListIndex &&
         (request.anyKey ?? []).some((key) => key.value === id)
       ) {
         return Promise.reject(new Error("policy index unavailable"));

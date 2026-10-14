@@ -13,7 +13,7 @@ import { useSingleOrg } from "../server-info.js";
 import { useFederationIssuerList } from "../federation-issuer/useFederationIssuerList.js";
 import { FEDERATION_ISSUERS_MANAGED_BY_ADMINS } from "../federation-issuer/copy.js";
 import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
-import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";

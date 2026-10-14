@@ -36,7 +36,7 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { TokenService } from "@stigmer/protos/ai/stigmer/iam/token/v1/token_pb";
@@ -222,9 +222,9 @@ describe("what a mint does", () => {
       cause: "grant",
       actorId: adminId,
     });
-    const rows = await at.server.store.listResources(ApiResourceKind.iam_policy);
+    const rows = await at.server.store.listResources(ApiResourceKind.grant);
     const held = rows
-      .map((row) => fromBinary(IamPolicySchema, row))
+      .map((row) => fromBinary(GrantSchema, row))
       .filter((policy) => policy.spec?.principal?.id === accountId)
       .map((policy) => `${policy.spec?.relation}@${policy.spec?.resource?.id}`);
     expect(held).toContain(`member@${acme}`);

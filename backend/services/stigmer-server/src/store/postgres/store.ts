@@ -2777,7 +2777,7 @@ async function appendPermissionHistory(
       entry.cause,
       entry.actorId,
       entry.actorClass,
-      entry.policyId,
+      entry.grantId,
       entry.principalKind,
       entry.principalId,
       entry.principalRelation,

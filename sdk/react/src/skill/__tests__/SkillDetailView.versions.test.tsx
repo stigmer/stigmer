@@ -12,7 +12,7 @@ import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
 import { Stigmer } from "@stigmer/sdk";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
-import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
+import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
 import { StigmerContext } from "../../context.js";
 import { SkillDetailView } from "../SkillDetailView.js";
 
@@ -30,7 +30,7 @@ function renderView(history: boolean) {
           : { entries: [{ versionHash: "h1", tag: "v1" }], nextPageToken: "" };
       },
     });
-    service(IamPolicyQueryController, {
+    service(GrantQueryController, {
       checkMyPermission: () => ({ isAuthorized: false }),
     });
   });

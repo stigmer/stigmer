@@ -27,12 +27,12 @@
  */
 import { fromBinary } from "@bufbuild/protobuf";
 
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 
 /** The `kind` column value of the rows the step removes. */
 export const RETIRED_WORKFLOW_INSTANCE_KIND = "workflow_instance";
 /** The `kind` column value of the grant rows the step reads. */
-export const WORKFLOW_RETIREMENT_POLICY_KIND = "iam_policy";
+export const WORKFLOW_RETIREMENT_GRANT_KIND = "iam_policy";
 
 /** How many grant rows the step decodes per page. */
 export const WORKFLOW_RETIREMENT_PAGE_SIZE = 500;
@@ -44,8 +44,8 @@ export const WORKFLOW_RETIREMENT_PAGE_SIZE = 500;
  * live schema: the policy's own fields are unchanged. Throws when the
  * bytes do not decode.
  */
-export function policyNamesRetiredWorkflowInstance(data: Uint8Array): boolean {
-  const spec = fromBinary(IamPolicySchema, data).spec;
+export function grantNamesRetiredWorkflowInstance(data: Uint8Array): boolean {
+  const spec = fromBinary(GrantSchema, data).spec;
   return (
     spec?.resource?.kind === RETIRED_WORKFLOW_INSTANCE_KIND ||
     spec?.principal?.kind === RETIRED_WORKFLOW_INSTANCE_KIND

@@ -26,19 +26,19 @@ import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
 import { createLogger } from "../../boot/logger.js";
 import {
-  IAM_POLICY_API_VERSION,
-  IAM_POLICY_KIND,
-  policyIdFor,
-} from "../../domain/iampolicy/constants.js";
-import { newResourceIamPolicyStore } from "../../domain/iampolicy/resource-store.js";
-import type { IamPolicyStore } from "../../domain/iampolicy/store.js";
-import { orgRole, triple } from "../../domain/iampolicy/__tests__/support.js";
+  GRANT_API_VERSION,
+  GRANT_KIND,
+  grantIdFor,
+} from "../../domain/grant/constants.js";
+import { newResourceGrantStore } from "../../domain/grant/resource-store.js";
+import type { GrantStore } from "../../domain/grant/store.js";
+import { orgRole, triple } from "../../domain/grant/__tests__/support.js";
 import { newResourceIdentityAccountStore } from "../../domain/identityaccount/resource-store.js";
 import type { IdentityAccountStore } from "../../domain/identityaccount/store.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
@@ -47,7 +47,7 @@ import { newBuiltInAuthorizer } from "../authorizer.js";
 import { newDerivedTupleSource } from "../derived-tuples.js";
 import { checkRelation } from "../evaluator.js";
 import { builtInModel } from "../model/index.js";
-import { newBuiltInPolicyCheck } from "../policy-check.js";
+import { newBuiltInGrantCheck } from "../policy-check.js";
 import { kindsWithoutRows } from "../posture.js";
 import type { Person } from "../tuples.js";
 import { parseObjectRef } from "../tuples.js";
@@ -98,21 +98,21 @@ function memoryReader(rows: ReadonlyArray<[string, Message]>): {
 }
 
 async function grant(
-  policies: IamPolicyStore,
+  policies: GrantStore,
   spec: ReturnType<typeof orgRole>,
 ): Promise<void> {
   await policies.save(
-    create(IamPolicySchema, {
-      apiVersion: IAM_POLICY_API_VERSION,
-      kind: IAM_POLICY_KIND,
-      metadata: { id: policyIdFor(spec) },
+    create(GrantSchema, {
+      apiVersion: GRANT_API_VERSION,
+      kind: GRANT_KIND,
+      metadata: { id: grantIdFor(spec) },
       spec,
     }),
   );
 }
 
 const SEEDED_KINDS: ReadonlyArray<ApiResourceKind> = [
-  ApiResourceKind.iam_policy,
+  ApiResourceKind.grant,
   ApiResourceKind.identity_account,
   ApiResourceKind.organization,
   ApiResourceKind.agent,
@@ -125,7 +125,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
   (fixture) => {
     describe.skipIf(fixture.skip)("through their row readers", () => {
       let opened: OpenedStore;
-      let policies: IamPolicyStore;
+      let policies: GrantStore;
       let accounts: IdentityAccountStore;
       let teams: ReturnType<typeof memoryReader>;
       let providers: ReturnType<typeof memoryReader>;
@@ -133,7 +133,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
 
       beforeEach(async () => {
         opened = await fixture.open();
-        policies = newResourceIamPolicyStore(opened.store, { keepsHistory: false });
+        policies = newResourceGrantStore(opened.store, { keepsHistory: false });
         accounts = newResourceIdentityAccountStore(opened.store);
         const organization = storedDeclaration("organization");
         for (const id of ["acme", "globex"]) {
@@ -318,7 +318,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
 
       describe("the built-in policy check", () => {
         function queries() {
-          return newBuiltInPolicyCheck({
+          return newBuiltInGrantCheck({
             store: opened.store,
             policies,
             accounts,

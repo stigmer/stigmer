@@ -33,7 +33,7 @@ import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
@@ -280,7 +280,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("licensed", () => {
       metadata: { name: "platform", org: acme },
       spec: { description: "the platform team" },
     });
-    const member = await createClient(IamPolicyCommandController, owner.transport).create(
+    const member = await createClient(GrantCommandController, owner.transport).create(
       grant(ref("identity_account", joiner.accountId), "member", ref("team", team.metadata?.id ?? "")),
     );
     expect(member.spec?.relation).toBe("member");
@@ -432,7 +432,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("lapsed: growth refused, everyt
       spec: { role: IamRole.viewer, maxRedemptions: 1, expiresAt: timestampFromDate(new Date(Date.now() + DAY_MS)) },
     });
     await createClient(InvitationCommandController, joiner.transport).redeem({ token: invitation.status?.token ?? "" });
-    await createClient(IamPolicyCommandController, owner.transport).create(
+    await createClient(GrantCommandController, owner.transport).create(
       grant(ref("identity_account", joiner.accountId), "member", ref("team", teamId)),
     );
     await createClient(FederationIssuerCommandController, owner.transport).delete({ resourceId: providerId });

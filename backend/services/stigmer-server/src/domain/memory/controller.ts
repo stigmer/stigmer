@@ -101,7 +101,7 @@ import {
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
 import {
-  newCleanupIamPoliciesStep,
+  newCleanupGrantsStep,
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
@@ -428,7 +428,7 @@ async function deleteMemory(
     .addStep(newDeleteResourceStep(deps.store))
     .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.memory))
     .addStep(
-      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+      newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger),
     )
     .build()
     .execute(reqCtx);

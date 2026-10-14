@@ -34,7 +34,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { ApiResourceKindSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { config as rpcAuthorizationConfig } from "@stigmer/protos/ai/stigmer/commons/rpc/method_options_pb";
 import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
 
 import { everyService } from "../../../authorization/__tests__/contract-support.js";
 
@@ -131,7 +131,7 @@ describe("every authorization annotation's path names a real field of its input"
 });
 
 describe("the check bites (mutation proofs over the same function)", () => {
-  const create = IamPolicyCommandController.method.create;
+  const create = GrantCommandController.method.create;
   const name = "ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/create";
 
   it("the real annotation resolves", () => {

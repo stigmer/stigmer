@@ -45,8 +45,8 @@ import { createClient } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
@@ -54,8 +54,8 @@ import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/
 import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";
 import type { ComposedServer } from "../../boot/compose.js";
-import { policyIdFor } from "../../domain/iampolicy/constants.js";
-import { orgRole } from "../../domain/iampolicy/__tests__/support.js";
+import { grantIdFor } from "../../domain/grant/constants.js";
+import { orgRole } from "../../domain/grant/__tests__/support.js";
 import {
   accountIdFor,
   localIdpIdFor,
@@ -78,14 +78,14 @@ const CREATOR = "fake|creator";
 const NEWCOMER = "fake|newcomer";
 
 /** The policy rows a composed server's store holds, decoded — the one observation every describe below is about. */
-async function policiesIn(server: ComposedServer): Promise<IamPolicy[]> {
-  const rows = await server.store.listResources(ApiResourceKind.iam_policy);
-  return rows.map((row) => fromBinary(IamPolicySchema, row));
+async function grantsIn(server: ComposedServer): Promise<Grant[]> {
+  const rows = await server.store.listResources(ApiResourceKind.grant);
+  return rows.map((row) => fromBinary(GrantSchema, row));
 }
 
 /** `<relation>@<organization id>` for every row `accountId` holds, sorted. */
 function rolesHeldBy(
-  policies: ReadonlyArray<IamPolicy>,
+  policies: ReadonlyArray<Grant>,
   accountId: string,
 ): ReadonlyArray<string> {
   return policies
@@ -141,10 +141,10 @@ describe("iam-policy posture (composed server, a unit's own Authorizer: nothing 
   });
 
   /** The policy rows the composed server's store holds — the one observation the posture is about. */
-  async function policyRows(): Promise<ReadonlyArray<string>> {
-    const rows = await server.store.listResources(ApiResourceKind.iam_policy);
+  async function grantRows(): Promise<ReadonlyArray<string>> {
+    const rows = await server.store.listResources(ApiResourceKind.grant);
     return rows.map(
-      (row) => fromBinary(IamPolicySchema, row).metadata?.id ?? "",
+      (row) => fromBinary(GrantSchema, row).metadata?.id ?? "",
     );
   }
 
@@ -179,7 +179,7 @@ describe("iam-policy posture (composed server, a unit's own Authorizer: nothing 
       authorizerCalls,
       "the unit's Authorizer was consulted",
     ).toBeGreaterThan(0);
-    expect(await policyRows()).toEqual([]);
+    expect(await grantRows()).toEqual([]);
   });
 
   it("the creator's first provisioning writes no row — the membership rules' ownership heal is not installed", async () => {
@@ -189,7 +189,7 @@ describe("iam-policy posture (composed server, a unit's own Authorizer: nothing 
     ).provisionMyAccount({});
 
     expect(account.metadata?.id).toBe(accountIdFor(CREATOR));
-    expect(await policyRows()).toEqual([]);
+    expect(await grantRows()).toEqual([]);
   });
 
   it("a newcomer's first provisioning writes no row — no membership is handed out", async () => {
@@ -199,7 +199,7 @@ describe("iam-policy posture (composed server, a unit's own Authorizer: nothing 
     ).provisionMyAccount({});
 
     expect(account.metadata?.id).toBe(accountIdFor(NEWCOMER));
-    expect(await policyRows()).toEqual([]);
+    expect(await grantRows()).toEqual([]);
   });
 });
 
@@ -246,7 +246,7 @@ describe("built-in authorization posture (composed server, OIDC with no Authoriz
     foundedBeforeId = created.metadata?.id ?? "";
     expect(foundedBeforeId).toMatch(/^org_[0-9a-z]{26}$/);
     expect(created.metadata?.slug).toBe("founded-before");
-    expect(await policiesIn(server)).toEqual([]);
+    expect(await grantsIn(server)).toEqual([]);
   });
 
   it("the founder's first provisioning writes exactly one owner row, stamped by the account", async () => {
@@ -256,13 +256,13 @@ describe("built-in authorization posture (composed server, OIDC with no Authoriz
     ).provisionMyAccount({});
     expect(account.metadata?.id).toBe(creatorId);
 
-    const policies = await policiesIn(server);
+    const policies = await grantsIn(server);
     expect(rolesHeldBy(policies, creatorId)).toEqual([
       `owner@${foundedBeforeId}`,
     ]);
     expect(policies).toHaveLength(1);
     expect(policies[0]?.metadata?.id).toBe(
-      policyIdFor(orgRole(creatorId, "owner", foundedBeforeId)),
+      grantIdFor(orgRole(creatorId, "owner", foundedBeforeId)),
     );
     expect(policies[0]?.status?.audit?.specAudit?.createdBy?.id).toBe(
       creatorId,
@@ -277,7 +277,7 @@ describe("built-in authorization posture (composed server, OIDC with no Authoriz
     foundedAfterId = created.metadata?.id ?? "";
     expect(foundedAfterId).toMatch(/^org_[0-9a-z]{26}$/);
 
-    const policies = await policiesIn(server);
+    const policies = await grantsIn(server);
     expect(rolesHeldBy(policies, creatorId)).toEqual(
       [`owner@${foundedAfterId}`, `owner@${foundedBeforeId}`].sort(),
     );
@@ -295,10 +295,10 @@ describe("built-in authorization posture (composed server, OIDC with no Authoriz
     const accounts = createClient(IdentityAccountCommandController, asNewcomer);
 
     await accounts.provisionMyAccount({});
-    const after = (await policiesIn(server)).map((p) => p.metadata?.id).sort();
+    const after = (await grantsIn(server)).map((p) => p.metadata?.id).sort();
     await accounts.provisionMyAccount({});
 
-    const policies = await policiesIn(server);
+    const policies = await grantsIn(server);
     expect(rolesHeldBy(policies, newcomerId)).toEqual(
       [`member@${foundedAfterId}`, `member@${foundedBeforeId}`].sort(),
     );
@@ -350,7 +350,7 @@ describe("built-in authorization posture (composed server, trusted-local: the op
     laptopOrgId = created.metadata?.id ?? "";
     expect(laptopOrgId).toMatch(/^org_[0-9a-z]{26}$/);
 
-    const policies = await policiesIn(server);
+    const policies = await grantsIn(server);
     expect(rolesHeldBy(policies, operatorId)).toEqual([`owner@${laptopOrgId}`]);
     expect(policies[0]?.status?.audit?.specAudit?.createdBy?.id).toBe(
       operatorId,
@@ -358,29 +358,29 @@ describe("built-in authorization posture (composed server, trusted-local: the op
   });
 
   it("a second boot on the same database writes nothing — the organization already has an owner", async () => {
-    const before = (await policiesIn(server)).map((p) => p.metadata?.id);
+    const before = (await grantsIn(server)).map((p) => p.metadata?.id);
     await server.shutdown();
 
     await boot();
 
-    expect((await policiesIn(server)).map((p) => p.metadata?.id)).toEqual(
+    expect((await grantsIn(server)).map((p) => p.metadata?.id)).toEqual(
       before,
     );
   });
 
   it("an owner row deleted underneath the server is written back at the next boot", async () => {
-    const [row] = await policiesIn(server);
+    const [row] = await grantsIn(server);
     expect(row?.metadata?.id).toBeDefined();
     await server.store.deleteResource(
-      ApiResourceKind.iam_policy,
+      ApiResourceKind.grant,
       row?.metadata?.id ?? "",
     );
-    expect(await policiesIn(server)).toEqual([]);
+    expect(await grantsIn(server)).toEqual([]);
     await server.shutdown();
 
     await boot();
 
-    expect(rolesHeldBy(await policiesIn(server), operatorId)).toEqual([
+    expect(rolesHeldBy(await grantsIn(server), operatorId)).toEqual([
       `owner@${laptopOrgId}`,
     ]);
   });

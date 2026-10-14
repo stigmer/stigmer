@@ -6,7 +6,7 @@
 // forms.
 
 import { create } from "@bufbuild/protobuf";
-import { AccessChange, AccessHistoryEntrySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import { AccessChange, AccessHistoryEntrySchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
 import { describe, expect, it } from "vitest";
 
 import { accessHistoryRows, parseAfterSequence, removedNote, retentionLine } from "../access-history.js";

@@ -29,8 +29,8 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
 import { InvitationCommandController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/command_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
@@ -187,7 +187,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the permission history on a li
 
   it("records a removed member's role as removed, and nothing for a row that did not change", async () => {
     const raj = await signIn(booted, issuer, "operator|raj");
-    const policies = createClient(IamPolicyCommandController, alice.transport);
+    const policies = createClient(GrantCommandController, alice.transport);
     await policies.create(grant(ref("identity_account", raj.accountId), "member", ref("organization", acme)));
     const agent = await createClient(AgentCommandController, alice.transport).create({
       apiVersion: "agentic.stigmer.ai/v1",
@@ -217,8 +217,8 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the permission history on a li
     // posture, so his editor row stays (stigmer#2225). The history records
     // only the rows that changed: once the sweep removes it, its entry is
     // `left_organization`, acting as Alice.
-    const stillHeld = (await booted.server.store.listResources(ApiResourceKind.iam_policy))
-      .map((bytes) => fromBinary(IamPolicySchema, bytes).spec)
+    const stillHeld = (await booted.server.store.listResources(ApiResourceKind.grant))
+      .map((bytes) => fromBinary(GrantSchema, bytes).spec)
       .some((spec) => spec?.principal?.id === raj.accountId && spec.resource?.id === agentId);
     expect(stillHeld).toBe(true);
   });
@@ -266,7 +266,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("a server with no key keeps no 
   it("grants its people their roles and records none of them", async () => {
     await signIn(booted, issuer, "operator|olga");
     await signIn(booted, issuer, "operator|oscar");
-    expect(await booted.server.store.listResources(ApiResourceKind.iam_policy)).not.toEqual([]);
+    expect(await booted.server.store.listResources(ApiResourceKind.grant)).not.toEqual([]);
     expect(await countHistory(db.pool)).toBe(0);
   });
 });

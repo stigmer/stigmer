@@ -24,13 +24,13 @@
  * so the Enterprise identity unit's suites, which publish with it, can use
  * it.
  */
-import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
-import { DuplicatePolicyError } from "@stigmer/server";
+import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import { DuplicateGrantError } from "@stigmer/server";
 import type {
-  IamPolicyStore,
-  PolicyChange,
-  PolicyChangePage,
-  PolicyChangeRecord,
+  GrantStore,
+  GrantChange,
+  GrantChangePage,
+  GrantChangeRecord,
 } from "@stigmer/server";
 
 /** Principal kinds a scope tuple never names: a person or a team is a grantee, not a link. */
@@ -38,9 +38,9 @@ const NON_STRUCTURAL_PRINCIPAL_KINDS: ReadonlySet<string> = new Set(["identity_a
 /** Relations a scope tuple never carries: they are roles, not links. */
 const NON_STRUCTURAL_RELATIONS: ReadonlySet<string> = new Set(["owner", "creator"]);
 
-export class InMemoryIamPolicyStore implements IamPolicyStore {
-  private readonly rows = new Map<string, IamPolicy>();
-  private readonly history: PolicyChange[] = [];
+export class InMemoryGrantStore implements GrantStore {
+  private readonly rows = new Map<string, Grant>();
+  private readonly history: GrantChange[] = [];
   private readonly heads = new Map<string, bigint>();
   private down = false;
 
@@ -50,21 +50,21 @@ export class InMemoryIamPolicyStore implements IamPolicyStore {
   }
 
   /** Every held row, in insertion order. */
-  all(): ReadonlyArray<IamPolicy> {
+  all(): ReadonlyArray<Grant> {
     return [...this.rows.values()];
   }
 
-  async save(policy: IamPolicy, record?: PolicyChangeRecord): Promise<void> {
+  async save(policy: Grant, record?: GrantChangeRecord): Promise<void> {
     this.guard();
     const id = policy.metadata?.id ?? "";
     if (this.rows.has(id)) {
-      throw new DuplicatePolicyError(`IAM policy '${id}' already exists`);
+      throw new DuplicateGrantError(`IAM policy '${id}' already exists`);
     }
     this.rows.set(id, policy);
     this.keep("granted", policy, record);
   }
 
-  async deleteById(id: string, record?: PolicyChangeRecord): Promise<void> {
+  async deleteById(id: string, record?: GrantChangeRecord): Promise<void> {
     this.guard();
     const held = this.rows.get(id);
     if (held !== undefined) {
@@ -73,7 +73,7 @@ export class InMemoryIamPolicyStore implements IamPolicyStore {
     }
   }
 
-  async listChanges(org: string, page: PolicyChangePage): Promise<ReadonlyArray<PolicyChange>> {
+  async listChanges(org: string, page: GrantChangePage): Promise<ReadonlyArray<GrantChange>> {
     this.guard();
     if (!Number.isSafeInteger(page.limit) || page.limit <= 0) {
       throw new Error(`limit must be a positive integer, got ${page.limit}`);
@@ -110,18 +110,18 @@ export class InMemoryIamPolicyStore implements IamPolicyStore {
     return removed.length;
   }
 
-  async findById(id: string): Promise<IamPolicy | undefined> {
+  async findById(id: string): Promise<Grant | undefined> {
     this.guard();
     return this.rows.get(id);
   }
 
-  async findByPrincipal(principalKind: string, principalId: string): Promise<ReadonlyArray<IamPolicy>> {
+  async findByPrincipal(principalKind: string, principalId: string): Promise<ReadonlyArray<Grant>> {
     return this.where(
       (spec) => spec.principal?.kind === principalKind && spec.principal?.id === principalId,
     );
   }
 
-  async findByResource(resourceKind: string, resourceId: string): Promise<ReadonlyArray<IamPolicy>> {
+  async findByResource(resourceKind: string, resourceId: string): Promise<ReadonlyArray<Grant>> {
     return this.where((spec) => onResource(spec, resourceKind, resourceId));
   }
 
@@ -130,7 +130,7 @@ export class InMemoryIamPolicyStore implements IamPolicyStore {
     principalId: string,
     resourceKind: string,
     resourceId: string,
-  ): Promise<ReadonlyArray<IamPolicy>> {
+  ): Promise<ReadonlyArray<Grant>> {
     return this.where(
       (spec) =>
         spec.principal?.kind === principalKind &&
@@ -143,7 +143,7 @@ export class InMemoryIamPolicyStore implements IamPolicyStore {
     resourceKind: string,
     resourceId: string,
     relations: ReadonlyArray<string>,
-  ): Promise<ReadonlyArray<IamPolicy>> {
+  ): Promise<ReadonlyArray<Grant>> {
     return this.where(
       (spec) => onResource(spec, resourceKind, resourceId) && relations.includes(spec.relation),
     );
@@ -166,7 +166,7 @@ export class InMemoryIamPolicyStore implements IamPolicyStore {
     return principals.size;
   }
 
-  async findScopeTuple(resourceKind: string, resourceId: string): Promise<IamPolicy | undefined> {
+  async findScopeTuple(resourceKind: string, resourceId: string): Promise<Grant | undefined> {
     const rows = await this.where(
       (spec) =>
         onResource(spec, resourceKind, resourceId) &&
@@ -178,18 +178,18 @@ export class InMemoryIamPolicyStore implements IamPolicyStore {
     return rows[0];
   }
 
-  async findByResourceKindAndRelation(resourceKind: string, relation: string): Promise<ReadonlyArray<IamPolicy>> {
+  async findByResourceKindAndRelation(resourceKind: string, relation: string): Promise<ReadonlyArray<Grant>> {
     return this.where((spec) => spec.resource?.kind === resourceKind && spec.relation === relation);
   }
 
   private async where(
-    matches: (spec: NonNullable<IamPolicy["spec"]>) => boolean,
-  ): Promise<ReadonlyArray<IamPolicy>> {
+    matches: (spec: NonNullable<Grant["spec"]>) => boolean,
+  ): Promise<ReadonlyArray<Grant>> {
     this.guard();
     return [...this.rows.values()].filter((row) => row.spec !== undefined && matches(row.spec));
   }
 
-  private keep(change: PolicyChange["change"], policy: IamPolicy, record: PolicyChangeRecord | undefined): void {
+  private keep(change: GrantChange["change"], policy: Grant, record: GrantChangeRecord | undefined): void {
     if (record === undefined) {
       return;
     }
@@ -214,12 +214,12 @@ export class InMemoryIamPolicyStore implements IamPolicyStore {
   }
 }
 
-function onResource(spec: NonNullable<IamPolicy["spec"]>, kind: string, id: string): boolean {
+function onResource(spec: NonNullable<Grant["spec"]>, kind: string, id: string): boolean {
   return spec.resource?.kind === kind && spec.resource?.id === id;
 }
 
 /** Retention's order: time, then organization, then number. */
-function oldestChangeFirst(a: PolicyChange, b: PolicyChange): number {
+function oldestChangeFirst(a: GrantChange, b: GrantChange): number {
   if (a.occurredAt !== b.occurredAt) {
     return a.occurredAt < b.occurredAt ? -1 : 1;
   }

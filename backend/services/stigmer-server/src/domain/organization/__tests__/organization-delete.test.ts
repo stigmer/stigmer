@@ -47,8 +47,8 @@ import {
   vi,
 } from "vitest";
 
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
-import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
+import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
@@ -68,10 +68,10 @@ import {
   setOperatorIdentity,
 } from "../../../pipeline/steps/defaults.js";
 import {
-  fakeIamPolicyStore,
+  fakeGrantStore,
   orgRole,
   triple,
-} from "../../iampolicy/__tests__/support.js";
+} from "../../grant/__tests__/support.js";
 
 const OPERATOR_EMAIL = "operator@example.com";
 const REFUSED_SLUG = "delete-refused";
@@ -91,10 +91,10 @@ async function grpcError(run: () => Promise<unknown>): Promise<ConnectError> {
 }
 
 describe("organization delete (composed server, trusted-local posture)", () => {
-  const policies = fakeIamPolicyStore();
+  const policies = fakeGrantStore();
   /** A policy id whose delete faults while set: the store answering an error mid-revocation. */
   let faultingDelete: string | undefined;
-  const faultablePolicies = {
+  const faultableGrants = {
     ...policies,
     async deleteById(id: string): Promise<void> {
       if (id === faultingDelete) {
@@ -135,7 +135,7 @@ describe("organization delete (composed server, trusted-local posture)", () => {
     gateSteps: new Map<GateSlotName, ReadonlyArray<PipelineStep<DescMessage>>>([
       ["org-delete:pre-delete", [slotStep]],
     ]),
-    drivers: { iamPolicyStore: faultablePolicies },
+    drivers: { grantStore: faultableGrants },
     orgPurge: { stages: [holdStage] },
   };
 
@@ -145,9 +145,9 @@ describe("organization delete (composed server, trusted-local posture)", () => {
   let organizations: Client<typeof OrganizationCommandController>;
   let organizationQuery: Client<typeof OrganizationQueryController>;
   /** The platform's own pipeline: the in-process transport's `internal` caller. */
-  let platform: Client<typeof IamPolicyCommandController>;
+  let platform: Client<typeof GrantCommandController>;
 
-  function rowsNaming(org: string): IamPolicy[] {
+  function rowsNaming(org: string): Grant[] {
     return [...policies.rows.values()].filter(
       (policy) =>
         (policy.spec?.resource?.kind === "organization" &&
@@ -170,8 +170,8 @@ describe("organization delete (composed server, trusted-local posture)", () => {
       spec: { description: "created by the organization delete test" },
     });
     const id = created.metadata?.id ?? "";
-    await platform.bootstrapPolicy(orgRole(OUTSIDER, "member", id));
-    await platform.bootstrapPolicy(
+    await platform.bootstrapGrant(orgRole(OUTSIDER, "member", id));
+    await platform.bootstrapGrant(
       triple({ kind: "organization", id }, "organization", {
         kind: "agent",
         id: AGENT,
@@ -217,7 +217,7 @@ describe("organization delete (composed server, trusted-local posture)", () => {
     organizations = createClient(OrganizationCommandController, transport);
     organizationQuery = createClient(OrganizationQueryController, transport);
     platform = createClient(
-      IamPolicyCommandController,
+      GrantCommandController,
       server.inProcessTransport,
     );
   });

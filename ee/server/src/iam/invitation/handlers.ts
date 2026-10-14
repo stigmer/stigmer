@@ -106,8 +106,8 @@ import type { ServiceImpl } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   ApiResourceRefSchema,
-  IamPolicySpecSchema,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+  GrantSpecSchema,
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
 import {
   InvitationSchema,
@@ -152,8 +152,8 @@ import {
 import { runUnaryChain } from "../../rpc/unary-chain.js";
 import { orphanReason } from "../organization-links.js";
 import type { OrganizationFacts, OrganizationLookup } from "../organization-links.js";
-import type { IamPolicyGrantPathClient } from "../policy/grant-path-client.js";
-import { grantableRolesFor } from "../policy/roles.js";
+import type { GrantPathClient } from "../grant/grant-path-client.js";
+import { grantableRolesFor } from "../grant/roles.js";
 import {
   INVITATION_DISPLAY_NAME,
   invitationAt,
@@ -178,7 +178,7 @@ export interface InvitationLaneDeps {
   readonly authorizer: Authorizer;
   readonly logger: Logger;
   readonly store: InvitationStore;
-  readonly policies: IamPolicyGrantPathClient;
+  readonly policies: GrantPathClient;
   /** The composition's one lifecycle driver: creation grants through the grant path. */
   readonly lifecycle: Pick<ResourceAuthorizationLifecycle, "onResourceCreated">;
   /** The composition's one list read scope, the same instance the driver slot holds. */
@@ -405,7 +405,7 @@ async function redeemInvitation(
     );
   }
 
-  const role = create(IamPolicySpecSchema, {
+  const role = create(GrantSpecSchema, {
     principal: create(ApiResourceRefSchema, {
       kind: "identity_account",
       id: caller.identityId,
@@ -612,7 +612,7 @@ async function creatorCouldStillCreate(
       : [IamPermission.can_grant_access];
   for (const permission of needs) {
     const holds = await queries.check(
-      create(IamPolicySpecSchema, {
+      create(GrantSpecSchema, {
         principal: create(ApiResourceRefSchema, { kind: "identity_account", id: creator }),
         relation: IamPermission[permission],
         resource: create(ApiResourceRefSchema, { kind: "organization", id: org }),

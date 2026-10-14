@@ -57,7 +57,7 @@ import type { StoreLogger } from "../logger.js";
 import {
   AGENT_KIND as RETIREMENT_AGENT_KIND,
   PLUGIN_KIND,
-  POLICY_KIND as RETIREMENT_POLICY_KIND,
+  GRANT_KIND_AT_STEP as RETIREMENT_POLICY_KIND,
   RETIRED_MCP_SERVER_KIND,
   RETIREMENT_PAGE_SIZE as SERVER_RETIREMENT_PAGE_SIZE,
   RetirementFacts,
@@ -67,7 +67,7 @@ import {
   migrateAgentRow,
   migrateSessionRow as migrateSessionRowForPlugins,
   pluginFactsOf,
-  policyNamesRetired,
+  grantNamesRetired,
   serverFactsOf,
   unreadableRowError as unreadableRetiredServerRowError,
 } from "../mcp-server-retired.js";
@@ -82,14 +82,14 @@ import {
 
 import {
   AGENT_KIND,
-  POLICY_KIND,
+  GRANT_KIND_AT_STEP,
   RETIRED_INSTANCE_KIND,
   RETIREMENT_PAGE_SIZE,
   SESSION_KIND,
   agentFactsOf,
   instanceAgentIdOf,
   migrateSessionRow,
-  policyNamesRetiredInstance,
+  grantNamesRetiredInstance,
   unreadableRowError,
 } from "../agent-instance-retired.js";
 import type { InstanceAgent } from "../agent-instance-retired.js";
@@ -118,38 +118,38 @@ import {
 import {
   RETIRED_WORKFLOW_INSTANCE_KIND,
   WORKFLOW_RETIREMENT_PAGE_SIZE,
-  WORKFLOW_RETIREMENT_POLICY_KIND,
-  policyNamesRetiredWorkflowInstance,
+  WORKFLOW_RETIREMENT_GRANT_KIND,
+  grantNamesRetiredWorkflowInstance,
   unreadableWorkflowRowError,
 } from "../workflow-instance-retired.js";
 import {
   PLATFORM_CLIENT_RETIRED_PAGE_SIZE,
-  PLATFORM_CLIENT_RETIRED_POLICY_KIND,
+  PLATFORM_CLIENT_RETIRED_GRANT_KIND,
   RETIRED_PLATFORM_CLIENT_KIND,
-  policyNamesRetiredPlatformClient,
+  grantNamesRetiredPlatformClient,
   unreadablePlatformClientRowError,
 } from "../platform-client-retired.js";
 import {
   KIND_TABLES,
   KIND_RENAME_PAGE_SIZE,
-  KIND_RENAME_POLICY_KIND,
+  KIND_RENAME_GRANT_KIND,
   FEDERATION_ISSUER_RENAME_V30,
   RUN_RENAME_V18,
   RUN_RENAME_V21,
-  rekeyedPolicy,
+  rekeyedGrant,
   renamedKindRow,
   unreadableKindRenameRowError,
 } from "../kind-rename.js";
-import type { KindRename, RekeyedPolicy } from "../kind-rename.js";
+import type { KindRename, RekeyedGrant } from "../kind-rename.js";
 import {
   AGENT_RUN_KIND,
   AGENT_RUN_RETIRED_PAGE_SIZE,
   RETIRED_WORKFLOW_KINDS,
   RETIRED_WORKFLOW_TABLES,
   WORKFLOW_RETIRED_PAGE_SIZE,
-  WORKFLOW_RETIRED_POLICY_KIND,
+  WORKFLOW_RETIRED_GRANT_KIND,
   migrateAgentRunRow,
-  policyNamesRetiredWorkflowKind,
+  grantNamesRetiredWorkflowKind,
   unreadableRetiredWorkflowRowError,
 } from "../workflow-retired.js";
 import {
@@ -158,10 +158,10 @@ import {
 } from "../account-slugs-repaired.js";
 import {
   ENVIRONMENT_RETIRED_PAGE_SIZE,
-  ENVIRONMENT_RETIRED_POLICY_KIND,
+  ENVIRONMENT_RETIRED_GRANT_KIND,
   RETIRED_ENVIRONMENT_KIND,
   RETIRED_ENVIRONMENT_TABLES,
-  policyNamesRetiredEnvironment,
+  grantNamesRetiredEnvironment,
   unreadableRetiredEnvironmentRowError,
 } from "../environment-retired.js";
 import { RETIRED_EXECUTION_CONTEXT_KIND } from "../execution-context-retired.js";
@@ -894,20 +894,20 @@ async function migrateToV9(client: PoolClient): Promise<void> {
     }
   });
 
-  const retiredPolicies: string[] = [];
-  await forEachRow(POLICY_KIND, (row) => {
+  const retiredGrantIds: string[] = [];
+  await forEachRow(GRANT_KIND_AT_STEP, (row) => {
     try {
-      if (policyNamesRetiredInstance(new Uint8Array(row.data))) {
-        retiredPolicies.push(row.id);
+      if (grantNamesRetiredInstance(new Uint8Array(row.data))) {
+        retiredGrantIds.push(row.id);
       }
     } catch (error) {
-      throw unreadableRowError(POLICY_KIND, row.id, error);
+      throw unreadableRowError(GRANT_KIND_AT_STEP, row.id, error);
     }
   });
   for (const table of ["resource_list_keys", "resources"]) {
     await client.query(
       `DELETE FROM ${table} WHERE kind = $1 AND id = ANY($2::text[])`,
-      [POLICY_KIND, retiredPolicies],
+      [GRANT_KIND_AT_STEP, retiredGrantIds],
     );
   }
 
@@ -1002,7 +1002,7 @@ async function migrateToV11(client: PoolClient): Promise<void> {
  * out of the step, and the transaction makes it whole or nothing.
  */
 async function migrateToV12(client: PoolClient): Promise<void> {
-  const retiredPolicies: string[] = [];
+  const retiredGrantIds: string[] = [];
   for (let after = ""; ; ) {
     const rows = (
       await client.query<{ id: string; data: Buffer }>(
@@ -1010,17 +1010,17 @@ async function migrateToV12(client: PoolClient): Promise<void> {
          WHERE kind = $1 AND id > $2
          ORDER BY id
          LIMIT $3`,
-        [WORKFLOW_RETIREMENT_POLICY_KIND, after, WORKFLOW_RETIREMENT_PAGE_SIZE],
+        [WORKFLOW_RETIREMENT_GRANT_KIND, after, WORKFLOW_RETIREMENT_PAGE_SIZE],
       )
     ).rows;
     for (const row of rows) {
       try {
-        if (policyNamesRetiredWorkflowInstance(new Uint8Array(row.data))) {
-          retiredPolicies.push(row.id);
+        if (grantNamesRetiredWorkflowInstance(new Uint8Array(row.data))) {
+          retiredGrantIds.push(row.id);
         }
       } catch (error) {
         throw unreadableWorkflowRowError(
-          WORKFLOW_RETIREMENT_POLICY_KIND,
+          WORKFLOW_RETIREMENT_GRANT_KIND,
           row.id,
           error,
         );
@@ -1034,7 +1034,7 @@ async function migrateToV12(client: PoolClient): Promise<void> {
   for (const table of ["resource_list_keys", "resources"]) {
     await client.query(
       `DELETE FROM ${table} WHERE kind = $1 AND id = ANY($2::text[])`,
-      [WORKFLOW_RETIREMENT_POLICY_KIND, retiredPolicies],
+      [WORKFLOW_RETIREMENT_GRANT_KIND, retiredGrantIds],
     );
   }
 
@@ -1118,27 +1118,27 @@ async function renameKind(client: PoolClient, rename: KindRename): Promise<void>
     ]);
   }
 
-  const rekeyed: Array<{ from: string; policy: RekeyedPolicy }> = [];
-  await forEachRow(KIND_RENAME_POLICY_KIND, (row) => {
+  const rekeyed: Array<{ from: string; policy: RekeyedGrant }> = [];
+  await forEachRow(KIND_RENAME_GRANT_KIND, (row) => {
     try {
-      const policy = rekeyedPolicy(rename, new Uint8Array(row.data));
+      const policy = rekeyedGrant(rename, new Uint8Array(row.data));
       if (policy !== undefined) {
         rekeyed.push({ from: row.id, policy });
       }
     } catch (error) {
-      throw unreadableKindRenameRowError(rename, KIND_RENAME_POLICY_KIND, row.id, error);
+      throw unreadableKindRenameRowError(rename, KIND_RENAME_GRANT_KIND, row.id, error);
     }
   });
   for (const { from, policy } of rekeyed) {
     for (const table of ["resource_list_keys", "resources"]) {
       await client.query(`DELETE FROM ${table} WHERE kind = $1 AND id = $2`, [
-        KIND_RENAME_POLICY_KIND,
+        KIND_RENAME_GRANT_KIND,
         from,
       ]);
     }
     await client.query(
       `INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, now())`,
-      [KIND_RENAME_POLICY_KIND, policy.id, Buffer.from(policy.data)],
+      [KIND_RENAME_GRANT_KIND, policy.id, Buffer.from(policy.data)],
     );
   }
 }
@@ -1192,18 +1192,18 @@ async function migrateToV14(client: PoolClient): Promise<void> {
     }
   };
 
-  const retiredPolicies: string[] = [];
+  const retiredGrantIds: string[] = [];
   await forEachRow(
-    WORKFLOW_RETIRED_POLICY_KIND,
+    WORKFLOW_RETIRED_GRANT_KIND,
     WORKFLOW_RETIRED_PAGE_SIZE,
     (row) => {
       try {
-        if (policyNamesRetiredWorkflowKind(new Uint8Array(row.data))) {
-          retiredPolicies.push(row.id);
+        if (grantNamesRetiredWorkflowKind(new Uint8Array(row.data))) {
+          retiredGrantIds.push(row.id);
         }
       } catch (error) {
         throw unreadableRetiredWorkflowRowError(
-          WORKFLOW_RETIRED_POLICY_KIND,
+          WORKFLOW_RETIRED_GRANT_KIND,
           row.id,
           error,
         );
@@ -1213,7 +1213,7 @@ async function migrateToV14(client: PoolClient): Promise<void> {
   for (const table of ["resource_list_keys", "resources"]) {
     await client.query(
       `DELETE FROM ${table} WHERE kind = $1 AND id = ANY($2::text[])`,
-      [WORKFLOW_RETIRED_POLICY_KIND, retiredPolicies],
+      [WORKFLOW_RETIRED_GRANT_KIND, retiredGrantIds],
     );
   }
 
@@ -1299,7 +1299,7 @@ async function migrateToV16(client: PoolClient): Promise<void> {
  * chain's advisory lock and transaction make the step whole or nothing.
  */
 async function migrateToV17(client: PoolClient): Promise<void> {
-  const retiredPolicies: string[] = [];
+  const retiredGrantIds: string[] = [];
   for (let after = ""; ; ) {
     const rows = (
       await client.query<{ id: string; data: Buffer }>(
@@ -1307,17 +1307,17 @@ async function migrateToV17(client: PoolClient): Promise<void> {
          WHERE kind = $1 AND id > $2
          ORDER BY id
          LIMIT $3`,
-        [ENVIRONMENT_RETIRED_POLICY_KIND, after, ENVIRONMENT_RETIRED_PAGE_SIZE],
+        [ENVIRONMENT_RETIRED_GRANT_KIND, after, ENVIRONMENT_RETIRED_PAGE_SIZE],
       )
     ).rows;
     for (const row of rows) {
       try {
-        if (policyNamesRetiredEnvironment(new Uint8Array(row.data))) {
-          retiredPolicies.push(row.id);
+        if (grantNamesRetiredEnvironment(new Uint8Array(row.data))) {
+          retiredGrantIds.push(row.id);
         }
       } catch (error) {
         throw unreadableRetiredEnvironmentRowError(
-          ENVIRONMENT_RETIRED_POLICY_KIND,
+          ENVIRONMENT_RETIRED_GRANT_KIND,
           row.id,
           error,
         );
@@ -1331,7 +1331,7 @@ async function migrateToV17(client: PoolClient): Promise<void> {
   for (const table of ["resource_list_keys", "resources"]) {
     await client.query(
       `DELETE FROM ${table} WHERE kind = $1 AND id = ANY($2::text[])`,
-      [ENVIRONMENT_RETIRED_POLICY_KIND, retiredPolicies],
+      [ENVIRONMENT_RETIRED_GRANT_KIND, retiredGrantIds],
     );
   }
 
@@ -1574,16 +1574,16 @@ async function migrateToV21(client: PoolClient, logger: StoreLogger): Promise<vo
 
   const serverIds = facts.serverIds();
   const memberSkillIds = facts.memberSkillIds();
-  const retiredPolicies: string[] = [];
+  const retiredGrantIds: string[] = [];
   await forEachRow(RETIREMENT_POLICY_KIND, (row) => {
-    if (policyNamesRetired(row.data, serverIds, memberSkillIds)) {
-      retiredPolicies.push(row.id);
+    if (grantNamesRetired(row.data, serverIds, memberSkillIds)) {
+      retiredGrantIds.push(row.id);
     }
   });
   for (const table of ["resource_list_keys", "resources"]) {
     await client.query(`DELETE FROM ${table} WHERE kind = $1 AND id = ANY($2::text[])`, [
       RETIREMENT_POLICY_KIND,
-      retiredPolicies,
+      retiredGrantIds,
     ]);
   }
   await client.query(`DELETE FROM resource_audit WHERE kind = $1 AND resource_id = ANY($2::text[])`, [
@@ -2028,9 +2028,9 @@ async function migrateToV30(client: PoolClient): Promise<void> {
       )
     ).rows;
     for (const row of rows) {
-      let policy: RekeyedPolicy | undefined;
+      let policy: RekeyedGrant | undefined;
       try {
-        policy = rekeyedPolicy(rename, new Uint8Array(row.data));
+        policy = rekeyedGrant(rename, new Uint8Array(row.data));
       } catch (error) {
         throw unreadableKindRenameRowError(rename, "iam_policy_history", `${row.org}/${row.sequence}`, error);
       }
@@ -2115,7 +2115,7 @@ async function migrateToV32(client: PoolClient, logger: StoreLogger): Promise<vo
  * out of the step, and the transaction makes it whole or nothing.
  */
 async function migrateToV33(client: PoolClient): Promise<void> {
-  const retiredPolicies: string[] = [];
+  const retiredGrantIds: string[] = [];
   for (let after = ""; ; ) {
     const rows = (
       await client.query<{ id: string; data: Buffer }>(
@@ -2124,7 +2124,7 @@ async function migrateToV33(client: PoolClient): Promise<void> {
          ORDER BY id
          LIMIT $3`,
         [
-          PLATFORM_CLIENT_RETIRED_POLICY_KIND,
+          PLATFORM_CLIENT_RETIRED_GRANT_KIND,
           after,
           PLATFORM_CLIENT_RETIRED_PAGE_SIZE,
         ],
@@ -2132,12 +2132,12 @@ async function migrateToV33(client: PoolClient): Promise<void> {
     ).rows;
     for (const row of rows) {
       try {
-        if (policyNamesRetiredPlatformClient(new Uint8Array(row.data))) {
-          retiredPolicies.push(row.id);
+        if (grantNamesRetiredPlatformClient(new Uint8Array(row.data))) {
+          retiredGrantIds.push(row.id);
         }
       } catch (error) {
         throw unreadablePlatformClientRowError(
-          PLATFORM_CLIENT_RETIRED_POLICY_KIND,
+          PLATFORM_CLIENT_RETIRED_GRANT_KIND,
           row.id,
           error,
         );
@@ -2151,7 +2151,7 @@ async function migrateToV33(client: PoolClient): Promise<void> {
   for (const table of ["resource_list_keys", "resources"]) {
     await client.query(
       `DELETE FROM ${table} WHERE kind = $1 AND id = ANY($2::text[])`,
-      [PLATFORM_CLIENT_RETIRED_POLICY_KIND, retiredPolicies],
+      [PLATFORM_CLIENT_RETIRED_GRANT_KIND, retiredGrantIds],
     );
   }
   for (const table of KIND_TABLES) {

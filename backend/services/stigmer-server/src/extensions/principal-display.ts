@@ -22,7 +22,7 @@
  *     the list RPC fails with it.
  */
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ApiResourceRefView } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import type { ApiResourceRefView } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
 
 /** The principal-display contract (single-instance point, ExtensionDrivers.principalDisplay). */
 export interface PrincipalDisplay {

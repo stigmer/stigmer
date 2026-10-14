@@ -248,7 +248,7 @@ describe.skipIf(!enforcementServed)(
       await setEmbedding(lane.clients, context.org, { signInRole: IamRole.viewer });
       await mintUserToken(admin.as, context.org, userId);
 
-      const access = await lane.clients.iamPolicyQuery.listResourceAccessByPrincipal({
+      const access = await lane.clients.grantQuery.listResourceAccessByPrincipal({
         resource: { kind: "organization", id: context.org },
       });
       const entryOf = (id: string) => access.entries.find((entry) => entry.principal?.id === id);

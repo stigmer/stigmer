@@ -31,7 +31,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
 import { makeSharedVault, myVaultTarget, setSecretsInput, vaultTarget } from "../support/vaults";
-import { organizationRole } from "../support/iampolicies";
+import { organizationRole } from "../support/grants";
 import { uniqueName, uniqueOrg } from "../support/naming";
 import {
   createMinter,
@@ -109,7 +109,7 @@ async function personWith(
 ): Promise<{ readonly clients: ConformanceClients; readonly id: string }> {
   const clients = await on.provisionIdentity();
   const id = await on.accountIdOf(clients);
-  await on.clients.iamPolicyCommand.create(organizationRole(id, role, org));
+  await on.clients.grantCommand.create(organizationRole(id, role, org));
   return { clients, id };
 }
 
@@ -117,7 +117,7 @@ async function accessHoldersOf(
   as: ConformanceClients,
   org: string,
 ): Promise<ReadonlyArray<string>> {
-  const access = await as.iamPolicyQuery.listResourceAccessByPrincipal({
+  const access = await as.grantQuery.listResourceAccessByPrincipal({
     resource: { kind: "organization", id: org },
   });
   return access.entries.map((entry) => entry.principal?.id ?? "");
@@ -317,7 +317,7 @@ describe("child organizations — managed by the parent, never read by it", () =
       "before joining, the parent's admin reads nothing",
     );
 
-    await on.clients.iamPolicyCommand.create(
+    await on.clients.grantCommand.create(
       organizationRole(founder, "viewer", child.org),
     );
     expect(

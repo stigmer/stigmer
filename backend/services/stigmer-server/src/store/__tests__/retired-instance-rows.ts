@@ -14,7 +14,7 @@ import { create, toBinary } from "@bufbuild/protobuf";
 import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
@@ -112,7 +112,7 @@ export function sessionBytes(
 }
 
 /** A stored IamPolicy row: `principal` -relation-> `resource`, each "kind:id". */
-export function policyRow(options: {
+export function grantRow(options: {
   readonly id: string;
   readonly principal: string;
   readonly relation: string;
@@ -123,8 +123,8 @@ export function policyRow(options: {
     return { kind, id };
   };
   return toBinary(
-    IamPolicySchema,
-    create(IamPolicySchema, {
+    GrantSchema,
+    create(GrantSchema, {
       apiVersion: "iam.stigmer.ai/v1",
       kind: "IamPolicy",
       metadata: { id: options.id },

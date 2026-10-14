@@ -59,7 +59,7 @@ describe("grantableRolesFor — the proto's grantable roles per kind", () => {
   it.each([
     ["identity_account", ApiResourceKind.identity_account],
     ["api_key", ApiResourceKind.api_key],
-    ["iam_policy", ApiResourceKind.iam_policy],
+    ["iam_policy", ApiResourceKind.grant],
     ["invitation", ApiResourceKind.invitation],
     ["run", ApiResourceKind.run],
   ])(

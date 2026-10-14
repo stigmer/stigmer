@@ -41,7 +41,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
 import { API_KEY_API_VERSION, API_KEY_KIND, plaintextKeyOf } from "../support/apikeys";
-import { organizationRole } from "../support/iampolicies";
+import { organizationRole } from "../support/grants";
 import { uniqueName } from "../support/naming";
 import {
   createTarget,
@@ -196,7 +196,7 @@ describe("Service account conformance", () => {
     const account = await createServiceAccount(on.clients, org.org);
     await expectGrpcCode(
       () =>
-        on.clients.iamPolicyCommand.create(
+        on.clients.grantCommand.create(
           organizationRole(account.metadata?.id ?? "", "owner", org.org),
         ),
       Code.InvalidArgument,
@@ -347,15 +347,15 @@ describe("Service account conformance", () => {
       },
       {
         act: "grant or revoke roles on the organization",
-        call: () => asKey.iamPolicyCommand.create(organizationRole(colleagueId, "admin", org.org)),
+        call: () => asKey.grantCommand.create(organizationRole(colleagueId, "admin", org.org)),
       },
       {
         act: "grant or revoke roles on the organization",
-        call: () => asKey.iamPolicyCommand.delete(organizationRole(colleagueId, "member", org.org)),
+        call: () => asKey.grantCommand.delete(organizationRole(colleagueId, "member", org.org)),
       },
       {
         act: "grant or revoke roles on the organization",
-        call: () => asKey.iamPolicyCommand.revokeOrgAccess({ identityAccountId: colleagueId, org: org.org }),
+        call: () => asKey.grantCommand.revokeOrgAccess({ identityAccountId: colleagueId, org: org.org }),
       },
       {
         act: "change the organization's embedding settings",

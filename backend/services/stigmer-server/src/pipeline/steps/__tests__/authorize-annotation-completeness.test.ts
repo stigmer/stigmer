@@ -63,8 +63,8 @@ import {
   is_public,
   is_skip_authorization,
 } from "@stigmer/protos/ai/stigmer/commons/rpc/method_options_pb";
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
-import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
+import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
 
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
@@ -159,8 +159,8 @@ describe("authorization annotations name where the resource id comes from", () =
 
 describe("the IamPolicy contract names its targets (read by descriptor)", () => {
   const targets = annotationTargets([
-    IamPolicyCommandController,
-    IamPolicyQueryController,
+    GrantCommandController,
+    GrantQueryController,
   ]);
   const byName = new Map(
     targets.map((t) => [t.method.split("/")[1] ?? t.method, t]),
@@ -192,7 +192,7 @@ describe("the IamPolicy contract names its targets (read by descriptor)", () => 
   it("listAuthorizedResourceIds carries NO rpc.config and skips — its trust rule is the handler's", () => {
     // Read the descriptor directly: `annotationTargets` lists only
     // config-carrying methods, and this one must have left that set.
-    const method = IamPolicyQueryController.method.listAuthorizedResourceIds;
+    const method = GrantQueryController.method.listAuthorizedResourceIds;
     expect(byName.has("listAuthorizedResourceIds")).toBe(false);
     expect(hasOption(method, rpcAuthorizationConfig)).toBe(false);
     expect(getOption(method, is_skip_authorization)).toBe(true);

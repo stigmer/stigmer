@@ -9,10 +9,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  policyNamesRetiredPlatformClient,
+  grantNamesRetiredPlatformClient,
   unreadablePlatformClientRowError,
 } from "../platform-client-retired.js";
-import { policyRow } from "./retired-instance-rows.js";
+import { grantRow } from "./retired-instance-rows.js";
 
 describe("policyNamesRetiredPlatformClient", () => {
   it.each([
@@ -22,14 +22,14 @@ describe("policyNamesRetiredPlatformClient", () => {
     { principal: "identity_account:ida_1", resource: "oauth_app:oap_1", named: false },
   ])("$principal -> $resource: $named", ({ principal, resource, named }) => {
     expect(
-      policyNamesRetiredPlatformClient(
-        policyRow({ id: "iam_1", principal, relation: "viewer", resource }),
+      grantNamesRetiredPlatformClient(
+        grantRow({ id: "iam_1", principal, relation: "viewer", resource }),
       ),
     ).toBe(named);
   });
 
   it("throws on bytes that do not decode", () => {
-    expect(() => policyNamesRetiredPlatformClient(new Uint8Array([0x22, 0xff]))).toThrow();
+    expect(() => grantNamesRetiredPlatformClient(new Uint8Array([0x22, 0xff]))).toThrow();
   });
 });
 

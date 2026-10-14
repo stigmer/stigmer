@@ -5,7 +5,7 @@ import {
   ChannelAppSchema,
   type ChannelApp,
 } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
-import type { CheckMyPermissionInput } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import type { CheckMyPermissionInput } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
 import { StigmerContext } from "../../context";
 import { ChannelAppDetailPanel } from "../ChannelAppDetailPanel";
 

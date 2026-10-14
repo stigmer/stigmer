@@ -37,7 +37,7 @@
  */
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 
-import { isPersonStamp } from "../domain/iampolicy/membership.js";
+import { isPersonStamp } from "../domain/grant/membership.js";
 import type { AccountsByCaller } from "../domain/identityaccount/resolve.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
 import { accountForCaller } from "../domain/identityaccount/resolve.js";

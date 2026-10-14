@@ -54,21 +54,21 @@ import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
-import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
 import {
-  IAM_POLICY_API_VERSION,
-  IAM_POLICY_KIND,
-  policyIdFor,
-} from "../../domain/iampolicy/constants.js";
-import { newResourceIamPolicyStore } from "../../domain/iampolicy/resource-store.js";
-import type { IamPolicyStore } from "../../domain/iampolicy/store.js";
-import { orgRole, triple } from "../../domain/iampolicy/__tests__/support.js";
+  GRANT_API_VERSION,
+  GRANT_KIND,
+  grantIdFor,
+} from "../../domain/grant/constants.js";
+import { newResourceGrantStore } from "../../domain/grant/resource-store.js";
+import type { GrantStore } from "../../domain/grant/store.js";
+import { orgRole, triple } from "../../domain/grant/__tests__/support.js";
 import { accountIdFor } from "../../domain/identityaccount/constants.js";
 import { newResourceIdentityAccountStore } from "../../domain/identityaccount/resource-store.js";
 import type { IdentityAccountStore } from "../../domain/identityaccount/store.js";
@@ -346,8 +346,8 @@ const PAGE_SHAPES: ReadonlyArray<PageShape> = [
 ];
 
 /** The Enterprise population's IamPolicy rows at candidate size `n`. */
-function populationPolicies(n: number): IamPolicySpec[] {
-  const specs: IamPolicySpec[] = [
+function populationGrants(n: number): GrantSpec[] {
+  const specs: GrantSpec[] = [
     orgRole(FOUNDER, "owner", ORG),
     orgRole(MEMBER, "member", ORG),
     orgRole(VIEWER, "viewer", ORG),
@@ -355,7 +355,7 @@ function populationPolicies(n: number): IamPolicySpec[] {
     orgRole(MULTI_TEAM, "member", ORG),
     orgRole(DIRECT, "member", ORG),
   ];
-  const membership = (accountId: string, team: number): IamPolicySpec =>
+  const membership = (accountId: string, team: number): GrantSpec =>
     triple({ kind: "identity_account", id: accountId }, "member", {
       kind: "team",
       id: teamId(team),
@@ -371,7 +371,7 @@ function populationPolicies(n: number): IamPolicySpec[] {
   const viewerOn = (
     principal: { kind: string; id: string; relation?: string },
     i: number,
-  ): IamPolicySpec =>
+  ): GrantSpec =>
     triple(principal, "viewer", { kind: "agent", id: enterpriseAgentId(i) });
   const unclaimed: number[] = [];
   for (let i = 0; i < n; i += 1) {
@@ -404,7 +404,7 @@ afterAll(dropPostgresFixture);
 
 describe.each(
   driverFixtures([
-    ApiResourceKind.iam_policy,
+    ApiResourceKind.grant,
     ApiResourceKind.identity_account,
     ApiResourceKind.organization,
     ApiResourceKind.team,
@@ -415,7 +415,7 @@ describe.each(
 )("the built-in evaluator's cost on $name", (fixture) => {
   describe.skipIf(fixture.skip)("measured", () => {
     let opened: OpenedStore;
-    let policies: IamPolicyStore;
+    let policies: GrantStore;
     let accounts: IdentityAccountStore;
 
     async function save(type: string, facts: FixtureRowFacts): Promise<object> {
@@ -437,16 +437,16 @@ describe.each(
      * Returns the policy table's size.
      */
     async function seedPopulation(n: number): Promise<number> {
-      const specs = populationPolicies(n);
+      const specs = populationGrants(n);
       for (const spec of specs) {
-        const id = policyIdFor(spec);
+        const id = grantIdFor(spec);
         await opened.store.saveResource(
-          ApiResourceKind.iam_policy,
+          ApiResourceKind.grant,
           id,
-          IamPolicySchema,
-          create(IamPolicySchema, {
-            apiVersion: IAM_POLICY_API_VERSION,
-            kind: IAM_POLICY_KIND,
+          GrantSchema,
+          create(GrantSchema, {
+            apiVersion: GRANT_API_VERSION,
+            kind: GRANT_KIND,
             metadata: { id },
             spec,
           }),
@@ -457,7 +457,7 @@ describe.each(
 
     beforeEach(async () => {
       opened = await fixture.open();
-      policies = newResourceIamPolicyStore(opened.store, { keepsHistory: false });
+      policies = newResourceGrantStore(opened.store, { keepsHistory: false });
       accounts = newResourceIdentityAccountStore(opened.store);
       for (const [id, subject] of [
         [FOUNDER, "auth0|founder"],
@@ -509,7 +509,7 @@ describe.each(
           `${shape.name} at ${n} rows`,
           async () => {
             const declaration = storedDeclaration(shape.kind);
-            const policyRows = await seedPopulation(n);
+            const grantRows = await seedPopulation(n);
             for (const parent of shape.parents ?? []) {
               await save(parent.type, parent.facts);
             }
@@ -545,7 +545,7 @@ describe.each(
             // over a scope that answered wrongly measures nothing.
             expect(kept.size).toBe(shape.kept?.(n) ?? n);
             console.log(
-              `[measure] ${fixture.name} ${kindEnumName(declaration.kind)} ${shape.verb} n=${n} policies=${policyRows} elapsed=${elapsedMs}ms — ${shape.name}`,
+              `[measure] ${fixture.name} ${kindEnumName(declaration.kind)} ${shape.verb} n=${n} policies=${grantRows} elapsed=${elapsedMs}ms — ${shape.name}`,
             );
           },
           MEASURE_TIMEOUT_MS,
@@ -558,7 +558,7 @@ describe.each(
         `pages: ${shape.name}, at a ${PAGE_POPULATION}-row population`,
         async () => {
           const declaration = storedDeclaration("agent");
-          const policyRows = await seedPopulation(PAGE_POPULATION);
+          const grantRows = await seedPopulation(PAGE_POPULATION);
           const entries: ListEntryMeta[] = [];
           for (let i = 0; i < PAGE_EXAMINE_BUDGET; i += 1) {
             const row = await save("agent", shape.row(i));
@@ -593,7 +593,7 @@ describe.each(
             const elapsedMs = Math.round(performance.now() - started);
             expect(kept).toBe(shape.kept(batches * PAGE_SIZE));
             console.log(
-              `[measure] ${fixture.name} agent page calls=${batches} candidates=${batches * PAGE_SIZE} policies=${policyRows} elapsed=${elapsedMs}ms — ${batches === 1 ? "a page that fills in one batch" : "the worst page"}: ${shape.name}`,
+              `[measure] ${fixture.name} agent page calls=${batches} candidates=${batches * PAGE_SIZE} policies=${grantRows} elapsed=${elapsedMs}ms — ${batches === 1 ? "a page that fills in one batch" : "the worst page"}: ${shape.name}`,
             );
           }
         },
@@ -609,7 +609,7 @@ describe.each(
         it(
           `point check: can_view through ${grant} at the ${n}-candidate population`,
           async () => {
-            const policyRows = await seedPopulation(n);
+            const grantRows = await seedPopulation(n);
             await save("agent", enterpriseAgentRow(agent));
             const authorizer = newBuiltInAuthorizer({
               store: opened.store,
@@ -634,7 +634,7 @@ describe.each(
             }
             const meanMs = (performance.now() - started) / POINT_CHECKS;
             console.log(
-              `[measure] ${fixture.name} agent point-check policies=${policyRows} mean=${meanMs.toFixed(2)}ms over ${POINT_CHECKS} — can_view through ${grant}`,
+              `[measure] ${fixture.name} agent point-check policies=${grantRows} mean=${meanMs.toFixed(2)}ms over ${POINT_CHECKS} — can_view through ${grant}`,
             );
           },
           MEASURE_TIMEOUT_MS,

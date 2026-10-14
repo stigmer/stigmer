@@ -69,7 +69,7 @@ describe("isResourceAvailable — a tier is a minimum edition", () => {
 
   it("iam_policy is open_source since the row half moved into open source — served everywhere", () => {
     for (const mode of MODES) {
-      expect(isResourceAvailable(ApiResourceKind.iam_policy, mode), mode).toBe(
+      expect(isResourceAvailable(ApiResourceKind.grant, mode), mode).toBe(
         true,
       );
     }

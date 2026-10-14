@@ -20,7 +20,7 @@ import { describe, expect, it } from "vitest";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
-import type { IamPolicyStore } from "../../domain/iampolicy/store.js";
+import type { GrantStore } from "../../domain/grant/store.js";
 import type { Store } from "../../store/interface.js";
 import { newDerivedTupleSource } from "../derived-tuples.js";
 import { childOrg, parentOrg } from "../model/child-organizations.js";
@@ -82,7 +82,7 @@ describe("the loader's read of an organization's children", () => {
     const source = newDerivedTupleSource(
       {
         store,
-        policies: {} as unknown as IamPolicyStore,
+        policies: {} as unknown as GrantStore,
         accounts: { findById: () => Promise.resolve(undefined) },
       },
       { accountId: "acc_1", aliases: new Set(["acc_1"]) },

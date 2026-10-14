@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@stigmer/theme";
-import { PermissionGate } from "../iam-policy/PermissionGate.js";
+import { PermissionGate } from "../grant/PermissionGate.js";
 import { ManageAccessDialog } from "./ManageAccessDialog.js";
 import type {
   AccessResource,

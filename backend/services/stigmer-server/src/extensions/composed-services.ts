@@ -41,7 +41,7 @@ import type { Transport } from "@connectrpc/connect";
 
 import type { CreateAccount } from "../domain/identityaccount/provisioning.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
-import type { IamPolicyStore } from "../domain/iampolicy/store.js";
+import type { GrantStore } from "../domain/grant/store.js";
 
 import type { AuthorizationQueryEngine } from "./authorization-queries.js";
 import type { Authorizer } from "./authorizer.js";
@@ -73,8 +73,8 @@ export interface ComposedIdentityAccounts {
  * A write goes through the domain's grant path (an RPC over the in-process
  * transport), never through this store, so no second write path exists.
  */
-export type ComposedIamPolicies = Pick<
-  IamPolicyStore,
+export type ComposedGrants = Pick<
+  GrantStore,
   "findByResource" | "findScopeTuple" | "findByResourceKindAndRelation"
 >;
 
@@ -120,7 +120,7 @@ export interface ComposedServices {
   /** The identity-account store binding and the domain's one create path. */
   readonly identityAccounts: ComposedIdentityAccounts;
   /** The policy store binding's reads. */
-  readonly iamPolicies: ComposedIamPolicies;
+  readonly grants: ComposedGrants;
   /**
    * The store's one name table (pipeline/steps/names.ts): a unit whose
    * named kind keeps its rows in its own table (a team, an identity

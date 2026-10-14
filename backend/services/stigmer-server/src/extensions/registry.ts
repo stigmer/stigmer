@@ -48,7 +48,7 @@ import type { ArtifactStorageDriverFactory } from "../artifactstorage/artifact-s
 import { BUILT_IN_STORAGE_TYPES } from "../artifactstorage/artifact-storage.js";
 import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
-import type { IamPolicyStore } from "../domain/iampolicy/store.js";
+import type { GrantStore } from "../domain/grant/store.js";
 import type { SecretCodec } from "../encryption/codec.js";
 import { V1_VERSION } from "../encryption/v1-codec.js";
 import type { PlatformTokenKeyRing } from "../platformtoken/key-ring.js";
@@ -58,7 +58,7 @@ import type { IdentityFederation } from "./identity-federation.js";
 import type { LicenseStatusProvider } from "./license-status.js";
 import type { OutboundEgressPolicy } from "./outbound-egress.js";
 import type { ListReadScope } from "./list-read-scope.js";
-import type { PolicyGrantScope } from "./policy-grant-scope.js";
+import type { GrantScope } from "./policy-grant-scope.js";
 import type { PrincipalDisplay } from "./principal-display.js";
 import type { ModelCatalogProvider } from "../modelcatalog/model-catalog-provider.js";
 import {
@@ -369,12 +369,12 @@ export interface ResolvedExtensionDrivers {
    * stage that builds the grant path installs the OSS adapter over the
    * generic Store, OSS behavior byte-identical.
    */
-  readonly iamPolicyStore: IamPolicyStore | undefined;
+  readonly grantStore: GrantStore | undefined;
   /**
    * The policy grant scope — undefined = compose.ts installs
    * open source's organization-only default.
    */
-  readonly policyGrantScope: PolicyGrantScope | undefined;
+  readonly grantScope: GrantScope | undefined;
   /**
    * The authorization-query engine — undefined = the
    * tuple-half RPC arms refuse UNIMPLEMENTED with the edition reason.
@@ -486,10 +486,10 @@ export function resolveExtensions(
   let identityAccountStoreDeclaredBy: string | undefined;
   let identityFederation: IdentityFederation | undefined;
   let identityFederationDeclaredBy: string | undefined;
-  let iamPolicyStore: IamPolicyStore | undefined;
-  let iamPolicyStoreDeclaredBy: string | undefined;
-  let policyGrantScope: PolicyGrantScope | undefined;
-  let policyGrantScopeDeclaredBy: string | undefined;
+  let grantStore: GrantStore | undefined;
+  let grantStoreDeclaredBy: string | undefined;
+  let grantScope: GrantScope | undefined;
+  let grantScopeDeclaredBy: string | undefined;
   let authorizationQueries: AuthorizationQueryEngine | undefined;
   let authorizationQueriesDeclaredBy: string | undefined;
   let principalDisplay: PrincipalDisplay | undefined;
@@ -732,24 +732,24 @@ export function resolveExtensions(
       identityFederationDeclaredBy = unit.name;
     }
 
-    if (unit.drivers?.iamPolicyStore !== undefined) {
-      if (iamPolicyStoreDeclaredBy !== undefined) {
+    if (unit.drivers?.grantStore !== undefined) {
+      if (grantStoreDeclaredBy !== undefined) {
         throw new Error(
-          `extension '${unit.name}' registers an IamPolicyStore, but '${iamPolicyStoreDeclaredBy}' already did — exactly one may be composed`,
+          `extension '${unit.name}' registers an IamPolicyStore, but '${grantStoreDeclaredBy}' already did — exactly one may be composed`,
         );
       }
-      iamPolicyStore = unit.drivers.iamPolicyStore;
-      iamPolicyStoreDeclaredBy = unit.name;
+      grantStore = unit.drivers.grantStore;
+      grantStoreDeclaredBy = unit.name;
     }
 
-    if (unit.drivers?.policyGrantScope !== undefined) {
-      if (policyGrantScopeDeclaredBy !== undefined) {
+    if (unit.drivers?.grantScope !== undefined) {
+      if (grantScopeDeclaredBy !== undefined) {
         throw new Error(
-          `extension '${unit.name}' registers a PolicyGrantScope, but '${policyGrantScopeDeclaredBy}' already did — exactly one may be composed`,
+          `extension '${unit.name}' registers a PolicyGrantScope, but '${grantScopeDeclaredBy}' already did — exactly one may be composed`,
         );
       }
-      policyGrantScope = unit.drivers.policyGrantScope;
-      policyGrantScopeDeclaredBy = unit.name;
+      grantScope = unit.drivers.grantScope;
+      grantScopeDeclaredBy = unit.name;
     }
 
     if (unit.drivers?.authorizationQueries !== undefined) {
@@ -1040,8 +1040,8 @@ export function resolveExtensions(
       pluginEvalCaller,
       identityAccountStore,
       identityFederation,
-      iamPolicyStore,
-      policyGrantScope,
+      grantStore,
+      grantScope,
       authorizationQueries,
       principalDisplay,
       licenseStatus,

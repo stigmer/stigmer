@@ -58,7 +58,7 @@ export function registerAccessHistory(program: Command): void {
         openSession(command),
         import("../../resources/access-history.js"),
         import("../../output/index.js"),
-        import("@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb"),
+        import("@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb"),
       ]);
       const { entries, retentionDays } = await resources.listAccessHistory(session.client, session.org, limit);
       if (format === "json") {

@@ -74,7 +74,7 @@ describe("the core's kind purges", () => {
     expect(new Set(kinds).size, "no kind is purged twice").toBe(kinds.length);
     expect(purges.quiesce.kind).toBe(ApiResourceKind.schedule);
     expect(
-      [...new Set([...kinds, ApiResourceKind.iam_policy])].sort(),
+      [...new Set([...kinds, ApiResourceKind.grant])].sort(),
     ).toEqual([...CORE_PURGED_KINDS].sort());
   });
 });

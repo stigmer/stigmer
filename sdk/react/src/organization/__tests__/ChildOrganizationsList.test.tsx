@@ -13,7 +13,7 @@ import {
   OrganizationSchema,
   type Organization,
 } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import type { CheckMyPermissionInput } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import type { CheckMyPermissionInput } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
 import type { ListChildOrgsInput } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";

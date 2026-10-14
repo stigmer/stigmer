@@ -32,12 +32,12 @@
  */
 import { fromBinary } from "@bufbuild/protobuf";
 
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 
 /** The `kind` column value of the rows the step removes. */
 export const RETIRED_PLATFORM_CLIENT_KIND = "platform_client";
 /** The `kind` column value of the grant rows the step reads. */
-export const PLATFORM_CLIENT_RETIRED_POLICY_KIND = "iam_policy";
+export const PLATFORM_CLIENT_RETIRED_GRANT_KIND = "iam_policy";
 
 /** How many grant rows the step decodes per page. */
 export const PLATFORM_CLIENT_RETIRED_PAGE_SIZE = 500;
@@ -49,8 +49,8 @@ export const PLATFORM_CLIENT_RETIRED_PAGE_SIZE = 500;
  * the policy's own fields are unchanged. Throws when the bytes do not
  * decode.
  */
-export function policyNamesRetiredPlatformClient(data: Uint8Array): boolean {
-  const spec = fromBinary(IamPolicySchema, data).spec;
+export function grantNamesRetiredPlatformClient(data: Uint8Array): boolean {
+  const spec = fromBinary(GrantSchema, data).spec;
   return (
     spec?.resource?.kind === RETIRED_PLATFORM_CLIENT_KIND ||
     spec?.principal?.kind === RETIRED_PLATFORM_CLIENT_KIND

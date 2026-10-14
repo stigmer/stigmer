@@ -44,8 +44,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
@@ -53,7 +53,7 @@ import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/
 import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";
 import type { ComposedServer } from "../../boot/compose.js";
-import { ROLES_RECONCILED_KEY } from "../../domain/iampolicy/constants.js";
+import { ROLES_RECONCILED_KEY } from "../../domain/grant/constants.js";
 import { accountIdFor } from "../../domain/identityaccount/constants.js";
 import type { Store } from "../../store/interface.js";
 import type { ServerExtension } from "../registry.js";
@@ -71,9 +71,9 @@ const ORG = "reconciled-org";
 
 /** `relation@organization` per principal, sorted — the whole role state of the store in one readable shape. */
 async function rolesIn(store: Store): Promise<ReadonlyArray<string>> {
-  const rows = await store.listResources(ApiResourceKind.iam_policy);
+  const rows = await store.listResources(ApiResourceKind.grant);
   return rows
-    .map((bytes) => fromBinary(IamPolicySchema, bytes))
+    .map((bytes) => fromBinary(GrantSchema, bytes))
     .map(
       (row) =>
         `${row.spec?.principal?.id}:${row.spec?.relation}@${row.spec?.resource?.id}` +
@@ -167,7 +167,7 @@ describe("role reconciliation (composed server, OIDC with no unit Authorizer, th
 
   it("boot 2: over the 3.15.x shape — accounts and no rows, no marker — the rows come back as each person's own, and the marker is set", async () => {
     // The 3.15.x database, made literally on the store the server used.
-    await server.store.deleteResourcesByKind(ApiResourceKind.iam_policy);
+    await server.store.deleteResourcesByKind(ApiResourceKind.grant);
     await server.store.bootstrapState.delete(ROLES_RECONCILED_KEY);
     expect(await rolesIn(server.store)).toEqual([]);
     await server.shutdown();
@@ -195,7 +195,7 @@ describe("role reconciliation (composed server, OIDC with no unit Authorizer, th
   });
 
   it("boot 3: every role removed after the marker stays removed — a reboot hands nothing back", async () => {
-    const policies = createClient(IamPolicyCommandController, asFounder());
+    const policies = createClient(GrantCommandController, asFounder());
     await policies.revokeOrgAccess({
       identityAccountId: memberId,
       org: ORG,
@@ -208,7 +208,7 @@ describe("role reconciliation (composed server, OIDC with no unit Authorizer, th
       );
     expect(lastOwner?.code).toBe(Code.FailedPrecondition);
     // The founder's row, the one left, goes the way boot 2 made its shape.
-    await server.store.deleteResourcesByKind(ApiResourceKind.iam_policy);
+    await server.store.deleteResourcesByKind(ApiResourceKind.grant);
     expect(await rolesIn(server.store)).toEqual([]);
     await server.shutdown();
 

@@ -63,7 +63,7 @@ export interface IdentityAccountServiceUnderTest {
   /** How many live keys speak for the account. */
   keysOf(accountId: string): Promise<number>;
   /** How many policy rows name the account, as principal or as resource. */
-  policyRowsNaming(accountId: string): Promise<number>;
+  grantRowsNaming(accountId: string): Promise<number>;
 }
 
 /** The runner's fixture over a service. */
@@ -150,7 +150,7 @@ const SERVICE_CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountServic
       await service.deleteAccount(created, provider.id);
       assert.equal(await service.store.findById(id), undefined, "the row is gone");
       assert.equal(await host.keysOf(id), 0, "no key outlives its account");
-      assert.equal(await host.policyRowsNaming(id), 0, "no policy row names a deleted account");
+      assert.equal(await host.grantRowsNaming(id), 0, "no policy row names a deleted account");
     },
   ],
   [

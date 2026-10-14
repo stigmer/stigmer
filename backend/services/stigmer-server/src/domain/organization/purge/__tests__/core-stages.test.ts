@@ -49,7 +49,7 @@ import {
   ENGINE_DISCONNECTED,
   EngineWorkflowNotFoundError,
 } from "../../../run/engine.js";
-import type { IamPolicyGrantPath } from "../../../iampolicy/grant-path.js";
+import type { GrantPath } from "../../../grant/grant-path.js";
 import { ORGANIZATION_NAME_KIND } from "../../names.js";
 import {
   ENGINE_UNREACHABLE_FOR_PURGE,
@@ -314,7 +314,7 @@ describe("the final stage", () => {
       async cleanupResource(ref: { kind: string; id: string }) {
         order.push(`policies:${ref.id}`);
       },
-    } as unknown as IamPolicyGrantPath;
+    } as unknown as GrantPath;
     const events: ResourceDeletedEvent[] = [];
     const stage = newFinalStage({
       store,
@@ -419,7 +419,7 @@ describe("the final stage", () => {
         async cleanupResource() {
           order.push("policies");
         },
-      } as unknown as IamPolicyGrantPath,
+      } as unknown as GrantPath,
       lifecycle: undefined,
       sweepFirst: [
         {
@@ -444,7 +444,7 @@ describe("the final stage", () => {
         async cleanupResource() {
           order.push("policies");
         },
-      } as unknown as IamPolicyGrantPath,
+      } as unknown as GrantPath,
       lifecycle: undefined,
       sweepFirst: [
         {

@@ -160,7 +160,7 @@ export const CORE_PURGED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.oauth_app,
   ApiResourceKind.api_key,
   ApiResourceKind.identity_account,
-  ApiResourceKind.iam_policy,
+  ApiResourceKind.grant,
 ]);
 
 /** Whether the contract scopes the kind to an organization, or to a parent that is. */

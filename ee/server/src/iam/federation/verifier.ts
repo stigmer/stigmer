@@ -138,9 +138,9 @@ import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/a
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   ApiResourceRefSchema,
-  IamPolicySpecSchema,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
-import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+  GrantSpecSchema,
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import type {
   CallerIdentity,
   ChildOrganizations,
@@ -148,7 +148,7 @@ import type {
   Logger,
 } from "@stigmer/server";
 
-import type { IamPolicyGrantPathClient } from "../policy/grant-path-client.js";
+import type { GrantPathClient } from "../grant/grant-path-client.js";
 import type { UserInfoClient } from "./userinfo.js";
 import type { IdentityAccountService } from "../account/port.js";
 import { orphanReason } from "../organization-links.js";
@@ -174,7 +174,7 @@ export interface FederatedVerifierDeps {
    */
   readonly providers: Pick<FederationIssuerStore, "findLive" | "isLive">;
   readonly accounts: IdentityAccountService;
-  readonly policies: IamPolicyGrantPathClient;
+  readonly policies: GrantPathClient;
   /** The provider organization's children, by the external id a token's claim carries. */
   readonly childOrganizations: Pick<ChildOrganizations, "findByExternalId">;
   /** The first sign-in of each (account, organization), which the sign-in role is granted on. */
@@ -572,7 +572,7 @@ async function resolveBoundOrg(
  */
 type SettledSignInGrant =
   | { readonly claimed: false }
-  | { readonly claimed: true; readonly granted: IamPolicySpec | undefined };
+  | { readonly claimed: true; readonly granted: GrantSpec | undefined };
 
 const NOTHING_CLAIMED: SettledSignInGrant = { claimed: false };
 
@@ -796,8 +796,8 @@ function signInRoleGrant(
   accountId: string,
   targetOrgId: string,
   role: string,
-): IamPolicySpec {
-  return create(IamPolicySpecSchema, {
+): GrantSpec {
+  return create(GrantSpecSchema, {
     principal: create(ApiResourceRefSchema, {
       kind: "identity_account",
       id: accountId,

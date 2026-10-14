@@ -37,10 +37,10 @@
  * runs; the caller logs and boot proceeds.
  */
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import type { Logger } from "@stigmer/server";
 
-import type { IamPolicyGrantPathClient } from "./policy/grant-path-client.js";
+import type { GrantPathClient } from "./grant/grant-path-client.js";
 
 /** The relation no row of a no-owner kind may hold directly. */
 const OWNER = "owner";
@@ -50,7 +50,7 @@ export interface OwnerRowReads {
   findByResourceKindAndRelation(
     resourceKind: string,
     relation: string,
-  ): Promise<ReadonlyArray<IamPolicy>>;
+  ): Promise<ReadonlyArray<Grant>>;
 }
 
 export interface OwnerRowReport {
@@ -61,8 +61,8 @@ export interface OwnerRowReport {
 }
 
 export interface OwnerRowDeps {
-  readonly policyStore: OwnerRowReads;
-  readonly policies: Pick<IamPolicyGrantPathClient, "delete">;
+  readonly grantStore: OwnerRowReads;
+  readonly policies: Pick<GrantPathClient, "delete">;
 }
 
 /** A kind the reconcile covers, and how its log lines name it. */
@@ -79,7 +79,7 @@ export async function revokeOwnerRows(
   kind: ApiResourceKind,
   deps: OwnerRowDeps,
 ): Promise<OwnerRowReport> {
-  const rows = await deps.policyStore.findByResourceKindAndRelation(
+  const rows = await deps.grantStore.findByResourceKindAndRelation(
     ApiResourceKind[kind],
     OWNER,
   );

@@ -73,7 +73,7 @@ describe("composeEnterprise: the verdict as units", () => {
     expect(license?.edition).toBe(ServerEdition.enterprise);
     expect(license?.orgLimit).toBe(3);
     expect(license?.drivers?.licenseStatus).toBeDefined();
-    expect(license?.drivers?.policyGrantScope).toBeDefined();
+    expect(license?.drivers?.grantScope).toBeDefined();
     expect(license?.drivers?.platformTokenKeys?.signer).toBeDefined();
     expect(license?.drivers?.outboundEgress?.name).toBe("strict");
     expect(license?.drivers?.outboundEgress?.blockedReason("127.0.0.1")).not.toBeNull();
@@ -82,7 +82,7 @@ describe("composeEnterprise: the verdict as units", () => {
       "GrowthGate",
     ]);
     expect(license?.onComposed).toBeDefined();
-    expect(identity?.drivers?.policyGrantScope).toBeUndefined();
+    expect(identity?.drivers?.grantScope).toBeUndefined();
     for (const unit of units) {
       expect(unit.requireAuthentication, unit.name).toBeUndefined();
     }

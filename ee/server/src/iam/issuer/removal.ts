@@ -27,7 +27,7 @@
  * under the same slug never inherits them; left in place they would still
  * be accounts nobody's provider vouches for, with their roles. A retry
  * resumes, since an account already deleted is no longer listed. Then the grants: the grant path's
- * `cleanupResourcePolicies` revokes the provider's rows as resource (its
+ * `cleanupResourceGrants` revokes the provider's rows as resource (its
  * organization link, viewer grants, and any owner row an older server
  * wrote) and as principal. A deleted row with a failed cleanup would leave
  * a provider nobody can manage still granting; here the row stays and the
@@ -62,11 +62,11 @@ import { create } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import type { IdentityAccountStore, Logger, NameTable } from "@stigmer/server";
 
 import type { IdentityAccountService } from "../account/port.js";
-import type { IamPolicyGrantPathClient } from "../policy/grant-path-client.js";
+import type { GrantPathClient } from "../grant/grant-path-client.js";
 import type { FederationIssuerStore } from "./store.js";
 
 /** The provider's kind as an `ApiResourceRef.kind` spells it. */
@@ -100,7 +100,7 @@ export interface IssuerRemovalDeps {
   readonly accounts: Pick<IdentityAccountService, "deleteAccount"> & {
     readonly store: Pick<IdentityAccountStore, "findByIssuer">;
   };
-  readonly policies: Pick<IamPolicyGrantPathClient, "cleanupResourcePolicies">;
+  readonly policies: Pick<GrantPathClient, "cleanupResourceGrants">;
   /** The federated verifier's issuer-cache invalidation. */
   readonly invalidate: () => void;
   readonly logger: Logger;
@@ -148,7 +148,7 @@ export function newIssuerRemoval(deps: IssuerRemovalDeps): IssuerRemoval {
         await deps.accounts.deleteAccount(account, actingFor);
       }
     }
-    await deps.policies.cleanupResourcePolicies(
+    await deps.policies.cleanupResourceGrants(
       create(ApiResourceRefSchema, { kind: FEDERATION_ISSUER_KIND_NAME, id }),
       actingFor,
     );

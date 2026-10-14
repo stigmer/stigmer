@@ -51,7 +51,7 @@ import {
   resetOperatorIdentityForTests,
   setOperatorIdentity,
 } from "../../../pipeline/steps/defaults.js";
-import { fakeIamPolicyStore } from "../../iampolicy/__tests__/support.js";
+import { fakeGrantStore } from "../../grant/__tests__/support.js";
 import {
   ORGANIZATION_IS_SINGLE,
   ORGANIZATION_LIMIT_REACHED,
@@ -124,10 +124,10 @@ function clientsAt(port: number) {
 }
 
 describe("the open-source edition's one organization (composed as main.ts composes it, trusted-local)", () => {
-  const policies = fakeIamPolicyStore();
+  const policies = fakeGrantStore();
   const policyUnit: ServerExtension = {
     name: "fake-policies",
-    drivers: { iamPolicyStore: policies },
+    drivers: { grantStore: policies },
   };
 
   let dir: string;

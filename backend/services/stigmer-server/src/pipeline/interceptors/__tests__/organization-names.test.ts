@@ -40,8 +40,8 @@ import { describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
@@ -106,10 +106,10 @@ function harness(resolver: OrganizationNameResolver) {
           return create(OrganizationSchema);
         },
       });
-      router.service(IamPolicyCommandController, {
-        bootstrapPolicy: (request) => {
+      router.service(GrantCommandController, {
+        bootstrapGrant: (request) => {
           seen.push(request);
-          return create(IamPolicySchema);
+          return create(GrantSchema);
         },
       });
     },
@@ -128,7 +128,7 @@ function harness(resolver: OrganizationNameResolver) {
     agents: createClient(AgentCommandController, transport),
     search: createClient(SearchService, transport),
     organizations: createClient(OrganizationQueryController, transport),
-    policies: createClient(IamPolicyCommandController, transport),
+    policies: createClient(GrantCommandController, transport),
   };
 }
 
@@ -169,7 +169,7 @@ describe("the organization-name resolver", () => {
 
     await search.search({ org: "acme" });
     await organizations.get({ value: "acme" });
-    await policies.bootstrapPolicy({
+    await policies.bootstrapGrant({
       principal: { kind: "identity_account", id: "acme" },
       resource: { kind: "organization", id: "acme" },
       relation: "member",

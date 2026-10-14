@@ -36,7 +36,7 @@ describe("kindByEnumName — an ApiResourceRef.kind is the enum member name", ()
     ["identity_account", ApiResourceKind.identity_account],
     ["channel_app", ApiResourceKind.channel_app],
     ["agent", ApiResourceKind.agent],
-    ["iam_policy", ApiResourceKind.iam_policy],
+    ["iam_policy", ApiResourceKind.grant],
   ])("%s resolves to its kind", (name, kind) => {
     expect(kindByEnumName(name)).toBe(kind);
   });

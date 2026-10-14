@@ -32,7 +32,7 @@
  */
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import type { IamPolicyStore } from "../domain/iampolicy/store.js";
+import type { GrantStore } from "../domain/grant/store.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
 import type { AuthorizationQueryEngine } from "../extensions/authorization-queries.js";
 import type { ResourceRowReader } from "../extensions/resource-row-reader.js";
@@ -45,10 +45,10 @@ import { personOfAccount } from "./person.js";
 import type { Principal } from "./tuples.js";
 import { ACCOUNT_TYPE } from "./tuples.js";
 
-export interface BuiltInPolicyCheckDeps {
+export interface BuiltInGrantCheckDeps {
   readonly store: Store;
   /** The port the grant path writes through — the principal's rows are read from the same instance. */
-  readonly policies: IamPolicyStore;
+  readonly policies: GrantStore;
   /** The account port: a person principal's aliases, and identity_account objects. */
   readonly accounts: Pick<IdentityAccountStore, "findById">;
   /** The readers of the kinds units keep themselves (`drivers.resourceRowReaders`). */
@@ -57,8 +57,8 @@ export interface BuiltInPolicyCheckDeps {
   readonly model?: Model;
 }
 
-export function newBuiltInPolicyCheck(
-  deps: BuiltInPolicyCheckDeps,
+export function newBuiltInGrantCheck(
+  deps: BuiltInGrantCheckDeps,
 ): Pick<AuthorizationQueryEngine, "check"> {
   const model = deps.model ?? builtInModel;
   return {

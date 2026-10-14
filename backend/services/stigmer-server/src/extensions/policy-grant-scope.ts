@@ -39,7 +39,7 @@ import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apireso
 import type { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 /** The grant-scope contract (single-instance point, ExtensionDrivers.policyGrantScope). */
-export interface PolicyGrantScope {
+export interface GrantScope {
   /**
    * The roles a user may grant on a resource of `kind` in this edition — a
    * subset of the kind's proto `grantable_roles`; empty when the edition

@@ -18,8 +18,8 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
-import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
+import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -275,7 +275,7 @@ describe("check-target resolution (never a throw — byte-identity)", () => {
 
   it("a static resource_id wins over any request field (platform RPCs)", async () => {
     const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
-    const method = IamPolicyCommandController.method.cleanupResourcePolicies;
+    const method = GrantCommandController.method.cleanupResourceGrants;
     const step = newAuthorizeStep(method, authorizer);
     const ctx = new RequestContext(
       method.input,
@@ -298,7 +298,7 @@ describe("check-target resolution (never a throw — byte-identity)", () => {
   // The option had no user before this entry; a numeric field still works.
   it("resource_kind_path over a string field resolves through the kind enum's names (IamPolicy create)", async () => {
     const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
-    const method = IamPolicyCommandController.method.create;
+    const method = GrantCommandController.method.create;
     const step = newAuthorizeStep(method, authorizer);
     const ctx = new RequestContext(
       method.input,
@@ -321,7 +321,7 @@ describe("check-target resolution (never a throw — byte-identity)", () => {
 
   it("an unknown kind name resolves to the unknown kind — never a throw; the Authorizer owns the decision", async () => {
     const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
-    const method = IamPolicyCommandController.method.create;
+    const method = GrantCommandController.method.create;
     const step = newAuthorizeStep(method, authorizer);
     const ctx = new RequestContext(
       method.input,
@@ -341,7 +341,7 @@ describe("check-target resolution (never a throw — byte-identity)", () => {
 
   it("revokeOrgAccess names the organization statically and its id by field_path (org)", async () => {
     const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
-    const method = IamPolicyCommandController.method.revokeOrgAccess;
+    const method = GrantCommandController.method.revokeOrgAccess;
     const step = newAuthorizeStep(method, authorizer);
     const ctx = new RequestContext(
       method.input,
@@ -425,7 +425,7 @@ describe("authorizeDirect (the direct-handler arm)", () => {
   // the copy.
   it("the target override may carry the resource KIND too — the IamPolicy get lane", async () => {
     const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
-    const method = IamPolicyQueryController.method.get;
+    const method = GrantQueryController.method.get;
     await authorizeDirect(
       method,
       authorizer,
@@ -444,7 +444,7 @@ describe("authorizeDirect (the direct-handler arm)", () => {
 
   it("an override with the id alone leaves the annotation's kind in place", async () => {
     const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
-    const method = IamPolicyQueryController.method.get;
+    const method = GrantQueryController.method.get;
     // A kind-less annotation plus an id-only override: the kind stays
     // unknown, exactly what the annotation says. The lane that needs a
     // kind must say so; nothing is inferred.

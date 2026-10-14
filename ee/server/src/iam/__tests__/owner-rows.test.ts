@@ -17,13 +17,13 @@ import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
-import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import {
   ApiResourceRefSchema,
-  IamPolicySpecSchema,
-  type IamPolicySpec,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+  GrantSpecSchema,
+  type GrantSpec,
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import { createLogger } from "@stigmer/server";
 
 import { reconcileOwnerRows, revokeOwnerRows } from "../owner-rows.js";
@@ -33,9 +33,9 @@ function policy(
   principal: { kind: string; id: string },
   relation: string,
   resource: { kind: string; id: string },
-): IamPolicy {
-  return create(IamPolicySchema, {
-    spec: create(IamPolicySpecSchema, {
+): Grant {
+  return create(GrantSchema, {
+    spec: create(GrantSpecSchema, {
       principal: create(ApiResourceRefSchema, principal),
       relation,
       resource: create(ApiResourceRefSchema, resource),
@@ -45,17 +45,17 @@ function policy(
 
 /** A policy table, read by kind and relation, and a grant path whose `delete` removes from it. */
 function rig(
-  table: IamPolicy[],
+  table: Grant[],
   options: {
     readonly failDeletesFor?: ReadonlySet<string>;
     readonly failReadsFor?: ReadonlySet<string>;
   } = {},
 ) {
-  const deleted: IamPolicySpec[] = [];
+  const deleted: GrantSpec[] = [];
   const read: Array<{ kind: string; relation: string }> = [];
   const logged: Array<Record<string, unknown>> = [];
   const deps = {
-    policyStore: {
+    grantStore: {
       findByResourceKindAndRelation: (kind: string, relation: string) => {
         read.push({ kind, relation });
         if (options.failReadsFor?.has(kind) === true) {
@@ -67,7 +67,7 @@ function rig(
       },
     },
     policies: {
-      delete: (spec: IamPolicySpec) => {
+      delete: (spec: GrantSpec) => {
         if (options.failDeletesFor?.has(spec.resource?.id ?? "") === true) {
           return Promise.reject(new Error("engine down"));
         }
@@ -82,7 +82,7 @@ function rig(
         if (at >= 0) {
           table.splice(at, 1);
         }
-        return Promise.resolve(create(IamPolicySchema, { spec }));
+        return Promise.resolve(create(GrantSchema, { spec }));
       },
     },
     logger: createLogger({

@@ -38,7 +38,7 @@ import {
 } from "../authorization/credential-binding.js";
 import { newBuiltInListReadScope } from "../authorization/list-read-scope.js";
 import { newBuiltInOrganizationDirectory } from "../authorization/organization-directory.js";
-import { newBuiltInPolicyCheck } from "../authorization/policy-check.js";
+import { newBuiltInGrantCheck } from "../authorization/policy-check.js";
 import { builtInModel } from "../authorization/model/index.js";
 import {
   authorizationPostureOf,
@@ -102,16 +102,16 @@ import { ensureOperatorAccount } from "../domain/identityaccount/operator.js";
 import { newDirectAccountProvisioner } from "../domain/identityaccount/provisioning.js";
 import { newResourceIdentityAccountStore } from "../domain/identityaccount/resource-store.js";
 import type { AccountsByCaller } from "../domain/identityaccount/resolve.js";
-import { registerIamPolicyServices } from "../domain/iampolicy/controller.js";
-import { newIamPolicyGrantPath } from "../domain/iampolicy/grant-path.js";
-import { AccessHistoryRetentionRunner } from "../domain/iampolicy/history-retention.js";
+import { registerGrantServices } from "../domain/grant/controller.js";
+import { newGrantPath } from "../domain/grant/grant-path.js";
+import { AccessHistoryRetentionRunner } from "../domain/grant/history-retention.js";
 import { nodeGuardedFetch } from "@stigmer/outbound/dial";
 import { isReleaseVersion } from "@stigmer/plugin-package/client";
 import { temporalConnectionEnv } from "@stigmer/temporal-codecs";
-import { newOrganizationOnlyGrantScope } from "../domain/iampolicy/grant-scope.js";
-import { newMembershipRules } from "../domain/iampolicy/membership.js";
-import { newResourceIamPolicyStore } from "../domain/iampolicy/resource-store.js";
-import { newBuiltInRoleLifecycle } from "../domain/iampolicy/role-lifecycle.js";
+import { newOrganizationOnlyGrantScope } from "../domain/grant/grant-scope.js";
+import { newMembershipRules } from "../domain/grant/membership.js";
+import { newResourceGrantStore } from "../domain/grant/resource-store.js";
+import { newBuiltInRoleLifecycle } from "../domain/grant/role-lifecycle.js";
 import { newIssuerDiscovery } from "../identity/oidc-discovery.js";
 import { newOidcUserInfoClient } from "../identity/oidc-userinfo.js";
 import { newApiKeyIdentityVerifier } from "../domain/apikey/verifier.js";
@@ -133,8 +133,8 @@ import { createManagedAgentsLane } from "../transport/managed-agents/lane.js";
 import type { SignInFreshener } from "../domain/vault/resolve.js";
 import { newVaultService } from "../domain/vault/service.js";
 import { deleteAllMyVaultsOf } from "../domain/vault/delete.js";
-import { newMyVaultDeparture } from "../domain/iampolicy/departure.js";
-import type { OrganizationDepartureHandler } from "../domain/iampolicy/grant-path.js";
+import { newMyVaultDeparture } from "../domain/grant/departure.js";
+import type { OrganizationDepartureHandler } from "../domain/grant/grant-path.js";
 import { registerGitHubServices } from "../domain/github/controller.js";
 import { registerMemoryServices } from "../domain/memory/controller.js";
 import { newRunScoreCascade } from "../domain/score/cascade.js";
@@ -563,9 +563,9 @@ export async function composeServer(
   // edition is the composition's one declaration of that difference, so
   // open source's adapter records every access row change in the row's
   // transaction there, and nowhere else. A composed driver keeps its own.
-  const iamPolicies =
-    extensions.drivers.iamPolicyStore ??
-    newResourceIamPolicyStore(store, {
+  const grants =
+    extensions.drivers.grantStore ??
+    newResourceGrantStore(store, {
       keepsHistory: extensions.edition !== ServerEdition.oss,
     });
   // A person's departure from an organization deletes their My vault there
@@ -573,8 +573,8 @@ export async function composeServer(
   // which needs the secret facade built further down, so it is bound once
   // both exist; the grant path only calls it at request time.
   let myVaultDeparture: OrganizationDepartureHandler | undefined;
-  const iamPolicyGrantPath = newIamPolicyGrantPath({
-    policies: iamPolicies,
+  const grantPath = newGrantPath({
+    policies: grants,
     resources: newStoredResources(store),
     lifecycle: extensions.drivers.resourceAuthorizationLifecycle,
     logger,
@@ -611,7 +611,7 @@ export async function composeServer(
     authorizationLifecycle ??
     (builtInAuthorization
       ? newBuiltInRoleLifecycle({
-          grantPath: iamPolicyGrantPath,
+          grantPath: grantPath,
           accounts: identityAccounts,
         })
       : undefined);
@@ -628,8 +628,8 @@ export async function composeServer(
     extensions.orgLimit === 1 ? newSingleOrganizationHolder() : undefined;
   const membership = builtInAuthorization
     ? newMembershipRules({
-        grantPath: iamPolicyGrantPath,
-        policies: iamPolicies,
+        grantPath: grantPath,
+        policies: grants,
         store,
         operatorEmail: operatorIdentity.email,
         edition: extensions.edition,
@@ -681,7 +681,7 @@ export async function composeServer(
     (authorizationPosture === "built-in"
       ? newBuiltInAuthorizer({
           store,
-          policies: iamPolicies,
+          policies: grants,
           accounts: identityAccounts,
           rowReaders: extensions.drivers.resourceRowReaders,
           edition: extensions.edition,
@@ -693,7 +693,7 @@ export async function composeServer(
     (authorizationPosture === "built-in"
       ? newBuiltInOrganizationDirectory({
           store,
-          policies: iamPolicies,
+          policies: grants,
           accounts: identityAccounts,
           rowReaders: extensions.drivers.resourceRowReaders,
         })
@@ -716,7 +716,7 @@ export async function composeServer(
     (authorizationPosture === "built-in"
       ? newBuiltInListReadScope({
           store,
-          policies: iamPolicies,
+          policies: grants,
           accounts: identityAccounts,
           rowReaders: extensions.drivers.resourceRowReaders,
           logger,
@@ -737,7 +737,7 @@ export async function composeServer(
   const credentialBinding = newCredentialBinding({
     store,
     rowReaders: extensions.drivers.resourceRowReaders,
-    policies: iamPolicies,
+    policies: grants,
     identityAccounts,
     lifecycle: organizationLifecycle,
   });
@@ -1609,7 +1609,7 @@ export async function composeServer(
   const corePurges = newCoreKindPurges({
     store,
     logger,
-    grantPath: iamPolicyGrantPath,
+    grantPath: grantPath,
     authorizationLifecycle,
     secretService,
     scheduleClock: () => scheduleSyncer,
@@ -1641,7 +1641,7 @@ export async function composeServer(
       final: newFinalStage({
         store,
         logger,
-        grantPath: iamPolicyGrantPath,
+        grantPath: grantPath,
         lifecycle: roleLifecycle,
         // A row a racing create stored after its stage passed.
         sweepFirst: [
@@ -1661,7 +1661,7 @@ export async function composeServer(
     extensions.accessHistoryRetentionDays === undefined
       ? undefined
       : new AccessHistoryRetentionRunner({
-          policies: iamPolicies,
+          policies: grants,
           retentionDays: extensions.accessHistoryRetentionDays,
           logger,
         });
@@ -1686,7 +1686,7 @@ export async function composeServer(
       gateSteps: extensions.gateSteps,
       // The delete revokes the organization's rows through the one grant
       // path, before its row goes (domain/organization/steps.ts).
-      grantPath: iamPolicyGrantPath,
+      grantPath: grantPath,
       // The role lifecycle and the directory (the identity stage): the
       // composed drivers, or open source's under the built-in posture.
       authorizationLifecycle: roleLifecycle,
@@ -1739,13 +1739,13 @@ export async function composeServer(
           {
             store,
             logger,
-            grantPath: iamPolicyGrantPath,
+            grantPath: grantPath,
             authorizationLifecycle,
           },
           owners,
           caller,
         ),
-      grantPath: iamPolicyGrantPath,
+      grantPath: grantPath,
       createAccount: createIdentityAccount,
       // Without sign-in no API-key verifier is composed (the verifier
       // chain below), so no service account could ever authenticate.
@@ -1760,13 +1760,13 @@ export async function composeServer(
     // engine (`drivers.authorizationQueries`; absent, those RPCs refuse
     // UNIMPLEMENTED). The chains take no lifecycle: a policy is the
     // authorization record, not a protected resource.
-    registerIamPolicyServices(router, {
-      grantPath: iamPolicyGrantPath,
-      policies: iamPolicies,
+    registerGrantServices(router, {
+      grantPath: grantPath,
+      policies: grants,
       accounts: identityAccounts,
       authorizer,
       grantScope:
-        extensions.drivers.policyGrantScope ?? newOrganizationOnlyGrantScope(),
+        extensions.drivers.grantScope ?? newOrganizationOnlyGrantScope(),
       queries: extensions.drivers.authorizationQueries,
       credentialBinding,
       principalDisplay: extensions.drivers.principalDisplay,
@@ -1831,7 +1831,7 @@ export async function composeServer(
         authorizer,
         accounts: identityAccounts,
         createAccount: createIdentityAccount,
-        grantPath: iamPolicyGrantPath,
+        grantPath: grantPath,
         keys: platformTokenKeys,
         logger,
         now: () => new Date(),
@@ -2317,9 +2317,9 @@ export async function composeServer(
     authorizationQueries:
       extensions.drivers.authorizationQueries ??
       (authorizationPosture === "built-in"
-        ? newBuiltInPolicyCheck({
+        ? newBuiltInGrantCheck({
             store,
-            policies: iamPolicies,
+            policies: grants,
             accounts: identityAccounts,
             rowReaders: extensions.drivers.resourceRowReaders,
           })
@@ -2330,7 +2330,7 @@ export async function composeServer(
       store: identityAccounts,
       create: createIdentityAccount,
     },
-    iamPolicies,
+    grants,
     resourceNames: store.resourceNames,
   };
   for (const { hook } of extensions.onComposed) {

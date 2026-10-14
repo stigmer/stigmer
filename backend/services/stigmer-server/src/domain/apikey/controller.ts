@@ -89,7 +89,7 @@ import {
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
 import {
-  newCleanupIamPoliciesStep,
+  newCleanupGrantsStep,
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
@@ -373,7 +373,7 @@ async function deleteApiKey(
     .addStep(newLoadExistingForDeleteStep(deps.store, ApiKeySchema))
     .addStep(newDeleteResourceStep(deps.store))
     .addStep(
-      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+      newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger),
     )
     .build()
     .execute(reqCtx);

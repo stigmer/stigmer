@@ -98,11 +98,11 @@ import { fromBinary } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OwnerAttributionType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
-import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
-import { isPersonStamp } from "../domain/iampolicy/membership.js";
-import type { IamPolicyStore } from "../domain/iampolicy/store.js";
+import { isPersonStamp } from "../domain/grant/membership.js";
+import type { GrantStore } from "../domain/grant/store.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
 import { organizationListIndex } from "../domain/organization/list-index.js";
 import type { VisibilityTupleShape } from "../extensions/resource-authorization.js";
@@ -245,7 +245,7 @@ function visibilityGrant(shape: VisibilityTupleShape): {
 export interface DerivedTupleSourceDeps {
   readonly store: Store;
   /** The port the grant path writes through — the rows are read from the same instance. */
-  readonly policies: IamPolicyStore;
+  readonly policies: GrantStore;
   /** The account port — an `identity_account` object is read through it, never the generic Store (the module header). */
   readonly accounts: Pick<IdentityAccountStore, "findById">;
   /** The readers of the kinds units keep themselves (`drivers.resourceRowReaders`); absent, every other row is the generic Store's. */
@@ -492,7 +492,7 @@ function parentOrgOfRow(data: Uint8Array): string | undefined {
  * userset (`organization:o#member`): the rows an object principal itself
  * holds. A userset row grants the object's members, never the object.
  */
-function isDirectGrant(row: IamPolicy): boolean {
+function isDirectGrant(row: Grant): boolean {
   return (row.spec?.principal?.relation ?? "") === "";
 }
 
@@ -533,7 +533,7 @@ function isAffiliation(object: ObjectRef, relation: string): boolean {
  * names a userset (a team's members) is not the person's role and stands
  * for no affiliation.
  */
-function tuplesOfPersonRow(row: IamPolicy): ReadonlyArray<Tuple> {
+function tuplesOfPersonRow(row: Grant): ReadonlyArray<Tuple> {
   const recorded = tupleOfRow(row);
   const principal = row.spec?.principal;
   if (
@@ -556,7 +556,7 @@ function tuplesOfPersonRow(row: IamPolicy): ReadonlyArray<Tuple> {
 }
 
 /** An IamPolicy row as the tuple it records: `resource#relation@principal`. */
-function tupleOfRow(row: IamPolicy): Tuple {
+function tupleOfRow(row: Grant): Tuple {
   const spec = row.spec;
   const principal = spec?.principal;
   const resource = spec?.resource;

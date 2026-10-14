@@ -41,7 +41,7 @@
 import { fromBinary } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 
 import { apiResourceKindName } from "./proto-fields.js";
 
@@ -67,7 +67,7 @@ export interface PermissionHistoryEntry {
   readonly cause: string;
   readonly actorId: string;
   readonly actorClass: string;
-  readonly policyId: string;
+  readonly grantId: string;
   readonly principalKind: string;
   readonly principalId: string;
   readonly principalRelation: string;
@@ -140,7 +140,7 @@ export function permissionHistoryRecordOf(
     cause: text("cause"),
     actorId: text("actor_id"),
     actorClass: text("actor_class"),
-    policyId: text("policy_id"),
+    grantId: text("policy_id"),
     principalKind: text("principal_kind"),
     principalId: text("principal_id"),
     principalRelation: text("principal_relation"),
@@ -161,7 +161,7 @@ export function assertPermissionChangeKind(
   kind: ApiResourceKind,
   change: PermissionChange | undefined,
 ): void {
-  if (change !== undefined && kind !== ApiResourceKind.iam_policy) {
+  if (change !== undefined && kind !== ApiResourceKind.grant) {
     throw new Error(
       `a permission change is recorded only with an iam_policy row, not ${apiResourceKindName(kind)}`,
     );
@@ -172,17 +172,17 @@ export function assertPermissionChangeKind(
 export function permissionHistoryEntryOf(
   change: PermissionChange,
   what: PermissionHistoryChange,
-  policyId: string,
+  grantId: string,
   data: Uint8Array,
 ): PermissionHistoryEntry {
-  const spec = fromBinary(IamPolicySchema, data).spec;
+  const spec = fromBinary(GrantSchema, data).spec;
   return {
     org: change.org,
     change: what,
     cause: change.cause,
     actorId: change.actorId,
     actorClass: change.actorClass,
-    policyId,
+    grantId,
     principalKind: spec?.principal?.kind ?? "",
     principalId: spec?.principal?.id ?? "",
     principalRelation: spec?.principal?.relation ?? "",

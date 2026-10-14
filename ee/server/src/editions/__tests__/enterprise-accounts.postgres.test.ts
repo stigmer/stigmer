@@ -39,7 +39,7 @@ import {
   issueKey,
   keysOf,
   licenseClaims,
-  policyRowsNaming,
+  grantRowsNaming,
   signIn,
   testClock,
   type BootedServer,
@@ -88,7 +88,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the Enterprise account service
         await issueKey(server, account.metadata?.id ?? "", acme);
       },
       keysOf: (accountId) => keysOf(server, accountId),
-      policyRowsNaming: (accountId) => policyRowsNaming(server, accountId),
+      grantRowsNaming: (accountId) => grantRowsNaming(server, accountId),
     };
   }, 120_000);
 

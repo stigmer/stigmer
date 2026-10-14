@@ -27,10 +27,10 @@ import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 import { planUpgradeFeature, UpgradeNotice } from "../billing/UpgradeNotice.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
-import { AccessRow, accessEntryKey } from "../iam-policy/AccessRow.js";
-import { PermissionGate } from "../iam-policy/PermissionGate.js";
-import { PrincipalPicker, type SelectedGrantee } from "../iam-policy/PrincipalPicker.js";
-import { useShareFlow } from "../iam-policy/useShareFlow.js";
+import { AccessRow, accessEntryKey } from "../grant/AccessRow.js";
+import { PermissionGate } from "../grant/PermissionGate.js";
+import { PrincipalPicker, type SelectedGrantee } from "../grant/PrincipalPicker.js";
+import { useShareFlow } from "../grant/useShareFlow.js";
 
 /** Props for {@link TeamMembersPanel}. */
 export interface TeamMembersPanelProps {

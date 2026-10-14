@@ -50,12 +50,12 @@ import {
   SHOULD_CREATE_KEY,
 } from "../../pipeline/steps/load-for-apply.js";
 import { metadataOf } from "../../pipeline/steps/shapes.js";
-import type { IamPolicyGrantPath } from "../iampolicy/grant-path.js";
+import type { GrantPath } from "../grant/grant-path.js";
 import { liveOrganizationName, refusalForHeldName } from "./names.js";
 import { slugRenamedError } from "../../pipeline/steps/names.js";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
@@ -300,7 +300,7 @@ export function newLoadExistingOrganizationStep(
  * whatever a concurrent write named the organization with in between.
  */
 export function newRevokeOrganizationPoliciesStep<Desc extends DescMessage>(
-  grantPath: IamPolicyGrantPath,
+  grantPath: GrantPath,
 ): PipelineStep<Desc> {
   return {
     name: "RevokeOrganizationPolicies",

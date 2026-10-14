@@ -1,0 +1,575 @@
+/**
+ * Pins the IamPolicy domain through a composed OSS server in the
+ * trusted-local posture — the open-source behaviours the conformance suite
+ * cannot express cross-edition:
+ *
+ *   - creating an organization makes its creator the owner: the built-in
+ *     role lifecycle's one write arm, read back through the row-driven
+ *     access list and count with the operator's display fields;
+ *   - a grant on a kind no edition grants on (kind_meta lists no roles) is
+ *     INVALID_ARGUMENT with the cloud's system-managed copy; a grant on
+ *     any other kind but the organization is UNIMPLEMENTED with the
+ *     edition named (the grant scope); a role the organization does not
+ *     admit is INVALID_ARGUMENT with the cloud's copy — the proto first,
+ *     the scope second, the role third;
+ *   - create is idempotent by derived id and stamps the proto's apiVersion;
+ *     a role change is delete then create; revokeOrgAccess empties the
+ *     account's rows; deleting the organization cleans its rows;
+ *   - the three system RPCs are PERMISSION_DENIED over the wire and served
+ *     on the in-process transport (the `internal` class);
+ *   - checkMyPermission's three arms: an enterprise-tiered kind is false
+ *     with the Authorizer never consulted (the settings navigation stays
+ *     hidden); can_grant_access outside the scope is false, while
+ *     can_manage_audience is the Authorizer's answer on every kind; an
+ *     organization permission is the composed Authorizer's answer; an
+ *     unknown permission is INVALID_ARGUMENT;
+ *   - the tuple-half queries are UNIMPLEMENTED with the edition named;
+ *   - the byte-pinned NOT_FOUND copy on get; delete of an absent triple is
+ *     the default instance.
+ */
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
+import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError, createClient } from "@connectrpc/connect";
+import type { Client, Transport } from "@connectrpc/connect";
+import { createGrpcTransport } from "@connectrpc/connect-node";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
+import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
+import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
+
+import { loadConfig } from "../../../boot/config.js";
+import { composeServer } from "../../../boot/compose.js";
+import type { ComposedServer } from "../../../boot/compose.js";
+import { createLogger } from "../../../boot/logger.js";
+import {
+  resetOperatorIdentityForTests,
+  setOperatorIdentity,
+} from "../../../pipeline/steps/defaults.js";
+import {
+  accountIdFor,
+  localIdpIdFor,
+} from "../../identityaccount/constants.js";
+import {
+  AUTHORIZATION_QUERIES_UNIMPLEMENTED_MESSAGE,
+  GRANT_API_VERSION,
+  PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE,
+  noGrantableRolesMessage,
+  grantIdFor,
+  grantNotFoundMessage,
+  roleNotGrantableMessage,
+  unknownPermissionMessage,
+} from "../constants.js";
+import { seedOrganizations } from "../../organization/__tests__/support.js";
+import { orgRole, triple } from "./support.js";
+
+const OPERATOR_EMAIL = "operator@example.com";
+const OPERATOR_NAME = "The Operator";
+
+async function grpcError(run: () => Promise<unknown>): Promise<ConnectError> {
+  try {
+    await run();
+  } catch (error) {
+    if (error instanceof ConnectError) {
+      return error;
+    }
+    throw error;
+  }
+  throw new Error("expected the call to fail");
+}
+
+describe("iampolicy domain (composed server, trusted-local posture)", () => {
+  let dir: string;
+  let server: ComposedServer;
+  let transport: Transport;
+  let command: Client<typeof GrantCommandController>;
+  let query: Client<typeof GrantQueryController>;
+  let organizations: Client<typeof OrganizationCommandController>;
+  /** The platform's own pipeline: the in-process transport's `internal` caller. */
+  let platform: Client<typeof GrantCommandController>;
+  let platformAccounts: Client<typeof IdentityAccountCommandController>;
+  /** The operator's account id — the trusted-local caller resolves to it. */
+  const operatorId = accountIdFor(localIdpIdFor(OPERATOR_EMAIL));
+  let seq = 0;
+
+  beforeAll(async () => {
+    dir = mkdtempSync(path.join(tmpdir(), "iampolicy-domain-test-"));
+    setOperatorIdentity(OPERATOR_EMAIL, OPERATOR_NAME);
+    server = await composeServer({
+      config: loadConfig({
+        STIGMER_MODEL_REGISTRY_REFRESH: "off",
+        TEMPORAL_HOST_PORT: "127.0.0.1:1",
+        DB_PATH: path.join(dir, "stigmer.db"),
+        STORAGE_PATH: path.join(dir, "storage"),
+        ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
+        STIGMER_OPERATOR_EMAIL: OPERATOR_EMAIL,
+        STIGMER_OPERATOR_NAME: OPERATOR_NAME,
+      }),
+      logger: createLogger({ level: "error", pretty: false, write: () => {} }),
+      portOverride: 0,
+      host: "127.0.0.1",
+    });
+    const port = await server.start();
+    transport = createGrpcTransport({ baseUrl: `http://127.0.0.1:${port}` });
+    await seedOrganizations(transport, ["acme"]);
+    command = createClient(GrantCommandController, transport);
+    query = createClient(GrantQueryController, transport);
+    organizations = createClient(OrganizationCommandController, transport);
+    platform = createClient(
+      GrantCommandController,
+      server.inProcessTransport,
+    );
+    platformAccounts = createClient(
+      IdentityAccountCommandController,
+      server.inProcessTransport,
+    );
+  });
+
+  afterAll(async () => {
+    await server.shutdown();
+    resetOperatorIdentityForTests();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  /**
+   * A fresh organization: its slug, which a wire request may name it by
+   * (the serving chain resolves it), and its minted id, which a stored
+   * policy and every in-process call name it by.
+   */
+  async function newOrganization(): Promise<{ slug: string; id: string }> {
+    seq += 1;
+    const slug = `roles-org-${seq}`;
+    const created = await organizations.create({
+      apiVersion: "tenancy.stigmer.ai/v1",
+      kind: "Organization",
+      metadata: { name: slug, slug, org: "" },
+      spec: { description: "created by the iampolicy domain test" },
+    });
+    return { slug, id: created.metadata?.id ?? "" };
+  }
+
+  /** A second account, created the way the platform creates one (in-process). */
+  async function newAccount(): Promise<string> {
+    seq += 1;
+    const created = await platformAccounts.create({
+      apiVersion: "iam.stigmer.ai/v1",
+      kind: "IdentityAccount",
+      metadata: { name: `person${seq}@example.com` },
+      spec: {
+        idpId: `auth0|person${seq}`,
+        email: `person${seq}@example.com`,
+        firstName: "Person",
+        lastName: `${seq}`,
+      },
+    });
+    return created.metadata?.id ?? "";
+  }
+
+  describe("the creator owns the organization (the built-in role lifecycle)", () => {
+    it("lists the operator as owner with display fields, and counts one principal", async () => {
+      const org = (await newOrganization()).slug;
+
+      const access = await query.listResourceAccessByPrincipal({
+        resource: create(ApiResourceRefSchema, {
+          kind: "organization",
+          id: org,
+        }),
+      });
+      const count = await query.getPrincipalsCount({
+        org: org,
+        principalKind: "identity_account",
+      });
+
+      expect(access.entries).toHaveLength(1);
+      const [entry] = access.entries;
+      expect(entry?.principal?.id).toBe(operatorId);
+      expect(entry?.principal?.email).toBe(OPERATOR_EMAIL);
+      expect(entry?.principal?.name).toBe(OPERATOR_NAME);
+      expect(entry?.roles.map((grant) => grant.role?.code)).toEqual(["owner"]);
+      expect(entry?.roles[0]?.isInherited).toBe(false);
+      expect(count.count).toBe(1);
+    });
+
+    it("deleting the organization cleans its rows", async () => {
+      const { slug: org, id: orgId } = await newOrganization();
+      await organizations.delete({ value: org });
+      // The wire now refuses a count of an Organization that is gone
+      // (stigmer#1163), so the rows are counted by the server itself: the
+      // in-process caller skips authorization.
+      const wire = await grpcError(() =>
+        query.getPrincipalsCount({
+          org: org,
+          principalKind: "identity_account",
+        }),
+      );
+      expect(wire.code).toBe(Code.NotFound);
+      expect(wire.rawMessage).toBe(`Organization not found: ${org}`);
+      const count = await createClient(
+        GrantQueryController,
+        server.inProcessTransport,
+      ).getPrincipalsCount({
+        // In-process callers name the organization by id: the rows were
+        // filed under it, and nothing resolves a slug off the wire.
+        org: orgId,
+        principalKind: "identity_account",
+      });
+      expect(count.count).toBe(0);
+    });
+  });
+
+  describe("grants on the organization", () => {
+    it("create is idempotent by derived id and stamps the proto's apiVersion", async () => {
+      const { slug: org, id: orgId } = await newOrganization();
+      const bob = await newAccount();
+      const spec = orgRole(bob, "member", org);
+
+      const first = await command.create(spec);
+      const second = await command.create(spec);
+
+      // The request names the organization by slug; the stored grant and
+      // the id derived from it name it by its minted id.
+      expect(first.spec?.resource?.id).toBe(orgId);
+      expect(first.metadata?.id).toBe(
+        grantIdFor(orgRole(bob, "member", orgId)),
+      );
+      expect(first.apiVersion).toBe(GRANT_API_VERSION);
+      expect(second.metadata?.id).toBe(first.metadata?.id);
+      expect(
+        (
+          await query.getPrincipalsCount({
+            org: org,
+            principalKind: "identity_account",
+          })
+        ).count,
+      ).toBe(2);
+    });
+
+    it("a role change is delete then create, and the access list follows", async () => {
+      const { slug: org, id: orgId } = await newOrganization();
+      const bob = await newAccount();
+      await command.create(orgRole(bob, "member", org));
+
+      const deleted = await command.delete(orgRole(bob, "member", org));
+      await command.create(orgRole(bob, "admin", org));
+
+      expect(deleted.metadata?.id).toBe(
+        grantIdFor(orgRole(bob, "member", orgId)),
+      );
+      const roles = await query.getPrincipalResourceRoles({
+        principal: create(ApiResourceRefSchema, {
+          kind: "identity_account",
+          id: bob,
+        }),
+        resource: create(ApiResourceRefSchema, {
+          kind: "organization",
+          id: org,
+        }),
+      });
+      expect(roles.roles.map((role) => role.code)).toEqual(["admin"]);
+    });
+
+    it("every kind_meta role of the organization is grantable; a role it does not list is INVALID_ARGUMENT with the cloud's copy", async () => {
+      const org = (await newOrganization()).slug;
+      const bob = await newAccount();
+      for (const role of ["owner", "admin", "member", "viewer"]) {
+        await command.create(orgRole(bob, role, org));
+      }
+      const error = await grpcError(() =>
+        command.create(orgRole(bob, "editor", org)),
+      );
+      expect(error.code).toBe(Code.InvalidArgument);
+      expect(error.rawMessage).toBe(
+        roleNotGrantableMessage("editor", "organization", [
+          "owner",
+          "admin",
+          "member",
+          "viewer",
+        ]),
+      );
+    });
+
+    it("revokeOrgAccess empties the account's rows on that organization only", async () => {
+      const org = (await newOrganization()).slug;
+      const other = (await newOrganization()).slug;
+      const bob = await newAccount();
+      await command.create(orgRole(bob, "admin", org));
+      await command.create(orgRole(bob, "viewer", org));
+      await command.create(orgRole(bob, "member", other));
+
+      await command.revokeOrgAccess({
+        identityAccountId: bob,
+        org: org,
+      });
+
+      const onOrg = await query.getPrincipalResourceRoles({
+        principal: create(ApiResourceRefSchema, {
+          kind: "identity_account",
+          id: bob,
+        }),
+        resource: create(ApiResourceRefSchema, {
+          kind: "organization",
+          id: org,
+        }),
+      });
+      const onOther = await query.getPrincipalResourceRoles({
+        principal: create(ApiResourceRefSchema, {
+          kind: "identity_account",
+          id: bob,
+        }),
+        resource: create(ApiResourceRefSchema, {
+          kind: "organization",
+          id: other,
+        }),
+      });
+      expect(onOrg.roles).toEqual([]);
+      expect(onOther.roles.map((role) => role.code)).toEqual(["member"]);
+    });
+
+    it("delete of an absent triple answers the default instance (Java's contract)", async () => {
+      const org = (await newOrganization()).slug;
+      const deleted = await command.delete(
+        orgRole("ida_nobody", "member", org),
+      );
+      expect(deleted.metadata?.id ?? "").toBe("");
+    });
+
+    it("get answers the row by id and the byte-pinned NOT_FOUND copy for an unknown id", async () => {
+      const org = (await newOrganization()).slug;
+      const bob = await newAccount();
+      const created = await command.create(orgRole(bob, "member", org));
+      const got = await query.get({ value: created.metadata?.id ?? "" });
+      expect(got.spec).toEqual(created.spec);
+      const error = await grpcError(() =>
+        query.get({ value: "iamp_00000000000000000000000000" }),
+      );
+      expect(error.code).toBe(Code.NotFound);
+      expect(error.rawMessage).toBe(
+        grantNotFoundMessage("iamp_00000000000000000000000000"),
+      );
+    });
+  });
+
+  describe("the grant scope: open source grants on organizations only", () => {
+    it("a grant on a kind whose kind_meta lists no roles is INVALID_ARGUMENT with the cloud's system-managed copy — no edition grants on it, so no edition is named", async () => {
+      // The proto is read BEFORE the scope (since 2026-09-13):
+      // an identity account is system-managed in the cloud too, and
+      // "served by the Enterprise and Cloud editions" would be a lie here.
+      const bob = await newAccount();
+      const error = await grpcError(() =>
+        command.create(
+          triple({ kind: "identity_account", id: bob }, "viewer", {
+            kind: "identity_account",
+            id: operatorId,
+          }),
+        ),
+      );
+      expect(error.code).toBe(Code.InvalidArgument);
+      expect(error.rawMessage).toBe(
+        noGrantableRolesMessage("identity_account"),
+      );
+    });
+
+    it("a grant on an agent is UNIMPLEMENTED with the edition named, never INVALID_ARGUMENT or INTERNAL", async () => {
+      const bob = await newAccount();
+      const error = await grpcError(() =>
+        command.create(
+          triple({ kind: "identity_account", id: bob }, "viewer", {
+            kind: "agent",
+            id: "agt_01hzzzzzzzzzzzzzzzzzzzzzzz",
+          }),
+        ),
+      );
+      expect(error.code).toBe(Code.Unimplemented);
+      expect(error.rawMessage).toBe(PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE);
+    });
+  });
+
+  describe("the three system RPCs", () => {
+    it("are PERMISSION_DENIED for a wire user, with the annotation's copy", async () => {
+      const org = (await newOrganization()).slug;
+      const structural = triple(
+        { kind: "organization", id: org },
+        "organization",
+        { kind: "agent", id: "agt_01hzzzzzzzzzzzzzzzzzzzzzzz" },
+      );
+      const denied = await grpcError(() => command.bootstrapGrant(structural));
+      expect(denied.code).toBe(Code.PermissionDenied);
+      expect(denied.rawMessage).toBe(
+        "unauthorized to bootstrap policy - can_bootstrap_iam permission required",
+      );
+      expect(
+        (
+          await grpcError(() =>
+            command.cleanupResourceGrants(
+              create(ApiResourceRefSchema, { kind: "organization", id: org }),
+            ),
+          )
+        ).code,
+      ).toBe(Code.PermissionDenied);
+      expect(
+        (
+          await grpcError(() =>
+            command.bootstrapRevokeOrgAccess({
+              identityAccountId: operatorId,
+              org: org,
+            }),
+          )
+        ).code,
+      ).toBe(Code.PermissionDenied);
+    });
+
+    it("serve the platform's own pipeline on the in-process transport, structural relations included", async () => {
+      // The in-process transport resolves no slug: the platform passes ids.
+      const org = (await newOrganization()).id;
+      const structural = triple(
+        { kind: "organization", id: org },
+        "organization",
+        { kind: "agent", id: "agt_01hzzzzzzzzzzzzzzzzzzzzzzz" },
+      );
+
+      const seeded = await platform.bootstrapGrant(structural);
+      expect(seeded.metadata?.id).toBe(grantIdFor(structural));
+      // A structural row never shows in the access list: only assignable roles do.
+      const access = await query.listResourceAccessByPrincipal({
+        resource: create(ApiResourceRefSchema, {
+          kind: "agent",
+          id: "agt_01hzzzzzzzzzzzzzzzzzzzzzzz",
+        }),
+      });
+      expect(access.entries).toEqual([]);
+
+      await platform.cleanupResourceGrants(
+        create(ApiResourceRefSchema, {
+          kind: "agent",
+          id: "agt_01hzzzzzzzzzzzzzzzzzzzzzzz",
+        }),
+      );
+      const error = await grpcError(() =>
+        query.get({ value: grantIdFor(structural) }),
+      );
+      expect(error.code).toBe(Code.NotFound);
+    });
+  });
+
+  describe("checkMyPermission has one definition", () => {
+    it("an enterprise-tiered kind answers false — the operator-only settings navigation stays hidden on open source", async () => {
+      const result = await query.checkMyPermission({
+        resource: create(ApiResourceRefSchema, {
+          kind: "platform",
+          id: "stigmer",
+        }),
+        relation: "can_manage_model_pricing",
+      });
+      expect(result.isAuthorized).toBe(false);
+    });
+
+    it("can_grant_access outside the grant scope answers false; on an organization it is the Authorizer's answer", async () => {
+      const org = (await newOrganization()).slug;
+      const onAgent = await query.checkMyPermission({
+        resource: create(ApiResourceRefSchema, {
+          kind: "agent",
+          id: "agt_01hzzzzzzzzzzzzzzzzzzzzzzz",
+        }),
+        relation: "can_grant_access",
+      });
+      const onOrg = await query.checkMyPermission({
+        resource: create(ApiResourceRefSchema, {
+          kind: "organization",
+          id: org,
+        }),
+        relation: "can_grant_access",
+      });
+      const viewAgent = await query.checkMyPermission({
+        resource: create(ApiResourceRefSchema, {
+          kind: "agent",
+          id: "agt_01hzzzzzzzzzzzzzzzzzzzzzzz",
+        }),
+        relation: "can_view_access",
+      });
+      expect(onAgent.isAuthorized).toBe(false);
+      // The permissive single-team Authorizer allows everything it is asked.
+      expect(onOrg.isAuthorized).toBe(true);
+      expect(viewAgent.isAuthorized).toBe(true);
+    });
+
+    it("can_manage_audience is the Authorizer's answer on every kind, where can_grant_access is false outside the scope — the console's audience controls stay the owner's on open source (stigmer#1495)", async () => {
+      for (const [kind, id] of [
+        ["agent", "agt_01hzzzzzzzzzzzzzzzzzzzzzzz"],
+        ["skill", "skl_01hzzzzzzzzzzzzzzzzzzzzzzz"],
+      ] as const) {
+        const resource = create(ApiResourceRefSchema, { kind, id });
+        const audience = await query.checkMyPermission({ resource, relation: "can_manage_audience" });
+        const grant = await query.checkMyPermission({ resource, relation: "can_grant_access" });
+        // The permissive single-team Authorizer allows everything it is asked.
+        expect(audience.isAuthorized, kind).toBe(true);
+        expect(grant.isAuthorized, kind).toBe(false);
+      }
+    });
+
+    it("an unknown permission is INVALID_ARGUMENT, quoted", async () => {
+      const error = await grpcError(() =>
+        query.checkMyPermission({
+          resource: create(ApiResourceRefSchema, {
+            kind: "organization",
+            id: "acme",
+          }),
+          relation: "can_fly",
+        }),
+      );
+      expect(error.code).toBe(Code.InvalidArgument);
+      expect(error.rawMessage).toBe(unknownPermissionMessage("can_fly"));
+    });
+  });
+
+  describe("the tuple-half queries without a composed engine", () => {
+    it("answer UNIMPLEMENTED with the edition named — never INTERNAL", async () => {
+      const principal = create(ApiResourceRefSchema, {
+        kind: "identity_account",
+        id: operatorId,
+      });
+      const resource = create(ApiResourceRefSchema, {
+        kind: "organization",
+        id: "acme",
+      });
+      for (const call of [
+        () =>
+          query.checkAuthorization({
+            grant: triple(
+              { kind: "identity_account", id: operatorId },
+              "admin",
+              { kind: "organization", id: "acme" },
+            ),
+          }),
+        () =>
+          query.listAuthorizedResourceIds({
+            principal,
+            resourceKind: "organization",
+            relation: "can_view",
+          }),
+        () =>
+          query.listAuthorizedPrincipalIds({
+            resource,
+            principalKind: "identity_account",
+            relation: "can_view",
+          }),
+        () =>
+          query.checkMyPermission({
+            resource,
+            relation: "can_view",
+            contextualGrants: [orgRole(operatorId, "viewer", "acme")],
+          }),
+      ]) {
+        const error = await grpcError(call);
+        expect(error.code).toBe(Code.Unimplemented);
+        expect(error.rawMessage).toContain(
+          AUTHORIZATION_QUERIES_UNIMPLEMENTED_MESSAGE,
+        );
+      }
+    });
+  });
+});

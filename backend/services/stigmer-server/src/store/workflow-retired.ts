@@ -55,7 +55,7 @@ import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 
 import { RunSchema, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 
 /**
  * The `kind` column values of the rows the step deletes: the workflow kind,
@@ -72,7 +72,7 @@ export const RETIRED_WORKFLOW_KINDS: ReadonlyArray<string> = [
 /** The `kind` column value of the agent run rows the step rewrites. */
 export const AGENT_RUN_KIND = "agent_run";
 /** The `kind` column value of the grant rows the step reads. */
-export const WORKFLOW_RETIRED_POLICY_KIND = "iam_policy";
+export const WORKFLOW_RETIRED_GRANT_KIND = "iam_policy";
 
 /** The tables the step drops. */
 export const RETIRED_WORKFLOW_TABLES: ReadonlyArray<string> = [
@@ -184,8 +184,8 @@ export function migrateAgentRunRow(data: Uint8Array, endedAt: string): Uint8Arra
  * the policy's own fields are unchanged. Throws when the bytes do not
  * decode.
  */
-export function policyNamesRetiredWorkflowKind(data: Uint8Array): boolean {
-  const spec = fromBinary(IamPolicySchema, data).spec;
+export function grantNamesRetiredWorkflowKind(data: Uint8Array): boolean {
+  const spec = fromBinary(GrantSchema, data).spec;
   return (
     RETIRED_WORKFLOW_KINDS.includes(spec?.resource?.kind ?? "") ||
     RETIRED_WORKFLOW_KINDS.includes(spec?.principal?.kind ?? "")

@@ -57,8 +57,8 @@
  */
 import type {
   ApiResourceRef,
-  IamPolicySpec,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+  GrantSpec,
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 
 /** The query-engine contract (single-instance point, ExtensionDrivers.authorizationQueries). */
 export interface AuthorizationQueryEngine {
@@ -70,8 +70,8 @@ export interface AuthorizationQueryEngine {
    * (boundary-validated, or controller-built).
    */
   check(
-    policy: IamPolicySpec,
-    contextualPolicies: ReadonlyArray<IamPolicySpec>,
+    policy: GrantSpec,
+    contextualPolicies: ReadonlyArray<GrantSpec>,
   ): Promise<boolean>;
   /**
    * The ids of `resourceKind` resources on which `principal` holds
@@ -82,7 +82,7 @@ export interface AuthorizationQueryEngine {
     principal: ApiResourceRef,
     relation: string,
     resourceKind: string,
-    contextualPolicies: ReadonlyArray<IamPolicySpec>,
+    contextualPolicies: ReadonlyArray<GrantSpec>,
   ): Promise<ReadonlyArray<string>>;
   /**
    * The ids of `principalKind` principals holding `relation` on `resource`
@@ -93,6 +93,6 @@ export interface AuthorizationQueryEngine {
     resource: ApiResourceRef,
     relation: string,
     principalKind: string,
-    contextualPolicies: ReadonlyArray<IamPolicySpec>,
+    contextualPolicies: ReadonlyArray<GrantSpec>,
   ): Promise<ReadonlyArray<string>>;
 }

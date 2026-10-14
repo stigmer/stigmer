@@ -437,7 +437,7 @@ export interface DirectLoginTenant {
 // The four kind_meta roles of the organization, in the proto's order — the
 // words an IamPolicy grant carries as `relation`, and the rungs the model
 // reads (each implies the ones after it). The one role set open source
-// grants on; support/iampolicies re-exports it.
+// grants on; support/grants re-exports it.
 export const ORGANIZATION_ROLES = ["owner", "admin", "member", "viewer"] as const;
 export type OrganizationRole = (typeof ORGANIZATION_ROLES)[number];
 

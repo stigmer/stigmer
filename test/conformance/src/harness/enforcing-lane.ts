@@ -41,11 +41,11 @@
 // The lane deliberately has no teardown: the target owns its lifetime
 // (LocalTarget memoizes the sibling lane and stops it with the primary).
 import { create } from "@bufbuild/protobuf";
-import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import {
   ApiResourceRefSchema,
-  IamPolicySpecSchema,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+  GrantSpecSchema,
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 
 import type {
   DirectLoginTenant,
@@ -74,13 +74,13 @@ export function organizationRoleGrant(
   organizationId: string,
   accountId: string,
   role: OrganizationRole,
-): IamPolicySpec {
+): GrantSpec {
   if (organizationId === "" || accountId === "") {
     throw new Error(
       "organizationRoleGrant needs a non-empty organization id and account id",
     );
   }
-  return create(IamPolicySpecSchema, {
+  return create(GrantSpecSchema, {
     principal: create(ApiResourceRefSchema, {
       kind: "identity_account",
       id: accountId,
@@ -148,9 +148,9 @@ async function applyExactRole(
   for (const step of exactRoleSteps(role)) {
     const grant = organizationRoleGrant(organizationId, accountId, step.role);
     if (step.op === "grant") {
-      await founder.iamPolicyCommand.create(grant);
+      await founder.grantCommand.create(grant);
     } else {
-      await founder.iamPolicyCommand.delete(grant);
+      await founder.grantCommand.delete(grant);
     }
   }
 }
@@ -304,7 +304,7 @@ export async function newSiblingEnforcingLane(
       await founderOrganizationIds(),
       spare,
     )) {
-      await founder.clients.iamPolicyCommand.revokeOrgAccess({
+      await founder.clients.grantCommand.revokeOrgAccess({
         identityAccountId: accountId,
         org: organizationId,
       });
