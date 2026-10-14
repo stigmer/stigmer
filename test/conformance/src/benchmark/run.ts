@@ -18,11 +18,11 @@
 // it ends. Each cell's first attempt is a discarded warm-up. The run's first
 // call per harness, served model and agent shape is the cold call.
 //
-// The quality arm is one plugin eval (quality-eval.ts): the working agent as
-// a plugin, pushed into a fresh organization, its `evals/` suite run by the
-// platform with each planned harness's parity model as a target and the
-// judge model for its AI-graded checks. Its result document is the report's
-// `quality`.
+// The quality arm is one eval run about a plugin (quality-eval.ts): the
+// working agent as a plugin, pushed into a fresh organization, its `evals/`
+// suite run by the platform with each planned harness's parity model as a
+// target and the judge model for its AI-graded checks. Its result document
+// is the report's `quality`.
 //
 // Nothing aborts the run but the stack itself. A provisioning or create error
 // fails its attempt with `failure.stage: "create"`, and the run goes on.
@@ -219,7 +219,7 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
 
   let quality: QualityEval | null = null;
   if (qualityTargets.length > 0) {
-    io.log(`quality: one eval, ${qualityTargets.map((cell) => cell.id).join(", ")}, ${options.qualityReps} tries per case`);
+    io.log(`quality: one eval run, ${qualityTargets.map((cell) => cell.id).join(", ")}, ${options.qualityReps} tries per case`);
     quality = await runQualityEval(stack.clients, qualityTargets, { runs: options.qualityReps, judgeModel: JUDGE_MODEL }, io);
     io.log(`quality: ${quality.failure === undefined ? `eval ${quality.eval_id} ended` : `${quality.failure.stage}: ${quality.failure.message}`}`);
   }

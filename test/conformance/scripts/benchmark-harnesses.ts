@@ -7,7 +7,7 @@
 // real money: at the defaults, nine scenarios on two harnesses, one warm-up
 // plus five samples each, three turns per sample on the three three-turn
 // scenarios (the bare turn-2 cell and the working agent's read-edit and
-// cross-turn cells) — 180 executions — plus the quality arm: one plugin eval of
+// cross-turn cells) — 180 executions — plus the quality arm: one eval run of
 // the working agent's nine cases, three tries per case on each harness, the
 // AI-graded checks judged by three votes each. It is in no vitest config and
 // `npm test` cannot reach it. Its numbers are a new baseline for the machine,

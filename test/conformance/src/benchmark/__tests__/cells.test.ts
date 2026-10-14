@@ -7,7 +7,7 @@
 // harness on its parity model; a missing Anthropic key refuses every native
 // cell and both quality targets; a missing Cursor key refuses Cursor cells
 // and the Cursor target alone; a missing `stigmer` CLI refuses the
-// working-agent timing cells and nothing else (a plugin eval's try loads no
+// working-agent timing cells and nothing else (an eval run's try loads no
 // memory); --only and --cells refuse with their own reasons; parity and
 // working cells carry their harness's registry id and default cells none.
 import { describe, expect, it } from "vitest";

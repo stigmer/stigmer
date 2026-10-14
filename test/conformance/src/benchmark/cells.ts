@@ -15,8 +15,8 @@
 // from one message to the next.
 //
 // The quality arm is the working agent as a plugin with an `evals/` suite
-// (fixtures/working-agent, the plugin-eval format), run by Stigmer's own
-// plugin evals: one eval, with each harness on its parity model as a
+// (fixtures/working-agent, the plugin-eval format), run by one eval run
+// about the plugin, with each harness on its parity model as a
 // target, graded by the platform's judge on JUDGE_MODEL.
 //
 // The judge cell (`judge/calibration`) holds the AI judge's rules to their
@@ -41,7 +41,7 @@
 // Every working-agent timing cell needs the `stigmer` CLI on PATH: with memory
 // on, the runner spawns `stigmer mcp-server` each turn, and without the CLI
 // those turns fail. So the planner refuses them by name when the CLI is
-// absent, the way it refuses a cell whose key is missing. A plugin eval's try
+// absent, the way it refuses a cell whose key is missing. An eval run's try
 // loads no memory, so the quality arm needs no CLI.
 //
 // Refusals are by name and never silent: a cell the environment cannot run

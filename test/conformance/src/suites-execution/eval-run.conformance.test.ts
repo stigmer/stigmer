@@ -1,26 +1,29 @@
-// Conformance suite for running a plugin's evals: a PluginEval taken from
+// Conformance suite for running an eval run about a plugin: an EvalRun of an
+// installed plugin's own evals/ cases on the built-in assistant, taken from
 // create to its end on a real engine, every try and every AI-graded vote
-// answered by the scripted model.
-// Domain: agentic / plugineval — one run of an installed plugin's evals/
+// answered by the scripted model. eval-run-agent.conformance.test.ts runs
+// eval runs about an agent.
+// Domain: agentic / evalrun — one run of an installed plugin's evals/
 // cases, each try an ordinary run in a fresh conversation, graded by the
 // case's graders and recorded as a Score on the try's run.
 //
 // The contract under test:
-//   - create answers the eval pending; a two-case suite with and without the
-//     plugin, two tries each, ends completed with its aggregates: the
-//     with-arm tries run on the assistant with the plugin listed and read
-//     its skill inside the plugin's mounted tree, the without-arm tries run
-//     on the assistant with nothing attached and are offered no skill;
-//     a `tool_used: Skill` grader is an indicator only (its reason says it
+//   - create answers the eval run pending; a two-case suite with and without
+//     the plugin, two tries each, ends completed with its aggregates: every
+//     try's conversation lists the plugin; the with-arm tries load it (their
+//     run's loaded_versions names it) and read its skill inside the plugin's
+//     mounted tree, the without-arm tries leave it out of the turn (their
+//     run excludes it and loads no plugin) and are offered no skill; a
+//     `tool_used: Skill` grader is an indicator only (its reason says it
 //     passed on the with-arm and failed on the without), a `regex` grader on
-//     the last message scores, `Δ` is computed and not provisional;
+//     the last message scores, and `Δ` is computed;
 //   - each try's run carries one Score, source eval, one criterion per
 //     grader, the indicator `not_applicable`;
 //   - a case that runs with another plugin is listed "not run" and starts
 //     no run;
 //   - the tries are left out of `session.list` and read by `session.get`;
 //   - an `llm` grader is decided by two of its three votes;
-//   - a spending limit reached stops new tries: the eval ends partial,
+//   - a spending limit reached stops new tries: the eval run ends partial,
 //     `cost_ceiling`, and the try its own share of the limit stopped is not
 //     graded, never failed;
 //   - a try past its `timeout_seconds` is stopped and graded on what it
@@ -32,9 +35,9 @@
 //     holds them;
 //   - a try composes no standing context and no memory, although its
 //     organization has both and an ordinary run there gets them;
-//   - delete is refused while the eval runs, naming cancel; cancel ends it
-//     partial `cancelled`; cancel of an eval that ended changes nothing;
-//     delete removes the eval and its tries' conversations;
+//   - delete is refused while the eval run runs, naming cancel; cancel ends
+//     it partial `cancelled`; cancel of an eval run that ended changes
+//     nothing; delete removes the eval run and its tries' conversations;
 //   - a case's scaffold builds its starting folder from a fixture beside the
 //     case, its file a try changes is read and never counted as created, a
 //     reference folder is read under `.stigmer/inputs/`, and an `EVAL_*`
@@ -48,20 +51,20 @@
 //     stops the try, reported `aborted` with a 0.
 //
 // Every engine-backed describe runs only where the runner creates the try's
-// run as the eval's caller (CapabilityFlags.runnerActsAsRunCreator): on the
+// run as the eval run's caller (CapabilityFlags.runnerActsAsRunCreator): on the
 // cloud-execution target a try's run belongs to another subject, as for the
 // AI judge (stigmer#2105).
 //
 // Out of scope here, with the reason:
-//   - a plugin hook reading a secret from the eval's vaults: the credential
-//     resolver's eval branch is pinned by its unit tests
+//   - a plugin hook reading a secret from the eval run's vaults: the credential
+//     resolver's eval-run branch is pinned by its unit tests
 //     (backend/services/stigmer-server/src/domain/vault/__tests__/resolve.test.ts), since a
 //     hook that prints a secret into the transcript would need a vault, a
 //     hook and a shell grant just to read one value back;
 //   - a case that withholds `Skill` on the Cursor engine: the scripted model
 //     speaks only Anthropic, so the Cursor half is the runner's goldens.
 //
-// Every eval here runs one try at a time (concurrency 1), so the scripted
+// Every eval run here runs one try at a time (concurrency 1), so the scripted
 // turns are consumed in the matrix's order (case, target, arm, try), each
 // try's turns before its votes. Each try's session has the case's name as
 // its subject, so no title call is made.
@@ -70,13 +73,13 @@ import { join } from "node:path";
 import { clone, create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
-import { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
+import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
 import {
-  PluginEvalPartialReason,
-  PluginEvalPhase,
-  PluginEvalTryState,
-} from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+  EvalRunPartialReason,
+  EvalRunPhase,
+  EvalRunTryState,
+} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -100,24 +103,25 @@ import {
   EVAL_METRIC,
   INDICATOR_ONLY_REASON,
   SPENDING_SHARE_REASON,
-  PLUGIN_EVAL_LABEL,
+  EVAL_RUN_LABEL,
   type EvalCaseFixture,
-  awaitPluginEvalEnd,
-  cancelAndDeletePluginEval,
-  followPluginEval,
+  awaitEvalRunEnd,
+  cancelAndDeleteEvalRun,
+  casesOf,
+  followEvalRun,
   installPlugin,
   NOT_STARTED_NO_MOCK,
   engineUnsupportedReason,
   lastMessageGrader,
-  makePluginEval,
-  pluginEvalActiveDeleteMessage,
+  evalRunActiveDeleteMessage,
+  makeEvalRun,
   skillFiredGrader,
   skillPluginWithEvals,
   timedOutError,
   triesOf,
   unsupportedFeatureReason,
-  type PluginEvalOptions,
-} from "../support/plugin-evals";
+  type PluginEvalRunOptions,
+} from "../support/eval-runs";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
 import { toolUseByCallId, toolUsesOf, turnOfRun } from "../support/turn";
 import { createTarget, type TargetProfile } from "../targets";
@@ -192,7 +196,7 @@ async function installed(
   cases: (skill: string) => readonly EvalCaseFixture[],
   opts: { org?: string; hooks?: Readonly<Record<string, unknown>>; files?: Readonly<Record<string, string>> } = {},
 ): Promise<Installed> {
-  const name = uniqueName("pev");
+  const name = uniqueName("evr");
   const skill = `${name}-notes`;
   const plugin = await installPlugin(
     clients,
@@ -208,16 +212,16 @@ async function installed(
   return { plugin, skill };
 }
 
-// Creates an eval and defers its cleanup, which runs before its plugin's delete.
-async function startEval(installation: Installed, opts: Partial<PluginEvalOptions> = {}): Promise<PluginEval> {
-  const created = await clients.pluginEvalCommand.create(
-    makePluginEval({
+// Creates an eval run and defers its cleanup, which runs before its plugin's delete.
+async function startEval(installation: Installed, opts: Partial<PluginEvalRunOptions> = {}): Promise<EvalRun> {
+  const created = await clients.evalRunCommand.create(
+    makeEvalRun({
       org: installation.plugin.metadata!.org,
       pluginId: installation.plugin.metadata!.id,
       ...opts,
     }),
   );
-  fixtures.defer(() => cancelAndDeletePluginEval(clients, created.metadata!.id));
+  fixtures.defer(() => cancelAndDeleteEvalRun(clients, created.metadata!.id));
   return created;
 }
 
@@ -241,18 +245,18 @@ function systemTextOf(body: unknown): string {
   return typeof system === "string" ? system : system.map((block) => block.text).join("\n");
 }
 
-function describeTries(pluginEval: PluginEval): string {
-  return triesOf(pluginEval)
+function describeTries(evalRun: EvalRun): string {
+  return triesOf(evalRun)
     .map(
       (t) =>
-        `${t.caseName}/${t.arm}/${t.attempt.index}: ${PluginEvalTryState[t.attempt.state]} ` +
+        `${t.caseName}/${t.arm}/${t.attempt.index}: ${EvalRunTryState[t.attempt.state]} ` +
         `score=${t.attempt.score} reason="${t.attempt.notGradedReason}" error="${t.attempt.error}"`,
     )
     .join("; ");
 }
 
-describe.skipIf(!runnerServesTries)("PluginEval — a suite with and without the plugin", () => {
-  it("[rpc:PluginEvalCommandController.create] [rpc:PluginEvalQueryController.get] [rpc:ScoreQueryController.listByRun] [rpc:SessionQueryController.list] [rpc:SessionQueryController.get] two cases, two tries per arm: the with-arm reads the skill, the regex scores, Δ is computed and not provisional", async () => {
+describe.skipIf(!runnerServesTries)("EvalRun about a plugin — a suite with and without the plugin", () => {
+  it("[rpc:EvalRunCommandController.create] [rpc:EvalRunQueryController.get] [rpc:ScoreQueryController.listByRun] [rpc:SessionQueryController.list] [rpc:SessionQueryController.get] two cases, two tries per arm: the with-arm loads the plugin and reads the skill, the without-arm leaves it out of the turn, the regex scores, Δ is computed", async () => {
     const installation = await installed((skill) => [
       scoredCase("first-notes", skill),
       scoredCase("second-notes", skill),
@@ -275,24 +279,24 @@ describe.skipIf(!runnerServesTries)("PluginEval — a suite with and without the
     }
 
     const created = await startEval(installation, { runs: 2 });
-    expect(created.status?.phase, "create answers before any try starts").toBe(PluginEvalPhase.pending);
+    expect(created.status?.phase, "create answers before any try starts").toBe(EvalRunPhase.pending);
     expect(created.status?.triesTotal).toBe(8);
 
-    const ended = await awaitPluginEvalEnd(clients, created.metadata!.id, 300_000);
-    expect(ended.status?.phase, describeTries(ended)).toBe(PluginEvalPhase.completed);
+    const ended = await awaitEvalRunEnd(clients, created.metadata!.id, 300_000);
+    expect(ended.status?.phase, describeTries(ended)).toBe(EvalRunPhase.completed);
     expect(ended.status?.triesFinished).toBe(8);
-    expect(ended.status?.provisionalDelta).toBe(false);
     expect(mock.consumed(), "exactly the scripted turns: the other-plugin case started no run").toBe(12);
 
     const status = ended.status!;
-    expect(status.cases.map((c) => c.caseName)).toEqual(["first-notes", "other-plugin", "second-notes"]);
-    const scaffold = status.cases.find((c) => c.caseName === "other-plugin")!;
+    const cases = casesOf(ended);
+    expect(cases.map((c) => c.caseName)).toEqual(["first-notes", "other-plugin", "second-notes"]);
+    const scaffold = cases.find((c) => c.caseName === "other-plugin")!;
     expect(scaffold.notRunReason).toBe(unsupportedFeatureReason("plugins"));
     expect(scaffold.targets.flatMap((t) => [...(t.withPlugin?.tries ?? []), ...(t.withoutPlugin?.tries ?? [])])).toEqual(
       [],
     );
     for (const name of ["first-notes", "second-notes"]) {
-      const ran = status.cases.find((c) => c.caseName === name)!;
+      const ran = cases.find((c) => c.caseName === name)!;
       expect(ran.notRunReason).toBe("");
       expect(ran.targets).toHaveLength(1);
       const result = ran.targets[0]!;
@@ -326,11 +330,20 @@ describe.skipIf(!runnerServesTries)("PluginEval — a suite with and without the
     const listed = new Set(sessions.entries.map((session) => session.metadata?.id));
     for (const located of tries) {
       const { attempt } = located;
-      expect(attempt.state, `${located.caseName}/${located.arm}/${attempt.index}`).toBe(PluginEvalTryState.graded);
+      expect(attempt.state, `${located.caseName}/${located.arm}/${attempt.index}`).toBe(EvalRunTryState.graded);
       expect(attempt.error).toBe("");
       const run = await runOf(attempt.runId);
       expect(run.status?.phase).toBe(RunPhase.RUN_COMPLETED);
-      expect(run.metadata?.labels[PLUGIN_EVAL_LABEL]).toBe(created.metadata!.id);
+      expect(run.metadata?.labels[EVAL_RUN_LABEL]).toBe(created.metadata!.id);
+      // Both arms' conversations list the plugin; the without arm's run leaves it out of the turn.
+      const pluginId = installation.plugin.metadata!.id;
+      expect(run.spec?.excludedPluginIds, `${located.arm}-arm run's exclusion`).toEqual(
+        located.arm === "with" ? [] : [pluginId],
+      );
+      expect(
+        (run.status?.loadedVersions?.plugins ?? []).map((ref) => ref.id),
+        `${located.arm}-arm try's loaded plugins`,
+      ).toEqual(located.arm === "with" ? [pluginId] : []);
       const readSkill = toolUsesOf(await turnOfRun(clients, run)).some((use) => use.name === "read_file");
       expect(readSkill, `${located.arm}-arm try reads the skill`).toBe(located.arm === "with");
 
@@ -350,14 +363,15 @@ describe.skipIf(!runnerServesTries)("PluginEval — a suite with and without the
       // Out of the conversation list, read by id.
       expect(listed.has(attempt.sessionId), `try session ${attempt.sessionId} is not listed`).toBe(false);
       const session = await clients.sessionQuery.get({ value: attempt.sessionId });
-      expect(session.metadata?.labels[PLUGIN_EVAL_LABEL]).toBe(created.metadata!.id);
+      expect(session.metadata?.labels[EVAL_RUN_LABEL]).toBe(created.metadata!.id);
       expect(session.spec?.subject).toBe(located.caseName);
+      expect(session.spec?.plugins.map((ref) => ref.id), "every try's conversation lists the plugin").toEqual([pluginId]);
     }
   }, 360_000);
 });
 
-describe.skipIf(!runnerServesTries)("PluginEval — grading", () => {
-  it("[rpc:PluginEvalQueryController.get] [rpc:ScoreQueryController.listByRun] an llm grader is decided by two of its three votes", async () => {
+describe.skipIf(!runnerServesTries)("EvalRun about a plugin — grading", () => {
+  it("[rpc:EvalRunQueryController.get] [rpc:ScoreQueryController.listByRun] an llm grader is decided by two of its three votes", async () => {
     const installation = await installed(() => [
       {
         name: "judged-notes",
@@ -373,11 +387,11 @@ describe.skipIf(!runnerServesTries)("PluginEval — grading", () => {
     mock.enqueue(vote("failed"));
     mock.enqueue(vote("passed"));
 
-    const created = await startEval(installation, { ablation: PluginEvalAblation.none });
-    const ended = await awaitPluginEvalEnd(clients, created.metadata!.id, 180_000);
-    expect(ended.status?.phase, describeTries(ended)).toBe(PluginEvalPhase.completed);
+    const created = await startEval(installation, { ablation: EvalRunAblation.none });
+    const ended = await awaitEvalRunEnd(clients, created.metadata!.id, 180_000);
+    expect(ended.status?.phase, describeTries(ended)).toBe(EvalRunPhase.completed);
     const [only] = triesOf(ended);
-    expect(only?.attempt.state, describeTries(ended)).toBe(PluginEvalTryState.graded);
+    expect(only?.attempt.state, describeTries(ended)).toBe(EvalRunTryState.graded);
     expect(only?.attempt.score).toBe(1);
     expect(mock.consumed(), "the try's turn and three votes").toBe(4);
 
@@ -389,53 +403,53 @@ describe.skipIf(!runnerServesTries)("PluginEval — grading", () => {
     expect(votes).toEqual([]);
   }, 360_000);
 
-  it("[rpc:PluginEvalQueryController.get] a try past its timeout_seconds is stopped and graded on what it produced", async () => {
+  it("[rpc:EvalRunQueryController.get] a try past its timeout_seconds is stopped and graded on what it produced", async () => {
     const installation = await installed((skill) => [
       scoredCase("slow-notes", skill, { frontmatter: { allowed_tools: ["Read"], timeout_seconds: 1 } }),
     ]);
-    // Held well past the case's one second; the eval stops the run at its deadline.
+    // Held well past the case's one second; the eval run stops the run at its deadline.
     mock.enqueue(anthropicText(DONE), { delayMs: 60_000 });
 
-    const created = await startEval(installation, { ablation: PluginEvalAblation.none });
-    const ended = await awaitPluginEvalEnd(clients, created.metadata!.id, 240_000);
-    expect(ended.status?.phase, describeTries(ended)).toBe(PluginEvalPhase.completed);
+    const created = await startEval(installation, { ablation: EvalRunAblation.none });
+    const ended = await awaitEvalRunEnd(clients, created.metadata!.id, 240_000);
+    expect(ended.status?.phase, describeTries(ended)).toBe(EvalRunPhase.completed);
     const [only] = triesOf(ended);
     expect(only?.attempt.error).toBe(timedOutError(1));
-    expect(only?.attempt.state, "an agent failure is graded, never left out").toBe(PluginEvalTryState.graded);
+    expect(only?.attempt.state, "an agent failure is graded, never left out").toBe(EvalRunTryState.graded);
     expect(only?.attempt.score, "the run produced no final message").toBe(0);
     const run = await runOf(only!.attempt.runId);
     expect(run.status?.phase).not.toBe(RunPhase.RUN_COMPLETED);
   }, 360_000);
 
-  it("[rpc:PluginEvalQueryController.get] a spending limit reached stops new tries, and the eval ends partial cost_ceiling", async () => {
+  it("[rpc:EvalRunQueryController.get] a spending limit reached stops new tries, and the eval run ends partial cost_ceiling", async () => {
     const installation = await installed((skill) => [scoredCase("costly-notes", skill)]);
-    // One turn priced well past the eval's limit; no later try may start.
+    // One turn priced well past the eval run's limit; no later try may start.
     mock.enqueue(anthropicText(DONE, { inputTokens: 1_000_000, outputTokens: 100_000 }));
 
     const created = await startEval(installation, {
-      ablation: PluginEvalAblation.none,
+      ablation: EvalRunAblation.none,
       runs: 3,
       maxCostUsd: 0.000001,
     });
-    const ended = await awaitPluginEvalEnd(clients, created.metadata!.id, 180_000);
-    expect(ended.status?.phase, describeTries(ended)).toBe(PluginEvalPhase.partial);
-    expect(ended.status?.partialReason).toBe(PluginEvalPartialReason.cost_ceiling);
+    const ended = await awaitEvalRunEnd(clients, created.metadata!.id, 180_000);
+    expect(ended.status?.phase, describeTries(ended)).toBe(EvalRunPhase.partial);
+    expect(ended.status?.partialReason).toBe(EvalRunPartialReason.cost_ceiling);
     expect(ended.status?.triesFinished).toBe(1);
     expect(ended.status?.costUsd).toBeGreaterThan(0.000001);
     // The priced turn passes the try's own share of that limit, so the run
     // is stopped at it and the try is not graded, never failed.
     expect(triesOf(ended).map((t) => t.attempt.state)).toEqual([
-      PluginEvalTryState.not_graded,
-      PluginEvalTryState.pending,
-      PluginEvalTryState.pending,
+      EvalRunTryState.not_graded,
+      EvalRunTryState.pending,
+      EvalRunTryState.pending,
     ]);
     expect(triesOf(ended)[0]?.attempt.notGradedReason).toBe(SPENDING_SHARE_REASON);
     expect(mock.consumed()).toBe(1);
   }, 360_000);
 });
 
-describe.skipIf(!runnerServesTries)("PluginEval — what a try is given", () => {
-  it("[rpc:PluginEvalQueryController.get] a try cannot read the plugin's evals/: the tree mounted into its session has none", async () => {
+describe.skipIf(!runnerServesTries)("EvalRun about a plugin — what a try is given", () => {
+  it("[rpc:EvalRunQueryController.get] a try cannot read the plugin's evals/: the tree mounted into its session has none", async () => {
     const installation = await installed(
       (skill) => [scoredCase("hidden-cases", skill, { frontmatter: { allowed_tools: ["Read"] } })],
       // A plugin whose agent runs its hooks is mounted into every session it runs in.
@@ -449,9 +463,9 @@ describe.skipIf(!runnerServesTries)("PluginEval — what a try is given", () => 
     );
     mock.enqueue(anthropicText(DONE));
 
-    const created = await startEval(installation, { ablation: PluginEvalAblation.none });
-    const ended = await awaitPluginEvalEnd(clients, created.metadata!.id, 180_000);
-    expect(ended.status?.phase, describeTries(ended)).toBe(PluginEvalPhase.completed);
+    const created = await startEval(installation, { ablation: EvalRunAblation.none });
+    const ended = await awaitEvalRunEnd(clients, created.metadata!.id, 180_000);
+    expect(ended.status?.phase, describeTries(ended)).toBe(EvalRunPhase.completed);
     const [only] = triesOf(ended);
     const run = await runOf(only!.attempt.runId);
     const caseRead = toolUseByCallId(await turnOfRun(clients, run), "call_read_case");
@@ -477,7 +491,7 @@ describe.skipIf(!runnerServesTries)("PluginEval — what a try is given", () => 
     expect(readdirSync(plugins), "an archive carrying a suite is never cached").not.toContain(`${digest}.zip`);
   }, 360_000);
 
-  it("[rpc:PluginEvalQueryController.get] a try composes no standing context and no memory, although its organization has both", async () => {
+  it("[rpc:EvalRunQueryController.get] a try composes no standing context and no memory, although its organization has both", async () => {
     const fact = "The team ships on Thursdays.";
     const standing = "Always answer in French.";
     const { org } = await provisionOrgWithFacts(clients, fixtures, [fact], (slug) => target.keyTenancy?.(slug) ?? Promise.resolve());
@@ -509,9 +523,9 @@ describe.skipIf(!runnerServesTries)("PluginEval — what a try is given", () => 
     mock.reset();
 
     mock.enqueue(anthropicText(DONE));
-    const created = await startEval(installation, { ablation: PluginEvalAblation.none });
-    const ended = await awaitPluginEvalEnd(clients, created.metadata!.id, 180_000);
-    expect(ended.status?.phase, describeTries(ended)).toBe(PluginEvalPhase.completed);
+    const created = await startEval(installation, { ablation: EvalRunAblation.none });
+    const ended = await awaitEvalRunEnd(clients, created.metadata!.id, 180_000);
+    expect(ended.status?.phase, describeTries(ended)).toBe(EvalRunPhase.completed);
     const [only] = triesOf(ended);
     const run = await runOf(only!.attempt.runId);
     expect(run.status?.declaredPreferences?.orgContext ?? "").toBe("");
@@ -523,11 +537,11 @@ describe.skipIf(!runnerServesTries)("PluginEval — what a try is given", () => 
   }, 360_000);
 });
 
-describe.skipIf(!runnerServesTries)("PluginEval — cancel and delete with an engine", () => {
-  it("[rpc:PluginEvalCommandController.delete] [rpc:PluginEvalCommandController.cancel] delete is refused while the eval runs, naming cancel; cancel ends it partial cancelled", async () => {
+describe.skipIf(!runnerServesTries)("EvalRun about a plugin — cancel and delete with an engine", () => {
+  it("[rpc:EvalRunCommandController.delete] [rpc:EvalRunCommandController.cancel] delete is refused while the eval run runs, naming cancel; cancel ends it partial cancelled", async () => {
     const installation = await installed((skill) => [scoredCase("held-notes", skill)]);
     mock.enqueue(anthropicText(DONE), { delayMs: 120_000 });
-    const created = await startEval(installation, { ablation: PluginEvalAblation.none, runs: 2 });
+    const created = await startEval(installation, { ablation: EvalRunAblation.none, runs: 2 });
     const id = created.metadata!.id;
     // The status records a try once it ends; the held turn reaching the
     // model is what says the first try is running.
@@ -536,54 +550,54 @@ describe.skipIf(!runnerServesTries)("PluginEval — cancel and delete with an en
       await new Promise<void>((resolve) => setTimeout(resolve, 200));
     }
     expect(mock.consumed(), "the first try reached the model").toBe(1);
-    expect((await clients.pluginEvalQuery.get({ value: id })).status?.phase).toBe(PluginEvalPhase.running);
+    expect((await clients.evalRunQuery.get({ value: id })).status?.phase).toBe(EvalRunPhase.running);
 
     const refused = await expectGrpcCode(
-      () => clients.pluginEvalCommand.delete({ value: id }),
+      () => clients.evalRunCommand.delete({ value: id }),
       Code.FailedPrecondition,
       "delete of a running eval",
     );
-    expect(refused.rawMessage).toBe(pluginEvalActiveDeleteMessage(id));
+    expect(refused.rawMessage).toBe(evalRunActiveDeleteMessage(id));
 
-    await clients.pluginEvalCommand.cancel({ value: id });
-    const ended = await awaitPluginEvalEnd(clients, id, 120_000);
-    expect(ended.status?.phase).toBe(PluginEvalPhase.partial);
-    expect(ended.status?.partialReason).toBe(PluginEvalPartialReason.cancelled);
+    await clients.evalRunCommand.cancel({ value: id });
+    const ended = await awaitEvalRunEnd(clients, id, 120_000);
+    expect(ended.status?.phase).toBe(EvalRunPhase.partial);
+    expect(ended.status?.partialReason).toBe(EvalRunPartialReason.cancelled);
     expect(mock.consumed(), "no later try started").toBe(1);
     const runs = await clients.agentExecutionQuery.list({ org: tenancy.org, pageSize: 200 });
-    const tries = runs.entries.filter((run) => run.metadata?.labels[PLUGIN_EVAL_LABEL] === id);
+    const tries = runs.entries.filter((run) => run.metadata?.labels[EVAL_RUN_LABEL] === id);
     expect(tries, "one try was started").toHaveLength(1);
     const stopped = await awaitTerminal(clients, tries[0]!.metadata!.id);
     expect(stopped.status?.phase, "the try in flight was stopped").not.toBe(RunPhase.RUN_COMPLETED);
   }, 360_000);
 
-  it("[rpc:PluginEvalCommandController.cancel] cancel of an eval that ended changes nothing", async () => {
+  it("[rpc:EvalRunCommandController.cancel] cancel of an eval run that ended changes nothing", async () => {
     const installation = await installed((skill) => [scoredCase("quick-notes", skill)]);
     mock.enqueue(anthropicText(DONE));
-    const created = await startEval(installation, { ablation: PluginEvalAblation.none });
-    const ended = await awaitPluginEvalEnd(clients, created.metadata!.id, 120_000);
-    expect(ended.status?.phase).toBe(PluginEvalPhase.completed);
+    const created = await startEval(installation, { ablation: EvalRunAblation.none });
+    const ended = await awaitEvalRunEnd(clients, created.metadata!.id, 120_000);
+    expect(ended.status?.phase).toBe(EvalRunPhase.completed);
 
-    const answered = await clients.pluginEvalCommand.cancel({ value: created.metadata!.id });
-    expect(answered.status?.phase).toBe(PluginEvalPhase.completed);
-    const after = await clients.pluginEvalQuery.get({ value: created.metadata!.id });
+    const answered = await clients.evalRunCommand.cancel({ value: created.metadata!.id });
+    expect(answered.status?.phase).toBe(EvalRunPhase.completed);
+    const after = await clients.evalRunQuery.get({ value: created.metadata!.id });
     expect(after.status).toEqual(ended.status);
   }, 360_000);
 
-  it("[rpc:PluginEvalCommandController.delete] delete removes the eval with its tries' conversations and runs", async () => {
+  it("[rpc:EvalRunCommandController.delete] delete removes the eval run with its tries' conversations and runs", async () => {
     const installation = await installed((skill) => [scoredCase("gone-notes", skill)]);
     mock.enqueue(anthropicText(DONE));
     mock.enqueue(anthropicText(UNSURE));
-    const created = await clients.pluginEvalCommand.create(
-      makePluginEval({ org: tenancy.org, pluginId: installation.plugin.metadata!.id }),
+    const created = await clients.evalRunCommand.create(
+      makeEvalRun({ org: tenancy.org, pluginId: installation.plugin.metadata!.id }),
     );
-    const ended = await awaitPluginEvalEnd(clients, created.metadata!.id, 120_000);
+    const ended = await awaitEvalRunEnd(clients, created.metadata!.id, 120_000);
     const tries = triesOf(ended);
     expect(tries).toHaveLength(2);
 
-    await clients.pluginEvalCommand.delete({ value: created.metadata!.id });
+    await clients.evalRunCommand.delete({ value: created.metadata!.id });
     await expectGrpcCode(
-      () => clients.pluginEvalQuery.get({ value: created.metadata!.id }),
+      () => clients.evalRunQuery.get({ value: created.metadata!.id }),
       Code.NotFound,
       "get of a deleted eval",
     );
@@ -591,29 +605,29 @@ describe.skipIf(!runnerServesTries)("PluginEval — cancel and delete with an en
       await expectGrpcCode(
         () => clients.sessionQuery.get({ value: attempt.sessionId }),
         Code.NotFound,
-        `try session ${attempt.sessionId} after the eval's delete`,
+        `try session ${attempt.sessionId} after the eval run's delete`,
       );
       await expectGrpcCode(
         () => clients.agentExecutionQuery.get({ value: attempt.runId }),
         Code.NotFound,
-        `try run ${attempt.runId} after the eval's delete`,
+        `try run ${attempt.runId} after the eval run's delete`,
       );
     }
   }, 360_000);
 });
 
-describe.skipIf(!runnerServesTries)("PluginEval — fixtures, resumed conversations, variables and mocks", () => {
+describe.skipIf(!runnerServesTries)("EvalRun about a plugin — fixtures, resumed conversations, variables and mocks", () => {
   /** The one try of a one-case, one-arm eval. */
-  async function onlyTry(installation: Installed, opts: Partial<PluginEvalOptions> = {}) {
-    const created = await startEval(installation, { ablation: PluginEvalAblation.none, ...opts });
-    const ended = await awaitPluginEvalEnd(clients, created.metadata!.id, 240_000);
-    expect(ended.status?.phase, describeTries(ended)).toBe(PluginEvalPhase.completed);
+  async function onlyTry(installation: Installed, opts: Partial<PluginEvalRunOptions> = {}) {
+    const created = await startEval(installation, { ablation: EvalRunAblation.none, ...opts });
+    const ended = await awaitEvalRunEnd(clients, created.metadata!.id, 240_000);
+    expect(ended.status?.phase, describeTries(ended)).toBe(EvalRunPhase.completed);
     const tries = triesOf(ended);
     expect(tries, describeTries(ended)).toHaveLength(1);
     return { ended, attempt: tries[0]!.attempt };
   }
 
-  it("[rpc:PluginEvalQueryController.get] a scaffold builds the starting folder from a shared fixture, a reference folder is read, and an EVAL_* variable reaches the shell", async () => {
+  it("[rpc:EvalRunQueryController.get] a scaffold builds the starting folder from a shared fixture, a reference folder is read, and an EVAL_* variable reaches the shell", async () => {
     const installation = await installed(
       () => [
         {
@@ -646,7 +660,7 @@ describe.skipIf(!runnerServesTries)("PluginEval — fixtures, resumed conversati
     mock.enqueue(anthropicText(DONE));
 
     const { attempt } = await onlyTry(installation, { allowTools: ["Bash", "Edit"] });
-    expect(attempt.state, `error "${attempt.error}"`).toBe(PluginEvalTryState.graded);
+    expect(attempt.state, `error "${attempt.error}"`).toBe(EvalRunTryState.graded);
     const score = await evalScoreOf(attempt.runId);
     expect(score.spec?.criteria.map((c) => [c.name, c.result, c.reason])).toEqual(
       // Grader files are read in path order.
@@ -659,7 +673,7 @@ describe.skipIf(!runnerServesTries)("PluginEval — fixtures, resumed conversati
     expect(attempt.score).toBe(1);
   }, 300_000);
 
-  it("[rpc:PluginEvalQueryController.get] [rpc:ScoreQueryController.listByRun] a failed scaffold scores the try 0 with its error, and starts no turn", async () => {
+  it("[rpc:EvalRunQueryController.get] [rpc:ScoreQueryController.listByRun] a failed scaffold scores the try 0 with its error, and starts no turn", async () => {
     const installation = await installed(() => [
       {
         name: "broken-scaffold",
@@ -671,7 +685,7 @@ describe.skipIf(!runnerServesTries)("PluginEval — fixtures, resumed conversati
     ]);
     const { ended, attempt } = await onlyTry(installation);
     expect(mock.consumed(), "the engine never started").toBe(0);
-    expect(attempt.state, describeTries(ended)).toBe(PluginEvalTryState.graded);
+    expect(attempt.state, describeTries(ended)).toBe(EvalRunTryState.graded);
     expect(attempt.score, describeTries(ended)).toBe(0);
     expect(attempt.error).toBe("scaffold failed: exit 3: no such repository");
     const score = await evalScoreOf(attempt.runId);
@@ -681,7 +695,7 @@ describe.skipIf(!runnerServesTries)("PluginEval — fixtures, resumed conversati
     ]);
   }, 300_000);
 
-  it("[rpc:PluginEvalQueryController.get] a resumed case's first request carries the recorded turns, and a Cursor target lists it as not run", async () => {
+  it("[rpc:EvalRunQueryController.get] a resumed case's first request carries the recorded turns, and a Cursor target lists it as not run", async () => {
     const history = [
       JSON.stringify({ type: "user", message: { role: "user", content: "Draft a release note for the rename." } }),
       JSON.stringify({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text: "Draft: renamed getUser to fetchUser." }] } }),
@@ -705,12 +719,12 @@ describe.skipIf(!runnerServesTries)("PluginEval — fixtures, resumed conversati
     expect(readTurnShapes(request!.body).map((turn) => turn.role)).toEqual(["user", "assistant", "user"]);
     expect(JSON.stringify(request!.body)).toContain("Draft a release note for the rename.");
     expect(readLastUserText(request!.body)).toContain("Now shorten it.");
-    const resumed = ended.status!.cases[0]!;
+    const resumed = casesOf(ended)[0]!;
     expect(resumed.notes).toContain("resumed from history.jsonl");
     expect(resumed.targets.map((t) => t.notRunReason)).toEqual(["", engineUnsupportedReason("Cursor", "resumed conversations")]);
   }, 300_000);
 
-  it("[rpc:PluginEvalQueryController.get] [rpc:ScoreQueryController.listByRun] both arms of a with-and-without eval get the case's scaffold and EVAL_* variables", async () => {
+  it("[rpc:EvalRunQueryController.get] [rpc:ScoreQueryController.listByRun] both arms of a with-and-without eval get the case's scaffold and EVAL_* variables", async () => {
     const installation = await installed(
       () => [
         {
@@ -735,12 +749,12 @@ describe.skipIf(!runnerServesTries)("PluginEval — fixtures, resumed conversati
     }
 
     const created = await startEval(installation, { allowTools: ["Bash"] });
-    const ended = await awaitPluginEvalEnd(clients, created.metadata!.id, 300_000);
-    expect(ended.status?.phase, describeTries(ended)).toBe(PluginEvalPhase.completed);
+    const ended = await awaitEvalRunEnd(clients, created.metadata!.id, 300_000);
+    expect(ended.status?.phase, describeTries(ended)).toBe(EvalRunPhase.completed);
     const tries = triesOf(ended);
     expect(tries.map((t) => t.arm)).toEqual(["with", "without"]);
     for (const { arm, attempt } of tries) {
-      expect(attempt.state, `${arm}: error "${attempt.error}"`).toBe(PluginEvalTryState.graded);
+      expect(attempt.state, `${arm}: error "${attempt.error}"`).toBe(EvalRunTryState.graded);
       const score = await evalScoreOf(attempt.runId);
       expect(score.spec?.criteria.map((c) => [c.name, c.result]), arm).toEqual([
         ["env-reached", CriterionResult.passed],
@@ -753,7 +767,7 @@ describe.skipIf(!runnerServesTries)("PluginEval — fixtures, resumed conversati
 
   /** A one-skill plugin with the MCP servers `tracker` and `wiki`, and the suite's mocks of `tracker`. */
   async function mockedPlugin(cases: (skill: string) => readonly EvalCaseFixture[]): Promise<Installed> {
-    const name = uniqueName("pev");
+    const name = uniqueName("evr");
     const skill = `${name}-notes`;
     const plugin = await installPlugin(
       clients,
@@ -776,7 +790,7 @@ describe.skipIf(!runnerServesTries)("PluginEval — fixtures, resumed conversati
     return { plugin, skill };
   }
 
-  it("[rpc:PluginEvalQueryController.get] [rpc:ScoreQueryController.listByRun] a fixed and an agent mock answer under the plugin server's name and are graded through mock_calls", async () => {
+  it("[rpc:EvalRunQueryController.get] [rpc:ScoreQueryController.listByRun] a fixed and an agent mock answer under the plugin server's name and are graded through mock_calls", async () => {
     const installation = await mockedPlugin(() => [
       {
         name: "files-a-bug",
@@ -795,12 +809,12 @@ describe.skipIf(!runnerServesTries)("PluginEval — fixtures, resumed conversati
     mock.enqueue(anthropicText(DONE));
 
     const { ended, attempt } = await onlyTry(installation);
-    expect(attempt.state, `error "${attempt.error}"`).toBe(PluginEvalTryState.graded);
+    expect(attempt.state, `error "${attempt.error}"`).toBe(EvalRunTryState.graded);
     expect(attempt.score).toBe(1);
     const agentMockRequest = mock.scriptedRequests()[2]!;
     expect(systemTextOf(agentMockRequest.body)).toContain("standing in for the MCP server 'tracker'");
     const pluginName = installation.plugin.metadata!.name;
-    expect(ended.status!.cases[0]!.mockedServers.map((m) => [m.name, m.tools, m.notStartedReason])).toEqual([
+    expect(casesOf(ended)[0]!.mockedServers.map((m) => [m.name, m.tools, m.notStartedReason])).toEqual([
       [`plugin_${pluginName}_tracker`, ["create_issue", "triage"], ""],
       [`plugin_${pluginName}_wiki`, [], NOT_STARTED_NO_MOCK],
     ]);
@@ -809,7 +823,7 @@ describe.skipIf(!runnerServesTries)("PluginEval — fixtures, resumed conversati
     expect(score.spec?.criteria.every((c) => c.result === CriterionResult.passed)).toBe(true);
   }, 300_000);
 
-  it("[rpc:PluginEvalQueryController.get] [rpc:ScoreQueryController.listByRun] a call that breaks a mock's expect: stops the try, reported aborted with a 0", async () => {
+  it("[rpc:EvalRunQueryController.get] [rpc:ScoreQueryController.listByRun] a call that breaks a mock's expect: stops the try, reported aborted with a 0", async () => {
     const installation = await mockedPlugin(() => [
       {
         name: "bad-title",
@@ -820,7 +834,7 @@ describe.skipIf(!runnerServesTries)("PluginEval — fixtures, resumed conversati
     mock.enqueue(anthropicToolUse("call_create", "create_issue", { title: 7 }));
 
     const { attempt } = await onlyTry(installation);
-    expect(attempt.state).toBe(PluginEvalTryState.graded);
+    expect(attempt.state).toBe(EvalRunTryState.graded);
     expect(attempt.score).toBe(0);
     expect(attempt.error).toBe("");
     expect(attempt.aborted).toMatchObject({ server: "tracker", tool: "create_issue", reason: "input.title must be a string" });

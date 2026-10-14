@@ -1,19 +1,26 @@
-// Conformance suite for running an agent's evals: an AgentEval taken from
-// create to its end on a real engine, every try answered by the scripted
-// model.
-// Domain: agentic / agenteval — one run of the eval cases of the plugins an
-// agent attaches, on the agent itself: each try a conversation on the agent
-// pinned to the version the eval stamped, with every attached plugin pinned
-// to the digest the eval stamped, graded by its case's graders.
+// Conformance suite for running an eval run about an agent: an EvalRun of
+// test cases on an agent taken from create to its end on a real engine,
+// every try answered by the scripted model. eval-run.conformance.test.ts
+// runs eval runs about a plugin.
+// Domain: agentic / evalrun — one run of test cases on the agent itself:
+// each try a conversation on the agent pinned to the version the eval run
+// stamped, with every plugin a try loads pinned to the digest it stamped,
+// graded by its case's graders.
 //
 // The contract under test:
+//   - an agent comparing a plugin it and its subagent both attach: the
+//     with try loads it (its run's loaded_versions names it), the without
+//     try's run excludes it and loads it nowhere, the subagent's copy
+//     included, while both tries' conversations list it; an agent comparing
+//     a plugin it does not attach runs that plugin's case in both arms, the
+//     without try reading the case all the same;
 //   - an agent with instructions and two plugins, each with one case, ends
 //     completed with one graded try per plugin: every try's model request
 //     carries the agent's instructions, each plugin's case runs with its own
 //     plugin's skill offered and read, and each try's conversation names the
 //     agent at the stamped hash and every attached plugin at its stamped
 //     digest;
-//   - a plugin pushed and the agent saved while the eval runs leave the
+//   - a plugin pushed and the agent saved while the eval run runs leave the
 //     remaining tries on the stamped versions: the later try's conversation,
 //     its run and its model request name the stamped agent version and
 //     plugin digest, never the new ones;
@@ -21,47 +28,48 @@
 //     never connected in a try (the harness's MCP fixture records no request
 //     while an ordinary turn on the same agent connects it), and the try's
 //     run lists it as disallowed; so is a server the agent writes itself,
-//     when the eval allows no real servers (the default);
-//   - two evals of two versions of one agent both complete, each recording
+//     when the eval run allows no real servers (the default);
+//   - two eval runs of two versions of one agent both complete, each recording
 //     its own agent_version_hash, each try running its own version's
 //     instructions;
-//   - delete of the eval and of its agent are refused while the eval runs,
+//   - delete of the eval run and of its agent are refused while it runs,
 //     naming cancel; cancel ends it partial `cancelled` and no later try
 //     starts;
-//   - a spending limit reached stops new tries: the eval ends partial
+//   - a spending limit reached stops new tries: the eval run ends partial
 //     `cost_ceiling`, the other plugin's try never starting;
 //   - a try composes no standing context and no memory, although its
 //     organization has both and an ordinary turn on the same agent gets them;
 //   - the tries are left out of the session list and of the agent's own
 //     session listByAgent, where an ordinary turn on the agent is listed, and
-//     listByAgent of the agent's evals answers each eval without its tries;
+//     listByAgent of the agent's eval runs answers each without its tries;
 //   - a try with no targets runs the agent's own model and thinking setting
 //     (read back from the run's status.run_config and the model the provider
 //     received), its target labelled with the agent's model, while a named
 //     target runs the named model.
 //
 // Every describe runs only where the runner creates the try's run as the
-// eval's caller (CapabilityFlags.runnerActsAsRunCreator), as the plugin eval
-// execution suite gates it.
+// eval run's caller (CapabilityFlags.runnerActsAsRunCreator), as the plugin
+// subject's execution suite gates it.
 //
 // Out of scope here, with the reason: the grading itself (votes, timeouts,
-// scaffolds, mocks, a try kept from the plugin's evals/), which the agent
-// eval shares with the plugin eval and the plugin eval execution suite pins.
+// scaffolds, mocks, a try kept from the plugin's evals/), which every eval
+// run shares and eval-run.conformance.test.ts pins.
 //
-// Every eval here runs one try at a time (concurrency 1), so the scripted
+// Every eval run here runs one try at a time (concurrency 1), so the scripted
 // turns are consumed in the matrix's order: the agent's plugins in order,
 // then each plugin's cases. Each try's session has the case's name as its
 // subject, so no title call is made.
 import { clone, create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentEval } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
+import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import {
-  PluginEvalPartialReason,
-  PluginEvalPhase,
-  PluginEvalTryState,
-} from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+  EvalRunPartialReason,
+  EvalRunPhase,
+  EvalRunTryState,
+} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -79,28 +87,26 @@ import { FixtureTracker } from "../harness/fixtures";
 import { ECHO_TOOL_NAME, type McpToolFixture } from "../harness/mcp-server";
 import { requireRegistryRow } from "../harness/model-registry";
 import {
-  type AgentEvalOptions,
+  EVAL_RUN_LABEL,
+  SPENDING_SHARE_REASON,
+  type AgentEvalRunOptions,
   type AgentWithOptions,
-  agentEvalActiveDeleteMessage,
-  agentEvalActiveOnAgentDeleteMessage,
-  agentEvalTriesOf,
-  awaitAgentEvalEnd,
-  cancelAndDeleteAgentEval,
+  type EvalCaseFixture,
+  awaitEvalRunEnd,
+  cancelAndDeleteEvalRun,
   createAgentWith,
-  makeAgentEval,
-} from "../support/agent-evals";
+  evalRunActiveDeleteMessage,
+  evalRunActiveOnSubjectDeleteMessage,
+  installPlugin,
+  lastMessageGrader,
+  makeEvalRun,
+  skillFiredGrader,
+  skillPluginWithEvals,
+  triesOf,
+} from "../support/eval-runs";
 import { agentRefOf, makeAgent } from "../support/agents";
 import { provisionOrgWithFacts } from "../support/memories";
 import { uniqueName } from "../support/naming";
-import {
-  PLUGIN_EVAL_LABEL,
-  SPENDING_SHARE_REASON,
-  type EvalCaseFixture,
-  installPlugin,
-  lastMessageGrader,
-  skillFiredGrader,
-  skillPluginWithEvals,
-} from "../support/plugin-evals";
 import { pluginArchive, toolServerSegment } from "../support/plugins";
 import {
   awaitTerminal,
@@ -213,25 +219,25 @@ async function installed(
   return { plugin, name, skill };
 }
 
-// An agent in `org` listing `plugins`, deleted after its evals.
+// An agent in `org` listing `plugins`, deleted after its eval runs.
 async function agentWith(
   plugins: readonly Plugin[],
   opts: Partial<AgentWithOptions> & { org?: string } = {},
 ): Promise<Agent> {
   const { org, ...rest } = opts;
   return createAgentWith(clients, fixtures, org ?? tenancy.org, plugins, {
-    name: uniqueName("aev-agent"),
+    name: uniqueName("evr-agent"),
     instructions: INSTRUCTIONS,
     ...rest,
   });
 }
 
-// Creates an eval of `agent` and defers its cleanup, which runs before the agent's delete.
-async function startEval(agent: Agent, opts: Partial<AgentEvalOptions> = {}): Promise<AgentEval> {
-  const created = await clients.agentEvalCommand.create(
-    makeAgentEval({ org: agent.metadata!.org, agentId: agent.metadata!.id, ...opts }),
+// Creates an eval run of `agent` and defers its cleanup, which runs before the agent's delete.
+async function startEval(agent: Agent, opts: Partial<AgentEvalRunOptions> = {}): Promise<EvalRun> {
+  const created = await clients.evalRunCommand.create(
+    makeEvalRun({ org: agent.metadata!.org, agentId: agent.metadata!.id, ...opts }),
   );
-  fixtures.defer(() => cancelAndDeleteAgentEval(clients, created.metadata!.id));
+  fixtures.defer(() => cancelAndDeleteEvalRun(clients, created.metadata!.id));
   return created;
 }
 
@@ -254,11 +260,11 @@ function offeredSkill(installation: Installed): string {
   return `### ${installation.plugin.metadata!.name}:${installation.skill}`;
 }
 
-function describeTries(agentEval: AgentEval): string {
-  return agentEvalTriesOf(agentEval)
+function describeTries(evalRun: EvalRun): string {
+  return triesOf(evalRun)
     .map(
       (t) =>
-        `${t.pluginSlug}/${t.caseName}/${t.attempt.index}: ${PluginEvalTryState[t.attempt.state]} ` +
+        `${t.pluginSlug}/${t.caseName}/${t.attempt.index}: ${EvalRunTryState[t.attempt.state]} ` +
         `score=${t.attempt.score} reason="${t.attempt.notGradedReason}" error="${t.attempt.error}"`,
     )
     .join("; ");
@@ -290,10 +296,10 @@ async function untilConsumed(count: number, what: string): Promise<void> {
   expect(mock.consumed(), what).toBe(count);
 }
 
-describe.skipIf(!runnerServesTries)("AgentEval — each plugin's cases on the agent", () => {
-  it("[rpc:AgentEvalCommandController.create] [rpc:AgentEvalQueryController.get] two plugins, one case each: every try carries the agent's instructions, reads its own plugin's skill, and pins the stamped agent version and plugin digests", async () => {
-    const notes = await installed("aev-notes", (skill) => [scoredCase("notes-case", skill)]);
-    const style = await installed("aev-style", (skill) => [scoredCase("style-case", skill)]);
+describe.skipIf(!runnerServesTries)("EvalRun about an agent — each plugin's cases on the agent", () => {
+  it("[rpc:EvalRunCommandController.create] [rpc:EvalRunQueryController.get] two plugins, one case each: every try carries the agent's instructions, reads its own plugin's skill, and pins the stamped agent version and plugin digests", async () => {
+    const notes = await installed("evr-notes", (skill) => [scoredCase("notes-case", skill)]);
+    const style = await installed("evr-style", (skill) => [scoredCase("style-case", skill)]);
     const agent = await agentWith([notes.plugin, style.plugin]);
     // Plugin order, then case order: the notes case, then the style case.
     mock.enqueue(skillRead(notes, "call_skill_notes"));
@@ -302,11 +308,11 @@ describe.skipIf(!runnerServesTries)("AgentEval — each plugin's cases on the ag
     mock.enqueue(anthropicText(DONE));
 
     const created = await startEval(agent);
-    expect(created.status?.phase, "create answers before any try starts").toBe(PluginEvalPhase.pending);
+    expect(created.status?.phase, "create answers before any try starts").toBe(EvalRunPhase.pending);
     expect(created.status?.triesTotal).toBe(2);
 
-    const ended = await awaitAgentEvalEnd(clients, created.metadata!.id, 300_000);
-    expect(ended.status?.phase, describeTries(ended)).toBe(PluginEvalPhase.completed);
+    const ended = await awaitEvalRunEnd(clients, created.metadata!.id, 300_000);
+    expect(ended.status?.phase, describeTries(ended)).toBe(EvalRunPhase.completed);
     expect(ended.status?.triesFinished).toBe(2);
     expect(ended.status?.agentVersionHash).toBe(agent.status!.versionHash);
     expect(mock.consumed(), "exactly the scripted turns").toBe(4);
@@ -321,7 +327,7 @@ describe.skipIf(!runnerServesTries)("AgentEval — each plugin's cases on the ag
       expect(block.cases).toHaveLength(1);
       const [result] = block.cases[0]!.targets;
       expect(result?.withPlugin?.score, `${block.pluginSlug}: ${describeTries(ended)}`).toBe(1);
-      expect(result?.withoutPlugin, "an agent eval has one arm").toBeUndefined();
+      expect(result?.withoutPlugin, "an eval run comparing nothing has one arm").toBeUndefined();
       expect(result?.delta).toBeUndefined();
       expect(block.aggregates?.casesPassed).toBe(1);
     }
@@ -337,20 +343,20 @@ describe.skipIf(!runnerServesTries)("AgentEval — each plugin's cases on the ag
     expect(systemTextOf(requests[0]!.body), "the notes case offers the notes skill").toContain(offeredSkill(notes));
     expect(systemTextOf(requests[2]!.body), "the style case offers the style skill").toContain(offeredSkill(style));
 
-    const tries = agentEvalTriesOf(ended);
+    const tries = triesOf(ended);
     expect(tries.map((t) => [t.pluginSlug, t.caseName])).toEqual([
       [notes.plugin.metadata!.slug, "notes-case"],
       [style.plugin.metadata!.slug, "style-case"],
     ]);
     for (const { attempt, caseName } of tries) {
-      expect(attempt.state, caseName).toBe(PluginEvalTryState.graded);
+      expect(attempt.state, caseName).toBe(EvalRunTryState.graded);
       const run = await runOf(attempt.runId);
       expect(run.status?.phase).toBe(RunPhase.RUN_COMPLETED);
-      expect(run.metadata?.labels[PLUGIN_EVAL_LABEL]).toBe(created.metadata!.id);
+      expect(run.metadata?.labels[EVAL_RUN_LABEL]).toBe(created.metadata!.id);
       expect(run.status?.agentId).toBe(agent.metadata!.id);
       expect(run.status?.agentVersionHash).toBe(agent.status!.versionHash);
       const session = await clients.sessionQuery.get({ value: attempt.sessionId });
-      expect(session.metadata?.labels[PLUGIN_EVAL_LABEL]).toBe(created.metadata!.id);
+      expect(session.metadata?.labels[EVAL_RUN_LABEL]).toBe(created.metadata!.id);
       expect(session.spec?.subject).toBe(caseName);
       expect(session.spec?.agentRef?.slug).toBe(agent.metadata!.slug);
       expect(session.spec?.agentRef?.version, "the try pins the stamped agent version").toBe(agent.status!.versionHash);
@@ -361,9 +367,9 @@ describe.skipIf(!runnerServesTries)("AgentEval — each plugin's cases on the ag
     }
   }, 360_000);
 
-  it("[rpc:AgentEvalQueryController.get] a plugin pushed and the agent saved while the eval runs leave the remaining tries on the stamped versions", async () => {
-    const notes = await installed("aev-notes", () => [doneCase("notes-case")]);
-    const styleName = uniqueName("aev-style");
+  it("[rpc:EvalRunQueryController.get] a plugin pushed and the agent saved while the eval run runs leave the remaining tries on the stamped versions", async () => {
+    const notes = await installed("evr-notes", () => [doneCase("notes-case")]);
+    const styleName = uniqueName("evr-style");
     // The style case grants Skill, so its try is offered the plugin's skills
     // and its request names the mounted plugin tree, by digest.
     const v1Style = skillPlugin(styleName, () => [doneCase("style-case", ["Read", "Skill"])]);
@@ -372,7 +378,7 @@ describe.skipIf(!runnerServesTries)("AgentEval — each plugin's cases on the ag
       name: styleName,
       skill: v1Style.skill,
     };
-    const agentName = uniqueName("aev-agent");
+    const agentName = uniqueName("evr-agent");
     const agent = await agentWith([notes.plugin, style.plugin], { name: agentName });
     // The notes try is held until both changes are saved; the style try follows.
     mock.enqueue(anthropicText(DONE), { delayMs: 120_000 });
@@ -398,14 +404,14 @@ describe.skipIf(!runnerServesTries)("AgentEval — each plugin's cases on the ag
     expect(saved.status?.versionHash, "the save is a new version").not.toBe(agent.status!.versionHash);
     mock.releaseHolds();
 
-    const ended = await awaitAgentEvalEnd(clients, created.metadata!.id, 300_000);
-    expect(ended.status?.phase, describeTries(ended)).toBe(PluginEvalPhase.completed);
+    const ended = await awaitEvalRunEnd(clients, created.metadata!.id, 300_000);
+    expect(ended.status?.phase, describeTries(ended)).toBe(EvalRunPhase.completed);
     expect(ended.status?.agentVersionHash).toBe(agent.status!.versionHash);
     expect(ended.status?.plugins.map((b) => b.pluginDigest)).toEqual([
       notes.plugin.status!.digest,
       style.plugin.status!.digest,
     ]);
-    const later = agentEvalTriesOf(ended).find((t) => t.caseName === "style-case");
+    const later = triesOf(ended).find((t) => t.caseName === "style-case");
     expect(later, describeTries(ended)).toBeDefined();
     const session = await clients.sessionQuery.get({ value: later!.attempt.sessionId });
     expect(session.spec?.agentRef?.version).toBe(agent.status!.versionHash);
@@ -428,19 +434,19 @@ describe.skipIf(!runnerServesTries)("AgentEval — each plugin's cases on the ag
     expect(system).not.toContain(pushed.status!.digest);
   }, 360_000);
 
-  it("[rpc:AgentEvalQueryController.get] another attached plugin's MCP server, which no case can mock, is never connected in a try, while an ordinary turn on the agent connects it", async () => {
-    const notes = await installed("aev-notes", () => [doneCase("notes-case")]);
-    const toolsName = uniqueName("aev-mcp");
+  it("[rpc:EvalRunQueryController.get] another attached plugin's MCP server, which no case can mock, is never connected in a try, while an ordinary turn on the agent connects it", async () => {
+    const notes = await installed("evr-notes", () => [doneCase("notes-case")]);
+    const toolsName = uniqueName("evr-mcp");
     const tools = await pushFixturePlugin(clients, mcp, fixtures, { org: tenancy.org, name: toolsName, tools: [ECHO_TOOL_NAME] });
     const agent = await agentWith([notes.plugin, tools]);
     mcp.resetCaptured();
     mock.enqueue(anthropicText(DONE));
 
-    const created = await startEval(agent, { plugins: [notes.plugin.metadata!.slug] });
-    const ended = await awaitAgentEvalEnd(clients, created.metadata!.id, 180_000);
-    expect(ended.status?.phase, describeTries(ended)).toBe(PluginEvalPhase.completed);
-    const [only] = agentEvalTriesOf(ended);
-    expect(only?.attempt.state, describeTries(ended)).toBe(PluginEvalTryState.graded);
+    const created = await startEval(agent, { cases: [{ org: tenancy.org, slug: notes.plugin.metadata!.slug }] });
+    const ended = await awaitEvalRunEnd(clients, created.metadata!.id, 180_000);
+    expect(ended.status?.phase, describeTries(ended)).toBe(EvalRunPhase.completed);
+    const [only] = triesOf(ended);
+    expect(only?.attempt.state, describeTries(ended)).toBe(EvalRunTryState.graded);
     expect(
       mcp.capturedRequests().map((r) => r.method),
       "the try connected the other plugin's server",
@@ -464,18 +470,18 @@ describe.skipIf(!runnerServesTries)("AgentEval — each plugin's cases on the ag
     expect(mcp.capturedRequests().map((r) => r.method), "an ordinary turn connects the server").toContain("initialize");
   }, 360_000);
 
-  it("[rpc:AgentEvalQueryController.get] a server the agent writes itself is never connected in a try by default, while an ordinary turn on the agent connects it", async () => {
-    const notes = await installed("aev-notes", () => [doneCase("notes-case")]);
-    const server = "aev-own";
+  it("[rpc:EvalRunQueryController.get] a server the agent writes itself is never connected in a try by default, while an ordinary turn on the agent connects it", async () => {
+    const notes = await installed("evr-notes", () => [doneCase("notes-case")]);
+    const server = "evr-own";
     const agent = await agentWith([notes.plugin], { mcpServers: [{ name: server, url: mcp.url([ECHO_TOOL_NAME]) }] });
     mcp.resetCaptured();
     mock.enqueue(anthropicText(DONE));
 
     const created = await startEval(agent);
-    const ended = await awaitAgentEvalEnd(clients, created.metadata!.id, 180_000);
-    expect(ended.status?.phase, describeTries(ended)).toBe(PluginEvalPhase.completed);
-    const [only] = agentEvalTriesOf(ended);
-    expect(only?.attempt.state, describeTries(ended)).toBe(PluginEvalTryState.graded);
+    const ended = await awaitEvalRunEnd(clients, created.metadata!.id, 180_000);
+    expect(ended.status?.phase, describeTries(ended)).toBe(EvalRunPhase.completed);
+    const [only] = triesOf(ended);
+    expect(only?.attempt.state, describeTries(ended)).toBe(EvalRunTryState.graded);
     expect(
       mcp.capturedRequests().map((r) => r.method),
       "the try connected the agent's own server",
@@ -494,9 +500,9 @@ describe.skipIf(!runnerServesTries)("AgentEval — each plugin's cases on the ag
     expect(mcp.capturedRequests().map((r) => r.method), "an ordinary turn connects the server").toContain("initialize");
   }, 360_000);
 
-  it("[rpc:AgentEvalCommandController.create] [rpc:AgentEvalQueryController.get] two evals of two versions of one agent both complete, each recording its own version and running its instructions", async () => {
-    const notes = await installed("aev-notes", () => [doneCase("notes-case")]);
-    const agentName = uniqueName("aev-agent");
+  it("[rpc:EvalRunCommandController.create] [rpc:EvalRunQueryController.get] two eval runs of two versions of one agent both complete, each recording its own version and running its instructions", async () => {
+    const notes = await installed("evr-notes", () => [doneCase("notes-case")]);
+    const agentName = uniqueName("evr-agent");
     const v1 = await agentWith([notes.plugin], { name: agentName });
     const v2 = await clients.agentCommand.apply(
       makeAgent({ org: tenancy.org, name: agentName, instructions: SAVED_LATER, plugins: [notes.plugin.metadata!.slug] }),
@@ -508,17 +514,17 @@ describe.skipIf(!runnerServesTries)("AgentEval — each plugin's cases on the ag
     const earlier = await startEval(v2, { agentVersion: v1.status!.versionHash });
     const current = await startEval(v2);
     const [endedEarlier, endedCurrent] = await Promise.all([
-      awaitAgentEvalEnd(clients, earlier.metadata!.id, 300_000),
-      awaitAgentEvalEnd(clients, current.metadata!.id, 300_000),
+      awaitEvalRunEnd(clients, earlier.metadata!.id, 300_000),
+      awaitEvalRunEnd(clients, current.metadata!.id, 300_000),
     ]);
-    const expected: ReadonlyArray<[AgentEval, string]> = [
+    const expected: ReadonlyArray<[EvalRun, string]> = [
       [endedEarlier, v1.status!.versionHash],
       [endedCurrent, v2.status!.versionHash],
     ];
     for (const [ended, hash] of expected) {
-      expect(ended.status?.phase, describeTries(ended)).toBe(PluginEvalPhase.completed);
+      expect(ended.status?.phase, describeTries(ended)).toBe(EvalRunPhase.completed);
       expect(ended.status?.agentVersionHash).toBe(hash);
-      const [only] = agentEvalTriesOf(ended);
+      const [only] = triesOf(ended);
       expect((await runOf(only!.attempt.runId)).status?.agentVersionHash).toBe(hash);
     }
     const systems = mock.scriptedRequests().map((request) => systemTextOf(request.body));
@@ -528,10 +534,100 @@ describe.skipIf(!runnerServesTries)("AgentEval — each plugin's cases on the ag
   }, 360_000);
 });
 
-describe.skipIf(!runnerServesTries)("AgentEval — cancel and the spending limit", () => {
-  it("[rpc:AgentEvalCommandController.delete] [rpc:AgentEvalCommandController.cancel] delete of the eval and of its agent are refused while it runs, naming cancel; cancel ends it partial cancelled and no later try starts", async () => {
-    const notes = await installed("aev-notes", () => [doneCase("notes-case")]);
-    const style = await installed("aev-style", () => [doneCase("style-case")]);
+describe.skipIf(!runnerServesTries)("EvalRun about an agent — comparing a plugin", () => {
+  // The run's plugins as the turn recorded them, by id (RunStatus.loaded_versions).
+  function loadedPluginIds(run: Run): string[] {
+    return (run.status?.loadedVersions?.plugins ?? []).map((ref) => ref.id);
+  }
+
+  it("[rpc:EvalRunCommandController.create] [rpc:EvalRunQueryController.get] comparing a plugin the agent and its subagent both attach: the with try loads it, the without try leaves it out of the whole turn, the subagent's copy included", async () => {
+    const refund = await installed("evr-refund", (skill) => [scoredCase("refund-case", skill)]);
+    const helper = await createAgentWith(clients, fixtures, tenancy.org, [refund.plugin], {
+      name: uniqueName("evr-helper"),
+      instructions: "Help with refunds, one line per answer.",
+    });
+    const agent = await agentWith([refund.plugin], { subagents: [helper.metadata!.slug] });
+    // The case, then the arm: with (reads the skill), then without (offered none).
+    mock.enqueue(skillRead(refund, "call_skill_refund"));
+    mock.enqueue(anthropicText(DONE));
+    mock.enqueue(anthropicText(DONE));
+
+    const created = await startEval(agent, {
+      comparedPluginId: refund.plugin.metadata!.id,
+      ablation: EvalRunAblation.with_without,
+    });
+    expect(created.status?.triesTotal).toBe(2);
+    const ended = await awaitEvalRunEnd(clients, created.metadata!.id, 300_000);
+    expect(ended.status?.phase, describeTries(ended)).toBe(EvalRunPhase.completed);
+    expect(mock.consumed(), "exactly the scripted turns").toBe(3);
+    expect(ended.status!.plugins.map((p) => [p.pluginSlug, p.attached, p.compared])).toEqual([
+      [refund.plugin.metadata!.slug, true, true],
+    ]);
+
+    const requests = mock.scriptedRequests();
+    expect(systemTextOf(requests[0]!.body), "the with try offers the plugin's skill").toContain(offeredSkill(refund));
+    expect(systemTextOf(requests[2]!.body), "the without try offers none").not.toContain(offeredSkill(refund));
+
+    const refundId = refund.plugin.metadata!.id;
+    const tries = triesOf(ended);
+    expect(tries.map((t) => t.arm)).toEqual(["with", "without"]);
+    for (const { arm, attempt } of tries) {
+      expect(attempt.state, `${arm}: ${describeTries(ended)}`).toBe(EvalRunTryState.graded);
+      const run = await runOf(attempt.runId);
+      expect(run.spec?.excludedPluginIds, `${arm} try's exclusion`).toEqual(arm === "with" ? [] : [refundId]);
+      expect(loadedPluginIds(run), `${arm} try's loaded plugins, the subagent's included`).toEqual(
+        arm === "with" ? [refundId] : [],
+      );
+      const session = await clients.sessionQuery.get({ value: attempt.sessionId });
+      expect(pinnedPlugins(session), `${arm} try's conversation lists the plugin either way`).toEqual([
+        [refund.plugin.metadata!.slug, refund.plugin.status!.digest],
+      ]);
+    }
+  }, 360_000);
+
+  it("[rpc:EvalRunCommandController.create] [rpc:EvalRunQueryController.get] comparing a plugin the agent does not attach: both tries run its case, the without try reading the case all the same", async () => {
+    const notes = await installed("evr-notes", (skill) => [scoredCase("notes-case", skill)]);
+    const refund = await installed("evr-refund", (skill) => [scoredCase("refund-case", skill)]);
+    const agent = await agentWith([notes.plugin]);
+    mock.enqueue(skillRead(refund, "call_skill_refund"));
+    mock.enqueue(anthropicText(DONE));
+    mock.enqueue(anthropicText(DONE));
+
+    const created = await startEval(agent, {
+      comparedPluginId: refund.plugin.metadata!.id,
+      ablation: EvalRunAblation.with_without,
+    });
+    const ended = await awaitEvalRunEnd(clients, created.metadata!.id, 300_000);
+    expect(ended.status?.phase, describeTries(ended)).toBe(EvalRunPhase.completed);
+    expect(ended.status!.plugins.map((p) => [p.pluginSlug, p.attached, p.compared, p.notRunReason])).toEqual([
+      [notes.plugin.metadata!.slug, true, false, "not selected"],
+      [refund.plugin.metadata!.slug, false, true, ""],
+    ]);
+    const [result] = ended.status!.plugins[1]!.cases[0]!.targets;
+    expect(result?.withPlugin?.score, describeTries(ended)).toBe(1);
+    expect(result?.withoutPlugin?.score, "the without try ran the case and was graded").toBe(1);
+    expect(result?.delta).toBe(0);
+
+    const refundId = refund.plugin.metadata!.id;
+    for (const { arm, attempt } of triesOf(ended)) {
+      expect(attempt.state, arm).toBe(EvalRunTryState.graded);
+      const run = await runOf(attempt.runId);
+      expect(loadedPluginIds(run).includes(refundId), `${arm} try loads the compared plugin`).toBe(arm === "with");
+      expect(loadedPluginIds(run), `${arm} try loads the attached plugin`).toContain(notes.plugin.metadata!.id);
+      const session = await clients.sessionQuery.get({ value: attempt.sessionId });
+      expect(session.spec?.agentRef?.version).toBe(agent.status!.versionHash);
+      expect(pinnedPlugins(session), `${arm} try lists the attached plugin, then the compared one`).toEqual([
+        [notes.plugin.metadata!.slug, notes.plugin.status!.digest],
+        [refund.plugin.metadata!.slug, refund.plugin.status!.digest],
+      ]);
+    }
+  }, 360_000);
+});
+
+describe.skipIf(!runnerServesTries)("EvalRun about an agent — cancel and the spending limit", () => {
+  it("[rpc:EvalRunCommandController.delete] [rpc:EvalRunCommandController.cancel] delete of the eval run and of its agent are refused while it runs, naming cancel; cancel ends it partial cancelled and no later try starts", async () => {
+    const notes = await installed("evr-notes", () => [doneCase("notes-case")]);
+    const style = await installed("evr-style", () => [doneCase("style-case")]);
     const agent = await agentWith([notes.plugin, style.plugin]);
     mock.enqueue(anthropicText(DONE), { delayMs: 120_000 });
     const created = await startEval(agent);
@@ -539,58 +635,58 @@ describe.skipIf(!runnerServesTries)("AgentEval — cancel and the spending limit
     // The status records a try once it ends; the held turn reaching the
     // model is what says the first try is running.
     await untilConsumed(1, "the first try reached the model");
-    expect((await clients.agentEvalQuery.get({ value: id })).status?.phase).toBe(PluginEvalPhase.running);
+    expect((await clients.evalRunQuery.get({ value: id })).status?.phase).toBe(EvalRunPhase.running);
 
     const refused = await expectGrpcCode(
-      () => clients.agentEvalCommand.delete({ value: id }),
+      () => clients.evalRunCommand.delete({ value: id }),
       Code.FailedPrecondition,
       "delete of a running eval",
     );
-    expect(refused.rawMessage).toBe(agentEvalActiveDeleteMessage(id));
+    expect(refused.rawMessage).toBe(evalRunActiveDeleteMessage(id));
     const agentRefused = await expectGrpcCode(
       () => clients.agentCommand.delete({ value: agent.metadata!.id }),
       Code.FailedPrecondition,
-      "delete of an agent whose eval runs",
+      "delete of an agent whose eval run runs",
     );
-    expect(agentRefused.rawMessage).toBe(agentEvalActiveOnAgentDeleteMessage(id));
+    expect(agentRefused.rawMessage).toBe(evalRunActiveOnSubjectDeleteMessage("agent", id));
 
-    await clients.agentEvalCommand.cancel({ value: id });
-    const ended = await awaitAgentEvalEnd(clients, id, 120_000);
-    expect(ended.status?.phase).toBe(PluginEvalPhase.partial);
-    expect(ended.status?.partialReason).toBe(PluginEvalPartialReason.cancelled);
+    await clients.evalRunCommand.cancel({ value: id });
+    const ended = await awaitEvalRunEnd(clients, id, 120_000);
+    expect(ended.status?.phase).toBe(EvalRunPhase.partial);
+    expect(ended.status?.partialReason).toBe(EvalRunPartialReason.cancelled);
     expect(mock.consumed(), "the other plugin's try never started").toBe(1);
     const runs = await clients.agentExecutionQuery.list({ org: tenancy.org, pageSize: 200 });
-    const tries = runs.entries.filter((run) => run.metadata?.labels[PLUGIN_EVAL_LABEL] === id);
+    const tries = runs.entries.filter((run) => run.metadata?.labels[EVAL_RUN_LABEL] === id);
     expect(tries, "one try was started").toHaveLength(1);
     const stopped = await awaitTerminal(clients, tries[0]!.metadata!.id);
     expect(stopped.status?.phase, "the try in flight was stopped").not.toBe(RunPhase.RUN_COMPLETED);
   }, 360_000);
 
-  it("[rpc:AgentEvalQueryController.get] a spending limit reached stops new tries: the eval ends partial cost_ceiling and the other plugin's try never starts", async () => {
-    const notes = await installed("aev-notes", () => [doneCase("notes-case")]);
-    const style = await installed("aev-style", () => [doneCase("style-case")]);
+  it("[rpc:EvalRunQueryController.get] a spending limit reached stops new tries: the eval run ends partial cost_ceiling and the other plugin's try never starts", async () => {
+    const notes = await installed("evr-notes", () => [doneCase("notes-case")]);
+    const style = await installed("evr-style", () => [doneCase("style-case")]);
     const agent = await agentWith([notes.plugin, style.plugin]);
-    // One turn priced well past the eval's limit; no later try may start.
+    // One turn priced well past the eval run's limit; no later try may start.
     mock.enqueue(anthropicText(DONE, { inputTokens: 1_000_000, outputTokens: 100_000 }));
 
     const created = await startEval(agent, { maxCostUsd: 0.000001 });
-    const ended = await awaitAgentEvalEnd(clients, created.metadata!.id, 180_000);
-    expect(ended.status?.phase, describeTries(ended)).toBe(PluginEvalPhase.partial);
-    expect(ended.status?.partialReason).toBe(PluginEvalPartialReason.cost_ceiling);
+    const ended = await awaitEvalRunEnd(clients, created.metadata!.id, 180_000);
+    expect(ended.status?.phase, describeTries(ended)).toBe(EvalRunPhase.partial);
+    expect(ended.status?.partialReason).toBe(EvalRunPartialReason.cost_ceiling);
     expect(ended.status?.triesFinished).toBe(1);
     expect(ended.status?.costUsd).toBeGreaterThan(0.000001);
-    const tries = agentEvalTriesOf(ended);
+    const tries = triesOf(ended);
     expect(tries.map((t) => [t.pluginSlug, t.attempt.state])).toEqual([
-      [notes.plugin.metadata!.slug, PluginEvalTryState.not_graded],
-      [style.plugin.metadata!.slug, PluginEvalTryState.pending],
+      [notes.plugin.metadata!.slug, EvalRunTryState.not_graded],
+      [style.plugin.metadata!.slug, EvalRunTryState.pending],
     ]);
     expect(tries[0]?.attempt.notGradedReason).toBe(SPENDING_SHARE_REASON);
     expect(mock.consumed()).toBe(1);
   }, 360_000);
 });
 
-describe.skipIf(!runnerServesTries)("AgentEval — what a try is given and where it shows", () => {
-  it("[rpc:AgentEvalQueryController.get] a try composes no standing context and no memory, although its organization has both and an ordinary turn on the agent gets them", async () => {
+describe.skipIf(!runnerServesTries)("EvalRun about an agent — what a try is given and where it shows", () => {
+  it("[rpc:EvalRunQueryController.get] a try composes no standing context and no memory, although its organization has both and an ordinary turn on the agent gets them", async () => {
     const fact = "The team ships on Thursdays.";
     const standing = "Always answer in French.";
     const { org } = await provisionOrgWithFacts(clients, fixtures, [fact], (slug) => target.keyTenancy?.(slug) ?? Promise.resolve());
@@ -604,7 +700,7 @@ describe.skipIf(!runnerServesTries)("AgentEval — what a try is given and where
       metadata: { id: organization.metadata!.id, name: organization.metadata!.name },
       spec,
     }, updateMask: { paths: ["*"] } });
-    const notes = await installed("aev-notes", () => [doneCase("plain-notes")], org);
+    const notes = await installed("evr-notes", () => [doneCase("plain-notes")], org);
     const agent = await agentWith([notes.plugin], { org });
 
     // An ordinary turn on the agent, in that organization, gets both.
@@ -620,9 +716,9 @@ describe.skipIf(!runnerServesTries)("AgentEval — what a try is given and where
 
     mock.enqueue(anthropicText(DONE));
     const created = await startEval(agent);
-    const ended = await awaitAgentEvalEnd(clients, created.metadata!.id, 180_000);
-    expect(ended.status?.phase, describeTries(ended)).toBe(PluginEvalPhase.completed);
-    const [only] = agentEvalTriesOf(ended);
+    const ended = await awaitEvalRunEnd(clients, created.metadata!.id, 180_000);
+    expect(ended.status?.phase, describeTries(ended)).toBe(EvalRunPhase.completed);
+    const [only] = triesOf(ended);
     const run = await runOf(only!.attempt.runId);
     expect(run.status?.declaredPreferences?.orgContext ?? "").toBe("");
     expect(run.status?.recalledMemories?.facts ?? []).toEqual([]);
@@ -633,14 +729,14 @@ describe.skipIf(!runnerServesTries)("AgentEval — what a try is given and where
     expect(system).not.toContain(fact);
   }, 360_000);
 
-  it("[rpc:SessionQueryController.list] [rpc:SessionQueryController.listByAgent] [rpc:AgentEvalQueryController.listByAgent] the tries are left out of the session list and the agent's own session list, and the agent's eval list answers each eval without its tries", async () => {
-    const notes = await installed("aev-notes", () => [doneCase("notes-case")]);
+  it("[rpc:SessionQueryController.list] [rpc:SessionQueryController.listByAgent] [rpc:EvalRunQueryController.listByAgent] the tries are left out of the session list and the agent's own session list, and the agent's eval list answers each eval without its tries", async () => {
+    const notes = await installed("evr-notes", () => [doneCase("notes-case")]);
     const agent = await agentWith([notes.plugin]);
     mock.enqueue(anthropicText(DONE));
     const created = await startEval(agent);
-    const ended = await awaitAgentEvalEnd(clients, created.metadata!.id, 180_000);
-    expect(ended.status?.phase, describeTries(ended)).toBe(PluginEvalPhase.completed);
-    const [only] = agentEvalTriesOf(ended);
+    const ended = await awaitEvalRunEnd(clients, created.metadata!.id, 180_000);
+    expect(ended.status?.phase, describeTries(ended)).toBe(EvalRunPhase.completed);
+    const [only] = triesOf(ended);
     expect(only, describeTries(ended)).toBeDefined();
 
     // The control: an ordinary conversation on the same agent is listed by both.
@@ -660,7 +756,7 @@ describe.skipIf(!runnerServesTries)("AgentEval — what a try is given and where
     expect(byAgent).toContain(ordinarySession);
     expect(byAgent, `try session ${only!.attempt.sessionId} is not on the agent's list`).not.toContain(only!.attempt.sessionId);
 
-    const evals = await clients.agentEvalQuery.listByAgent({ agentId: agent.metadata!.id });
+    const evals = await clients.evalRunQuery.listByAgent({ agentId: agent.metadata!.id });
     expect(evals.entries.map((e) => e.metadata?.id)).toEqual([created.metadata!.id]);
     const [summary] = evals.entries;
     expect(summary?.status?.triesFinished).toBe(1);
@@ -670,8 +766,8 @@ describe.skipIf(!runnerServesTries)("AgentEval — what a try is given and where
     expect(ended.status!.plugins[0]!.cases[0]!.targets[0]!.withPlugin!.tries, "get answers them").toHaveLength(1);
   }, 360_000);
 
-  it("[rpc:AgentEvalCommandController.create] [rpc:AgentEvalQueryController.get] a try with no targets runs the agent's own model and thinking setting, labelled with its model; a named target runs the named model", async () => {
-    const notes = await installed("aev-notes", () => [doneCase("notes-case")]);
+  it("[rpc:EvalRunCommandController.create] [rpc:EvalRunQueryController.get] a try with no targets runs the agent's own model and thinking setting, labelled with its model; a named target runs the named model", async () => {
+    const notes = await installed("evr-notes", () => [doneCase("notes-case")]);
     const agent = await agentWith([notes.plugin], {
       harness: Harness.NATIVE,
       runConfig: { modelName: AGENT_MODEL, thinkingMode: ThinkingMode.ENABLED },
@@ -679,11 +775,11 @@ describe.skipIf(!runnerServesTries)("AgentEval — what a try is given and where
 
     mock.enqueue(anthropicText(DONE));
     const asItRuns = await startEval(agent);
-    const endedAsItRuns = await awaitAgentEvalEnd(clients, asItRuns.metadata!.id, 180_000);
-    expect(endedAsItRuns.status?.phase, describeTries(endedAsItRuns)).toBe(PluginEvalPhase.completed);
+    const endedAsItRuns = await awaitEvalRunEnd(clients, asItRuns.metadata!.id, 180_000);
+    expect(endedAsItRuns.status?.phase, describeTries(endedAsItRuns)).toBe(EvalRunPhase.completed);
     const defaultTarget = endedAsItRuns.status!.plugins[0]!.cases[0]!.targets;
     expect(defaultTarget.map((t) => t.target?.modelName), "the target is labelled with the agent's model").toEqual([AGENT_MODEL]);
-    const [agentTry] = agentEvalTriesOf(endedAsItRuns);
+    const [agentTry] = triesOf(endedAsItRuns);
     const agentRun = await runOf(agentTry!.attempt.runId);
     expect(agentRun.spec?.runConfig?.modelName ?? "", "the try names no model").toBe("");
     expect(agentRun.status?.runConfig?.modelName).toBe(AGENT_MODEL);
@@ -693,10 +789,10 @@ describe.skipIf(!runnerServesTries)("AgentEval — what a try is given and where
 
     mock.enqueue(anthropicText(DONE));
     const named = await startEval(agent, { targets: [{ harness: Harness.NATIVE, modelName: TARGET_MODEL }] });
-    const endedNamed = await awaitAgentEvalEnd(clients, named.metadata!.id, 180_000);
-    expect(endedNamed.status?.phase, describeTries(endedNamed)).toBe(PluginEvalPhase.completed);
+    const endedNamed = await awaitEvalRunEnd(clients, named.metadata!.id, 180_000);
+    expect(endedNamed.status?.phase, describeTries(endedNamed)).toBe(EvalRunPhase.completed);
     expect(endedNamed.status!.plugins[0]!.cases[0]!.targets.map((t) => t.target?.modelName)).toEqual([TARGET_MODEL]);
-    const [namedTry] = agentEvalTriesOf(endedNamed);
+    const [namedTry] = triesOf(endedNamed);
     const namedRun = await runOf(namedTry!.attempt.runId);
     expect(namedRun.status?.runConfig?.modelName).toBe(TARGET_MODEL);
     expect(readAnthropicRequest(mock.scriptedRequests()[0]!.body).model).toBe(await providerIdOf(TARGET_MODEL));
