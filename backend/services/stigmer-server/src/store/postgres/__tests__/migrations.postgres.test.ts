@@ -3936,6 +3936,35 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         }
       });
 
+      it("reads grants across keyset pages, removing the one past the first page that names a retired kind", async () => {
+        const client = await clientAt(SCHEMA_VERSION_34 - 1);
+        try {
+          for (let i = 0; i <= EVAL_KINDS_RETIRED_PAGE_SIZE; i++) {
+            const id = `iam_page_${String(i).padStart(4, "0")}`;
+            const resource = i === EVAL_KINDS_RETIRED_PAGE_SIZE ? "agent_eval:aev_old" : `organization:${ORG}`;
+            await insert(client, "iam_policy", id, policyRow({ id, principal: "identity_account:ida_1", relation: "viewer", resource }));
+          }
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_34);
+          expect(await count(client, "resources", "iam_policy")).toBe(EVAL_KINDS_RETIRED_PAGE_SIZE);
+          expect(await data(client, "iam_policy", `iam_page_${String(EVAL_KINDS_RETIRED_PAGE_SIZE).padStart(4, "0")}`)).toBeUndefined();
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("a grant row that does not decode fails the step, names the row, and leaves the database at v33", async () => {
+        const client = await clientAt(SCHEMA_VERSION_34 - 1);
+        try {
+          await insert(client, "iam_policy", "iam_broken", new Uint8Array([0x22, 0xff]));
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_34)).rejects.toThrow(
+            "iam_policy 'iam_broken' cannot be read to retire the plugin eval and agent eval kinds",
+          );
+          expect(await version(client)).toBe(SCHEMA_VERSION_34 - 1);
+        } finally {
+          await client.end();
+        }
+      });
+
       it("a try row that does not decode fails the step, names the row, rolls back, and leaves the database at v33", async () => {
         const client = await clientAt(SCHEMA_VERSION_34 - 1);
         try {

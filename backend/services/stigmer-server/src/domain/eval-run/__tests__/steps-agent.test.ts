@@ -56,7 +56,7 @@ import type { EvalRunList } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/
 import { EvalRunPluginSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { EvalRunTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import { EvalRunCaseSourceSchema, EvalRunTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
 import {
   EvalRunArmSchema,
   EvalRunCaseSchema,
@@ -97,7 +97,13 @@ import {
 import type { EvalSuiteSource } from "../suite.js";
 import { EvalRunEngineUnavailableError } from "../workflows.js";
 import type { EvalRunWorkflows } from "../workflows.js";
-import { EVAL_RUN_AGENT_DENIED_MESSAGE, EVAL_RUN_COMPARED_DENIED_MESSAGE, PLUGIN_NO_CASES_REASON } from "../constants.js";
+import {
+  EVAL_RUN_AGENT_DENIED_MESSAGE,
+  EVAL_RUN_COMPARED_DENIED_MESSAGE,
+  EVAL_RUN_NO_SUBJECT_MESSAGE,
+  PLUGIN_NO_CASES_REASON,
+  evalRunUnloadedCaseSourceMessage,
+} from "../constants.js";
 import {
   EVAL_RUN_RESULT_KEY,
   EVAL_RUN_SUBJECT_KEY,
@@ -415,6 +421,84 @@ describe("ResolveEvalRunDefaults with a compared plugin", () => {
     expect((ctx.get(EVAL_RUN_LOAD_KEY) as EvaluatedLoad).plugins.map((entry) => entry.compared)).toEqual([true]);
     const missing = await failure(() => newResolveEvalRunDefaultsStep(temp.store, ALLOW_ALL).execute(comparing("plg_gone")));
     expect(missing.code).toBe(Code.NotFound);
+  });
+});
+
+describe("an eval run that names no subject", () => {
+  it("is INVALID_ARGUMENT at the create's question and at the subject's read, whatever the proto's rules let through", async () => {
+    const row = evalRow("", EvalRunPhase.unspecified);
+    row.spec!.subject = { case: undefined };
+    expect(() => resolveEvalRunCreateTargets(createCtx(row))).toThrow(EVAL_RUN_NO_SUBJECT_MESSAGE);
+    const refused = await failure(() => newLoadEvalRunSubjectStep(temp.store).execute(createCtx(row)));
+    expect(refused.code).toBe(Code.InvalidArgument);
+    expect(refused.rawMessage).toBe(EVAL_RUN_NO_SUBJECT_MESSAGE);
+  });
+});
+
+describe("ResolveEvalRunDefaults' case sources and store faults", () => {
+  const CANDIDATE: Plugin = create(PluginSchema, {
+    metadata: { id: "plg_candidate", org: ORG, slug: "candidate", name: "candidate" },
+    status: { digest: OTHER_DIGEST },
+  });
+
+  /** The store, but a read of plugin `id` fails. */
+  function failingRead(id: string): Store {
+    return new Proxy(temp.store, {
+      get(target, property, receiver) {
+        const value: unknown = Reflect.get(target, property, receiver);
+        if (property === "getResource") {
+          return (kind: ApiResourceKind, resourceId: string, ...rest: unknown[]) =>
+            resourceId === id
+              ? Promise.reject(new Error("disk unavailable"))
+              : (target.getResource as (...args: unknown[]) => unknown).call(target, kind, resourceId, ...rest);
+        }
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+  }
+
+  function withSources(ids: ReadonlyArray<string | undefined>, compared = "") {
+    const row = evalRow("", EvalRunPhase.unspecified);
+    row.spec!.comparedPluginId = compared;
+    row.spec!.cases = ids.map((id) =>
+      create(EvalRunCaseSourceSchema, id === undefined ? {} : { source: { case: "plugin", value: { kind: ApiResourceKind.plugin, id } } }),
+    );
+    const ctx = createCtx(row);
+    ctx.set(EVAL_RUN_SUBJECT_KEY, { kind: "agent", org: ORG, row: AGENT } satisfies LoadedSubject);
+    return ctx;
+  }
+
+  beforeEach(async () => {
+    await seedAgent();
+    await temp.store.saveResource(ApiResourceKind.plugin, "plg_1", PluginSchema, THERMOS);
+  });
+
+  it("matches a case source named by id, and passes over one that names no source", async () => {
+    const ctx = withSources([undefined, "plg_1"]);
+    await newResolveEvalRunDefaultsStep(temp.store, ALLOW_ALL).execute(ctx);
+    expect([...(ctx.get(EVAL_RUN_LOAD_KEY) as EvaluatedLoad).selected]).toEqual(["plg_1"]);
+  });
+
+  it("refuses an id the try would not load, naming the plugin by the slug its row holds, else by the id", async () => {
+    await temp.store.saveResource(ApiResourceKind.plugin, "plg_candidate", PluginSchema, CANDIDATE);
+    const named = await failure(() => newResolveEvalRunDefaultsStep(temp.store, ALLOW_ALL).execute(withSources(["plg_candidate"])));
+    expect(named.code).toBe(Code.InvalidArgument);
+    expect(named.rawMessage).toBe(evalRunUnloadedCaseSourceMessage("candidate"));
+    const gone = await failure(() => newResolveEvalRunDefaultsStep(temp.store, ALLOW_ALL).execute(withSources(["plg_gone"])));
+    expect(gone.rawMessage).toBe(evalRunUnloadedCaseSourceMessage("plg_gone"));
+  });
+
+  it("is INTERNAL when the store cannot read a refused case source, or the compared plugin", async () => {
+    const source = await failure(() =>
+      newResolveEvalRunDefaultsStep(failingRead("plg_broken"), ALLOW_ALL).execute(withSources(["plg_broken"])),
+    );
+    expect(source.code).toBe(Code.Internal);
+    expect(source.rawMessage).toBe("failed to read a case source plugin");
+    const compared = await failure(() =>
+      newResolveEvalRunDefaultsStep(failingRead("plg_candidate"), ALLOW_ALL).execute(withSources([], "plg_candidate")),
+    );
+    expect(compared.code).toBe(Code.Internal);
+    expect(compared.rawMessage).toBe("failed to load the compared plugin");
   });
 });
 

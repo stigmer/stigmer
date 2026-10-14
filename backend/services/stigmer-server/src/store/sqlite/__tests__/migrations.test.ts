@@ -3697,6 +3697,37 @@ describe("v38: the plugin eval and agent eval rows and the grants naming them le
     expect(fromBinary(SessionSchema, dataOf(db, "session", last)!).metadata?.labels).toEqual({ [NEW_LABEL]: "pev_old" });
   });
 
+  it("reads grants across keyset pages, removing the one past the first page that names a retired kind", () => {
+    const { dbPath, db: setup } = v37Database();
+    setup.exec("BEGIN");
+    for (let i = 0; i <= EVAL_KINDS_RETIRED_PAGE_SIZE; i++) {
+      const id = `iam_page_${String(i).padStart(4, "0")}`;
+      const resource = i === EVAL_KINDS_RETIRED_PAGE_SIZE ? "plugin_eval:pev_old" : `organization:${ORG}`;
+      insert(setup, "iam_policy", id, policyRow({ id, principal: "identity_account:ida_1", relation: "viewer", resource }));
+    }
+    setup.exec("COMMIT");
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_38);
+    expect(count(db, "resources", "iam_policy")).toBe(EVAL_KINDS_RETIRED_PAGE_SIZE);
+    expect(dataOf(db, "iam_policy", `iam_page_${String(EVAL_KINDS_RETIRED_PAGE_SIZE).padStart(4, "0")}`)).toBeUndefined();
+  });
+
+  it("a grant row that does not decode fails the step, names the row, and leaves the database at v37", () => {
+    const { dbPath, db: setup } = v37Database();
+    insert(setup, "iam_policy", "iam_broken", new Uint8Array([0x22, 0xff]));
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(() => runMigrations(db, SCHEMA_VERSION_38)).toThrow(
+      "iam_policy 'iam_broken' cannot be read to retire the plugin eval and agent eval kinds",
+    );
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_38 - 1);
+  });
+
   it("a try row that does not decode fails the step, names the row, rolls back, and leaves the database at v37", () => {
     const { dbPath, db: setup } = v37Database();
     seedRetired(setup, "plugin_eval", "pev_old");
