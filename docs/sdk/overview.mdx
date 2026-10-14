@@ -386,8 +386,11 @@ other. Visibility, a slug and a Vault's secrets each have their own method
 (`updateVisibility`, `rename`, `setSecrets`), and an update that names one is
 refused.
 
-`apply` sends the whole resource as you want it, as a manifest does: it creates
-the resource when none has its slug and otherwise makes it match.
+`apply` sends the whole resource as you want it, as a manifest does. The server
+finds the resource by its `metadata.id`, then by its slug, creates it when
+neither finds one, and otherwise makes it match. A manifest applied with
+`stigmer.manifest.apply` that keeps the ID under a new slug renames the
+resource.
 
 An update that sends back the `metadata.etag` it read asks for a freshness check:
 if anyone changed the resource since, it is refused with the `aborted` code
