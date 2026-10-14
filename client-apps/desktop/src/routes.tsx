@@ -17,6 +17,7 @@ import {
   OAuthAppsSection,
   OrgPreferencesSection,
   OrgPoliciesSection,
+  OrgEmbeddingSection,
   OrgProfileSection,
   ServiceAccountsSection,
   TeamsSection,
@@ -264,6 +265,10 @@ const routes: RouteObject[] = [
               { path: "org-profile", element: <OrgProfileSection /> },
               { path: "org-preferences", element: <OrgPreferencesSection /> },
               { path: "org-policies", element: <OrgPoliciesSection /> },
+              {
+                path: "org-embedding",
+                element: <OrgEmbeddingSection serviceAccountsHref="#/settings/service-accounts" />,
+              },
               {
                 path: "account-preferences",
                 element: <AccountPreferencesSection />,

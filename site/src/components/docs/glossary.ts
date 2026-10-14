@@ -29,8 +29,8 @@ export const glossary: Record<string, string> = {
     "A piece of knowledge you attach to an Agent so it has domain expertise. Skills let you give an Agent specialized information without rewriting its instructions.",
   "MCP server":
     "An external tool connection that lets an Agent interact with other systems. In Stigmer an MCP server lives only inside a plugin; it is not a resource of its own.",
-  PlatformClient:
-    "A credential pair your backend uses to mint Stigmer-signed user tokens. Use it to embed Stigmer in your product without setting up OIDC federation.",
+  "Embedding settings":
+    "How an Organization's own product signs its users in: which web origins may use the minted tokens, whether a first sign-in creates the person's account and with which role, and which shared vaults their runs use.",
   Organization:
     "The boundary that holds people, Agents, Sessions and secrets together; nothing outside it sees them.",
   Vault:

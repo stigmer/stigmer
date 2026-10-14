@@ -56,34 +56,35 @@ definitions, API names, and examples follow below.
 
 <!-- vale Stigmer.terms = NO -->
 
-| Term                  | Sales site       | Quickstart / tutorial                  | Concepts / how-to      | Reference / SDK                                 | README            |
-| --------------------- | ---------------- | -------------------------------------- | ---------------------- | ----------------------------------------------- | ----------------- |
-| **Agent**             | Agent            | Agent                                  | Agent                  | Agent, `kind: Agent`                            | Agent             |
-| **Skill**             | domain knowledge | Skill ("domain knowledge")             | Skill                  | Skill, `skill_refs`                             | Skill             |
-| **Plugin**            | plugin           | plugin ("what you install")            | Plugin                 | Plugin, `kind: Plugin`                          | plugin            |
-| **Marketplace**       | marketplace      | Marketplace ("where you install from") | Marketplace            | Marketplace; source, `stigmer install`          | marketplace       |
-| **MCP server**        | tools            | MCP server ("tool connection")         | MCP server             | `PluginStatus.mcp_servers`, `plugins`           | MCP server        |
-| **Session**           | conversation     | Session ("conversation")               | Session                | Session, `kind: Session`                        | Session           |
-| **Session event**     | ---              | ---                                    | event                  | `SessionEvent`, `agent.message`, `stigmer.*`    | event             |
-| **Runner**            | compute          | runner ("where your Agent runs")       | Runner                 | Runner                                          | runner            |
-| **Harness**           | execution engine | harness ("execution engine")           | Harness                | Harness, `SessionSpec.harness`                  | harness           |
-| **Approval flow**     | approval flow    | approval flow                          | approval flow, HITL    | `destructiveHint`, `confirmToolUse`             | HITL, approval    |
-| **Organization**      | Organization     | Organization                           | Organization           | Organization, `kind: organization`              | Organization      |
-| **Agent hour**        | agent hours      | ---                                    | agent hours            | `included_agent_hours`, `per_agent_hour_micros` | agent hours       |
-| **Working time**      | ---              | working time                           | working time           | `working_seconds`                               | working time      |
-| **Team**              | teams            | ---                                    | Team                   | Team, `kind: team`                              | Team              |
-| **Vault**             | vault            | vault ("your keys and logins")         | Vault                  | Vault, `kind: Vault`                            | vault             |
-| **Preference**        | preferences      | preference ("standing context")        | Preference             | `spec.preferences.standing_context`             | Preference        |
-| **Federation Issuer** | ---              | identity provider (Auth0, Okta, …)     | Federation Issuer      | FederationIssuer, `kind: FederationIssuer`      | Federation Issuer |
-| **Identity Account**  | ---              | ---                                    | Identity Account       | IdentityAccount, `kind: identity_account`       | Identity Account  |
-| **PlatformClient**    | ---              | ---                                    | PlatformClient         | PlatformClient, `kind: platform_client`         | PlatformClient    |
-| **Run**               | ---              | run                                    | run                    | Run, `kind: Run`                                | Run               |
-| **Subagent**          | ---              | ---                                    | subagent               | subagent, `subagents`, `<plugin>:<agent>`       | subagent          |
-| **Agent Channel**     | ---              | ---                                    | channel, Agent Channel | AgentChannel, `kind: AgentChannel`              | Agent Channel     |
-| **Channel App**       | ---              | ---                                    | Channel App            | ChannelApp, `kind: ChannelApp`                  | Channel App       |
-| **Schedule**          | ---              | ---                                    | schedule, Schedule     | Schedule, `kind: Schedule`                      | Schedule          |
-| **Label**             | ---              | label                                  | label                  | `metadata.labels`, `labels` filter              | label             |
-| **Tag**               | ---              | tag                                    | tag                    | `metadata.tags`                                 | tag               |
+| Term                   | Sales site       | Quickstart / tutorial                  | Concepts / how-to      | Reference / SDK                                 | README             |
+| ---------------------- | ---------------- | -------------------------------------- | ---------------------- | ----------------------------------------------- | ------------------ |
+| **Agent**              | Agent            | Agent                                  | Agent                  | Agent, `kind: Agent`                            | Agent              |
+| **Skill**              | domain knowledge | Skill ("domain knowledge")             | Skill                  | Skill, `skill_refs`                             | Skill              |
+| **Plugin**             | plugin           | plugin ("what you install")            | Plugin                 | Plugin, `kind: Plugin`                          | plugin             |
+| **Marketplace**        | marketplace      | Marketplace ("where you install from") | Marketplace            | Marketplace; source, `stigmer install`          | marketplace        |
+| **MCP server**         | tools            | MCP server ("tool connection")         | MCP server             | `PluginStatus.mcp_servers`, `plugins`           | MCP server         |
+| **Session**            | conversation     | Session ("conversation")               | Session                | Session, `kind: Session`                        | Session            |
+| **Session event**      | ---              | ---                                    | event                  | `SessionEvent`, `agent.message`, `stigmer.*`    | event              |
+| **Runner**             | compute          | runner ("where your Agent runs")       | Runner                 | Runner                                          | runner             |
+| **Harness**            | execution engine | harness ("execution engine")           | Harness                | Harness, `SessionSpec.harness`                  | harness            |
+| **Approval flow**      | approval flow    | approval flow                          | approval flow, HITL    | `destructiveHint`, `confirmToolUse`             | HITL, approval     |
+| **Organization**       | Organization     | Organization                           | Organization           | Organization, `kind: organization`              | Organization       |
+| **Agent hour**         | agent hours      | ---                                    | agent hours            | `included_agent_hours`, `per_agent_hour_micros` | agent hours        |
+| **Working time**       | ---              | working time                           | working time           | `working_seconds`                               | working time       |
+| **Team**               | teams            | ---                                    | Team                   | Team, `kind: team`                              | Team               |
+| **Vault**              | vault            | vault ("your keys and logins")         | Vault                  | Vault, `kind: Vault`                            | vault              |
+| **Preference**         | preferences      | preference ("standing context")        | Preference             | `spec.preferences.standing_context`             | Preference         |
+| **Federation Issuer**  | ---              | identity provider (Auth0, Okta, …)     | Federation Issuer      | FederationIssuer, `kind: FederationIssuer`      | Federation Issuer  |
+| **Identity Account**   | ---              | ---                                    | Identity Account       | IdentityAccount, `kind: identity_account`       | Identity Account   |
+| **Embedding settings** | ---              | ---                                    | embedding settings     | `OrganizationSpec.embedding`                    | embedding settings |
+| **App user**           | ---              | ---                                    | app user               | `provisioning_mode: app_user`                   | app user           |
+| **Run**                | ---              | run                                    | run                    | Run, `kind: Run`                                | Run                |
+| **Subagent**           | ---              | ---                                    | subagent               | subagent, `subagents`, `<plugin>:<agent>`       | subagent           |
+| **Agent Channel**      | ---              | ---                                    | channel, Agent Channel | AgentChannel, `kind: AgentChannel`              | Agent Channel      |
+| **Channel App**        | ---              | ---                                    | Channel App            | ChannelApp, `kind: ChannelApp`                  | Channel App        |
+| **Schedule**           | ---              | ---                                    | schedule, Schedule     | Schedule, `kind: Schedule`                      | Schedule           |
+| **Label**              | ---              | label                                  | label                  | `metadata.labels`, `labels` filter              | label              |
+| **Tag**                | ---              | tag                                    | tag                    | `metadata.tags`                                 | tag                |
 
 <!-- vale Stigmer.terms = YES -->
 
@@ -686,8 +687,8 @@ delete has answered.
 only.
 
 - **Use it for**: the Stigmer platform as a whole ("the Stigmer platform"), and
-  inside names that already carry it: `PlatformClient`, the `platform/v1`
-  package, the `platform` authorization scope.
+  inside names that already carry it: the `platform/v1` package, the `platform`
+  authorization scope.
 - **Say instead**:
   - a company that builds its product on Stigmer: an **integrator**;
   - Stigmer's own staff who run Stigmer Cloud: **Stigmer operators**;
@@ -834,10 +835,10 @@ and decide who may use them.
   vaults in an ordered `vaults` list; a Session also sets `include_my_vault` to
   use each sender's own My vault first. An Agent names no vaults.
 - **Surfaces**: a Session, a Schedule (`agent.vaults`), an Agent Channel, an
-  Agent Share (a public-audience share only: members' runs use their own) and a
-  PlatformClient each carry `vaults`. A run with no person (a schedule fire, a
-  channel or guest message, a PlatformClient user's turn) uses its surface's
-  vaults after the conversation's.
+  Agent Share (a public-audience share only: members' runs use their own) and an
+  Organization's embedding settings each carry `vaults`. A run with no person (a
+  schedule fire, a channel or guest message) and an app user's turn use the
+  surface's vaults after the conversation's.
 - **Related terms**: a **secret** is a vault entry matched by its name
   (`OPENAI_API_KEY`). A **connection** (in the console, a **login**) is a vault
   entry matched by the address of the tool or Git host it is for
@@ -953,23 +954,23 @@ those tokens get.
 
 A principal that Stigmer can authenticate and authorize. Comes in five types:
 Direct (user signed up on Stigmer), Federated (created via a Federation Issuer),
-Platform (created via PlatformClient; "App users" in the console's pickers),
-Service account (an Organization's own account for automation), and Machine (the
-hosted platform's own service-to-service account, never created by a customer).
+App user (signed in by your product's backend with a minted user token), Service
+account (an Organization's own account for automation), and Machine (the hosted
+platform's own service-to-service account, never created by a customer).
 
 - **Capitalize**: Yes, when referring to the Stigmer resource.
 - **API surface**: `kind: identity_account`, prefix `ida`. proto:
   `iam/identityaccount/v1/spec.proto`.
-- **Key fields**: `provisioning_mode` (`direct`, `federated`, `platform_client`,
+- **Key fields**: `provisioning_mode` (`direct`, `federated`, `app_user`,
   `machine`, `service_account`), `federation_issuer_ref`, `idp_id`.
 - **Context rule**: Do not use on the sales site. In how-to and concept docs,
   capitalize as "Identity Account." In reference, use `IdentityAccount`. In
-  quickstart, avoid unless the tutorial covers federation or PlatformClient.
+  quickstart, avoid unless the tutorial covers federation or minted user tokens.
 - **Note**: Federated accounts can be provisioned via JIT (automatic on first
   token, when the Federation Issuer sets `create_accounts_on_sign_in`) or
-  explicitly via `createFederatedAccount`. Platform accounts are created by
-  `mintUserToken` when the PlatformClient sets `create_accounts_on_sign_in`, or
-  by the platform beforehand.
+  explicitly via `createFederatedAccount`. App users are created by
+  `mintUserToken` when the Organization's embedding settings set
+  `create_accounts_on_sign_in`, or by the integrator beforehand.
 
 ---
 
@@ -1054,8 +1055,8 @@ whatever roles its person holds elsewhere.
 
 - **Capitalize**: No. "Bound credential" is a property of a credential, not a
   Stigmer resource type.
-- **Examples**: a PlatformClient user token (bound to the PlatformClient's
-  Organization, or the child organization it was minted for), a federated token
+- **Examples**: a minted user token (bound to the Organization it was minted
+  for: the minting service account's, or a child of it), a federated token
   through a Federation Issuer (bound to the child organization
   `external_id_claim` names, or the provider's own), an API key limited to an
   Organization (`ApiKeySpec.bound_org`), and the credential a runner holds for
@@ -1073,7 +1074,7 @@ whatever roles its person holds elsewhere.
   still performs them.
 - **Context rule**: Use in authentication guides and reference. On the sales
   site, say "a key that works in one Organization." In quickstart, avoid unless
-  the tutorial covers API keys, federation or PlatformClient.
+  the tutorial covers API keys, federation or minted user tokens.
 - **Note**: a bound credential used in another Organization gets
   `PERMISSION_DENIED`. A federated token whose external id claim is missing or
   names no child organization gets `UNAUTHENTICATED`, on every sign-in.
@@ -1156,33 +1157,56 @@ Organization.
 
 ---
 
-#### PlatformClient
+#### Embedding settings
 
-An OAuth2 credential pair (`client_id` + `client_secret`) that lets your backend
-mint Stigmer-signed user tokens for embedding Stigmer in your product.
+How an Organization's own product signs its users in: which web origins may use
+the minted tokens, whether a first sign-in creates the person's account and with
+which role, and which shared vaults their runs use.
 
-- **Capitalize**: Yes, as one word: "PlatformClient." Do not split into
-  "Platform Client" in prose---the API surface uses the compound form.
-- **API surface**: `kind: platform_client`, prefix `pc`. proto:
-  `iam/platformclient/v1/spec.proto`, `iam/platformclient/v1/token.proto`.
-- **Key fields**: `client_id`, `client_secret_hash`,
-  `create_accounts_on_sign_in`, `sign_in_role`, `allowed_origins`, `vaults` (the
-  integrator's own keys, used by the runs of the users it signs in).
+- **Capitalize**: No. "Embedding settings" is a group of settings, not a Stigmer
+  resource type. The console's section is **Embedding**.
+- **API surface**: `OrganizationSpec.embedding` (`OrganizationEmbedding`),
+  written only through `updateEmbedding`;
+  `OrganizationStatus.embedding_vault_attachers`. The tokens come from
+  `TokenService.mintUserToken` (`iam/token/v1/token.proto`), called with an
+  admin service account's API key.
+- **Key fields**: `allowed_origins`, `create_accounts_on_sign_in`,
+  `sign_in_role` (never owner), `vaults` (the integrator's own keys, used by the
+  runs of the users it signs in).
 - **Context rule**: Do not use on the sales site---say "embed Stigmer in your
   app" or "add Stigmer to your product." In quickstart, avoid unless the
-  tutorial covers PlatformClient setup. In concepts and how-to, capitalize as
-  "PlatformClient." In reference, use `PlatformClient`.
+  tutorial covers signing your product's users in.
+- **Former names**: the settings of a `PlatformClient`
+  (`kind: platform_client`), removed with the kind. Do not use it in new
+  writing.
 
 <!-- vale Vale.Spelling = NO -->
 
-- **Note**: PlatformClient credentials authenticate your backend, not your
+- **Note**: the service account's key authenticates your backend, not your
   users. The backend calls `mintUserToken` to get user-scoped JWTs, each a
-  **bound credential** that works in the PlatformClient's Organization only.
-  This is the same pattern used by Twilio (Access Tokens), Stream (User Tokens),
-  and Liveblocks (access tokens). The people it signs in appear as **App users**
-  in the console's people pickers, apart from the Organization's own people.
+  **bound credential** that works in one Organization only. This is the same
+  pattern used by Twilio (Access Tokens), Stream (User Tokens), and Liveblocks
+  (access tokens).
 
 <!-- vale Vale.Spelling = YES -->
+
+---
+
+#### App user
+
+A person your product signs in to Stigmer with a minted user token, rather than
+someone with their own Stigmer sign-in.
+
+- **Capitalize**: No, except at the start of a sentence or as the console's
+  label ("App users").
+- **API surface**: an `IdentityAccount` with `provisioning_mode: app_user`.
+- **Context rule**: Use in authentication guides, concepts and the console. The
+  people it signs in appear as **App users** in the console's people pickers,
+  apart from the Organization's own people.
+- **Note**: an app user's conversations and memory are their own. An app user
+  who already has an account signs in with the roles they hold now; the
+  embedding settings' `sign_in_role` is granted only when a sign-in creates the
+  account.
 
 ---
 
