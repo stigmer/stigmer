@@ -7,7 +7,7 @@
 // stopped, or exited mid-phase) and the matching copy-paste `stigmer resume`
 // line; without one it is a single completion line. The best error is the
 // run's own, else the folded turn's status error, its last error event, the
-// platform's last note, the first failed tool use's output (a sub-agent's
+// platform's last note, the first failed tool use's output (a subagent's
 // included); a turn the stream did not hand over is read from the run's
 // events, only when the summary needs it. Tokens with no metered calls were
 // counted from the runner's own report and carry a "~". A usage report the
@@ -237,7 +237,7 @@ describe("runEpilogue", () => {
     expect(stderr).toEqual(["\n", "✗ Run failed: connection refused\n"]);
   });
 
-  it("finds a failed tool use inside a sub-agent", async () => {
+  it("finds a failed tool use inside a subagent", async () => {
     const thread = "aex_1.t1";
     const d = double(finalRun({ phase: RunPhase.RUN_FAILED }));
     await runEpilogue(

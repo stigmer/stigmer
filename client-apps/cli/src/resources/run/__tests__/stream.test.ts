@@ -57,7 +57,7 @@ function deps(overrides: Partial<StreamDeps> = {}): StreamDeps {
     runId: "aex_1",
     org: "acme",
     mode: "plan",
-    approveDefault: "approve",
+    approveDefault: "allow",
     outputMode: "inline",
     header: { agentName: "Helper", sessionId: "ses_1", model: "", mode: "plan", workspaces: [] },
     ...overrides,
@@ -113,7 +113,7 @@ describe("streamAgentRun", () => {
     await streamAgentRun(deps({ outputMode: "json" }));
 
     expect(driverDeps().runId).toBe("aex_1");
-    expect(driverDeps().approveDefault).toBe("approve");
+    expect(driverDeps().approveDefault).toBe("allow");
     expect(followed.map((r) => [r.sessionId, r.afterSeq])).toEqual([["ses_1", 0n]]);
     expect(confirms.map((c) => [c.sessionId, c.toolUseId, c.result])).toEqual([["ses_1", "aex_1.c1", "allow"]]);
   });

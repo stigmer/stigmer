@@ -207,7 +207,7 @@ describe("parseManifest", () => {
     }
   });
 
-  it("names the subagents way forward for an agent writing sub-agents inside it, never for any other document", () => {
+  it("names the subagents way forward for an agent writing subagents inside it, never for any other document", () => {
     expect(subagentsWayForward({ kind: "Agent", spec: { sub_agents: [] } })).toBe(SUBAGENTS_WAY_FORWARD);
     expect(subagentsWayForward({ kind: "Agent", spec: { subAgents: [] } })).toBe(SUBAGENTS_WAY_FORWARD);
     expect(subagentsWayForward({ kind: "Agent", spec: { subagents: [{ kind: "agent", slug: "helper" }] } })).toBeUndefined();

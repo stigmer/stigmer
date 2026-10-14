@@ -1,11 +1,8 @@
 /**
  * Display-time normalization for sandbox workspace paths.
  *
- * Mirrors the Python `humanize_sandbox_paths` in
- * `graphton.core.backends.platform_mount` — same semantics, same
- * replacement order.  The SDK version acts as a safety net for
- * historical data (persisted before backend humanization was added)
- * and streaming edge cases.
+ * A safety net for paths that reach the client still absolute: events
+ * stored before the runner humanized paths, and streaming edge cases.
  *
  * @module
  */

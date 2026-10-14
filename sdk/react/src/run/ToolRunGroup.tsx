@@ -58,7 +58,7 @@ export const ToolRunGroup = memo(function ToolRunGroup({
   const isShimmering = status === "running";
   // Reads are not asked about by default, but a hook can ask about any
   // call: a waiting one inside the fold keeps the chip open, mirroring
-  // SubAgentSection.
+  // SubagentSection.
   const [expanded, handleToggle] = useAutoDisclosure(
     isShimmering || status === "waiting",
   );

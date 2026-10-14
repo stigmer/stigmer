@@ -93,12 +93,12 @@ export function idle(reason: string, waitingOn: string[] = []): SessionEvent {
   return ev("", { case: "sessionStatusIdle", value: { id: `idle.${seq}`, stopReason: { type: reason, eventIds: waitingOn } } });
 }
 
-/** A sub-agent thread `threadId`, opened by a `task` tool use, starting to work. */
+/** A subagent thread `threadId`, opened by a `task` tool use, starting to work. */
 export function threadRunning(runId: string, threadId: string, agentName: string): SessionEvent {
   return ev(runId, { case: "sessionThreadStatusRunning", value: { id: `${threadId}.running`, agentName, sessionThreadId: threadId } });
 }
 
-/** The sub-agent thread `threadId` going idle: done, or failed for any other reason. */
+/** The subagent thread `threadId` going idle: done, or failed for any other reason. */
 export function threadIdle(runId: string, threadId: string, reason: string): SessionEvent {
   return ev(runId, { case: "sessionThreadStatusIdle", value: { id: `${threadId}.idle`, sessionThreadId: threadId, stopReason: { type: reason } } });
 }

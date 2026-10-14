@@ -206,7 +206,7 @@ describe("renderPushOutcome", () => {
           {
             kind: "model-hint-unresolved",
             message:
-              "sub-agent 'reviewer' names model 'sonnet'; it runs on the session's model",
+              "subagent 'reviewer' names model 'sonnet'; it runs on the session's model",
           },
         ],
       },

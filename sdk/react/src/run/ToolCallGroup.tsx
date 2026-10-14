@@ -12,7 +12,7 @@ import { segmentToolCalls } from "./segment-tool-calls.js";
 export interface ToolCallGroupProps {
   /**
    * Tool uses in this group, in the order the agent made them. A tool use
-   * that started a sub-agent renders its nested thread instead of a
+   * that started a subagent renders its nested thread instead of a
    * standard detail panel.
    */
   readonly toolUses: readonly ToolUse[];
@@ -66,7 +66,7 @@ export function toolCallGroupPropsEqual(
  * like a virtual human at work.
  *
  * The turn is segmented by {@link segmentToolCalls}:
- * - high-signal calls (edits, shell, MCP, sub-agents, …) render as persistent
+ * - high-signal calls (edits, shell, MCP, subagents, …) render as persistent
  *   {@link ToolCallItem} rows; a content-bearing call shows its body inline
  *   (no card chevron), bounded by a single in-place reveal;
  * - runs of consecutive low-signal same-category calls (read / list / search)
@@ -74,8 +74,8 @@ export function toolCallGroupPropsEqual(
  *   because that is the only genuine noise.
  *
  * The rows are clustered under a light left rail (the neutral counterpart to
- * {@link SubAgentSection}'s primary-tinted rail for delegated work), keeping a
- * turn's tools visually associated with their AI message without a tab that
+ * {@link SubagentSection}'s primary-tinted rail for delegated work), keeping a
+ * turn's tools visually associated with their agent message without a tab that
  * hides things.
  *
  * Wrapped in `React.memo` with a custom comparator that checks `toolUses`

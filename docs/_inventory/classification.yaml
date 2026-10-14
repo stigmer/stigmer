@@ -834,7 +834,7 @@ pages:
     diataxis: how-to
     teaches:
       Send every run to a tracing tool over OpenTelemetry — what one trace
-      holds (a span per turn, model call, tool call, sub-agent, Cursor run),
+      holds (a span per turn, model call, tool call, subagent, Cursor run),
       the standard variables per runner shape (the login on the server's
       secrets list for sandboxed runners), the gRPC default that changed, the
       content switch and what it never shows, Langfuse and a generic collector

@@ -1,4 +1,4 @@
-// A sub-agent's thread as a collapsible terminal block: a summary line (its
+// A subagent's thread as a collapsible terminal block: a summary line (its
 // state, what it was asked, how long it took) and, expanded, its task, its
 // messages and tool uses in the order it produced them, and its reply or
 // error — the same entries the main thread renders.
@@ -8,9 +8,9 @@ import { isTodoTool, type Thread, type ToolUse } from "@stigmer/sdk";
 import { MessageEntry } from "./MessageEntry.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
 
-/** Props for {@link SubAgentBlock}. */
-export interface SubAgentBlockProps {
-  /** The sub-agent's thread, from the session's fold (`ToolUse.thread`). */
+/** Props for {@link SubagentBlock}. */
+export interface SubagentBlockProps {
+  /** The subagent's thread, from the session's fold (`ToolUse.thread`). */
   readonly thread: Thread;
   /** What it was asked to do, in a few words (the `task` call's description). */
   readonly subject?: string;
@@ -28,7 +28,7 @@ const STATUS_GLYPHS: Record<Thread["state"], { glyph: string; color: string }> =
   running: { glyph: "⟳", color: "cyan" },
   completed: { glyph: "✓", color: "green" },
   failed: { glyph: "✗", color: "red" },
-  // Its turn ended before the sub-agent finished.
+  // Its turn ended before the subagent finished.
   stopped: { glyph: "⊘", color: "yellow" },
 };
 
@@ -44,20 +44,20 @@ function formatDuration(startedAt: string, completedAt: string): string | null {
 }
 
 /**
- * Renders a sub-agent's thread as a collapsible block in the terminal.
+ * Renders a subagent's thread as a collapsible block in the terminal.
  *
  * Shows a summary line with status glyph, subject (or the agent's name), and
  * duration. When expanded, renders the thread's items using the same
  * MessageEntry and ToolCallGroup components as the main thread.
  */
-export function SubAgentBlock({
+export function SubagentBlock({
   thread,
   subject = "",
   startedAt = "",
   completedAt = "",
   defaultExpanded = false,
   isFocused = false,
-}: SubAgentBlockProps) {
+}: SubagentBlockProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   useInput(
@@ -70,7 +70,7 @@ export function SubAgentBlock({
   );
 
   const { glyph, color } = STATUS_GLYPHS[thread.state];
-  const label = subject || thread.agentName || "Sub-agent";
+  const label = subject || thread.agentName || "Subagent";
   const duration = formatDuration(startedAt, completedAt);
 
   return (

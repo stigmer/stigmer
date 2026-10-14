@@ -6,8 +6,8 @@ import { useEffect, useMemo, useState } from "react";
  * Live elapsed time since an ISO 8601 timestamp, re-rendering once per second.
  *
  * The shape behind every "how long has this been going" affordance in the
- * thread: an approval gate waiting on a human, a sub-agent card whose nested
- * activity cannot be streamed (the Cursor SDK returns sub-agent internals only
+ * thread: an approval gate waiting on a human, a subagent card whose nested
+ * activity cannot be streamed (the Cursor SDK returns subagent internals only
  * at completion), a long-running tool. A ticking duration is the honest signal
  * that work is progressing when there is nothing else to show — as opposed to
  * fabricating intermediate state.
@@ -19,7 +19,7 @@ import { useEffect, useMemo, useState } from "react";
  * cards costs zero timers.
  *
  * @param startedAt ISO 8601 timestamp the clock counts from (e.g.
- *   an ask's `processedAt`, a sub-agent's start).
+ *   an ask's `processedAt`, a subagent's start).
  */
 export function useElapsedSince(startedAt: string): number | null {
   const startMs = useMemo(() => {

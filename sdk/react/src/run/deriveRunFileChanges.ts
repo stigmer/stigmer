@@ -25,7 +25,7 @@ import type { DiffHunk, FileDiffEntry } from "../version-history/types.js";
  * **Source.** Each run's file record ({@link displayFileChangeSets}: the
  * change sets it captured, `RunStatus.file_changes`), each captured change
  * projected via {@link toDisplayFileChange}. A run's record already includes
- * sub-agent captures, so one pass per run suffices. What was decided about a
+ * subagent captures, so one pass per run suffices. What was decided about a
  * file is the session's events, not this list.
  *
  * **Net-diff (not latest-wins).** A change is a *delta*: an agent often

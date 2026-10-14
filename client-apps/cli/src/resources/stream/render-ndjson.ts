@@ -5,7 +5,7 @@
 // `stigmer runs trace -o json` lists the same.
 //
 // The answers a run gives appear as their own events (user.tool_confirmation,
-// stigmer.permission.grant). An unset `--approve-default` skips each ask, and
+// stigmer.permission.grant). An unset `--approve-default` denies each ask, and
 // says so on stderr.
 
 import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
@@ -38,7 +38,7 @@ export class NdjsonRenderer implements HeadlessRenderer {
 
   answering(ask: ToolUse, choice: ApproveDefault): void {
     if (choice === "") {
-      this.opts.status.write(`⚠ No --approve-default set; skipping ${ask.name}\n`);
+      this.opts.status.write(`⚠ No --approve-default set; denying ${ask.name}\n`);
     }
   }
 }

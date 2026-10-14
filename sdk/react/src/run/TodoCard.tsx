@@ -38,14 +38,14 @@ export interface TodoCardProps {
  * The card chrome matches the rest of the thread's tool cards (a single
  * neutral {@link https://tailwindcss.com `border-border-prominent`} line) and
  * wraps the chrome-less {@link TodoList} primitive — the same list the
- * sub-agent section renders bare, so there is exactly one todo renderer and no
+ * subagent section renders bare, so there is exactly one todo renderer and no
  * card-in-a-card.
  *
  * Disclosure follows the thread's {@link useAutoDisclosure} convention: open
  * while the plan is active (any item in progress), settling closed once the
  * plan is fully resolved, with a user's manual toggle always winning. This
  * keeps an in-flight plan visible and a finished one tidy, mirroring
- * `ToolRunGroup`/{@link SubAgentSection}.
+ * `ToolRunGroup`/{@link SubagentSection}.
  *
  * `React.memo`'d on the by-reference `todos` list: the session fold rebuilds
  * a turn's list only when the turn changes, so the card re-renders on turn

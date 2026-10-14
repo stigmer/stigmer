@@ -125,16 +125,28 @@ describe("stigmer runs approve", () => {
     expect(out).toContain("Tool call denied: delete (aex_1.c1)");
   });
 
-  it("approves the one waiting call when no --tool-call is named", async () => {
+  it("allows the one waiting call for the turn when no --tool-call is named", async () => {
     approve.approveAgentToolCall.mockResolvedValue({ toolUseId: "aex_1.c1", toolName: "shell", answer: "grant" });
-    const out = await runs("approve", "aex_1", "--action", "approve-all");
+    const out = await runs("approve", "aex_1", "--action", "allow-all");
     expect(approve.approveAgentToolCall).toHaveBeenCalledWith(stigmer, {
       runId: "aex_1",
       toolCallId: "",
-      action: "approve-all",
+      action: "allow-all",
       comment: "",
     });
     expect(out).toContain("Tool call allowed for the rest of the turn: shell (aex_1.c1)");
+  });
+
+  it("defaults the action to allow", async () => {
+    approve.approveAgentToolCall.mockResolvedValue({ toolUseId: "aex_1.c1", toolName: "shell", answer: "allow" });
+    const out = await runs("approve", "aex_1");
+    expect(approve.approveAgentToolCall).toHaveBeenCalledWith(stigmer, {
+      runId: "aex_1",
+      toolCallId: "",
+      action: "allow",
+      comment: "",
+    });
+    expect(out).toContain("Tool call allowed: shell (aex_1.c1)");
   });
 
   it("passes the resource's refusal through", async () => {

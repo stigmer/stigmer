@@ -1,7 +1,7 @@
 // Test fixtures for the terminal components: session events, built with
 // `@stigmer/react/test`'s samples where they cover the shape and with
 // `create(SessionEventSchema)` where they do not (asks' answers, file
-// reviews, sub-agent threads), folded the way the conversation hooks fold
+// reviews, subagent threads), folded the way the conversation hooks fold
 // them. Every component under test reads the fold's types.
 import { create, type JsonObject, type MessageInitShape } from "@bufbuild/protobuf";
 import {
@@ -153,7 +153,7 @@ export function reviewSet(
   return turnOf([samples.userMessageEvent("go"), ...reviewEvents(files, decisions)]).fileReview[0]!;
 }
 
-/** A sub-agent's thread events, opened by its `task` tool use `taskId`, as it finished. */
+/** A subagent's thread events, opened by its `task` tool use `taskId`, as it finished. */
 export function threadEvents(
   taskId: string,
   opts: {

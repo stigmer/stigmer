@@ -31,7 +31,7 @@ there. This guide is an index; the READMEs and headers it names are the truth.
   departs, as its header says. Raw stacks appear only in debug mode.
 - Off a TTY there are no colours, spinners or prompts: colour honours the stream
   and `NO_COLOR`, a destructive command without `--force` aborts, and a headless
-  run resolves each approval by `--approve-default` (skip when unset), never by
+  run resolves each approval by `--approve-default` (deny when unset), never by
   waiting on a prompt.
 - An approval prompt is unmissable, keyboard-driven, and never times out into
   approval.

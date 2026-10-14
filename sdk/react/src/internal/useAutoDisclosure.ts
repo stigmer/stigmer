@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 /**
  * Disclosure state machine for progressively-revealed thread sections
- * (tool-call groups, individual tool rows, sub-agent cards).
+ * (tool-call groups, individual tool rows, subagent cards).
  *
  * The challenge it solves: a section should open and close *on its own* as
  * the agent works (open while a tool runs, settle closed when it finishes),

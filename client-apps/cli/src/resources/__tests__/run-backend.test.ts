@@ -188,7 +188,7 @@ describe("lifecycle control", () => {
 
 describe("answering a waiting run", () => {
   const answer = (overrides: Partial<Parameters<typeof approveAgentToolCall>[1]>) =>
-    approveAgentToolCall(client, { runId: "aex_wait", toolCallId: "", action: "approve", comment: "", ...overrides });
+    approveAgentToolCall(client, { runId: "aex_wait", toolCallId: "", action: "allow", comment: "", ...overrides });
 
   it("allows the one call the run waits on", async () => {
     expect(await answer({})).toEqual({ toolUseId: "aex_wait.c1", toolName: "delete", answer: "allow" });
@@ -202,13 +202,15 @@ describe("answering a waiting run", () => {
     expect(confirms.map((c) => [c.result, c.denyMessage])).toEqual([["deny", "unsafe"]]);
   });
 
-  it("reads reject as deny", async () => {
-    await answer({ action: "reject" });
-    expect(confirms.map((c) => c.result)).toEqual(["deny"]);
+  it("refuses a retired action with the word that replaced it, sending nothing", async () => {
+    await expect(answer({ action: "approve" })).rejects.toThrow('invalid --action "approve": "approve" is now "allow"; must be one of: allow, deny, allow-all');
+    await expect(answer({ action: "reject" })).rejects.toThrow('"reject" is now "deny"');
+    await expect(answer({ action: "approve-all" })).rejects.toThrow('"approve-all" is now "allow-all"');
+    expect([confirms, grants]).toEqual([[], []]);
   });
 
-  it("grants the call's class for the rest of the turn with approve-all", async () => {
-    expect(await answer({ runId: "aex_two", toolCallId: "aex_two.c2", action: "approve-all" })).toEqual({
+  it("grants the call's class for the rest of the turn with allow-all", async () => {
+    expect(await answer({ runId: "aex_two", toolCallId: "aex_two.c2", action: "allow-all" })).toEqual({
       toolUseId: "aex_two.c2",
       toolName: "shell",
       answer: "grant",
@@ -234,7 +236,7 @@ describe("answering a waiting run", () => {
     await expect(answer({ runId: "aex_empty" })).rejects.toThrow("run aex_empty has no tool call waiting for an answer");
   });
 
-  it("refuses a comment on an approval and an unknown action, sending nothing", async () => {
+  it("refuses a comment on an allow and an unknown action, sending nothing", async () => {
     await expect(answer({ comment: "lgtm" })).rejects.toThrow("--comment is the reason given with a deny");
     await expect(answer({ action: "maybe" })).rejects.toThrow('invalid --action "maybe"');
     expect(confirms).toEqual([]);
@@ -248,7 +250,7 @@ describe("trace", () => {
     return { streams: { write: (t: string) => chunks.push(t), colorize: false }, text: () => chunks.join("") };
   }
 
-  it("renders the run's tool uses with their state, a sub-agent's indented", async () => {
+  it("renders the run's tool uses with their state, a subagent's indented", async () => {
     const cap = capture();
     await traceRun(client, "aex_1", "table", cap.streams);
     expect(cap.text()).toContain("Agent: Reviewer (completed, 20s)");
