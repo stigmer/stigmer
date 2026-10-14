@@ -534,8 +534,8 @@ public final class VaultCommandControllerGrpc {
     /**
      * <pre>
      * Delete a vault and every value it holds.
-     * Sessions, schedules, shares, channels and platform clients that name the
-     * vault are refused at their next run, naming it.
+     * Sessions, schedules, shares, channels and embedding settings that name
+     * the vault are refused at their next run, naming it.
      * </pre>
      */
     default void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -752,8 +752,8 @@ public final class VaultCommandControllerGrpc {
     /**
      * <pre>
      * Delete a vault and every value it holds.
-     * Sessions, schedules, shares, channels and platform clients that name the
-     * vault are refused at their next run, naming it.
+     * Sessions, schedules, shares, channels and embedding settings that name
+     * the vault are refused at their next run, naming it.
      * </pre>
      */
     public void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -960,8 +960,8 @@ public final class VaultCommandControllerGrpc {
     /**
      * <pre>
      * Delete a vault and every value it holds.
-     * Sessions, schedules, shares, channels and platform clients that name the
-     * vault are refused at their next run, naming it.
+     * Sessions, schedules, shares, channels and embedding settings that name
+     * the vault are refused at their next run, naming it.
      * </pre>
      */
     public ai.stigmer.agentic.vault.v1.Vault delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) throws io.grpc.StatusException {
@@ -1160,8 +1160,8 @@ public final class VaultCommandControllerGrpc {
     /**
      * <pre>
      * Delete a vault and every value it holds.
-     * Sessions, schedules, shares, channels and platform clients that name the
-     * vault are refused at their next run, naming it.
+     * Sessions, schedules, shares, channels and embedding settings that name
+     * the vault are refused at their next run, naming it.
      * </pre>
      */
     public ai.stigmer.agentic.vault.v1.Vault delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) {
@@ -1364,8 +1364,8 @@ public final class VaultCommandControllerGrpc {
     /**
      * <pre>
      * Delete a vault and every value it holds.
-     * Sessions, schedules, shares, channels and platform clients that name the
-     * vault are refused at their next run, naming it.
+     * Sessions, schedules, shares, channels and embedding settings that name
+     * the vault are refused at their next run, naming it.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.vault.v1.Vault> delete(

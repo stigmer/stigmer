@@ -174,7 +174,7 @@ spec:
 | `optional` | `false` (default): a run whose vaults hold no value is refused before it starts, naming the key and who must add it. `true`: the run starts without it. |
 | `value` | A plain setting's own value. A vault secret with the same name takes its place. |
 
-Which vaults a run reads: the My vault of the person sending the turn when the conversation includes it (`include_my_vault`), then the vaults the conversation lists, in order. An agent carries no vaults: it is a blueprint, and each conversation names its own. A run no person sent (a schedule, a share link, a channel, a platform client's user) uses only the vaults its conversation and that surface name. The console names the keys an agent reads before the first message.
+Which vaults a run reads: the My vault of the person sending the turn when the conversation includes it (`include_my_vault`), then the vaults the conversation lists, in order. An agent carries no vaults: it is a blueprint, and each conversation names its own. A run no person sent (a schedule, a share link, a channel, an app user) uses only the vaults its conversation and that surface name. The console names the keys an agent reads before the first message.
 
 ## Run Defaults
 

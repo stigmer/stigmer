@@ -98,8 +98,8 @@ type VaultCommandControllerClient interface {
 	Rename(ctx context.Context, in *apiresource.RenameInput, opts ...grpc.CallOption) (*Vault, error)
 	// Delete a vault and every value it holds.
 	//
-	// Sessions, schedules, shares, channels and platform clients that name the
-	// vault are refused at their next run, naming it.
+	// Sessions, schedules, shares, channels and embedding settings that name
+	// the vault are refused at their next run, naming it.
 	Delete(ctx context.Context, in *apiresource.ApiResourceDeleteInput, opts ...grpc.CallOption) (*Vault, error)
 	// Save secrets in a vault, replacing any saved under the same names.
 	//
@@ -336,8 +336,8 @@ type VaultCommandControllerServer interface {
 	Rename(context.Context, *apiresource.RenameInput) (*Vault, error)
 	// Delete a vault and every value it holds.
 	//
-	// Sessions, schedules, shares, channels and platform clients that name the
-	// vault are refused at their next run, naming it.
+	// Sessions, schedules, shares, channels and embedding settings that name
+	// the vault are refused at their next run, naming it.
 	Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*Vault, error)
 	// Save secrets in a vault, replacing any saved under the same names.
 	//

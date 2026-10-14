@@ -74,7 +74,7 @@ describe("the platform-token envelope", () => {
     const ring = signingRing({ audience: "https://api.stigmer.ai" });
     const token = signPlatformToken(
       ring,
-      { sub: "ida_1", platform_client_id: "pcl_1" },
+      { sub: "ida_1", minted_by: "ida_minter" },
       { now: NOW },
     ).token;
 
@@ -88,7 +88,7 @@ describe("the platform-token envelope", () => {
       iat: NOW.getTime() / 1000,
       exp: NOW.getTime() / 1000 + 900,
       aud: "https://api.stigmer.ai",
-      platform_client_id: "pcl_1",
+      minted_by: "ida_minter",
     });
     const header = JSON.parse(
       Buffer.from(token.split(".")[0] ?? "", "base64url").toString(),
@@ -234,7 +234,7 @@ describe("the platform-token envelope", () => {
     const ring = signingRing();
     const token = signPlatformToken(
       ring,
-      { platform_client_id: "pcl_1" },
+      { minted_by: "ida_minter" },
       { now: NOW },
     ).token;
     expect(verifyPlatformToken(ring, token, NOW)).toEqual({

@@ -31,7 +31,7 @@
  *     nor `admin`, nor `member` anywhere;
  *   - `isPersonAccount` is an allow-list: a `direct` or legacy
  *     unspecified-mode row that is not a machine account, and nothing
- *     else (machine, platform client, federated, service account), so a
+ *     else (machine, app user, federated, service account), so a
  *     mode added later is not a person until the rule says so.
  *
  *   ensureOperatorOwnership(operator): `owner` on every organization that

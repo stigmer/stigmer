@@ -1801,7 +1801,7 @@
         {
           "name": "RUN_VALUE_ORIGIN_SURFACE_VAULT",
           "number": 4,
-          "description": "A vault of the surface a turn with no person came through (its\n schedule, share, channel or platform client)."
+          "description": "A vault of the surface a turn with no person came through (its\n schedule, share, channel or its organization's embedding settings)."
         },
         {
           "name": "RUN_VALUE_ORIGIN_DECLARATION",
@@ -3465,7 +3465,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The person whose turn this is, by identity account id. Absent for a\n turn no person sent: a schedule's, a channel's, a share link guest's, a\n platform client user's or a machine account's, which use only the\n vaults their session and surface name.",
+          "description": "The person whose turn this is, by identity account id. Absent for a\n turn no person sent: a schedule's, a channel's, a share link guest's, an\n app user's or a machine account's, which use only the vaults their\n session and surface name.",
           "required": false,
           "oneofGroup": "_person"
         },

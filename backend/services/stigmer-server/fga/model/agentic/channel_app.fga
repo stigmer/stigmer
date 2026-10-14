@@ -14,7 +14,7 @@ module agentic
 # provider, so they are the organization's credential, not a person's.
 # Plain members and viewer-role members of the organization see nothing.
 # `owner` is computed, never stored: it is the organization's admins, as
-# an OAuth app or a platform client is managed, so an app stays manageable
+# an OAuth app is managed, so an app stays manageable
 # whoever created it, and a creator who is demoted below admin or removed
 # loses control of it with the role. Rotating or replacing a secret must
 # end with the role that allowed it. The creator is recorded in the audit

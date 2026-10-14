@@ -50,7 +50,7 @@ public enum RunValueOrigin
   /**
    * <pre>
    * A vault of the surface a turn with no person came through (its
-   * schedule, share, channel or platform client).
+   * schedule, share, channel or its organization's embedding settings).
    * </pre>
    *
    * <code>RUN_VALUE_ORIGIN_SURFACE_VAULT = 4;</code>
@@ -111,7 +111,7 @@ public enum RunValueOrigin
   /**
    * <pre>
    * A vault of the surface a turn with no person came through (its
-   * schedule, share, channel or platform client).
+   * schedule, share, channel or its organization's embedding settings).
    * </pre>
    *
    * <code>RUN_VALUE_ORIGIN_SURFACE_VAULT = 4;</code>

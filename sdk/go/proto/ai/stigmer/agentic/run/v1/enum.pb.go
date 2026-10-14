@@ -1031,7 +1031,7 @@ const (
 	// A vault the conversation lists.
 	RunValueOrigin_RUN_VALUE_ORIGIN_VAULT RunValueOrigin = 3
 	// A vault of the surface a turn with no person came through (its
-	// schedule, share, channel or platform client).
+	// schedule, share, channel or its organization's embedding settings).
 	RunValueOrigin_RUN_VALUE_ORIGIN_SURFACE_VAULT RunValueOrigin = 4
 	// The declaration's own plain default.
 	RunValueOrigin_RUN_VALUE_ORIGIN_DECLARATION RunValueOrigin = 5

@@ -137,7 +137,7 @@ private static final long serialVersionUID = 0L;
    * Combined with org, forms the canonical reference: "org/slug".
    * Update and apply never change it: a kind whose slug may change has a
    * rename RPC (organization, agent, vault, schedule, channel app, OAuth
-   * app, platform client, team and federation issuer), after which the old
+   * app, team and federation issuer), after which the old
    * slug leads to the resource for reading for 30 days.
    * Format: lowercase alphanumeric characters and hyphens, 2 to 63
    * characters, the length every reference to a resource holds; must start
@@ -173,7 +173,7 @@ private static final long serialVersionUID = 0L;
    * Combined with org, forms the canonical reference: "org/slug".
    * Update and apply never change it: a kind whose slug may change has a
    * rename RPC (organization, agent, vault, schedule, channel app, OAuth
-   * app, platform client, team and federation issuer), after which the old
+   * app, team and federation issuer), after which the old
    * slug leads to the resource for reading for 30 days.
    * Format: lowercase alphanumeric characters and hyphens, 2 to 63
    * characters, the length every reference to a resource holds; must start
@@ -1450,7 +1450,7 @@ java.lang.String defaultValue) {
      * Combined with org, forms the canonical reference: "org/slug".
      * Update and apply never change it: a kind whose slug may change has a
      * rename RPC (organization, agent, vault, schedule, channel app, OAuth
-     * app, platform client, team and federation issuer), after which the old
+     * app, team and federation issuer), after which the old
      * slug leads to the resource for reading for 30 days.
      * Format: lowercase alphanumeric characters and hyphens, 2 to 63
      * characters, the length every reference to a resource holds; must start
@@ -1485,7 +1485,7 @@ java.lang.String defaultValue) {
      * Combined with org, forms the canonical reference: "org/slug".
      * Update and apply never change it: a kind whose slug may change has a
      * rename RPC (organization, agent, vault, schedule, channel app, OAuth
-     * app, platform client, team and federation issuer), after which the old
+     * app, team and federation issuer), after which the old
      * slug leads to the resource for reading for 30 days.
      * Format: lowercase alphanumeric characters and hyphens, 2 to 63
      * characters, the length every reference to a resource holds; must start
@@ -1521,7 +1521,7 @@ java.lang.String defaultValue) {
      * Combined with org, forms the canonical reference: "org/slug".
      * Update and apply never change it: a kind whose slug may change has a
      * rename RPC (organization, agent, vault, schedule, channel app, OAuth
-     * app, platform client, team and federation issuer), after which the old
+     * app, team and federation issuer), after which the old
      * slug leads to the resource for reading for 30 days.
      * Format: lowercase alphanumeric characters and hyphens, 2 to 63
      * characters, the length every reference to a resource holds; must start
@@ -1553,7 +1553,7 @@ java.lang.String defaultValue) {
      * Combined with org, forms the canonical reference: "org/slug".
      * Update and apply never change it: a kind whose slug may change has a
      * rename RPC (organization, agent, vault, schedule, channel app, OAuth
-     * app, platform client, team and federation issuer), after which the old
+     * app, team and federation issuer), after which the old
      * slug leads to the resource for reading for 30 days.
      * Format: lowercase alphanumeric characters and hyphens, 2 to 63
      * characters, the length every reference to a resource holds; must start
@@ -1582,7 +1582,7 @@ java.lang.String defaultValue) {
      * Combined with org, forms the canonical reference: "org/slug".
      * Update and apply never change it: a kind whose slug may change has a
      * rename RPC (organization, agent, vault, schedule, channel app, OAuth
-     * app, platform client, team and federation issuer), after which the old
+     * app, team and federation issuer), after which the old
      * slug leads to the resource for reading for 30 days.
      * Format: lowercase alphanumeric characters and hyphens, 2 to 63
      * characters, the length every reference to a resource holds; must start

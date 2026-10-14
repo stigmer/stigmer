@@ -54,7 +54,7 @@
  * for the minting service account (`serverActingFor`), so the account's
  * audit and the access history name the machine that let the person in,
  * and the grant is an ordinary `grant`, the way a federated sign-in's is
- * recorded for its identity provider. The service account's own key is
+ * recorded for its federation issuer. The service account's own key is
  * refused every account and organization-role write on the wire; this is
  * the one place its organization's admins let it do either, bounded by
  * the role they set in the embedding settings.
