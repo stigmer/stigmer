@@ -112,13 +112,21 @@ describe("decisionsBySet", () => {
   it("is every decision the slice holds, by change set, oldest first, keeps included", () => {
     const keepB = decided(CHANGE_SET, "keep", EARLIER, "b.md");
     const undoA = decided(CHANGE_SET, "undo", EARLIER, "a.md");
-    const other = decided("run_other:0", "undo");
+    const other = decided("run_other:0", "undo", "run_other");
     const bySet = decisionsBySet([other, undoA, userMessage(EARLIER), keepB]);
     expect(bySet.get(CHANGE_SET)).toEqual([
       { scope: "file", fileChangeId: `${CHANGE_SET}:b.md`, action: "keep" },
       { scope: "file", fileChangeId: `${CHANGE_SET}:a.md`, action: "undo" },
     ]);
     expect(bySet.get("run_other:0")).toEqual([{ scope: "change_set", fileChangeId: "", action: "undo" }]);
+  });
+
+  it("takes no decision written under a run other than the set's own", () => {
+    const own = decided(CHANGE_SET, "undo", EARLIER, "a.md");
+    const foreign = decided(CHANGE_SET, "keep", THIS);
+    expect(decisionsBySet([foreign, own]).get(CHANGE_SET)).toEqual([
+      { scope: "file", fileChangeId: `${CHANGE_SET}:a.md`, action: "undo" },
+    ]);
   });
 });
 

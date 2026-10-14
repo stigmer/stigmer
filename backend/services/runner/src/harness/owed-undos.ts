@@ -129,12 +129,18 @@ export async function readOwedUndos(
   return { undos: owedUndos(slice), decisions: decisionsBySet(slice), previousMessageRunId };
 }
 
-/** The `decided` events in `slice` (newest first, as read), by change set, oldest first. */
+/**
+ * The `decided` events in `slice` (newest first, as read), by change set,
+ * oldest first. A decision on a set is written under the set's own run (the
+ * set id's `<run id>:` part); one written under any other run decides
+ * nothing here.
+ */
 export function decisionsBySet(slice: readonly SessionEvent[]): Map<string, LoggedFileDecision[]> {
   const out = new Map<string, LoggedFileDecision[]>();
   for (const event of [...slice].reverse()) {
     if (event.event.case !== "stigmerFileReviewDecided") continue;
     const { changeSetId, scope, fileChangeId, action } = event.event.value;
+    if (event.runId !== changeSetIdParts(changeSetId).runId) continue;
     const list = out.get(changeSetId) ?? [];
     list.push({ scope, fileChangeId, action });
     out.set(changeSetId, list);
