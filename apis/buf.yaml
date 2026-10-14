@@ -66,7 +66,24 @@ breaking:
   # While it stays, buf breaking does not report these rules on the listed
   # files, so the pull request that removes it lands straight after the
   # merge (#2259).
+  #
+  # One pull request renames the IdentityProvider kind for what it is: an
+  # outside issuer whose tokens Stigmer accepts. The package
+  # ai.stigmer.iam.identityprovider.v1 moves to
+  # ai.stigmer.iam.federationissuer.v1 with every message and service
+  # renamed; ApiResourceKind identity_provider = 21 becomes
+  # federation_issuer, IamPermission can_create_idp = 11 becomes
+  # can_create_federation_issuer, and the identity_provider_ref fields of
+  # IdentityAccountSpec and the federated account inputs become
+  # federation_issuer_ref. Every field and value number is kept. It is made
+  # before launch: the release notes name it under Upgrading. This block
+  # exists for that one pull request. While it stays, buf breaking does not
+  # report these rules on the listed files, so the pull request that removes
+  # it lands straight after the merge.
   ignore_only:
+    ENUM_VALUE_SAME_NAME:
+      - ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto
+      - ai/stigmer/iam/v1/enum.proto
     FIELD_NO_DELETE:
       - ai/stigmer/agentic/agent/v1/version.proto
       - ai/stigmer/agentic/agentchannel/v1/conversation_io.proto
@@ -104,6 +121,8 @@ breaking:
       - ai/stigmer/agentic/vault/v1/io.proto
       - ai/stigmer/billing/providerkey/v1/io.proto
       - ai/stigmer/billing/v1/io.proto
+      - ai/stigmer/iam/identityaccount/v1/io.proto
+      - ai/stigmer/iam/identityaccount/v1/spec.proto
     FIELD_SAME_NAME:
       - ai/stigmer/agentic/agent/v1/version.proto
       - ai/stigmer/agentic/agentchannel/v1/conversation_io.proto
@@ -119,11 +138,18 @@ breaking:
       - ai/stigmer/agentic/vault/v1/io.proto
       - ai/stigmer/billing/providerkey/v1/io.proto
       - ai/stigmer/billing/v1/io.proto
+      - ai/stigmer/iam/identityaccount/v1/io.proto
+      - ai/stigmer/iam/identityaccount/v1/spec.proto
     FIELD_SAME_TYPE:
       - ai/stigmer/agentic/plugin/v1/io.proto
       - ai/stigmer/agentic/skill/v1/io.proto
     FILE_NO_DELETE:
       - ai/stigmer/commons/rpc/pagination.proto
+      - ai/stigmer/iam/identityprovider/v1/api.proto
+      - ai/stigmer/iam/identityprovider/v1/command.proto
+      - ai/stigmer/iam/identityprovider/v1/io.proto
+      - ai/stigmer/iam/identityprovider/v1/query.proto
+      - ai/stigmer/iam/identityprovider/v1/spec.proto
     MESSAGE_NO_DELETE:
       - ai/stigmer/agentic/agentchannel/v1/conversation_io.proto
       - ai/stigmer/agentic/agentchannel/v1/io.proto

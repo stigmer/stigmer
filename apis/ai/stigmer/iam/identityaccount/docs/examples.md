@@ -37,7 +37,7 @@ stigmer identity-account get ia-01HQUSER123 --output yaml
 
 ## Update Profile Fields
 
-Only mutable fields (`first_name`, `last_name`, `picture_url`) can be updated. `idp_id`, `email`, `is_machine_account`, `provisioning_mode`, and `identity_provider_ref` are immutable or system-managed.
+Only mutable fields (`first_name`, `last_name`, `picture_url`) can be updated. `idp_id`, `email`, `is_machine_account`, `provisioning_mode`, and `federation_issuer_ref` are immutable or system-managed.
 
 ```yaml
 # update-profile.yaml
@@ -59,7 +59,7 @@ stigmer identity-account update update-profile.yaml
 
 ## Federated Account — What It Looks Like
 
-A federated account is created by the platform, or by Stigmer on the first sign-in, and has additional fields linking it to the IdentityProvider.
+A federated account is created by the platform, or by Stigmer on the first sign-in, and has additional fields linking it to the FederationIssuer.
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1
@@ -75,9 +75,9 @@ spec:
   picture_url: "https://partner.example.com/bob.jpg"
   is_machine_account: false
   provisioning_mode: federated
-  identity_provider_ref:
+  federation_issuer_ref:
     org: partner-org
-    kind: identity_provider
+    kind: federation_issuer
     slug: partner-cloud
 ```
 

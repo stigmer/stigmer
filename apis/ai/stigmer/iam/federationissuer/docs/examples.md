@@ -1,6 +1,6 @@
-# IdentityProvider Examples
+# FederationIssuer Examples
 
-Complete examples for registering external identity providers.
+Complete examples for registering external federation issuers.
 
 ## Auth0-Based Integration (Single Environment)
 
@@ -8,7 +8,7 @@ The most common setup: an external platform uses Auth0 as its identity backend.
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1
-kind: IdentityProvider
+kind: FederationIssuer
 metadata:
   name: Planton
   slug: planton
@@ -24,11 +24,11 @@ spec:
 
 ## Auth0-Based Integration (Second Environment)
 
-A staging Auth0 tenant is its own issuer with its own key set, so it is its own IdentityProvider beside the production one. Stigmer refuses one provider whose issuers' discovery documents name different key sets.
+A staging Auth0 tenant is its own issuer with its own key set, so it is its own FederationIssuer beside the production one. Stigmer refuses one federation issuer whose issuers' discovery documents name different key sets.
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1
-kind: IdentityProvider
+kind: FederationIssuer
 metadata:
   name: Planton Staging
   slug: planton-staging
@@ -48,7 +48,7 @@ Let Stigmer create each user's account on their first sign-in instead of creatin
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1
-kind: IdentityProvider
+kind: FederationIssuer
 metadata:
   name: Partner Platform
   slug: partner-platform
@@ -70,7 +70,7 @@ Bind each token to the child organization it names. Stigmer reads `org_id` from 
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1
-kind: IdentityProvider
+kind: FederationIssuer
 metadata:
   name: SaaS Platform
   slug: saas-platform
@@ -87,17 +87,17 @@ spec:
 ## CLI: Apply (Create or Update)
 
 ```bash
-# Kubernetes-style upsert: creates the provider the first time, updates it after
-stigmer apply -f planton-idp.yaml
+# Kubernetes-style upsert: creates the issuer the first time, updates it after
+stigmer apply -f planton-issuer.yaml
 ```
 
 ## CLI: Update (Rotate JWKS or Update Audience)
 
-Update the YAML with new values, then apply it again. Apply finds the existing provider by its organization and slug, so the file needs no id:
+Update the YAML with new values, then apply it again. Apply finds the existing issuer by its organization and slug, so the file needs no id:
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1
-kind: IdentityProvider
+kind: FederationIssuer
 metadata:
   name: Planton
   slug: planton
@@ -112,10 +112,10 @@ spec:
 ```
 
 ```bash
-stigmer apply -f updated-idp.yaml
+stigmer apply -f updated-issuer.yaml
 ```
 
 ## Reading and deleting
 
-The CLI applies identity providers and does not read or delete them; use the console's Identity Providers settings or the API (`getByReference` with the organization and slug, `delete` with the id).
+The CLI applies federation issuers and does not read or delete them; use the console's Federation Issuers settings or the API (`getByReference` with the organization and slug, `delete` with the id).
 

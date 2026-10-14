@@ -80,7 +80,7 @@ message PlatformClientSpec {
   bool never_expires = 5;
 
   // Replaced by create_accounts_on_sign_in and sign_in_role (fields 11 and
-  // 12), the names identity providers use for the same two settings.
+  // 12), the names federation issuers use for the same two settings.
   reserved 6, 7, 8;
   reserved "auto_provision_accounts", "auto_grant_on_org", "auto_grant_role";
 

@@ -15,7 +15,7 @@ import "buf/validate/validate.proto";
 // for the address and of the address's own login server. Each address
 // belongs to one app in an organization.
 //
-// Analogous to IdentityProvider (inbound auth trust), OAuthApp represents
+// Analogous to FederationIssuer (inbound auth trust), OAuthApp represents
 // outbound auth — how Stigmer authenticates with external services on
 // behalf of users.
 //

@@ -1,15 +1,15 @@
-# IdentityProvider Validation Checklist and Common Pitfalls
+# FederationIssuer Validation Checklist and Common Pitfalls
 
-Pre-create checklist and known pitfalls when registering an IdentityProvider.
+Pre-create checklist and known pitfalls when registering a FederationIssuer.
 
 ## Pre-Create Checklist
 
 ### Required Fields
 
 - [ ] `apiVersion` is exactly `iam.stigmer.ai/v1`
-- [ ] `kind` is exactly `IdentityProvider`
+- [ ] `kind` is exactly `FederationIssuer`
 - [ ] `metadata.name` is present and descriptive
-- [ ] `metadata.org` is set to the organization that owns this identity provider
+- [ ] `metadata.org` is set to the organization that owns this federation issuer
 - [ ] `metadata.slug` follows the slug format: lowercase alphanumeric with hyphens, starts with a letter, ends with a letter or digit, 2 to 63 characters
 
 ### Spec Validation
@@ -18,7 +18,7 @@ Pre-create checklist and known pitfalls when registering an IdentityProvider.
 - [ ] `spec.jwks_uri` is reachable from Stigmer's servers (publicly accessible)
 - [ ] `spec.jwks_uri` is the `jwks_uri` that each issuer's OIDC discovery document names
 - [ ] `spec.allowed_issuers` contains at least one entry
-- [ ] Each entry in `spec.allowed_issuers` names the same issuer as the `iss` claim in tokens from this provider, path included (copy it from the provider's OIDC discovery document)
+- [ ] Each entry in `spec.allowed_issuers` names the same issuer as the `iss` claim in tokens from this issuer, path included (copy it from the provider's OIDC discovery document)
 - [ ] `spec.expected_audience` exactly matches the `aud` claim in tokens (copy directly from the provider's configuration)
 - [ ] `spec.expected_audience` is your organization's own registration at the issuer (an API identifier or client ID), not a value shared with others
 - [ ] `spec.userinfo_endpoint`, if set, is an HTTPS URL pointing to the OIDC UserInfo endpoint
@@ -26,7 +26,7 @@ Pre-create checklist and known pitfalls when registering an IdentityProvider.
 
 ### Authorization
 
-- [ ] The calling identity has `can_create_idp` on the owning organization
+- [ ] The calling identity has `can_create_federation_issuer` on the owning organization
 
 ## Common Pitfalls
 
@@ -60,11 +60,11 @@ expected_audience: "https://api.myplatform.com/"
 
 ### A Shared or Borrowed `expected_audience`
 
-An issuer and an audience together identify an identity provider across the platform, so an audience another identity provider already registered at the same issuer is refused with `ALREADY_EXISTS`. Register an API identifier or client ID of your own for Stigmer at the issuer. The audience also cannot be a URL the issuer's discovery document names, such as its userinfo endpoint, because the issuer may add that audience to every token it mints.
+An issuer and an audience together identify a federation issuer across the platform, so an audience another federation issuer already registered at the same issuer is refused with `ALREADY_EXISTS`. Register an API identifier or client ID of your own for Stigmer at the issuer. The audience also cannot be a URL the issuer's discovery document names, such as its userinfo endpoint, because the issuer may add that audience to every token it mints.
 
 ### Endpoints That Are Not the Issuer's Own
 
-Stigmer reads each issuer's discovery document when the identity provider is saved, and refuses a `jwks_uri` or `userinfo_endpoint` other than the one it names. Copy both values from the discovery document rather than from another deployment.
+Stigmer reads each issuer's discovery document when the federation issuer is saved, and refuses a `jwks_uri` or `userinfo_endpoint` other than the one it names. Copy both values from the discovery document rather than from another deployment.
 
 ### Using an HTTP (Non-HTTPS) Endpoint
 
@@ -80,7 +80,7 @@ jwks_uri: "https://auth.example.com/.well-known/jwks.json"
 
 ### Registering a Non-Public JWKS Endpoint
 
-The `jwks_uri` must be reachable from Stigmer's servers. Stigmer fetches the key set when the identity provider is saved and refuses the save with `INVALID_ARGUMENT` when it cannot read it, so a private network URL (e.g., `https://internal.example.com/jwks`) is never stored.
+The `jwks_uri` must be reachable from Stigmer's servers. Stigmer fetches the key set when the federation issuer is saved and refuses the save with `INVALID_ARGUMENT` when it cannot read it, so a private network URL (e.g., `https://internal.example.com/jwks`) is never stored.
 
 ### Using the Wrong Endpoint for `userinfo_endpoint`
 
@@ -88,6 +88,6 @@ The UserInfo endpoint must comply with OpenID Connect Core 1.0 §5.3 — it must
 
 For Auth0, the UserInfo endpoint is always `https://{tenant}.auth0.com/userinfo`.
 
-### Deleting a Provider With Federated Accounts
+### Deleting an Issuer With Federated Accounts
 
-Deleting an IdentityProvider deletes the federated accounts it vouches for, with every role they hold. Child organizations do not depend on the provider: they name their parent organization, and a new provider with the same `external_id_claim` routes their people again. A provider created again under the same slug inherits none of them: nothing the old provider's users held carries over.
+Deleting a FederationIssuer deletes the federated accounts it vouches for, with every role they hold. Child organizations do not depend on the issuer: they name their parent organization, and a new issuer with the same `external_id_claim` routes their people again. An issuer created again under the same slug inherits none of them: nothing the old issuer's users held carries over.

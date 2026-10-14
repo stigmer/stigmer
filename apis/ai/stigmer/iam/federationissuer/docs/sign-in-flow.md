@@ -9,7 +9,7 @@ An external platform's users call Stigmer's API with the platform's own JWT. The
 ```
 Step 1 (manual mode only): Platform creates a federated account
   └─► Platform backend calls createFederatedAccount with the user's
-      external sub, email, name, and IdentityProvider reference.
+      external sub, email, name, and FederationIssuer reference.
       Stigmer returns the identity_account_id for role grants.
       With create_accounts_on_sign_in, skip this step: Stigmer creates the account on the first sign-in
       (Step 6).
@@ -21,10 +21,10 @@ Step 3: User calls Stigmer API with a platform-issued JWT
   └─► Authorization: Bearer {platform_access_token}
 
 Step 4: Stigmer verifies the token
-  ├─► Route the token: find the one IdentityProvider whose allowed_issuers
+  ├─► Route the token: find the one FederationIssuer whose allowed_issuers
   │     contains the token's iss AND whose expected_audience the token's aud
-  │     carries. A token no provider's route matches is not this lane's;
-  │     a token two providers' routes match is refused.
+  │     carries. A token no issuer's route matches is not this lane's;
+  │     a token two issuers' routes match is refused.
   ├─► Fetch the signing key named by the token's kid from spec.jwks_uri
   ├─► Verify the RS256 signature with that key
   ├─► Check exp (required), nbf (when present) and sub (required)
@@ -33,14 +33,14 @@ Step 4: Stigmer verifies the token
 Step 5: Stigmer binds the token to one organization
   ├─► external_id_claim set: read the claim from this token (every
   │     token, returning users included) and find the child
-  │     organization whose parent_org is this provider's organization
+  │     organization whose parent_org is this issuer's organization
   │     and whose external_id equals the value. A missing claim, a
   │     non-string value or an unknown child is refused with
   │     Unauthenticated; the refusal does not name the value.
-  └─► external_id_claim empty: the provider's own organization
+  └─► external_id_claim empty: the issuer's own organization
 
 Step 6: Stigmer resolves the federated account
-  ├─► Look up the IdentityAccount by (this IdentityProvider, sub)
+  ├─► Look up the IdentityAccount by (this FederationIssuer, sub)
   ├─► If found: proceed
   ├─► If NOT found:
   │     - create_accounts_on_sign_in: create the account
@@ -69,7 +69,7 @@ Step 7: Stigmer processes the API request
 
 ## OIDC Standards
 
-The IdentityProvider spec references standard OpenID Connect Discovery 1.0 fields:
+The FederationIssuer spec references standard OpenID Connect Discovery 1.0 fields:
 
 | Spec field | OIDC standard reference |
 |---|---|
@@ -89,13 +89,13 @@ Stigmer fetches signing keys from `jwks_uri` and caches them. During key rotatio
 3. If Stigmer's cache does not include the new key, it re-fetches the JWKS endpoint, at most once per short interval per document, so a flood of tokens naming unknown keys cannot hammer the endpoint.
 4. The new key is now cached and validation succeeds.
 
-Because Stigmer supports key re-fetching on cache miss, key rotation does not require changes to the IdentityProvider spec. Keys are identified by their `kid` (Key ID) claim in the JWT header.
+Because Stigmer supports key re-fetching on cache miss, key rotation does not require changes to the FederationIssuer spec. Keys are identified by their `kid` (Key ID) claim in the JWT header.
 
 ## Multi-Environment Integrations
 
-Each environment's auth tenant is its own issuer with its own key set, so register one IdentityProvider per environment. `allowed_issuers` takes several values only when every issuer's discovery document names the same `jwks_uri` (and the same `userinfo_endpoint` when one is set): the save refuses anything else, so an issuer's tokens are verified only with that issuer's own keys. The staging provider beside a production one:
+Each environment's auth tenant is its own issuer with its own key set, so register one FederationIssuer per environment. `allowed_issuers` takes several values only when every issuer's discovery document names the same `jwks_uri` (and the same `userinfo_endpoint` when one is set): the save refuses anything else, so an issuer's tokens are verified only with that issuer's own keys. The staging issuer beside a production one:
 
-```yaml validate-as="IdentityProvider"
+```yaml validate-as="FederationIssuer"
 spec:
   jwks_uri: "https://platform-staging.us.auth0.com/.well-known/jwks.json"
   allowed_issuers:
@@ -103,7 +103,7 @@ spec:
   expected_audience: "https://api.platform.example/"
 ```
 
-A user who signs in to both environments has one federated account per provider.
+A user who signs in to both environments has one federated account per issuer.
 
 ## Security Considerations
 
@@ -112,13 +112,13 @@ A user who signs in to both environments has one federated account per provider.
 | Token replay across services | `expected_audience` ensures tokens intended for another service are rejected |
 | Forged tokens | RS256 signature validation against keys from `jwks_uri`, which must be the key set every allowed issuer's discovery document names |
 | Expired or early tokens | `exp` is required and enforced; `nbf` is enforced when present |
-| Issuer substitution | A token is routed only by an issuer in `allowed_issuers` together with this provider's `expected_audience` |
-| Secret exposure | No client secrets are stored in the IdentityProvider spec — only public keys (via JWKS URI) |
+| Issuer substitution | A token is routed only by an issuer in `allowed_issuers` together with this issuer's `expected_audience` |
+| Secret exposure | No client secrets are stored in the FederationIssuer spec — only public keys (via JWKS URI) |
 | Profile staleness | Stigmer sets the profile when it creates the account and does not refresh it on later sign-ins; the platform pushes changes with `updateFederatedAccount` |
 
 ## Related Documentation
 
 - [README.md](README.md) — Overview and flow diagram
-- [identityprovider-resource-guide.md](identityprovider-resource-guide.md) — YAML schema reference
+- [federationissuer-resource-guide.md](federationissuer-resource-guide.md) — YAML schema reference
 - [examples.md](examples.md) — Complete YAML examples
 - [../../identityaccount/docs/provisioning-modes.md](../../identityaccount/docs/provisioning-modes.md) — Federated IdentityAccount provisioning

@@ -1,22 +1,22 @@
 syntax = "proto3";
 
-package ai.stigmer.iam.identityprovider.v1;
+package ai.stigmer.iam.federationissuer.v1;
 
 import "ai/stigmer/iam/v1/enum.proto";
 import "buf/validate/validate.proto";
 
-// IdentityProviderSpec defines the configuration for an external identity provider.
+// FederationIssuerSpec defines which outside issuer's tokens Stigmer accepts, and what they get.
 //
-// An IdentityProvider represents an external platform's trust relationship with Stigmer.
+// A FederationIssuer is an outside issuer whose tokens Stigmer accepts for its own users.
 // It is owned by an organization (e.g., "planton") and configures how Stigmer validates
-// tokens from that platform. Each request presents the provider's own JWT: Stigmer routes
+// tokens from that platform. Each request presents the issuer's own JWT: Stigmer routes
 // it by its issuer and audience, validates the token signature against the configured
 // JWKS, and resolves the user's federated identity account by the JWT's sub claim and
-// this provider's reference.
+// this issuer's reference.
 //
-// Every token this provider vouches for is bound to one organization: the
+// Every token this issuer vouches for is bound to one organization: the
 // child organization external_id_claim names when it is set, otherwise the
-// provider's own. A bound token works in that organization only.
+// issuer's own. A bound token works in that organization only.
 //
 // Two settings control what happens when someone signs in:
 //
@@ -26,10 +26,10 @@ import "buf/validate/validate.proto";
 //      CreateFederatedAccount before its users can sign in.
 //
 //   2. sign_in_role: the role an account receives the first time it signs in
-//      to an organization through this provider. Unspecified means none: the
+//      to an organization through this issuer. Unspecified means none: the
 //      platform grants roles itself through IAM policies.
 //
-// An identity provider is trust in another platform's tokens, never a way
+// A federation issuer is trust in another platform's tokens, never a way
 // to sign in to the Stigmer console: a company that wants its people to sign
 // in with its own identity provider makes it the deployment's own sign-in
 // (on a self-hosted server, STIGMER_OIDC_ISSUER).
@@ -40,7 +40,7 @@ import "buf/validate/validate.proto";
 //
 // Example YAML (platform delegation):
 //   apiVersion: iam.stigmer.ai/v1
-//   kind: IdentityProvider
+//   kind: FederationIssuer
 //   metadata:
 //     name: Planton
 //     slug: planton
@@ -54,7 +54,7 @@ import "buf/validate/validate.proto";
 //
 // Example YAML (JIT provisioning, single-org):
 //   apiVersion: iam.stigmer.ai/v1
-//   kind: IdentityProvider
+//   kind: FederationIssuer
 //   metadata:
 //     name: Acme Platform
 //     slug: acme-platform
@@ -70,7 +70,7 @@ import "buf/validate/validate.proto";
 //
 // Example YAML (JIT provisioning, multi-tenant):
 //   apiVersion: iam.stigmer.ai/v1
-//   kind: IdentityProvider
+//   kind: FederationIssuer
 //   metadata:
 //     name: SaaS Platform
 //     slug: saas-platform
@@ -85,23 +85,23 @@ import "buf/validate/validate.proto";
 //     sign_in_role: member
 //     external_id_claim: "org_id"
 
-message IdentityProviderSpec {
+message FederationIssuerSpec {
   option (buf.validate.message).cel = {
-    id: "identity_provider.sign_in_role_not_owner"
+    id: "federation_issuer.sign_in_role_not_owner"
     message: "sign_in_role cannot be owner; organization ownership must be assigned explicitly"
     expression: "this.sign_in_role != 1"
   };
   option (buf.validate.message).cel = {
-    id: "identity_provider.jwks_uri_required_with_issuers"
+    id: "federation_issuer.jwks_uri_required_with_issuers"
     message: "jwks_uri is required when allowed_issuers names an issuer"
     expression: "this.allowed_issuers.size() == 0 || this.jwks_uri != ''"
   };
 
-  // Human-readable display name for this identity provider.
+  // Human-readable display name for this federation issuer.
   // Used in UI and audit logs to identify the integrating platform.
   string display_name = 1 [(buf.validate.field).string.max_len = 200];
 
-  // JWKS endpoint URL for validating the tokens this provider's users present.
+  // JWKS endpoint URL for validating the tokens this issuer's users present.
   // For OIDC-based integrators, this points to the provider's standard JWKS endpoint
   // (e.g., Auth0's /.well-known/jwks.json). Stigmer fetches and caches signing keys
   // from this URL for JWT signature verification.
@@ -119,11 +119,11 @@ message IdentityProviderSpec {
   // (e.g., "https://planton-prod.us.auth0.com/").
   // Several values are accepted only when every issuer's discovery document
   // names the same jwks_uri (and the same userinfo_endpoint when one is set);
-  // an environment with its own tenant and keys is its own identity provider.
+  // an environment with its own tenant and keys is its own federation issuer.
   //
   // Each issuer must publish an OpenID Connect Discovery document whose
   // `issuer` equals it. An issuer and expected_audience together identify
-  // this provider: no two identity providers share an issuer and audience
+  // this provider: no two federation issuers share an issuer and audience
   // pair, so organizations that federate with the same issuer each register
   // an audience of their own. The issuer a deployment signs its own users in
   // with cannot be registered.
@@ -145,8 +145,8 @@ message IdentityProviderSpec {
   //
   // Required. Register an audience for Stigmer at the issuer that is your
   // organization's own, such as an API identifier or a client ID: a token is
-  // routed to the identity provider whose issuer and audience it carries, so
-  // an audience another identity provider already registered at the same
+  // routed to the federation issuer whose issuer and audience it carries, so
+  // an audience another federation issuer already registered at the same
   // issuer is refused. It cannot be a URL the issuer's discovery document
   // names, such as its userinfo endpoint, which the issuer may add to every
   // token it mints.
@@ -166,7 +166,7 @@ message IdentityProviderSpec {
   reserved 9, 10, 11;
   reserved "auto_provision_accounts", "auto_grant_on_org", "auto_grant_role";
 
-  // Fields 7, 8 and 15 made a provider its organization's single sign-on:
+  // Fields 7, 8 and 15 made an issuer its organization's single sign-on:
   // the console's "Sign in with" button, the browser client it used, and the
   // requirement that people act in the organization only through it.
   // Stigmer has no single sign-on of its own, so they were removed, and are
@@ -191,19 +191,19 @@ message IdentityProviderSpec {
   string userinfo_endpoint = 6 [(buf.validate.field).string.max_len = 2048];
 
   // Name of the JWT claim that names the child organization a token works
-  // in, by the identifier the provider's organization keeps for it.
+  // in, by the identifier the issuer's organization keeps for it.
   //
-  // When set, Stigmer reads this claim from every token the provider vouches
-  // for and resolves it to one of the provider organization's children:
+  // When set, Stigmer reads this claim from every token the issuer vouches
+  // for and resolves it to one of the issuer organization's children:
   //
   //   1. Read the claim value from the JWT (e.g., claim "org_id" yields
   //      value "cust-4411").
-  //   2. Find the child organization whose parent_org is the provider's
+  //   2. Find the child organization whose parent_org is the issuer's
   //      organization and whose external_id is the claim value.
   //   3. Bind the token to that organization: it works there and nowhere
   //      else, whatever roles the person holds in other organizations.
   //
-  // When empty, every token is bound to the provider's own organization.
+  // When empty, every token is bound to the issuer's own organization.
   //
   // The parent creates its child organizations with their external_id
   // first. The first time an account signs in to a child, it receives
@@ -212,10 +212,10 @@ message IdentityProviderSpec {
   //
   // The claim name is case-sensitive and must match the JWT payload key
   // exactly. A token that lacks the claim, carries a value that is not a
-  // string, or names no child of the provider's organization is refused as
+  // string, or names no child of the issuer's organization is refused as
   // unauthenticated on every sign-in, returning or first; the refusal does
   // not name the value. A first sign-in refused this way leaves no account.
-  // A provider in a child organization cannot set it: a child has no
+  // An issuer in a child organization cannot set it: a child has no
   // children.
   string external_id_claim = 12 [(buf.validate.field).string.max_len = 256];
 
@@ -232,14 +232,14 @@ message IdentityProviderSpec {
   bool create_accounts_on_sign_in = 13;
 
   // The role an account receives the first time it signs in to an
-  // organization through this provider: the organization its token is bound
-  // to (external_id_claim's, or the provider's own).
+  // organization through this issuer: the organization its token is bound
+  // to (external_id_claim's, or the issuer's own).
   //
   // Granted once per account and organization. A role an admin later removes
   // is not granted again, and changing this setting does not reach accounts
   // that already signed in there. Unspecified (iam_role_unspecified) grants
   // nothing. The owner role is refused with
-  // `identity_provider.sign_in_role_not_owner`: ownership is assigned
+  // `federation_issuer.sign_in_role_not_owner`: ownership is assigned
   // explicitly.
   ai.stigmer.iam.v1.IamRole sign_in_role = 14;
 }
