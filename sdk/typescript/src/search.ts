@@ -36,9 +36,9 @@ export interface SearchResponse {
 /**
  * Cross-resource search client.
  *
- * Unlike the per-resource `list()` methods (which search within a single
- * resource kind), `SearchClient.query()` searches across multiple resource
- * kinds in a single call.
+ * The per-resource `list()` methods browse one kind's resources, newest
+ * first; `SearchClient.query()` finds resources of one or more kinds by
+ * their words, in relevance order. Both page by token.
  */
 export class SearchClient {
   private readonly search: Client<typeof SearchService>;
