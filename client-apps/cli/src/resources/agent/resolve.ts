@@ -1,6 +1,6 @@
-// How the `agent` group's commands name an agent: one rule for `agent eval`
-// and `agent quality`, so an agent named one way by one names it the same
-// way by the other.
+// How commands name an agent: one rule for `eval run --agent` and `agent
+// quality`, so an agent named one way by one names it the same way by the
+// other.
 //
 // An id (`agt_…`, or a retired prefix) is read as it is, from whichever
 // organization holds it; `org/slug` is read in that organization; a bare

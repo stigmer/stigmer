@@ -1,9 +1,9 @@
-// Pins the real effects behind `plugin eval`: the process's own streams; a
+// Pins the real effects behind `eval run`: the process's own streams; a
 // `--json <path>` write that lands on disk; a sleep that waits its time,
 // ends early on Ctrl+C's abort and returns at once when already aborted,
 // and is also each call's deadline;
 // `now` as the epoch clock; a SIGINT listener added and removed again, so a
-// finished eval leaves Ctrl+C to the process; and `exit` as process.exit.
+// finished eval run leaves Ctrl+C to the process; and `exit` as process.exit.
 // No real signal is raised: the listener is called through the process's
 // own listener list.
 
@@ -11,27 +11,27 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { nodePluginEvalIo } from "../node-io.js";
+import { nodeEvalIo } from "../node-io.js";
 
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
-describe("nodePluginEvalIo", () => {
+describe("nodeEvalIo", () => {
   it("writes to the process's streams and the clock is the epoch's", () => {
     vi.useFakeTimers({ now: 1_074_000 });
-    const io = nodePluginEvalIo();
+    const io = nodeEvalIo();
     expect(io.stdout).toBe(process.stdout);
     expect(io.stderr).toBe(process.stderr);
     expect(io.now()).toBe(1_074_000);
   });
 
   it("writes the result document to its path", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "stigmer-plugin-eval-io-"));
+    const dir = mkdtempSync(join(tmpdir(), "stigmer-eval-run-io-"));
     try {
       const path = join(dir, "results.json");
-      await nodePluginEvalIo().writeFile(path, '{"schemaVersion":1}\n');
+      await nodeEvalIo().writeFile(path, '{"schemaVersion":1}\n');
       expect(readFileSync(path, "utf8")).toBe('{"schemaVersion":1}\n');
     } finally {
       rmSync(dir, { recursive: true, force: true });
@@ -40,7 +40,7 @@ describe("nodePluginEvalIo", () => {
 
   it("sleeps its time, ends early on abort, and returns at once when already aborted", async () => {
     vi.useFakeTimers();
-    const io = nodePluginEvalIo();
+    const io = nodeEvalIo();
     expect(io.timeout, "a call's deadline is the same timer").toBe(io.sleep);
 
     let done = false;
@@ -64,7 +64,7 @@ describe("nodePluginEvalIo", () => {
   });
 
   it("listens for SIGINT until told to stop", () => {
-    const io = nodePluginEvalIo();
+    const io = nodeEvalIo();
     const before = process.listeners("SIGINT");
     const handler = vi.fn();
     const stop = io.onInterrupt(handler);
@@ -80,7 +80,7 @@ describe("nodePluginEvalIo", () => {
     const exit = vi.spyOn(process, "exit").mockImplementation((code) => {
       throw new Error(`exit ${String(code)}`);
     });
-    expect(() => nodePluginEvalIo().exit(130)).toThrow("exit 130");
+    expect(() => nodeEvalIo().exit(130)).toThrow("exit 130");
     expect(exit).toHaveBeenCalledWith(130);
   });
 });

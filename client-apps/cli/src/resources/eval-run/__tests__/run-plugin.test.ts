@@ -1,4 +1,5 @@
-// Pins the `plugin eval` dispatch against a fake server and fake effects:
+// Pins the `eval run --plugin` dispatch, and the follow loop every eval
+// run shares (follow.ts), against a fake server and fake effects:
 // the plugin is resolved by name and the eval created in its organization
 // with every option; the suite's load findings (each once, on one line) and
 // the filled spending limit go to stderr, or under `--json` the findings go
@@ -25,39 +26,40 @@
 // refusal of the start (not found, not permitted, a precondition, an
 // invalid argument, an organization not set), from create or from the
 // plugin read, exits 1, while a sign-in or connection failure passes on
-// unchanged; and `plugin eval cancel` cancels.
+// unchanged; and `eval cancel` cancels.
 
 import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginWarningSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
-import { PluginEvalPartialReason, PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
-import { StigmerError, type PluginEvalInput, type Stigmer } from "@stigmer/sdk";
+import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunPartialReason, EvalRunPhase } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { StigmerError, type EvalRunInput, type Stigmer } from "@stigmer/sdk";
 import { describe, expect, it } from "vitest";
 import { CliExitError } from "../../../errors/index.js";
-import { readPluginEvalOptions, type PluginEvalFlags } from "../options.js";
-import { POLL_INTERVAL_MS, POLL_RETRY_BUDGET_MS, cancelPluginEval, runPluginEval, type PluginEvalIo } from "../run.js";
-import { finishedEval } from "./fixtures.js";
+import type { EvalIo } from "../follow.js";
+import { readEvalRunOptions, type EvalRunFlags } from "../options.js";
+import { POLL_INTERVAL_MS, POLL_RETRY_BUDGET_MS, cancelEvalRun, runEvalRun } from "../run.js";
+import { casesOf, finishedEval } from "./fixtures.js";
 
 const plugin = create(PluginSchema, {
   metadata: { id: "plg_1", org: "org_acme", name: "thermos", slug: "thermos" },
   status: { evals: { dir: "evals", caseCount: 2, findings: [] } },
 });
 
-function pending(): PluginEval {
-  const pluginEval = finishedEval(PluginEvalPhase.pending);
-  pluginEval.status!.cases = [];
+function pending(): EvalRun {
+  const pluginEval = finishedEval(EvalRunPhase.pending);
+  casesOf(pluginEval).length = 0;
   return pluginEval;
 }
 
-function running(): PluginEval {
-  return finishedEval(PluginEvalPhase.running);
+function running(): EvalRun {
+  return finishedEval(EvalRunPhase.running);
 }
 
 /** A server whose eval reads as each of `reads` in turn, then the last one forever. */
 function fakeServer(
-  reads: PluginEval[],
+  reads: EvalRun[],
   opts: {
     createError?: Error;
     getErrorAfterCancel?: Error;
@@ -74,7 +76,7 @@ function fakeServer(
   } = {},
 ) {
   const calls: string[] = [];
-  const created: PluginEvalInput[] = [];
+  const created: EvalRunInput[] = [];
   let next = 0;
   let readCount = 0;
   let cancelled = false;
@@ -87,8 +89,8 @@ function fakeServer(
       },
       getByReference: async (ref: { org: string; slug: string }) => (calls.push(`plugin.ref ${ref.org}/${ref.slug}`), plugin),
     },
-    plugineval: {
-      create: async (input: PluginEvalInput) => {
+    evalrun: {
+      create: async (input: EvalRunInput) => {
         calls.push("create");
         created.push(input);
         opts.onCreate?.();
@@ -110,8 +112,8 @@ function fakeServer(
         calls.push(`cancel ${id}`);
         if (opts.cancelError !== undefined) throw opts.cancelError;
         cancelled = true;
-        const result = finishedEval(PluginEvalPhase.partial);
-        result.status!.partialReason = PluginEvalPartialReason.cancelled;
+        const result = finishedEval(EvalRunPhase.partial);
+        result.status!.partialReason = EvalRunPartialReason.cancelled;
         return result;
       },
     },
@@ -128,7 +130,7 @@ function fakeIo(opts: { interruptAfterSleeps?: number } = {}) {
   let sleeps = 0;
   const waits: number[] = [];
   const deadlines: (() => void)[] = [];
-  const io: PluginEvalIo = {
+  const io: EvalIo = {
     stdout: { write: (text) => void (stdout += text) },
     stderr: { write: (text) => void (stderr += text) },
     writeFile: async (path, content) => void files.set(path, content),
@@ -168,17 +170,16 @@ function fakeIo(opts: { interruptAfterSleeps?: number } = {}) {
   };
 }
 
-function options(flags: PluginEvalFlags = {}) {
-  return readPluginEvalOptions(flags);
+/** Runs `eval run --plugin thermos` with `flags` over `--plugin`'s default. */
+function run(client: Stigmer, org: string, flags: EvalRunFlags, io: EvalIo) {
+  return runEvalRun(client, org, readEvalRunOptions({ plugin: "thermos", ...flags }), io);
 }
 
-const THERMOS = { ref: "thermos", digest: "" };
-
-describe("runPluginEval", () => {
+describe("runEvalRun about a plugin", () => {
   it("creates the eval in the plugin's organization with every option, follows it, and prints the report", async () => {
     const server = fakeServer([running(), finishedEval()]);
     const fake = fakeIo();
-    const code = await runPluginEval(server.client, "acme", THERMOS, options({ runs: "2", model: ["native/claude-sonnet-4-6"], tag: ["smoke"] }), fake.io);
+    const code = await run(server.client, "acme", { runs: "2", model: ["native/claude-sonnet-4-6"], tag: ["smoke"] }, fake.io);
 
     expect(code).toBe(0);
     expect(server.calls).toEqual(["plugin.ref acme/thermos", "create", "get", "get"]);
@@ -196,7 +197,7 @@ describe("runPluginEval", () => {
     // Each finished try once, though two reads carried it.
     expect(fake.err().match(/first-case · native\/claude-sonnet-4-6 · with · try 1\/2/g)).toHaveLength(1);
     expect(fake.out()).toContain("CASE");
-    expect(fake.out()).toContain("1 case(s) · mean Δ +0.67 · 74s · $0.41 · Δ provisional");
+    expect(fake.out()).toContain("1 case(s) · mean Δ +0.67 · 74s · $0.41");
     expect(fake.out()).toContain("needs-fixture: not run: plugins");
     expect(fake.listening()).toBe(false);
   });
@@ -221,7 +222,7 @@ describe("runPluginEval", () => {
     plugin.status!.evals!.findings = loadFindings();
     try {
       const fake = fakeIo();
-      expect(await runPluginEval(server.client, "acme", THERMOS, options(), fake.io)).toBe(1);
+      expect(await run(server.client, "acme", {}, fake.io)).toBe(1);
       const lines = fake.err().split("\n").filter((line) => line.startsWith("evals: "));
       expect(lines).toEqual([
         "evals: evals/a/prompt.md: unknown key 'max_turn'",
@@ -237,7 +238,7 @@ describe("runPluginEval", () => {
     plugin.status!.evals!.findings = loadFindings();
     try {
       const fake = fakeIo();
-      expect(await runPluginEval(server.client, "acme", THERMOS, options({ json: true }), fake.io)).toBe(1);
+      expect(await run(server.client, "acme", { json: true }, fake.io)).toBe(1);
       expect(fake.err()).toBe("");
       const document = JSON.parse(fake.out()) as { findings: unknown };
       expect(document.findings).toEqual([
@@ -258,7 +259,7 @@ describe("runPluginEval", () => {
     plugin.status!.evals!.findings = loadFindings();
     try {
       const fake = fakeIo();
-      await runPluginEval(server.client, "acme", THERMOS, options({ wait: false, json: "out.json" }), fake.io);
+      await run(server.client, "acme", { wait: false, json: "out.json" }, fake.io);
       expect(fake.err()).toBe("");
       const document = JSON.parse(fake.files.get("out.json") ?? "{}") as { findings: { path: string }[] };
       expect(document.findings.map((f) => f.path)).toEqual(["evals/a/prompt.md", "evals/b/graders/x.md"]);
@@ -270,18 +271,24 @@ describe("runPluginEval", () => {
   it("is quiet under --json, printing only the result document", async () => {
     const server = fakeServer([finishedEval()]);
     const fake = fakeIo();
-    await runPluginEval(server.client, "acme", THERMOS, options({ json: true }), fake.io);
+    await run(server.client, "acme", { json: true }, fake.io);
     expect(fake.err()).toBe("");
-    const document = JSON.parse(fake.out()) as { schemaVersion: number; cases: { name: string }[]; findings: unknown[] };
+    const document = JSON.parse(fake.out()) as {
+      schemaVersion: number;
+      subject: unknown;
+      plugins: { cases: { name: string }[] }[];
+      findings: unknown[];
+    };
     expect(document.schemaVersion).toBe(1);
-    expect(document.cases.map((c) => c.name)).toEqual(["first-case"]);
+    expect(document.subject).toEqual({ kind: "plugin", id: "plg_1", slug: "thermos" });
+    expect(document.plugins[0]?.cases.map((c) => c.name)).toEqual(["first-case"]);
     expect(document.findings).toEqual([]);
   });
 
   it("writes the result document to a --json path and prints nothing", async () => {
     const server = fakeServer([finishedEval()]);
     const fake = fakeIo();
-    await runPluginEval(server.client, "acme", THERMOS, options({ json: "results.json" }), fake.io);
+    await run(server.client, "acme", { json: "results.json" }, fake.io);
     expect(fake.out()).toBe("");
     expect(JSON.parse(fake.files.get("results.json") ?? "{}")).toMatchObject({ partial: false, costUsd: 0.41 });
   });
@@ -289,36 +296,36 @@ describe("runPluginEval", () => {
   it("prints the id and returns under --no-wait", async () => {
     const server = fakeServer([finishedEval()]);
     const fake = fakeIo();
-    expect(await runPluginEval(server.client, "acme", THERMOS, options({ wait: false }), fake.io)).toBe(0);
-    expect(fake.out()).toBe("pev_1\n");
-    expect(fake.err()).toContain("stigmer get plugin-eval pev_1");
+    expect(await run(server.client, "acme", { wait: false }, fake.io)).toBe(0);
+    expect(fake.out()).toBe("evr_1\n");
+    expect(fake.err()).toContain("stigmer get eval-run evr_1");
     expect(server.calls).not.toContain("get");
   });
 
   it("writes the started eval's document under --no-wait --json, and nothing else", async () => {
     const server = fakeServer([finishedEval()]);
     const fake = fakeIo();
-    expect(await runPluginEval(server.client, "acme", THERMOS, options({ wait: false, json: true }), fake.io)).toBe(0);
+    expect(await run(server.client, "acme", { wait: false, json: true }, fake.io)).toBe(0);
     expect(fake.err()).toBe("");
-    expect(JSON.parse(fake.out())).toMatchObject({ schemaVersion: 1, cases: [] });
+    expect(JSON.parse(fake.out())).toMatchObject({ schemaVersion: 1, plugins: [{ cases: [] }] });
     expect(server.calls).not.toContain("get");
   });
 
   it("cancels the eval on Ctrl+C, prints the partial results and exits 130", async () => {
     const server = fakeServer([running()]);
     const fake = fakeIo({ interruptAfterSleeps: 2 });
-    const code = await runPluginEval(server.client, "acme", THERMOS, options({ json: "out.json" }), fake.io);
+    const code = await run(server.client, "acme", { json: "out.json" }, fake.io);
     expect(code).toBe(130);
-    expect(server.calls).toContain("cancel pev_1");
+    expect(server.calls).toContain("cancel evr_1");
     expect(JSON.parse(fake.files.get("out.json") ?? "{}")).toMatchObject({ partial: true, partialReason: "interrupted" });
   });
 
   it("prints the cancel's own result when the read after it fails, with why the eval stopped", async () => {
     const server = fakeServer([running()], { getErrorAfterCancel: new Error("connection reset") });
     const fake = fakeIo({ interruptAfterSleeps: 2 });
-    expect(await runPluginEval(server.client, "acme", THERMOS, options(), fake.io)).toBe(130);
-    expect(server.calls.slice(-2)).toEqual(["cancel pev_1", "get"]);
-    expect(fake.err()).toContain("Cancelling pev_1…");
+    expect(await run(server.client, "acme", {}, fake.io)).toBe(130);
+    expect(server.calls.slice(-2)).toEqual(["cancel evr_1", "get"]);
+    expect(fake.err()).toContain("Cancelling evr_1…");
     expect(fake.out()).toContain("1 case(s) · mean Δ +0.67");
     expect(fake.out()).toContain("\nCancelled: 3 of 4 tries ran.\n");
   });
@@ -327,7 +334,7 @@ describe("runPluginEval", () => {
     const server = fakeServer([running()]);
     const fake = fakeIo();
     let handler: (() => void) | undefined;
-    const io: PluginEvalIo = {
+    const io: EvalIo = {
       ...fake.io,
       onInterrupt: (h) => ((handler = h), () => undefined),
       sleep: async () => {
@@ -335,17 +342,17 @@ describe("runPluginEval", () => {
         handler?.();
       },
     };
-    await expect(runPluginEval(server.client, "acme", THERMOS, options(), io)).rejects.toThrow("exit 130");
-    expect(fake.err()).toContain("Stopped following pev_1; if it is still running, cancel it with: stigmer plugin eval cancel pev_1\n");
+    await expect(run(server.client, "acme", {}, io)).rejects.toThrow("exit 130");
+    expect(fake.err()).toContain("Stopped following evr_1; if it is still running, cancel it with: stigmer eval cancel evr_1\n");
   });
 
   it("cancels the eval once create answers on a Ctrl+C during create, prints its id and exits 130", async () => {
     const fake = fakeIo();
     const server = fakeServer([running()], { onCreate: () => fake.interrupt() });
-    expect(await runPluginEval(server.client, "acme", THERMOS, options(), fake.io)).toBe(130);
-    expect(server.calls).toEqual(["plugin.ref acme/thermos", "create", "cancel pev_1", "get"]);
-    expect(fake.err()).toContain("Started pev_1 on thermos.\n");
-    expect(fake.err()).toContain("Cancelling pev_1…");
+    expect(await run(server.client, "acme", {}, fake.io)).toBe(130);
+    expect(server.calls).toEqual(["plugin.ref acme/thermos", "create", "cancel evr_1", "get"]);
+    expect(fake.err()).toContain("Started evr_1 on thermos.\n");
+    expect(fake.err()).toContain("Cancelling evr_1…");
     expect(fake.out()).toContain("\nCancelled: 3 of 4 tries ran.\n");
     expect(fake.listening()).toBe(false);
   });
@@ -353,9 +360,9 @@ describe("runPluginEval", () => {
   it("cancels on a Ctrl+C during create under --no-wait too", async () => {
     const fake = fakeIo();
     const server = fakeServer([running()], { onCreate: () => fake.interrupt() });
-    expect(await runPluginEval(server.client, "acme", THERMOS, options({ wait: false, json: "out.json" }), fake.io)).toBe(130);
-    expect(server.calls).toContain("cancel pev_1");
-    expect(JSON.parse(fake.files.get("out.json") ?? "{}")).toMatchObject({ evalId: "pev_1", partial: true, partialReason: "interrupted" });
+    expect(await run(server.client, "acme", { wait: false, json: "out.json" }, fake.io)).toBe(130);
+    expect(server.calls).toContain("cancel evr_1");
+    expect(JSON.parse(fake.files.get("out.json") ?? "{}")).toMatchObject({ evalRunId: "evr_1", partial: true, partialReason: "interrupted" });
   });
 
   it("exits at once on a second Ctrl+C during create, before the eval's id is known", async () => {
@@ -366,23 +373,23 @@ describe("runPluginEval", () => {
         fake.interrupt();
       },
     });
-    await expect(runPluginEval(server.client, "acme", THERMOS, options(), fake.io)).rejects.toThrow("exit 130");
-    expect(fake.err()).toContain("Stopped before the server answered the start; if the eval started, cancel it from the plugin's Evals tab in the console\n");
+    await expect(run(server.client, "acme", {}, fake.io)).rejects.toThrow("exit 130");
+    expect(fake.err()).toContain("Stopped before the server answered the start; if the eval run started, cancel it from the plugin's Evals tab in the console\n");
   });
 
   it("stops listening for Ctrl+C when create fails", async () => {
     const fake = fakeIo();
     const server = fakeServer([running()], { createError: new Error("boom") });
-    await expect(runPluginEval(server.client, "acme", THERMOS, options(), fake.io)).rejects.toThrow("boom");
+    await expect(run(server.client, "acme", {}, fake.io)).rejects.toThrow("boom");
     expect(fake.listening()).toBe(false);
   });
 
   it("sends the cancel on Ctrl+C while a read hangs, and exits 130", async () => {
     const fake = fakeIo();
     const server = fakeServer([running()], { hungReads: new Set([1]), onRead: (count) => count === 1 && fake.interrupt() });
-    expect(await runPluginEval(server.client, "acme", THERMOS, options(), fake.io)).toBe(130);
-    expect(server.calls.slice(-3)).toEqual(["get", "cancel pev_1", "get"]);
-    expect(fake.err()).toContain("Cancelling pev_1…");
+    expect(await run(server.client, "acme", {}, fake.io)).toBe(130);
+    expect(server.calls.slice(-3)).toEqual(["get", "cancel evr_1", "get"]);
+    expect(fake.err()).toContain("Cancelling evr_1…");
     expect(fake.err()).not.toContain("Could not read");
     expect(fake.out()).toContain("\nCancelled: 3 of 4 tries ran.\n");
   });
@@ -390,35 +397,35 @@ describe("runPluginEval", () => {
   it("treats a read with no answer in 30 seconds as a failed read, tried again", async () => {
     const fake = fakeIo();
     const server = fakeServer([running(), finishedEval()], { hungReads: new Set([1]), onRead: (count) => count === 1 && setTimeout(fake.expire, 0) });
-    expect(await runPluginEval(server.client, "acme", THERMOS, options(), fake.io)).toBe(0);
-    expect(fake.err()).toContain("Could not read pev_1 (no answer in 30s); trying again in 1s.");
+    expect(await run(server.client, "acme", {}, fake.io)).toBe(0);
+    expect(fake.err()).toContain("Could not read evr_1 (no answer in 30s); trying again in 1s.");
     expect(fake.waits).toEqual([POLL_INTERVAL_MS, 1_000, POLL_INTERVAL_MS]);
   });
 
   it("says the eval may still be running when Ctrl+C's cancel has no answer in 30 seconds", async () => {
     const fake = fakeIo();
     const server = fakeServer([running()], { onRead: (count) => count === 1 && fake.interrupt() });
-    const hungCancel = { ...server.client.plugineval, cancel: () => (setTimeout(fake.expire, 0), new Promise<never>(() => undefined)) };
-    const client = { ...server.client, plugineval: hungCancel } as unknown as Stigmer;
-    const error = await runPluginEval(client, "acme", THERMOS, options(), fake.io).catch((e: unknown) => e);
+    const hungCancel = { ...server.client.evalrun, cancel: () => (setTimeout(fake.expire, 0), new Promise<never>(() => undefined)) };
+    const client = { ...server.client, evalrun: hungCancel } as unknown as Stigmer;
+    const error = await run(client, "acme", {}, fake.io).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(CliExitError);
     expect((error as CliExitError).exitCode).toBe(130);
-    expect((error as CliExitError).message).toBe("could not cancel eval pev_1 (no answer in 30s); cancel it with: stigmer plugin eval cancel pev_1");
+    expect((error as CliExitError).message).toBe("could not cancel eval run evr_1 (no answer in 30s); cancel it with: stigmer eval cancel evr_1");
   });
 
   it("reports an eval that finished as Ctrl+C landed normally, with its own exit code", async () => {
     const fake = fakeIo();
     const server = fakeServer([finishedEval()], { onRead: (count) => count === 1 && fake.interrupt() });
-    expect(await runPluginEval(server.client, "acme", THERMOS, options({ json: "out.json" }), fake.io)).toBe(0);
-    expect(server.calls).not.toContain("cancel pev_1");
+    expect(await run(server.client, "acme", { json: "out.json" }, fake.io)).toBe(0);
+    expect(server.calls).not.toContain("cancel evr_1");
     expect(JSON.parse(fake.files.get("out.json") ?? "{}")).toMatchObject({ partial: false });
   });
 
   it("reports an eval the cancel found already finished normally, not as cancelled", async () => {
     const server = fakeServer([running(), finishedEval()]);
     const fake = fakeIo({ interruptAfterSleeps: 2 });
-    expect(await runPluginEval(server.client, "acme", THERMOS, options(), fake.io)).toBe(0);
-    expect(server.calls).toContain("cancel pev_1");
+    expect(await run(server.client, "acme", {}, fake.io)).toBe(0);
+    expect(server.calls).toContain("cancel evr_1");
     expect(fake.out()).not.toContain("Cancelled");
     expect(fake.out()).toContain("1 case(s) · mean Δ +0.67");
   });
@@ -426,7 +433,7 @@ describe("runPluginEval", () => {
   it("exits 1, not the usage code, when the server refuses to start the suite", async () => {
     const refusal = new StigmerError("failed-precondition", "the plugin has no evals/ cases", Code.FailedPrecondition);
     const server = fakeServer([], { createError: refusal });
-    const error = await runPluginEval(server.client, "acme", THERMOS, options(), fakeIo().io).catch((e: unknown) => e);
+    const error = await run(server.client, "acme", {}, fakeIo().io).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(CliExitError);
     expect((error as CliExitError).exitCode).toBe(1);
     expect((error as CliExitError).message).toContain("the plugin has no evals/ cases");
@@ -434,7 +441,7 @@ describe("runPluginEval", () => {
 
   it("exits 1, not the usage code, when the organization is not set", async () => {
     const server = fakeServer([finishedEval()]);
-    const error = await runPluginEval(server.client, "", THERMOS, options(), fakeIo().io).catch((e: unknown) => e);
+    const error = await run(server.client, "", {}, fakeIo().io).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(CliExitError);
     expect((error as CliExitError).exitCode).toBe(1);
     expect((error as CliExitError).message).toContain("organization not set");
@@ -449,7 +456,7 @@ describe("runPluginEval", () => {
     ["already-exists", Code.AlreadyExists],
   ] as const)("exits 1 when the server refuses the eval's start as %s", async (name, code) => {
     const server = fakeServer([], { createError: new StigmerError(name, "the start was refused", code) });
-    const error = await runPluginEval(server.client, "acme", THERMOS, options(), fakeIo().io).catch((e: unknown) => e);
+    const error = await run(server.client, "acme", {}, fakeIo().io).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(CliExitError);
     expect((error as CliExitError).exitCode).toBe(1);
     expect((error as CliExitError).message).toContain("the start was refused");
@@ -460,7 +467,7 @@ describe("runPluginEval", () => {
     ["permission-denied", Code.PermissionDenied],
   ] as const)("exits 1 when the plugin lookup is refused as %s", async (name, code) => {
     const server = fakeServer([finishedEval()], { pluginError: new StigmerError(name, "no such plugin", code) });
-    const error = await runPluginEval(server.client, "acme", { ref: "plg_1", digest: "" }, options(), fakeIo().io).catch(
+    const error = await run(server.client, "acme", { plugin: "plg_1" }, fakeIo().io).catch(
       (e: unknown) => e,
     );
     expect(error).toBeInstanceOf(CliExitError);
@@ -472,13 +479,13 @@ describe("runPluginEval", () => {
   it("passes on a sign-in failure of the eval's start unchanged, for the CLI's own sign-in exit", async () => {
     const unauthenticated = new StigmerError("unauthenticated", "the token expired", Code.Unauthenticated);
     const server = fakeServer([], { createError: unauthenticated });
-    await expect(runPluginEval(server.client, "acme", THERMOS, options(), fakeIo().io)).rejects.toBe(unauthenticated);
+    await expect(run(server.client, "acme", {}, fakeIo().io)).rejects.toBe(unauthenticated);
   });
 
   it("exits 1, not the usage code, when the plugin read is refused as invalid", async () => {
     const refusal = new StigmerError("invalid-argument", "id is not a plugin id", Code.InvalidArgument);
     const server = fakeServer([finishedEval()], { pluginError: refusal });
-    const error = await runPluginEval(server.client, "acme", { ref: "plg_1", digest: "" }, options(), fakeIo().io).catch(
+    const error = await run(server.client, "acme", { plugin: "plg_1" }, fakeIo().io).catch(
       (e: unknown) => e,
     );
     expect(error).toBeInstanceOf(CliExitError);
@@ -489,35 +496,35 @@ describe("runPluginEval", () => {
   it("retries a failed read of the eval with backoff and follows it to the end", async () => {
     const server = fakeServer([running(), finishedEval()], { failedReads: new Set([1, 2]) });
     const fake = fakeIo();
-    expect(await runPluginEval(server.client, "acme", THERMOS, options(), fake.io)).toBe(0);
+    expect(await run(server.client, "acme", {}, fake.io)).toBe(0);
     expect(fake.waits).toEqual([POLL_INTERVAL_MS, 1_000, 2_000, POLL_INTERVAL_MS]);
-    expect(server.calls).not.toContain("cancel pev_1");
+    expect(server.calls).not.toContain("cancel evr_1");
     expect(fake.out()).toContain("1 case(s) · mean Δ +0.67");
   });
 
   it("cancels on a Ctrl+C during a retry's wait and exits 130", async () => {
     const server = fakeServer([running()], { failedReads: new Set([1]) });
     const fake = fakeIo({ interruptAfterSleeps: 2 });
-    expect(await runPluginEval(server.client, "acme", THERMOS, options(), fake.io)).toBe(130);
+    expect(await run(server.client, "acme", {}, fake.io)).toBe(130);
     expect(fake.waits).toEqual([POLL_INTERVAL_MS, 1_000]);
-    expect(server.calls.slice(-2)).toEqual(["cancel pev_1", "get"]);
+    expect(server.calls.slice(-2)).toEqual(["cancel evr_1", "get"]);
   });
 
   it("cancels the eval, writes --json with what it has and exits 1 once reads have failed for about a minute", async () => {
     const reads = new Set(Array.from({ length: 20 }, (_, i) => i + 2));
     const server = fakeServer([running()], { failedReads: reads });
     const fake = fakeIo();
-    const error = await runPluginEval(server.client, "acme", THERMOS, options({ json: "out.json" }), fake.io).catch(
+    const error = await run(server.client, "acme", { json: "out.json" }, fake.io).catch(
       (e: unknown) => e,
     );
     expect(error).toBeInstanceOf(CliExitError);
     expect((error as CliExitError).exitCode).toBe(1);
     expect((error as CliExitError).message).toBe(
-      "lost track of eval pev_1 (Cannot connect to the Stigmer server), so it was cancelled",
+      "lost track of eval run evr_1 (Cannot connect to the Stigmer server), so it was cancelled",
     );
     const retries = fake.waits.slice(2);
     expect(retries.reduce((sum, ms) => sum + ms, 0)).toBe(POLL_RETRY_BUDGET_MS);
-    expect(server.calls).toContain("cancel pev_1");
+    expect(server.calls).toContain("cancel evr_1");
     expect(JSON.parse(fake.files.get("out.json") ?? "{}")).toMatchObject({ partial: true, partialReason: "interrupted" });
     expect(fake.out()).toBe("");
   });
@@ -527,8 +534,8 @@ describe("runPluginEval", () => {
     const reads = new Set(Array.from({ length: 8 }, (_, i) => i + 2));
     const server = fakeServer([running(), finishedEval()], { failedReads: reads });
     const fake = fakeIo();
-    expect(await runPluginEval(server.client, "acme", THERMOS, options({ json: "out.json" }), fake.io)).toBe(0);
-    expect(server.calls.slice(-2)).toEqual(["cancel pev_1", "get"]);
+    expect(await run(server.client, "acme", { json: "out.json" }, fake.io)).toBe(0);
+    expect(server.calls.slice(-2)).toEqual(["cancel evr_1", "get"]);
     expect(JSON.parse(fake.files.get("out.json") ?? "{}")).toMatchObject({ partial: false });
     expect(JSON.parse(fake.files.get("out.json") ?? "{}")).not.toHaveProperty("stillRunning");
   });
@@ -537,15 +544,15 @@ describe("runPluginEval", () => {
     const reads = new Set(Array.from({ length: 20 }, (_, i) => i + 1));
     const server = fakeServer([running()], { failedReads: reads, cancelError: new Error("connection refused") });
     const fake = fakeIo();
-    const error = await runPluginEval(server.client, "acme", THERMOS, options(), fake.io).catch((e: unknown) => e);
+    const error = await run(server.client, "acme", {}, fake.io).catch((e: unknown) => e);
     expect((error as CliExitError).exitCode).toBe(1);
     expect((error as CliExitError).message).toBe(
-      "lost track of eval pev_1 (Cannot connect to the Stigmer server), and could not cancel it; cancel it with: stigmer plugin eval cancel pev_1",
+      "lost track of eval run evr_1 (Cannot connect to the Stigmer server), and could not cancel it; cancel it with: stigmer eval cancel evr_1",
     );
-    expect(fake.err()).toContain("Could not read pev_1 (Cannot connect to the Stigmer server); trying again in 1s.\n");
+    expect(fake.err()).toContain("Could not read evr_1 (Cannot connect to the Stigmer server); trying again in 1s.\n");
     expect(fake.out()).toContain("1 case(s) · mean Δ +0.67");
     expect(fake.out()).toContain(
-      "\nLost track of the eval; it may still be running: cancel it with `stigmer plugin eval cancel pev_1`\n",
+      "\nLost track of the eval run; it may still be running: cancel it with `stigmer eval cancel evr_1`\n",
     );
     expect(fake.out()).not.toContain("Cancelled:");
   });
@@ -554,7 +561,7 @@ describe("runPluginEval", () => {
     const reads = new Set(Array.from({ length: 20 }, (_, i) => i + 1));
     const server = fakeServer([running()], { failedReads: reads, cancelError: new Error("connection refused") });
     const fake = fakeIo();
-    const error = await runPluginEval(server.client, "acme", THERMOS, options({ json: "out.json" }), fake.io).catch(
+    const error = await run(server.client, "acme", { json: "out.json" }, fake.io).catch(
       (e: unknown) => e,
     );
     expect((error as CliExitError).exitCode).toBe(1);
@@ -569,7 +576,7 @@ describe("runPluginEval", () => {
   it("leaves stillRunning out of the --json document when the cancel went through", async () => {
     const server = fakeServer([running()]);
     const fake = fakeIo({ interruptAfterSleeps: 2 });
-    await runPluginEval(server.client, "acme", THERMOS, options({ json: "out.json" }), fake.io);
+    await run(server.client, "acme", { json: "out.json" }, fake.io);
     expect(JSON.parse(fake.files.get("out.json") ?? "{}")).not.toHaveProperty("stillRunning");
   });
 
@@ -577,15 +584,15 @@ describe("runPluginEval", () => {
     const outage = new StigmerError("unavailable", "the server is unavailable", Code.Unavailable);
     const server = fakeServer([running()], { cancelError: outage });
     const fake = fakeIo({ interruptAfterSleeps: 2 });
-    const error = await runPluginEval(server.client, "acme", THERMOS, options(), fake.io).catch((e: unknown) => e);
+    const error = await run(server.client, "acme", {}, fake.io).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(CliExitError);
     expect((error as CliExitError).exitCode).toBe(130);
     expect((error as CliExitError).message).toBe(
-      "could not cancel eval pev_1 (Cannot connect to the Stigmer server); cancel it with: stigmer plugin eval cancel pev_1",
+      "could not cancel eval run evr_1 (Cannot connect to the Stigmer server); cancel it with: stigmer eval cancel evr_1",
     );
     expect(fake.out()).toContain("1 case(s) · mean Δ +0.67");
     expect(fake.out()).toContain(
-      "\nCould not cancel the eval; it may still be running: cancel it with `stigmer plugin eval cancel pev_1`\n",
+      "\nCould not cancel the eval run; it may still be running: cancel it with `stigmer eval cancel evr_1`\n",
     );
     expect(fake.out()).not.toContain("Cancelled:");
     expect(fake.listening()).toBe(false);
@@ -594,12 +601,12 @@ describe("runPluginEval", () => {
   it("writes --json with stillRunning and exits 130 when Ctrl+C's cancel cannot reach the server", async () => {
     const server = fakeServer([running()], { cancelError: new Error("connection refused") });
     const fake = fakeIo({ interruptAfterSleeps: 2 });
-    const error = await runPluginEval(server.client, "acme", THERMOS, options({ json: true }), fake.io).catch(
+    const error = await run(server.client, "acme", { json: true }, fake.io).catch(
       (e: unknown) => e,
     );
     expect((error as CliExitError).exitCode).toBe(130);
     expect((error as CliExitError).message).toBe(
-      "could not cancel eval pev_1 (connection refused); cancel it with: stigmer plugin eval cancel pev_1",
+      "could not cancel eval run evr_1 (connection refused); cancel it with: stigmer eval cancel evr_1",
     );
     expect(fake.err()).toBe("");
     expect(JSON.parse(fake.out())).toMatchObject({ partial: true, partialReason: "interrupted", stillRunning: true });
@@ -608,33 +615,33 @@ describe("runPluginEval", () => {
   it("passes on a create failure that is not a refusal of the suite, unchanged", async () => {
     const outage = new StigmerError("unavailable", "the server is unavailable", Code.Unavailable);
     const server = fakeServer([], { createError: outage });
-    await expect(runPluginEval(server.client, "acme", THERMOS, options(), fakeIo().io)).rejects.toBe(outage);
+    await expect(run(server.client, "acme", {}, fakeIo().io)).rejects.toBe(outage);
   });
 
   it("fails with the eval's own reason when it could not run", async () => {
-    const failed = finishedEval(PluginEvalPhase.failed);
+    const failed = finishedEval(EvalRunPhase.failed);
     failed.status!.error = "the plugin archive could not be read";
     const server = fakeServer([failed]);
-    await expect(runPluginEval(server.client, "acme", THERMOS, options(), fakeIo().io)).rejects.toThrow(
-      "the eval could not run: the plugin archive could not be read",
+    await expect(run(server.client, "acme", {}, fakeIo().io)).rejects.toThrow(
+      "the eval run could not run: the plugin archive could not be read",
     );
   });
 
   it("reads a plugin given by id and passes its version", async () => {
     const server = fakeServer([finishedEval()]);
     const digest = "b".repeat(64);
-    await runPluginEval(server.client, "acme", { ref: "plg_1", digest }, options(), fakeIo().io);
+    await run(server.client, "acme", { plugin: `plg_1@${digest}` }, fakeIo().io);
     expect(server.calls[0]).toBe("plugin.get plg_1");
     expect(server.created[0]?.pluginDigest).toBe(digest);
   });
 });
 
-describe("cancelPluginEval", () => {
+describe("cancelEvalRun", () => {
   it("cancels by id and says how far the eval got", async () => {
     const server = fakeServer([]);
     let stderr = "";
-    await cancelPluginEval(server.client, "pev_1", { stderr: { write: (text) => void (stderr += text) } });
-    expect(server.calls).toEqual(["cancel pev_1"]);
-    expect(stderr).toBe("Cancelled pev_1: tries in flight stop; 3 of 4 tries had finished.\n");
+    await cancelEvalRun(server.client, "evr_1", { stderr: { write: (text) => void (stderr += text) } });
+    expect(server.calls).toEqual(["cancel evr_1"]);
+    expect(stderr).toBe("Cancelled evr_1: tries in flight stop; 3 of 4 tries had finished.\n");
   });
 });

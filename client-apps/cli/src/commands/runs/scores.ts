@@ -1,6 +1,6 @@
 // `stigmer runs scores <run-id>` — show how good a finished run was: each
 // person's thumbs, the platform's run-health checks, an AI judge's verdict,
-// and a plugin eval's checks on one of its tries. Thin handler: resolve
+// and an eval run's checks on one of its tries. Thin handler: resolve
 // the client and format, delegate to resources/run-scores.ts. Rating is the
 // console's; the CLI only reads.
 
@@ -13,7 +13,7 @@ import { addReadFlags, readFormat } from "../shared.js";
 export function registerRunsScores(runs: Command): void {
   const scores = runs
     .command("scores <run-id>")
-    .description("show a run's scores: people's thumbs, run-health checks, the AI judge and plugin evals")
+    .description("show a run's scores: people's thumbs, run-health checks, the AI judge and eval runs")
     .action((runId: string, options: OutputFlags) => runScores(runId, options));
   addReadFlags(scores);
 }

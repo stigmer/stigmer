@@ -87,7 +87,7 @@ export async function writeEvalCaseFromRun(
   }
   io.stderr.write(
     `Wrote ${built.files.map((file) => `${caseDir}/${file.path}`).join(", ")}\n` +
-      `Fill in the PASS line of ${caseDir}/graders/criteria.md, then push the plugin and run \`stigmer plugin eval\`.\n`,
+      `Fill in the PASS line of ${caseDir}/graders/criteria.md, then push the plugin and run \`stigmer eval run --plugin\`.\n`,
   );
   if (built.note !== undefined) {
     io.stderr.write(`Note: ${built.note}.\n`);
@@ -107,7 +107,7 @@ function parseSkill(raw: string | undefined): { plugin: string; skill: string } 
   return { plugin, skill };
 }
 
-/** The judge's first failing reason, else a plugin eval's first failing check. */
+/** The judge's first failing reason, else an eval run's first failing check. */
 function failingReason(scores: readonly Score[]): string {
   for (const source of [ScoreSource.judge, ScoreSource.eval]) {
     for (const score of scores) {

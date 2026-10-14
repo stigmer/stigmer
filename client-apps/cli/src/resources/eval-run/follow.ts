@@ -1,8 +1,7 @@
-// The eval loop both eval commands share: start the eval, follow it to its
-// end, and print or write the result. `plugin eval` (run.ts) and `agent
-// eval` (resources/agent-eval/run.ts) each resolve what they evaluate and
-// hand this module an `EvalRun`: how to create, read and cancel their kind,
-// and how to print and write it. The rules below are the same for both.
+// The loop `eval run` follows an eval run with: start it, follow it to its
+// end, and print or write the result. run.ts resolves what the eval run is
+// about and hands this module a `FollowedRun`: how to create it, and how to
+// print and write it; the reads and the cancel are the kind's own calls.
 //
 // The eval runs on the server, so the command only starts it and reads it
 // again every two seconds; closing the terminal leaves it running, and
@@ -23,7 +22,7 @@
 // prints or writes what it had, and exits 1. When that cancel, or Ctrl+C's,
 // cannot reach the server either, the eval may still be running: the report
 // says so in place of "Cancelled", `--json` adds Stigmer's
-// `stillRunning: true`, and the error names the kind's cancel command;
+// `stillRunning: true`, and the error names `stigmer eval cancel`;
 // the exit code stays the one the stop earned (1 lost, 130 interrupted).
 //
 // Streams follow the CLI's law: progress lines and notices go to stderr,
@@ -35,17 +34,19 @@
 // be started"; the CLI's own codes for those (2, 4, 5) would read as the
 // format's partial run or as codes it does not have. Only a sign-in or
 // connection failure keeps the CLI's code: the eval never reached the
-// server's judgement. A kind's own reads before the start pass through
-// `asStartRefusal` for the same reason.
+// server's judgement. The reads of what the eval run is about, before the
+// start, pass through `asStartRefusal` for the same reason.
 //
 // Every effect is injected (`EvalIo`), so the follow loop, the interrupt
 // and the outputs are unit-tested without a server or a clock.
 
 import { Code } from "@connectrpc/connect";
-import { PluginEvalPartialReason, PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunPartialReason, EvalRunPhase } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
+import type { Stigmer } from "@stigmer/sdk";
 import { CliExitError, ExitCode, classify } from "../../errors/index.js";
 import type { JsonTarget } from "./options.js";
-import { EvalExit, isSettled, oneLine, type EvalProgress, type FinishedTry } from "./report.js";
+import { EvalExit, finishedTries, isSettled, oneLine, type FinishedTry } from "./report.js";
 
 /** How often the command reads the eval again while it runs. */
 export const POLL_INTERVAL_MS = 2_000;
@@ -82,12 +83,6 @@ export interface EvalIo {
   exit(code: number): never;
 }
 
-/** What the loop reads of an eval of either kind. */
-export interface FollowedEval {
-  readonly metadata?: { readonly id: string };
-  readonly status?: EvalProgress & { readonly error: string };
-}
-
 /** The options the loop reads. */
 export interface FollowOptions {
   readonly json: JsonTarget;
@@ -96,35 +91,51 @@ export interface FollowOptions {
   readonly maxCostDefaulted: boolean;
 }
 
-/** One eval kind's part in the loop: its calls, its words and its views. */
-export interface EvalRun<E extends FollowedEval> {
-  /** The command that cancels one by id, as `stigmer plugin eval cancel`. */
-  readonly cancelCommand: string;
-  /** The command that reads one by id, as `stigmer get plugin-eval`. */
-  readonly getCommand: string;
-  /** Where to cancel an eval whose start went unanswered, after "if the eval started, ". */
+/** The command that cancels an eval run by id. */
+const CANCEL_COMMAND = "stigmer eval cancel";
+
+/** The command that reads an eval run by id. */
+const GET_COMMAND = "stigmer get eval-run";
+
+/** What an eval run is about, and how to start it and show it. */
+export interface FollowedRun {
+  /** Where to cancel an eval run whose start went unanswered, after "if the eval run started, ". */
   readonly cancelElsewhere: string;
-  /** What the eval runs on, for `Started <id> on <on>.` */
+  /** What the eval run runs on, for `Started <id> on <on>.` */
   readonly on: string;
-  /** Creates the eval; a refusal rejects as {@link asStartRefusal} has it. */
-  create(): Promise<E>;
-  get(id: string): Promise<E>;
-  cancel(id: string): Promise<E>;
-  /** Every finished try's progress line, keyed so each prints once. */
-  finishedTries(evaluation: E): readonly FinishedTry[];
+  /** Creates the eval run; a refusal rejects as {@link asStartRefusal} has it. */
+  create(): Promise<EvalRun>;
   /**
    * The text for stdout: tables, summary, why it stopped. `stillRunning`,
-   * when not empty, is said in place of why the eval stopped: it may not have.
+   * when not empty, is said in place of why the eval run stopped: it may not have.
    */
-  report(evaluation: E, interrupted: boolean, stillRunning: string): string;
+  report(evalRun: EvalRun, interrupted: boolean, stillRunning: string): string;
   /** The result document, with `stillRunning: true` when that is so. */
-  document(evaluation: E, interrupted: boolean, stillRunning: boolean): object;
-  /** The exit code a finished (or cancelled) eval earns. */
-  exitCode(evaluation: E, interrupted: boolean): EvalExit;
+  document(evalRun: EvalRun, interrupted: boolean, stillRunning: boolean): object;
+  /** The exit code a finished (or cancelled) eval run earns. */
+  exitCode(evalRun: EvalRun, interrupted: boolean): EvalExit;
 }
 
-/** Starts the eval and follows it to its end; returns the code to exit with. */
-export async function runEval<E extends FollowedEval>(run: EvalRun<E>, options: FollowOptions, io: EvalIo): Promise<EvalExit> {
+/** A run with the kind's calls, as the loop reads it. */
+interface Loop extends FollowedRun {
+  get(id: string): Promise<EvalRun>;
+  cancel(id: string): Promise<EvalRun>;
+  finishedTries(evalRun: EvalRun): readonly FinishedTry[];
+}
+
+/** Starts the eval run and follows it to its end; returns the code to exit with. */
+export async function runEval(
+  client: Stigmer,
+  followed: FollowedRun,
+  options: FollowOptions,
+  io: EvalIo,
+): Promise<EvalExit> {
+  const run: Loop = {
+    ...followed,
+    get: (id) => client.evalrun.get(id),
+    cancel: (id) => client.evalrun.cancel(id),
+    finishedTries,
+  };
   const quiet = options.json.kind !== "none";
   if (!quiet && options.maxCostDefaulted) {
     io.stderr.write(`Spending limit $${options.maxCostUsd.toFixed(2)}, the default; set --max-cost-usd to change it.\n`);
@@ -140,8 +151,8 @@ export async function runEval<E extends FollowedEval>(run: EvalRun<E>, options: 
     if (interrupts > 1) {
       io.stderr.write(
         id === ""
-          ? `Stopped before the server answered the start; if the eval started, ${run.cancelElsewhere}\n`
-          : `Stopped following ${id}; if it is still running, cancel it with: ${run.cancelCommand} ${id}\n`,
+          ? `Stopped before the server answered the start; if the eval run started, ${run.cancelElsewhere}\n`
+          : `Stopped following ${id}; if it is still running, cancel it with: ${CANCEL_COMMAND} ${id}\n`,
       );
       io.exit(EvalExit.Interrupted);
     }
@@ -177,11 +188,11 @@ function isStartRefusal(exitCode: number, code: number | undefined): boolean {
 }
 
 /** The command after create answered: return under `--no-wait`, or follow the eval to its end. */
-async function followStarted<E extends FollowedEval>(
-  run: EvalRun<E>,
+async function followStarted(
+  run: Loop,
   options: FollowOptions,
   io: EvalIo,
-  started: E,
+  started: EvalRun,
   interrupt: AbortSignal,
 ): Promise<EvalExit> {
   const quiet = options.json.kind !== "none";
@@ -193,7 +204,7 @@ async function followStarted<E extends FollowedEval>(
       await writeDocument(run.document(started, false, false), options.json, io);
     } else {
       io.stdout.write(`${id}\n`);
-      io.stderr.write(`Started. Follow it with: ${run.getCommand} ${id}\n`);
+      io.stderr.write(`Started. Follow it with: ${GET_COMMAND} ${id}\n`);
     }
     return EvalExit.Passed;
   }
@@ -207,24 +218,24 @@ async function followStarted<E extends FollowedEval>(
     const stillRunning =
       cancelFailure === undefined
         ? ""
-        : `${lost === undefined ? "Could not cancel the eval" : "Lost track of the eval"}; it may still be running: cancel it with \`${run.cancelCommand} ${id}\``;
+        : `${lost === undefined ? "Could not cancel the eval run" : "Lost track of the eval run"}; it may still be running: cancel it with \`${CANCEL_COMMAND} ${id}\``;
     if (quiet) {
       await writeDocument(run.document(latest, true, stillRunning !== ""), options.json, io);
     } else {
       io.stdout.write(run.report(latest, true, stillRunning));
     }
-    const hint = `cancel it with: ${run.cancelCommand} ${id}`;
+    const hint = `cancel it with: ${CANCEL_COMMAND} ${id}`;
     if (lost === undefined) {
-      throw new CliExitError(`could not cancel eval ${id} (${cancelFailure}); ${hint}`, EvalExit.Interrupted);
+      throw new CliExitError(`could not cancel eval run ${id} (${cancelFailure}); ${hint}`, EvalExit.Interrupted);
     }
     throw new CliExitError(
       cancelFailure === undefined
-        ? `lost track of eval ${id} (${lost}), so it was cancelled`
-        : `lost track of eval ${id} (${lost}), and could not cancel it; ${hint}`,
+        ? `lost track of eval run ${id} (${lost}), so it was cancelled`
+        : `lost track of eval run ${id} (${lost}), and could not cancel it; ${hint}`,
       EvalExit.Failed,
     );
   }
-  const failed = latest.status?.phase === PluginEvalPhase.failed && !interrupted;
+  const failed = latest.status?.phase === EvalRunPhase.failed && !interrupted;
   if (quiet) {
     await writeDocument(run.document(latest, interrupted, false), options.json, io);
   } else if (!failed) {
@@ -232,14 +243,14 @@ async function followStarted<E extends FollowedEval>(
   }
   if (failed) {
     const reason = oneLine(latest.status?.error ?? "");
-    throw new CliExitError(reason === "" ? "the eval could not run" : `the eval could not run: ${reason}`, EvalExit.Failed);
+    throw new CliExitError(reason === "" ? "the eval run could not run" : `the eval run could not run: ${reason}`, EvalExit.Failed);
   }
   return run.exitCode(latest, interrupted);
 }
 
 /** How following the eval ended. */
-interface Followed<E> {
-  readonly latest: E;
+interface Followed {
+  readonly latest: EvalRun;
   readonly interrupted: boolean;
   /** Why the reads were given up, when they were. */
   readonly lost?: string;
@@ -247,7 +258,7 @@ interface Followed<E> {
   readonly cancelFailure?: string;
 }
 
-type Read<E> = { readonly kind: "read"; readonly evaluation: E } | { readonly kind: "lost"; readonly reason: string } | { readonly kind: "aborted" };
+type Read = { readonly kind: "read"; readonly evaluation: EvalRun } | { readonly kind: "lost"; readonly reason: string } | { readonly kind: "aborted" };
 
 /** A call raced against Ctrl+C and its deadline. */
 type Bounded<T> = { readonly kind: "answer"; readonly value: T } | { readonly kind: "no-answer" } | { readonly kind: "aborted" };
@@ -271,13 +282,13 @@ async function bounded<T>(call: Promise<T>, signal: AbortSignal | undefined, io:
 }
 
 /** Reads the eval, trying again with backoff while the read fails or goes unanswered. */
-async function readEval<E extends FollowedEval>(
-  run: EvalRun<E>,
+async function readEval(
+  run: Loop,
   id: string,
   quiet: boolean,
   signal: AbortSignal,
   io: EvalIo,
-): Promise<Read<E>> {
+): Promise<Read> {
   for (let failures = 0; ; failures += 1) {
     let reason: string;
     try {
@@ -297,16 +308,16 @@ async function readEval<E extends FollowedEval>(
 }
 
 /** Follows the eval until it settles, its reads are lost, or `interrupt` (Ctrl+C) aborts and the eval is cancelled. */
-async function follow<E extends FollowedEval>(
-  run: EvalRun<E>,
-  started: E,
+async function follow(
+  run: Loop,
+  started: EvalRun,
   quiet: boolean,
   interrupt: AbortSignal,
   io: EvalIo,
-): Promise<Followed<E>> {
+): Promise<Followed> {
   const id = started.metadata?.id ?? "";
   const seen = new Set<string>();
-  const report = (evaluation: E): void => {
+  const report = (evaluation: EvalRun): void => {
     for (const attempt of run.finishedTries(evaluation)) {
       if (seen.has(attempt.key)) continue;
       seen.add(attempt.key);
@@ -342,8 +353,8 @@ async function follow<E extends FollowedEval>(
 }
 
 /** Whether the eval ended without being cancelled: it finished before the cancel took hold. */
-function finishedOnItsOwn(evaluation: FollowedEval): boolean {
-  return isSettled(evaluation) && evaluation.status?.partialReason !== PluginEvalPartialReason.cancelled;
+function finishedOnItsOwn(evaluation: EvalRun): boolean {
+  return isSettled(evaluation) && evaluation.status?.partialReason !== EvalRunPartialReason.cancelled;
 }
 
 /**
@@ -351,13 +362,13 @@ function finishedOnItsOwn(evaluation: FollowedEval): boolean {
  * The cancel's own answer stands when the read fails; when the cancel
  * fails or goes unanswered, `last` stands with the reason.
  */
-async function cancelAndRead<E extends FollowedEval>(
-  run: EvalRun<E>,
+async function cancelAndRead(
+  run: Loop,
   id: string,
-  last: E,
+  last: EvalRun,
   io: EvalIo,
-): Promise<{ readonly latest: E; readonly cancelFailure?: string }> {
-  let cancelled: E;
+): Promise<{ readonly latest: EvalRun; readonly cancelFailure?: string }> {
+  let cancelled: EvalRun;
   try {
     const cancel = await bounded(run.cancel(id), undefined, io);
     if (cancel.kind !== "answer") return { latest: last, cancelFailure: NO_ANSWER };

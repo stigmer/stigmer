@@ -1,47 +1,11 @@
-Evaluate an agent with the `evals/` test cases of the plugins it uses, and read
-how its runs are graded.
-
-`stigmer agent eval` runs the cases in the `evals/` folder of every plugin an
-agent uses on the agent itself, with its own instructions, Skills and subagents.
-Each plugin's cases run at the version the agent uses it at, several times each,
-in one arm: the agent with all its plugins, with no without-plugin comparison.
-Each case gets a score and whether every try passed (`PASS^k`), and every try is
-a conversation. The eval is stamped with the agent's version, so two versions'
-results compare case by case.
-
-The agent is one in your organization, named as `support-desk`,
-`acme/support-desk` or its ID, and runs at its current version;
-`support-desk@<version>` runs the version with that tag or version hash. With no
-`--model`, each case runs on the agent as it runs: its own engine, model and
-settings. A model named with `--model` runs without the agent's own tier and
-thinking settings, as any conversation that names a model does. A try gets only
-the tools its case and `--allow-tools` grant, within the agent's own: name the
-agent's working tools there (`--allow-tools Skill Agent`).
+Read how an agent's runs are graded. To run test cases on an agent, use
+[`stigmer eval run --agent`](/docs/cli/commands/eval).
 
 {/* AUTO_USAGE */}
 
 ### Common patterns
 
 ```bash
-# Run every plugin's cases three times on the agent as it runs
-stigmer agent eval support-desk
-
-# Run a tagged version, and only one plugin's cases, five times each
-stigmer agent eval support-desk@v3 --plugin refund-policy --runs 5
-
-# Let the tries use the agent's Skills and subagents (name the agent first)
-stigmer agent eval support-desk --allow-tools Skill Agent
-
-# Write the result document for a script, and gate on the exit code
-stigmer agent eval support-desk --json results.json
-
-# Start and return; read it later
-stigmer agent eval support-desk --no-wait
-stigmer get agent-eval aev_01abc123
-
-# Cancel a running eval
-stigmer agent eval cancel aev_01abc123
-
 # How the agent's runs were graded over the last 30 days, per version
 stigmer agent quality support-desk
 
@@ -50,19 +14,6 @@ stigmer agent quality support-desk --days 7 --flagged --limit 50
 ```
 
 {/* AUTO_FLAGS */}
-
-### Output and exit codes
-
-The command prints a line as each try finishes, then one table per plugin and
-model, headed by the agent's slug and version hash, the plugin's slug and
-version digest, and the model. A plugin whose cases did not run is listed under
-its heading with the reason. The exit codes are those of
-[`stigmer plugin eval`](/docs/cli/commands/plugin): 0 when every case that ran
-reached the threshold, 1 when one did not, no case ran, or the eval could not
-start, 2 for a partial run, 3 and 4 for a connection or sign-in failure, and 130
-when the eval was cancelled. See
-[Test an agent with its plugins' evals](/docs/guides/plugins/test-an-agent-with-its-plugins-evals)
-for the versions that run, the tools a try may use, and the result file.
 
 ### How the agent's runs are graded
 

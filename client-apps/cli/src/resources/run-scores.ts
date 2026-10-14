@@ -1,7 +1,7 @@
 // `runs scores` — the grades of a finished run: each person's thumbs on the
 // final answer, the platform's free run-health checks, an AI judge's
 // verdict where the run's agent has AI grading switched on, and, on a try
-// of a plugin eval, the eval's verdict with each check of the case.
+// of an eval run, the eval's verdict with each check of the case.
 //
 // The table shows one row per score: what was measured, who gave it, the
 // value (up/down for a person's feedback, pass/fail for the checks and the
