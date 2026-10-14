@@ -16,6 +16,13 @@
  * organizations refuse the run: a turn names a plugin's skills, agents and
  * tools by its name, so the two would share every name.
  *
+ * A run's `excluded_plugin_ids` (set only by the server's evals; the
+ * create guard GuardExcludedPlugins) leaves those plugins out after they
+ * load, matched on the loaded plugin's id, because a reference may still
+ * name a plugin by slug alone. The merge above already holds each
+ * subagent's copy, so a plugin left out is left out of the whole run; the
+ * runner leaves the same plugins out of the turn (blueprint-resolver.ts).
+ *
  * Tests: __tests__/run-plugins.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
@@ -66,12 +73,14 @@ export function runPluginReferences(
   return [...merged.values()];
 }
 
-/** Loads each referenced plugin that exists; refuses two plugins of one name. */
+/** Loads each referenced plugin that exists and is not excluded; refuses two plugins of one name. */
 export async function loadRunPlugins(
   store: Store,
   refs: readonly ApiResourceReference[],
   executionOrg: string,
+  excludedIds: readonly string[] = [],
 ): Promise<RunPlugin[]> {
+  const excluded = new Set(excludedIds);
   const plugins: RunPlugin[] = [];
   const byName = new Map<string, Plugin>();
   // Each server's name in a turn, `plugin_<plugin>_<server>`, and whose it
@@ -86,6 +95,9 @@ export async function loadRunPlugins(
         continue;
       }
       throw error;
+    }
+    if (excluded.has(plugin.metadata?.id ?? "")) {
+      continue;
     }
     const name = plugin.metadata?.name ?? "";
     const other = byName.get(name);

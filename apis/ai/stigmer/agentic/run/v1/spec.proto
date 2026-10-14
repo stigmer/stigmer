@@ -367,6 +367,30 @@ message RunSpec {
   // plugin_eval_case. Its creation writes no user.message, so the
   // conversation's newest turn stays the one whose files are reviewed.
   bool reconcile_file_review = 26;
+
+  // Plugins this turn leaves out, by id, wherever the turn would take them
+  // from: its agent version, its conversation or one of its subagents. A
+  // plugin left out loads nothing into the turn: no skills, agents, hooks
+  // or MCP servers, and no values planned for it.
+  //
+  // @internal
+  // Set only by the server's eval case workflow, for the arm that runs a
+  // case without the plugin it compares; run create refuses it on a request
+  // that is not server-composed, and run update keeps what create stored.
+  // Matched on each plugin's resolved id, since a reference may still name
+  // a plugin by slug alone. Top-level rather than inside the case context:
+  // any case context makes the runner fetch a case archive and prepare a
+  // case, which a comparison alone does not need.
+  repeated string excluded_plugin_ids = 27 [(buf.validate.field).repeated = {
+    max_items: 8
+    unique: true
+    items: {
+      string: {
+        min_len: 1
+        max_len: 128
+      }
+    }
+  }];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

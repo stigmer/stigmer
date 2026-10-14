@@ -37,7 +37,10 @@
  *
  * A chat with the built-in assistant runs its conversation's plugins'
  * hooks too (`SessionSpec.plugins`): there is no agent, and the hook still
- * refuses the delete.
+ * refuses the delete. A run that excludes the plugin (`RunSpec.
+ * excluded_plugin_ids`, an eval's without arm) runs none of its hooks: the
+ * archive is never fetched, the hook decides nothing, and the turn records
+ * no plugin loaded.
  *
  * A listed plugin that cannot be read fails the turn naming it, as a
  * conversation whose agent is gone does; a subagent's plugin whose archive
@@ -409,6 +412,41 @@ fi
     expect(deleted.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
     expect(deleted.error).toBe("The safety plugin's hook refused this call: recursive deletes are not allowed");
     expect([deleted.approvalPolicySource, deleted.approvalPolicyHook]).toEqual([ApprovalPolicySource.HOOK, "safety"]);
+  });
+
+  it("runs none of a plugin's hooks when the run excludes the plugin", async () => {
+    clock.reset();
+    const record = deepAgentExecutionRecord({ message: "Clean the build.", builtInAssistant: true });
+    usePlugin(record, "session", "safety");
+    record.execution.spec!.excludedPluginIds = [SAFETY.metadata!.id];
+    const getPluginArtifact = vi.fn(async () => create(GetArtifactResponseSchema, { artifact: ARCHIVE }));
+    const scenario = beginDeepAgentScenario({
+      env,
+      clock,
+      record,
+      checkpointer: "sqlite",
+      clientOverrides: {
+        getPluginByReference: vi.fn(async () => SAFETY),
+        getPluginArtifactDownloadUrl: vi.fn(async () => {
+          throw new ConnectError("no download lane", Code.Unimplemented);
+        }),
+        getPluginArtifact,
+      },
+      script: () => ({
+        turns: [
+          { text: "Cleaning the build.", toolCalls: [DELETE], usage: { inputTokens: 1_400, outputTokens: 40 } },
+          CLOSING_TURN,
+        ],
+      }),
+    });
+
+    await runDeepAgentTurn(scenario, { turnSeq: 0 });
+
+    expect(getPluginArtifact, "an excluded plugin's archive is never fetched").not.toHaveBeenCalled();
+    const deleted = record.lastFullRows!.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === DELETE.id)!;
+    expect(deleted.approvalPolicySource).not.toBe(ApprovalPolicySource.HOOK);
+    expect(deleted.approvalPolicyHook).toBe("");
+    expect(record.lastFullStatus?.loadedVersions?.plugins ?? []).toEqual([]);
   });
 
   it("fails the turn, naming the plugin, when an agent's plugin cannot be read", async () => {

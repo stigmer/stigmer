@@ -26,7 +26,8 @@
  * own plugins are the whole tool set. The agent's subagents are read at
  * the versions its stamped version pins (run-subagents.ts), each bringing
  * its own keys and its plugins. The plugins are the agent version's, the
- * session's and the subagents', each once (run-plugins.ts).
+ * session's and the subagents', each once, less any the run excludes
+ * (run-plugins.ts).
  *
  * Which entry fills each key is the vault resolver's one rule
  * (domain/vault/resolve.ts): the session's own repository tokens, its
@@ -174,6 +175,7 @@ export async function planRunValues(
     deps.store,
     runPluginReferences(agentSpec, session, executionOrg, subagents),
     executionOrg,
+    execution.spec?.excludedPluginIds,
   );
   refuseLocalPrograms(deps.localPrograms, session.spec?.executionTarget ?? ExecutionTarget.UNSPECIFIED, plugins);
 

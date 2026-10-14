@@ -456,6 +456,52 @@ export function newKeepReconcileFileReviewStep(): PipelineStep<CreateDesc> {
   };
 }
 
+/** The refusal of a plugin exclusion on a request the server did not compose. */
+export const EXCLUDED_PLUGINS_NOT_COMPOSED_MESSAGE =
+  "spec.excluded_plugin_ids is set only by the server's evals";
+
+/**
+ * GuardExcludedPlugins: `spec.excluded_plugin_ids` makes a turn run without
+ * plugins its agent, its conversation or a subagent lists (run-plugins.ts,
+ * and the runner's blueprint resolver). Only the server's eval case
+ * workflow composes it, to run a case without the plugin it compares; any
+ * other request that carries it is refused, whoever sends it, so no caller
+ * runs an agent without a plugin its author attached.
+ */
+export function newGuardExcludedPluginsStep(): PipelineStep<CreateDesc> {
+  return {
+    name: "GuardExcludedPlugins",
+    async execute(ctx) {
+      if ((ctx.newState.spec?.excludedPluginIds.length ?? 0) === 0) {
+        return;
+      }
+      if (!isServerComposedRequest(ctx.callerIdentity)) {
+        throw permissionDeniedError(EXCLUDED_PLUGINS_NOT_COMPOSED_MESSAGE);
+      }
+    },
+  };
+}
+
+/**
+ * KeepExcludedPlugins: on update, a run's `spec.excluded_plugin_ids` stays
+ * what the create stored, whatever the request carries. Run update is a
+ * person's (`can_edit`) and replaces the spec whole, and the runner reads
+ * the list again at every turn's start, so an update that could set it
+ * would leave a plugin out of a turn outside the create guard
+ * (GuardExcludedPlugins), and one that could clear it would put the
+ * compared plugin back into an eval's without arm.
+ */
+export function newKeepExcludedPluginsStep(): PipelineStep<CreateDesc> {
+  return {
+    name: "KeepExcludedPlugins",
+    execute(ctx) {
+      const existing = ctx.get(EXISTING_RESOURCE_KEY) as Run | undefined;
+      ctx.newState.spec ??= create(RunSpecSchema);
+      ctx.newState.spec.excludedPluginIds = [...(existing?.spec?.excludedPluginIds ?? [])];
+    },
+  };
+}
+
 /** The refusal of a visitor's appended system prompt. */
 export const VISITOR_APPENDED_PROMPT_MESSAGE =
   "a visitor cannot append to the agent's system prompt (spec.append_system_prompt)";
