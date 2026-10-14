@@ -5,10 +5,12 @@
  *   - an organization that stores none creates no accounts, grants nothing
  *     and allows every origin;
  *   - the form starts from the stored settings, and a save sends every
- *     setting, its vaults by the id they hold, through updateEmbedding;
+ *     setting, its vaults by the id they hold, through updateEmbedding,
+ *     and still says so once the new settings are read back;
  *   - turning account creation off clears the sign-in role, which is
  *     offered only with it, and owner is never offered;
- *   - someone without can_edit reads the settings and cannot change them;
+ *   - someone without can_edit reads the settings and cannot change them,
+ *     and is not sent to manage service accounts;
  *   - a refused save shows the server's words; a failed read offers a
  *     retry; the service-account link appears only when given.
  */
@@ -140,6 +142,23 @@ describe("OrgEmbeddingPanel", () => {
     expect((await screen.findByRole("status")).textContent).toContain("Saved");
   });
 
+  it("still says Saved once the organization is read back with the new settings", async () => {
+    let stored = orgWith(STORED);
+    const client = createMockStigmer(stored);
+    client.organization.get.mockImplementation(async () => stored);
+    client.organization.updateEmbedding.mockImplementation(async (input: UpdateOrganizationEmbeddingInput) => {
+      stored = orgWith({ ...STORED, signInRole: input.embedding?.signInRole ?? IamRole.iam_role_unspecified });
+      return stored;
+    });
+    renderPanel(client);
+    fireEvent.change(await screen.findByLabelText("Sign-in role"), { target: { value: String(IamRole.viewer) } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(client.organization.get).toHaveBeenCalledTimes(2));
+    expect((await screen.findByRole("status")).textContent).toContain("Saved");
+    expect((screen.getByLabelText("Sign-in role") as HTMLSelectElement).value).toBe(String(IamRole.viewer));
+  });
+
   it("clears the sign-in role when account creation is turned off, and sends none", async () => {
     const client = createMockStigmer(orgWith(STORED));
     renderPanel(client);
@@ -170,6 +189,12 @@ describe("OrgEmbeddingPanel", () => {
     expect(screen.queryByRole("button", { name: "Remove https://app.acme.example" })).toBeNull();
     expect((screen.getByRole("switch") as HTMLInputElement).disabled).toBe(true);
     expect((screen.getByLabelText("Sign-in role") as HTMLInputElement).disabled).toBe(true);
+  });
+
+  it("offers the service-account link only to someone who can change the settings", async () => {
+    renderPanel(createMockStigmer(orgWith(STORED), false), { serviceAccountsHref: "#/settings/service-accounts" });
+    await screen.findByText("Only organization admins can change these settings.");
+    expect(screen.queryByRole("link", { name: "Manage service accounts" })).toBeNull();
   });
 
   it("links to service accounts only when given where they are managed", async () => {

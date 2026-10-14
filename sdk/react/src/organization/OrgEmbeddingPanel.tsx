@@ -77,6 +77,9 @@ const INPUT_CLASS = cn(
  */
 export function OrgEmbeddingPanel({ org, serviceAccountsHref, onUpdated, className }: OrgEmbeddingPanelProps) {
   const { organization, isLoading, error: fetchError, refetch } = useOrganization(org || null);
+  // Held here, not in the form: a save is read back as a new stored
+  // version, which starts a fresh form, and it must still say Saved.
+  const [saved, setSaved] = useState(false);
   // Fail-open: a server without sign-in answers every check allowed, and
   // the server refuses a save the answer missed.
   const { allowed: canEdit } = useCheckPermission(
@@ -121,12 +124,13 @@ export function OrgEmbeddingPanel({ org, serviceAccountsHref, onUpdated, classNa
       stored={organizationEmbeddingOf(organization)}
       canEdit={canEdit}
       serviceAccountsHref={serviceAccountsHref}
+      saved={saved}
+      onSavedChange={setSaved}
       refetch={refetch}
       onUpdated={onUpdated}
       className={className}
     />
   );
-
 }
 
 interface EmbeddingFormProps {
@@ -134,28 +138,40 @@ interface EmbeddingFormProps {
   readonly stored: OrganizationEmbeddingValue;
   readonly canEdit: boolean;
   readonly serviceAccountsHref: string | undefined;
+  /** Whether the last save succeeded and nothing was edited since. */
+  readonly saved: boolean;
+  readonly onSavedChange: (saved: boolean) => void;
   readonly refetch: () => void;
   readonly onUpdated: ((org: Organization) => void) | undefined;
   readonly className: string | undefined;
 }
 
 /** The settings form, started from the stored settings. */
-function EmbeddingForm({ org, stored, canEdit, serviceAccountsHref, refetch, onUpdated, className }: EmbeddingFormProps) {
+function EmbeddingForm({
+  org,
+  stored,
+  canEdit,
+  serviceAccountsHref,
+  saved,
+  onSavedChange,
+  refetch,
+  onUpdated,
+  className,
+}: EmbeddingFormProps) {
   const baseId = useId();
   const createId = `${baseId}-create-accounts`;
   const roleId = `${baseId}-role`;
   const { updateEmbedding, isUpdating, error, clearError } = useUpdateOrganizationEmbedding();
   const [draft, setDraft] = useState<OrganizationEmbeddingValue>(stored);
   const [originInput, setOriginInput] = useState("");
-  const [saved, setSaved] = useState(false);
 
   const edit = useCallback(
     (next: Partial<OrganizationEmbeddingValue>) => {
       setDraft((current) => ({ ...current, ...next }));
-      setSaved(false);
+      onSavedChange(false);
       clearError();
     },
-    [clearError],
+    [clearError, onSavedChange],
   );
 
   const addOrigin = useCallback(() => {
@@ -187,30 +203,30 @@ function EmbeddingForm({ org, stored, canEdit, serviceAccountsHref, refetch, onU
   const handleSubmit = useCallback(
     async (event: FormEvent) => {
       event.preventDefault();
+      onSavedChange(false);
       try {
         const updated = await updateEmbedding(org, {
           ...draft,
           vaults: draft.vaults.map(keptReference),
         });
-        setSaved(true);
+        onSavedChange(true);
         refetch();
         onUpdated?.(updated);
       } catch {
         // error state is managed by useUpdateOrganizationEmbedding
       }
     },
-    [org, draft, updateEmbedding, refetch, onUpdated],
+    [org, draft, updateEmbedding, onSavedChange, refetch, onUpdated],
   );
-
 
   const locked = isUpdating || !canEdit;
 
   return (
-    <form className={cn("stg:space-y-5", className)} onSubmit={(event) => void handleSubmit(event)}>
+    <form className={cn("stg:flex stg:flex-col stg:gap-5", className)} onSubmit={(event) => void handleSubmit(event)}>
       <p className="stg:text-[0.65rem] stg:leading-snug stg:text-muted-foreground">
         Your product&apos;s backend signs its users in to this organization by minting a token for
         each, with the API key of a service account that is an admin here.
-        {serviceAccountsHref !== undefined && (
+        {canEdit && serviceAccountsHref !== undefined && (
           <>
             {" "}
             <a href={serviceAccountsHref} className="stg:text-primary stg:underline-offset-2 stg:hover:underline">
@@ -268,7 +284,6 @@ function EmbeddingForm({ org, stored, canEdit, serviceAccountsHref, refetch, onU
       </fieldset>
 
       <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2")} disabled={locked}>
-        <hr className="stg:border-border-muted" />
         <legend className="stg:text-xs stg:font-medium stg:text-foreground">Allowed origins</legend>
         <p className="stg:text-[0.65rem] stg:text-muted-foreground">
           Web pages whose origin is listed here may use the tokens. Leave empty to allow every
@@ -324,7 +339,6 @@ function EmbeddingForm({ org, stored, canEdit, serviceAccountsHref, refetch, onU
       </fieldset>
 
       <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2")} disabled={locked}>
-        <hr className="stg:border-border-muted" />
         <legend className="stg:text-xs stg:font-medium stg:text-foreground">Vaults</legend>
         <p className="stg:text-[0.65rem] stg:text-muted-foreground">
           Shared vaults whose keys the conversations of people signed in from your product use, in
