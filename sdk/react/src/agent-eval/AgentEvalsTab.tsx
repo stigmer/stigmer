@@ -73,6 +73,7 @@ import { AgentEvalResults } from "./AgentEvalResults.js";
 import { useAgentEval } from "./useAgentEval.js";
 import { useAgentEvals } from "./useAgentEvals.js";
 import { useStartAgentEval } from "./useStartAgentEval.js";
+import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
 
 /** Props for {@link AgentEvalsTab}. */
 export interface AgentEvalsTabProps {
@@ -126,7 +127,8 @@ export function AgentEvalsTab({
     "can_edit",
     { fail: "closed" },
   );
-  const { evals, isLoading, error, refetch } = useAgentEvals(agentId);
+  const { evals, isLoading, error, refetch, hasMore, loadMore, isLoadingMore, loadMoreError } =
+    useAgentEvals(agentId);
   const [selected, setSelected] = useState<string | null>(
     initialEvalId ?? null,
   );
@@ -185,7 +187,7 @@ export function AgentEvalsTab({
           />
         )
       )}
-      <Section title="Past evals" count={evals.length}>
+      <Section title="Past evals" count={evals.length} countIsLowerBound={hasMore}>
         {isLoading ? (
           <p className="stg:px-3 stg:py-2.5 stg:text-xs stg:text-muted-foreground">
             Loading evals…
@@ -199,6 +201,13 @@ export function AgentEvalsTab({
               </p>
             )}
             <EvalList evals={evals} selected={shown} onSelect={setSelected} />
+            <LoadMoreFooter
+              className="stg:px-3 stg:pb-2.5"
+              hasMore={hasMore}
+              loadMore={loadMore}
+              isLoadingMore={isLoadingMore}
+              loadMoreError={loadMoreError}
+            />
           </>
         ) : error !== null ? (
           <div className="stg:p-3">

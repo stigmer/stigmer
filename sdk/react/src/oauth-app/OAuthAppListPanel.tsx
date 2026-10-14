@@ -8,6 +8,7 @@ import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useOAuthAppList } from "./useOAuthAppList.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -69,7 +70,8 @@ export function OAuthAppListPanel({
   emptyState = "No OAuth apps configured yet.",
   className,
 }: OAuthAppListPanelProps) {
-  const { oauthApps, isLoading, error, refetch } = useOAuthAppList(org);
+  const { oauthApps, isLoading, error, refetch, hasMore, loadMore, isLoadingMore, loadMoreError } =
+    useOAuthAppList(org);
 
   if (onRefetchRef) {
     onRefetchRef(refetch);
@@ -113,18 +115,17 @@ export function OAuthAppListPanel({
   }
 
   return (
-    <div
-      className={cn("stg:space-y-2", className)}
-      role="list"
-      aria-label="OAuth apps"
-    >
-      {oauthApps.map((app) => (
-        <OAuthAppRow
-          key={app.metadata?.id ?? ""}
-          oauthApp={app}
-          onEdit={onEdit ? () => onEdit(app) : undefined}
-        />
-      ))}
+    <div className={className}>
+      <div className="stg:space-y-2" role="list" aria-label="OAuth apps">
+        {oauthApps.map((app) => (
+          <OAuthAppRow
+            key={app.metadata?.id ?? ""}
+            oauthApp={app}
+            onEdit={onEdit ? () => onEdit(app) : undefined}
+          />
+        ))}
+      </div>
+      <LoadMoreFooter hasMore={hasMore} loadMore={loadMore} isLoadingMore={isLoadingMore} loadMoreError={loadMoreError} />
     </div>
   );
 }

@@ -6,6 +6,12 @@ import type { ReactNode } from "react";
 export interface SectionProps {
   readonly title: string;
   readonly count?: number;
+  /**
+   * `true` when `count` is what is loaded of a longer list (a token
+   * follows): the badge reads "50+" rather than a total the list does not
+   * carry.
+   */
+  readonly countIsLowerBound?: boolean;
   /** Arbitrary action elements rendered in the header row (e.g. expand, share). */
   readonly headerActions?: ReactNode;
   readonly onEdit?: () => void;
@@ -31,6 +37,7 @@ export interface SectionProps {
 export function Section({
   title,
   count,
+  countIsLowerBound = false,
   headerActions,
   onEdit,
   scrollTarget,
@@ -44,8 +51,8 @@ export function Section({
           {title}
         </h3>
         {count != null && count > 0 && (
-          <span className="stg:inline-flex stg:size-5 stg:items-center stg:justify-center stg:rounded-full stg:bg-muted stg:text-[10px] stg:font-semibold stg:text-muted-foreground">
-            {count}
+          <span className="stg:inline-flex stg:h-5 stg:min-w-5 stg:items-center stg:justify-center stg:rounded-full stg:bg-muted stg:px-1 stg:text-[10px] stg:font-semibold stg:text-muted-foreground">
+            {countIsLowerBound ? `${count}+` : count}
           </span>
         )}
         {(headerActions || onEdit) && (

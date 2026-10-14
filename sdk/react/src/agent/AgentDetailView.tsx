@@ -314,7 +314,7 @@ export function AgentDetailView({
     spec: agent?.spec,
   });
 
-  // The badge reads the count alone; the tab loads the history when opened.
+  // The badge reads the history's first page; the tab pages it when opened.
   const versionCount = useAgentVersionCount(
     agent?.metadata?.org ?? null,
     agent?.metadata?.slug ?? null,
@@ -327,7 +327,13 @@ export function AgentDetailView({
       QUALITY_TAB,
       EVALS_TAB,
       ...(noDeps ? [] : [DEPENDENCIES_TAB]),
-      { ...VERSIONS_TAB, ...(versionCount > 0 && { badge: versionCount }) },
+      {
+        ...VERSIONS_TAB,
+        ...(versionCount.count > 0 && {
+          badge: versionCount.count,
+          badgeIsLowerBound: versionCount.isLowerBound,
+        }),
+      },
     ],
     [noDeps, versionCount],
   );

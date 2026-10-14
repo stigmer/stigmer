@@ -18,7 +18,7 @@ import { create } from "@bufbuild/protobuf";
 import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { ListPluginEvalsByPluginRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/io_pb";
 import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useCursorPages } from "../internal/useCursorPages.js";
 import { isEvalActive } from "./eval-view.js";
 import { PLUGIN_EVAL_POLL_MS } from "./usePluginEval.js";
 
@@ -32,9 +32,16 @@ export interface UsePluginEvalsReturn {
   readonly error: Error | null;
   /** Re-fetch the list (after starting or deleting an eval). */
   readonly refetch: () => void;
+  /** `true` while the server holds entries beyond those loaded. */
+  readonly hasMore: boolean;
+  /** Load the next page. No-op while one is loading or when nothing follows. */
+  readonly loadMore: () => void;
+  /** `true` while a `loadMore` read is in flight. */
+  readonly isLoadingMore: boolean;
+  /** Error from the last failed `loadMore`, or `null`. */
+  readonly loadMoreError: Error | null;
 }
 
-const NO_EVALS: readonly PluginEval[] = [];
 
 /**
  * Data hook that lists a plugin's {@link PluginEval}s, newest first,
@@ -55,26 +62,26 @@ export function usePluginEvals(pluginId: string): UsePluginEvalsReturn {
   // Asks again while the last answer holds an eval that has not finished.
   const [polling, setPolling] = useState(false);
 
-  const { data, isLoading, error, refetch } = useFetch(
+  const pages = useCursorPages<PluginEval>(
     pluginId
-      ? async (): Promise<readonly PluginEval[]> =>
-          (
-            await stigmer.plugineval.listByPlugin(
-              create(ListPluginEvalsByPluginRequestSchema, { pluginId }),
-            )
-          ).items
+      ? (pageToken) =>
+          stigmer.plugineval.listByPlugin(
+            create(ListPluginEvalsByPluginRequestSchema, { pluginId, pageToken }),
+          )
       : null,
     [pluginId, stigmer],
-    NO_EVALS,
+    (row) => row.metadata?.id ?? "",
     { refetchInterval: polling ? PLUGIN_EVAL_POLL_MS : false },
   );
+  const data = pages.items;
 
   useEffect(() => {
     setPolling(data.some(isEvalActive));
   }, [data]);
 
+  const { hasMore, loadMore, isLoadingMore, loadMoreError, isLoading, error, refetch } = pages;
   return useMemo(
-    () => ({ evals: data, isLoading, error, refetch }),
-    [data, isLoading, error, refetch],
+    () => ({ evals: data, hasMore, loadMore, isLoadingMore, loadMoreError, isLoading, error, refetch }),
+    [data, hasMore, loadMore, isLoadingMore, loadMoreError, isLoading, error, refetch],
   );
 }

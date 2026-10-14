@@ -10,6 +10,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/billing/providerkey/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
+import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
 import { useFetch } from "../internal/useFetch.js";
 
 /**
@@ -64,12 +65,20 @@ export interface UseProviderKeysReturn {
 export function useProviderKeys(org: string | null, options?: UseProviderKeysOptions): UseProviderKeysReturn {
   const stigmer = useStigmer();
   const enabled = (options?.enabled ?? true) && org !== null && org !== "";
-  const { data, isLoading, error, refetch } = useFetch(
-    enabled && org ? () => stigmer.providerkey.list(create(ListProviderKeysInputSchema, { org })) : null,
+  // An organization holds at most one key per provider, its parent's
+  // merged in, so the walk is a page or two.
+  const { data: keys, isLoading, error, refetch } = useFetch(
+    enabled && org
+      ? (): Promise<readonly ProviderKey[]> =>
+          readEveryPage((pageToken) =>
+            stigmer.providerkey.list(
+              create(ListProviderKeysInputSchema, { org, pageSize: LIST_PAGE_MAX, pageToken }),
+            ),
+          )
+      : null,
     [enabled, org, stigmer],
-    null as { readonly keys: readonly ProviderKey[] } | null,
+    null as readonly ProviderKey[] | null,
   );
-  const keys = data?.keys ?? null;
   return useMemo(() => ({ keys, isLoading, error, refetch }), [keys, isLoading, error, refetch]);
 }
 

@@ -1,10 +1,10 @@
 "use client";
 
 import { create } from "@bufbuild/protobuf";
-import { ListOAuthAppsByOrgInputSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/io_pb";
+import { ListOAuthAppsInputSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/io_pb";
 import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useCursorPages } from "../internal/useCursorPages.js";
 
 /** Return value of {@link useOAuthAppList}. */
 export interface UseOAuthAppListReturn {
@@ -18,6 +18,14 @@ export interface UseOAuthAppListReturn {
   readonly error: Error | null;
   /** Discard cached data and re-fetch the list from the server. */
   readonly refetch: () => void;
+  /** `true` while the server holds entries beyond those loaded. */
+  readonly hasMore: boolean;
+  /** Load the next page. No-op while one is loading or when nothing follows. */
+  readonly loadMore: () => void;
+  /** `true` while a `loadMore` read is in flight. */
+  readonly isLoadingMore: boolean;
+  /** Error from the last failed `loadMore`, or `null`. */
+  readonly loadMoreError: Error | null;
 }
 
 /**
@@ -45,16 +53,26 @@ export function useOAuthAppList(
 ): UseOAuthAppListReturn {
   const stigmer = useStigmer();
 
-  const { data: oauthApps, isLoading, isRefetching, error, refetch } = useFetch(
+  const pages = useCursorPages<OAuthApp>(
     org
-      ? () =>
-          stigmer.oauthapp
-            .listByOrg(create(ListOAuthAppsByOrgInputSchema, { org }))
-            .then((r) => [...r.entries])
+      ? (pageToken) =>
+          stigmer.oauthapp.list(
+            create(ListOAuthAppsInputSchema, { org, pageToken }),
+          )
       : null,
     [org, stigmer],
-    [] as OAuthApp[],
+    (row) => row.metadata?.id ?? "",
   );
 
-  return { oauthApps, isLoading, isRefetching, error, refetch };
+  return {
+    oauthApps: pages.items,
+    hasMore: pages.hasMore,
+    loadMore: pages.loadMore,
+    isLoadingMore: pages.isLoadingMore,
+    loadMoreError: pages.loadMoreError,
+    isLoading: pages.isLoading,
+    isRefetching: pages.isRefetching,
+    error: pages.error,
+    refetch: pages.refetch,
+  };
 }

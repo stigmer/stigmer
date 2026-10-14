@@ -2,8 +2,9 @@
 
 import { create } from "@bufbuild/protobuf";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { ListIdentityProvidersByOrgInputSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
+import { ListIdentityProvidersInputSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
 import { useStigmer } from "../hooks.js";
+import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
 import { useFetch } from "../internal/useFetch.js";
 
 /** Return value of {@link useIdentityProviderList}. */
@@ -24,8 +25,9 @@ export interface UseIdentityProviderListReturn {
  * Data hook that fetches all identity providers for an organization.
  *
  * Identity providers are admin-level resources with small cardinality
- * (typically 1–3 per org), so results are returned as a flat list
- * without pagination.
+ * (typically 1–3 per org), and the members page looks a provider up among
+ * them, so the hook walks every page of the list and answers the whole
+ * set.
  *
  * Pass `null` to skip fetching (stable no-op). Call `refetch()` to
  * re-query after mutations (create / update / delete).
@@ -62,9 +64,11 @@ export function useIdentityProviderList(
   const { data: identityProviders, isLoading, isRefetching, error, refetch } = useFetch(
     org
       ? () =>
-          stigmer.identityProvider
-            .listByOrg(create(ListIdentityProvidersByOrgInputSchema, { org }))
-            .then((r) => [...r.entries])
+          readEveryPage((pageToken) =>
+            stigmer.identityProvider.list(
+              create(ListIdentityProvidersInputSchema, { org, pageSize: LIST_PAGE_MAX, pageToken }),
+            ),
+          )
       : null,
     [org, stigmer],
     [] as IdentityProvider[],

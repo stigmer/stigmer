@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
@@ -72,11 +71,8 @@ export function ScheduleFiresTable({
   pageSize = 25,
   className,
 }: ScheduleFiresTableProps) {
-  const [pageNum, setPageNum] = useState(1);
-  const { fires, totalCount, isLoading, error, refetch } = useScheduleFires(
-    scheduleId,
-    { page: pageNum, pageSize },
-  );
+  const { fires, pageNumber, hasNext, hasPrevious, next, previous, isLoading, error, refetch } =
+    useScheduleFires(scheduleId, { pageSize });
 
   if (error) {
     return <ErrorMessage error={error} retry={refetch} className={className} />;
@@ -99,7 +95,6 @@ export function ScheduleFiresTable({
   }
 
   const renderNow = now ?? new Date();
-  const totalPages = Math.ceil(totalCount / pageSize);
 
   return (
     <div className={className}>
@@ -137,11 +132,13 @@ export function ScheduleFiresTable({
         ))}
       </div>
 
-      {totalPages > 1 && (
+      {(hasNext || hasPrevious) && (
         <Pagination
-          pageNum={pageNum}
-          totalPages={totalPages}
-          onPageChange={setPageNum}
+          pageNumber={pageNumber}
+          hasPrevious={hasPrevious}
+          hasNext={hasNext}
+          onPrevious={previous}
+          onNext={next}
           ariaLabel="Fire history pagination"
           className="stg:mt-3"
         />

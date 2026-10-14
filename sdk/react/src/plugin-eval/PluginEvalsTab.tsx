@@ -60,6 +60,7 @@ import { PluginEvalResults } from "./PluginEvalResults.js";
 import { usePluginEval } from "./usePluginEval.js";
 import { usePluginEvals } from "./usePluginEvals.js";
 import { useStartPluginEval } from "./useStartPluginEval.js";
+import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
 
 /** Props for {@link PluginEvalsTab}. */
 export interface PluginEvalsTabProps {
@@ -96,7 +97,8 @@ export function PluginEvalsTab({
     "can_edit",
     { fail: "closed" },
   );
-  const { evals, isLoading, error, refetch } = usePluginEvals(pluginId);
+  const { evals, isLoading, error, refetch, hasMore, loadMore, isLoadingMore, loadMoreError } =
+    usePluginEvals(pluginId);
   const [selected, setSelected] = useState<string | null>(null);
   const shown = selected ?? evals[0]?.metadata?.id ?? null;
   const pluginName = meta?.name || meta?.slug || "";
@@ -116,7 +118,7 @@ export function PluginEvalsTab({
             }}
           />
         )}
-      <Section title="Past evals" count={evals.length}>
+      <Section title="Past evals" count={evals.length} countIsLowerBound={hasMore}>
         {isLoading ? (
           <p className="stg:px-3 stg:py-2.5 stg:text-xs stg:text-muted-foreground">
             Loading evals…
@@ -134,6 +136,13 @@ export function PluginEvalsTab({
               pluginName={pluginName}
               selected={shown}
               onSelect={setSelected}
+            />
+            <LoadMoreFooter
+              className="stg:px-3 stg:pb-2.5"
+              hasMore={hasMore}
+              loadMore={loadMore}
+              isLoadingMore={isLoadingMore}
+              loadMoreError={loadMoreError}
             />
           </>
         ) : error !== null ? (

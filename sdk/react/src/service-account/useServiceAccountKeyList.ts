@@ -2,9 +2,9 @@
 
 /**
  * Data hook for the API keys that speak for one service account
- * (`apiKey.findByAccount`).
+ * (`apiKey.listByAccount`), one page at a time.
  *
- * A person's own keys come from `useApiKeyList` (`findAll`, the caller's own
+ * A person's own keys come from `useApiKeyList` (`list`, the caller's own
  * keys); a service account's keys are listed by account, because the admin
  * reading them is not their owner. The server answers a caller who may view
  * the account: the organization's admins. As with every key read, no raw key
@@ -12,7 +12,9 @@
  */
 import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { create } from "@bufbuild/protobuf";
+import { ListApiKeysByAccountInputSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
+import { useCursorPages } from "../internal/useCursorPages.js";
 
 /** Return value of {@link useServiceAccountKeyList}. */
 export interface UseServiceAccountKeyListReturn {
@@ -26,6 +28,14 @@ export interface UseServiceAccountKeyListReturn {
   readonly error: Error | null;
   /** Re-fetch the keys, after a create or a revoke. */
   readonly refetch: () => void;
+  /** `true` while the server holds entries beyond those loaded. */
+  readonly hasMore: boolean;
+  /** Load the next page. No-op while one is loading or when nothing follows. */
+  readonly loadMore: () => void;
+  /** `true` while a `loadMore` read is in flight. */
+  readonly isLoadingMore: boolean;
+  /** Error from the last failed `loadMore`, or `null`. */
+  readonly loadMoreError: Error | null;
 }
 
 /**
@@ -43,13 +53,26 @@ export function useServiceAccountKeyList(
 ): UseServiceAccountKeyListReturn {
   const stigmer = useStigmer();
 
-  const { data: apiKeys, isLoading, isRefetching, error, refetch } = useFetch(
+  const pages = useCursorPages<ApiKey>(
     serviceAccountId
-      ? () => stigmer.apiKey.findByAccount(serviceAccountId).then((r) => [...r.entries])
+      ? (pageToken) =>
+          stigmer.apiKey.listByAccount(
+            create(ListApiKeysByAccountInputSchema, { accountId: serviceAccountId, pageToken }),
+          )
       : null,
     [serviceAccountId, stigmer],
-    [] as ApiKey[],
+    (key) => key.metadata?.id ?? "",
   );
 
-  return { apiKeys, isLoading, isRefetching, error, refetch };
+  return {
+    apiKeys: pages.items,
+    hasMore: pages.hasMore,
+    loadMore: pages.loadMore,
+    isLoadingMore: pages.isLoadingMore,
+    loadMoreError: pages.loadMoreError,
+    isLoading: pages.isLoading,
+    isRefetching: pages.isRefetching,
+    error: pages.error,
+    refetch: pages.refetch,
+  };
 }

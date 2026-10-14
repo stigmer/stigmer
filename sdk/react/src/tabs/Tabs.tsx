@@ -10,6 +10,12 @@ export interface TabItem {
   readonly label: string;
   /** Optional numeric badge rendered next to the label (e.g. item count). */
   readonly badge?: number;
+  /**
+   * `true` when `badge` counts only what a first page holds and more
+   * follow: the badge reads "50+" rather than a total the list does not
+   * carry.
+   */
+  readonly badgeIsLowerBound?: boolean;
   /** Optional icon rendered before the label. */
   readonly icon?: ReactNode;
 }
@@ -157,7 +163,7 @@ export function Tabs({
                       : "stg:bg-muted stg:text-muted-foreground",
                   )}
                 >
-                  {tab.badge}
+                  {tab.badgeIsLowerBound ? `${tab.badge}+` : tab.badge}
                 </span>
               )}
               {isActive && (

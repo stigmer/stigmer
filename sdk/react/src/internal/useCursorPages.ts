@@ -23,7 +23,7 @@
  */
 import { type DependencyList, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toError } from "./toError.js";
-import { useFetch } from "./useFetch.js";
+import { type UseFetchOptions, useFetch } from "./useFetch.js";
 
 /** One page of a cursor-paged list response. */
 export interface CursorPage<T> {
@@ -69,11 +69,14 @@ interface Loaded<T> {
  *                   `null` to stay idle.
  * @param deps       The list's identity: any change starts a fresh list.
  * @param identityOf A row's stable identity, for the merge.
+ * @param options    The first page's fetch options (a poll interval for a
+ *                   list whose newest rows change while shown).
  */
 export function useCursorPages<T, P extends CursorPage<T> = CursorPage<T>>(
   fetchPage: ((pageToken: string) => Promise<P>) | null,
   deps: DependencyList,
   identityOf: (item: T) => string,
+  options?: UseFetchOptions,
 ): UseCursorPagesReturn<T, P> {
   const {
     data: firstPage,
@@ -85,6 +88,7 @@ export function useCursorPages<T, P extends CursorPage<T> = CursorPage<T>>(
     fetchPage === null ? null : () => fetchPage(""),
     deps,
     null,
+    options,
   );
 
   const [loaded, setLoaded] = useState<Loaded<T> | null>(null);

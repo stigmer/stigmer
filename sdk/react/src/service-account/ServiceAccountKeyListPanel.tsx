@@ -40,7 +40,7 @@ export function ServiceAccountKeyListPanel({
   className,
   now,
 }: ServiceAccountKeyListPanelProps) {
-  const { apiKeys, isLoading, error, refetch } = useServiceAccountKeyList(
+  const { apiKeys, isLoading, error, refetch, ...pager } = useServiceAccountKeyList(
     serviceAccountId || null,
   );
 
@@ -57,6 +57,7 @@ export function ServiceAccountKeyListPanel({
       emptyText="No keys yet. Create one for each place this service account runs."
       className={className}
       now={now}
+      pager={pager}
     />
   );
 }

@@ -193,12 +193,13 @@ export function ScheduleDetailView({
   const { schedule, isLoading, error, refetch } = useSchedule(org, slug);
 
   // The recent-fires fetch stays mounted regardless of the active tab:
-  // it feeds the History tab badge (total count), the Overview strip, and
+  // it feeds the History tab badge (its length, "+" when older fires
+  // follow), the Overview strip, and
   // post-trigger freshness. The History tab's full table owns its own
   // paginated fetch inside ScheduleFiresTable.
   const {
     fires: recentFires,
-    totalCount: totalFireCount,
+    hasNext: olderFiresFollow,
     isLoading: recentFiresLoading,
     refetch: refetchRecentFires,
   } = useScheduleFires(schedule?.metadata?.id ?? null, RECENT_FIRES_OPTIONS);
@@ -258,10 +259,12 @@ export function ScheduleDetailView({
       {
         id: HISTORY_TAB_ID,
         label: "History",
-        ...(totalFireCount > 0 ? { badge: totalFireCount } : {}),
+        ...(recentFires.length > 0
+          ? { badge: recentFires.length, badgeIsLowerBound: olderFiresFollow }
+          : {}),
       },
     ],
-    [totalFireCount],
+    [recentFires.length, olderFiresFollow],
   );
 
   const {
@@ -715,7 +718,7 @@ export function ScheduleDetailView({
       <Section
         title="Recent fires"
         headerActions={
-          totalFireCount > recentFires.length ? (
+          olderFiresFollow ? (
             <button
               type="button"
               onClick={() => effectiveOnTabChange(HISTORY_TAB_ID)}
@@ -724,7 +727,7 @@ export function ScheduleDetailView({
                 "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded-sm",
               )}
             >
-              View all {totalFireCount} fires
+              View all fires
             </button>
           ) : undefined
         }
