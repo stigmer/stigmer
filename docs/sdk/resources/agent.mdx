@@ -355,6 +355,7 @@ const agent = await stigmer.agent.apply({
   harness: "...",
   plugins: [],
   subagents: [],
+  mcpServers: [],
 });
 ```
 </Tab>
@@ -377,6 +378,7 @@ agent, err := client.Agent.Apply(ctx, &stigmer.AgentInput{
   Harness:         "...",
   Plugins:         []stigmer.ResourceRef{},
   Subagents:       []stigmer.ResourceRef{},
+  McpServers:      []stigmer.AgentMcpServerInput{},
 })
 ```
 </Tab>
@@ -399,6 +401,7 @@ agent = client.agents.apply(AgentInput(
     harness="...",
     plugins=[],
     subagents=[],
+    mcp_servers=[],
 ))
 ```
 </Tab>
@@ -421,6 +424,7 @@ Agent agent = client.agents().apply(AgentInput.builder()
     .harness("...")
     .plugins(List.of())
     .subagents(List.of())
+    .mcpServers(List.of())
     .build());
 ```
 </Tab>
@@ -458,6 +462,7 @@ const agent = await stigmer.agent.create({
   harness: "...",
   plugins: [],
   subagents: [],
+  mcpServers: [],
 });
 ```
 </Tab>
@@ -480,6 +485,7 @@ agent, err := client.Agent.Create(ctx, &stigmer.AgentInput{
   Harness:         "...",
   Plugins:         []stigmer.ResourceRef{},
   Subagents:       []stigmer.ResourceRef{},
+  McpServers:      []stigmer.AgentMcpServerInput{},
 })
 ```
 </Tab>
@@ -502,6 +508,7 @@ agent = client.agents.create(AgentInput(
     harness="...",
     plugins=[],
     subagents=[],
+    mcp_servers=[],
 ))
 ```
 </Tab>
@@ -524,6 +531,7 @@ Agent agent = client.agents().create(AgentInput.builder()
     .harness("...")
     .plugins(List.of())
     .subagents(List.of())
+    .mcpServers(List.of())
     .build());
 ```
 </Tab>
@@ -788,6 +796,7 @@ Input for creating or updating an Agent.
     harness: { type: "Harness", description: "The engine this agent's run defaults were chosen for, and the engine a new conversation on this agent starts on when the person or the surface starting it names neither an engine nor a model (a turn that names a model but no engine starts on native, the engine its name was checked against).", typeDescriptionLink: "#harness" },
     plugins: { type: "ResourceRef[]", description: "Plugins this agent uses, each whole: its skills, agents, hooks and MCP servers.", typeDescriptionLink: "#resourceref" },
     subagents: { type: "ResourceRef[]", description: "Saved agents this agent may hand work to, each running its own instructions, model, tools, plugins, skills, hooks and values.", typeDescriptionLink: "#resourceref" },
+    mcpServers: { type: "AgentMcpServerInput[]", description: "MCP servers written in this agent itself, reached over HTTP, beside the servers of the plugins it lists.", typeDescriptionLink: "#agentmcpserverinput" },
   }}
 />
 
@@ -877,6 +886,18 @@ RunConfig is the settings message for every run: a model, a speed tier, thinking
     serviceTier: { type: "ServiceTier", description: "Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.", typeDescriptionLink: "#servicetier" },
     thinkingMode: { type: "ThinkingMode", description: "Thinking mode for each run's model calls: disabled (the default) or enabled, where enabled selects the model's extended-reasoning variant (billed at base per-token rates — reasoning tokens bill as output).", typeDescriptionLink: "#thinkingmode" },
     maxToolResultChars: { type: "number", description: "Maximum number of characters for a single tool result before truncation." },
+  }}
+/>
+
+### AgentMcpServerInput
+
+AgentMcpServer is an MCP server written in an agent, reached over HTTP.
+
+<TypeTable
+  type={{
+    name: { type: "string", description: "The server's name in this agent, which names its tools mcp__<name>__<tool>: lowercase letters, digits and hyphens, starting with a letter and not ending with a hyphen." },
+    url: { type: "string", description: "The server's address: an https URL, or http on this machine." },
+    headers: { type: "Record<string, string>", description: "Headers sent with every request to this server." },
   }}
 />
 

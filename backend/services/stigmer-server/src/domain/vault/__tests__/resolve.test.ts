@@ -72,6 +72,7 @@ import type { MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
@@ -124,10 +125,11 @@ import {
   pluginHookRequirements,
   participantSenderOf,
   runRequirements,
-  serversOf,
   toolRequirements,
 } from "../resolve.js";
-import type { PluginServer, RunPlugin, SignInFreshener, VaultResolver } from "../resolve.js";
+import type { RunPlugin, SignInFreshener, VaultResolver } from "../resolve.js";
+import { serversOf } from "../../run/run-servers.js";
+import type { RunServer } from "../../run/run-servers.js";
 import { newVaultService } from "../service.js";
 import type { VaultRig } from "./support.js";
 import { openVaultRig, seedSharedVault, silentLogger } from "./support.js";
@@ -275,7 +277,7 @@ function entryOf(plugin: RunPlugin): McpServerEntry {
 }
 
 /** A plugin's one server, as a tools listing plans it. */
-function serverOf(plugin: RunPlugin): PluginServer {
+function serverOf(plugin: RunPlugin): RunServer {
   return serversOf(plugin)[0]!;
 }
 
@@ -374,6 +376,8 @@ interface ResolveInit {
   /** The subagents the agent lists, at their pinned versions; none by default. */
   subagents?: RunSubagent[];
   plugins?: RunPlugin[];
+  /** The agent version the run planned; none (the head) by default. */
+  agentVersion?: string;
   /** Hands the resolver a copy without storing it first. */
   unsaved?: boolean;
 }
@@ -389,6 +393,8 @@ async function plan(init: ResolveInit, over: VaultResolver = resolver): Promise<
     session,
     agentSpec: init.agentSpec,
     agentName: "Helper",
+    agentId: "agt_helper",
+    agentVersion: init.agentVersion ?? "",
     agentOrg: init.agentOrg === null ? undefined : (init.agentOrg ?? ORG),
     subagents: init.subagents ?? [],
     plugins: init.plugins ?? [],
@@ -511,6 +517,8 @@ describe("requirements", () => {
       session: sessionOf({ repo: { url: "https://github.com/acme/app" } }),
       agentSpec: agent({ OPENAI_API_KEY: KEY }),
       agentName: "Helper",
+      agentId: "agt_helper",
+      agentVersion: "",
       agentOrg: ORG,
       subagents: [],
       plugins: [
@@ -549,9 +557,8 @@ describe("requirements", () => {
       expect(requirement.declarer).toEqual({
         kind: "tool",
         name: "plugin:linear:linear",
-        pluginId: "plg_linear",
         server: "linear",
-        pluginDigest: linear.status.digest,
+        home: { kind: "plugin", pluginId: "plg_linear", pluginDigest: linear.status.digest },
       });
     }
     const byKey = Object.fromEntries(requirements.map((requirement) => [requirement.key, requirement]));
@@ -2390,6 +2397,8 @@ describe("edges", () => {
       }),
       agentSpec: undefined,
       agentName: "",
+      agentId: "",
+      agentVersion: "",
       agentOrg: undefined,
       subagents: [],
       plugins: [],
@@ -2900,7 +2909,7 @@ describe("a subagent's keys", () => {
     env: Record<string, { isSecret?: boolean; optional?: boolean; value?: string }>,
     org: string = ORG,
   ): RunSubagent {
-    return { name, org, spec: agent(env) };
+    return { id: `agt_${name}`, name, org, versionHash: "", spec: agent(env) };
   }
 
   it("are its own requirements, under a subagent declarer named by its name in the turn", () => {
@@ -2909,6 +2918,8 @@ describe("a subagent's keys", () => {
       session: sessionOf(),
       agentSpec: agent({ A: KEY }),
       agentName: "Helper",
+      agentId: "agt_helper",
+      agentVersion: "",
       agentOrg: ORG,
       subagents: [subagentOf("researcher", { S: KEY, NOTE: { value: "plain" } })],
       plugins: [],
@@ -3006,5 +3017,155 @@ describe("a subagent's keys", () => {
     expect(own.subagents.map((group) => [group.name, { ...group.values }])).toEqual([
       ["researcher", { S: "ana-sub" }],
     ]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// An agent's own MCP servers: tools whose home is the agent
+// ---------------------------------------------------------------------------
+
+describe("an agent's own MCP server", () => {
+  const ana = testCallerIdentity({ identityId: ANA });
+  const ZENDESK = "https://acme-co.zendesk.com/mcp";
+
+  /** The run's agent, writing one server `zendesk` at `url` with `headers`, declaring `env`. */
+  function writing(
+    headers: Record<string, string>,
+    env: Record<string, { isSecret?: boolean; optional?: boolean; value?: string }> = {},
+    url = ZENDESK,
+  ): AgentSpec {
+    return create(AgentSpecSchema, { env, mcpServers: [{ name: "zendesk", url, headers }] });
+  }
+
+  /** Stores the run's agent with `spec` as its head, at `hash`. */
+  async function saveAgent(spec: AgentSpec, hash: string): Promise<void> {
+    await rig.store.saveResource(
+      ApiResourceKind.agent,
+      "agt_helper",
+      AgentSchema,
+      create(AgentSchema, { metadata: { id: "agt_helper", name: "Helper", slug: "helper", org: ORG }, spec, status: { versionHash: hash } }),
+    );
+  }
+
+  /** The values the fetch answers for the agent's server. */
+  function zendeskValues(values: ExecutionValues): { url: string; values: Record<string, string> } | undefined {
+    const group = values.tools.find((entry) => entry.agentId === "agt_helper" && entry.server === "zendesk");
+    return group === undefined ? undefined : { url: group.url, values: { ...group.values } };
+  }
+
+  it("declares each key its headers read, under its own name and the agent's home, and an optional login at its address", () => {
+    const requirements = runRequirements({
+      execution: runOf(),
+      session: sessionOf(),
+      agentSpec: writing({ "X-Api-Key": "${ZENDESK_KEY}" }),
+      agentName: "Helper",
+      agentId: "agt_helper",
+      agentVersion: "f".repeat(64),
+      agentOrg: ORG,
+      subagents: [],
+      plugins: [],
+    });
+    expect(requirements.map((requirement) => [requirement.key, requirement.optional, requirement.loginAddress])).toEqual([
+      ["ZENDESK_KEY", false, undefined],
+      ["ZENDESK_ACCESS_TOKEN", true, ZENDESK],
+    ]);
+    for (const requirement of requirements) {
+      expect(requirement.declarer).toEqual({
+        kind: "tool",
+        name: "zendesk",
+        server: "zendesk",
+        home: { kind: "agent", agentId: "agt_helper", agentVersion: "f".repeat(64) },
+      });
+    }
+  });
+
+  it("takes the login its own Authorization header names, required, and adds no optional one", () => {
+    const requirements = runRequirements({
+      execution: runOf(),
+      session: sessionOf(),
+      agentSpec: writing({ authorization: "Bearer ${ZD_TOKEN}" }),
+      agentName: "Helper",
+      agentId: "agt_helper",
+      agentVersion: "",
+      agentOrg: ORG,
+      subagents: [],
+      plugins: [],
+    });
+    expect(requirements.map((requirement) => [requirement.key, requirement.optional, requirement.loginAddress])).toEqual([
+      ["ZD_TOKEN", false, ZENDESK],
+    ]);
+  });
+
+  it("plans a platform variable in a header as the optional setting it is, and the caller's identity as none", async () => {
+    const sources = await plan({
+      run: runOf({ person: ANA }),
+      agentSpec: writing({ "X-Stigmer": "${STIGMER_SERVER_ADDRESS}", "X-Caller": "${STIGMER_CALLER_IDENTITY_VALUE}" }),
+    });
+    expect(sources).toEqual([]);
+  });
+
+  it("reaches the server from a connection at its address, under the agent's home, and never the agent's shell", async () => {
+    const mine = await anasVault({ ZENDESK_KEY: "zd-key" });
+    await rig.vaults.setConnection(mine, ZENDESK, { token: "zd-login", source: VaultConnectionSource.pasted }, ana);
+    const spec = writing({ "X-Api-Key": "${ZENDESK_KEY}" }, { ZENDESK_KEY: KEY });
+    await saveAgent(spec, "e".repeat(64));
+    const sources = await plan({ run: runOf({ person: ANA }), agentSpec: spec, agentVersion: "e".repeat(64) });
+    expect(
+      sources.map((entry) => [entry.key, entry.declarer?.kind, entry.declarer?.agentId, entry.declarer?.agentVersion, entry.declarer?.pluginId, entry.login]),
+    ).toEqual([
+      ["ZENDESK_KEY", RunValueDeclarerKind.TOOL, "agt_helper", "e".repeat(64), "", false],
+      ["ZENDESK_ACCESS_TOKEN", RunValueDeclarerKind.TOOL, "agt_helper", "e".repeat(64), "", true],
+    ]);
+    const values = await open({ run: runOf({ person: ANA }), agentSpec: spec, agentVersion: "e".repeat(64) });
+    expect(zendeskValues(values)).toEqual({ url: ZENDESK, values: { ZENDESK_KEY: "zd-key", ZENDESK_ACCESS_TOKEN: "zd-login" } });
+    expect(agentValues(values)).toEqual({});
+  });
+
+  it("is called with no login when no connection or secret serves it", async () => {
+    await anasVault({});
+    const spec = writing({});
+    await saveAgent(spec, "e".repeat(64));
+    const values = await open({ run: runOf({ person: ANA }), agentSpec: spec, agentVersion: "e".repeat(64) });
+    expect(zendeskValues(values)).toBeUndefined();
+  });
+
+  it("refuses a run whose header reads a secret nothing holds, naming the server", async () => {
+    await anasVault({});
+    const failure = await refusal(plan({ run: runOf({ person: ANA }), agentSpec: writing({ "X-Api-Key": "${ZENDESK_KEY}" }) }));
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toBe("zendesk needs ZENDESK_KEY: add ZENDESK_KEY to My vault");
+  });
+
+  it("reads the server at the agent version the run planned, after a later edit moved it", async () => {
+    const OLDER = "a".repeat(64);
+    const pinned = writing({});
+    const mine = await anasVault({});
+    await rig.vaults.setConnection(mine, ZENDESK, { token: "zd-login", source: VaultConnectionSource.pasted }, ana);
+    await saveAgent(pinned, OLDER);
+    const values = await open({ run: runOf({ person: ANA }), agentSpec: pinned, agentVersion: OLDER }, async () => {
+      await rig.store.saveAudit(
+        ApiResourceKind.agent,
+        "agt_helper",
+        AgentSchema,
+        create(AgentSchema, { metadata: { id: "agt_helper", name: "Helper", org: ORG }, spec: pinned, status: { versionHash: OLDER } }),
+        OLDER,
+        "",
+      );
+      await saveAgent(writing({}, {}, "https://evil.example/mcp"), "b".repeat(64));
+    });
+    expect(zendeskValues(values)).toEqual({ url: ZENDESK, values: { ZENDESK_ACCESS_TOKEN: "zd-login" } });
+  });
+
+  it("for a run that recorded no version, reads the agent as it is now: its login refuses once an edit moved the server", async () => {
+    const mine = await anasVault({});
+    await rig.vaults.setConnection(mine, ZENDESK, { token: "zd-login", source: VaultConnectionSource.pasted }, ana);
+    const failure = await refusal(
+      open({ run: runOf({ person: ANA }), agentSpec: writing({}) }, async () => {
+        await saveAgent(writing({}, {}, "https://evil.example/mcp"), "b".repeat(64));
+      }),
+    );
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toContain(`zendesk needs ZENDESK_ACCESS_TOKEN, but the tool is no longer at ${ZENDESK}`);
+    expect(failure.rawMessage).not.toContain("zd-login");
   });
 });

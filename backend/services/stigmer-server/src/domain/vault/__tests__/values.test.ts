@@ -178,6 +178,8 @@ async function seedRun(
     session,
     agentSpec: create(AgentSpecSchema, { env: { AGENT_KEY: { isSecret: true } } }),
     agentName: "Helper",
+    agentId: "agt_helper",
+    agentVersion: "",
     agentOrg: ORG,
     subagents: [],
     plugins: [{ id: PLUGIN_ID, name: "tools", status: TOOLS.status! }],

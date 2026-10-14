@@ -4,6 +4,9 @@
  *
  *   - a stamped eval reads the agent at its version and the plugin at its
  *     stamped digest, with the agent as it runs for its default target;
+ *   - the servers the agent version writes itself are among the servers a
+ *     try runs beside its case's plugin, so a try turns them off unless
+ *     the eval runs real servers;
  *   - the loader answers undefined for an eval stored with no spec, and
  *     for an eval one of whose stamped plugin versions is gone, reading no
  *     suite, so a try has nothing it may run as stamped;
@@ -21,7 +24,8 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { Store } from "../../../store/interface.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
-import { newEvalContextLoader } from "../context.js";
+import { newEvalContextLoader, otherServersOf } from "../context.js";
+import { tryToolsOf } from "../../../domain/plugin-eval/try-run.js";
 import {
   AGENT_EVAL_ID,
   AGENT_HASH,
@@ -79,6 +83,23 @@ describe("an agent eval's context", () => {
     expect(context.sources.map((entry) => [entry.digest, entry.pluginIndex])).toEqual([[DIGEST, 0]]);
     expect(context.matrix.cases[0]?.targets[0]?.target).toMatchObject({ harness: Harness.NATIVE, modelName: MODEL });
     expect(source.reads).toBe(1);
+  });
+
+  it("counts the agent's own servers among those a try turns off, unless the eval runs real servers", async () => {
+    await seedAgent(temp.store, { mcpServers: [{ name: "zendesk", url: "https://acme-co.zendesk.com/mcp" }] });
+    await seedPlugin(temp.store);
+    await seedAgentEval(temp.store);
+    const context = await loader()(AGENT_EVAL_ID);
+    expect(context?.kind).toBe("agent");
+    if (context?.kind !== "agent") return;
+    expect(context.ownServers).toEqual([{ slug: "zendesk", key: "zendesk" }]);
+    const others = otherServersOf(context, 0);
+    expect(others).toContainEqual({ slug: "zendesk", key: "zendesk" });
+    const evalCase = { allowedTools: [], mocks: [] };
+    const knobs = { allowTools: [], realMcpServers: false, allowRealServers: false };
+    expect(tryToolsOf(evalCase, knobs, [], "with", others).disallowedTools).toContain("mcp__zendesk");
+    expect(tryToolsOf(evalCase, { ...knobs, realMcpServers: true }, [], "with", others).disallowedTools).not.toContain("mcp__zendesk");
+    expect(tryToolsOf(evalCase, { ...knobs, allowRealServers: true }, [], "with", others).disallowedTools).not.toContain("mcp__zendesk");
   });
 
   it("is undefined for an eval stored with no spec, reading no suite", async () => {

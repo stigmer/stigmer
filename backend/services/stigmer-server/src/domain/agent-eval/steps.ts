@@ -188,7 +188,8 @@ function stashed<T>(ctx: RequestContext<typeof AgentEvalSchema>, key: string, wh
  * does not hold); a version that attaches no plugin is refused; a
  * spec.plugins slug the version does not attach is INVALID_ARGUMENT; each
  * attached plugin is resolved at the version a turn would run (NOT_FOUND
- * for one gone); spec.allow_tools may name any of their servers;
+ * for one gone); spec.allow_tools may name any of their servers and the
+ * version's own (checkAllowTools);
  * spec.allow_real_servers with spec.real_mcp_servers is refused, as a
  * plugin eval's is; the id is minted here.
  */
@@ -240,6 +241,7 @@ export function newResolveAgentEvalDefaultsStep(store: Store): PipelineStep<type
           name: plugin.metadata?.name ?? "",
           servers: (plugin.status?.mcpServers ?? []).map((server) => server.name),
         })),
+        (versionSpec?.mcpServers ?? []).map((server) => server.name),
       );
       if (!allowed.ok) {
         throw invalidArgumentError(agentEvalOtherPluginToolMessage(allowed.entry, allowed.server));

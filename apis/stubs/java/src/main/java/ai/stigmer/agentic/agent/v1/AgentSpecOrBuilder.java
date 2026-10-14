@@ -554,7 +554,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
   /**
    * <pre>
    * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
-   * servers.
+   * servers. A server written in the agent itself goes in mcp_servers.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
@@ -564,7 +564,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
   /**
    * <pre>
    * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
-   * servers.
+   * servers. A server written in the agent itself goes in mcp_servers.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
@@ -573,7 +573,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
   /**
    * <pre>
    * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
-   * servers.
+   * servers. A server written in the agent itself goes in mcp_servers.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
@@ -582,7 +582,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
   /**
    * <pre>
    * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
-   * servers.
+   * servers. A server written in the agent itself goes in mcp_servers.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
@@ -592,7 +592,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
   /**
    * <pre>
    * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
-   * servers.
+   * servers. A server written in the agent itself goes in mcp_servers.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
@@ -682,5 +682,109 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
    */
   ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getSubagentsOrBuilder(
+      int index);
+
+  /**
+   * <pre>
+   * MCP servers written in this agent itself, reached over HTTP, beside the
+   * servers of the plugins it lists. At most 20.
+   *
+   * Only an organization's admins may add a server or change one's address
+   * or headers; anyone who may edit the agent may keep or remove them. A
+   * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
+   * disallowed_tools. A run logs in with the vault connection saved at the
+   * server's address, or calls it with no login when there is none; a
+   * header that names Authorization itself takes that login from its
+   * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
+   * value is filled from the run's values and sent to this server only,
+   * never to the agent's shell. Header values are stored in the agent, so a
+   * secret goes in a vault and the header names it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentMcpServer mcp_servers = 18 [json_name = "mcpServers", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<ai.stigmer.agentic.agent.v1.AgentMcpServer> 
+      getMcpServersList();
+  /**
+   * <pre>
+   * MCP servers written in this agent itself, reached over HTTP, beside the
+   * servers of the plugins it lists. At most 20.
+   *
+   * Only an organization's admins may add a server or change one's address
+   * or headers; anyone who may edit the agent may keep or remove them. A
+   * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
+   * disallowed_tools. A run logs in with the vault connection saved at the
+   * server's address, or calls it with no login when there is none; a
+   * header that names Authorization itself takes that login from its
+   * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
+   * value is filled from the run's values and sent to this server only,
+   * never to the agent's shell. Header values are stored in the agent, so a
+   * secret goes in a vault and the header names it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentMcpServer mcp_servers = 18 [json_name = "mcpServers", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.agentic.agent.v1.AgentMcpServer getMcpServers(int index);
+  /**
+   * <pre>
+   * MCP servers written in this agent itself, reached over HTTP, beside the
+   * servers of the plugins it lists. At most 20.
+   *
+   * Only an organization's admins may add a server or change one's address
+   * or headers; anyone who may edit the agent may keep or remove them. A
+   * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
+   * disallowed_tools. A run logs in with the vault connection saved at the
+   * server's address, or calls it with no login when there is none; a
+   * header that names Authorization itself takes that login from its
+   * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
+   * value is filled from the run's values and sent to this server only,
+   * never to the agent's shell. Header values are stored in the agent, so a
+   * secret goes in a vault and the header names it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentMcpServer mcp_servers = 18 [json_name = "mcpServers", (.buf.validate.field) = { ... }</code>
+   */
+  int getMcpServersCount();
+  /**
+   * <pre>
+   * MCP servers written in this agent itself, reached over HTTP, beside the
+   * servers of the plugins it lists. At most 20.
+   *
+   * Only an organization's admins may add a server or change one's address
+   * or headers; anyone who may edit the agent may keep or remove them. A
+   * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
+   * disallowed_tools. A run logs in with the vault connection saved at the
+   * server's address, or calls it with no login when there is none; a
+   * header that names Authorization itself takes that login from its
+   * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
+   * value is filled from the run's values and sent to this server only,
+   * never to the agent's shell. Header values are stored in the agent, so a
+   * secret goes in a vault and the header names it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentMcpServer mcp_servers = 18 [json_name = "mcpServers", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.agent.v1.AgentMcpServerOrBuilder> 
+      getMcpServersOrBuilderList();
+  /**
+   * <pre>
+   * MCP servers written in this agent itself, reached over HTTP, beside the
+   * servers of the plugins it lists. At most 20.
+   *
+   * Only an organization's admins may add a server or change one's address
+   * or headers; anyone who may edit the agent may keep or remove them. A
+   * server's tools are named mcp__&lt;name&gt;__&lt;tool&gt; in tools and
+   * disallowed_tools. A run logs in with the vault connection saved at the
+   * server's address, or calls it with no login when there is none; a
+   * header that names Authorization itself takes that login from its
+   * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
+   * value is filled from the run's values and sent to this server only,
+   * never to the agent's shell. Header values are stored in the agent, so a
+   * secret goes in a vault and the header names it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentMcpServer mcp_servers = 18 [json_name = "mcpServers", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.agentic.agent.v1.AgentMcpServerOrBuilder getMcpServersOrBuilder(
       int index);
 }

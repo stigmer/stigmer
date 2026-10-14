@@ -114,20 +114,24 @@ class RunValueSource(_message.Message):
     def __init__(self, key: _Optional[str] = ..., declarer: _Optional[_Union[RunValueDeclarer, _Mapping]] = ..., origin: _Optional[_Union[_enum_pb2.RunValueOrigin, str]] = ..., vault_id: _Optional[str] = ..., entry: _Optional[str] = ..., login: bool = ..., plain_value: _Optional[str] = ...) -> None: ...
 
 class RunValueDeclarer(_message.Message):
-    __slots__ = ("kind", "name", "repository_url", "plugin_id", "server", "plugin_digest")
+    __slots__ = ("kind", "name", "repository_url", "plugin_id", "server", "plugin_digest", "agent_id", "agent_version")
     KIND_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
     REPOSITORY_URL_FIELD_NUMBER: _ClassVar[int]
     PLUGIN_ID_FIELD_NUMBER: _ClassVar[int]
     SERVER_FIELD_NUMBER: _ClassVar[int]
     PLUGIN_DIGEST_FIELD_NUMBER: _ClassVar[int]
+    AGENT_ID_FIELD_NUMBER: _ClassVar[int]
+    AGENT_VERSION_FIELD_NUMBER: _ClassVar[int]
     kind: _enum_pb2.RunValueDeclarerKind
     name: str
     repository_url: str
     plugin_id: str
     server: str
     plugin_digest: str
-    def __init__(self, kind: _Optional[_Union[_enum_pb2.RunValueDeclarerKind, str]] = ..., name: _Optional[str] = ..., repository_url: _Optional[str] = ..., plugin_id: _Optional[str] = ..., server: _Optional[str] = ..., plugin_digest: _Optional[str] = ...) -> None: ...
+    agent_id: str
+    agent_version: str
+    def __init__(self, kind: _Optional[_Union[_enum_pb2.RunValueDeclarerKind, str]] = ..., name: _Optional[str] = ..., repository_url: _Optional[str] = ..., plugin_id: _Optional[str] = ..., server: _Optional[str] = ..., plugin_digest: _Optional[str] = ..., agent_id: _Optional[str] = ..., agent_version: _Optional[str] = ...) -> None: ...
 
 class SetupProgress(_message.Message):
     __slots__ = ("current_phase",)

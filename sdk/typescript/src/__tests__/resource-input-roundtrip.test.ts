@@ -222,6 +222,13 @@ describe("toAgentInput", () => {
         disallowedTools: ["mcp__plugin_github_github__delete_repo"],
         runConfig: RUN_CONFIG,
         harness: Harness.NATIVE,
+        mcpServers: [
+          {
+            name: "zendesk",
+            url: "https://acme-co.zendesk.com/mcp",
+            headers: { "X-Api-Key": "${ZENDESK_KEY}" },
+          },
+        ],
         hooks: [
           {
             source: {

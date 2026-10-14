@@ -197,6 +197,7 @@ export {
   AgentClient,
   buildAgentProto,
   type AgentInput,
+  type AgentMcpServerInput,
   type EnvVarDeclarationInput,
   type HookSourceInput,
 } from "./gen/agent.js";

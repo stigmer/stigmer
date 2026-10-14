@@ -12,7 +12,7 @@ public interface ToolValuesOrBuilder extends
 
   /**
    * <pre>
-   * The tool's plugin.
+   * The tool's plugin; empty for a server written in an agent.
    * </pre>
    *
    * <code>string plugin_id = 4 [json_name = "pluginId"];</code>
@@ -21,7 +21,7 @@ public interface ToolValuesOrBuilder extends
   java.lang.String getPluginId();
   /**
    * <pre>
-   * The tool's plugin.
+   * The tool's plugin; empty for a server written in an agent.
    * </pre>
    *
    * <code>string plugin_id = 4 [json_name = "pluginId"];</code>
@@ -32,7 +32,27 @@ public interface ToolValuesOrBuilder extends
 
   /**
    * <pre>
-   * The tool's server name in its plugin.
+   * The agent whose own server the tool is; empty for a plugin's server.
+   * </pre>
+   *
+   * <code>string agent_id = 6 [json_name = "agentId"];</code>
+   * @return The agentId.
+   */
+  java.lang.String getAgentId();
+  /**
+   * <pre>
+   * The agent whose own server the tool is; empty for a plugin's server.
+   * </pre>
+   *
+   * <code>string agent_id = 6 [json_name = "agentId"];</code>
+   * @return The bytes for agentId.
+   */
+  com.google.protobuf.ByteString
+      getAgentIdBytes();
+
+  /**
+   * <pre>
+   * The tool's server name in its plugin or its agent.
    * </pre>
    *
    * <code>string server = 5 [json_name = "server"];</code>
@@ -41,7 +61,7 @@ public interface ToolValuesOrBuilder extends
   java.lang.String getServer();
   /**
    * <pre>
-   * The tool's server name in its plugin.
+   * The tool's server name in its plugin or its agent.
    * </pre>
    *
    * <code>string server = 5 [json_name = "server"];</code>

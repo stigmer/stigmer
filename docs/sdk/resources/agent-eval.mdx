@@ -387,10 +387,10 @@ Input for creating or updating an Agent Eval.
     maxCostUsd: { type: "number", description: "The most this eval may spend, in estimated US dollars of model cost." },
     concurrency: { type: "number", description: "Tries running at once, from 1 to 8." },
     allowTools: { type: "string[]", description: "Tools every try may use beyond each case's own list, in Claude Code's names, as Claude Code's --allow-tools." },
-    realMcpServers: { type: "boolean", description: "Runs the plugins' MCP servers for real, with the organization's connections." },
+    realMcpServers: { type: "boolean", description: "Runs the agent's and its plugins' MCP servers for real, with the organization's connections." },
     vaults: { type: "ResourceRef[]", description: "Vaults whose logins and secrets the tries use, in order: the first vault holding a match wins.", typeDescriptionLink: "#resourceref" },
     skipScaffold: { type: "boolean", description: "Skips each case's scaffold script, as Claude Code's --no-scaffold; a case that has one is then listed as not run." },
-    allowRealServers: { type: "boolean", description: "Starts the plugins' real MCP servers for the servers no mock answers, as Claude Code's --allow-real-servers; mocked tools still answer from their files." },
+    allowRealServers: { type: "boolean", description: "Starts the real MCP servers no mock answers, the agent's own and its plugins', as Claude Code's --allow-real-servers; mocked tools still answer from their files." },
   }}
 />
 

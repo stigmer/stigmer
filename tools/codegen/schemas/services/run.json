@@ -3522,7 +3522,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The agent's name; a tool's name as plugin:\u003cplugin\u003e:\u003cserver\u003e; the\n plugin's name; or the repository entry's name.",
+          "description": "The agent's name; a tool's name, as plugin:\u003cplugin\u003e:\u003cserver\u003e for a\n plugin's server or the server's own name for one written in an agent;\n the plugin's name; or the repository entry's name.",
           "required": false
         },
         {
@@ -3542,7 +3542,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The plugin that declared it: a tool's plugin, or the plugin whose hooks\n read it; empty for an agent or a repository.",
+          "description": "The plugin that declared it: a plugin's tool's plugin, or the plugin\n whose hooks read it; empty for everything else.",
           "required": false
         },
         {
@@ -3552,7 +3552,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The tool's server name in its plugin; empty for everything else.",
+          "description": "The tool's server name in its plugin or its agent; empty for everything\n else.",
           "required": false
         },
         {
@@ -3563,6 +3563,26 @@
             "kind": "string"
           },
           "description": "The archive of the tool's plugin this run planned (the plugin's\n digest); empty for everything else. The values fetch reads the server\n at that version, so a run of a pinned version keeps its tools when the\n plugin is pushed again.",
+          "required": false
+        },
+        {
+          "name": "AgentId",
+          "jsonName": "agentId",
+          "protoField": "agent_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The agent whose own server the tool is; empty for everything else.",
+          "required": false
+        },
+        {
+          "name": "AgentVersion",
+          "jsonName": "agentVersion",
+          "protoField": "agent_version",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The version of that agent this run planned (its version hash); empty\n for everything else. The values fetch reads the server at that version,\n so a run of a pinned version keeps the address it planned when the\n agent is edited.",
           "required": false
         }
       ]

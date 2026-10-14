@@ -22,7 +22,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxIr8ICglBZ2VudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKEk4KCnNraWxsX3JlZnMYBSADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCBOCFLCsSPAoDZW52GAcgAygLMi8uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50U3BlYy5FbnZFbnRyeRKiAQoFdG9vbHMYCiADKAlCkgG6SI4BkgGKASKHAXKEARiAAjJ/XihtY3BfX1wqfG1jcF9fKFthLXpdW2EtejAtOS1dKlthLXowLTldfHBsdWdpbihfW0EtWmEtejAtOS1dKykrKShfXyhcKnxbQS1aYS16MC05Xy4tXSspKT98W0EtWl1bQS1aYS16MC05X10qKFwoW14oKVxyXG5dK1wpKT8pJBKtAQoQZGlzYWxsb3dlZF90b29scxgLIAMoCUKSAbpIjgGSAYoBIocBcoQBGIACMn9eKG1jcF9fXCp8bWNwX18oW2Etel1bYS16MC05LV0qW2EtejAtOV18cGx1Z2luKF9bQS1aYS16MC05LV0rKSspKF9fKFwqfFtBLVphLXowLTlfLi1dKykpP3xbQS1aXVtBLVphLXowLTlfXSooXChbXigpXHJcbl0rXCkpPykkEjYKBWhvb2tzGAwgAygLMicuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkhvb2tTb3VyY2USOAoKcnVuX2NvbmZpZxgNIAEoCzIkLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuQ29uZmlnEjcKB2hhcm5lc3MYDiABKA4yJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5IYXJuZXNzEksKB3BsdWdpbnMYECADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCBOCFLDoSVQoJc3ViYWdlbnRzGBEgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgy6SAWSAQIQFOCFLCgaWgoIRW52RW50cnkSCwoDa2V5GAEgASgJEj0KBXZhbHVlGAIgASgLMi4uYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLkVudlZhckRlY2xhcmF0aW9uOgI4AUoECAQQBUoECAYQB0oECAgQCUoECAkQCkoECA8QEFIRbWNwX3NlcnZlcl91c2FnZXNSCnN1Yl9hZ2VudHNSB3NoYXJpbmdSEGRhdGFzdG9yZV91c2FnZXNSBnZhdWx0cyJnCgpIb29rU291cmNlEjoKBmlubGluZRgCIAEoCzIoLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuSG9va0NvbmZpZ0gAQg8KBnNvdXJjZRIFukgCCAFKBAgBEAJSBnBsdWdpbmIGcHJvdG8z", [file_ai_stigmer_agentic_plugin_v1_hooks, file_ai_stigmer_agentic_run_v1_invocation, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_vault_v1_declaration, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxIosJCglBZ2VudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKEk4KCnNraWxsX3JlZnMYBSADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCBOCFLCsSPAoDZW52GAcgAygLMi8uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50U3BlYy5FbnZFbnRyeRKiAQoFdG9vbHMYCiADKAlCkgG6SI4BkgGKASKHAXKEARiAAjJ/XihtY3BfX1wqfG1jcF9fKFthLXpdW2EtejAtOS1dKlthLXowLTldfHBsdWdpbihfW0EtWmEtejAtOS1dKykrKShfXyhcKnxbQS1aYS16MC05Xy4tXSspKT98W0EtWl1bQS1aYS16MC05X10qKFwoW14oKVxyXG5dK1wpKT8pJBKtAQoQZGlzYWxsb3dlZF90b29scxgLIAMoCUKSAbpIjgGSAYoBIocBcoQBGIACMn9eKG1jcF9fXCp8bWNwX18oW2Etel1bYS16MC05LV0qW2EtejAtOV18cGx1Z2luKF9bQS1aYS16MC05LV0rKSspKF9fKFwqfFtBLVphLXowLTlfLi1dKykpP3xbQS1aXVtBLVphLXowLTlfXSooXChbXigpXHJcbl0rXCkpPykkEjYKBWhvb2tzGAwgAygLMicuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkhvb2tTb3VyY2USOAoKcnVuX2NvbmZpZxgNIAEoCzIkLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuQ29uZmlnEjcKB2hhcm5lc3MYDiABKA4yJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5IYXJuZXNzEksKB3BsdWdpbnMYECADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCBOCFLDoSVQoJc3ViYWdlbnRzGBEgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgy6SAWSAQIQFOCFLCgSSgoLbWNwX3NlcnZlcnMYEiADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnRNY3BTZXJ2ZXJCCLpIBZIBAhAUGloKCEVudkVudHJ5EgsKA2tleRgBIAEoCRI9CgV2YWx1ZRgCIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5FbnZWYXJEZWNsYXJhdGlvbjoCOAFKBAgEEAVKBAgGEAdKBAgIEAlKBAgJEApKBAgPEBBSEW1jcF9zZXJ2ZXJfdXNhZ2VzUgpzdWJfYWdlbnRzUgdzaGFyaW5nUhBkYXRhc3RvcmVfdXNhZ2VzUgZ2YXVsdHMijgIKDkFnZW50TWNwU2VydmVyEjAKBG5hbWUYASABKAlCIrpIH3IdGD8yGV5bYS16XVthLXowLTktXSpbYS16MC05XSQSFwoDdXJsGAIgASgJQgq6SAdyBRABGIAQEoABCgdoZWFkZXJzGAMgAygLMjguYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50TWNwU2VydmVyLkhlYWRlcnNFbnRyeUI1ukgymgEvEEAiJHIiGIACMh1eWyEjJCUmJyorLl5fYHx+MC05QS1aYS16LV0rJCoFcgMYgCAaLgoMSGVhZGVyc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiZwoKSG9va1NvdXJjZRI6CgZpbmxpbmUYAiABKAsyKC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLkhvb2tDb25maWdIAEIPCgZzb3VyY2USBbpIAggBSgQIARACUgZwbHVnaW5iBnByb3RvMw", [file_ai_stigmer_agentic_plugin_v1_hooks, file_ai_stigmer_agentic_run_v1_invocation, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_vault_v1_declaration, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentSpec defines the configurable properties of an agent.
@@ -160,7 +160,7 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
 
   /**
    * Plugins this agent uses, each whole: its skills, agents, hooks and MCP
-   * servers.
+   * servers. A server written in the agent itself goes in mcp_servers.
    *
    * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16;
    */
@@ -180,6 +180,25 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
    * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17;
    */
   subagents: ApiResourceReference[];
+
+  /**
+   * MCP servers written in this agent itself, reached over HTTP, beside the
+   * servers of the plugins it lists. At most 20.
+   *
+   * Only an organization's admins may add a server or change one's address
+   * or headers; anyone who may edit the agent may keep or remove them. A
+   * server's tools are named mcp__<name>__<tool> in tools and
+   * disallowed_tools. A run logs in with the vault connection saved at the
+   * server's address, or calls it with no login when there is none; a
+   * header that names Authorization itself takes that login from its
+   * ${NAME} instead, and the run then needs it. Each ${NAME} in a header
+   * value is filled from the run's values and sent to this server only,
+   * never to the agent's shell. Header values are stored in the agent, so a
+   * secret goes in a vault and the header names it.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.agent.v1.AgentMcpServer mcp_servers = 18;
+   */
+  mcpServers: AgentMcpServer[];
 };
 
 /**
@@ -188,6 +207,44 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
  */
 export const AgentSpecSchema: GenMessage<AgentSpec> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 0);
+
+/**
+ * AgentMcpServer is an MCP server written in an agent, reached over HTTP.
+ *
+ * @generated from message ai.stigmer.agentic.agent.v1.AgentMcpServer
+ */
+export type AgentMcpServer = Message<"ai.stigmer.agentic.agent.v1.AgentMcpServer"> & {
+  /**
+   * The server's name in this agent, which names its tools
+   * mcp__<name>__<tool>: lowercase letters, digits and hyphens, starting
+   * with a letter and not ending with a hyphen.
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * The server's address: an https URL, or http on this machine.
+   *
+   * @generated from field: string url = 2;
+   */
+  url: string;
+
+  /**
+   * Headers sent with every request to this server. A value may name a run
+   * value as ${NAME}, filled when the run starts.
+   *
+   * @generated from field: map<string, string> headers = 3;
+   */
+  headers: { [key: string]: string };
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agent.v1.AgentMcpServer.
+ * Use `create(AgentMcpServerSchema)` to create a new message.
+ */
+export const AgentMcpServerSchema: GenMessage<AgentMcpServer> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 1);
 
 /**
  * HookSource is a hooks block written in the agent.
@@ -214,5 +271,5 @@ export type HookSource = Message<"ai.stigmer.agentic.agent.v1.HookSource"> & {
  * Use `create(HookSourceSchema)` to create a new message.
  */
 export const HookSourceSchema: GenMessage<HookSource> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 1);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 2);
 

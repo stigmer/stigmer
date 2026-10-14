@@ -63,7 +63,7 @@ export const AGENT_EVAL_NO_CASES_MESSAGE =
   "none of the plugins this eval runs has eval cases at the version the agent attaches";
 
 export function agentEvalOtherPluginToolMessage(entry: string, server: string): string {
-  return `allow_tools entry '${entry}' names MCP server '${server}', which is none of the agent's plugins'`;
+  return `allow_tools entry '${entry}' names MCP server '${server}', which is none of the agent's own servers or its plugins'`;
 }
 
 /** The not-run reason of an attached plugin spec.plugins leaves out. */

@@ -146,7 +146,7 @@
           "messageType": "ApiResourceReference"
         }
       },
-      "description": "Plugins this agent uses, each whole: its skills, agents, hooks and MCP\n servers.",
+      "description": "Plugins this agent uses, each whole: its skills, agents, hooks and MCP\n servers. A server written in the agent itself goes in mcp_servers.",
       "required": false,
       "referenceKind": 58
     },
@@ -164,6 +164,23 @@
       "description": "Saved agents this agent may hand work to, each running its own\n instructions, model, tools, plugins, skills, hooks and values.\n\n A subagent runs as the conversation's person and on its budget, under\n the conversation's hooks, and cannot hand work on to another agent: an\n agent that lists subagents of its own is refused here. Each reference is\n pinned when this agent is saved: a reference without a version takes the\n listed agent's latest version, and one naming a tag or a version keeps\n that version until a later save sends the list again. At most 20.",
       "required": false,
       "referenceKind": 40,
+      "validation": {
+        "maxItems": 20
+      }
+    },
+    {
+      "name": "McpServers",
+      "jsonName": "mcpServers",
+      "protoField": "mcp_servers",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "AgentMcpServer"
+        }
+      },
+      "description": "MCP servers written in this agent itself, reached over HTTP, beside the\n servers of the plugins it lists. At most 20.\n\n Only an organization's admins may add a server or change one's address\n or headers; anyone who may edit the agent may keep or remove them. A\n server's tools are named mcp__\u003cname\u003e__\u003ctool\u003e in tools and\n disallowed_tools. A run logs in with the vault connection saved at the\n server's address, or calls it with no login when there is none; a\n header that names Authorization itself takes that login from its\n ${NAME} instead, and the run then needs it. Each ${NAME} in a header\n value is filled from the run's values and sent to this server only,\n never to the agent's shell. Header values are stored in the agent, so a\n secret goes in a vault and the header names it.",
+      "required": false,
       "validation": {
         "maxItems": 20
       }

@@ -182,6 +182,8 @@ export async function planRunValues(
     session,
     agentSpec,
     agentName,
+    agentId,
+    agentVersion: execution.status?.agentVersionHash ?? "",
     agentOrg,
     subagents,
     plugins,

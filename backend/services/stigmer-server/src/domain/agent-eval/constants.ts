@@ -29,7 +29,7 @@ export const AGENT_EVAL_NO_CASES_MESSAGE =
 
 /** The refusal of an allow_tools entry that names MCP tools of a plugin the agent does not attach. */
 export function agentEvalOtherPluginToolMessage(entry: string, server: string): string {
-  return `allow_tools entry '${entry}' names MCP server '${server}', which is none of the agent's plugins'`;
+  return `allow_tools entry '${entry}' names MCP server '${server}', which is none of the agent's own servers or its plugins'`;
 }
 
 /** The not-run reason of a plugin spec.plugins leaves out. */

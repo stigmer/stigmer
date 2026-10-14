@@ -120,8 +120,8 @@ export type PluginEvalSpec = Message<"ai.stigmer.agentic.plugineval.v1.PluginEva
    * A specifier in parentheses, as in Bash(npm test *), is accepted and
    * grants the whole tool: every Stigmer tool list reads a specifier that
    * way. Each try runs in a fresh workspace of its own. A plugin's MCP tools
-   * are named either way: Claude Code's mcp__plugin_<plugin>_<server>__<tool>
-   * or Stigmer's mcp__<server>__<tool>.
+   * are named as Claude Code names them,
+   * mcp__plugin_<plugin>_<server>__<tool>.
    *
    * @generated from field: repeated string allow_tools = 12;
    */

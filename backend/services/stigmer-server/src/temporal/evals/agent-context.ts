@@ -100,6 +100,7 @@ export async function loadAgentEvalContext(
       versionHash: spec.agentVersion,
     },
     attached: stamped.map((entry, index) => attachedPluginOf(plugins[index]!, entry.pluginDigest)),
+    ownServers: (agentSpec?.mcpServers ?? []).map((server) => ({ slug: server.name, key: server.name })),
     sources,
     caseSources,
     matrix,
