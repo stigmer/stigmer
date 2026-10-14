@@ -49,4 +49,8 @@ describe("accessTokenVariable", () => {
     expect(accessTokenVariable("-edge-")).toBe("EDGE_ACCESS_TOKEN");
     expect(accessTokenVariable("--")).toBe("MCP_ACCESS_TOKEN");
   });
+
+  it("folds a long run of separators in linear time", () => {
+    expect(accessTokenVariable(`${"-".repeat(50_000)}x${"-".repeat(50_000)}`)).toBe("X_ACCESS_TOKEN");
+  });
 });
