@@ -16,9 +16,9 @@
  *
  * And pins `isFirstPartyHumanOperator` (stigmer#1387), the allow-list
  * memory recall and the person's declared preferences read: a wire `user`
- * whose bearer is not a PlatformClient user token. Every other class, an
+ * whose bearer is not a minted user token. Every other class, an
  * in-process `user` (the open-source schedule fire's shape) and a
- * platform token naming a PlatformClient are excluded; another issuer's
+ * platform token naming its minting service account are excluded; another issuer's
  * token carrying the same claim is not a platform token (stigmer#1312).
  */
 import { describe, expect, it } from "vitest";
@@ -158,7 +158,7 @@ describe("isFirstPartyHumanOperator", () => {
     ).toBe(false);
   });
 
-  it("is false for a PlatformClient user token, and true when another issuer stamps the claim", () => {
+  it("is false for a minted user token, and true when another issuer stamps the claim", () => {
     expect(
       isFirstPartyHumanOperator(
         caller({
@@ -166,7 +166,7 @@ describe("isFirstPartyHumanOperator", () => {
           rawToken: jwtWith({
             iss: "stigmer",
             sub: "ida_x",
-            platform_client_id: "pc_1",
+            minted_by: "ida_minter",
           }),
         }),
       ),
@@ -178,7 +178,7 @@ describe("isFirstPartyHumanOperator", () => {
           rawToken: jwtWith({
             iss: "https://issuer.example",
             sub: "ida_x",
-            platform_client_id: "pc_1",
+            minted_by: "ida_minter",
           }),
         }),
       ),

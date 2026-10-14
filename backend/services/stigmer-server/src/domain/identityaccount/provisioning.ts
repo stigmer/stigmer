@@ -156,7 +156,7 @@ export interface CreateAccountInput {
  * The domain's one create path, as its callers see it: runs the create
  * chain AS `caller` and answers the persisted account. Built by the
  * controller (newCreateAccountPath); the provisioner, the operator ensure
- * and the platform-client mint call it, and a unit reaches it through
+ * and the user-token mint call it, and a unit reaches it through
  * `ComposedServices.identityAccounts`; nothing else builds an account.
  */
 export type CreateAccount = (

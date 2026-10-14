@@ -293,7 +293,7 @@ function assignFederatedBackendFields(
  * AssignBackendFields on create, by how the account was provisioned. The
  * `stgm_pc|` and `stgm_sa|` subject namespaces are reserved in both
  * directions: a direct account refuses either (INVALID_ARGUMENT, before
- * anything is written), and a platform-client account or a service
+ * anything is written), and an app-user account or a service
  * account must carry its own — its absence is the creating path's bug,
  * never a client's input. A direct account refuses the `stgm_fed|` text
  * too, the text federated addresses hash. A federated subject is its

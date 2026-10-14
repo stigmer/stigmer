@@ -186,14 +186,11 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | OAuthAppQueryController.getByReference | org |
 | OAuthAppQueryController.list | org |
 
-## `ai.stigmer.iam.platformclient.v1`
+## `ai.stigmer.iam.token.v1`
 
 | Method | Fills |
 |---|---|
-| PlatformClientCommandController.create | metadata.org |
-| PlatformClientQueryController.getByReference | org |
-| PlatformClientQueryController.list | org |
-| PlatformClientTokenController.mintUserToken | org |
+| TokenService.mintUserToken | org |
 
 ## `ai.stigmer.platform.github.v1`
 

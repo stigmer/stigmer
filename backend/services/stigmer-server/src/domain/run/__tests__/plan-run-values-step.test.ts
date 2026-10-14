@@ -30,7 +30,7 @@
  * And StampRunCredentials, the create step before the planner: the run's
  * person is the platform's one rule for a first-party human operator,
  * recorded once and only for the conversation's creator (a participant's
- * turn in someone else's conversation records none); a schedule fire, a runner, a PlatformClient user token and
+ * turn in someone else's conversation records none); a schedule fire, a runner, a minted user token and
  * the server acting as itself record none, and a client-sent value (its
  * sources included) is discarded. The record survives the runner's status
  * writes, so recover reads the person and the manifest create recorded.

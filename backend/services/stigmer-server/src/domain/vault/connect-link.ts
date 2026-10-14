@@ -11,8 +11,7 @@
  * a return URL that is an absolute https URL (http only for this machine)
  * with no credentials in it. The link lives 30 minutes unless asked
  * otherwise, a day at most. Its secret is 32 random bytes; only its SHA-256
- * is stored, as a platform client's secret is
- * (domain/platformclient/credentials.ts).
+ * is stored.
  *
  * `ConnectLinkController` serves the page, every method public with the
  * link's secret as the authority (the share link's `getSharedProfile`

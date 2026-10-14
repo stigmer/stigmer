@@ -97,12 +97,12 @@ function rig(
 }
 
 const PROVIDER = { kind: "identity_provider", id: "idp_a" };
-const CLIENT = { kind: "platform_client", id: "pcl_a" };
+const CHANNEL_APP = { kind: "channel_app", id: "cha_a" };
 
 const ALL_NO_OWNER_KINDS: ReadonlyArray<OwnerRowKind> = [
   { kind: ApiResourceKind.identity_provider, key: "identity-provider", idField: "provider" },
   { kind: ApiResourceKind.invitation, key: "invitation", idField: "invitation" },
-  { kind: ApiResourceKind.platform_client, key: "platform-client", idField: "client" },
+  { kind: ApiResourceKind.channel_app, key: "channel-app", idField: "app" },
   { kind: ApiResourceKind.oauth_app, key: "oauth-app", idField: "app" },
 ];
 
@@ -114,7 +114,7 @@ describe("revokeOwnerRows", () => {
       policy({ kind: "identity_account", id: "ida_granted" }, "owner", PROVIDER),
       policy({ kind: "identity_account", id: "ida_vince" }, "viewer", PROVIDER),
       policy({ kind: "identity_account", id: "ida_carol" }, "creator", PROVIDER),
-      policy({ kind: "identity_account", id: "ida_carol" }, "owner", CLIENT),
+      policy({ kind: "identity_account", id: "ida_carol" }, "owner", CHANNEL_APP),
     ];
     const r = rig(table);
 
@@ -133,33 +133,33 @@ describe("revokeOwnerRows", () => {
       "identity_provider#organization",
       "identity_provider#viewer",
       "identity_provider#creator",
-      "platform_client#owner",
+      "channel_app#owner",
     ]);
   });
 
   it("revokes nothing on a second run", async () => {
-    const r = rig([policy({ kind: "identity_account", id: "ida_carol" }, "owner", CLIENT)]);
+    const r = rig([policy({ kind: "identity_account", id: "ida_carol" }, "owner", CHANNEL_APP)]);
 
-    const first = await revokeOwnerRows(ApiResourceKind.platform_client, r.deps);
-    const second = await revokeOwnerRows(ApiResourceKind.platform_client, r.deps);
+    const first = await revokeOwnerRows(ApiResourceKind.channel_app, r.deps);
+    const second = await revokeOwnerRows(ApiResourceKind.channel_app, r.deps);
 
-    expect(first.revoked).toEqual([{ id: "pcl_a", accountId: "ida_carol" }]);
+    expect(first.revoked).toEqual([{ id: "cha_a", accountId: "ida_carol" }]);
     expect(second).toEqual({ revoked: [], failures: [] });
   });
 
   it("reports one row's failure and revokes the rest", async () => {
     const r = rig(
       [
-        policy({ kind: "identity_account", id: "ida_carol" }, "owner", CLIENT),
-        policy({ kind: "identity_account", id: "ida_dan" }, "owner", { kind: "platform_client", id: "pcl_b" }),
+        policy({ kind: "identity_account", id: "ida_carol" }, "owner", CHANNEL_APP),
+        policy({ kind: "identity_account", id: "ida_dan" }, "owner", { kind: "channel_app", id: "cha_b" }),
       ],
-      { failDeletesFor: new Set(["pcl_a"]) },
+      { failDeletesFor: new Set(["cha_a"]) },
     );
 
-    const report = await revokeOwnerRows(ApiResourceKind.platform_client, r.deps);
+    const report = await revokeOwnerRows(ApiResourceKind.channel_app, r.deps);
 
-    expect(report.failures).toEqual([{ id: "pcl_a", error: "engine down" }]);
-    expect(report.revoked).toEqual([{ id: "pcl_b", accountId: "ida_dan" }]);
+    expect(report.failures).toEqual([{ id: "cha_a", error: "engine down" }]);
+    expect(report.revoked).toEqual([{ id: "cha_b", accountId: "ida_dan" }]);
   });
 });
 
@@ -168,9 +168,9 @@ describe("reconcileOwnerRows", () => {
     const r = rig([
       policy({ kind: "identity_account", id: "ida_carol" }, "owner", PROVIDER),
       policy({ kind: "identity_account", id: "ida_carl" }, "owner", { kind: "invitation", id: "inv_1" }),
-      policy({ kind: "identity_account", id: "ida_dan" }, "owner", CLIENT),
+      policy({ kind: "identity_account", id: "ida_dan" }, "owner", CHANNEL_APP),
       policy({ kind: "identity_account", id: "ida_erin" }, "owner", { kind: "oauth_app", id: "oapp_a" }),
-      policy({ kind: "identity_account", id: "ida_vince" }, "viewer", CLIENT),
+      policy({ kind: "identity_account", id: "ida_vince" }, "viewer", CHANNEL_APP),
     ]);
 
     await reconcileOwnerRows(ALL_NO_OWNER_KINDS, r.deps);
@@ -178,19 +178,19 @@ describe("reconcileOwnerRows", () => {
     expect(r.read.map((entry) => entry.kind)).toEqual([
       "identity_provider",
       "invitation",
-      "platform_client",
+      "channel_app",
       "oauth_app",
     ]);
     expect(r.deleted.map((spec) => `${spec.resource?.kind}:${spec.resource?.id}@${spec.principal?.id}`)).toEqual([
       "identity_provider:idp_a@ida_carol",
       "invitation:inv_1@ida_carl",
-      "platform_client:pcl_a@ida_dan",
+      "channel_app:cha_a@ida_dan",
       "oauth_app:oapp_a@ida_erin",
     ]);
     expect(r.logged).toContainEqual(
       expect.objectContaining({
-        message: "platform-client owner row revoked; its organization's admins manage it",
-        client: "pcl_a",
+        message: "channel-app owner row revoked; its organization's admins manage it",
+        app: "cha_a",
         account: "ida_dan",
       }),
     );
@@ -206,10 +206,10 @@ describe("reconcileOwnerRows", () => {
   it("logs a kind whose read fails and still runs the next kind", async () => {
     const r = rig(
       [
-        policy({ kind: "identity_account", id: "ida_dan" }, "owner", CLIENT),
+        policy({ kind: "identity_account", id: "ida_dan" }, "owner", CHANNEL_APP),
         policy({ kind: "identity_account", id: "ida_erin" }, "owner", { kind: "oauth_app", id: "oapp_a" }),
       ],
-      { failReadsFor: new Set(["platform_client"]) },
+      { failReadsFor: new Set(["channel_app"]) },
     );
 
     await reconcileOwnerRows(ALL_NO_OWNER_KINDS, r.deps);
@@ -218,7 +218,7 @@ describe("reconcileOwnerRows", () => {
     expect(r.logged).toContainEqual(
       expect.objectContaining({
         level: "error",
-        message: "platform-client owner-row reconcile failed",
+        message: "channel-app owner-row reconcile failed",
         error: "store down",
       }),
     );

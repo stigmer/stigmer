@@ -1,20 +1,20 @@
 /**
- * When a credential was last used: the one rule the two credential kinds
- * that carry `status.last_used_at` share. An API key is stamped by the
- * identity verifier that accepts it (domain/apikey/verifier.ts), a
- * PlatformClient by a successful mint (domain/platformclient/mint.ts). It
- * lives here, beside the other infrastructure the credential lanes share,
- * because neither domain owns the other (stigmer/stigmer#1255).
+ * When a credential was last used: the rule for a credential that carries
+ * `status.last_used_at`. An API key is stamped by the identity verifier
+ * that accepts it (domain/apikey/verifier.ts). It lives here, beside the
+ * other infrastructure the credential lanes share, so a credential kind
+ * that gains the stamp shares the rule rather than restating it
+ * (stigmer/stigmer#1255).
  *
  * The stamp is status the platform writes on its own, so it follows the
  * house rule for such writes: an atomic read-modify-write on the row
- * (`Store.updateResource`; the PlatformClient port's `modifyById`), the
+ * (`Store.updateResource`), the
  * narrow status-audit bump (pipeline/steps/defaults.ts), and best-effort
  * with a loud log, as `stampLastFireAt` records a schedule's manual fire
  * (domain/schedule/trigger.ts). Never a load-then-save of the whole row:
  * the credential's own update chains replace the row whole, and a stale
- * copy written back by a stamp would undo them (a rotated PlatformClient
- * secret would work again).
+ * copy written back by a stamp would undo them (a revoked key's change
+ * would be lost).
  *
  * The resolution keeps a credential that rides every request from costing
  * a write per request, and it needs no state: the caller already holds the
@@ -82,7 +82,7 @@ export function stampLastUsed(
 }
 
 export interface CredentialUse {
-  /** What the log calls the credential ("api key", "platform client"). */
+  /** What the log calls the credential ("api key"). */
   readonly credential: string;
   /** The credential's resource id: logged, never the secret. */
   readonly id: string;

@@ -90,7 +90,6 @@ const PINNED: Readonly<
   },
   oauth_app: { revision: 1, fingerprint: "oauth_app{}" },
   channel_app: { revision: 1, fingerprint: "channel_app{}" },
-  platform_client: { revision: 1, fingerprint: "platform_client{}" },
 };
 
 describe("the list-indexed surface", () => {

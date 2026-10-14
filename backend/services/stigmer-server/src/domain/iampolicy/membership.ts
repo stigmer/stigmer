@@ -83,7 +83,7 @@
  *   able to grant a way back. At the first boot where the bootstrap-state
  *   marker (ROLES_RECONCILED_KEY) is absent, the arms above run for every
  *   PERSON account (`isPersonAccount`: a direct or legacy account, never a
- *   machine, platform-client, federated or service account; the row-level
+ *   machine, app-user, federated or service account; the row-level
  *   twin of the `user`-class gate),
  *   acting as that account, in
  *   creation order — the order the sign-ins would have run the hook in,
@@ -260,12 +260,12 @@ export function isPersonStamp(stamp: string): boolean {
  * `user`-class gate, for the reconciliation, which has a row and no
  * caller. A machine account (`is_machine_account`, or the `machine`
  * provisioning mode) earns no role, exactly as a `machine`-class caller
- * earns none at the hook. Nor does a platform-client end user: it is a
- * person on its platform's product, not on this install — the mint grants
- * it exactly its client's auto-grant role on the owning organization and
- * never runs these rules, and the reconciliation must not either, or every
- * product user would become a member of every organization (and the
- * operator-email arm would read an email the platform asserted). Nor does a
+ * earns none at the hook. Nor does an app user: it is a person on an
+ * organization's product, not on this install — the mint grants it exactly
+ * the embedding sign-in role on its organization and never runs these
+ * rules, and the reconciliation must not either, or every product user
+ * would become a member of every organization (and the operator-email arm
+ * would read an email the product asserted). Nor does a
  * federated account, for the same reason at every arm: its subject and its
  * email are the ones an organization's identity provider asserted, so the
  * alias rule would read a subject the provider chose as a founder's stamp

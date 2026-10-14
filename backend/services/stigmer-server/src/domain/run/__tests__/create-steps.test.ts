@@ -1029,14 +1029,14 @@ describe("the compose steps where callers are persons", () => {
       testCallerIdentity({ identityId: CAROL, origin: "in-process" }),
     ],
     [
-      "Carol through a PlatformClient user token",
+      "Carol through a minted user token",
       testCallerIdentity({
         identityId: CAROL,
         issuer: "stigmer",
         rawToken: jwtWith({
           iss: "stigmer",
           sub: CAROL,
-          platform_client_id: "pc_1",
+          minted_by: "ida_minter",
         }),
       }),
     ],

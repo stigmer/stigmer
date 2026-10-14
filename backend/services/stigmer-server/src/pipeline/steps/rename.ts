@@ -107,8 +107,7 @@ export async function moveName(
 
 /**
  * The rows a rename reads and writes: the store's, or the port of a kind a
- * composition keeps elsewhere (a platform client, a team, an identity
- * provider).
+ * composition keeps elsewhere (a team, an identity provider).
  */
 export interface RenameRows<Desc extends DescMessage> {
   readonly schema: Desc;
@@ -225,7 +224,7 @@ export function newLoadForRenameStep<Desc extends DescMessage>(
 
 /**
  * The kind's own rules for a slug, the ones its create runs (a vault's My
- * vault prefix, a platform client's reserved slug), and any refusal of the
+ * vault prefix), and any refusal of the
  * loaded resource's rename (My vault is named after its person). Throws
  * the kind's refusal.
  */

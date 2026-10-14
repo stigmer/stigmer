@@ -33,19 +33,19 @@
  *     (stigmer#1190), and mode `federated` without a ref is a provider's
  *     subject that a driver keyed on the ref would answer as a platform
  *     person's.
- *     A row with neither (direct, platform-client, a composition's
+ *     A row with neither (direct, app user, a composition's
  *     system account) is unaffected;
  *   - `deleteById` of an unknown id resolves;
  *   - `findDirectByIdpId` answers only the platform's own subjects —
  *     never a federated account (a customer's federated IdP may mint the
  *     same `auth0|…` shape and the platform lane must never resolve to it)
- *     never a platform-client end user (its subject is the mint's), and
+ *     never an app user (its subject is the mint's), and
  *     never an organization's service account (it signs in through
  *     nothing, so no sign-in's subject may resolve to it);
  *   - `findDirectByEmail` answers direct accounts only, by exact match:
  *     federation legitimately duplicates emails, so the email axis is
- *     non-unique, and a platform-client account's email is one its
- *     platform asserted, so no email lookup may answer it, nor a service
+ *     non-unique, and an app user's email is one its organization's
+ *     product asserted, so no email lookup may answer it, nor a service
  *     account's;
  *   - `findByIds` answers one row per distinct id, in first-occurrence
  *     order, and skips unknown ids;
@@ -86,12 +86,12 @@ export interface IdentityAccountStore extends GuardedWritePort<IdentityAccount> 
   findById(id: string): Promise<IdentityAccount | undefined>;
   /**
    * The account under a subject in any mode but federated — the getByIdpId
-   * RPC's lookup and the platform-client mint's. A federated subject is its
+   * RPC's lookup and the user-token mint's. A federated subject is its
    * identity provider's to choose, so it is reached only through the
    * federated natural key (provider and subject), never by a bare subject.
    */
   findByIdpId(idpId: string): Promise<IdentityAccount | undefined>;
-  /** The platform's own subjects only (no federated, no platform-client, no service account) — the verifiers' and whoAmI's lookup. */
+  /** The platform's own subjects only (no federated, no app user, no service account) — the verifiers' and whoAmI's lookup. */
   findDirectByIdpId(idpId: string): Promise<IdentityAccount | undefined>;
   /** Direct accounts only, exact match — the getByEmail RPC's lookup. */
   findDirectByEmail(email: string): Promise<IdentityAccount | undefined>;
@@ -113,7 +113,7 @@ export interface IdentityAccountStore extends GuardedWritePort<IdentityAccount> 
   findByProvider(providerId: string): Promise<ReadonlyArray<IdentityAccount>>;
   /**
    * The accounts that belong to one organization: every account whose row
-   * names it in `metadata.org` (a platform client's end users, a
+   * names it in `metadata.org` (its app users and service accounts, a
    * composition's own per-organization accounts), in no promised order. A
    * person's own account names no organization and is never answered.
    * The organization's purge reads it (domain/identityaccount/purge.ts).

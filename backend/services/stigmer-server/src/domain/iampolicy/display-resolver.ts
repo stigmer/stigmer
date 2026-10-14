@@ -86,7 +86,7 @@ function providerLabelOf(
     case IdentityAccountProvisioningMode.machine:
       return STIGMER_PROVIDER_LABEL;
     default:
-      // federated / platform_client / unspecified carry no external
+      // federated / app_user / service_account / unspecified carry no external
       // provider label (the Java switch arms).
       return "";
   }

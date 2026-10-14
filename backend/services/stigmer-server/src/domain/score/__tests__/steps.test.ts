@@ -3,7 +3,7 @@
  * runs that reach them:
  *   - GuardScoreSource admits a person's feedback from a first-party
  *     person (a sign-in or the person's own API key) and refuses it from
- *     the server, a runner, a machine account, a PlatformClient user token
+ *     the server, a runner, a machine account, a minted user token
  *     and an in-process propagated person; it admits a check from the
  *     server alone;
  *   - the create lane asks can_view on the run named in spec.run_id, and a
@@ -189,13 +189,13 @@ describe("GuardScoreSource", () => {
     ["a machine account", { callerClass: "machine" }],
     ["a person propagated in process", { origin: "in-process" }],
     [
-      "a PlatformClient user token",
+      "a minted user token",
       {
         issuer: "stigmer",
         rawToken: jwtWith({
           iss: "stigmer",
           sub: "ida_person",
-          platform_client_id: "pc_1",
+          minted_by: "ida_minter",
         }),
       },
     ],

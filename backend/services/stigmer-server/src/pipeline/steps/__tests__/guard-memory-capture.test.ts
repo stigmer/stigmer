@@ -6,7 +6,7 @@
  * first-party allow-list), the capture org handed to the capability, the
  * org-mismatch throw propagating untouched, and the allow-list itself
  * (stigmer#1406): trusted-local and OIDC callers admit; machine,
- * PlatformClient-token and every other caller class — runner, the hosted
+ * minted-user-token and every other caller class — runner, the hosted
  * edition's guest / channel / schedule lanes, a class no edition has
  * named yet — refuse, with the capability absent or answering
  * no-opinion. The claim counts only on a platform token (stigmer#1312):
@@ -123,7 +123,7 @@ function jwtWith(payload: Record<string, unknown>): string {
   return `${segment({ alg: "RS256", typ: "JWT" })}.${segment(payload)}.signature`;
 }
 
-/** An OIDC login whose issuer happens to stamp a platform_client_id claim. */
+/** An OIDC login whose issuer happens to stamp a minted_by claim. */
 const FOREIGN_CLAIM_CALLER: CallerIdentity = {
   identityId: "ida_oidc",
   callerClass: "user",
@@ -131,7 +131,7 @@ const FOREIGN_CLAIM_CALLER: CallerIdentity = {
   rawToken: jwtWith({
     iss: "https://issuer.example",
     sub: "ida_oidc",
-    platform_client_id: "pc_1",
+    minted_by: "ida_minter",
   }),
 };
 
@@ -221,7 +221,7 @@ describe("GuardMemoryCapture with the capability composed", () => {
     ).toBe(mismatch);
   });
 
-  it("no-opinion falls through: platform_client_id carriers still refuse", async () => {
+  it("no-opinion falls through: minted_by carriers still refuse", async () => {
     const step = newGuardMemoryCaptureStep<typeof MemorySchema>(
       providerWith(() => ({ verdict: "no-opinion" })),
     );
@@ -229,7 +229,7 @@ describe("GuardMemoryCapture with the capability composed", () => {
       identityId: "ida_guest",
       callerClass: "guest",
       issuer: "stigmer",
-      rawToken: mintedToken({ platform_client_id: "pc_1" }),
+      rawToken: mintedToken({ minted_by: "ida_minter" }),
     };
     await expect(step.execute(memoryCtx(minted))).rejects.toThrowError(
       MEMORY_CAPTURE_CALLER_MESSAGE,
@@ -244,7 +244,7 @@ describe("GuardMemoryCapture with the capability composed", () => {
       );
       for (const rawToken of [
         "",
-        mintedToken({ platform_client_id: "pc_1" }),
+        mintedToken({ minted_by: "ida_minter" }),
       ]) {
         await expect(
           step.execute(memoryCtx({ ...LOCAL_USER, callerClass, rawToken })),
@@ -253,7 +253,7 @@ describe("GuardMemoryCapture with the capability composed", () => {
     },
   );
 
-  it("no-opinion falls through: another issuer's platform_client_id claim is admitted", async () => {
+  it("no-opinion falls through: another issuer's minted_by claim is admitted", async () => {
     // Both editions' capabilities answer no-opinion for a person, so this
     // is the path an OIDC login takes in production.
     const step = newGuardMemoryCaptureStep<typeof MemorySchema>(
@@ -294,7 +294,7 @@ describe("GuardMemoryCapture without the capability (the allow-list alone)", () 
     );
   });
 
-  it("refuses machine callers and platform_client_id carriers", async () => {
+  it("refuses machine callers and minted_by carriers", async () => {
     const step = newGuardMemoryCaptureStep<typeof MemorySchema>(providerWith());
     await expect(
       step.execute(memoryCtx({ ...LOCAL_USER, callerClass: "machine" })),
@@ -303,24 +303,24 @@ describe("GuardMemoryCapture without the capability (the allow-list alone)", () 
       step.execute(
         memoryCtx({
           ...LOCAL_USER,
-          rawToken: mintedToken({ platform_client_id: "pc_1" }),
+          rawToken: mintedToken({ minted_by: "ida_minter" }),
         }),
       ),
     ).rejects.toThrowError(MEMORY_CAPTURE_CALLER_MESSAGE);
   });
 
-  it("admits a platform_client_id claim on a token Stigmer did not issue", async () => {
+  it("admits a minted_by claim on a token Stigmer did not issue", async () => {
     const step = newGuardMemoryCaptureStep<typeof MemorySchema>(providerWith());
     await step.execute(memoryCtx(FOREIGN_CLAIM_CALLER));
   });
 
-  it("admits a platform token whose platform_client_id is empty", async () => {
+  it("admits a platform token whose minted_by is empty", async () => {
     const step = newGuardMemoryCaptureStep<typeof MemorySchema>(providerWith());
     await step.execute(
       memoryCtx({
         ...LOCAL_USER,
         issuer: "stigmer",
-        rawToken: mintedToken({ platform_client_id: "" }),
+        rawToken: mintedToken({ minted_by: "" }),
       }),
     );
   });
@@ -344,7 +344,7 @@ describe("GuardMemoryCapture without the capability (the allow-list alone)", () 
         newGuardMemoryCaptureStep<typeof MemorySchema>(providerWith());
       for (const rawToken of [
         "",
-        mintedToken({ platform_client_id: "pc_1" }),
+        mintedToken({ minted_by: "ida_minter" }),
       ]) {
         await expect(
           step.execute(memoryCtx({ ...LOCAL_USER, callerClass, rawToken })),

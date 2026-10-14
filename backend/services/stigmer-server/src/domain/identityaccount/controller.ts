@@ -374,7 +374,7 @@ async function runCreateChain(
 /**
  * The create path as its in-process callers see it (provisioning.ts
  * `CreateAccount`): the input becomes the resource envelope the chain
- * expects, tagged with the kind this controller serves. A platform-client
+ * expects, tagged with the kind this controller serves. An app-user
  * account and a service account carry their owning organization and a
  * federated account its provider's, as the cloud has always written the
  * first two; a direct account belongs to no organization.
@@ -415,8 +415,8 @@ function createRpc(
 ): Promise<IdentityAccount> {
   const caller = callerIdentityOf(ctx);
   guardInternalRpc(caller);
-  // The RPC creates the platform's own accounts only: a platform-client
-  // account is the mint's to provision, never a wire caller's.
+  // The RPC creates the platform's own accounts only: an app-user account
+  // is the mint's to provision, never a wire caller's.
   return runCreateChain(deps, account, caller, kindOf(ctx), { mode: "direct" });
 }
 

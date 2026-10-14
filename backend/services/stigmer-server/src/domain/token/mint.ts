@@ -23,8 +23,7 @@
  * The settings that apply (create_accounts_on_sign_in, sign_in_role) are
  * the minting service account's organization's embedding settings
  * (domain/organization/embedding.ts), read once per mint; a child the
- * token is for is served by its parent's settings, as a child of a
- * PlatformClient's organization was.
+ * token is for is served by its parent's settings.
  *
  * The person is keyed `stgm_pc|<org>|<user_id>` with the token's
  * organization, so every mint for one organization resolves one person to

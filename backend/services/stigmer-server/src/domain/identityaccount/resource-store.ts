@@ -23,8 +23,8 @@
  * (Store.findAllByField, a decode-and-scan of the kind's rows): an
  * administrative RPC and a provider's removal, never a per-request path.
  * The email scan reads every row with the email and answers the direct
- * one, because the email axis is shared: a federated or platform-client
- * row may carry a direct person's email, and a first-match read would
+ * one, because the email axis is shared: a federated or app-user row may
+ * carry a direct person's email, and a first-match read would
  * answer that row and then filter it away, hiding the person by scan
  * order.
  *
@@ -292,11 +292,11 @@ function isFederated(account: IdentityAccount): boolean {
 }
 
 /**
- * The platform's own subject: neither federated, nor a platform-client end
- * user, nor an organization's service account. A federated account carries
+ * The platform's own subject: neither federated, nor an app user, nor an
+ * organization's service account. A federated account carries
  * its identity_provider_ref (open source never writes one, so that arm is
- * the port's contract stated); a platform-client account is the mint's,
- * whose email and name the platform asserted; a service account signs in
+ * the port's contract stated); an app-user account is the mint's, whose
+ * email and name the product asserted; a service account signs in
  * through nothing, so a sign-in whose subject named one must never resolve
  * to it. No direct lookup — a verifier's subject resolve, getByEmail — may
  * answer any of them.

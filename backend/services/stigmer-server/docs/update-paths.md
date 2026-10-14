@@ -27,11 +27,9 @@ Rows read `| Kind | refused path | written by |`, or `| Kind | none | |` for a k
 | Memory | none | |
 | OAuthApp | none | |
 | Organization | `spec.policies` | updatePolicies |
+| Organization | `spec.embedding` | updateEmbedding |
 | Organization | `spec.parent_org` | create |
 | Organization | `spec.external_id` | create |
-| PlatformClient | `spec.client_id` | the server, when the client is created |
-| PlatformClient | `spec.client_secret_hash` | create and rotateSecret |
-| PlatformClient | `spec.secret_fingerprint` | create and rotateSecret |
 | Run | none | |
 | Schedule | none | |
 | Score | none | |

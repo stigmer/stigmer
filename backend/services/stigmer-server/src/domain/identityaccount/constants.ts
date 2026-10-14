@@ -274,7 +274,7 @@ export const NO_IDP_ID_MESSAGE =
 /**
  * provisionMyAccount for a caller the platform's own sign-in did not vouch
  * for (PERMISSION_DENIED): a person of an organization's identity provider,
- * a platform client's user, a system lane's token, or any caller that is
+ * an app user, a system lane's token, or any caller that is
  * not a person. Names no account: the refusal answers before the store is
  * asked about the credential's subject.
  */

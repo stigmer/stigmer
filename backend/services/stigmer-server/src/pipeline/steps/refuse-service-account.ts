@@ -12,8 +12,10 @@
  *   - grant or revoke a role on the organization itself (IamPolicy
  *     `create`, `delete` and `revokeOrgAccess` when the resource is the
  *     organization, domain/iampolicy);
- *   - create or change a platform client, or rotate its secret (its
- *     sign-in role makes members, its secret mints users);
+ *   - change the organization's embedding settings (their sign-in role
+ *     decides which role the key's own mint grants: minting is the one
+ *     act that creates accounts the key may do, and only with the role
+ *     its organization's admins set, domain/token/mint.ts);
  *   - create, change or remove a federated account;
  *   - an edition's own doors of the same kind (the hosted edition's
  *     invitations and identity providers splice the step).

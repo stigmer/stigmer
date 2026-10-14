@@ -184,7 +184,7 @@ export const SERVER_ORGANIZATION_ROLES_OWED = "owed";
  * lane's grantee vocabulary (since 2026-09-14): a person (the identity
  * account) and a team
  * of people. A row whose principal is a RESOURCE
- * (`organization:A#organization@platform_client:X`, `#child_org`) is a
+ * (`identity_account:X#organization@organization:A`, `#child_org`) is a
  * structural link, and structural links are `bootstrapPolicy`'s — the
  * platform's own lane, which skips role validation by design.
  *

@@ -454,9 +454,8 @@ async function getByKeyHash(
  * newest first. An unprovisioned caller's identity is its subject already. A composed
  * ListReadScope still narrows the answer, so a list is never wider than
  * the keys the caller may view. Stored hashes ride the response exactly
- * as the cloud's do — the plaintext exists nowhere. Newest first, as
- * PlatformClient's list answers, so a list does not reorder as keys
- * are used (stigmer/stigmer#1255).
+ * as the cloud's do — the plaintext exists nowhere. Newest first, so a
+ * list does not reorder as keys are used (stigmer/stigmer#1255).
  */
 async function list(
   deps: ApiKeyControllerDeps,

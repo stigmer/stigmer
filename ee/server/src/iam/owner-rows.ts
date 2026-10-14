@@ -1,20 +1,19 @@
 /**
  * The owner-row reconcile: at every boot, every kind that records no owner
- * loses any direct `owner` policy row it still holds. Five kinds, in the
+ * loses any direct `owner` policy row it still holds. Four kinds, in the
  * model `@stigmer/server` ships, are managed by their organization's
  * current admins alone (`owner: admin from organization`, kind_meta
  * `owner_type` NONE): identity providers and invitations since
  * stigmer/stigmer#1314, the Enterprise domain's to reconcile
- * (extension/enterprise-identity.ts), and platform clients, OAuth apps
- * and channel apps since stigmer/stigmer#1321, stigmer/stigmer#1329 and
- * stigmer/stigmer#1426, the host's.
+ * (extension/enterprise-identity.ts), and OAuth apps and channel apps
+ * since stigmer/stigmer#1329 and stigmer/stigmer#1426, the host's.
  *
  * Why the rows exist at all: until those models, the creation event wrote
  * `<kind>:<id>#owner@identity_account:<creator>`, and an IamPolicy grant
  * could write the same shape. A creator demoted below admin, or removed,
  * kept full control of the row through it: for a provider enough to mint
- * an owner of the organization, for a platform client enough to rotate its
- * secret and mint into the organization. The model no longer admits the
+ * an owner of the organization, for an app enough to change its
+ * credentials. The model no longer admits the
  * shape, so a stored row grants nothing once that model is applied; until
  * then it still grants, and after it every access listing would still
  * show it. So the row goes.
