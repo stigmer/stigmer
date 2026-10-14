@@ -10,7 +10,8 @@
  * - an admin adds, changes and removes a server, each one save naming
  *   `spec.mcp_servers` alone and sending the other servers as stored;
  * - the form says what the console can see is wrong before any save, and
- *   a refused save shows the server's words under the section;
+ *   a refused save shows the server's words under the section; Cancel
+ *   closes a form and saves nothing;
  * - a member who may edit the agent sees the servers with no pencil and is
  *   told only admins change them; a viewer is told nothing;
  * - another section's save never names `spec.mcp_servers`;
@@ -158,6 +159,21 @@ describe("AgentDetailView MCP servers", () => {
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
     expect(sentUpdate<Agent>(update).paths).toEqual(["spec.mcp_servers"]);
     expect(sentServers(update)).toEqual([LINEAR]);
+  });
+
+  it("closes a form on Cancel and saves nothing", async () => {
+    const { update } = renderView(agentWith({ mcpServers: [ZENDESK] }), { admin: true, editable: true });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit mcp servers" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add MCP server" }));
+    fireEvent.click(within(screen.getByRole("group", { name: "New MCP server" })).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("group", { name: "New MCP server" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Change zendesk" }));
+    fireEvent.click(within(screen.getByRole("group", { name: "Change zendesk" })).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("group", { name: "Change zendesk" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Add MCP server" })).toBeTruthy();
+    expect(update).not.toHaveBeenCalled();
   });
 
   it("says what is wrong before saving, and saves nothing", async () => {
