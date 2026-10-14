@@ -364,7 +364,7 @@ async function runHooksProbe(
         workspaceRoot: root,
         toVirtualPath: (path) => normalizeWorkspacePathArg(path, root),
         toolServerMap,
-        pluginServers: new Map(),
+        serverNames: new Map(),
         platformServerSlugs: new Set(),
       }),
       sessionId: "contract-session",

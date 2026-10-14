@@ -149,7 +149,7 @@ export type RunConfig = Message<"ai.stigmer.agentic.run.v1.RunConfig"> & {
    * "send another message to continue" prompt and ends TERMINATED; the work
    * done so far is kept. The limit is checked each time the engine reports
    * its spend, so a run can end somewhat above it. The native harness
-   * reports after every model call, counts a sub-agent's spend toward the
+   * reports after every model call, counts a subagent's spend toward the
    * limit, and advises the agent to wrap up at about 80% of the budget; the
    * Cursor harness gives no warning.
    *
@@ -176,7 +176,7 @@ export type RunConfig = Message<"ai.stigmer.agentic.run.v1.RunConfig"> & {
    * the task completes or loop detection stops a repetitive pattern. When
    * set, the valid range is 10–1000; values outside it are clamped to the
    * nearest bound. The budget is per message: a follow-up message, or a run
-   * resuming after an approval, starts a fresh count. Sub-agent rounds are
+   * resuming after an approval, starts a fresh count. Subagent rounds are
    * not counted, and the Cursor harness does not enforce this field.
    *
    * @generated from field: int32 max_tool_rounds = 3;

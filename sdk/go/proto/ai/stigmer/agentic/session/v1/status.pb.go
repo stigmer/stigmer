@@ -50,12 +50,10 @@ type SessionStatus struct {
 	State string `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
 	// Harness-specific state identifier for conversation continuity.
 	//
-	// Populated after the first run completes; empty until then.
-	// Each harness uses this field differently:
+	// Populated after the first run completes; empty until then. It is the
+	// harness's own conversation id:
 	//
-	//   - NATIVE: LangGraph thread ID, derived deterministically as
-	//     "thread-{session_id}" by the EnsureThread activity. Stored here
-	//     so the immutability sentinel works uniformly across harnesses.
+	// - NATIVE: the native harness's thread id, "thread-{session_id}".
 	//
 	//   - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
 	//     returned by Agent.create(). Used for Agent.resume() on

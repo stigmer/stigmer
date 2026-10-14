@@ -26,6 +26,7 @@ const ANSWER = create(ExecutionValuesSchema, {
   tools: [
     { pluginId: "plg_linear", server: "api", url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "lin" } },
     { pluginId: "plg_other", server: "api", url: "", values: { OTHER_TOKEN: "oth" } },
+    { agentId: "plg_other", server: "api", url: "https://zd.example.com/mcp", values: { ZD_KEY: "zd" } },
   ],
   plugins: [{ pluginId: "plg_linear", values: { HOOK_KEY: "hook" } }],
   repositories: [{ name: "app", url: "https://github.com/acme/app.git", token: "ghp_app" }],
@@ -39,10 +40,14 @@ describe("runValuesOf", () => {
   it("keeps each declarer's values in its own group", () => {
     const values = runValuesOf(ANSWER);
     expect(values.agent).toEqual({ AGENT_KEY: "agent-secret", LOG_LEVEL: "debug" });
-    expect(values.tools.get(toolValuesKey("plg_linear", "api"))).toEqual({ url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "lin" } });
-    expect(values.tools.get(toolValuesKey("plg_other", "api")), "a same-named server of another plugin is its own group").toEqual({
+    expect(values.tools.get(toolValuesKey("plugin", "plg_linear", "api"))).toEqual({ url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "lin" } });
+    expect(values.tools.get(toolValuesKey("plugin", "plg_other", "api")), "a same-named server of another plugin is its own group").toEqual({
       url: "",
       values: { OTHER_TOKEN: "oth" },
+    });
+    expect(values.tools.get(toolValuesKey("agent", "plg_other", "api")), "an agent's own server is its own group, even under a plugin's id").toEqual({
+      url: "https://zd.example.com/mcp",
+      values: { ZD_KEY: "zd" },
     });
     expect([...values.plugins]).toEqual([["plg_linear", { HOOK_KEY: "hook" }]]);
     expect(values.repositories).toEqual([{ name: "app", url: "https://github.com/acme/app.git", token: "ghp_app" }]);
@@ -51,7 +56,8 @@ describe("runValuesOf", () => {
 
 describe("toolValuesKey", () => {
   it("keeps a plugin and a server name apart, whatever either holds", () => {
-    expect(toolValuesKey("plg_a", "b_c")).not.toBe(toolValuesKey("plg_a_b", "c"));
+    expect(toolValuesKey("plugin", "plg_a", "b_c")).not.toBe(toolValuesKey("plugin", "plg_a_b", "c"));
+    expect(toolValuesKey("plugin", "x", "s")).not.toBe(toolValuesKey("agent", "x", "s"));
   });
 });
 
@@ -71,7 +77,7 @@ describe("fetchRunValues", () => {
     const values = await fetchRunValues(client, "run_1", "scoped");
 
     expect(client.fetchExecutionValues).toHaveBeenCalledWith("run_1", "scoped");
-    expect(values.tools.size).toBe(2);
+    expect(values.tools.size).toBe(3);
     expect(values.plugins.size).toBe(1);
   });
 

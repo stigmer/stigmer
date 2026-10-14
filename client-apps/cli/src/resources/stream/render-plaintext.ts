@@ -3,7 +3,7 @@
 //
 // The agent's messages on its primary thread go to the data sink (stdout);
 // terse status lines go to the status sink (stderr): the person's message,
-// one line per tool use each time its state changes, a sub-agent's start and
+// one line per tool use each time its state changes, a subagent's start and
 // end with its tool uses indented beneath, the platform's notes, a context
 // compaction, the turn's errors, and how each ask was answered. No ANSI, no
 // frames. Each fold is compared with the last by reference, so a turn no event
@@ -59,7 +59,7 @@ export class PlaintextRenderer implements HeadlessRenderer {
   }
 
   // The primary thread's messages are the answer and go to stdout; a
-  // sub-agent's are its own working and are left out (its reply reaches the
+  // subagent's are its own working and are left out (its reply reaches the
   // agent, which answers in its own words).
   private renderItems(items: readonly TurnItem[], indent: string, primary: boolean): void {
     const { data, status } = this.opts;
@@ -92,7 +92,7 @@ export class PlaintextRenderer implements HeadlessRenderer {
     if (thread === undefined) return;
     const name = thread.agentName !== "" ? thread.agentName : tool.name;
     const previous = this.threadStates.get(thread.id);
-    if (previous === undefined) this.opts.status.write(`${indent}  ↳ Sub-agent: ${name}\n`);
+    if (previous === undefined) this.opts.status.write(`${indent}  ↳ Subagent: ${name}\n`);
     this.renderItems(thread.items, `${indent}  `, false);
     if (previous !== thread.state) {
       this.threadStates.set(thread.id, thread.state);
@@ -110,9 +110,9 @@ export class PlaintextRenderer implements HeadlessRenderer {
 
 const THREAD_END: Record<NonNullable<ToolUse["thread"]>["state"], string> = {
   running: "",
-  completed: "✓ Sub-agent completed",
-  failed: "✗ Sub-agent failed",
-  stopped: "⊘ Sub-agent stopped",
+  completed: "✓ Subagent completed",
+  failed: "✗ Subagent failed",
+  stopped: "⊘ Subagent stopped",
 };
 
 // One line for a tool use in its current state.

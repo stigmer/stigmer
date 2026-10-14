@@ -2,7 +2,8 @@
  * The subagents a run's agent lists, each at the version the agent pinned
  * when it was saved (AgentSpec.subagents, domain/agent/subagents.ts). One
  * reader for every planner that needs them: the run's values (each
- * subagent's own keys, and its plugins' servers and hooks), the run's
+ * subagent's own keys and MCP servers, and its plugins' servers and
+ * hooks), the run's
  * plugins, and the refusal of a local program on a hosted conversation.
  *
  * A pinned version that no longer resolves (the agent deleted, or its
@@ -26,8 +27,12 @@ import { agentVersionBinding } from "../agent/versions.js";
 
 /** One subagent of a run, at its pinned version. */
 export interface RunSubagent {
+  /** The listed agent's id. */
+  readonly id: string;
   /** Its name in the turn: the listed agent's current slug. */
   readonly name: string;
+  /** The version the parent pinned (a version hash), which its own MCP servers are read at. */
+  readonly versionHash: string;
   /** The organization it belongs to. */
   readonly org: string;
   /** Its spec at the pinned version. */
@@ -79,10 +84,11 @@ export async function runSubagents(
         subagentGoneMessage(ref.slug !== "" ? ref.slug : ref.id, ref.version),
       );
     }
+    const id = head.metadata?.id ?? "";
     const name = head.metadata?.slug ?? "";
     let spec: AgentSpec | undefined;
     try {
-      spec = (await loadVersion(store, agentVersionBinding, head.metadata?.id ?? "", ref.version)).resource.spec;
+      spec = (await loadVersion(store, agentVersionBinding, id, ref.version)).resource.spec;
     } catch (error) {
       if (error instanceof ConnectError && error.code === Code.NotFound) {
         throw failedPreconditionError(subagentGoneMessage(name, ref.version));
@@ -93,7 +99,7 @@ export async function runSubagents(
       if (subagents.some((held) => held.name === name)) {
         throw failedPreconditionError(subagentNamesClashMessage(name));
       }
-      subagents.push({ name, org, spec });
+      subagents.push({ id, name, org, versionHash: ref.version, spec });
     }
   }
   return subagents;

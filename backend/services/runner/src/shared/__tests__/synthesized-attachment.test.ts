@@ -31,7 +31,7 @@ const userServer: ResolvedMcpServer = {
   slug: "github",
   connectionType: "http",
   url: "https://example.com",
-  pluginOrigin: null,
+  home: { kind: "platform" },
 };
 
 function bothAttachments(): ResolvedMcpServer[] {

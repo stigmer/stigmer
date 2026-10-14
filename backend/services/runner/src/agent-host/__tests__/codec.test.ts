@@ -45,6 +45,8 @@ import type { ArtifactStorage } from "../../shared/artifact-storage.js";
 import { ToolScope } from "../../shared/tool-lists.js";
 import { toolValuesKey } from "../../shared/run-values.js";
 import type { McpToolListing } from "../../shared/mcp-tool-listing.js";
+import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
+import { hookServerNamesOf } from "../../shared/hooks/tool-view.js";
 import {
   ADAPTER_OWNED_ROW_FIELDS,
   ADAPTER_OWNED_STATUS_FIELDS,
@@ -116,7 +118,7 @@ describe("the turn input across the pipe", () => {
       approvalAsks: new Map([["run_1.call-2", { policySource: "hook", policyHook: "safety", contentDigest: "args:abc" }]]),
       values: {
         agent: { API_TOKEN: "value" },
-        tools: new Map([[toolValuesKey("plg_linear", "api"), { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "lin" } }]]),
+        tools: new Map([[toolValuesKey("plugin", "plg_linear", "api"), { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "lin" } }]]),
         plugins: new Map([["plg_safety", { HOOK_TOKEN: "hook" }]]),
         subagents: new Map([["release-notes", { NOTES_TOKEN: "notes" }]]),
         repositories: [{ name: "app", url: "https://github.com/acme/app.git", token: "ghp_runner_only" }],
@@ -151,7 +153,7 @@ describe("the turn input across the pipe", () => {
     ]);
     expect(decoded.values.agent).toEqual({ API_TOKEN: "value" });
     expect([...decoded.values.tools]).toEqual([
-      [toolValuesKey("plg_linear", "api"), { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "lin" } }],
+      [toolValuesKey("plugin", "plg_linear", "api"), { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "lin" } }],
     ]);
     expect([...decoded.values.plugins]).toEqual([["plg_safety", { HOOK_TOKEN: "hook" }]]);
     expect([...decoded.values.subagents]).toEqual([["release-notes", { NOTES_TOKEN: "notes" }]]);
@@ -164,6 +166,28 @@ describe("the turn input across the pipe", () => {
     expect([...decoded.mcp.leases.categories]).toEqual(["write"]);
     expect([...decoded.mcp.mcpDefault.destructive]).toEqual(["github/delete_repo"]);
     expect([...decoded.skills.bySubAgent.keys()]).toEqual(["kit:helper"]);
+  });
+
+  it("carries each server's home, and rebuilds the platform's set from the homes rather than carrying it", () => {
+    const servers: ResolvedMcpServer[] = [
+      { slug: "zendesk", connectionType: "http", url: "https://acme-co.zendesk.com/mcp", home: { kind: "agent", agentId: "agt_helper", subagent: null, server: "zendesk" } },
+      { slug: "plugin_linear_api", connectionType: "http", url: "https://mcp.linear.app/mcp", home: { kind: "plugin", pluginId: "plg_linear", plugin: "linear", server: "api" } },
+      { slug: "stigmer-memory", connectionType: "http", url: "https://bridge.example/mcp", home: { kind: "platform" } },
+    ];
+    const base = turnInputFixture();
+    const input = turnInputFixture({
+      mcp: { ...base.mcp, servers, platformServerSlugs: new Set(["stigmer-memory"]) },
+      hooks: { sources: [], serverNames: hookServerNamesOf(servers) },
+    });
+    const wire = encodeTurnInput(input);
+    expect(JSON.stringify(wire.mcp)).not.toContain("platformServerSlugs");
+    const decoded = crossed(input);
+    expect(decoded.mcp.servers.map((server) => server.home)).toEqual(servers.map((server) => server.home));
+    expect([...decoded.mcp.platformServerSlugs]).toEqual(["stigmer-memory"]);
+    expect([...decoded.hooks.serverNames]).toEqual([
+      ["zendesk", { name: "zendesk", source: "agent" }],
+      ["plugin_linear_api", { name: "plugin:linear:api", source: "plugin" }],
+    ]);
   });
 
   it("carries no listing for an engine that reads its tools' marks itself", () => {
@@ -247,14 +271,14 @@ describe("the turn input across the pipe", () => {
       instructions: "You write release notes.",
       model: "claude-sonnet-4-5",
       toolScope,
-      servers: [{ slug: "plugin_changelog_api", connectionType: "http", url: "https://changelog.example/mcp", pluginOrigin: { pluginId: "plg_changelog", plugin: "changelog", server: "api" } }],
+      servers: [{ slug: "plugin_changelog_api", connectionType: "http", url: "https://changelog.example/mcp", home: { kind: "plugin", pluginId: "plg_changelog", plugin: "changelog", server: "api" } }],
       skills: [{ name: "changelog:changelog", description: "Write a changelog", path: "/c" }],
       hooks: [
         { plugin: { id: "plg_guard", slug: "guard", name: "Guard", root: "/g", data: "/gd", verify: async () => void calls.push("local verify") }, format: "claude-code", groups: [] },
         { plugin: null, format: "cursor", groups: [] },
       ],
       values: { NOTES_TOKEN: "notes" },
-      bringsOwn: { plugins: true, hooks: true, lists: true },
+      bringsOwn: { plugins: true, hooks: true, lists: true, mcpServers: false },
     };
     const decoded = crossed(turnInputFixture({ subagents: [subagent] }), noServices(calls));
 
@@ -267,7 +291,7 @@ describe("the turn input across the pipe", () => {
       servers: subagent.servers,
       skills: subagent.skills,
       values: { NOTES_TOKEN: "notes" },
-      bringsOwn: { plugins: true, hooks: true, lists: true },
+      bringsOwn: { plugins: true, hooks: true, lists: true, mcpServers: false },
     });
     expect(back!.toolScope.describe()).toBe(toolScope.describe());
     expect(back!.toolScope.allowsClaudeTool("Agent")).toBe(false);
@@ -281,7 +305,7 @@ describe("the turn input across the pipe", () => {
   it("calls back to the runner for the memory selection, the upload, a plugin's verify and the run's events", async () => {
     const calls: string[] = [];
     const input = turnInputFixture({
-      hooks: { sources: [{ plugin: { id: "plg_lint", slug: "lint", name: "Lint", root: "/r", data: "/d", verify: async () => void calls.push("local verify") }, format: "claude-code", groups: [] }], pluginServers: new Map() },
+      hooks: { sources: [{ plugin: { id: "plg_lint", slug: "lint", name: "Lint", root: "/r", data: "/d", verify: async () => void calls.push("local verify") }, format: "claude-code", groups: [] }], serverNames: new Map() },
       artifactStorage: noServices().artifactStorage,
     });
     const decoded = crossed(input, noServices(calls));

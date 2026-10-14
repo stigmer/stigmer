@@ -115,10 +115,10 @@ function blueprintWith(plugins: Plugin[], hooks: HookSource[] | null = []): Reso
   };
 }
 
-const server = (slug: string, origin: ResolvedMcpServer["pluginOrigin"]): ResolvedMcpServer => ({
+const server = (slug: string, home: ResolvedMcpServer["home"]): ResolvedMcpServer => ({
   slug,
   connectionType: "stdio",
-  pluginOrigin: origin,
+  home,
 });
 
 describe("refuseUnrunnableHooks", () => {
@@ -172,7 +172,7 @@ describe("resolveHooks", () => {
 
   it("resolves nothing, and reports nothing, for a turn without hooks", async () => {
     const { r, labels } = await run(blueprintWith([plugin("quiet", { hooks: false })]));
-    expect(r).toEqual({ kind: "ready", hooks: { sources: [], pluginServers: new Map() } });
+    expect(r).toEqual({ kind: "ready", hooks: { sources: [], serverNames: new Map() } });
     expect(labels).toEqual([]);
   });
 
@@ -221,12 +221,12 @@ describe("resolveHooks", () => {
 
   it("names every plugin server from its resolved origin, as Claude Code does", async () => {
     const { r } = await run(blueprintWith([], [inline()]), [
-      server("plugin_safety-rails_checks", { pluginId: "plg_safety", plugin: "safety-rails", server: "checks" }),
-      server("stigmer-memory", null),
+      server("plugin_safety-rails_checks", { kind: "plugin", pluginId: "plg_safety", plugin: "safety-rails", server: "checks" }),
+      server("stigmer-memory", { kind: "platform" }),
     ]);
     expect(r).toMatchObject({ kind: "ready" });
     if (r.kind !== "ready") return;
-    expect([...r.hooks.pluginServers]).toEqual([["plugin_safety-rails_checks", { plugin: "safety-rails", server: "checks" }]]);
+    expect([...r.hooks.serverNames]).toEqual([["plugin_safety-rails_checks", { name: "plugin:safety-rails:checks", source: "plugin" }]]);
   });
 
   it("throws a transient fault instead of refusing the turn as the owner's to fix", async () => {

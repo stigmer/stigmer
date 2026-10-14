@@ -48,6 +48,8 @@
  */
 
 import type { RecalledMemories } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
+import { MEMORY_MCP_SERVER } from "@stigmer/tool-vocabulary";
+
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
 import { grpcTarget, SERVER_ADDRESS_ENV_KEY } from "./platform-server-address.js";
 import {
@@ -64,7 +66,7 @@ import {
  * and the context keys below are cross-repo strings, pinned on both
  * sides (the TOOL_CALL_LIMIT precedent).
  */
-export const MEMORY_ATTACHMENT_SLUG = "stigmer-memory";
+export const MEMORY_ATTACHMENT_SLUG = MEMORY_MCP_SERVER;
 
 /** The bridge route serving the memory-only roster (mcp-server twin: MEMORY_ROUTE). */
 export const MEMORY_ROUTE = "/memory";
@@ -124,9 +126,9 @@ export function synthesizeMemoryAttachment(
   }
 
   // Approval-free by construction: see file header.
-  const base = {
+  const base: Pick<ResolvedMcpServer, "slug" | "home"> = {
     slug: MEMORY_ATTACHMENT_SLUG,
-    pluginOrigin: null,
+    home: { kind: "platform" },
   };
 
   if (options.bridgeEndpoint !== null && options.bridgeEndpoint !== "") {

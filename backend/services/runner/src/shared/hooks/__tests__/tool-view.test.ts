@@ -9,10 +9,11 @@
  *    Cursor lays it, and a rewrite this engine cannot take is refused;
  *  - paths become real and absolute, names change only where Claude's
  *    differ, extra arguments ride along;
- *  - MCP tools are named `mcp__<server>__<tool>`, where every server is a
- *    plugin's and its name in the turn is already Claude Code's segment
- *    (`plugin_<plugin>_<server>`), its server shown as
- *    `plugin:<plugin>:<server>`; the platform's own servers are never shown;
+ *  - MCP tools are named `mcp__<server>__<tool>`: a plugin's server's name
+ *    in the turn is already Claude Code's segment (`plugin_<plugin>_<server>`),
+ *    shown as `plugin:<plugin>:<server>`; a server the agent writes itself is
+ *    shown by its own name as the agent's; the platform's own servers are
+ *    never shown;
  *  - `tool_response` takes Claude's shape where it can be derived.
  */
 
@@ -21,19 +22,24 @@ import { EXCLUDED_BUILTIN_TOOLS } from "../../../activities/execute-deep-agent/d
 import { normalizeWorkspacePathArg } from "../../../middleware/path-normalization.js";
 import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 import type { HookFormatName } from "../hook-set.js";
-import { claudeToolResponse, NATIVE_VIEWED_TOOLS, NativeToolViews } from "../tool-view.js";
+import { claudeToolResponse, hookServerNamesOf, NATIVE_VIEWED_TOOLS, NativeToolViews } from "../tool-view.js";
 
 const ROOT = "/work/repo";
 const SERVERS = new Map([
   ["create_issue", "github"],
   ["run_check", "plugin_safety_checks"],
   ["send_message", "channel"],
+  ["search_tickets", "zendesk"],
 ]);
 const views = new NativeToolViews({
   workspaceRoot: ROOT,
   toVirtualPath: (path) => normalizeWorkspacePathArg(path, ROOT),
   toolServerMap: SERVERS,
-  pluginServers: new Map([["plugin_safety_checks", { plugin: "safety", server: "checks" }]]),
+  serverNames: hookServerNamesOf([
+    { slug: "plugin_safety_checks", connectionType: "http", home: { kind: "plugin", pluginId: "plg_s", plugin: "safety", server: "checks" } },
+    { slug: "zendesk", connectionType: "http", home: { kind: "agent", agentId: "agt_helper", subagent: null, server: "zendesk" } },
+    { slug: "channel", connectionType: "http", home: { kind: "platform" } },
+  ]),
   platformServerSlugs: new Set(["channel"]),
 });
 
@@ -119,6 +125,14 @@ describe("MCP and platform tools", () => {
       toolName: "mcp__plugin_safety_checks__run_check",
       toolInput: {},
       mcpServer: { name: "plugin:safety:checks", source: "plugin" },
+    });
+  });
+
+  it("names a server the agent writes itself by its own name, as the agent's", () => {
+    expect(views.viewOf("search_tickets", { q: "x" })).toEqual({
+      toolName: "mcp__zendesk__search_tickets",
+      toolInput: { q: "x" },
+      mcpServer: { name: "zendesk", source: "agent" },
     });
   });
 

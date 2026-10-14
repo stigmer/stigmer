@@ -69,7 +69,7 @@ export function TodoList({
 }
 
 // ---------------------------------------------------------------------------
-// Exported for reuse in collapsed sub-agent preview
+// Exported for reuse in collapsed subagent preview
 // ---------------------------------------------------------------------------
 
 /**

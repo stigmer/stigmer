@@ -87,7 +87,7 @@ import type { ToolScope } from "../shared/tool-lists.js";
 import type { SkillMetadata } from "../shared/skill-resolver.js";
 import type { MountedPlugin } from "../shared/plugin-mount.js";
 import type { HookFormatName } from "../shared/hooks/hook-set.js";
-import type { PluginServerName } from "../shared/hooks/tool-view.js";
+import type { HookServerName } from "../shared/hooks/tool-view.js";
 import type { McpToolListing } from "../shared/mcp-tool-listing.js";
 import type { HookGroup } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import type { ResolvedAttachment } from "../shared/attachment-resolver.js";
@@ -231,11 +231,12 @@ export interface TurnMcp {
    * the engine completes it from the tools it loads.
    */
   readonly mcpDefault: McpApprovalDefault;
-  /** What the turn start listed of each plugin server's tools; absent for an engine that reads its tools itself. */
+  /** What the turn start listed of each server's tools but the platform's; absent for an engine that reads its tools itself. */
   readonly listing: McpToolListing | undefined;
   /**
-   * The slugs of the synthesized attachments injected this turn: the
-   * platform's own servers, outside every tool list.
+   * The slugs of the platform's own servers among `servers` (the
+   * synthesized attachments, outside every tool list), derived from their
+   * homes (`platformServerSlugsOf`), never kept apart from them.
    */
   readonly platformServerSlugs: ReadonlySet<string>;
   /**
@@ -302,7 +303,7 @@ export interface TurnSubagent {
   /** Its own values (`ExecutionValues.subagents`): its shell's and its own hooks', never the main agent's. */
   readonly values: Readonly<Record<string, string>>;
   /** What it brings of its own beyond instructions, model and skills: an engine that cannot keep them to it refuses the turn. */
-  readonly bringsOwn: { readonly plugins: boolean; readonly hooks: boolean; readonly lists: boolean };
+  readonly bringsOwn: { readonly plugins: boolean; readonly hooks: boolean; readonly lists: boolean; readonly mcpServers: boolean };
 }
 
 /** One source of the agent's hooks: a mounted plugin and its recorded groups, or the agent's own block. */
@@ -318,14 +319,15 @@ export interface TurnHookSource {
  * The agent's hooks (phase 5a), resolved for a harness whose
  * `capabilities.runsHooks` is true: each source in the agent's order, every
  * referenced plugin mounted from its verified archive, and the names Claude
- * Code gives the servers a plugin brought. Empty for an agent with no hooks.
+ * Code gives the turn's servers (a plugin's and the agent's own). Empty for
+ * an agent with no hooks.
  * What a hook's values are (the run's, through the agent shell's filter) is
  * the harness's to read: the shell's environment is the harness's.
  */
 export interface TurnHooks {
   readonly sources: readonly TurnHookSource[];
   /** By server slug; filled only when the agent has hooks. */
-  readonly pluginServers: ReadonlyMap<string, PluginServerName>;
+  readonly serverNames: ReadonlyMap<string, HookServerName>;
 }
 
 /** The turn's explicit inputs (phase 5b), resolved into the workspace with the vision facts derived once. */

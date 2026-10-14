@@ -122,18 +122,18 @@ export type AgentEvalSpec = Message<"ai.stigmer.agentic.agenteval.v1.AgentEvalSp
    * within the agent's own tool lists: name the agent's working tools here
    * (Skill for its skills, Agent for its hand-offs to subagents). A
    * specifier in parentheses, as in Bash(npm test *), grants the whole
-   * tool. A plugin's MCP tools are named either way: Claude Code's
-   * mcp__plugin_<plugin>_<server>__<tool> or Stigmer's
-   * mcp__<server>__<tool>.
+   * tool. A plugin's MCP tools are named as Claude Code names them,
+   * mcp__plugin_<plugin>_<server>__<tool>; the tools of a server written in
+   * the agent itself are mcp__<server>__<tool>.
    *
    * @generated from field: repeated string allow_tools = 12;
    */
   allowTools: string[];
 
   /**
-   * Runs the plugins' MCP servers for real, with the organization's
-   * connections. Off by default: a try cannot call the plugins' MCP tools,
-   * as in Claude Code's evals without mocks.
+   * Runs the agent's and its plugins' MCP servers for real, with the
+   * organization's connections. Off by default: a try cannot call their MCP
+   * tools, as in Claude Code's evals without mocks.
    *
    * @generated from field: bool real_mcp_servers = 13;
    */
@@ -161,9 +161,9 @@ export type AgentEvalSpec = Message<"ai.stigmer.agentic.agenteval.v1.AgentEvalSp
   skipScaffold: boolean;
 
   /**
-   * Starts the plugins' real MCP servers for the servers no mock answers,
-   * as Claude Code's --allow-real-servers; mocked tools still answer from
-   * their files. Their tools still need allow_tools.
+   * Starts the real MCP servers no mock answers, the agent's own and its
+   * plugins', as Claude Code's --allow-real-servers; mocked tools still
+   * answer from their files. Their tools still need allow_tools.
    *
    * @generated from field: bool allow_real_servers = 16;
    */

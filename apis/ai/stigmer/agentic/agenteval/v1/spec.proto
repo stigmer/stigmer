@@ -109,9 +109,9 @@ message AgentEvalSpec {
   // within the agent's own tool lists: name the agent's working tools here
   // (Skill for its skills, Agent for its hand-offs to subagents). A
   // specifier in parentheses, as in Bash(npm test *), grants the whole
-  // tool. A plugin's MCP tools are named either way: Claude Code's
-  // mcp__plugin_<plugin>_<server>__<tool> or Stigmer's
-  // mcp__<server>__<tool>.
+  // tool. A plugin's MCP tools are named as Claude Code names them,
+  // mcp__plugin_<plugin>_<server>__<tool>; the tools of a server written in
+  // the agent itself are mcp__<server>__<tool>.
   repeated string allow_tools = 12 [(buf.validate.field).repeated = {
     max_items: 64
     items: {
@@ -122,9 +122,9 @@ message AgentEvalSpec {
     }
   }];
 
-  // Runs the plugins' MCP servers for real, with the organization's
-  // connections. Off by default: a try cannot call the plugins' MCP tools,
-  // as in Claude Code's evals without mocks.
+  // Runs the agent's and its plugins' MCP servers for real, with the
+  // organization's connections. Off by default: a try cannot call their MCP
+  // tools, as in Claude Code's evals without mocks.
   bool real_mcp_servers = 13;
 
   // Vaults whose logins and secrets the tries use, in order: the first
@@ -148,9 +148,9 @@ message AgentEvalSpec {
   // case that has one is then listed as not run.
   bool skip_scaffold = 15;
 
-  // Starts the plugins' real MCP servers for the servers no mock answers,
-  // as Claude Code's --allow-real-servers; mocked tools still answer from
-  // their files. Their tools still need allow_tools.
+  // Starts the real MCP servers no mock answers, the agent's own and its
+  // plugins', as Claude Code's --allow-real-servers; mocked tools still
+  // answer from their files. Their tools still need allow_tools.
   //
   // @internal
   // Create refuses it with real_mcp_servers, as a plugin eval's does.

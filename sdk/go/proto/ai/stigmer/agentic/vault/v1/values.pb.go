@@ -155,13 +155,15 @@ func (x *ExecutionValues) GetSubagents() []*SubagentValues {
 	return nil
 }
 
-// ToolValues are the values of one tool (an MCP server in a plugin) of the
-// execution.
+// ToolValues are the values of one tool (an MCP server in a plugin or in an
+// agent) of the execution.
 type ToolValues struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The tool's plugin.
+	// The tool's plugin; empty for a server written in an agent.
 	PluginId string `protobuf:"bytes,4,opt,name=plugin_id,json=pluginId,proto3" json:"plugin_id,omitempty"`
-	// The tool's server name in its plugin.
+	// The agent whose own server the tool is; empty for a plugin's server.
+	AgentId string `protobuf:"bytes,6,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	// The tool's server name in its plugin or its agent.
 	Server string `protobuf:"bytes,5,opt,name=server,proto3" json:"server,omitempty"`
 	// The tool's URL as the fetch read it, whose address was checked against
 	// each login it receives; empty for a local program. A runner sends the
@@ -206,6 +208,13 @@ func (*ToolValues) Descriptor() ([]byte, []int) {
 func (x *ToolValues) GetPluginId() string {
 	if x != nil {
 		return x.PluginId
+	}
+	return ""
+}
+
+func (x *ToolValues) GetAgentId() string {
+	if x != nil {
+		return x.AgentId
 	}
 	return ""
 }
@@ -421,10 +430,11 @@ const file_ai_stigmer_agentic_vault_v1_values_proto_rawDesc = "" +
 	"\n" +
 	"AgentEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf0\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x8b\x02\n" +
 	"\n" +
 	"ToolValues\x12\x1b\n" +
-	"\tplugin_id\x18\x04 \x01(\tR\bpluginId\x12\x16\n" +
+	"\tplugin_id\x18\x04 \x01(\tR\bpluginId\x12\x19\n" +
+	"\bagent_id\x18\x06 \x01(\tR\aagentId\x12\x16\n" +
 	"\x06server\x18\x05 \x01(\tR\x06server\x12\x10\n" +
 	"\x03url\x18\x02 \x01(\tR\x03url\x12K\n" +
 	"\x06values\x18\x03 \x03(\v23.ai.stigmer.agentic.vault.v1.ToolValues.ValuesEntryR\x06values\x1a9\n" +

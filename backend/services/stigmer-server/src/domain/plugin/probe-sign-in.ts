@@ -39,6 +39,7 @@ import { McpServerEntrySchema, McpServerSignInSchema } from "@stigmer/protos/ai/
 import type { McpServerEntry, PluginStatus } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
+import { accessTokenVariable } from "@stigmer/tool-vocabulary";
 
 import type { Logger } from "../../boot/logger.js";
 
@@ -47,9 +48,6 @@ export const ENDPOINT_PROBE_TIMEOUT_MS = 3_000;
 
 /** How the control plane names itself in the handshake's `clientInfo`. */
 const PROBE_CLIENT_NAME = "stigmer-server";
-
-/** The suffix of the token variable a completed server reads. */
-export const ACCESS_TOKEN_VAR_SUFFIX = "_ACCESS_TOKEN";
 
 const AUTHORIZATION_HEADER = "authorization";
 
@@ -123,12 +121,6 @@ function completed(entry: McpServerEntry, variable: string): McpServerEntry {
     copy.transport.value.headers["Authorization"] = `Bearer \${${variable}}`;
   }
   return copy;
-}
-
-/** `<SERVER>_ACCESS_TOKEN`, the server's name upper-cased with every non-alphanumeric run as one underscore. */
-export function accessTokenVariable(serverName: string): string {
-  const stem = serverName.toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-  return `${stem === "" ? "MCP" : stem}${ACCESS_TOKEN_VAR_SUFFIX}`;
 }
 
 async function probe(url: string, entry: McpServerEntry, deps: ProbeSignInDeps): Promise<"oauth" | "other"> {

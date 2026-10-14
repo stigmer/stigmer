@@ -150,7 +150,7 @@ async function runCursorHooksProbe(hooks: readonly ContractHook[], action: Propo
     const leasedCall = leased ? hooksCallOf(leased.action) : undefined;
     const evaluator = new HookEvaluator({
       set: HookSet.of(contractHookSources(hooks, files, pluginRoot, rewriteInputOf)),
-      views: new CursorEngineToolViews({ workspaceRoot: "/", pluginServers: new Map(), platformServerSlugs: new Set() }),
+      views: new CursorEngineToolViews({ workspaceRoot: "/", serverNames: new Map(), platformServerSlugs: new Set() }),
       sessionId: "contract-session",
       workspaceRoot: pluginRoot,
       permissionMode: options.autoApproveAll ? "bypassPermissions" : "default",

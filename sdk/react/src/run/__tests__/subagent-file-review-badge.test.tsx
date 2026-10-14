@@ -1,22 +1,22 @@
 /**
- * Sub-agent file-review badges.
+ * Subagent file-review badges.
  *
- * A sub-agent's file-edit row is a tool use of the PARENT turn (its run is
- * the turn's run; sub-agent writes fold into the turn's file review). These
- * tests lock the React side: an edit row rendered inside a `SubAgentSection`
+ * A subagent's file-edit row is a tool use of the PARENT turn (its run is
+ * the turn's run; subagent writes fold into the turn's file review). These
+ * tests lock the React side: an edit row rendered inside a `SubagentSection`
  * resolves its review-state badge against the `FileReviewContext` entry for
  * its turn, by path, and — end to end through `MessageThread` — that entry is
  * built from the turn's own `fileReview` and reaches the nested row.
  *
  * The per-row badge resolution itself (pending/kept/discarded/none) is
  * covered exhaustively in `ToolCallItem.test.tsx`; here the emphasis is the
- * SUB-AGENT wiring.
+ * SUBAGENT wiring.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import type { FileReviewFile, FileReviewSet, Thread, Turn } from "@stigmer/sdk";
-import { SubAgentSection } from "../SubAgentSection";
+import { SubagentSection } from "../SubagentSection";
 import { FileReviewContext } from "../FileReviewContext";
 import { MessageThread } from "../MessageThread";
 import { reviewFile, reviewSet, thread, toolUse } from "./__fixtures__/fold-values";
@@ -25,8 +25,8 @@ const ROW_PATH = "src/a.ts";
 
 afterEach(cleanup);
 
-/** A sub-agent whose thread carries one file-edit row of the parent turn. */
-function subAgentWithEdit(state: Thread["state"], rowPath = ROW_PATH): Thread {
+/** A subagent whose thread carries one file-edit row of the parent turn. */
+function subagentWithEdit(state: Thread["state"], rowPath = ROW_PATH): Thread {
   return thread({
     id: "sa-1",
     agentName: "code_editor",
@@ -48,13 +48,13 @@ function turnReview(state: FileReviewFile["state"]): FileReviewSet {
   return reviewSet({ files: [reviewFile({ path: ROW_PATH, state })] });
 }
 
-function renderSubAgentRow(sub: Thread, set: FileReviewSet | null) {
+function renderSubagentRow(sub: Thread, set: FileReviewSet | null) {
   const fileReviewByRunId = new Map(set ? [["run_1", [set]] as const] : []);
   return render(
     <FileReviewContext.Provider value={{ fileReviewByRunId, changeSetsById: new Map() }}>
       {/* collapsible=false renders the nested rows flat — deterministic, no
           dependence on the card's auto-disclosure state. */}
-      <SubAgentSection thread={sub} collapsible={false} />
+      <SubagentSection thread={sub} collapsible={false} />
     </FileReviewContext.Provider>,
   );
 }
@@ -63,27 +63,27 @@ function badge(container: HTMLElement): Element | null {
   return container.querySelector('[data-cursor-target="file-review-row-badge"]');
 }
 
-describe("sub-agent row badges (SubAgentSection)", () => {
-  it("badges a sub-agent edit row 'Pending review' while its file is undecided", () => {
-    const { container } = renderSubAgentRow(subAgentWithEdit("completed"), turnReview("undecided"));
+describe("subagent row badges (SubagentSection)", () => {
+  it("badges a subagent edit row 'Pending review' while its file is undecided", () => {
+    const { container } = renderSubagentRow(subagentWithEdit("completed"), turnReview("undecided"));
     expect(badge(container)?.textContent).toBe("Pending review");
   });
 
-  it("flips a sub-agent row to the file's verdict once it is decided", () => {
-    const kept = renderSubAgentRow(subAgentWithEdit("completed"), turnReview("kept"));
+  it("flips a subagent row to the file's verdict once it is decided", () => {
+    const kept = renderSubagentRow(subagentWithEdit("completed"), turnReview("kept"));
     expect(badge(kept.container)?.textContent).toBe("Kept");
     cleanup();
 
-    const discarded = renderSubAgentRow(subAgentWithEdit("completed"), turnReview("undone"));
+    const discarded = renderSubagentRow(subagentWithEdit("completed"), turnReview("undone"));
     expect(badge(discarded.container)?.textContent).toBe("Discarded");
   });
 
   it("shows no badge when the turn has no review, or the row's file is not in it", () => {
-    const noReview = renderSubAgentRow(subAgentWithEdit("completed"), null);
+    const noReview = renderSubagentRow(subagentWithEdit("completed"), null);
     expect(badge(noReview.container)).toBeNull();
     cleanup();
 
-    const pathMiss = renderSubAgentRow(subAgentWithEdit("completed", "src/other.ts"), turnReview("kept"));
+    const pathMiss = renderSubagentRow(subagentWithEdit("completed", "src/other.ts"), turnReview("kept"));
     expect(badge(pathMiss.container)).toBeNull();
   });
 });
@@ -91,10 +91,10 @@ describe("sub-agent row badges (SubAgentSection)", () => {
 // ---------------------------------------------------------------------------
 // End-to-end through MessageThread: proves the FileReviewContext entry is
 // built from the turn's own file review and reaches an edit row nested
-// inside a sub-agent (the map + provider + nested-render path).
+// inside a subagent (the map + provider + nested-render path).
 // ---------------------------------------------------------------------------
 
-describe("sub-agent row badges (MessageThread integration)", () => {
+describe("subagent row badges (MessageThread integration)", () => {
   beforeEach(() => {
     // useAutoScroll depends on browser APIs absent in happy-dom.
     vi.stubGlobal(
@@ -128,12 +128,12 @@ describe("sub-agent row badges (MessageThread integration)", () => {
   });
 
   /**
-   * A live turn that delegated to a sub-agent which edited a file: the
-   * turn's `task` call carries the sub-agent's thread (running, so its card
+   * A live turn that delegated to a subagent which edited a file: the
+   * turn's `task` call carries the subagent's thread (running, so its card
    * auto-opens), and the turn's review holds the file.
    */
-  function turnWithSubAgentEdit(): Turn {
-    const task = toolUse({ id: "sa-1", name: "task", state: "running", thread: subAgentWithEdit("running") });
+  function turnWithSubagentEdit(): Turn {
+    const task = toolUse({ id: "sa-1", name: "task", state: "running", thread: subagentWithEdit("running") });
     return {
       runId: "run_1",
       userMessage: { id: "run_1.user", text: "Delegate an edit", processedAt: "" },
@@ -150,8 +150,8 @@ describe("sub-agent row badges (MessageThread integration)", () => {
     };
   }
 
-  it("badges a sub-agent row from its turn's file review", () => {
-    render(<MessageThread turns={[turnWithSubAgentEdit()]} showFileReviewRecords />);
+  it("badges a subagent row from its turn's file review", () => {
+    render(<MessageThread turns={[turnWithSubagentEdit()]} showFileReviewRecords />);
     const el = document.querySelector('[data-cursor-target="file-review-row-badge"]');
     expect(el?.textContent).toBe("Pending review");
   });

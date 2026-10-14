@@ -10,6 +10,7 @@
  * final SDK serialization differs.
  */
 
+import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
 import { toolServerSegment } from "../../shared/plugin-servers.js";
@@ -72,18 +73,32 @@ export function toCursorMcpConfig(
 }
 
 /**
+ * The names of every server the turn declared: the ones its agent writes
+ * itself, then its plugins'. The platform's own servers are not declared.
+ */
+export function declaredServerSlugs(blueprint: {
+  readonly agent: { readonly spec: Pick<AgentSpec, "mcpServers"> } | undefined;
+  readonly plugins: readonly Plugin[];
+}): string[] {
+  return [
+    ...(blueprint.agent?.spec.mcpServers ?? []).map((server) => server.name),
+    ...blueprint.plugins.flatMap((plugin) =>
+      (plugin.status?.mcpServers ?? []).map((entry) => toolServerSegment(plugin.metadata?.name ?? "", entry.name)),
+    ),
+  ];
+}
+
+/**
  * Validate that resolved MCP servers have their required env vars populated.
- * Returns a list of warnings for servers with empty/missing env.
+ * Returns a list of warnings for servers with empty/missing env, and for
+ * each declared server (`declaredServerSlugs`) that did not resolve.
  * Used as a pre-flight check before agent.send() to surface config issues early.
  */
 export function validateMcpServerEnv(
   servers: readonly ResolvedMcpServer[],
-  plugins: readonly Plugin[],
+  slugs: readonly string[],
 ): string[] {
   const warnings: string[] = [];
-  const slugs = plugins.flatMap((plugin) =>
-    (plugin.status?.mcpServers ?? []).map((entry) => toolServerSegment(plugin.metadata?.name ?? "", entry.name)),
-  );
 
   for (const slug of slugs) {
     const resolved = servers.find((s) => s.slug === slug);

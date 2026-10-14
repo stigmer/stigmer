@@ -197,7 +197,7 @@ export interface RunOverrides {
 export interface SessionEventOverrides {
   /** The run (turn) the event belongs to. Defaults to the demo run. */
   readonly runId?: string;
-  /** The sub-agent thread that produced it; "" (the default) is the primary thread. */
+  /** The subagent thread that produced it; "" (the default) is the primary thread. */
   readonly threadId?: string;
   /**
    * The event's id, unique in its session. Each builder derives a stable

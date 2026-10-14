@@ -7,8 +7,10 @@
  * entry naming a server segment the plugin does not have (another
  * plugin's, or a server it lacks) is refused with the entry and the
  * segment; Claude tools, specifiers and non-plugin MCP names are never
- * read. An agent eval passes every plugin its agent attaches, and an entry
- * naming a server of any of them passes.
+ * read in a plugin eval. An agent eval passes every plugin its agent
+ * attaches, and an entry naming a server of any of them passes; it also
+ * passes the servers the agent writes itself, and then an entry naming any
+ * other MCP server must name one of those (`mcp__*` names them all).
  */
 import { describe, expect, it } from "vitest";
 
@@ -38,6 +40,7 @@ describe("checkAllowTools", () => {
       ok: false,
       entry: "mcp__plugin_other_github__*",
       server: "plugin_other_github",
+      names: "plugin",
     });
   });
 
@@ -48,11 +51,13 @@ describe("checkAllowTools", () => {
       ok: false,
       entry: "mcp__plugin_thermos_github",
       server: "plugin_thermos_github",
+      names: "plugin",
     });
     expect(checkAllowTools(["mcp__plugin_Thermos_jira__search"], [plugin])).toEqual({
       ok: false,
       entry: "mcp__plugin_Thermos_jira__search",
       server: "plugin_Thermos_jira",
+      names: "plugin",
     });
   });
 
@@ -72,6 +77,24 @@ describe("checkAllowTools", () => {
       ok: false,
       entry: "mcp__plugin_other_ledger__post",
       server: "plugin_other_ledger",
+      names: "plugin",
+    });
+  });
+
+  it("in an agent eval, keeps entries naming the agent's own servers and refuses any other non-plugin server", () => {
+    const tools = ["mcp__zendesk__*", "mcp__zendesk__search", "mcp__crm", "mcp__*", "Read"];
+    expect(checkAllowTools(tools, [plugin], ["zendesk", "crm"])).toEqual({ ok: true, tools });
+    expect(checkAllowTools(["mcp__github__*"], [plugin], ["zendesk"])).toEqual({
+      ok: false,
+      entry: "mcp__github__*",
+      server: "github",
+      names: "agent",
+    });
+    expect(checkAllowTools(["mcp__github__*"], [plugin], [])).toEqual({
+      ok: false,
+      entry: "mcp__github__*",
+      server: "github",
+      names: "agent",
     });
   });
 });

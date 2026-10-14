@@ -62,12 +62,16 @@ import type { SandboxLane } from "../../sandbox/lane.js";
 import type { Store } from "../../store/interface.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import { runPersonOfCaller, toolNameOf, toolRequirements } from "../vault/resolve.js";
-import type { PluginServer, VaultResolver } from "../vault/resolve.js";
+import type { VaultResolver } from "../vault/resolve.js";
+import type { RunServer, ServerHome } from "../run/run-servers.js";
 import { endConnectAttempt, recordConnectAttempt } from "./tools/attempt.js";
 import type { PluginToolsEngineStateProvider, ToolsRunFailure, ToolsWorkflowInput } from "./tools/engine.js";
 import { newConnectExecutionId } from "./tools/execution-id.js";
 import { acquireConnectRoute } from "./tools/sandbox.js";
 import type { ConnectRoute } from "./tools/sandbox.js";
+
+/** A plugin's MCP server, the only kind a listing lists. */
+type PluginRunServer = RunServer & { readonly home: Extract<ServerHome, { kind: "plugin" }> };
 
 /**
  * The listing workflow's WorkflowRunTimeout: the runner's 270 s allowance
@@ -140,10 +144,9 @@ export async function listTools(
   if (entry === undefined) {
     throw notFoundError(`MCP server of plugin '${plugin.metadata?.slug ?? ""}'`, input.server);
   }
-  const server: PluginServer = {
-    pluginId: input.pluginId,
-    pluginName: plugin.metadata?.name ?? "",
-    pluginDigest: plugin.status?.digest ?? "",
+  const pluginName = plugin.metadata?.name ?? "";
+  const server: PluginRunServer = {
+    home: { kind: "plugin", pluginId: input.pluginId, pluginName, pluginDigest: plugin.status?.digest ?? "" },
     entry,
     env: plugin.status?.env ?? {},
   };
@@ -259,14 +262,14 @@ function withCredential(
  */
 export function mapListingFailure(
   logger: Logger,
-  server: PluginServer,
+  server: PluginRunServer,
   workflowId: string,
   failure: ToolsRunFailure,
 ): ConnectError {
-  const name = toolNameOf(server.pluginName, server.entry.name);
+  const name = toolNameOf(server.home.pluginName, server.entry.name);
   logger.error("Plugin tools listing failed", {
     workflow_id: workflowId,
-    plugin_id: server.pluginId,
+    plugin_id: server.home.pluginId,
     server: server.entry.name,
     failure_kind: failure.kind,
   });

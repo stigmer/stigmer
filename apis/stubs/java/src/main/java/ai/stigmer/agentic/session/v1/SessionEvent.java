@@ -748,7 +748,7 @@ private static final long serialVersionUID = 0L;
   public static final int SESSION_THREAD_CREATED_FIELD_NUMBER = 20;
   /**
    * <pre>
-   * A thread (a sub-agent) was created.
+   * A thread (a subagent) was created.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.SessionThreadCreatedEvent session_thread_created = 20 [json_name = "sessionThreadCreated", (.ai.stigmer.commons.apiresource.event_type) = "session.thread_created"];</code>
@@ -760,7 +760,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * A thread (a sub-agent) was created.
+   * A thread (a subagent) was created.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.SessionThreadCreatedEvent session_thread_created = 20 [json_name = "sessionThreadCreated", (.ai.stigmer.commons.apiresource.event_type) = "session.thread_created"];</code>
@@ -775,7 +775,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * A thread (a sub-agent) was created.
+   * A thread (a subagent) was created.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.SessionThreadCreatedEvent session_thread_created = 20 [json_name = "sessionThreadCreated", (.ai.stigmer.commons.apiresource.event_type) = "session.thread_created"];</code>
@@ -5059,7 +5059,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.session.v1.SessionThreadCreatedEvent, ai.stigmer.agentic.session.v1.SessionThreadCreatedEvent.Builder, ai.stigmer.agentic.session.v1.SessionThreadCreatedEventOrBuilder> sessionThreadCreatedBuilder_;
     /**
      * <pre>
-     * A thread (a sub-agent) was created.
+     * A thread (a subagent) was created.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionThreadCreatedEvent session_thread_created = 20 [json_name = "sessionThreadCreated", (.ai.stigmer.commons.apiresource.event_type) = "session.thread_created"];</code>
@@ -5071,7 +5071,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * A thread (a sub-agent) was created.
+     * A thread (a subagent) was created.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionThreadCreatedEvent session_thread_created = 20 [json_name = "sessionThreadCreated", (.ai.stigmer.commons.apiresource.event_type) = "session.thread_created"];</code>
@@ -5093,7 +5093,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * A thread (a sub-agent) was created.
+     * A thread (a subagent) was created.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionThreadCreatedEvent session_thread_created = 20 [json_name = "sessionThreadCreated", (.ai.stigmer.commons.apiresource.event_type) = "session.thread_created"];</code>
@@ -5113,7 +5113,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * A thread (a sub-agent) was created.
+     * A thread (a subagent) was created.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionThreadCreatedEvent session_thread_created = 20 [json_name = "sessionThreadCreated", (.ai.stigmer.commons.apiresource.event_type) = "session.thread_created"];</code>
@@ -5131,7 +5131,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * A thread (a sub-agent) was created.
+     * A thread (a subagent) was created.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionThreadCreatedEvent session_thread_created = 20 [json_name = "sessionThreadCreated", (.ai.stigmer.commons.apiresource.event_type) = "session.thread_created"];</code>
@@ -5158,7 +5158,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * A thread (a sub-agent) was created.
+     * A thread (a subagent) was created.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionThreadCreatedEvent session_thread_created = 20 [json_name = "sessionThreadCreated", (.ai.stigmer.commons.apiresource.event_type) = "session.thread_created"];</code>
@@ -5181,7 +5181,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * A thread (a sub-agent) was created.
+     * A thread (a subagent) was created.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionThreadCreatedEvent session_thread_created = 20 [json_name = "sessionThreadCreated", (.ai.stigmer.commons.apiresource.event_type) = "session.thread_created"];</code>
@@ -5191,7 +5191,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * A thread (a sub-agent) was created.
+     * A thread (a subagent) was created.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionThreadCreatedEvent session_thread_created = 20 [json_name = "sessionThreadCreated", (.ai.stigmer.commons.apiresource.event_type) = "session.thread_created"];</code>
@@ -5209,7 +5209,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * A thread (a sub-agent) was created.
+     * A thread (a subagent) was created.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionThreadCreatedEvent session_thread_created = 20 [json_name = "sessionThreadCreated", (.ai.stigmer.commons.apiresource.event_type) = "session.thread_created"];</code>

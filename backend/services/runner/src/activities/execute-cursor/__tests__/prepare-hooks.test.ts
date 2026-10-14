@@ -30,7 +30,7 @@ function workspace(): string {
 }
 
 function inputWith(groups: HookGroup[], dir = workspace()) {
-  return turnInputFixture({ workspaceDir: dir, hooks: { sources: [{ plugin: null, format: "claude-code", groups }], pluginServers: new Map() } });
+  return turnInputFixture({ workspaceDir: dir, hooks: { sources: [{ plugin: null, format: "claude-code", groups }], serverNames: new Map() } });
 }
 
 const preToolUse = (matcher: string, command: string) =>

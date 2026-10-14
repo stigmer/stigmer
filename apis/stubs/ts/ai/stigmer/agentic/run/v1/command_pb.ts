@@ -125,9 +125,8 @@ export const RunCommandController: GenService<{
   /**
    * Resume a paused run.
    *
-   * Continues the run from the checkpoint where it was paused. The agent
-   * re-invokes with the same thread_id, loading from LangGraph checkpoint
-   * and continuing from where it left off.
+   * Continues the run from where it was paused. How a turn's state is saved
+   * is the harness's ([Harnesses](/docs/concepts/harnesses)).
    *
    * @generated from rpc ai.stigmer.agentic.run.v1.RunCommandController.resume
    */

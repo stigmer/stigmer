@@ -180,7 +180,7 @@ describe("synthesizeChannelAttachment", () => {
     // Forced, not convenient: both calling surfaces run
     // UNATTENDED mode, where a gated tool resolves as skip-and-adapt —
     // a gated send tool means reminders never send.
-    expect(attachment.pluginOrigin, "the platform's own server, no plugin's").toBeNull();
+    expect(attachment.home, "the platform's own server, no plugin's").toEqual({ kind: "platform" });
     const listing = await listTurnTools([attachment], () => Promise.reject(new Error("a platform server is never listed")));
     expect(listing).toEqual({ listed: [], destructive: [], unlisted: [] });
     const mcpDefault = buildMcpApprovalDefault(listing, noLeases);

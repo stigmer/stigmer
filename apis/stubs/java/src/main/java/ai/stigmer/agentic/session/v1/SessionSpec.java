@@ -491,10 +491,9 @@ java.lang.String defaultValue) {
    * <pre>
    * Execution harness for this session.
    *
-   * Determines which Temporal activity type is dispatched when an
-   * Run is created in this session:
-   * - NATIVE (default): ExecuteDeepAgent activity -&gt; Stigmer unified runner
-   * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
+   * Determines which harness runs every turn in this session:
+   * - NATIVE (default): Stigmer's own runner
+   * - CURSOR: the Cursor SDK
    *
    * The harness affects which tools the agent has, how conversation state
    * is managed, available models, and billing tier. Once set and a run
@@ -514,10 +513,9 @@ java.lang.String defaultValue) {
    * <pre>
    * Execution harness for this session.
    *
-   * Determines which Temporal activity type is dispatched when an
-   * Run is created in this session:
-   * - NATIVE (default): ExecuteDeepAgent activity -&gt; Stigmer unified runner
-   * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
+   * Determines which harness runs every turn in this session:
+   * - NATIVE (default): Stigmer's own runner
+   * - CURSOR: the Cursor SDK
    *
    * The harness affects which tools the agent has, how conversation state
    * is managed, available models, and billing tier. Once set and a run
@@ -3075,10 +3073,9 @@ java.lang.String defaultValue) {
      * <pre>
      * Execution harness for this session.
      *
-     * Determines which Temporal activity type is dispatched when an
-     * Run is created in this session:
-     * - NATIVE (default): ExecuteDeepAgent activity -&gt; Stigmer unified runner
-     * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
+     * Determines which harness runs every turn in this session:
+     * - NATIVE (default): Stigmer's own runner
+     * - CURSOR: the Cursor SDK
      *
      * The harness affects which tools the agent has, how conversation state
      * is managed, available models, and billing tier. Once set and a run
@@ -3098,10 +3095,9 @@ java.lang.String defaultValue) {
      * <pre>
      * Execution harness for this session.
      *
-     * Determines which Temporal activity type is dispatched when an
-     * Run is created in this session:
-     * - NATIVE (default): ExecuteDeepAgent activity -&gt; Stigmer unified runner
-     * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
+     * Determines which harness runs every turn in this session:
+     * - NATIVE (default): Stigmer's own runner
+     * - CURSOR: the Cursor SDK
      *
      * The harness affects which tools the agent has, how conversation state
      * is managed, available models, and billing tier. Once set and a run
@@ -3126,10 +3122,9 @@ java.lang.String defaultValue) {
      * <pre>
      * Execution harness for this session.
      *
-     * Determines which Temporal activity type is dispatched when an
-     * Run is created in this session:
-     * - NATIVE (default): ExecuteDeepAgent activity -&gt; Stigmer unified runner
-     * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
+     * Determines which harness runs every turn in this session:
+     * - NATIVE (default): Stigmer's own runner
+     * - CURSOR: the Cursor SDK
      *
      * The harness affects which tools the agent has, how conversation state
      * is managed, available models, and billing tier. Once set and a run
@@ -3151,10 +3146,9 @@ java.lang.String defaultValue) {
      * <pre>
      * Execution harness for this session.
      *
-     * Determines which Temporal activity type is dispatched when an
-     * Run is created in this session:
-     * - NATIVE (default): ExecuteDeepAgent activity -&gt; Stigmer unified runner
-     * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
+     * Determines which harness runs every turn in this session:
+     * - NATIVE (default): Stigmer's own runner
+     * - CURSOR: the Cursor SDK
      *
      * The harness affects which tools the agent has, how conversation state
      * is managed, available models, and billing tier. Once set and a run
@@ -3179,10 +3173,9 @@ java.lang.String defaultValue) {
      * <pre>
      * Execution harness for this session.
      *
-     * Determines which Temporal activity type is dispatched when an
-     * Run is created in this session:
-     * - NATIVE (default): ExecuteDeepAgent activity -&gt; Stigmer unified runner
-     * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
+     * Determines which harness runs every turn in this session:
+     * - NATIVE (default): Stigmer's own runner
+     * - CURSOR: the Cursor SDK
      *
      * The harness affects which tools the agent has, how conversation state
      * is managed, available models, and billing tier. Once set and a run

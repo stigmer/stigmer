@@ -102,7 +102,7 @@ stigmer runs approve run_01xyz789
 stigmer runs approve run_01xyz789 --tool-call run_01xyz789.toolu_abc --action deny --comment "not on prod"
 
 # Allow it and every waiting call of its kind for the rest of the turn
-stigmer runs approve run_01xyz789 --tool-call run_01xyz789.toolu_abc --action approve-all
+stigmer runs approve run_01xyz789 --tool-call run_01xyz789.toolu_abc --action allow-all
 ```
 
 ## Subcommands
@@ -115,11 +115,11 @@ answer a tool call a run waits on
 stigmer runs approve <run-id> [flags]
 ```
 
-| Flag          | Type     | Default   | Description                                                                                          |
-| ------------- | -------- | --------- | ---------------------------------------------------------------------------------------------------- |
-| `--action`    | `string` | `approve` | approve, deny, or approve-all (allow it and every waiting call of its kind for the rest of the turn) |
-| `--comment`   | `string` |           | the reason the agent reads with a deny                                                               |
-| `--tool-call` | `string` |           | the tool use to answer, as runs logs shows it; optional when the run waits on one                    |
+| Flag          | Type     | Default | Description                                                                                      |
+| ------------- | -------- | ------- | ------------------------------------------------------------------------------------------------ |
+| `--action`    | `string` | `allow` | allow, deny, or allow-all (allow it and every waiting call of its kind for the rest of the turn) |
+| `--comment`   | `string` |         | the reason the agent reads with a deny                                                           |
+| `--tool-call` | `string` |         | the tool use to answer, as runs logs shows it; optional when the run waits on one                |
 
 ### stigmer runs cancel
 

@@ -1,6 +1,6 @@
 // Pins the terminal conversation components on folded session events: a
 // message's speaker and text, the phase badge, a tool row's glyph per state
-// and its label or intent, a sub-agent block and a to-do list, the approval
+// and its label or intent, a subagent block and a to-do list, the approval
 // prompt's three answers (approve, approve all of the class, deny with an
 // optional reason) and why-gated line, and the thread's keyboard arbitration
 // between waiting tool uses, its ordering of a turn's items, and how a turn
@@ -17,7 +17,7 @@ import { ToolCallItem } from "../components/ToolCallItem.js";
 import { ToolCallGroup } from "../components/ToolCallGroup.js";
 import { ApprovalPrompt } from "../components/ApprovalPrompt.js";
 import { MessageThread } from "../components/MessageThread.js";
-import { SubAgentBlock } from "../components/SubAgentBlock.js";
+import { SubagentBlock } from "../components/SubagentBlock.js";
 import { TodoList } from "../components/TodoList.js";
 import { RUN_ID, askEvents, event, threadEvents, toolUseOf, turnOf, waitingToolUse } from "./session-events.js";
 
@@ -146,8 +146,8 @@ describe("ToolCallItem", () => {
     const tool = samples.toolUse("task", "done", {
       input: { description: "general-purpose research", prompt: "Find the docs" },
     });
-    // A task tool's description is the sub-agent subject, never a row title.
-    expect(render(<ToolCallItem toolUse={tool} />).lastFrame()).toContain("Sub-agent");
+    // A task tool's description is the subagent subject, never a row title.
+    expect(render(<ToolCallItem toolUse={tool} />).lastFrame()).toContain("Subagent");
   });
 
   it("shows MCP server prefix", () => {
@@ -188,7 +188,7 @@ describe("ToolCallGroup", () => {
   });
 });
 
-describe("SubAgentBlock", () => {
+describe("SubagentBlock", () => {
   const taskId = `${RUN_ID}.tc-task`;
   function threadOf(state: "running" | "completed" | "failed", reply = "") {
     const turn = turnOf([
@@ -213,7 +213,7 @@ describe("SubAgentBlock", () => {
   it("shows the subject, and expanded its task, items and result", () => {
     const thread = threadOf("completed", "Found three pages.")!;
     const output = render(
-      <SubAgentBlock
+      <SubagentBlock
         thread={thread}
         subject="find docs"
         startedAt={samples.toolUse("x").processedAt}
@@ -232,8 +232,8 @@ describe("SubAgentBlock", () => {
     expect(output).toContain("Found three pages.");
   });
 
-  it("shows a failed sub-agent's reply as its error, and the agent's name without a subject", () => {
-    const output = render(<SubAgentBlock thread={threadOf("failed", "out of retries")!} defaultExpanded />).lastFrame() ?? "";
+  it("shows a failed subagent's reply as its error, and the agent's name without a subject", () => {
+    const output = render(<SubagentBlock thread={threadOf("failed", "out of retries")!} defaultExpanded />).lastFrame() ?? "";
     expect(output).toContain("researcher");
     expect(output).toContain("Error: out of retries");
   });
@@ -241,17 +241,17 @@ describe("SubAgentBlock", () => {
   it("toggles with Enter while focused and times a short or running run", async () => {
     const thread = threadOf("running")!;
     const { stdin, lastFrame } = render(
-      <SubAgentBlock thread={thread} startedAt="2026-07-20T11:00:00.000Z" completedAt="2026-07-20T11:00:00.500Z" isFocused />,
+      <SubagentBlock thread={thread} startedAt="2026-07-20T11:00:00.000Z" completedAt="2026-07-20T11:00:00.500Z" isFocused />,
     );
     expect(lastFrame()).toContain("⟳");
     expect(lastFrame()).toContain("(500ms)");
     stdin.write(" ");
     await tick();
     expect(lastFrame()).toContain("Looking now.");
-    const live = render(<SubAgentBlock thread={thread} startedAt="2026-07-20T11:00:00.000Z" />).lastFrame() ?? "";
+    const live = render(<SubagentBlock thread={thread} startedAt="2026-07-20T11:00:00.000Z" />).lastFrame() ?? "";
     expect(live).toMatch(/\(\d+m \d+s\)/);
     const brief = render(
-      <SubAgentBlock thread={thread} startedAt="2026-07-20T11:00:00.000Z" completedAt="2026-07-20T11:00:12.000Z" />,
+      <SubagentBlock thread={thread} startedAt="2026-07-20T11:00:00.000Z" completedAt="2026-07-20T11:00:12.000Z" />,
     ).lastFrame() ?? "";
     expect(brief).toContain("(12s)");
   });
@@ -454,7 +454,7 @@ describe("MessageThread — multi-approval keyboard arbitration", () => {
 });
 
 describe("MessageThread — a turn's items", () => {
-  it("renders the message, tools and reply in order, leaving to-dos and sub-agents to their surfaces", () => {
+  it("renders the message, tools and reply in order, leaving to-dos and subagents to their surfaces", () => {
     const taskId = `${RUN_ID}.tc-task`;
     const turn = turnOf([
       ...samples.turnEvents({

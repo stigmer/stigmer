@@ -206,7 +206,7 @@ function resolvedServerOf(
     connectionType: "http",
     url: `http://127.0.0.1:${port}/mcp/${encodeURIComponent(server.segment)}`,
     headers: { Authorization: `Bearer ${token}` },
-    pluginOrigin: { pluginId: context.pluginId, plugin: context.pluginName, server: server.server },
+    home: { kind: "plugin", pluginId: context.pluginId, plugin: context.pluginName, server: server.server },
   };
 }
 

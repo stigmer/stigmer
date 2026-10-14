@@ -72,7 +72,7 @@ import { CursorEngineToolViews } from "./hook-views.js";
 import { refuseLinkedGateFile, refuseOwnFolderHooks, workspaceFolders } from "./workspace-hook-files.js";
 import { readSidecarSnapshot } from "./cas-observations.js";
 import { CURSOR_CAPABILITIES } from "./cursor-capabilities.js";
-import { toCursorMcpConfig, validateMcpServerEnv } from "./cursor-mcp-config.js";
+import { declaredServerSlugs, toCursorMcpConfig, validateMcpServerEnv } from "./cursor-mcp-config.js";
 import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
 import { closeProxySessions } from "./http2-interceptor.js";
 import { ensureLoaded as ensurePricingLoaded, resolveModelId } from "./model-pricing.js";
@@ -210,7 +210,7 @@ export class CursorToolListRefusal extends Error {
 /** The refusal for a saved subagent that brings what this engine cannot keep to it. */
 export function subagentBringsOwnMessage(name: string): string {
   return (
-    `Subagent '${name}' brings its own plugins, hooks or tool lists, which the Cursor engine cannot keep to it: ` +
+    `Subagent '${name}' brings its own plugins, hooks, MCP servers or tool lists, which the Cursor engine cannot keep to it: ` +
     "it cannot tell a subagent's tool call from the main agent's. " +
     `Run this agent on the native engine, or remove them from '${name}'.`
   );
@@ -221,8 +221,8 @@ export function subagentBringsOwnMessage(name: string): string {
  * anything is installed. Refuses the turn (throws {@link CursorToolListRefusal}
  * or `ToolListResolutionError`, each settling it `failed` with its own
  * sentence) when:
- *  - a saved subagent the main agent may start brings its own plugins, hooks
- *    or tool lists ({@link subagentBringsOwnMessage}): its definition reaches
+ *  - a saved subagent the main agent may start brings its own plugins, hooks,
+ *    MCP servers or tool lists ({@link subagentBringsOwnMessage}): its definition reaches
  *    the SDK as instructions, model and skills, and the hook cannot tell its
  *    calls from the main agent's, so they would run unscoped or unhooked;
  *  - a plugin subagent the main agent may start carries lists of its own: the hook
@@ -252,7 +252,7 @@ export function checkToolScope(input: TurnInput, mode: { agentMode: CursorAgentM
   const inScope = new Set(subagentNamesInScope(input));
   for (const subagent of input.subagents) {
     const own = subagent.bringsOwn;
-    if (inScope.has(subagent.name) && (own.plugins || own.hooks || own.lists)) {
+    if (inScope.has(subagent.name) && (own.plugins || own.hooks || own.mcpServers || own.lists)) {
       throw new CursorToolListRefusal(subagentBringsOwnMessage(subagent.name));
     }
   }
@@ -362,7 +362,7 @@ export async function prepareHooks(
     mcpServers: input.mcp.servers,
     views: new CursorEngineToolViews({
       workspaceRoot: primaryDir,
-      pluginServers: input.hooks.pluginServers,
+      serverNames: input.hooks.serverNames,
       platformServerSlugs: input.mcp.platformServerSlugs,
     }),
     sessionId: input.sessionId,
@@ -474,7 +474,7 @@ export function readAdjudicatedRows(input: TurnInput, rows: Pick<TurnRows, "mess
  * exactly once, plus the MCP env pre-flight (diagnostic, non-blocking).
  */
 export function projectMcpConfig(input: TurnInput): ReturnType<typeof toCursorMcpConfig> {
-  const mcpWarnings = validateMcpServerEnv(input.mcp.servers, input.blueprint.plugins);
+  const mcpWarnings = validateMcpServerEnv(input.mcp.servers, declaredServerSlugs(input.blueprint));
   if (mcpWarnings.length > 0) {
     console.warn(
       `ExecuteCursor MCP pre-flight warnings: execution=${input.executionId}\n` +

@@ -83,7 +83,7 @@ function savedContext(overrides: Partial<TurnSubagent> = {}): TurnSubagent {
     skills: [],
     hooks: [],
     values: {},
-    bringsOwn: { plugins: false, hooks: false, lists: false },
+    bringsOwn: { plugins: false, hooks: false, lists: false, mcpServers: false },
     ...overrides,
   };
 }

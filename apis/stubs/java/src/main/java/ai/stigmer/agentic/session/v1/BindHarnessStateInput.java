@@ -107,7 +107,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object harnessStateId_ = "";
   /**
    * <pre>
-   * The harness's conversation id (a LangGraph thread id, a Cursor agent id).
+   * The harness's own conversation id.
    * </pre>
    *
    * <code>string harness_state_id = 2 [json_name = "harnessStateId", (.buf.validate.field) = { ... }</code>
@@ -128,7 +128,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The harness's conversation id (a LangGraph thread id, a Cursor agent id).
+   * The harness's own conversation id.
    * </pre>
    *
    * <code>string harness_state_id = 2 [json_name = "harnessStateId", (.buf.validate.field) = { ... }</code>
@@ -567,7 +567,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object harnessStateId_ = "";
     /**
      * <pre>
-     * The harness's conversation id (a LangGraph thread id, a Cursor agent id).
+     * The harness's own conversation id.
      * </pre>
      *
      * <code>string harness_state_id = 2 [json_name = "harnessStateId", (.buf.validate.field) = { ... }</code>
@@ -587,7 +587,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The harness's conversation id (a LangGraph thread id, a Cursor agent id).
+     * The harness's own conversation id.
      * </pre>
      *
      * <code>string harness_state_id = 2 [json_name = "harnessStateId", (.buf.validate.field) = { ... }</code>
@@ -608,7 +608,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The harness's conversation id (a LangGraph thread id, a Cursor agent id).
+     * The harness's own conversation id.
      * </pre>
      *
      * <code>string harness_state_id = 2 [json_name = "harnessStateId", (.buf.validate.field) = { ... }</code>
@@ -625,7 +625,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The harness's conversation id (a LangGraph thread id, a Cursor agent id).
+     * The harness's own conversation id.
      * </pre>
      *
      * <code>string harness_state_id = 2 [json_name = "harnessStateId", (.buf.validate.field) = { ... }</code>
@@ -639,7 +639,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The harness's conversation id (a LangGraph thread id, a Cursor agent id).
+     * The harness's own conversation id.
      * </pre>
      *
      * <code>string harness_state_id = 2 [json_name = "harnessStateId", (.buf.validate.field) = { ... }</code>

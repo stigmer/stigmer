@@ -41,7 +41,7 @@ function hooksAnswering(pre: Partial<HookRunResult>, post: Partial<HookRunResult
       workspaceRoot: "/ws",
       toVirtualPath: (path) => (path.startsWith("/ws/") ? path.slice(3) : undefined),
       toolServerMap: new Map(),
-      pluginServers: new Map(),
+      serverNames: new Map(),
       platformServerSlugs: new Set(),
     }),
     sessionId: "ses",

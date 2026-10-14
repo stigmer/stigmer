@@ -3,7 +3,7 @@
 // The run's events (the session's log filtered to the run, every page) are
 // folded into its turn. The table names the run and its lifecycle (phase and
 // duration, from the run), then one row per tool use in the order the agent
-// made them, each with its state and the head of its output; a sub-agent's
+// made them, each with its state and the head of its output; a subagent's
 // tool uses are indented beneath the call that started it. yaml and json list
 // the run's events as Claude Managed Agents JSON, the lines `run --json`
 // writes for the same turn.
@@ -64,7 +64,7 @@ function renderAgentTrace(run: Run, turn: Turn | undefined, streams: TraceStream
   streams.write("\n");
 }
 
-// One row per tool use, a sub-agent's beneath its call, indented.
+// One row per tool use, a subagent's beneath its call, indented.
 function toolRows(items: readonly TurnItem[], indent: string, style: ReturnType<typeof styler>): string[] {
   const rows: string[] = [];
   for (const item of items) {

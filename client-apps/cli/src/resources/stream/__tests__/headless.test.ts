@@ -14,7 +14,7 @@ import type { StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/age
 import { eventTypeOf, type SessionFold, type ToolUse } from "@stigmer/sdk";
 import { describe, expect, it } from "vitest";
 import { asked, frameOf, idle, phase, said, use, user } from "../../__test-utils__/session-events.js";
-import type { ApproveDefault, AskAnswer } from "../answer.js";
+import { type ApproveDefault, type AskAnswer, DENY_REASON } from "../answer.js";
 import { type HeadlessRenderer, type HeadlessStreamDeps, renderReplay, runHeadlessStream } from "../headless.js";
 
 const R = "run_a";
@@ -120,7 +120,7 @@ describe("runHeadlessStream", () => {
       deps({
         follow: source([...waitingTurn(), user("run_x", "unrelated"), phase(R, "completed")]),
         answer: async (id, answer) => void answers.push([id, answer]),
-        approveDefault: "approve",
+        approveDefault: "allow",
         renderer,
       }),
     );
@@ -129,8 +129,8 @@ describe("runHeadlessStream", () => {
       [`${R}.c2`, { kind: "allow" }],
     ]);
     expect(renderer.answered.map((a) => [a.id, a.choice])).toEqual([
-      [`${R}.c1`, "approve"],
-      [`${R}.c2`, "approve"],
+      [`${R}.c1`, "allow"],
+      [`${R}.c2`, "allow"],
     ]);
     expect(result.phase).toBe("completed");
   });
@@ -162,12 +162,12 @@ describe("runHeadlessStream", () => {
     expect(answers).toEqual([]);
   });
 
-  it("skips with a deny when --approve-default is unset", async () => {
+  it("denies with the neutral reason when --approve-default is unset", async () => {
     const answers: AskAnswer[] = [];
     await runHeadlessStream(
       deps({ follow: source([...waitingTurn().slice(0, 4), idle("requires_action", [`${R}.c1`]), phase(R, "completed")]), answer: async (_id, answer) => void answers.push(answer) }),
     );
-    expect(answers).toEqual([{ kind: "deny", reason: expect.stringContaining("Skipped") }]);
+    expect(answers).toEqual([{ kind: "deny", reason: DENY_REASON }]);
   });
 
   it("settles a refusal whose call no longer waits and answers the rest", async () => {
@@ -175,7 +175,7 @@ describe("runHeadlessStream", () => {
     const result = await runHeadlessStream(
       deps({
         follow: source([...waitingTurn(), phase(R, "completed")]),
-        approveDefault: "approve-all",
+        approveDefault: "allow-all",
         answer: async (id) => {
           answers.push(id);
           if (id === `${R}.c2`) throw new ConnectError(`tool use ${id} was already answered otherwise`, Code.FailedPrecondition);

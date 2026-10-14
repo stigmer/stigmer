@@ -116,7 +116,7 @@ func (x *Run) GetStatus() *RunStatus {
 // RunStatus contains all run results and state.
 // Everything populated during or after the run goes here, not in spec.
 // The conversation itself (messages, tool calls, approvals, todos,
-// sub-agents, structured output and file-review decisions) is the session's
+// subagents, structured output and file-review decisions) is the session's
 // event log (SessionEvent), not a field here.
 type RunStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -642,21 +642,30 @@ type RunValueDeclarer struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Agent, tool, plugin or repository.
 	Kind RunValueDeclarerKind `protobuf:"varint,1,opt,name=kind,proto3,enum=ai.stigmer.agentic.run.v1.RunValueDeclarerKind" json:"kind,omitempty"`
-	// The agent's name; a tool's name as plugin:<plugin>:<server>; the
-	// plugin's name; or the repository entry's name.
+	// The agent's name; a tool's name, as plugin:<plugin>:<server> for a
+	// plugin's server or the server's own name for one written in an agent;
+	// the plugin's name; or the repository entry's name.
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	// The repository's URL; empty for an agent, a tool or a plugin.
 	RepositoryUrl string `protobuf:"bytes,4,opt,name=repository_url,json=repositoryUrl,proto3" json:"repository_url,omitempty"`
-	// The plugin that declared it: a tool's plugin, or the plugin whose hooks
-	// read it; empty for an agent or a repository.
+	// The plugin that declared it: a plugin's tool's plugin, or the plugin
+	// whose hooks read it; empty for everything else.
 	PluginId string `protobuf:"bytes,5,opt,name=plugin_id,json=pluginId,proto3" json:"plugin_id,omitempty"`
-	// The tool's server name in its plugin; empty for everything else.
+	// The tool's server name in its plugin or its agent; empty for everything
+	// else.
 	Server string `protobuf:"bytes,6,opt,name=server,proto3" json:"server,omitempty"`
 	// The archive of the tool's plugin this run planned (the plugin's
 	// digest); empty for everything else. The values fetch reads the server
 	// at that version, so a run of a pinned version keeps its tools when the
 	// plugin is pushed again.
-	PluginDigest  string `protobuf:"bytes,7,opt,name=plugin_digest,json=pluginDigest,proto3" json:"plugin_digest,omitempty"`
+	PluginDigest string `protobuf:"bytes,7,opt,name=plugin_digest,json=pluginDigest,proto3" json:"plugin_digest,omitempty"`
+	// The agent whose own server the tool is; empty for everything else.
+	AgentId string `protobuf:"bytes,8,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	// The version of that agent this run planned (its version hash); empty
+	// for everything else. The values fetch reads the server at that version,
+	// so a run of a pinned version keeps the address it planned when the
+	// agent is edited.
+	AgentVersion  string `protobuf:"bytes,9,opt,name=agent_version,json=agentVersion,proto3" json:"agent_version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -729,6 +738,20 @@ func (x *RunValueDeclarer) GetServer() string {
 func (x *RunValueDeclarer) GetPluginDigest() string {
 	if x != nil {
 		return x.PluginDigest
+	}
+	return ""
+}
+
+func (x *RunValueDeclarer) GetAgentId() string {
+	if x != nil {
+		return x.AgentId
+	}
+	return ""
+}
+
+func (x *RunValueDeclarer) GetAgentVersion() string {
+	if x != nil {
+		return x.AgentVersion
 	}
 	return ""
 }
@@ -840,14 +863,16 @@ const file_ai_stigmer_agentic_run_v1_api_proto_rawDesc = "" +
 	"\x05entry\x18\x05 \x01(\tR\x05entry\x12\x14\n" +
 	"\x05login\x18\x06 \x01(\bR\x05login\x12\x1f\n" +
 	"\vplain_value\x18\b \x01(\tR\n" +
-	"plainValueJ\x04\b\a\x10\bR\asign_in\"\x81\x02\n" +
+	"plainValueJ\x04\b\a\x10\bR\asign_in\"\xc1\x02\n" +
 	"\x10RunValueDeclarer\x12C\n" +
 	"\x04kind\x18\x01 \x01(\x0e2/.ai.stigmer.agentic.run.v1.RunValueDeclarerKindR\x04kind\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12%\n" +
 	"\x0erepository_url\x18\x04 \x01(\tR\rrepositoryUrl\x12\x1b\n" +
 	"\tplugin_id\x18\x05 \x01(\tR\bpluginId\x12\x16\n" +
 	"\x06server\x18\x06 \x01(\tR\x06server\x12#\n" +
-	"\rplugin_digest\x18\a \x01(\tR\fpluginDigestJ\x04\b\x03\x10\x04R\rmcp_server_id\"4\n" +
+	"\rplugin_digest\x18\a \x01(\tR\fpluginDigest\x12\x19\n" +
+	"\bagent_id\x18\b \x01(\tR\aagentId\x12#\n" +
+	"\ragent_version\x18\t \x01(\tR\fagentVersionJ\x04\b\x03\x10\x04R\rmcp_server_id\"4\n" +
 	"\rSetupProgress\x12#\n" +
 	"\rcurrent_phase\x18\x01 \x01(\tR\fcurrentPhaseB\xfc\x01\n" +
 	"\x1dcom.ai.stigmer.agentic.run.v1B\bApiProtoP\x01ZHgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"

@@ -97,7 +97,13 @@ import {
   type ReleaseWorkspaceLock,
 } from "../shared/workspace/workspace-lock.js";
 import { LocalWorkspaceBackend } from "../shared/workspace/local-backend.js";
-import { DuplicateServerNameError, resolvePluginServers } from "../shared/mcp-resolver.js";
+import {
+  describeServerHome,
+  DuplicateServerNameError,
+  platformServerSlugsOf,
+  resolveTurnServers,
+  sameServerHome,
+} from "../shared/mcp-resolver.js";
 import { resolveMcpTransportPosture } from "../shared/mcp-transport-guard.js";
 import { callerIdentityValues, resolveCallerIdentity } from "../shared/caller-identity.js";
 import { discoverChannelMessaging, synthesizeChannelAttachment } from "../shared/channel-attachment.js";
@@ -113,7 +119,7 @@ import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/ap
 import { loadedVersionsOf } from "./loaded-versions.js";
 import { mountPlugin, PluginMountError } from "../shared/plugin-mount.js";
 import { isTerminalError } from "../shared/grpc-retry.js";
-import type { PluginServerName } from "../shared/hooks/tool-view.js";
+import { hookServerNamesOf } from "../shared/hooks/tool-view.js";
 import { getPlatformDir } from "../shared/workspace/platform-dir.js";
 import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import type { HookSource } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
@@ -984,10 +990,16 @@ export async function resolveMcpServersAndPolicies(
   await deps.reportProgress("Resolving MCP servers");
   const transportPosture = resolveMcpTransportPosture(config.mode);
   const platformValues = turnPlatformValues(blueprint, session, sessionId);
-  const platformServerSlugs = new Set<string>();
-  let servers = resolvePluginServers(
-    blueprint.plugins, values.tools, platformValues, transportPosture, config,
-  ).resolvedServers;
+  let servers = resolveTurnServers({
+    agent: blueprint.agent === undefined
+      ? undefined
+      : { agentId: blueprint.agent.id, subagent: null, servers: blueprint.agent.spec.mcpServers },
+    plugins: blueprint.plugins,
+    tools: values.tools,
+    platformValues,
+    transportPosture,
+    platformEndpoints: config,
+  }).resolvedServers;
   deps.timing.mark("resolve_mcp_servers");
 
   // The turn's tool scope (the agent's lists, then this turn's over them,
@@ -1054,7 +1066,6 @@ export async function resolveMcpServersAndPolicies(
     const attachment = synthesizeChannelAttachment(channelMessaging, attachmentEndpoints);
     if (attachment) {
       servers = injectSynthesizedAttachment(servers, attachment, "channel messaging");
-      platformServerSlugs.add(attachment.slug);
     }
   }
 
@@ -1065,7 +1076,6 @@ export async function resolveMcpServersAndPolicies(
     : undefined;
   if (conversationAttachment) {
     servers = injectSynthesizedAttachment(servers, conversationAttachment, "conversation participation");
-    platformServerSlugs.add(conversationAttachment.slug);
   }
 
   // Phase 4a5: the memory capture attachment. The capture context is
@@ -1085,7 +1095,6 @@ export async function resolveMcpServersAndPolicies(
   );
   if (memoryAttachment) {
     servers = injectSynthesizedAttachment(servers, memoryAttachment, "memory capture");
-    platformServerSlugs.add(memoryAttachment.slug);
   }
 
   // Phase 4b: the approval default's MCP half, over the servers the turn
@@ -1093,6 +1102,11 @@ export async function resolveMcpServersAndPolicies(
   const leases = deriveActiveLeases(args.grants.values(), execution.spec?.autoApproveAll ?? false);
   const mcpDefault = buildMcpApprovalDefault(listing ?? NOTHING_LISTED, leases);
 
+
+  // The platform's own servers, read from the homes the attachments carry
+  // once every one is injected: one truth for hiding them from hooks,
+  // keeping them outside the tool lists and marking their tools.
+  const platformServerSlugs = platformServerSlugsOf(servers);
 
   return { servers, channelMessaging, leases, mcpDefault, listing, platformServerSlugs, toolScope };
 }
@@ -1260,7 +1274,7 @@ async function mountPluginSkills(
 }
 
 /** No hooks: the record of a turn whose plugins carry none and whose agent writes none. */
-const NO_HOOKS: TurnHooks = { sources: [], pluginServers: new Map() };
+const NO_HOOKS: TurnHooks = { sources: [], serverNames: new Map() };
 
 /** The plugins among `plugins` that carry hooks. */
 function pluginsWithHooks(plugins: readonly Plugin[]): Plugin[] {
@@ -1305,8 +1319,9 @@ export function refuseUnrunnableHooks(
  * agent's own block, taken as written. A chat with the built-in assistant
  * gets its plugins' hooks too. Each source keeps the format it is written
  * in, Claude Code's or Cursor's; both run on every engine that runs hooks.
- * Every plugin server is named to a hook as Claude Code names it
- * (`plugin:<plugin>:<server>`), so a plugin's matchers find its tools.
+ * Every server is named to a hook as Claude Code names it: a plugin's as
+ * `plugin:<plugin>:<server>`, so a plugin's matchers find its tools, and
+ * one the agent writes itself by its own name, with `source: "agent"`.
  *
  * A plugin whose archive cannot be fetched or verified refuses the turn
  * (`hooks-refused`), naming it: a hook that does not run as written is a
@@ -1330,15 +1345,8 @@ export async function resolveHooks(
   const resolved = await hookSources(deps, plugins, inline, args.sessionId);
   if (resolved.kind === "settled") return resolved;
 
-  const pluginServers = new Map<string, PluginServerName>();
-  for (const server of args.servers) {
-    if (server.pluginOrigin !== null) {
-      pluginServers.set(server.slug, { plugin: server.pluginOrigin.plugin, server: server.pluginOrigin.server });
-    }
-  }
-
   deps.timing.mark("resolve_hooks");
-  return { kind: "ready", hooks: { sources: resolved.sources, pluginServers } };
+  return { kind: "ready", hooks: { sources: resolved.sources, serverNames: hookServerNamesOf(args.servers) } };
 }
 
 /**
@@ -1377,23 +1385,21 @@ async function hookSources(
   return { kind: "ready", sources };
 }
 
-/** Refuses a subagent's server that takes the name of a server already named, from another plugin. */
+/** Refuses a subagent's server that takes the name of a server already named, from another home. */
 function refuseSharedServerNames(
   mainServers: readonly ResolvedMcpServer[],
   servers: readonly ResolvedMcpServer[],
 ): void {
   for (const server of servers) {
     const main = mainServers.find((candidate) => candidate.slug === server.slug);
-    if (main !== undefined && main.pluginOrigin?.pluginId !== server.pluginOrigin?.pluginId) {
-      throw new DuplicateServerNameError(server.slug, describeServer(main), describeServer(server));
+    if (main !== undefined && !sameServerHome(main.home, server.home)) {
+      throw new DuplicateServerNameError(
+        server.slug,
+        describeServerHome(main.home, main.slug),
+        describeServerHome(server.home, server.slug),
+      );
     }
   }
-}
-
-function describeServer(server: ResolvedMcpServer): string {
-  return server.pluginOrigin === null
-    ? `the platform's server '${server.slug}'`
-    : `plugin '${server.pluginOrigin.plugin}' server '${server.pluginOrigin.server}'`;
 }
 
 /**
@@ -1405,8 +1411,9 @@ function describeServer(server: ResolvedMcpServer): string {
  * a server the main agent also has resolves to the same slug, which the
  * engine connects once.
  *
- *  - Its servers: its plugins' (`shared/mcp-resolver.ts`), with the run's
- *    tool values and the caller identity the main agent's get. None of the
+ *  - Its servers: the ones it writes itself, then its plugins'
+ *    (`shared/mcp-resolver.ts`), with the run's tool values and the caller
+ *    identity the main agent's get. None of the
  *    platform's own servers: a subagent reports to the main agent, which
  *    alone speaks to the person or the channel.
  *  - Its skills: its own refs and its plugins', unless its scope hides them.
@@ -1417,7 +1424,7 @@ function describeServer(server: ResolvedMcpServer): string {
  * A plugin of a subagent whose hooks cannot be prepared settles the turn
  * naming it, as the main agent's do. A subagent's server that would take
  * the name of a server the main agent or an earlier subagent has, from
- * another plugin, refuses the turn
+ * another plugin or agent, refuses the turn
  * (`DuplicateServerNameError`): the engine connects one server per name,
  * so one would run with the other's values. Run planning refuses two
  * plugins of one name first; this is the backstop for a plugin that
@@ -1458,7 +1465,14 @@ export async function resolveSubagents(
   for (const subagent of blueprint.subagents) {
     const { spec } = subagent;
     const toolScope = savedSubagentScope(subagent.name, spec, args.execution.spec);
-    const servers = resolvePluginServers(subagent.plugins, values.tools, platformValues, transportPosture, deps.config).resolvedServers;
+    const servers = resolveTurnServers({
+      agent: { agentId: subagent.agentId, subagent: subagent.name, servers: spec.mcpServers },
+      plugins: subagent.plugins,
+      tools: values.tools,
+      platformValues,
+      transportPosture,
+      platformEndpoints: deps.config,
+    }).resolvedServers;
     refuseSharedServerNames(named, servers);
     named.push(...servers);
     const skills: SkillMetadata[] = [];
@@ -1486,6 +1500,7 @@ export async function resolveSubagents(
         plugins: spec.plugins.length > 0,
         hooks: spec.hooks.length > 0,
         lists: spec.tools.length > 0 || spec.disallowedTools.length > 0,
+        mcpServers: spec.mcpServers.length > 0,
       },
     });
   }

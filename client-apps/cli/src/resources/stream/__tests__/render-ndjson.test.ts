@@ -32,17 +32,17 @@ describe("NdjsonRenderer", () => {
     expect(ctx.status()).toBe("");
   });
 
-  it("notes a skip on stderr only when --approve-default is unset", () => {
+  it("notes a deny on stderr only when --approve-default is unset", () => {
     const events = [user("run_a", "go"), use("run_a", "c1", "shell", { permission: "ask" }), asked("run_a", "c1")];
     const ask = foldSession(events).turns[0]?.asks[0] as ToolUse;
 
     const unset = renderer();
     unset.r.answering(ask, "");
-    expect(unset.status()).toBe("⚠ No --approve-default set; skipping shell\n");
+    expect(unset.status()).toBe("⚠ No --approve-default set; denying shell\n");
     expect(unset.data()).toBe("");
 
     const set = renderer();
-    set.r.answering(ask, "approve");
+    set.r.answering(ask, "allow");
     expect(set.status()).toBe("");
   });
 });

@@ -48,7 +48,7 @@ function pluginServer(slug: string, overrides: Partial<ResolvedMcpServer> = {}):
     slug,
     connectionType: "http",
     url: `https://${slug}.example/mcp`,
-    pluginOrigin: { pluginId: `plg-${slug}`, plugin: slug, server: "api" },
+    home: { kind: "plugin", pluginId: `plg-${slug}`, plugin: slug, server: "api" },
     ...overrides,
   };
 }
@@ -99,7 +99,7 @@ describe("listTurnTools", () => {
 
   it("never lists the platform's own servers: none of their tools asks", async () => {
     const list = vi.fn(async (_server: ResolvedMcpServer): Promise<readonly ListedTool[]> => [tool("remember", true)]);
-    const listing = await listTurnTools([pluginServer("stigmer-memory", { pluginOrigin: null }), pluginServer("plugin_a_api")], list);
+    const listing = await listTurnTools([pluginServer("stigmer-memory", { home: { kind: "platform" } }), pluginServer("plugin_a_api")], list);
 
     expect(list.mock.calls.map(([server]) => server.slug)).toEqual(["plugin_a_api"]);
     expect(listing.listed.map(({ server }) => server)).toEqual(["plugin_a_api"]);

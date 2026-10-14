@@ -265,17 +265,10 @@ export const UpdateStatusResponseSchema: GenMessage<UpdateStatusResponse> = /*@_
 /**
  * TerminateRunInput requests immediate termination of a run.
  *
- * Termination forcefully kills the run without allowing cleanup.
- * Unlike cancellation, the agent cannot respond to termination - it is stopped
- * immediately. Use this for stuck or unresponsive runs.
- *
- * ## Behavior
- *
- * - Force-kills workflow via Temporal TerminateWorkflow API
- * - Agent activity does NOT receive any signal (cannot clean up)
- * - Run transitions to RUN_TERMINATED phase immediately
- * - All in-progress tool calls are stopped abruptly
- * - LangGraph checkpoint may be incomplete
+ * Termination forcefully stops the run without allowing cleanup.
+ * Unlike an interrupt, the agent cannot respond to termination - it is stopped
+ * immediately. Use this for stuck or unresponsive runs. The run moves to
+ * RUN_TERMINATED at once, and any tool call in progress is stopped abruptly.
  *
  * ## Preconditions
  *
@@ -291,8 +284,8 @@ export const UpdateStatusResponseSchema: GenMessage<UpdateStatusResponse> = /*@_
  *
  * | Aspect | Interrupt (session) | Terminate |
  * |--------|--------|-----------|
- * | Signal | Agent receives cancellation signal | No signal sent |
- * | Cleanup | Agent can save checkpoint | No cleanup possible |
+ * | Signal | The agent is told to stop | Nothing is sent |
+ * | Cleanup | The turn ends cleanly | No cleanup possible |
  * | Use case | Normal cancellation | Stuck/unresponsive agents |
  * | Recovery | Cannot recover | Cannot recover |
  *
@@ -328,7 +321,7 @@ export type TerminateRunInput = Message<"ai.stigmer.agentic.run.v1.TerminateRunI
   /**
    * Human-readable reason for termination.
    *
-   * Stored in the audit trail and passed to Temporal for operational debugging.
+   * Stored in the audit trail for operational debugging.
    * Optional but strongly recommended - termination is a drastic action
    * and the reason helps with post-incident analysis.
    *
@@ -355,20 +348,12 @@ export const TerminateRunInputSchema: GenMessage<TerminateRunInput> = /*@__PURE_
  *
  * Recovery retries the failed run while preserving all completed work. The
  * agent continues from where it failed without re-executing successful steps.
- *
- * ## Behavior
- *
- * - Terminates the previous Temporal workflow and starts a fresh one
- * - The LangGraph checkpoint is loaded using the preserved thread_id, so
- *   completed work carries over from the session's harness state
- * - Completed tool calls are NOT re-executed
- * - Run transitions from FAILED back to IN_PROGRESS phase
- * - Agent retries from where it failed
+ * The run moves from RUN_FAILED back to RUN_IN_PROGRESS.
  *
  * ## Preconditions
  *
  * - Run must be in RUN_FAILED phase
- * - TERMINATED runs cannot be recovered (incomplete checkpoint)
+ * - TERMINATED runs cannot be recovered (their saved state may be incomplete)
  * - CANCELLED runs cannot be recovered (intentional user action)
  * - User must have can_edit permission on the run
  *
@@ -419,25 +404,9 @@ export const RecoverRunInputSchema: GenMessage<RecoverRunInput> = /*@__PURE__*/
 /**
  * PauseRunInput requests temporarily pausing a run.
  *
- * Pauses the agent at its current checkpoint. Unlike an interrupt, the run
- * is NOT terminal and can be resumed later from where it left off.
- *
- * ## Behavior
- *
- * When an agent is paused:
- * 1. A "pause" signal is sent to the Temporal workflow
- * 2. Running activity is gracefully cancelled (checkpoint saved)
- * 3. LangGraph auto-saves checkpoint on cancellation
- * 4. Run transitions to RUN_PAUSED phase
- * 5. Workflow waits for resume signal (no resources consumed)
- *
- * ## Resume Flow
- *
- * The paused agent can be resumed via the resume RPC:
- * 1. Resume signal unblocks the workflow
- * 2. Activity is re-invoked with same thread_id
- * 3. LangGraph loads from checkpoint automatically
- * 4. Agent continues from exact pause point
+ * Pauses the agent where it is. Unlike an interrupt, the run is NOT terminal:
+ * it reads RUN_PAUSED, uses no resources while paused, and the resume RPC
+ * continues it from where it left off.
  *
  * ## Preconditions
  *
@@ -503,18 +472,9 @@ export const PauseRunInputSchema: GenMessage<PauseRunInput> = /*@__PURE__*/
 /**
  * ResumeRunInput requests resuming a paused run.
  *
- * Continues the run from the checkpoint where it was paused. The agent
- * re-invokes activities with the same thread_id, which loads from checkpoint
- * and continues from where it left off.
- *
- * ## Behavior
- *
- * When an agent is resumed:
- * 1. A "resume" signal is sent to the paused Temporal workflow
- * 2. Workflow unblocks from its wait state
- * 3. Activity is re-invoked with the same input
- * 4. LangGraph loads checkpoint using thread_id
- * 5. Agent continues from exact pause point
+ * Continues the run from where it was paused; the run moves back to
+ * RUN_IN_PROGRESS. How a turn's state is saved is the harness's
+ * ([Harnesses](/docs/concepts/harnesses)).
  *
  * ## Preconditions
  *
@@ -528,6 +488,9 @@ export const PauseRunInputSchema: GenMessage<PauseRunInput> = /*@__PURE__*/
  *
  * ## Example
  *
+ * {
+ *   "id": "run_abc123xyz456"
+ * }
  * {
  *   "id": "run_abc123xyz456"
  * }
@@ -1454,7 +1417,7 @@ export type RunUsageSummary = Message<"ai.stigmer.agentic.run.v1.RunUsageSummary
   primaryModel: string;
 
   /**
-   * Number of sub-agent invocations in this run.
+   * Number of subagent invocations in this run.
    *
    * @generated from field: int32 sub_agent_count = 9;
    */

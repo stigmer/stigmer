@@ -6,7 +6,7 @@
 import { generateSlug, enumFromString } from "./apply-runtime.js";
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentSpecSchema, HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, HookSourceSchema, AgentMcpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { HookHandlerSchema, HookGroupSchema, HookConfigSchema, HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
@@ -36,8 +36,9 @@ export const AgentInputShape = {
   hooks: z.array(z.lazy(() => HookSourceInputSchema)).optional().describe("Hooks written in this agent itself, run around its tool calls and its subagents' calls, after the hooks of the plugins it lists. A hook can refuse a call, ask a person first, or let it run without the approval it would otherwise need. Both engines run hooks in Claude Code's format and in Cursor's. On the Cursor engine, web fetch and web search reach no hook, so an agent whose PreToolUse hooks would match them runs there without those tools; a PostToolUse hook on them does not run there."),
   run_config: z.lazy(() => RunConfigInputSchema).optional().describe("The author's run defaults: the model, speed tier, thinking and run bounds a turn on this agent uses unless the message or the surface it came through sets its own (RunConfig has the rule). Versioned with the agent, so a conversation pinned to a version keeps that version's defaults. A choice here (model_name, service_tier, thinking_mode) applies only on the engine named in harness; on a conversation running the other engine only the bounds apply. A bound here is a cap: a message or a surface can lower it, never raise it. A model must be named together with harness, and must be one that engine lists; service_tier FAST and thinking_mode ENABLED need a model that engine prices or marks capable. Checked when the agent is saved."),
   harness: z.string().optional().describe("The engine this agent's run defaults were chosen for, and the engine a new conversation on this agent starts on when the person or the surface starting it names neither an engine nor a model (a turn that names a model but no engine starts on native, the engine its name was checked against). Unspecified: the platform's default engine (native). Model names belong to an engine (each lists its own), so run_config's model, tier and thinking count only on this engine. A conversation keeps the engine it started on; a later version naming another engine changes only new conversations. Allowed values: HARNESS_NATIVE, HARNESS_CURSOR."),
-  plugins: z.array(z.lazy(() => PluginInputSchema)).optional().describe("Plugins this agent uses, each whole: its skills, agents, hooks and MCP servers."),
+  plugins: z.array(z.lazy(() => PluginInputSchema)).optional().describe("Plugins this agent uses, each whole: its skills, agents, hooks and MCP servers. A server written in the agent itself goes in mcp_servers."),
   subagents: z.array(z.lazy(() => SubagentInputSchema)).optional().describe("Saved agents this agent may hand work to, each running its own instructions, model, tools, plugins, skills, hooks and values. A subagent runs as the conversation's person and on its budget, under the conversation's hooks, and cannot hand work on to another agent: an agent that lists subagents of its own is refused here. Each reference is pinned when this agent is saved: a reference without a version takes the listed agent's latest version, and one naming a tag or a version keeps that version until a later save sends the list again. At most 20."),
+  mcp_servers: z.array(z.lazy(() => AgentMcpServerInputSchema)).optional().describe("MCP servers written in this agent itself, reached over HTTP, beside the servers of the plugins it lists. At most 20. Only an organization's admins may add a server or change one's address or headers; anyone who may edit the agent may keep or remove them. A server's tools are named mcp__<name>__<tool> in tools and disallowed_tools. A run logs in with the vault connection saved at the server's address, else a vault secret named <NAME>_ACCESS_TOKEN (the server's name upper-cased, each other character written as _), which is sent to this server, or calls it with no login when there is neither; a header that names Authorization itself takes that login from its ${NAME} instead, and the run then needs it. Each ${NAME} in a header value is filled from the run's values and sent to this server only, never to the agent's shell. Header values are stored in the agent, so a secret goes in a vault and the header names it."),
 } as const;
 
 export const AgentInputSchema = z.object(AgentInputShape);
@@ -88,8 +89,8 @@ type HookSourceInput = z.infer<typeof HookSourceInputSchema>;
 
 const RunConfigInputSchema = z.object({
   model_name: z.string().optional().describe("The model each run uses. Example: 'claude-sonnet-4-6'."),
-  max_cost_usd: z.number().optional().describe("Maximum estimated cost in USD per run. When the run's estimated spend reaches this limit, the run stops with a 'send another message to continue' prompt and ends TERMINATED; the work done so far is kept. The limit is checked each time the engine reports its spend, so a run can end somewhat above it. The native harness reports after every model call, counts a sub-agent's spend toward the limit, and advises the agent to wrap up at about 80% of the budget; the Cursor harness gives no warning. 0 = not set at this layer. The budget is per message: a follow-up message, or a run resuming after an approval, starts a fresh count. The spend is the runner's estimate, reported on RunStatus.streaming_usage.estimated_cost_usd, not the billed amount."),
-  max_tool_rounds: z.number().optional().describe("Maximum model-to-tools reasoning cycles per message. A round is one model response that proposes one or more tool calls, followed by their execution; parallel tool calls in one response are one round. When the limit is reached the run stops with a 'send another message to continue' prompt, and the work done so far is kept. The agent is advised to wrap up at about 80% of the budget. 0 = not set at this layer; with no layer setting it the agent runs until the task completes or loop detection stops a repetitive pattern. When set, the valid range is 10–1000; values outside it are clamped to the nearest bound. The budget is per message: a follow-up message, or a run resuming after an approval, starts a fresh count. Sub-agent rounds are not counted, and the Cursor harness does not enforce this field."),
+  max_cost_usd: z.number().optional().describe("Maximum estimated cost in USD per run. When the run's estimated spend reaches this limit, the run stops with a 'send another message to continue' prompt and ends TERMINATED; the work done so far is kept. The limit is checked each time the engine reports its spend, so a run can end somewhat above it. The native harness reports after every model call, counts a subagent's spend toward the limit, and advises the agent to wrap up at about 80% of the budget; the Cursor harness gives no warning. 0 = not set at this layer. The budget is per message: a follow-up message, or a run resuming after an approval, starts a fresh count. The spend is the runner's estimate, reported on RunStatus.streaming_usage.estimated_cost_usd, not the billed amount."),
+  max_tool_rounds: z.number().optional().describe("Maximum model-to-tools reasoning cycles per message. A round is one model response that proposes one or more tool calls, followed by their execution; parallel tool calls in one response are one round. When the limit is reached the run stops with a 'send another message to continue' prompt, and the work done so far is kept. The agent is advised to wrap up at about 80% of the budget. 0 = not set at this layer; with no layer setting it the agent runs until the task completes or loop detection stops a repetitive pattern. When set, the valid range is 10–1000; values outside it are clamped to the nearest bound. The budget is per message: a follow-up message, or a run resuming after an approval, starts a fresh count. Subagent rounds are not counted, and the Cursor harness does not enforce this field."),
   service_tier: z.string().optional().describe("Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one. UNSPECIFIED is not set at this layer; with no layer setting it the run uses STANDARD, never the provider account default. FAST is valid only for a model whose registry entry declares a fast pricing variant on the engine that runs it; validated fail-closed on the resolved settings at create. Allowed values: SERVICE_TIER_STANDARD, SERVICE_TIER_FAST."),
   thinking_mode: z.string().optional().describe("Thinking mode for each run's model calls: disabled (the default) or enabled, where enabled selects the model's extended-reasoning variant (billed at base per-token rates — reasoning tokens bill as output). UNSPECIFIED is not set at this layer; with no layer setting it the run uses DISABLED, never the provider account default. ENABLED is valid only for a model whose registry entry declares the thinking capability on the engine that runs it; validated fail-closed on the resolved settings at create. Combines freely with service_tier. Allowed values: THINKING_MODE_DISABLED, THINKING_MODE_ENABLED."),
   max_tool_result_chars: z.number().optional().describe("Maximum number of characters for a single tool result before truncation. When a tool result exceeds this limit, it is truncated and a marker is appended: '[truncated — result exceeded {limit} chars, ask for specific sections]' 0 = not set at this layer; with no layer setting it the platform default applies (30,000 chars, about 7,500 tokens). Applies to all tool results (shell, read, write, MCP tools), except built-in tools that already manage their output size."),
@@ -112,6 +113,13 @@ const SubagentInputSchema = z.object({
 });
 type SubagentInput = z.infer<typeof SubagentInputSchema>;
 
+const AgentMcpServerInputSchema = z.object({
+  name: z.string().optional().describe("The server's name in this agent, which names its tools mcp__<name>__<tool>: 2 to 63 lowercase letters, digits and hyphens, starting with a letter and not ending with a hyphen."),
+  url: z.string().optional().describe("The server's address: an https URL, or http on this machine."),
+  headers: z.record(z.string()).optional().describe("Headers sent with every request to this server. A value may name a run value as ${NAME}, filled when the run starts."),
+});
+type AgentMcpServerInput = z.infer<typeof AgentMcpServerInputSchema>;
+
 
 /** Build the fully-formed Agent proto from the flat MCP apply input. */
 export function agentInputToProto(input: AgentInput): Agent {
@@ -131,6 +139,7 @@ export function agentInputToProto(input: AgentInput): Agent {
   spec.harness = enumFromString(Harness, input.harness) as Harness;
   if (input.plugins !== undefined) spec.plugins = input.plugins.map(pluginInputToProto);
   if (input.subagents !== undefined) spec.subagents = input.subagents.map(subagentInputToProto);
+  if (input.mcp_servers !== undefined) spec.mcpServers = input.mcp_servers.map(agentMcpServerInputToProto);
   return Object.assign(create(AgentSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Agent",
@@ -222,5 +231,13 @@ function subagentInputToProto(input: SubagentInput) {
     kind: ApiResourceKind.agent,
     version: input.version,
   });
+}
+
+function agentMcpServerInputToProto(input: AgentMcpServerInput) {
+  const result = create(AgentMcpServerSchema);
+  if (input.name !== undefined) result.name = input.name;
+  if (input.url !== undefined) result.url = input.url;
+  if (input.headers !== undefined) result.headers = input.headers;
+  return result;
 }
 

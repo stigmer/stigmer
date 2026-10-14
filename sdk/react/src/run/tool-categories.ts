@@ -32,7 +32,7 @@ export type ToolCategory =
   | "fetch"
   | "web-search"
   | "think"
-  | "sub-agent"
+  | "subagent"
   | "internal"
   | "mcp"
   | "memory"
@@ -239,7 +239,7 @@ const KIND_DISPLAY: Partial<Record<ToolKind, KindDisplayEntry>> = {
   fetch:       { category: "fetch",     label: "Fetch",     primaryField: "url", fallbackFields: ["uri"] },
   web_search:  { category: "web-search", label: "Web Search", primaryField: "query", fallbackFields: ["q", "search_term"] },
   think:       { category: "think",     label: "Thinking",  primaryField: "thought" },
-  subagent:    { category: "sub-agent", label: "Sub-agent", primaryField: "description", fallbackFields: ["prompt"] },
+  subagent:    { category: "subagent", label: "Subagent", primaryField: "description", fallbackFields: ["prompt"] },
   todo:        { category: "internal",  label: "Todos",     primaryField: "todos" },
   memory:      { category: "memory",    label: "Remember",  primaryField: "fact" },
 };
@@ -447,7 +447,7 @@ export function extractPrimaryArgFromPreview(
  * "Run unit tests for the parser" — rendered as the row title in place of the
  * bare category label. Extraction is kind-scoped via
  * {@link ToolCategoryInfo.intentArgField} (shell-only today) so a same-named
- * REAL argument on another kind (e.g. the sub-agent task tool's
+ * REAL argument on another kind (e.g. the subagent task tool's
  * `description`, which is its subject) is never misread as an intent.
  */
 export function extractIntent(
