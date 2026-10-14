@@ -34,8 +34,7 @@ const (
 	// An AI judge grading the run against Stigmer's standard rubrics, switched
 	// on per agent by its evaluator.
 	ScoreSource_score_source_judge ScoreSource = 3
-	// A plugin's own eval: one try of one evals/ case, graded by the case's
-	// checks.
+	// An eval run's try of one evals/ case, graded by the case's checks.
 	ScoreSource_score_source_eval ScoreSource = 4
 )
 

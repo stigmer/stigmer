@@ -205,10 +205,10 @@ type RunSpec struct {
 	// agent was not watching, the digest carries what happened so the agent
 	// re-enters informed. Absent on every other run surface.
 	ConversationCatchup *ConversationCatchup `protobuf:"bytes,14,opt,name=conversation_catchup,json=conversationCatchup,proto3" json:"conversation_catchup,omitempty"`
-	// What a plugin-eval case gives this try beyond its message: a starting
+	// What an eval case gives this try beyond its message: a starting
 	// folder, reference folders, an earlier conversation, variables and MCP
 	// stand-ins. Absent on every other run.
-	PluginEvalCase *PluginEvalCaseContext `protobuf:"bytes,25,opt,name=plugin_eval_case,json=pluginEvalCase,proto3" json:"plugin_eval_case,omitempty"`
+	EvalCase *EvalCaseContext `protobuf:"bytes,25,opt,name=eval_case,json=evalCase,proto3" json:"eval_case,omitempty"`
 	// Set on a turn that only puts back the files a person undid after an
 	// earlier turn ended: it runs no model and carries no message. The
 	// server starts one when an undo is decided on a finished turn.
@@ -368,9 +368,9 @@ func (x *RunSpec) GetConversationCatchup() *ConversationCatchup {
 	return nil
 }
 
-func (x *RunSpec) GetPluginEvalCase() *PluginEvalCaseContext {
+func (x *RunSpec) GetEvalCase() *EvalCaseContext {
 	if x != nil {
-		return x.PluginEvalCase
+		return x.EvalCase
 	}
 	return nil
 }
@@ -793,7 +793,7 @@ var File_ai_stigmer_agentic_run_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"$ai/stigmer/agentic/run/v1/spec.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a0ai/stigmer/agentic/run/v1/plugin_eval_case.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa8\r\n" +
+	"$ai/stigmer/agentic/run/v1/spec.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a)ai/stigmer/agentic/run/v1/eval_case.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x95\r\n" +
 	"\aRunSpec\x12\x1f\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tH\x00R\tsessionId\x12O\n" +
@@ -812,8 +812,8 @@ const file_ai_stigmer_agentic_run_v1_spec_proto_rawDesc = "" +
 	"\x13workspace_file_refs\x18\n" +
 	" \x03(\tR\x11workspaceFileRefs\x12*\n" +
 	"\x11supersedes_run_id\x18\f \x01(\tR\x0fsupersedesRunId\x12a\n" +
-	"\x14conversation_catchup\x18\x0e \x01(\v2..ai.stigmer.agentic.run.v1.ConversationCatchupR\x13conversationCatchup\x12Z\n" +
-	"\x10plugin_eval_case\x18\x19 \x01(\v20.ai.stigmer.agentic.run.v1.PluginEvalCaseContextR\x0epluginEvalCase\x122\n" +
+	"\x14conversation_catchup\x18\x0e \x01(\v2..ai.stigmer.agentic.run.v1.ConversationCatchupR\x13conversationCatchup\x12G\n" +
+	"\teval_case\x18\x19 \x01(\v2*.ai.stigmer.agentic.run.v1.EvalCaseContextR\bevalCase\x122\n" +
 	"\x15reconcile_file_review\x18\x1a \x01(\bR\x13reconcileFileReview\x12C\n" +
 	"\x13excluded_plugin_ids\x18\x1b \x03(\tB\x13\xbaH\x10\x92\x01\r\x10\b\x18\x01\"\ar\x05\x10\x01\x18\x80\x01R\x11excludedPluginIds:f\xbaHc\x1aa\n" +
 	"\x14run.message_required\x12\x13message is required\x1a4this.reconcile_file_review || size(this.message) > 0B\b\n" +
@@ -870,7 +870,7 @@ var file_ai_stigmer_agentic_run_v1_spec_proto_goTypes = []any{
 	(*RunConfig)(nil),             // 7: ai.stigmer.agentic.run.v1.RunConfig
 	(InteractionMode)(0),          // 8: ai.stigmer.agentic.run.v1.InteractionMode
 	(*structpb.Struct)(nil),       // 9: google.protobuf.Struct
-	(*PluginEvalCaseContext)(nil), // 10: ai.stigmer.agentic.run.v1.PluginEvalCaseContext
+	(*EvalCaseContext)(nil),       // 10: ai.stigmer.agentic.run.v1.EvalCaseContext
 	(*timestamppb.Timestamp)(nil), // 11: google.protobuf.Timestamp
 }
 var file_ai_stigmer_agentic_run_v1_spec_proto_depIdxs = []int32{
@@ -880,7 +880,7 @@ var file_ai_stigmer_agentic_run_v1_spec_proto_depIdxs = []int32{
 	9,  // 3: ai.stigmer.agentic.run.v1.RunSpec.structured_output_schema:type_name -> google.protobuf.Struct
 	1,  // 4: ai.stigmer.agentic.run.v1.RunSpec.attachments:type_name -> ai.stigmer.agentic.run.v1.Attachment
 	2,  // 5: ai.stigmer.agentic.run.v1.RunSpec.conversation_catchup:type_name -> ai.stigmer.agentic.run.v1.ConversationCatchup
-	10, // 6: ai.stigmer.agentic.run.v1.RunSpec.plugin_eval_case:type_name -> ai.stigmer.agentic.run.v1.PluginEvalCaseContext
+	10, // 6: ai.stigmer.agentic.run.v1.RunSpec.eval_case:type_name -> ai.stigmer.agentic.run.v1.EvalCaseContext
 	11, // 7: ai.stigmer.agentic.run.v1.ConversationCatchup.window_end:type_name -> google.protobuf.Timestamp
 	5,  // 8: ai.stigmer.agentic.run.v1.RecalledMemories.facts:type_name -> ai.stigmer.agentic.run.v1.RecalledMemoryFact
 	9,  // [9:9] is the sub-list for method output_type
@@ -896,8 +896,8 @@ func file_ai_stigmer_agentic_run_v1_spec_proto_init() {
 		return
 	}
 	file_ai_stigmer_agentic_run_v1_enum_proto_init()
+	file_ai_stigmer_agentic_run_v1_eval_case_proto_init()
 	file_ai_stigmer_agentic_run_v1_invocation_proto_init()
-	file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_init()
 	file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes[0].OneofWrappers = []any{
 		(*RunSpec_SessionId)(nil),
 		(*RunSpec_SessionSpec)(nil),

@@ -158,7 +158,7 @@ public interface StigmerFileReviewDecidedEventOrBuilder extends
    * <pre>
    * Who decided: person (someone with edit access to the conversation),
    * approved_command (every change came from a command the person had
-   * approved), eval_try (a plugin eval's try, whose edits are always
+   * approved), eval_try (an eval run's try, whose edits are always
    * kept) or next_turn (the next message was sent before a decision, so
    * the change was kept).
    * </pre>
@@ -171,7 +171,7 @@ public interface StigmerFileReviewDecidedEventOrBuilder extends
    * <pre>
    * Who decided: person (someone with edit access to the conversation),
    * approved_command (every change came from a command the person had
-   * approved), eval_try (a plugin eval's try, whose edits are always
+   * approved), eval_try (an eval run's try, whose edits are always
    * kept) or next_turn (the next message was sent before a decision, so
    * the change was kept).
    * </pre>

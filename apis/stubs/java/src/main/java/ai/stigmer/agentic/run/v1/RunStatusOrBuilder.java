@@ -742,30 +742,30 @@ public interface RunStatusOrBuilder extends
 
   /**
    * <pre>
-   * The files a plugin eval's graders read, as the try's turn left them.
+   * The files an eval case's graders read, as the try's turn left them.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
-   * @return Whether the pluginEvalFiles field is set.
+   * <code>.ai.stigmer.agentic.run.v1.EvalFiles eval_files = 34 [json_name = "evalFiles"];</code>
+   * @return Whether the evalFiles field is set.
    */
-  boolean hasPluginEvalFiles();
+  boolean hasEvalFiles();
   /**
    * <pre>
-   * The files a plugin eval's graders read, as the try's turn left them.
+   * The files an eval case's graders read, as the try's turn left them.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
-   * @return The pluginEvalFiles.
+   * <code>.ai.stigmer.agentic.run.v1.EvalFiles eval_files = 34 [json_name = "evalFiles"];</code>
+   * @return The evalFiles.
    */
-  ai.stigmer.agentic.run.v1.PluginEvalFiles getPluginEvalFiles();
+  ai.stigmer.agentic.run.v1.EvalFiles getEvalFiles();
   /**
    * <pre>
-   * The files a plugin eval's graders read, as the try's turn left them.
+   * The files an eval case's graders read, as the try's turn left them.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.EvalFiles eval_files = 34 [json_name = "evalFiles"];</code>
    */
-  ai.stigmer.agentic.run.v1.PluginEvalFilesOrBuilder getPluginEvalFilesOrBuilder();
+  ai.stigmer.agentic.run.v1.EvalFilesOrBuilder getEvalFilesOrBuilder();
 
   /**
    * <pre>
@@ -773,7 +773,7 @@ public interface RunStatusOrBuilder extends
    * tool-call limit), timeout (a stall or the workspace lock), infrastructure
    * (the worker shut down or stopped answering), platform_stop, user (a pause
    * or a cancel), model_error (the model provider failed the turn), failed
-   * (any other failure), eval_stopped (a plugin eval's mock or scaffold
+   * (any other failure), eval_stopped (an eval case's mock or scaffold
    * stopped the try) or review_resolved (a file review was settled). Empty
    * while the turn works, and when it ended on its own.
    * </pre>
@@ -788,7 +788,7 @@ public interface RunStatusOrBuilder extends
    * tool-call limit), timeout (a stall or the workspace lock), infrastructure
    * (the worker shut down or stopped answering), platform_stop, user (a pause
    * or a cancel), model_error (the model provider failed the turn), failed
-   * (any other failure), eval_stopped (a plugin eval's mock or scaffold
+   * (any other failure), eval_stopped (an eval case's mock or scaffold
    * stopped the try) or review_resolved (a file review was settled). Empty
    * while the turn works, and when it ended on its own.
    * </pre>

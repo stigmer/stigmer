@@ -62,8 +62,8 @@ class SessionQueryControllerServicer(object):
     def list(self, request, context):
         """List all sessions with pagination and optional filtering.
 
-        A plugin eval's tries are left out: each runs in a session of its own,
-        read through the eval (PluginEvalQueryController.get) instead.
+        An eval run's tries are left out: each runs in a session of its own,
+        read through the eval run (EvalRunQueryController.get) instead.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

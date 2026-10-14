@@ -1,0 +1,48 @@
+module agentic
+
+# ========================================
+# EVAL RUN TYPE (Agent- or plugin-bound)
+# ========================================
+# One run of test cases on an agent, or on a plugin on the built-in
+# assistant, optionally with and without a plugin.
+#
+# Authorization model:
+# - Exactly one subject parent is written: the agent or the plugin (the
+#   spec's subject oneof; the kind's two optional parents). Every relation
+#   below reads both, and the one never written contributes nothing.
+# - The subject's editors start, cancel and delete its eval runs, as an
+#   agent's editors own its evaluator.
+# - The subject's viewers in the subject's own organization read the eval
+#   run and, through the session link (session#eval_run), its tries. A
+#   child organization's viewer of a shared agent or plugin does not: a try
+#   spends the subject organization's money and may act with its
+#   connections. The model has no `but not`, so agent.fga and plugin.fga
+#   name that set `org_viewer`.
+# - A compared plugin is no parent: deleting it leaves an agent's eval runs
+#   and their results, and its viewers read nothing through it.
+# - No owner of its own (OWNER_ATTRIBUTION_TYPE_NONE). The subject's owner
+#   already includes the organization's admins, who hold the purse the
+#   eval run spends.
+
+type eval_run
+  relations
+    # ========================================
+    # ORGANIZATION
+    # ========================================
+    define organization: [organization]
+
+    # ========================================
+    # SUBJECT (exactly one written)
+    # ========================================
+    # FGA tuple: eval_run:<id>#agent@agent:<agent_id>
+    define agent: [agent]
+    # FGA tuple: eval_run:<id>#plugin@plugin:<plugin_id>
+    define plugin: [plugin]
+
+    # ========================================
+    # OPERATIONS
+    # ========================================
+    define viewer: org_viewer from agent or org_viewer from plugin
+    define can_view: viewer
+    define can_edit: can_edit from agent or can_edit from plugin
+    define can_delete: can_edit from agent or can_edit from plugin

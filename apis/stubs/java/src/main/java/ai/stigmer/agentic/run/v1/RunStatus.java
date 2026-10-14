@@ -1097,42 +1097,42 @@ private static final long serialVersionUID = 0L;
     return credentials_ == null ? ai.stigmer.agentic.run.v1.RunCredentials.getDefaultInstance() : credentials_;
   }
 
-  public static final int PLUGIN_EVAL_FILES_FIELD_NUMBER = 34;
-  private ai.stigmer.agentic.run.v1.PluginEvalFiles pluginEvalFiles_;
+  public static final int EVAL_FILES_FIELD_NUMBER = 34;
+  private ai.stigmer.agentic.run.v1.EvalFiles evalFiles_;
   /**
    * <pre>
-   * The files a plugin eval's graders read, as the try's turn left them.
+   * The files an eval case's graders read, as the try's turn left them.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
-   * @return Whether the pluginEvalFiles field is set.
+   * <code>.ai.stigmer.agentic.run.v1.EvalFiles eval_files = 34 [json_name = "evalFiles"];</code>
+   * @return Whether the evalFiles field is set.
    */
   @java.lang.Override
-  public boolean hasPluginEvalFiles() {
+  public boolean hasEvalFiles() {
     return ((bitField0_ & 0x00000200) != 0);
   }
   /**
    * <pre>
-   * The files a plugin eval's graders read, as the try's turn left them.
+   * The files an eval case's graders read, as the try's turn left them.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
-   * @return The pluginEvalFiles.
+   * <code>.ai.stigmer.agentic.run.v1.EvalFiles eval_files = 34 [json_name = "evalFiles"];</code>
+   * @return The evalFiles.
    */
   @java.lang.Override
-  public ai.stigmer.agentic.run.v1.PluginEvalFiles getPluginEvalFiles() {
-    return pluginEvalFiles_ == null ? ai.stigmer.agentic.run.v1.PluginEvalFiles.getDefaultInstance() : pluginEvalFiles_;
+  public ai.stigmer.agentic.run.v1.EvalFiles getEvalFiles() {
+    return evalFiles_ == null ? ai.stigmer.agentic.run.v1.EvalFiles.getDefaultInstance() : evalFiles_;
   }
   /**
    * <pre>
-   * The files a plugin eval's graders read, as the try's turn left them.
+   * The files an eval case's graders read, as the try's turn left them.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.EvalFiles eval_files = 34 [json_name = "evalFiles"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.run.v1.PluginEvalFilesOrBuilder getPluginEvalFilesOrBuilder() {
-    return pluginEvalFiles_ == null ? ai.stigmer.agentic.run.v1.PluginEvalFiles.getDefaultInstance() : pluginEvalFiles_;
+  public ai.stigmer.agentic.run.v1.EvalFilesOrBuilder getEvalFilesOrBuilder() {
+    return evalFiles_ == null ? ai.stigmer.agentic.run.v1.EvalFiles.getDefaultInstance() : evalFiles_;
   }
 
   public static final int STOP_CAUSE_FIELD_NUMBER = 35;
@@ -1144,7 +1144,7 @@ private static final long serialVersionUID = 0L;
    * tool-call limit), timeout (a stall or the workspace lock), infrastructure
    * (the worker shut down or stopped answering), platform_stop, user (a pause
    * or a cancel), model_error (the model provider failed the turn), failed
-   * (any other failure), eval_stopped (a plugin eval's mock or scaffold
+   * (any other failure), eval_stopped (an eval case's mock or scaffold
    * stopped the try) or review_resolved (a file review was settled). Empty
    * while the turn works, and when it ended on its own.
    * </pre>
@@ -1171,7 +1171,7 @@ private static final long serialVersionUID = 0L;
    * tool-call limit), timeout (a stall or the workspace lock), infrastructure
    * (the worker shut down or stopped answering), platform_stop, user (a pause
    * or a cancel), model_error (the model provider failed the turn), failed
-   * (any other failure), eval_stopped (a plugin eval's mock or scaffold
+   * (any other failure), eval_stopped (an eval case's mock or scaffold
    * stopped the try) or review_resolved (a file review was settled). Empty
    * while the turn works, and when it ended on its own.
    * </pre>
@@ -1257,7 +1257,7 @@ private static final long serialVersionUID = 0L;
       output.writeMessage(33, getCredentials());
     }
     if (((bitField0_ & 0x00000200) != 0)) {
-      output.writeMessage(34, getPluginEvalFiles());
+      output.writeMessage(34, getEvalFiles());
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(stopCause_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 35, stopCause_);
@@ -1351,7 +1351,7 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000200) != 0)) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(34, getPluginEvalFiles());
+        .computeMessageSize(34, getEvalFiles());
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(stopCause_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(35, stopCause_);
@@ -1451,10 +1451,10 @@ private static final long serialVersionUID = 0L;
       if (!getCredentials()
           .equals(other.getCredentials())) return false;
     }
-    if (hasPluginEvalFiles() != other.hasPluginEvalFiles()) return false;
-    if (hasPluginEvalFiles()) {
-      if (!getPluginEvalFiles()
-          .equals(other.getPluginEvalFiles())) return false;
+    if (hasEvalFiles() != other.hasEvalFiles()) return false;
+    if (hasEvalFiles()) {
+      if (!getEvalFiles()
+          .equals(other.getEvalFiles())) return false;
     }
     if (!getStopCause()
         .equals(other.getStopCause())) return false;
@@ -1531,9 +1531,9 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + CREDENTIALS_FIELD_NUMBER;
       hash = (53 * hash) + getCredentials().hashCode();
     }
-    if (hasPluginEvalFiles()) {
-      hash = (37 * hash) + PLUGIN_EVAL_FILES_FIELD_NUMBER;
-      hash = (53 * hash) + getPluginEvalFiles().hashCode();
+    if (hasEvalFiles()) {
+      hash = (37 * hash) + EVAL_FILES_FIELD_NUMBER;
+      hash = (53 * hash) + getEvalFiles().hashCode();
     }
     hash = (37 * hash) + STOP_CAUSE_FIELD_NUMBER;
     hash = (53 * hash) + getStopCause().hashCode();
@@ -1687,7 +1687,7 @@ private static final long serialVersionUID = 0L;
         internalGetRecalledMemoriesFieldBuilder();
         internalGetRunConfigFieldBuilder();
         internalGetCredentialsFieldBuilder();
-        internalGetPluginEvalFilesFieldBuilder();
+        internalGetEvalFilesFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1767,10 +1767,10 @@ private static final long serialVersionUID = 0L;
         credentialsBuilder_.dispose();
         credentialsBuilder_ = null;
       }
-      pluginEvalFiles_ = null;
-      if (pluginEvalFilesBuilder_ != null) {
-        pluginEvalFilesBuilder_.dispose();
-        pluginEvalFilesBuilder_ = null;
+      evalFiles_ = null;
+      if (evalFilesBuilder_ != null) {
+        evalFilesBuilder_.dispose();
+        evalFilesBuilder_ = null;
       }
       stopCause_ = "";
       return this;
@@ -1914,9 +1914,9 @@ private static final long serialVersionUID = 0L;
         to_bitField0_ |= 0x00000100;
       }
       if (((from_bitField0_ & 0x00080000) != 0)) {
-        result.pluginEvalFiles_ = pluginEvalFilesBuilder_ == null
-            ? pluginEvalFiles_
-            : pluginEvalFilesBuilder_.build();
+        result.evalFiles_ = evalFilesBuilder_ == null
+            ? evalFiles_
+            : evalFilesBuilder_.build();
         to_bitField0_ |= 0x00000200;
       }
       if (((from_bitField0_ & 0x00100000) != 0)) {
@@ -2073,8 +2073,8 @@ private static final long serialVersionUID = 0L;
       if (other.hasCredentials()) {
         mergeCredentials(other.getCredentials());
       }
-      if (other.hasPluginEvalFiles()) {
-        mergePluginEvalFiles(other.getPluginEvalFiles());
+      if (other.hasEvalFiles()) {
+        mergeEvalFiles(other.getEvalFiles());
       }
       if (!other.getStopCause().isEmpty()) {
         stopCause_ = other.stopCause_;
@@ -2219,7 +2219,7 @@ private static final long serialVersionUID = 0L;
             } // case 266
             case 274: {
               input.readMessage(
-                  internalGetPluginEvalFilesFieldBuilder().getBuilder(),
+                  internalGetEvalFilesFieldBuilder().getBuilder(),
                   extensionRegistry);
               bitField0_ |= 0x00080000;
               break;
@@ -5933,50 +5933,50 @@ private static final long serialVersionUID = 0L;
       return credentialsBuilder_;
     }
 
-    private ai.stigmer.agentic.run.v1.PluginEvalFiles pluginEvalFiles_;
+    private ai.stigmer.agentic.run.v1.EvalFiles evalFiles_;
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.run.v1.PluginEvalFiles, ai.stigmer.agentic.run.v1.PluginEvalFiles.Builder, ai.stigmer.agentic.run.v1.PluginEvalFilesOrBuilder> pluginEvalFilesBuilder_;
+        ai.stigmer.agentic.run.v1.EvalFiles, ai.stigmer.agentic.run.v1.EvalFiles.Builder, ai.stigmer.agentic.run.v1.EvalFilesOrBuilder> evalFilesBuilder_;
     /**
      * <pre>
-     * The files a plugin eval's graders read, as the try's turn left them.
+     * The files an eval case's graders read, as the try's turn left them.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
-     * @return Whether the pluginEvalFiles field is set.
+     * <code>.ai.stigmer.agentic.run.v1.EvalFiles eval_files = 34 [json_name = "evalFiles"];</code>
+     * @return Whether the evalFiles field is set.
      */
-    public boolean hasPluginEvalFiles() {
+    public boolean hasEvalFiles() {
       return ((bitField0_ & 0x00080000) != 0);
     }
     /**
      * <pre>
-     * The files a plugin eval's graders read, as the try's turn left them.
+     * The files an eval case's graders read, as the try's turn left them.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
-     * @return The pluginEvalFiles.
+     * <code>.ai.stigmer.agentic.run.v1.EvalFiles eval_files = 34 [json_name = "evalFiles"];</code>
+     * @return The evalFiles.
      */
-    public ai.stigmer.agentic.run.v1.PluginEvalFiles getPluginEvalFiles() {
-      if (pluginEvalFilesBuilder_ == null) {
-        return pluginEvalFiles_ == null ? ai.stigmer.agentic.run.v1.PluginEvalFiles.getDefaultInstance() : pluginEvalFiles_;
+    public ai.stigmer.agentic.run.v1.EvalFiles getEvalFiles() {
+      if (evalFilesBuilder_ == null) {
+        return evalFiles_ == null ? ai.stigmer.agentic.run.v1.EvalFiles.getDefaultInstance() : evalFiles_;
       } else {
-        return pluginEvalFilesBuilder_.getMessage();
+        return evalFilesBuilder_.getMessage();
       }
     }
     /**
      * <pre>
-     * The files a plugin eval's graders read, as the try's turn left them.
+     * The files an eval case's graders read, as the try's turn left them.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.EvalFiles eval_files = 34 [json_name = "evalFiles"];</code>
      */
-    public Builder setPluginEvalFiles(ai.stigmer.agentic.run.v1.PluginEvalFiles value) {
-      if (pluginEvalFilesBuilder_ == null) {
+    public Builder setEvalFiles(ai.stigmer.agentic.run.v1.EvalFiles value) {
+      if (evalFilesBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        pluginEvalFiles_ = value;
+        evalFiles_ = value;
       } else {
-        pluginEvalFilesBuilder_.setMessage(value);
+        evalFilesBuilder_.setMessage(value);
       }
       bitField0_ |= 0x00080000;
       onChanged();
@@ -5984,17 +5984,17 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The files a plugin eval's graders read, as the try's turn left them.
+     * The files an eval case's graders read, as the try's turn left them.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.EvalFiles eval_files = 34 [json_name = "evalFiles"];</code>
      */
-    public Builder setPluginEvalFiles(
-        ai.stigmer.agentic.run.v1.PluginEvalFiles.Builder builderForValue) {
-      if (pluginEvalFilesBuilder_ == null) {
-        pluginEvalFiles_ = builderForValue.build();
+    public Builder setEvalFiles(
+        ai.stigmer.agentic.run.v1.EvalFiles.Builder builderForValue) {
+      if (evalFilesBuilder_ == null) {
+        evalFiles_ = builderForValue.build();
       } else {
-        pluginEvalFilesBuilder_.setMessage(builderForValue.build());
+        evalFilesBuilder_.setMessage(builderForValue.build());
       }
       bitField0_ |= 0x00080000;
       onChanged();
@@ -6002,24 +6002,24 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The files a plugin eval's graders read, as the try's turn left them.
+     * The files an eval case's graders read, as the try's turn left them.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.EvalFiles eval_files = 34 [json_name = "evalFiles"];</code>
      */
-    public Builder mergePluginEvalFiles(ai.stigmer.agentic.run.v1.PluginEvalFiles value) {
-      if (pluginEvalFilesBuilder_ == null) {
+    public Builder mergeEvalFiles(ai.stigmer.agentic.run.v1.EvalFiles value) {
+      if (evalFilesBuilder_ == null) {
         if (((bitField0_ & 0x00080000) != 0) &&
-          pluginEvalFiles_ != null &&
-          pluginEvalFiles_ != ai.stigmer.agentic.run.v1.PluginEvalFiles.getDefaultInstance()) {
-          getPluginEvalFilesBuilder().mergeFrom(value);
+          evalFiles_ != null &&
+          evalFiles_ != ai.stigmer.agentic.run.v1.EvalFiles.getDefaultInstance()) {
+          getEvalFilesBuilder().mergeFrom(value);
         } else {
-          pluginEvalFiles_ = value;
+          evalFiles_ = value;
         }
       } else {
-        pluginEvalFilesBuilder_.mergeFrom(value);
+        evalFilesBuilder_.mergeFrom(value);
       }
-      if (pluginEvalFiles_ != null) {
+      if (evalFiles_ != null) {
         bitField0_ |= 0x00080000;
         onChanged();
       }
@@ -6027,67 +6027,67 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The files a plugin eval's graders read, as the try's turn left them.
+     * The files an eval case's graders read, as the try's turn left them.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.EvalFiles eval_files = 34 [json_name = "evalFiles"];</code>
      */
-    public Builder clearPluginEvalFiles() {
+    public Builder clearEvalFiles() {
       bitField0_ = (bitField0_ & ~0x00080000);
-      pluginEvalFiles_ = null;
-      if (pluginEvalFilesBuilder_ != null) {
-        pluginEvalFilesBuilder_.dispose();
-        pluginEvalFilesBuilder_ = null;
+      evalFiles_ = null;
+      if (evalFilesBuilder_ != null) {
+        evalFilesBuilder_.dispose();
+        evalFilesBuilder_ = null;
       }
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * The files a plugin eval's graders read, as the try's turn left them.
+     * The files an eval case's graders read, as the try's turn left them.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.EvalFiles eval_files = 34 [json_name = "evalFiles"];</code>
      */
-    public ai.stigmer.agentic.run.v1.PluginEvalFiles.Builder getPluginEvalFilesBuilder() {
+    public ai.stigmer.agentic.run.v1.EvalFiles.Builder getEvalFilesBuilder() {
       bitField0_ |= 0x00080000;
       onChanged();
-      return internalGetPluginEvalFilesFieldBuilder().getBuilder();
+      return internalGetEvalFilesFieldBuilder().getBuilder();
     }
     /**
      * <pre>
-     * The files a plugin eval's graders read, as the try's turn left them.
+     * The files an eval case's graders read, as the try's turn left them.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.EvalFiles eval_files = 34 [json_name = "evalFiles"];</code>
      */
-    public ai.stigmer.agentic.run.v1.PluginEvalFilesOrBuilder getPluginEvalFilesOrBuilder() {
-      if (pluginEvalFilesBuilder_ != null) {
-        return pluginEvalFilesBuilder_.getMessageOrBuilder();
+    public ai.stigmer.agentic.run.v1.EvalFilesOrBuilder getEvalFilesOrBuilder() {
+      if (evalFilesBuilder_ != null) {
+        return evalFilesBuilder_.getMessageOrBuilder();
       } else {
-        return pluginEvalFiles_ == null ?
-            ai.stigmer.agentic.run.v1.PluginEvalFiles.getDefaultInstance() : pluginEvalFiles_;
+        return evalFiles_ == null ?
+            ai.stigmer.agentic.run.v1.EvalFiles.getDefaultInstance() : evalFiles_;
       }
     }
     /**
      * <pre>
-     * The files a plugin eval's graders read, as the try's turn left them.
+     * The files an eval case's graders read, as the try's turn left them.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.EvalFiles eval_files = 34 [json_name = "evalFiles"];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.run.v1.PluginEvalFiles, ai.stigmer.agentic.run.v1.PluginEvalFiles.Builder, ai.stigmer.agentic.run.v1.PluginEvalFilesOrBuilder> 
-        internalGetPluginEvalFilesFieldBuilder() {
-      if (pluginEvalFilesBuilder_ == null) {
-        pluginEvalFilesBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.run.v1.PluginEvalFiles, ai.stigmer.agentic.run.v1.PluginEvalFiles.Builder, ai.stigmer.agentic.run.v1.PluginEvalFilesOrBuilder>(
-                getPluginEvalFiles(),
+        ai.stigmer.agentic.run.v1.EvalFiles, ai.stigmer.agentic.run.v1.EvalFiles.Builder, ai.stigmer.agentic.run.v1.EvalFilesOrBuilder> 
+        internalGetEvalFilesFieldBuilder() {
+      if (evalFilesBuilder_ == null) {
+        evalFilesBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.run.v1.EvalFiles, ai.stigmer.agentic.run.v1.EvalFiles.Builder, ai.stigmer.agentic.run.v1.EvalFilesOrBuilder>(
+                getEvalFiles(),
                 getParentForChildren(),
                 isClean());
-        pluginEvalFiles_ = null;
+        evalFiles_ = null;
       }
-      return pluginEvalFilesBuilder_;
+      return evalFilesBuilder_;
     }
 
     private java.lang.Object stopCause_ = "";
@@ -6097,7 +6097,7 @@ private static final long serialVersionUID = 0L;
      * tool-call limit), timeout (a stall or the workspace lock), infrastructure
      * (the worker shut down or stopped answering), platform_stop, user (a pause
      * or a cancel), model_error (the model provider failed the turn), failed
-     * (any other failure), eval_stopped (a plugin eval's mock or scaffold
+     * (any other failure), eval_stopped (an eval case's mock or scaffold
      * stopped the try) or review_resolved (a file review was settled). Empty
      * while the turn works, and when it ended on its own.
      * </pre>
@@ -6123,7 +6123,7 @@ private static final long serialVersionUID = 0L;
      * tool-call limit), timeout (a stall or the workspace lock), infrastructure
      * (the worker shut down or stopped answering), platform_stop, user (a pause
      * or a cancel), model_error (the model provider failed the turn), failed
-     * (any other failure), eval_stopped (a plugin eval's mock or scaffold
+     * (any other failure), eval_stopped (an eval case's mock or scaffold
      * stopped the try) or review_resolved (a file review was settled). Empty
      * while the turn works, and when it ended on its own.
      * </pre>
@@ -6150,7 +6150,7 @@ private static final long serialVersionUID = 0L;
      * tool-call limit), timeout (a stall or the workspace lock), infrastructure
      * (the worker shut down or stopped answering), platform_stop, user (a pause
      * or a cancel), model_error (the model provider failed the turn), failed
-     * (any other failure), eval_stopped (a plugin eval's mock or scaffold
+     * (any other failure), eval_stopped (an eval case's mock or scaffold
      * stopped the try) or review_resolved (a file review was settled). Empty
      * while the turn works, and when it ended on its own.
      * </pre>
@@ -6173,7 +6173,7 @@ private static final long serialVersionUID = 0L;
      * tool-call limit), timeout (a stall or the workspace lock), infrastructure
      * (the worker shut down or stopped answering), platform_stop, user (a pause
      * or a cancel), model_error (the model provider failed the turn), failed
-     * (any other failure), eval_stopped (a plugin eval's mock or scaffold
+     * (any other failure), eval_stopped (an eval case's mock or scaffold
      * stopped the try) or review_resolved (a file review was settled). Empty
      * while the turn works, and when it ended on its own.
      * </pre>
@@ -6193,7 +6193,7 @@ private static final long serialVersionUID = 0L;
      * tool-call limit), timeout (a stall or the workspace lock), infrastructure
      * (the worker shut down or stopped answering), platform_stop, user (a pause
      * or a cancel), model_error (the model provider failed the turn), failed
-     * (any other failure), eval_stopped (a plugin eval's mock or scaffold
+     * (any other failure), eval_stopped (an eval case's mock or scaffold
      * stopped the try) or review_resolved (a file review was settled). Empty
      * while the turn works, and when it ended on its own.
      * </pre>

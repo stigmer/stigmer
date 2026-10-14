@@ -1,0 +1,62 @@
+{
+  "name": "EvalMockServer",
+  "description": "EvalMockServer is one plugin MCP server answered by a stand-in.",
+  "protoType": "ai.stigmer.agentic.run.v1.EvalMockServer",
+  "protoFile": "apis/ai/stigmer/agentic/run/v1/eval_case.proto",
+  "fields": [
+    {
+      "name": "Server",
+      "jsonName": "server",
+      "protoField": "server",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The server's key in the plugin's MCP configuration.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "Segment",
+      "jsonName": "segment",
+      "protoField": "segment",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The name the stand-in is registered under in the turn, the plugin\n server's own.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "Tools",
+      "jsonName": "tools",
+      "protoField": "tools",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "EvalMockTool"
+        }
+      },
+      "description": "The mocked tools; a tool not listed is not offered.",
+      "required": false,
+      "validation": {
+        "minItems": 1,
+        "maxItems": 128
+      }
+    },
+    {
+      "name": "ToolsFile",
+      "jsonName": "toolsFile",
+      "protoField": "tools_file",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The server's saved tools/list response, for real descriptions and\n input schemas; empty for none.",
+      "required": false
+    }
+  ]
+}

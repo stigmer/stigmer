@@ -8,10 +8,10 @@ import "google.golang.org/grpc"
 type Client struct {
 	Agent            *AgentClient
 	AgentChannel     *AgentChannelClient
-	AgentEval        *AgentEvalClient
 	AgentShare       *AgentShareClient
 	ApiKey           *ApiKeyClient
 	ChannelApp       *ChannelAppClient
+	EvalRun          *EvalRunClient
 	Evaluator        *EvaluatorClient
 	FederationIssuer *FederationIssuerClient
 	IamPolicy        *IamPolicyClient
@@ -23,7 +23,6 @@ type Client struct {
 	Organization     *OrganizationClient
 	Plan             *PlanClient
 	Plugin           *PluginClient
-	PluginEval       *PluginEvalClient
 	ProviderKey      *ProviderKeyClient
 	Run              *RunClient
 	Schedule         *ScheduleClient
@@ -40,10 +39,10 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 	return &Client{
 		Agent:            NewAgentClient(conn),
 		AgentChannel:     NewAgentChannelClient(conn),
-		AgentEval:        NewAgentEvalClient(conn),
 		AgentShare:       NewAgentShareClient(conn),
 		ApiKey:           NewApiKeyClient(conn),
 		ChannelApp:       NewChannelAppClient(conn),
+		EvalRun:          NewEvalRunClient(conn),
 		Evaluator:        NewEvaluatorClient(conn),
 		FederationIssuer: NewFederationIssuerClient(conn),
 		IamPolicy:        NewIamPolicyClient(conn),
@@ -55,7 +54,6 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		Organization:     NewOrganizationClient(conn),
 		Plan:             NewPlanClient(conn),
 		Plugin:           NewPluginClient(conn),
-		PluginEval:       NewPluginEvalClient(conn),
 		ProviderKey:      NewProviderKeyClient(conn),
 		Run:              NewRunClient(conn),
 		Schedule:         NewScheduleClient(conn),

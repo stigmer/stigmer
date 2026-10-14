@@ -937,66 +937,54 @@ enum ApiResourceKind {
     }
   }];
 
-  // One run of a plugin's own evals/ cases: every case tried with and
-  // without the plugin, on the models the eval names.
-  plugin_eval = 63 [(kind_meta) = {
-    group: agentic
-    version: v1
-    name: "PluginEval"
-    display_name: "Plugin Eval"
-    id_prefix: "pev"
-    is_versioned: false
-    // Not searchable by design: an eval is a result reached through its
-    // plugin's Evals tab, not a library artifact.
-    not_search_indexed: true
-    tier: open_source
-    authorization: {
-      // A child of its plugin: the plugin's editors start and delete
-      // evals; the plugin's viewers in its own organization read them.
-      scope_type: AUTHORIZATION_SCOPE_TYPE_PARENT
-      // No owner of its own, as an evaluator has none: the plugin's owner
-      // (which includes the organization's admins, who hold the purse) is
-      // the eval's.
-      owner_type: OWNER_ATTRIBUTION_TYPE_NONE
-      parent: {
-        kind: "plugin"
-        relation: "plugin"
-        spec_field: "plugin_id"
-      }
-      // No visibility config and no grantable roles: an eval is reached
-      // through its plugin, never shared on its own.
-    }
-  }];
+  // Values 63 and 64 held the PluginEval (id prefix "pev") and AgentEval
+  // (id prefix "aev") kinds, one run of a plugin's own eval cases and one
+  // run of an agent's plugins' cases, until one EvalRun kind replaced both.
+  // Stored rows of the retired kinds are removed by the store migration
+  // that retired them. Reserved so neither number is reused for a
+  // different kind.
+  reserved 63, 64;
+  reserved "plugin_eval", "agent_eval";
 
-  // One run of the eval cases of the plugins an agent attaches, on the
-  // agent itself: each plugin's cases at the version the agent attaches,
-  // on the models the eval names, stamped with the agent's version.
-  agent_eval = 64 [(kind_meta) = {
+  // One run of test cases on an agent, or on a plugin on the built-in
+  // assistant, optionally with and without a plugin.
+  eval_run = 65 [(kind_meta) = {
     group: agentic
     version: v1
-    name: "AgentEval"
-    display_name: "Agent Eval"
-    id_prefix: "aev"
+    name: "EvalRun"
+    display_name: "Eval Run"
+    id_prefix: "evr"
     is_versioned: false
-    // Not searchable by design: an eval is a result reached through its
-    // agent's Evals tab, not a library artifact.
+    // Not searchable by design: an eval run is a result reached through its
+    // agent's or plugin's Evals tab, not a library artifact.
     not_search_indexed: true
     tier: open_source
     authorization: {
-      // A child of its agent: the agent's editors start and delete evals;
-      // the agent's viewers in its own organization read them.
-      scope_type: AUTHORIZATION_SCOPE_TYPE_PARENT
-      // No owner of its own, as an evaluator has none: the agent's owner
+      // The subject's editors start and delete eval runs; its viewers in
+      // its own organization read them (the model's eval_run type).
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      // No owner of its own, as an evaluator has none: the subject's owner
       // (which includes the organization's admins, who hold the purse) is
-      // the eval's.
+      // the eval run's.
       owner_type: OWNER_ATTRIBUTION_TYPE_NONE
-      parent: {
-        kind: "agent"
-        relation: "agent"
-        spec_field: "agent_id"
-      }
-      // No visibility config and no grantable roles: an eval is reached
-      // through its agent, never shared on its own.
+      // The subject: the spec's subject oneof writes exactly one of the two
+      // optional parents below, as a vault's owner oneof does.
+      additional_parents: [
+        {
+          kind: "agent"
+          relation: "agent"
+          spec_field: "agent_id"
+          optional: true
+        },
+        {
+          kind: "plugin"
+          relation: "plugin"
+          spec_field: "plugin_id"
+          optional: true
+        }
+      ]
+      // No visibility config and no grantable roles: an eval run is reached
+      // through its subject, never shared on its own.
     }
   }];
 

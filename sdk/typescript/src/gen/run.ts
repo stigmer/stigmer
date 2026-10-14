@@ -9,9 +9,9 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
 import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { EvalMockKind, EvalMockToolSchema, EvalMockServerSchema, EvalCaseContextSchema, type EvalMockTool, type EvalMockServer, type EvalCaseContext } from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
 import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import { RunIdSchema, UpdateRunInputSchema, RunUpdateStatusInputSchema, UpdateStatusResponseSchema, TerminateRunInputSchema, RecoverRunInputSchema, PauseRunInputSchema, ResumeRunInputSchema, UploadAttachmentRequestSchema, UploadAttachmentResponseSchema, ListRunsRequestSchema, RunListSchema, ListRunsBySessionRequestSchema, GetArtifactDownloadUrlRequestSchema, GetArtifactDownloadUrlResponseSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, GetRunUsageReportInputSchema, GetRunUsageReportOutputSchema, GetSessionUsageReportInputSchema, GetSessionUsageReportOutputSchema, GetAgentUsageReportInputSchema, GetAgentUsageReportOutputSchema, GetOrgUsageReportInputSchema, GetOrgUsageReportOutputSchema, GetRunSummaryRequestSchema, RunSummarySchema, type RunUpdateStatusInput, type UpdateStatusResponse, type TerminateRunInput, type RecoverRunInput, type PauseRunInput, type ResumeRunInput, type UploadAttachmentRequest, type UploadAttachmentResponse, type ListRunsRequest, type RunList, type ListRunsBySessionRequest, type GetArtifactDownloadUrlRequest, type GetArtifactDownloadUrlResponse, type GetArtifactContentRequest, type GetArtifactContentResponse, type GetRunUsageReportInput, type GetRunUsageReportOutput, type GetSessionUsageReportInput, type GetSessionUsageReportOutput, type GetAgentUsageReportInput, type GetAgentUsageReportOutput, type GetOrgUsageReportInput, type GetOrgUsageReportOutput, type GetRunSummaryRequest, type RunSummary } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import { PluginEvalMockKind, PluginEvalMockToolSchema, PluginEvalMockServerSchema, PluginEvalCaseContextSchema, type PluginEvalMockTool, type PluginEvalMockServer, type PluginEvalCaseContext } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
 import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
 import { RunSpecSchema, AttachmentSchema, ConversationCatchupSchema, type Attachment, type ConversationCatchup } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -203,7 +203,7 @@ export interface RunInput {
   workspaceFileRefs?: string[];
   supersedesRunId?: string;
   conversationCatchup?: ConversationCatchupInput;
-  pluginEvalCase?: PluginEvalCaseContextInput;
+  evalCase?: EvalCaseContextInput;
   reconcileFileReview?: boolean;
   excludedPluginIds?: string[];
 }
@@ -277,8 +277,8 @@ export interface ConversationCatchupInput {
   windowEnd?: Date | string;
 }
 
-/** SDK input type for PluginEvalCaseContext. */
-export interface PluginEvalCaseContextInput {
+/** SDK input type for EvalCaseContext. */
+export interface EvalCaseContextInput {
   pluginId?: string;
   pluginDigest?: string;
   suiteDir?: string;
@@ -287,26 +287,26 @@ export interface PluginEvalCaseContextInput {
   addDirs?: string[];
   historyFile?: string;
   env?: Record<string, string>;
-  mocks?: PluginEvalMockServerInput[];
+  mocks?: EvalMockServerInput[];
   agentMockModel?: string;
   agentMockCallBudget?: number;
   readFiles?: string[];
   pluginName?: string;
 }
 
-/** SDK input type for PluginEvalMockServer. */
-export interface PluginEvalMockServerInput {
+/** SDK input type for EvalMockServer. */
+export interface EvalMockServerInput {
   server?: string;
   segment?: string;
-  tools?: PluginEvalMockToolInput[];
+  tools?: EvalMockToolInput[];
   toolsFile?: string;
 }
 
-/** SDK input type for PluginEvalMockTool. */
-export interface PluginEvalMockToolInput {
+/** SDK input type for EvalMockTool. */
+export interface EvalMockToolInput {
   tool?: string;
   file?: string;
-  kind?: PluginEvalMockKind;
+  kind?: EvalMockKind;
   error?: boolean;
   expectJson?: string;
   abortWhen?: string;
@@ -392,8 +392,8 @@ function buildConversationCatchupProto(input: ConversationCatchupInput) {
   return msg;
 }
 
-function buildPluginEvalMockToolProto(input: PluginEvalMockToolInput) {
-  return Object.assign(create(PluginEvalMockToolSchema), stripUndefined({
+function buildEvalMockToolProto(input: EvalMockToolInput) {
+  return Object.assign(create(EvalMockToolSchema), stripUndefined({
     tool: input.tool,
     file: input.file,
     kind: input.kind,
@@ -403,17 +403,17 @@ function buildPluginEvalMockToolProto(input: PluginEvalMockToolInput) {
   }));
 }
 
-function buildPluginEvalMockServerProto(input: PluginEvalMockServerInput) {
-  const msg = create(PluginEvalMockServerSchema);
+function buildEvalMockServerProto(input: EvalMockServerInput) {
+  const msg = create(EvalMockServerSchema);
   if (input.server !== undefined) msg.server = input.server;
   if (input.segment !== undefined) msg.segment = input.segment;
-  if (input.tools) msg.tools = input.tools.map(buildPluginEvalMockToolProto);
+  if (input.tools) msg.tools = input.tools.map(buildEvalMockToolProto);
   if (input.toolsFile !== undefined) msg.toolsFile = input.toolsFile;
   return msg;
 }
 
-function buildPluginEvalCaseContextProto(input: PluginEvalCaseContextInput) {
-  const msg = create(PluginEvalCaseContextSchema);
+function buildEvalCaseContextProto(input: EvalCaseContextInput) {
+  const msg = create(EvalCaseContextSchema);
   if (input.pluginId !== undefined) msg.pluginId = input.pluginId;
   if (input.pluginDigest !== undefined) msg.pluginDigest = input.pluginDigest;
   if (input.suiteDir !== undefined) msg.suiteDir = input.suiteDir;
@@ -422,7 +422,7 @@ function buildPluginEvalCaseContextProto(input: PluginEvalCaseContextInput) {
   if (input.addDirs) msg.addDirs = input.addDirs;
   if (input.historyFile !== undefined) msg.historyFile = input.historyFile;
   if (input.env) Object.assign(msg.env, input.env);
-  if (input.mocks) msg.mocks = input.mocks.map(buildPluginEvalMockServerProto);
+  if (input.mocks) msg.mocks = input.mocks.map(buildEvalMockServerProto);
   if (input.agentMockModel !== undefined) msg.agentMockModel = input.agentMockModel;
   if (input.agentMockCallBudget !== undefined) msg.agentMockCallBudget = input.agentMockCallBudget;
   if (input.readFiles) msg.readFiles = input.readFiles;
@@ -434,7 +434,7 @@ export function buildRunProto(input: RunInput): Run {
   const runConfig = input.runConfig ? buildRunConfigProto(input.runConfig) : undefined;
   const attachments = input.attachments?.map(buildAttachmentProto);
   const conversationCatchup = input.conversationCatchup ? buildConversationCatchupProto(input.conversationCatchup) : undefined;
-  const pluginEvalCase = input.pluginEvalCase ? buildPluginEvalCaseContextProto(input.pluginEvalCase) : undefined;
+  const evalCase = input.evalCase ? buildEvalCaseContextProto(input.evalCase) : undefined;
   const spec = Object.assign(create(RunSpecSchema), stripUndefined({
     message: input.message,
     runConfig,
@@ -449,7 +449,7 @@ export function buildRunProto(input: RunInput): Run {
     workspaceFileRefs: input.workspaceFileRefs,
     supersedesRunId: input.supersedesRunId,
     conversationCatchup,
-    pluginEvalCase,
+    evalCase,
     reconcileFileReview: input.reconcileFileReview,
     excludedPluginIds: input.excludedPluginIds,
   }));
@@ -550,7 +550,7 @@ function toConversationCatchupInput(msg: ConversationCatchup): ConversationCatch
   };
 }
 
-function toPluginEvalMockToolInput(msg: PluginEvalMockTool): PluginEvalMockToolInput {
+function toEvalMockToolInput(msg: EvalMockTool): EvalMockToolInput {
   return {
     tool: msg.tool || undefined,
     file: msg.file || undefined,
@@ -561,16 +561,16 @@ function toPluginEvalMockToolInput(msg: PluginEvalMockTool): PluginEvalMockToolI
   };
 }
 
-function toPluginEvalMockServerInput(msg: PluginEvalMockServer): PluginEvalMockServerInput {
+function toEvalMockServerInput(msg: EvalMockServer): EvalMockServerInput {
   return {
     server: msg.server || undefined,
     segment: msg.segment || undefined,
-    tools: msg.tools?.length ? msg.tools.map(toPluginEvalMockToolInput) : undefined,
+    tools: msg.tools?.length ? msg.tools.map(toEvalMockToolInput) : undefined,
     toolsFile: msg.toolsFile || undefined,
   };
 }
 
-function toPluginEvalCaseContextInput(msg: PluginEvalCaseContext): PluginEvalCaseContextInput {
+function toEvalCaseContextInput(msg: EvalCaseContext): EvalCaseContextInput {
   return {
     pluginId: msg.pluginId || undefined,
     pluginDigest: msg.pluginDigest || undefined,
@@ -580,7 +580,7 @@ function toPluginEvalCaseContextInput(msg: PluginEvalCaseContext): PluginEvalCas
     addDirs: msg.addDirs?.length ? [...msg.addDirs] : undefined,
     historyFile: msg.historyFile || undefined,
     env: Object.keys(msg.env ?? {}).length > 0 ? { ...msg.env } : undefined,
-    mocks: msg.mocks?.length ? msg.mocks.map(toPluginEvalMockServerInput) : undefined,
+    mocks: msg.mocks?.length ? msg.mocks.map(toEvalMockServerInput) : undefined,
     agentMockModel: msg.agentMockModel || undefined,
     agentMockCallBudget: msg.agentMockCallBudget || undefined,
     readFiles: msg.readFiles?.length ? [...msg.readFiles] : undefined,
@@ -626,7 +626,7 @@ export function toRunInput(resource: Run): RunInput {
     workspaceFileRefs: spec.workspaceFileRefs?.length ? [...spec.workspaceFileRefs] : undefined,
     supersedesRunId: spec.supersedesRunId || undefined,
     conversationCatchup: spec.conversationCatchup ? toConversationCatchupInput(spec.conversationCatchup) : undefined,
-    pluginEvalCase: spec.pluginEvalCase ? toPluginEvalCaseContextInput(spec.pluginEvalCase) : undefined,
+    evalCase: spec.evalCase ? toEvalCaseContextInput(spec.evalCase) : undefined,
     reconcileFileReview: spec.reconcileFileReview || undefined,
     excludedPluginIds: spec.excludedPluginIds?.length ? [...spec.excludedPluginIds] : undefined,
   };

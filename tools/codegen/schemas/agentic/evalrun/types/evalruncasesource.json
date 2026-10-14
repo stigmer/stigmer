@@ -1,0 +1,21 @@
+{
+  "name": "EvalRunCaseSource",
+  "description": "EvalRunCaseSource is where an eval run's cases come from.",
+  "protoType": "ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource",
+  "protoFile": "apis/ai/stigmer/agentic/evalrun/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Plugin",
+      "jsonName": "plugin",
+      "protoField": "plugin",
+      "type": {
+        "kind": "message",
+        "messageType": "ApiResourceReference"
+      },
+      "description": "A plugin whose evals/ folder holds the cases: one the agent attaches,\n or the compared plugin.",
+      "required": false,
+      "referenceKind": 58,
+      "oneofGroup": "source"
+    }
+  ]
+}

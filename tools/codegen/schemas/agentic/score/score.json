@@ -34,7 +34,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "What is measured: `feedback` for a person's thumbs, `run-health` for\n the free checks, `judge` for an AI judge's verdict, `eval` for a\n plugin eval's checks on one try.",
+      "description": "What is measured: `feedback` for a person's thumbs, `run-health` for\n the free checks, `judge` for an AI judge's verdict, `eval` for an\n eval case's checks on one try.",
       "required": false,
       "validation": {
         "minLength": 1,

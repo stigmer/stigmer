@@ -200,8 +200,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * What is measured: `feedback` for a person's thumbs, `run-health` for
-   * the free checks, `judge` for an AI judge's verdict, `eval` for a
-   * plugin eval's checks on one try.
+   * the free checks, `judge` for an AI judge's verdict, `eval` for an
+   * eval case's checks on one try.
    * </pre>
    *
    * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
@@ -223,8 +223,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * What is measured: `feedback` for a person's thumbs, `run-health` for
-   * the free checks, `judge` for an AI judge's verdict, `eval` for a
-   * plugin eval's checks on one try.
+   * the free checks, `judge` for an AI judge's verdict, `eval` for an
+   * eval case's checks on one try.
    * </pre>
    *
    * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
@@ -1275,8 +1275,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * What is measured: `feedback` for a person's thumbs, `run-health` for
-     * the free checks, `judge` for an AI judge's verdict, `eval` for a
-     * plugin eval's checks on one try.
+     * the free checks, `judge` for an AI judge's verdict, `eval` for an
+     * eval case's checks on one try.
      * </pre>
      *
      * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
@@ -1297,8 +1297,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * What is measured: `feedback` for a person's thumbs, `run-health` for
-     * the free checks, `judge` for an AI judge's verdict, `eval` for a
-     * plugin eval's checks on one try.
+     * the free checks, `judge` for an AI judge's verdict, `eval` for an
+     * eval case's checks on one try.
      * </pre>
      *
      * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
@@ -1320,8 +1320,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * What is measured: `feedback` for a person's thumbs, `run-health` for
-     * the free checks, `judge` for an AI judge's verdict, `eval` for a
-     * plugin eval's checks on one try.
+     * the free checks, `judge` for an AI judge's verdict, `eval` for an
+     * eval case's checks on one try.
      * </pre>
      *
      * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
@@ -1339,8 +1339,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * What is measured: `feedback` for a person's thumbs, `run-health` for
-     * the free checks, `judge` for an AI judge's verdict, `eval` for a
-     * plugin eval's checks on one try.
+     * the free checks, `judge` for an AI judge's verdict, `eval` for an
+     * eval case's checks on one try.
      * </pre>
      *
      * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
@@ -1355,8 +1355,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * What is measured: `feedback` for a person's thumbs, `run-health` for
-     * the free checks, `judge` for an AI judge's verdict, `eval` for a
-     * plugin eval's checks on one try.
+     * the free checks, `judge` for an AI judge's verdict, `eval` for an
+     * eval case's checks on one try.
      * </pre>
      *
      * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>

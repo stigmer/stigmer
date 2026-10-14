@@ -217,7 +217,7 @@ type RunInput struct {
 	WorkspaceFileRefs      []string
 	SupersedesRunId        string
 	ConversationCatchup    *ConversationCatchupInput
-	PluginEvalCase         *PluginEvalCaseContextInput
+	EvalCase               *EvalCaseContextInput
 	ReconcileFileReview    bool
 	ExcludedPluginIds      []string
 }
@@ -284,8 +284,8 @@ type ConversationCatchupInput struct {
 	WindowEnd string
 }
 
-// PluginEvalCaseContextInput is the SDK input type for PluginEvalCaseContext.
-type PluginEvalCaseContextInput struct {
+// EvalCaseContextInput is the SDK input type for EvalCaseContext.
+type EvalCaseContextInput struct {
 	PluginId            string
 	PluginDigest        string
 	SuiteDir            string
@@ -294,26 +294,26 @@ type PluginEvalCaseContextInput struct {
 	AddDirs             []string
 	HistoryFile         string
 	Env                 map[string]string
-	Mocks               []*PluginEvalMockServerInput
+	Mocks               []*EvalMockServerInput
 	AgentMockModel      string
 	AgentMockCallBudget int32
 	ReadFiles           []string
 	PluginName          string
 }
 
-// PluginEvalMockServerInput is the SDK input type for PluginEvalMockServer.
-type PluginEvalMockServerInput struct {
+// EvalMockServerInput is the SDK input type for EvalMockServer.
+type EvalMockServerInput struct {
 	Server    string
 	Segment   string
-	Tools     []*PluginEvalMockToolInput
+	Tools     []*EvalMockToolInput
 	ToolsFile string
 }
 
-// PluginEvalMockToolInput is the SDK input type for PluginEvalMockTool.
-type PluginEvalMockToolInput struct {
+// EvalMockToolInput is the SDK input type for EvalMockTool.
+type EvalMockToolInput struct {
 	Tool       string
 	File       string
-	Kind       runv1.PluginEvalMockKind
+	Kind       runv1.EvalMockKind
 	Error      bool
 	ExpectJson string
 	AbortWhen  string
@@ -411,12 +411,12 @@ func (i *RunInput) toProto() (*runv1.Run, error) {
 		}
 		resource.Spec.ConversationCatchup = v
 	}
-	if i.PluginEvalCase != nil {
-		v, err := i.PluginEvalCase.toProto()
+	if i.EvalCase != nil {
+		v, err := i.EvalCase.toProto()
 		if err != nil {
-			return nil, fieldErr("PluginEvalCase", err)
+			return nil, fieldErr("EvalCase", err)
 		}
-		resource.Spec.PluginEvalCase = v
+		resource.Spec.EvalCase = v
 	}
 	resource.Spec.ReconcileFileReview = i.ReconcileFileReview
 	resource.Spec.ExcludedPluginIds = i.ExcludedPluginIds
@@ -483,8 +483,8 @@ func (i *ConversationCatchupInput) toProto() (*runv1.ConversationCatchup, error)
 	return p, nil
 }
 
-func (i *PluginEvalCaseContextInput) toProto() (*runv1.PluginEvalCaseContext, error) {
-	p := &runv1.PluginEvalCaseContext{}
+func (i *EvalCaseContextInput) toProto() (*runv1.EvalCaseContext, error) {
+	p := &runv1.EvalCaseContext{}
 	p.PluginId = i.PluginId
 	p.PluginDigest = i.PluginDigest
 	p.SuiteDir = i.SuiteDir
@@ -507,8 +507,8 @@ func (i *PluginEvalCaseContextInput) toProto() (*runv1.PluginEvalCaseContext, er
 	return p, nil
 }
 
-func (i *PluginEvalMockServerInput) toProto() (*runv1.PluginEvalMockServer, error) {
-	p := &runv1.PluginEvalMockServer{}
+func (i *EvalMockServerInput) toProto() (*runv1.EvalMockServer, error) {
+	p := &runv1.EvalMockServer{}
 	p.Server = i.Server
 	p.Segment = i.Segment
 	for idx, item := range i.Tools {
@@ -522,8 +522,8 @@ func (i *PluginEvalMockServerInput) toProto() (*runv1.PluginEvalMockServer, erro
 	return p, nil
 }
 
-func (i *PluginEvalMockToolInput) toProto() (*runv1.PluginEvalMockTool, error) {
-	return &runv1.PluginEvalMockTool{
+func (i *EvalMockToolInput) toProto() (*runv1.EvalMockTool, error) {
+	return &runv1.EvalMockTool{
 		Tool:       i.Tool,
 		File:       i.File,
 		Kind:       i.Kind,
@@ -565,7 +565,7 @@ func RunInputFromProto(p *runv1.Run) *RunInput {
 		input.WorkspaceFileRefs = s.GetWorkspaceFileRefs()
 		input.SupersedesRunId = s.GetSupersedesRunId()
 		input.ConversationCatchup = conversationCatchupInputFromProto(s.GetConversationCatchup())
-		input.PluginEvalCase = pluginEvalCaseContextInputFromProto(s.GetPluginEvalCase())
+		input.EvalCase = evalCaseContextInputFromProto(s.GetEvalCase())
 		input.ReconcileFileReview = s.GetReconcileFileReview()
 		input.ExcludedPluginIds = s.GetExcludedPluginIds()
 		input.SessionId = s.GetSessionId()
@@ -673,11 +673,11 @@ func conversationCatchupInputFromProto(p *runv1.ConversationCatchup) *Conversati
 	return input
 }
 
-func pluginEvalCaseContextInputFromProto(p *runv1.PluginEvalCaseContext) *PluginEvalCaseContextInput {
+func evalCaseContextInputFromProto(p *runv1.EvalCaseContext) *EvalCaseContextInput {
 	if p == nil {
 		return nil
 	}
-	input := &PluginEvalCaseContextInput{}
+	input := &EvalCaseContextInput{}
 	input.PluginId = p.GetPluginId()
 	input.PluginDigest = p.GetPluginDigest()
 	input.SuiteDir = p.GetSuiteDir()
@@ -687,7 +687,7 @@ func pluginEvalCaseContextInputFromProto(p *runv1.PluginEvalCaseContext) *Plugin
 	input.HistoryFile = p.GetHistoryFile()
 	input.Env = p.GetEnv()
 	for _, item := range p.GetMocks() {
-		input.Mocks = append(input.Mocks, pluginEvalMockServerInputFromProto(item))
+		input.Mocks = append(input.Mocks, evalMockServerInputFromProto(item))
 	}
 	input.AgentMockModel = p.GetAgentMockModel()
 	input.AgentMockCallBudget = p.GetAgentMockCallBudget()
@@ -696,25 +696,25 @@ func pluginEvalCaseContextInputFromProto(p *runv1.PluginEvalCaseContext) *Plugin
 	return input
 }
 
-func pluginEvalMockServerInputFromProto(p *runv1.PluginEvalMockServer) *PluginEvalMockServerInput {
+func evalMockServerInputFromProto(p *runv1.EvalMockServer) *EvalMockServerInput {
 	if p == nil {
 		return nil
 	}
-	input := &PluginEvalMockServerInput{}
+	input := &EvalMockServerInput{}
 	input.Server = p.GetServer()
 	input.Segment = p.GetSegment()
 	for _, item := range p.GetTools() {
-		input.Tools = append(input.Tools, pluginEvalMockToolInputFromProto(item))
+		input.Tools = append(input.Tools, evalMockToolInputFromProto(item))
 	}
 	input.ToolsFile = p.GetToolsFile()
 	return input
 }
 
-func pluginEvalMockToolInputFromProto(p *runv1.PluginEvalMockTool) *PluginEvalMockToolInput {
+func evalMockToolInputFromProto(p *runv1.EvalMockTool) *EvalMockToolInput {
 	if p == nil {
 		return nil
 	}
-	input := &PluginEvalMockToolInput{}
+	input := &EvalMockToolInput{}
 	input.Tool = p.GetTool()
 	input.File = p.GetFile()
 	input.Kind = p.GetKind()

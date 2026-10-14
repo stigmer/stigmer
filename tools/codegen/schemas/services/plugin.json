@@ -402,8 +402,7 @@
               "vault",
               "score",
               "evaluator",
-              "plugin_eval",
-              "agent_eval",
+              "eval_run",
               "plan",
               "subscription",
               "license"
@@ -863,14 +862,9 @@
           "description": "AI grading switched on for one agent: its sample rate, monthly spending\n limit and judge model."
         },
         {
-          "name": "plugin_eval",
-          "number": 63,
-          "description": "One run of a plugin's own evals/ cases: every case tried with and\n without the plugin, on the models the eval names."
-        },
-        {
-          "name": "agent_eval",
-          "number": 64,
-          "description": "One run of the eval cases of the plugins an agent attaches, on the\n agent itself: each plugin's cases at the version the agent attaches,\n on the models the eval names, stamped with the agent's version."
+          "name": "eval_run",
+          "number": 65,
+          "description": "One run of test cases on an agent, or on a plugin on the built-in\n assistant, optionally with and without a plugin."
         },
         {
           "name": "plan",

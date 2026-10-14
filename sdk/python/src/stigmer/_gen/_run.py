@@ -196,7 +196,7 @@ class RunInput:
     workspace_file_refs: list[str] = field(default_factory=list)
     supersedes_run_id: str = ""
     conversation_catchup: ConversationCatchupInput | None = None
-    plugin_eval_case: PluginEvalCaseContextInput | None = None
+    eval_case: EvalCaseContextInput | None = None
     reconcile_file_review: bool = False
     excluded_plugin_ids: list[str] = field(default_factory=list)
 
@@ -224,8 +224,8 @@ class RunInput:
             spec.workspace_file_refs.extend(self.workspace_file_refs)
         if self.conversation_catchup is not None:
             spec.conversation_catchup.CopyFrom(self.conversation_catchup._to_proto())
-        if self.plugin_eval_case is not None:
-            spec.plugin_eval_case.CopyFrom(self.plugin_eval_case._to_proto())
+        if self.eval_case is not None:
+            spec.eval_case.CopyFrom(self.eval_case._to_proto())
         if self.excluded_plugin_ids:
             spec.excluded_plugin_ids.extend(self.excluded_plugin_ids)
         if self.session_spec is not None:
@@ -410,8 +410,8 @@ class ConversationCatchupInput:
 
 
 @dataclass
-class PluginEvalCaseContextInput:
-    """SDK input type for PluginEvalCaseContext."""
+class EvalCaseContextInput:
+    """SDK input type for EvalCaseContext."""
 
     plugin_id: str = ""
     plugin_digest: str = ""
@@ -421,14 +421,14 @@ class PluginEvalCaseContextInput:
     add_dirs: list[str] = field(default_factory=list)
     history_file: str = ""
     env: dict[str, str] = field(default_factory=dict)
-    mocks: list[PluginEvalMockServerInput] = field(default_factory=list)
+    mocks: list[EvalMockServerInput] = field(default_factory=list)
     agent_mock_model: str = ""
     agent_mock_call_budget: int = 0
     read_files: list[str] = field(default_factory=list)
     plugin_name: str = ""
 
-    def _to_proto(self) -> spec_pb2.PluginEvalCaseContext:
-        msg = spec_pb2.PluginEvalCaseContext(
+    def _to_proto(self) -> spec_pb2.EvalCaseContext:
+        msg = spec_pb2.EvalCaseContext(
             plugin_id=self.plugin_id,
             plugin_digest=self.plugin_digest,
             suite_dir=self.suite_dir,
@@ -451,16 +451,16 @@ class PluginEvalCaseContextInput:
 
 
 @dataclass
-class PluginEvalMockServerInput:
-    """SDK input type for PluginEvalMockServer."""
+class EvalMockServerInput:
+    """SDK input type for EvalMockServer."""
 
     server: str = ""
     segment: str = ""
-    tools: list[PluginEvalMockToolInput] = field(default_factory=list)
+    tools: list[EvalMockToolInput] = field(default_factory=list)
     tools_file: str = ""
 
-    def _to_proto(self) -> spec_pb2.PluginEvalMockServer:
-        msg = spec_pb2.PluginEvalMockServer(
+    def _to_proto(self) -> spec_pb2.EvalMockServer:
+        msg = spec_pb2.EvalMockServer(
             server=self.server,
             segment=self.segment,
             tools_file=self.tools_file,
@@ -471,8 +471,8 @@ class PluginEvalMockServerInput:
 
 
 @dataclass
-class PluginEvalMockToolInput:
-    """SDK input type for PluginEvalMockTool."""
+class EvalMockToolInput:
+    """SDK input type for EvalMockTool."""
 
     tool: str = ""
     file: str = ""
@@ -481,8 +481,8 @@ class PluginEvalMockToolInput:
     expect_json: str = ""
     abort_when: str = ""
 
-    def _to_proto(self) -> spec_pb2.PluginEvalMockTool:
-        msg = spec_pb2.PluginEvalMockTool(
+    def _to_proto(self) -> spec_pb2.EvalMockTool:
+        msg = spec_pb2.EvalMockTool(
             tool=self.tool,
             file=self.file,
             kind=self.kind,

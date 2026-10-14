@@ -1,0 +1,283 @@
+{
+  "name": "EvalRunSpec",
+  "description": "EvalRunSpec says what an eval run is about, whose cases run, on which\n models, how many times, and within what spend.",
+  "protoType": "ai.stigmer.agentic.evalrun.v1.EvalRunSpec",
+  "protoFile": "apis/ai/stigmer/agentic/evalrun/v1/spec.proto",
+  "fields": [
+    {
+      "name": "AgentId",
+      "jsonName": "agentId",
+      "protoField": "agent_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "ID of the agent the cases run on.",
+      "required": false,
+      "oneofGroup": "subject",
+      "validation": {
+        "maxLength": 128
+      }
+    },
+    {
+      "name": "PluginId",
+      "jsonName": "pluginId",
+      "protoField": "plugin_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "ID of a plugin whose own cases run on the built-in assistant, with\n the plugin and, unless ablation is none, without it.",
+      "required": false,
+      "oneofGroup": "subject",
+      "validation": {
+        "maxLength": 128
+      }
+    },
+    {
+      "name": "AgentVersion",
+      "jsonName": "agentVersion",
+      "protoField": "agent_version",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The agent version to evaluate, a version hash or a tag. Empty\n evaluates the current version. Only with agent_id.",
+      "required": false,
+      "validation": {
+        "maxLength": 128
+      }
+    },
+    {
+      "name": "PluginDigest",
+      "jsonName": "pluginDigest",
+      "protoField": "plugin_digest",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The version (archive digest) of the plugin evaluated. Empty evaluates\n its current version. Only with plugin_id.",
+      "required": false,
+      "validation": {
+        "pattern": "^$|^[a-f0-9]{64}$"
+      }
+    },
+    {
+      "name": "ComparedPluginId",
+      "jsonName": "comparedPluginId",
+      "protoField": "compared_plugin_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "ID of a plugin each case runs with and, unless ablation is none,\n without, on the agent: whether the agent does better with it. The\n agent may attach it or not. Only with agent_id.",
+      "required": false,
+      "validation": {
+        "maxLength": 128
+      }
+    },
+    {
+      "name": "Cases",
+      "jsonName": "cases",
+      "protoField": "cases",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "EvalRunCaseSource"
+        }
+      },
+      "description": "Whose cases run, on an agent: each a plugin the agent attaches or the\n compared plugin. Empty runs the compared plugin's cases when one is\n named, else the cases of every plugin the agent attaches. Only with\n agent_id; an eval run of a plugin runs that plugin's own cases.",
+      "required": false,
+      "validation": {
+        "maxItems": 64
+      }
+    },
+    {
+      "name": "Targets",
+      "jsonName": "targets",
+      "protoField": "targets",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "EvalRunTarget"
+        }
+      },
+      "description": "The engines and models each case runs on, at most six. Empty runs each\n case on the agent as it runs (its own engine, model and settings), or,\n on the built-in assistant, on the model the case names or the\n platform's default model.",
+      "required": false,
+      "validation": {
+        "maxItems": 6
+      }
+    },
+    {
+      "name": "Runs",
+      "jsonName": "runs",
+      "protoField": "runs",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Tries per case, arm and target, from 1 to 50. Zero uses each case's\n own runs value, or 3.",
+      "required": false,
+      "validation": {
+        "max": 50
+      }
+    },
+    {
+      "name": "Ablation",
+      "jsonName": "ablation",
+      "protoField": "ablation",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.evalrun.v1.EvalRunAblation",
+        "enumValues": [
+          "eval_run_ablation_with_without",
+          "eval_run_ablation_none"
+        ]
+      },
+      "description": "Whether each case also runs without the compared plugin. Ignored when\n no plugin is compared: an agent's own cases run with what it\n attaches.",
+      "required": false
+    },
+    {
+      "name": "Threshold",
+      "jsonName": "threshold",
+      "protoField": "threshold",
+      "type": {
+        "kind": "double"
+      },
+      "description": "The score a case needs to pass, from 0 to 1, or 1 when unset: every\n scored check passes on every try.",
+      "required": false,
+      "oneofGroup": "_threshold",
+      "validation": {
+        "max": 1
+      }
+    },
+    {
+      "name": "CaseGlob",
+      "jsonName": "caseGlob",
+      "protoField": "case_glob",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Runs only the cases whose directory name matches this glob, as in\n \"review-*\". Empty runs every case.",
+      "required": false,
+      "validation": {
+        "maxLength": 256
+      }
+    },
+    {
+      "name": "CaseTags",
+      "jsonName": "caseTags",
+      "protoField": "case_tags",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Runs only the cases carrying at least one of these tags. Empty runs\n every case.",
+      "required": false,
+      "validation": {
+        "maxItems": 32
+      }
+    },
+    {
+      "name": "JudgeModel",
+      "jsonName": "judgeModel",
+      "protoField": "judge_model",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The model AI-graded checks use. Empty uses the platform's default\n judge model.",
+      "required": false,
+      "validation": {
+        "maxLength": 128
+      }
+    },
+    {
+      "name": "MaxCostUsd",
+      "jsonName": "maxCostUsd",
+      "protoField": "max_cost_usd",
+      "type": {
+        "kind": "double"
+      },
+      "description": "The most this eval run may spend, in estimated US dollars of model\n cost.\n\n Checked before each try starts, counting what tries already spent and\n the cap each running try still holds: tries already running and their\n AI-graded checks finish, so the spend can pass the limit by those.",
+      "required": false,
+      "validation": {
+        "max": 1000
+      }
+    },
+    {
+      "name": "Concurrency",
+      "jsonName": "concurrency",
+      "protoField": "concurrency",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Tries running at once, from 1 to 8. Zero means 1.",
+      "required": false,
+      "validation": {
+        "max": 8
+      }
+    },
+    {
+      "name": "AllowTools",
+      "jsonName": "allowTools",
+      "protoField": "allow_tools",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Tools every try may use beyond each case's own list, in Claude Code's\n names, as Claude Code's --allow-tools.\n\n A try runs with only the tools its case and this list grant, within\n the agent's own tool lists: name the agent's working tools here (Skill\n for its skills, Agent for its hand-offs to subagents). A specifier in\n parentheses, as in Bash(npm test *), grants the whole tool. A plugin's\n MCP tools are named as Claude Code names them,\n mcp__plugin_\u003cplugin\u003e_\u003cserver\u003e__\u003ctool\u003e; the tools of a server written in\n the agent itself are mcp__\u003cserver\u003e__\u003ctool\u003e.",
+      "required": false,
+      "validation": {
+        "maxItems": 64
+      }
+    },
+    {
+      "name": "RealMcpServers",
+      "jsonName": "realMcpServers",
+      "protoField": "real_mcp_servers",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Runs the MCP servers for real, the agent's own and its plugins', with\n the organization's connections. Off by default: a try cannot call MCP\n tools no mock answers, as in Claude Code's evals without mocks.",
+      "required": false
+    },
+    {
+      "name": "Vaults",
+      "jsonName": "vaults",
+      "protoField": "vaults",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "ApiResourceReference"
+        }
+      },
+      "description": "Vaults whose logins and secrets the tries use, in order: the first\n vault holding a match wins. At most 20.\n\n A try has no person, so these vaults are all its hooks and servers\n use. Each is a shared vault: a My vault, the creator's included, is\n refused, because every viewer of the subject may read a try, and a\n hook's or server's output can show what a key unlocked.",
+      "required": false,
+      "referenceKind": 59,
+      "validation": {
+        "maxItems": 20
+      }
+    },
+    {
+      "name": "SkipScaffold",
+      "jsonName": "skipScaffold",
+      "protoField": "skip_scaffold",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Skips each case's scaffold script, as Claude Code's --no-scaffold; a\n case that has one is then listed as not run.\n\n A scaffold runs in the try's own sandbox, as the agent, with none of\n the eval run's vaults, so no opt-in is asked for it.",
+      "required": false
+    },
+    {
+      "name": "AllowRealServers",
+      "jsonName": "allowRealServers",
+      "protoField": "allow_real_servers",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Starts the real MCP servers no mock answers, as Claude Code's\n --allow-real-servers; mocked tools still answer from their files.\n Their tools still need allow_tools.",
+      "required": false
+    }
+  ]
+}

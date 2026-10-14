@@ -4,9 +4,9 @@ package ai.stigmer.agentic.run.v1;
 
 import "ai/stigmer/agentic/run/v1/artifact.proto";
 import "ai/stigmer/agentic/run/v1/enum.proto";
+import "ai/stigmer/agentic/run/v1/eval_case.proto";
 import "ai/stigmer/agentic/run/v1/filereview.proto";
 import "ai/stigmer/agentic/run/v1/invocation.proto";
-import "ai/stigmer/agentic/run/v1/plugin_eval_case.proto";
 import "ai/stigmer/agentic/run/v1/spec.proto";
 import "ai/stigmer/agentic/run/v1/usage.proto";
 import "ai/stigmer/agentic/run/v1/writeback.proto";
@@ -321,18 +321,18 @@ message RunStatus {
   // created, and kept when it is recovered.
   RunCredentials credentials = 33;
 
-  // The files a plugin eval's graders read, as the try's turn left them.
+  // The files an eval case's graders read, as the try's turn left them.
   //
   // @internal
-  // Set only on a run whose spec carries plugin_eval_case, by the runner,
+  // Set only on a run whose spec carries eval_case, by the runner,
   // once, with the turn's terminal status.
-  PluginEvalFiles plugin_eval_files = 34;
+  EvalFiles eval_files = 34;
 
   // Why the turn stopped, as one word: budget_reached (the cost cap or the
   // tool-call limit), timeout (a stall or the workspace lock), infrastructure
   // (the worker shut down or stopped answering), platform_stop, user (a pause
   // or a cancel), model_error (the model provider failed the turn), failed
-  // (any other failure), eval_stopped (a plugin eval's mock or scaffold
+  // (any other failure), eval_stopped (an eval case's mock or scaffold
   // stopped the try) or review_resolved (a file review was settled). Empty
   // while the turn works, and when it ended on its own.
   //

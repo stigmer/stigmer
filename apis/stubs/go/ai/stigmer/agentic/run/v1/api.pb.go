@@ -220,13 +220,13 @@ type RunStatus struct {
 	// Whose logins and secrets this turn uses: decided once when the turn is
 	// created, and kept when it is recovered.
 	Credentials *RunCredentials `protobuf:"bytes,33,opt,name=credentials,proto3" json:"credentials,omitempty"`
-	// The files a plugin eval's graders read, as the try's turn left them.
-	PluginEvalFiles *PluginEvalFiles `protobuf:"bytes,34,opt,name=plugin_eval_files,json=pluginEvalFiles,proto3" json:"plugin_eval_files,omitempty"`
+	// The files an eval case's graders read, as the try's turn left them.
+	EvalFiles *EvalFiles `protobuf:"bytes,34,opt,name=eval_files,json=evalFiles,proto3" json:"eval_files,omitempty"`
 	// Why the turn stopped, as one word: budget_reached (the cost cap or the
 	// tool-call limit), timeout (a stall or the workspace lock), infrastructure
 	// (the worker shut down or stopped answering), platform_stop, user (a pause
 	// or a cancel), model_error (the model provider failed the turn), failed
-	// (any other failure), eval_stopped (a plugin eval's mock or scaffold
+	// (any other failure), eval_stopped (an eval case's mock or scaffold
 	// stopped the try) or review_resolved (a file review was settled). Empty
 	// while the turn works, and when it ended on its own.
 	StopCause     string `protobuf:"bytes,35,opt,name=stop_cause,json=stopCause,proto3" json:"stop_cause,omitempty"`
@@ -397,9 +397,9 @@ func (x *RunStatus) GetCredentials() *RunCredentials {
 	return nil
 }
 
-func (x *RunStatus) GetPluginEvalFiles() *PluginEvalFiles {
+func (x *RunStatus) GetEvalFiles() *EvalFiles {
 	if x != nil {
-		return x.PluginEvalFiles
+		return x.EvalFiles
 	}
 	return nil
 }
@@ -808,7 +808,7 @@ var File_ai_stigmer_agentic_run_v1_api_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_api_proto_rawDesc = "" +
 	"\n" +
-	"#ai/stigmer/agentic/run/v1/api.proto\x12\x19ai.stigmer.agentic.run.v1\x1a(ai/stigmer/agentic/run/v1/artifact.proto\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a*ai/stigmer/agentic/run/v1/filereview.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a0ai/stigmer/agentic/run/v1/plugin_eval_case.proto\x1a$ai/stigmer/agentic/run/v1/spec.proto\x1a%ai/stigmer/agentic/run/v1/usage.proto\x1a)ai/stigmer/agentic/run/v1/writeback.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xb3\x02\n" +
+	"#ai/stigmer/agentic/run/v1/api.proto\x12\x19ai.stigmer.agentic.run.v1\x1a(ai/stigmer/agentic/run/v1/artifact.proto\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a)ai/stigmer/agentic/run/v1/eval_case.proto\x1a*ai/stigmer/agentic/run/v1/filereview.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a$ai/stigmer/agentic/run/v1/spec.proto\x1a%ai/stigmer/agentic/run/v1/usage.proto\x1a)ai/stigmer/agentic/run/v1/writeback.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xb3\x02\n" +
 	"\x03Run\x12=\n" +
 	"\vapi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n" +
 	"\x15agentic.stigmer.ai/v1R\n" +
@@ -818,7 +818,7 @@ const file_ai_stigmer_agentic_run_v1_api_proto_rawDesc = "" +
 	"\x03RunR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x126\n" +
 	"\x04spec\x18\x04 \x01(\v2\".ai.stigmer.agentic.run.v1.RunSpecR\x04spec\x12<\n" +
-	"\x06status\x18\x05 \x01(\v2$.ai.stigmer.agentic.run.v1.RunStatusR\x06status\"\xbd\x0e\n" +
+	"\x06status\x18\x05 \x01(\v2$.ai.stigmer.agentic.run.v1.RunStatusR\x06status\"\xaa\x0e\n" +
 	"\tRunStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12C\n" +
 	"\x05phase\x18\x02 \x01(\x0e2#.ai.stigmer.agentic.run.v1.RunPhaseB\b\xbaH\x05\x82\x01\x02\x10\x01R\x05phase\x12\x14\n" +
@@ -840,8 +840,9 @@ const file_ai_stigmer_agentic_run_v1_api_proto_rawDesc = "" +
 	"\n" +
 	"run_config\x18\x1f \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfig\x12L\n" +
 	"\rapproval_mode\x18  \x01(\x0e2'.ai.stigmer.agentic.run.v1.ApprovalModeR\fapprovalMode\x12K\n" +
-	"\vcredentials\x18! \x01(\v2).ai.stigmer.agentic.run.v1.RunCredentialsR\vcredentials\x12V\n" +
-	"\x11plugin_eval_files\x18\" \x01(\v2*.ai.stigmer.agentic.run.v1.PluginEvalFilesR\x0fpluginEvalFiles\x12\x99\x01\n" +
+	"\vcredentials\x18! \x01(\v2).ai.stigmer.agentic.run.v1.RunCredentialsR\vcredentials\x12C\n" +
+	"\n" +
+	"eval_files\x18\" \x01(\v2$.ai.stigmer.agentic.run.v1.EvalFilesR\tevalFiles\x12\x99\x01\n" +
 	"\n" +
 	"stop_cause\x18# \x01(\tBz\xbaHw\xd8\x01\x01rrR\x0ebudget_reachedR\atimeoutR\x0einfrastructureR\rplatform_stopR\x04userR\vmodel_errorR\x06failedR\feval_stoppedR\x0freview_resolvedR\tstopCauseJ\x04\b\x01\x10\x02J\x04\b\x04\x10\x05J\x04\b\t\x10\n" +
 	"J\x04\b\x0e\x10\x0fJ\x04\b\x10\x10\x11J\x04\b\x15\x10\x16J\x04\b\x16\x10\x17J\x04\b\x17\x10\x18J\x04\b\x18\x10\x19J\x04\b\x1a\x10\x1bJ\x04\b\n" +
@@ -911,7 +912,7 @@ var file_ai_stigmer_agentic_run_v1_api_proto_goTypes = []any{
 	(*RecalledMemories)(nil),                 // 17: ai.stigmer.agentic.run.v1.RecalledMemories
 	(*RunConfig)(nil),                        // 18: ai.stigmer.agentic.run.v1.RunConfig
 	(ApprovalMode)(0),                        // 19: ai.stigmer.agentic.run.v1.ApprovalMode
-	(*PluginEvalFiles)(nil),                  // 20: ai.stigmer.agentic.run.v1.PluginEvalFiles
+	(*EvalFiles)(nil),                        // 20: ai.stigmer.agentic.run.v1.EvalFiles
 	(*apiresource.ApiResourceReference)(nil), // 21: ai.stigmer.commons.apiresource.ApiResourceReference
 	(RunValueOrigin)(0),                      // 22: ai.stigmer.agentic.run.v1.RunValueOrigin
 	(RunValueDeclarerKind)(0),                // 23: ai.stigmer.agentic.run.v1.RunValueDeclarerKind
@@ -934,7 +935,7 @@ var file_ai_stigmer_agentic_run_v1_api_proto_depIdxs = []int32{
 	18, // 14: ai.stigmer.agentic.run.v1.RunStatus.run_config:type_name -> ai.stigmer.agentic.run.v1.RunConfig
 	19, // 15: ai.stigmer.agentic.run.v1.RunStatus.approval_mode:type_name -> ai.stigmer.agentic.run.v1.ApprovalMode
 	3,  // 16: ai.stigmer.agentic.run.v1.RunStatus.credentials:type_name -> ai.stigmer.agentic.run.v1.RunCredentials
-	20, // 17: ai.stigmer.agentic.run.v1.RunStatus.plugin_eval_files:type_name -> ai.stigmer.agentic.run.v1.PluginEvalFiles
+	20, // 17: ai.stigmer.agentic.run.v1.RunStatus.eval_files:type_name -> ai.stigmer.agentic.run.v1.EvalFiles
 	21, // 18: ai.stigmer.agentic.run.v1.LoadedVersions.skills:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	21, // 19: ai.stigmer.agentic.run.v1.LoadedVersions.plugins:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	4,  // 20: ai.stigmer.agentic.run.v1.RunCredentials.sources:type_name -> ai.stigmer.agentic.run.v1.RunValueSource
@@ -955,9 +956,9 @@ func file_ai_stigmer_agentic_run_v1_api_proto_init() {
 	}
 	file_ai_stigmer_agentic_run_v1_artifact_proto_init()
 	file_ai_stigmer_agentic_run_v1_enum_proto_init()
+	file_ai_stigmer_agentic_run_v1_eval_case_proto_init()
 	file_ai_stigmer_agentic_run_v1_filereview_proto_init()
 	file_ai_stigmer_agentic_run_v1_invocation_proto_init()
-	file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_init()
 	file_ai_stigmer_agentic_run_v1_spec_proto_init()
 	file_ai_stigmer_agentic_run_v1_usage_proto_init()
 	file_ai_stigmer_agentic_run_v1_writeback_proto_init()

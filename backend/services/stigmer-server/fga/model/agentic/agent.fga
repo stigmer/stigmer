@@ -109,7 +109,7 @@ type agent
     # grant: every member, bounded by the organization in team.fga.
     define viewer: ([identity_account, organization#viewer, team#member] and affiliated from organization) or owner or editor or child_org_viewer
     # org_viewer is every viewer who holds a role in the agent's own
-    # organization: the set an agent's evals are read by (agent_eval.fga).
+    # organization: the set an agent's eval runs are read by (eval_run.fga).
     # It leaves out exactly the members of child organizations who see the
     # agent only through its child-organization share, written as an
     # intersection because the model has no `but not` (plugin.fga's split).
