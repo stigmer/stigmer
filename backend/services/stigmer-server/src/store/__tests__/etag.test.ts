@@ -1,6 +1,6 @@
 /**
  * Pins etag.ts: a resource's etag fingerprints what a person edits (spec,
- * name, labels, tags, annotations) and nothing the platform writes.
+ * name, labels, tags) and nothing the platform writes.
  *
  *   - the same content gives the same etag, whatever a map's insertion
  *     order;
@@ -8,7 +8,10 @@
  *   - status, slug, id, org, visibility and the audit stamps never move it;
  *   - stampEtag writes it onto the resource's metadata, and storedEtagOf
  *     reads it back;
- *   - a message with no resource metadata has none and is left as it is.
+ *   - a message with no resource metadata has none and is left as it is;
+ *   - a row stamped while metadata still carried annotations keeps its etag:
+ *     the fingerprint holds the same empty map, so the stamp a store holds
+ *     is the stamp the next status write computes.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -32,7 +35,6 @@ function agent(): Agent {
       name: "Reviewer",
       labels: { team: "core", tier: "gold" },
       tags: ["prod"],
-      annotations: { note: "kept" },
     },
     spec: { instructions: "Review every pull request.", env: { A: { description: "first" }, B: { isSecret: true } } },
     status: {},
@@ -47,7 +49,7 @@ describe("etagOf", () => {
     expect(etagOf(AgentSchema, agent())).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  it("moves when spec, name, labels, tags or annotations change", () => {
+  it("moves when spec, name, labels or tags change", () => {
     const base = etagOf(AgentSchema, agent());
     const edits: Array<(edited: Agent) => void> = [
       (edited) => {
@@ -61,9 +63,6 @@ describe("etagOf", () => {
       },
       (edited) => {
         edited.metadata!.tags.push("beta");
-      },
-      (edited) => {
-        edited.metadata!.annotations.note = "changed";
       },
       (edited) => {
         edited.spec = undefined;
@@ -108,6 +107,40 @@ describe("etagOf", () => {
   it("answers none for a message with no resource metadata", () => {
     expect(etagOf(AgentSpecSchema, create(AgentSpecSchema, { instructions: "x" }))).toBeUndefined();
     expect(etagOf(AgentSchema, create(AgentSchema, { spec: { instructions: "x" } }))).toBeUndefined();
+  });
+});
+
+describe("etagOf across the removal of annotations", () => {
+  // Stamped by the fingerprint that still read metadata.annotations, for a
+  // row whose annotations were empty, as every stored row's were.
+  const STAMPED_BEFORE_REMOVAL =
+    "b1fa2ee9000321142cee76383f417afc8a8c13037414d9ddde8aba3db53b071c";
+
+  function stored(): Agent {
+    return create(AgentSchema, {
+      metadata: {
+        id: "agt_1",
+        org: "org_1",
+        slug: "reviewer",
+        name: "Reviewer",
+        labels: { team: "core" },
+        tags: ["prod"],
+        etag: STAMPED_BEFORE_REMOVAL,
+      },
+      spec: { instructions: "Review every pull request." },
+      status: {},
+    });
+  }
+
+  it("computes the stamp a row carried before annotations were removed", () => {
+    expect(etagOf(AgentSchema, stored())).toBe(STAMPED_BEFORE_REMOVAL);
+  });
+
+  it("keeps that stamp through a status write after the upgrade", () => {
+    const written = stored();
+    written.status = create(AgentStatusSchema, { versionHash: "c3d4" });
+    stampEtag(AgentSchema, written);
+    expect(written.metadata!.etag).toBe(STAMPED_BEFORE_REMOVAL);
   });
 });
 

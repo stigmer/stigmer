@@ -89,7 +89,11 @@ type ListTeamsInput struct {
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
-	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Only resources carrying every label given, each matched exactly (AND).
+	// A selective filter may answer short pages, even empty ones, that still
+	// carry a token.
+	Labels        map[string]string `protobuf:"bytes,4,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -143,6 +147,13 @@ func (x *ListTeamsInput) GetPageToken() string {
 		return x.PageToken
 	}
 	return ""
+}
+
+func (x *ListTeamsInput) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
 }
 
 // The changes an update makes to a team: the fields update_mask names,
@@ -212,12 +223,16 @@ const file_ai_stigmer_iam_team_v1_io_proto_rawDesc = "" +
 	"\x1fai/stigmer/iam/team/v1/io.proto\x12\x16ai.stigmer.iam.team.v1\x1a ai/stigmer/iam/team/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"g\n" +
 	"\x05Teams\x126\n" +
 	"\aentries\x18\x01 \x03(\v2\x1c.ai.stigmer.iam.team.v1.TeamR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"z\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x81\x02\n" +
 	"\x0eListTeamsInput\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
 	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\xd7\x02\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12J\n" +
+	"\x06labels\x18\x04 \x03(\v22.ai.stigmer.iam.team.v1.ListTeamsInput.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xd7\x02\n" +
 	"\x0fUpdateTeamInput\x12@\n" +
 	"\bresource\x18\x01 \x01(\v2\x1c.ai.stigmer.iam.team.v1.TeamB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
@@ -237,23 +252,25 @@ func file_ai_stigmer_iam_team_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_team_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_team_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_iam_team_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_iam_team_v1_io_proto_goTypes = []any{
 	(*Teams)(nil),                 // 0: ai.stigmer.iam.team.v1.Teams
 	(*ListTeamsInput)(nil),        // 1: ai.stigmer.iam.team.v1.ListTeamsInput
 	(*UpdateTeamInput)(nil),       // 2: ai.stigmer.iam.team.v1.UpdateTeamInput
-	(*Team)(nil),                  // 3: ai.stigmer.iam.team.v1.Team
-	(*fieldmaskpb.FieldMask)(nil), // 4: google.protobuf.FieldMask
+	nil,                           // 3: ai.stigmer.iam.team.v1.ListTeamsInput.LabelsEntry
+	(*Team)(nil),                  // 4: ai.stigmer.iam.team.v1.Team
+	(*fieldmaskpb.FieldMask)(nil), // 5: google.protobuf.FieldMask
 }
 var file_ai_stigmer_iam_team_v1_io_proto_depIdxs = []int32{
-	3, // 0: ai.stigmer.iam.team.v1.Teams.entries:type_name -> ai.stigmer.iam.team.v1.Team
-	3, // 1: ai.stigmer.iam.team.v1.UpdateTeamInput.resource:type_name -> ai.stigmer.iam.team.v1.Team
-	4, // 2: ai.stigmer.iam.team.v1.UpdateTeamInput.update_mask:type_name -> google.protobuf.FieldMask
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	4, // 0: ai.stigmer.iam.team.v1.Teams.entries:type_name -> ai.stigmer.iam.team.v1.Team
+	3, // 1: ai.stigmer.iam.team.v1.ListTeamsInput.labels:type_name -> ai.stigmer.iam.team.v1.ListTeamsInput.LabelsEntry
+	4, // 2: ai.stigmer.iam.team.v1.UpdateTeamInput.resource:type_name -> ai.stigmer.iam.team.v1.Team
+	5, // 3: ai.stigmer.iam.team.v1.UpdateTeamInput.update_mask:type_name -> google.protobuf.FieldMask
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_team_v1_io_proto_init() }
@@ -268,7 +285,7 @@ func file_ai_stigmer_iam_team_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_team_v1_io_proto_rawDesc), len(file_ai_stigmer_iam_team_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

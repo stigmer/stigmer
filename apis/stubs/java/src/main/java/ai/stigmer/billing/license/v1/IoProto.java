@@ -41,6 +41,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_billing_license_v1_ListLicensesInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_billing_license_v1_ListLicensesInput_LabelsEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_billing_license_v1_ListLicensesInput_LabelsEntry_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -57,15 +62,18 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "lue\030\001 \001(\tB\t\272H\006r\004\020\001\030@R\005value\"t\n\010Licenses\022" +
       "@\n\007entries\030\001 \003(\0132&.ai.stigmer.billing.li" +
       "cense.v1.LicenseR\007entries\022&\n\017next_page_t" +
-      "oken\030\002 \001(\tR\rnextPageToken\"\203\001\n\021ListLicens" +
+      "oken\030\002 \001(\tR\rnextPageToken\"\224\002\n\021ListLicens" +
       "esInput\022\037\n\013customer_id\030\001 \001(\tR\ncustomerId" +
       "\022$\n\tpage_size\030\002 \001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'" +
-      "\n\npage_token\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageTokenB" +
-      "\242\001B\007IoProtoP\001\242\002\004ASBL\252\002\035Ai.Stigmer.Billin" +
-      "g.License.V1\312\002\035Ai\\Stigmer\\Billing\\Licens" +
-      "e\\V1\342\002)Ai\\Stigmer\\Billing\\License\\V1\\GPB" +
-      "Metadata\352\002!Ai::Stigmer::Billing::License" +
-      "::V1b\006proto3"
+      "\n\npage_token\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageToken\022" +
+      "T\n\006labels\030\004 \003(\0132<.ai.stigmer.billing.lic" +
+      "ense.v1.ListLicensesInput.LabelsEntryR\006l" +
+      "abels\0329\n\013LabelsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024" +
+      "\n\005value\030\002 \001(\tR\005value:\0028\001B\242\001B\007IoProtoP\001\242\002" +
+      "\004ASBL\252\002\035Ai.Stigmer.Billing.License.V1\312\002\035" +
+      "Ai\\Stigmer\\Billing\\License\\V1\342\002)Ai\\Stigm" +
+      "er\\Billing\\License\\V1\\GPBMetadata\352\002!Ai::" +
+      "Stigmer::Billing::License::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -90,7 +98,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_billing_license_v1_ListLicensesInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_license_v1_ListLicensesInput_descriptor,
-        new java.lang.String[] { "CustomerId", "PageSize", "PageToken", });
+        new java.lang.String[] { "CustomerId", "PageSize", "PageToken", "Labels", });
+    internal_static_ai_stigmer_billing_license_v1_ListLicensesInput_LabelsEntry_descriptor =
+      internal_static_ai_stigmer_billing_license_v1_ListLicensesInput_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_billing_license_v1_ListLicensesInput_LabelsEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_billing_license_v1_ListLicensesInput_LabelsEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.billing.license.v1.ApiProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

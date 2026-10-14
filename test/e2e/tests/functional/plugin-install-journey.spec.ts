@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { test, expect } from "../../fixtures";
 import {
   HOSTED_MARKETPLACE_NAME,
   HOSTED_PLUGIN,
@@ -49,8 +50,21 @@ const oauthMcp = getOAuthMcpFixture();
 test.describe("Plugin install journey", () => {
   test.describe.configure({ mode: "serial" });
 
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, stigmerClient }) => {
     await routeHostedMarketplace(page, oauthMcp?.mcpUrl);
+    // Each test is a fresh browser context, and with no organization stored
+    // the console opens whichever its list answers first, newest first, so
+    // one that another spec left behind would move the Marketplace's marks
+    // away from where the first test installed. Every test here works in
+    // the seeded "default" organization, made active (stored by id) before
+    // the first page loads.
+    let defaultOrgId: string | undefined;
+    for await (const org of stigmerClient.organization.listMineAll({})) {
+      if (org.metadata?.slug === "default") defaultOrgId = org.metadata.id;
+    }
+    await page.addInitScript((id) => {
+      localStorage.setItem("stigmer:activeOrg", id);
+    }, defaultOrgId ?? "");
   });
 
   test("lists installed plugins and offers the three ways in", async ({ page }) => {

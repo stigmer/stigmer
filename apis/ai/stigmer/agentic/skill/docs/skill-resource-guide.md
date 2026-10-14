@@ -69,9 +69,8 @@ All metadata fields are defined by `ApiResourceMetadata` in `ai/stigmer/commons/
 | `metadata.slug` | URL-friendly identifier, unique within the organization. Derived from the frontmatter `name` field (normalized to kebab-case; dots in the name become hyphens, e.g. `platform.planton-architecture` → `platform-planton-architecture`). |
 | `metadata.org` | Organization that owns this skill. Provided at push time via `--org` flag or CLI context. Every skill belongs to exactly one organization. |
 | `metadata.visibility` | Access control. `visibility_org` (default): every member of the owning organization can read. `visibility_private`: the creator and anyone granted access directly. `visibility_child_orgs`: everyone in the owning organization's child organizations. Declared in the SKILL.md frontmatter (`visibility: org`) or applied after the push. |
-| `metadata.labels` | Key-value pairs for organization and filtering. Not extracted from the artifact — set via API if needed. |
-| `metadata.annotations` | Key-value pairs for additional metadata. Not extracted from the artifact — set via API if needed. |
-| `metadata.tags` | String array for categorization. Not the same as skill version tags. |
+| `metadata.labels` | Key-value pairs for organization and filtering. Not extracted from the artifact — set via API or the push's labels if needed. Each key is an optional DNS-subdomain prefix and `/`, then a name of at most 63 letters, digits, `-`, `_` and `.`, starting and ending with a letter or digit; each value is empty or such a name; at most 64 pairs. Every list of skills filters by labels (`--label team=engineering` in the CLI). |
+| `metadata.tags` | String array for categorization and search. Not the same as skill version tags. Search words: lowercase letters, digits and hyphens, starting with a letter or digit, at most 50 characters each, at most 20, no repeats. |
 | `metadata.version` | System-managed version tracking for the metadata record itself. Not related to the skill artifact version hash. |
 
 ### Visibility

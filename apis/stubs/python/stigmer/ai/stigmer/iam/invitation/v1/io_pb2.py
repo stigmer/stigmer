@@ -28,7 +28,7 @@ from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n%ai/stigmer/iam/invitation/v1/io.proto\x12\x1c\x61i.stigmer.iam.invitation.v1\x1a&ai/stigmer/iam/invitation/v1/api.proto\x1a\x1c\x61i/stigmer/iam/v1/enum.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\",\n\x0cInvitationId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"y\n\x0bInvitations\x12\x42\n\x07\x65ntries\x18\x01 \x03(\x0b\x32(.ai.stigmer.iam.invitation.v1.InvitationR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x80\x01\n\x14ListInvitationsInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\"5\n\x14InvitationTokenInput\x12\x1d\n\x05token\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x05token\"6\n\x15RedeemInvitationInput\x12\x1d\n\x05token\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x05token\"\xae\x02\n\x11InvitationPreview\x12\x19\n\x08org_name\x18\x01 \x01(\tR\x07orgName\x12\x19\n\x08org_slug\x18\x02 \x01(\tR\x07orgSlug\x12 \n\x0corg_logo_url\x18\x03 \x01(\tR\norgLogoUrl\x12.\n\x04role\x18\x04 \x01(\x0e\x32\x1a.ai.stigmer.iam.v1.IamRoleR\x04role\x12\x39\n\nexpires_at\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\texpiresAt\x12\x14\n\x05label\x18\x06 \x01(\tR\x05label\x12\x19\n\x08is_valid\x18\x07 \x01(\x08R\x07isValid\x12%\n\x0einvalid_reason\x18\x08 \x01(\tR\rinvalidReasonB\xc0\x01\n com.ai.stigmer.iam.invitation.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SII\xaa\x02\x1c\x41i.Stigmer.Iam.Invitation.V1\xca\x02\x1c\x41i\\Stigmer\\Iam\\Invitation\\V1\xe2\x02(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Iam::Invitation::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n%ai/stigmer/iam/invitation/v1/io.proto\x12\x1c\x61i.stigmer.iam.invitation.v1\x1a&ai/stigmer/iam/invitation/v1/api.proto\x1a\x1c\x61i/stigmer/iam/v1/enum.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\",\n\x0cInvitationId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"y\n\x0bInvitations\x12\x42\n\x07\x65ntries\x18\x01 \x03(\x0b\x32(.ai.stigmer.iam.invitation.v1.InvitationR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x93\x02\n\x14ListInvitationsInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\x12V\n\x06labels\x18\x04 \x03(\x0b\x32>.ai.stigmer.iam.invitation.v1.ListInvitationsInput.LabelsEntryR\x06labels\x1a\x39\n\x0bLabelsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"5\n\x14InvitationTokenInput\x12\x1d\n\x05token\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x05token\"6\n\x15RedeemInvitationInput\x12\x1d\n\x05token\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x05token\"\xae\x02\n\x11InvitationPreview\x12\x19\n\x08org_name\x18\x01 \x01(\tR\x07orgName\x12\x19\n\x08org_slug\x18\x02 \x01(\tR\x07orgSlug\x12 \n\x0corg_logo_url\x18\x03 \x01(\tR\norgLogoUrl\x12.\n\x04role\x18\x04 \x01(\x0e\x32\x1a.ai.stigmer.iam.v1.IamRoleR\x04role\x12\x39\n\nexpires_at\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\texpiresAt\x12\x14\n\x05label\x18\x06 \x01(\tR\x05label\x12\x19\n\x08is_valid\x18\x07 \x01(\x08R\x07isValid\x12%\n\x0einvalid_reason\x18\x08 \x01(\tR\rinvalidReasonB\xc0\x01\n com.ai.stigmer.iam.invitation.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SII\xaa\x02\x1c\x41i.Stigmer.Iam.Invitation.V1\xca\x02\x1c\x41i\\Stigmer\\Iam\\Invitation\\V1\xe2\x02(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Iam::Invitation::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -38,6 +38,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n com.ai.stigmer.iam.invitation.v1B\007IoProtoP\001\242\002\004ASII\252\002\034Ai.Stigmer.Iam.Invitation.V1\312\002\034Ai\\Stigmer\\Iam\\Invitation\\V1\342\002(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPBMetadata\352\002 Ai::Stigmer::Iam::Invitation::V1'
   _globals['_INVITATIONID'].fields_by_name['value']._loaded_options = None
   _globals['_INVITATIONID'].fields_by_name['value']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_LISTINVITATIONSINPUT_LABELSENTRY']._loaded_options = None
+  _globals['_LISTINVITATIONSINPUT_LABELSENTRY']._serialized_options = b'8\001'
   _globals['_LISTINVITATIONSINPUT'].fields_by_name['org']._loaded_options = None
   _globals['_LISTINVITATIONSINPUT'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_LISTINVITATIONSINPUT'].fields_by_name['page_size']._loaded_options = None
@@ -53,11 +55,13 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_INVITATIONS']._serialized_start=249
   _globals['_INVITATIONS']._serialized_end=370
   _globals['_LISTINVITATIONSINPUT']._serialized_start=373
-  _globals['_LISTINVITATIONSINPUT']._serialized_end=501
-  _globals['_INVITATIONTOKENINPUT']._serialized_start=503
-  _globals['_INVITATIONTOKENINPUT']._serialized_end=556
-  _globals['_REDEEMINVITATIONINPUT']._serialized_start=558
-  _globals['_REDEEMINVITATIONINPUT']._serialized_end=612
-  _globals['_INVITATIONPREVIEW']._serialized_start=615
-  _globals['_INVITATIONPREVIEW']._serialized_end=917
+  _globals['_LISTINVITATIONSINPUT']._serialized_end=648
+  _globals['_LISTINVITATIONSINPUT_LABELSENTRY']._serialized_start=591
+  _globals['_LISTINVITATIONSINPUT_LABELSENTRY']._serialized_end=648
+  _globals['_INVITATIONTOKENINPUT']._serialized_start=650
+  _globals['_INVITATIONTOKENINPUT']._serialized_end=703
+  _globals['_REDEEMINVITATIONINPUT']._serialized_start=705
+  _globals['_REDEEMINVITATIONINPUT']._serialized_end=759
+  _globals['_INVITATIONPREVIEW']._serialized_start=762
+  _globals['_INVITATIONPREVIEW']._serialized_end=1064
 # @@protoc_insertion_point(module_scope)

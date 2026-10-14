@@ -2,8 +2,9 @@
  * Pins readOrgListPage (../org-list-page.ts), the body of a kind's plain
  * organization `list`, over a real sqlite store opened with the server's
  * list indexes: it pages one organization's rows newest first by token,
- * answers none of another organization's, reads the default page when the
- * request names no size, lets a composed read scope narrow each page last,
+ * answers none of another organization's, keeps only the rows carrying
+ * every label the request names, reads the default page when the request
+ * names no size, lets a composed read scope narrow each page last,
  * and skips a row that does not decode.
  */
 import { create } from "@bufbuild/protobuf";
@@ -33,13 +34,18 @@ afterEach(async () => {
   await temp.cleanup();
 });
 
-async function seedAgent(id: string, org: string, minute: number): Promise<void> {
+async function seedAgent(
+  id: string,
+  org: string,
+  minute: number,
+  labels: Record<string, string> = {},
+): Promise<void> {
   await temp.store.saveResource(
     ApiResourceKind.agent,
     id,
     AgentSchema,
     create(AgentSchema, {
-      metadata: { id, name: id, slug: id, org },
+      metadata: { id, name: id, slug: id, org, labels },
       status: {
         audit: {
           specAudit: {
@@ -54,7 +60,12 @@ async function seedAgent(id: string, org: string, minute: number): Promise<void>
 }
 
 function page(
-  request: { org: string; pageSize?: number; pageToken?: string },
+  request: {
+    org: string;
+    pageSize?: number;
+    pageToken?: string;
+    labels?: Record<string, string>;
+  },
   listReadScope: ListReadScope | undefined = undefined,
 ) {
   return readOrgListPage<Agent>({
@@ -69,6 +80,7 @@ function page(
       org: request.org,
       pageSize: request.pageSize ?? 0,
       pageToken: request.pageToken ?? "",
+      labels: request.labels ?? {},
     },
   });
 }
@@ -100,6 +112,36 @@ describe("readOrgListPage", () => {
     const walked = await walk("org_a", 1);
     expect(walked.ids).toEqual(["agt_a3", "agt_a2", "agt_a1"]);
     expect(walked.pages).toBe(3);
+  });
+
+  it("keeps only the rows carrying every label named, each matched exactly", async () => {
+    await seedAgent("agt_1", "org_a", 1, { team: "support", tier: "gold" });
+    await seedAgent("agt_2", "org_a", 2, { team: "support" });
+    await seedAgent("agt_3", "org_a", 3, { team: "sales", tier: "gold" });
+    await seedAgent("agt_4", "org_a", 4, { team: "support", tier: "gold" });
+    const ids = async (labels: Record<string, string>) => {
+      const walked: string[] = [];
+      let pageToken = "";
+      do {
+        const got = await page({ org: "org_a", pageSize: 1, pageToken, labels });
+        walked.push(...got.entries.map((agent) => agent.metadata!.id));
+        pageToken = got.nextPageToken;
+      } while (pageToken !== "");
+      return walked;
+    };
+    expect(await ids({ team: "support" })).toEqual(["agt_4", "agt_2", "agt_1"]);
+    expect(await ids({ team: "support", tier: "gold" })).toEqual(["agt_4", "agt_1"]);
+    expect(await ids({ team: "Support" })).toEqual([]);
+  });
+
+  it("refuses a token issued for another label filter", async () => {
+    await seedAgent("agt_1", "org_a", 1, { team: "support" });
+    await seedAgent("agt_2", "org_a", 2, { team: "support" });
+    const first = await page({ org: "org_a", pageSize: 1, labels: { team: "support" } });
+    expect(first.nextPageToken).not.toBe("");
+    await expect(
+      page({ org: "org_a", pageSize: 1, pageToken: first.nextPageToken, labels: { team: "sales" } }),
+    ).rejects.toThrow(/page_token/);
   });
 
   it("reads the default page when the request names no size", async () => {

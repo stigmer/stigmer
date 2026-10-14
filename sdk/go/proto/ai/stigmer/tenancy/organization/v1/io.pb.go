@@ -87,7 +87,11 @@ type ListMyOrganizationsInput struct {
 	PageSize int32 `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
-	PageToken     string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Only resources carrying every label given, each matched exactly (AND).
+	// A selective filter may answer short pages, even empty ones, that still
+	// carry a token.
+	Labels        map[string]string `protobuf:"bytes,3,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -134,6 +138,13 @@ func (x *ListMyOrganizationsInput) GetPageToken() string {
 		return x.PageToken
 	}
 	return ""
+}
+
+func (x *ListMyOrganizationsInput) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
 }
 
 // OrganizationId wraps an organization identifier.
@@ -248,7 +259,11 @@ type ListChildOrgsInput struct {
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
-	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Only resources carrying every label given, each matched exactly (AND).
+	// A selective filter may answer short pages, even empty ones, that still
+	// carry a token.
+	Labels        map[string]string `protobuf:"bytes,4,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -302,6 +317,13 @@ func (x *ListChildOrgsInput) GetPageToken() string {
 		return x.PageToken
 	}
 	return ""
+}
+
+func (x *ListChildOrgsInput) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
 }
 
 // One page of an organization's child organizations.
@@ -484,11 +506,15 @@ const file_ai_stigmer_tenancy_organization_v1_io_proto_rawDesc = "" +
 	"+ai/stigmer/tenancy/organization/v1/io.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a,ai/stigmer/tenancy/organization/v1/api.proto\x1a-ai/stigmer/tenancy/organization/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"\x83\x01\n" +
 	"\rOrganizations\x12J\n" +
 	"\aentries\x18\x01 \x03(\v20.ai.stigmer.tenancy.organization.v1.OrganizationR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"i\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x86\x02\n" +
 	"\x18ListMyOrganizationsInput\x12$\n" +
 	"\tpage_size\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"1\n" +
+	"page_token\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12`\n" +
+	"\x06labels\x18\x03 \x03(\v2H.ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"1\n" +
 	"\x0eOrganizationId\x12\x1f\n" +
 	"\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"\x90\x01\n" +
 	"\x1aOrganizationExternalLookup\x12+\n" +
@@ -496,12 +522,16 @@ const file_ai_stigmer_tenancy_organization_v1_io_proto_rawDesc = "" +
 	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\n" +
 	"externalId\x12(\n" +
 	"\n" +
-	"parent_org\x18\x03 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\tparentOrgJ\x04\b\x01\x10\x02R\x15identity_provider_ref\"\x80\x01\n" +
+	"parent_org\x18\x03 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\tparentOrgJ\x04\b\x01\x10\x02R\x15identity_provider_ref\"\x97\x02\n" +
 	"\x12ListChildOrgsInput\x12\x1b\n" +
 	"\x03org\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x03org\x12$\n" +
 	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x82\x01\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12Z\n" +
+	"\x06labels\x18\x04 \x03(\v2B.ai.stigmer.tenancy.organization.v1.ListChildOrgsInput.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x82\x01\n" +
 	"\fChildOrgList\x12J\n" +
 	"\aentries\x18\x01 \x03(\v20.ai.stigmer.tenancy.organization.v1.OrganizationR\aentries\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa1\x01\n" +
@@ -527,7 +557,7 @@ func file_ai_stigmer_tenancy_organization_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_tenancy_organization_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_tenancy_organization_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_ai_stigmer_tenancy_organization_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_ai_stigmer_tenancy_organization_v1_io_proto_goTypes = []any{
 	(*Organizations)(nil),                   // 0: ai.stigmer.tenancy.organization.v1.Organizations
 	(*ListMyOrganizationsInput)(nil),        // 1: ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput
@@ -537,21 +567,25 @@ var file_ai_stigmer_tenancy_organization_v1_io_proto_goTypes = []any{
 	(*ChildOrgList)(nil),                    // 5: ai.stigmer.tenancy.organization.v1.ChildOrgList
 	(*UpdateOrganizationPoliciesInput)(nil), // 6: ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput
 	(*UpdateOrganizationInput)(nil),         // 7: ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput
-	(*Organization)(nil),                    // 8: ai.stigmer.tenancy.organization.v1.Organization
-	(*OrganizationPolicies)(nil),            // 9: ai.stigmer.tenancy.organization.v1.OrganizationPolicies
-	(*fieldmaskpb.FieldMask)(nil),           // 10: google.protobuf.FieldMask
+	nil,                                     // 8: ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput.LabelsEntry
+	nil,                                     // 9: ai.stigmer.tenancy.organization.v1.ListChildOrgsInput.LabelsEntry
+	(*Organization)(nil),                    // 10: ai.stigmer.tenancy.organization.v1.Organization
+	(*OrganizationPolicies)(nil),            // 11: ai.stigmer.tenancy.organization.v1.OrganizationPolicies
+	(*fieldmaskpb.FieldMask)(nil),           // 12: google.protobuf.FieldMask
 }
 var file_ai_stigmer_tenancy_organization_v1_io_proto_depIdxs = []int32{
-	8,  // 0: ai.stigmer.tenancy.organization.v1.Organizations.entries:type_name -> ai.stigmer.tenancy.organization.v1.Organization
-	8,  // 1: ai.stigmer.tenancy.organization.v1.ChildOrgList.entries:type_name -> ai.stigmer.tenancy.organization.v1.Organization
-	9,  // 2: ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput.policies:type_name -> ai.stigmer.tenancy.organization.v1.OrganizationPolicies
-	8,  // 3: ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput.resource:type_name -> ai.stigmer.tenancy.organization.v1.Organization
-	10, // 4: ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput.update_mask:type_name -> google.protobuf.FieldMask
-	5,  // [5:5] is the sub-list for method output_type
-	5,  // [5:5] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	10, // 0: ai.stigmer.tenancy.organization.v1.Organizations.entries:type_name -> ai.stigmer.tenancy.organization.v1.Organization
+	8,  // 1: ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput.labels:type_name -> ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput.LabelsEntry
+	9,  // 2: ai.stigmer.tenancy.organization.v1.ListChildOrgsInput.labels:type_name -> ai.stigmer.tenancy.organization.v1.ListChildOrgsInput.LabelsEntry
+	10, // 3: ai.stigmer.tenancy.organization.v1.ChildOrgList.entries:type_name -> ai.stigmer.tenancy.organization.v1.Organization
+	11, // 4: ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput.policies:type_name -> ai.stigmer.tenancy.organization.v1.OrganizationPolicies
+	10, // 5: ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput.resource:type_name -> ai.stigmer.tenancy.organization.v1.Organization
+	12, // 6: ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput.update_mask:type_name -> google.protobuf.FieldMask
+	7,  // [7:7] is the sub-list for method output_type
+	7,  // [7:7] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_tenancy_organization_v1_io_proto_init() }
@@ -567,7 +601,7 @@ func file_ai_stigmer_tenancy_organization_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_tenancy_organization_v1_io_proto_rawDesc), len(file_ai_stigmer_tenancy_organization_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

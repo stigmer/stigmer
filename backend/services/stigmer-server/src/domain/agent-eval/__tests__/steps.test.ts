@@ -756,6 +756,37 @@ describe("ListAgentEvalsByAgent", () => {
     expect(asked).toEqual([]);
   });
 
+  it("walks only the agent's evals carrying every label named, a page at a time", async () => {
+    const labels = { suite: "nightly-agent-evals", tier: "gold" };
+    const labelled = (id: string, rowLabels: Record<string, string>) => {
+      const row = evalRow(id, PluginEvalPhase.completed);
+      row.metadata!.labels = rowLabels;
+      return saved(row);
+    };
+    await labelled("aev_lbl_0", {});
+    await labelled("aev_lbl_1", labels);
+    await labelled("aev_lbl_2", { suite: "nightly-agent-evals" });
+    await labelled("aev_lbl_3", { ...labels, extra: "x" });
+    const allow: Authorizer = { authorize: () => Promise.resolve({ kind: "allow" }) };
+
+    const walked: string[] = [];
+    let pageToken = "";
+    do {
+      const ctx = new RequestContext(
+        ListAgentEvalsByAgentRequestSchema,
+        create(ListAgentEvalsByAgentRequestSchema, { agentId: AGENT_ID, labels, pageSize: 1, pageToken }),
+        testCallerIdentity(),
+        ApiResourceKind.agent,
+      );
+      await newListAgentEvalsByAgentStep(temp.store, allow, silentLogger).execute(ctx);
+      expect(listed(ctx).entries.length).toBeLessThanOrEqual(1);
+      walked.push(...listed(ctx).entries.map((row) => row.metadata!.id));
+      pageToken = listed(ctx).nextPageToken;
+    } while (pageToken !== "");
+    expect(new Set(walked)).toEqual(new Set(["aev_lbl_1", "aev_lbl_3"]));
+    expect(walked).toHaveLength(2);
+  });
+
   it("fails closed when the authorizer cannot answer, and answers a store fault INTERNAL", async () => {
     await saved(evalRow("aev_a", PluginEvalPhase.completed));
     const down: Authorizer = {

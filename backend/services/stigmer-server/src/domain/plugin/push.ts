@@ -102,6 +102,7 @@ import type { PluginStatusPlan } from "./plan-status.js";
 import { probeSignIns } from "./probe-sign-in.js";
 import { evalSuiteOf } from "./evals.js";
 import { pluginSearchExtractor } from "./search-extractor.js";
+import { tagsOfKeywords } from "./tags.js";
 
 type PushDesc = typeof PushPluginRequestSchema;
 
@@ -381,7 +382,8 @@ export function newCheckAndStoreArtifactStep(
 }
 
 /**
- * PopulatePluginFields — the manifest into the spec; the archive identity
+ * PopulatePluginFields — the manifest into the spec, and its keywords,
+ * normalized, into metadata.tags; the archive identity
  * and what it holds into the status, with every warning (the library's and
  * the plan's) and the hooks recorded; the level; the metadata.version
  * chain; and the audit stamping discipline: creates stamp both slots;
@@ -423,6 +425,9 @@ export function newPopulatePluginFieldsStep(): PipelineStep<PushDesc> {
       }
 
       plugin.metadata!.visibility = requestedVisibility(ctx);
+      // Tags are search words under the topic rule; the manifest's keywords
+      // are an outside format, normalized into them (tags.ts).
+      plugin.metadata!.tags = tagsOfKeywords(pkg.keywords);
       plugin.metadata!.version = create(ApiResourceMetadataVersionSchema, {
         id: archive.digest,
         message: ctx.input.message,

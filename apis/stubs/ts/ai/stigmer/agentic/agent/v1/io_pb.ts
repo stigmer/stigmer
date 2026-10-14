@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MSIgCgdBZ2VudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiyQIKEFVwZGF0ZUFnZW50SW5wdXQSPAoIcmVzb3VyY2UYASABKAsyIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnRCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATq9AbpIuQEatgEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0EkVyZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBhZ2VudCBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJyJjChFMaXN0QWdlbnRzUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhwKCnBhZ2VfdG9rZW4YAyABKAlCCLpIBXIDGIAIIlkKCUFnZW50TGlzdBIzCgdlbnRyaWVzGAEgAygLMiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_agent_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
+  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MSIgCgdBZ2VudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiyQIKEFVwZGF0ZUFnZW50SW5wdXQSPAoIcmVzb3VyY2UYASABKAsyIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnRCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATq9AbpIuQEatgEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0EkVyZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBhZ2VudCBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJyLeAQoRTGlzdEFnZW50c1JlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABEhoKCXBhZ2Vfc2l6ZRgCIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACBJKCgZsYWJlbHMYBCADKAsyOi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuTGlzdEFnZW50c1JlcXVlc3QuTGFiZWxzRW50cnkaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJZCglBZ2VudExpc3QSMwoHZW50cmllcxgBIAMoCzIiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudBIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAliBnByb3RvMw", [file_ai_stigmer_agentic_agent_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * AgentId wraps an agent identifier.
@@ -97,6 +97,15 @@ export type ListAgentsRequest = Message<"ai.stigmer.agentic.agent.v1.ListAgentsR
    * @generated from field: string page_token = 3;
    */
   pageToken: string;
+
+  /**
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   *
+   * @generated from field: map<string, string> labels = 4;
+   */
+  labels: { [key: string]: string };
 };
 
 /**

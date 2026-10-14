@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agenteval/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_agenteval_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRldmFsL3YxL2lvLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRldmFsLnYxIikKC0FnZW50RXZhbElkEhoKBXZhbHVlGAEgASgJQgu6SAjIAQFyAxiAASJ2ChxMaXN0QWdlbnRFdmFsc0J5QWdlbnRSZXF1ZXN0EhwKCGFnZW50X2lkGAEgASgJQgq6SAdyBRABGIABEhoKCXBhZ2Vfc2l6ZRgCIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACCJ4Cg1BZ2VudEV2YWxMaXN0EjsKB2VudHJpZXMYAiADKAsyKi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRldmFsLnYxLkFnZW50RXZhbBIXCg9uZXh0X3BhZ2VfdG9rZW4YAyABKAlKBAgBEAJSC3RvdGFsX2NvdW50YgZwcm90bzM", [file_ai_stigmer_agentic_agenteval_v1_api, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRldmFsL3YxL2lvLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRldmFsLnYxIikKC0FnZW50RXZhbElkEhoKBXZhbHVlGAEgASgJQgu6SAjIAQFyAxiAASKAAgocTGlzdEFnZW50RXZhbHNCeUFnZW50UmVxdWVzdBIcCghhZ2VudF9pZBgBIAEoCUIKukgHcgUQARiAARIaCglwYWdlX3NpemUYAiABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgSWQoGbGFiZWxzGAQgAygLMkkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXZhbC52MS5MaXN0QWdlbnRFdmFsc0J5QWdlbnRSZXF1ZXN0LkxhYmVsc0VudHJ5Gi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEieAoNQWdlbnRFdmFsTGlzdBI7CgdlbnRyaWVzGAIgAygLMiouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXZhbC52MS5BZ2VudEV2YWwSFwoPbmV4dF9wYWdlX3Rva2VuGAMgASgJSgQIARACUgt0b3RhbF9jb3VudGIGcHJvdG8z", [file_ai_stigmer_agentic_agenteval_v1_api, file_buf_validate_validate]);
 
 /**
  * AgentEvalId wraps an agent eval identifier.
@@ -64,6 +64,15 @@ export type ListAgentEvalsByAgentRequest = Message<"ai.stigmer.agentic.agenteval
    * @generated from field: string page_token = 3;
    */
   pageToken: string;
+
+  /**
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   *
+   * @generated from field: map<string, string> labels = 4;
+   */
+  labels: { [key: string]: string };
 };
 
 /**

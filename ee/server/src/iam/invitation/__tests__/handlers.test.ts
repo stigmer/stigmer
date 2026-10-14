@@ -561,6 +561,26 @@ describe("list's pages", () => {
     expect(rest.nextPageToken).toBe("");
   });
 
+  it("walks only the invitations carrying every label named, a page at a time", async () => {
+    const r = rig();
+    const labels = { group: "on-call", tier: "gold" };
+    const plan: Record<string, string>[] = [{}, labels, { group: "on-call" }, { ...labels, extra: "x" }];
+    for (const [i, invitationLabels] of plan.entries()) {
+      const invitation = stored({ id: `inv_lbl_${i}`, token: `lbl${i}`, createdAt: new Date(ORG_CREATED.getTime() + DAY_MS + i * 60_000) });
+      invitation.metadata!.labels = invitationLabels;
+      await r.store.save(invitation);
+    }
+    const read: string[] = [];
+    let pageToken = "";
+    do {
+      const page = await r.queries.list({ org: "acme", labels, pageSize: 1, pageToken });
+      expect(page.entries.length).toBeLessThanOrEqual(1);
+      read.push(...page.entries.map((row) => row.metadata?.id ?? ""));
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
+    expect(read).toEqual(["inv_lbl_3", "inv_lbl_1"]);
+  });
+
   it("refuses a token issued for another organization's list", async () => {
     const r = rig();
     await seed(r, 3);

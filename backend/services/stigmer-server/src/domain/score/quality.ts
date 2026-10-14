@@ -99,6 +99,7 @@ import {
 } from "../../store/list-index.js";
 import { FEEDBACK_METRIC, JUDGE_METRIC } from "./constants.js";
 import { scoreListIndex } from "./list-index.js";
+import { matchesAllLabels, sortedLabels } from "../../pipeline/steps/helpers.js";
 
 /** The days a request that names none counts. */
 export const QUALITY_DEFAULT_DAYS = 30;
@@ -688,9 +689,12 @@ export function newListFlaggedScoresStep(
           org: input.org,
           agentId: input.agentId,
           days: window.days,
+          labels: sortedLabels(input.labels),
         }),
         decode: (data) => decodeScore(data, deps.logger),
-        keep: isFlagged,
+        keep: (score) =>
+          isFlagged(score) &&
+          matchesAllLabels(score.metadata?.labels ?? {}, input.labels),
         scope: bySession,
         failure: "failed to list the agent's flagged scores",
       });

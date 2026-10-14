@@ -138,6 +138,8 @@ import {
   internalError,
   notFoundError,
   listPageFingerprint,
+  matchesAllLabels,
+  sortedLabels,
   OWNER_ASSIGNMENT_DENIED_MESSAGE,
   newBuildNewStateStep,
   newRefuseServiceAccountCallerStep,
@@ -283,12 +285,13 @@ export function invitationQueries(deps: InvitationLaneDeps): Queries {
         ctx,
         deps,
         async (reqCtx) => {
-          const { org, pageSize, pageToken } = reqCtx.input;
+          const { org, pageSize, pageToken, labels } = reqCtx.input;
           const page = await readPage<Invitation>({
             source: (after, limit) => deps.store.pageByOrg(org, after, limit),
             request: { pageSize, pageToken },
-            fingerprint: listPageFingerprint({ org }),
+            fingerprint: listPageFingerprint({ org, labels: sortedLabels(labels) }),
             decode: (data) => fromBinary(InvitationSchema, data),
+            keep: (row) => matchesAllLabels(row.metadata?.labels ?? {}, labels),
             scope: (rows) =>
               restrictListByReadScope(deps.listReadScope, reqCtx.callerIdentity, KIND, rows, org),
             failure: "failed to list invitations",

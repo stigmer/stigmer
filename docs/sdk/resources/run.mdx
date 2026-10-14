@@ -461,8 +461,8 @@ const result = await stigmer.run.list({
   pageSize: 0,
   pageToken: "...",
   phase: "...",
-  tags: [],
   org: "...",
+  labels: {},
 });
 ```
 </Tab>
@@ -472,8 +472,8 @@ result, err := client.Run.List(ctx, &stigmer.ListRunsRequest{
   PageSize:  0,
   PageToken: "...",
   Phase:     "...",
-  Tags:      []string{},
   Org:       "...",
+  Labels:    map[string]string{},
 })
 ```
 </Tab>
@@ -483,8 +483,8 @@ result = client.runs.list(ListRunsRequest(
     page_size=0,
     page_token="...",
     phase="...",
-    tags=[],
     org="...",
+    labels={},
 ))
 ```
 </Tab>
@@ -494,8 +494,8 @@ RunList result = client.runs().list(ListRunsRequest.builder()
     .pageSize(0)
     .pageToken("...")
     .phase("...")
-    .tags(List.of())
     .org("...")
+    .labels(Map.of())
     .build());
 ```
 </Tab>
@@ -518,6 +518,7 @@ const result = await stigmer.run.listBySession({
   sessionId: "...",
   pageSize: 0,
   pageToken: "...",
+  labels: {},
 });
 ```
 </Tab>
@@ -527,6 +528,7 @@ result, err := client.Run.ListBySession(ctx, &stigmer.ListRunsBySessionRequest{
   SessionId: "...",
   PageSize:  0,
   PageToken: "...",
+  Labels:    map[string]string{},
 })
 ```
 </Tab>
@@ -536,6 +538,7 @@ result = client.runs.list_by_session(ListRunsBySessionRequest(
     session_id="...",
     page_size=0,
     page_token="...",
+    labels={},
 ))
 ```
 </Tab>
@@ -545,6 +548,7 @@ RunList result = client.runs().listBySession(ListRunsBySessionRequest.builder()
     .sessionId("...")
     .pageSize(0)
     .pageToken("...")
+    .labels(Map.of())
     .build());
 ```
 </Tab>
@@ -1336,8 +1340,8 @@ ListRunsRequest specifies parameters for listing runs.
     pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
     pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
     phase: { type: "RunPhase", description: "Filter by run phase (optional).", typeDescriptionLink: "#runphase" },
-    tags: { type: "string[]", description: "Filter by tags (optional)." },
     org: { type: "string", description: "Organization slug to scope the results to." },
+    labels: { type: "Record<string, string>", description: "Only resources carrying every label given, each matched exactly (AND)." },
   }}
 />
 
@@ -1361,6 +1365,7 @@ ListRunsBySessionRequest lists the runs of a session, newest first, one page at 
     sessionId: { type: "string", description: "Session ID to filter by.", required: true },
     pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
     pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
+    labels: { type: "Record<string, string>", description: "Only resources carrying every label given, each matched exactly (AND)." },
   }}
 />
 

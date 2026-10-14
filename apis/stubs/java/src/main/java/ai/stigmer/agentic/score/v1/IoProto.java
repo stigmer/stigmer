@@ -37,10 +37,20 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_score_v1_ListScoresByRunRequest_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_score_v1_ListScoresByRunRequest_LabelsEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_score_v1_ListScoresByRunRequest_LabelsEntry_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_score_v1_ListScoresBySessionRequest_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_score_v1_ListScoresBySessionRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_score_v1_ListScoresBySessionRequest_LabelsEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_score_v1_ListScoresBySessionRequest_LabelsEntry_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_score_v1_ScoreList_descriptor;
   static final 
@@ -97,6 +107,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_score_v1_ListFlaggedScoresByAgentRequest_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_score_v1_ListFlaggedScoresByAgentRequest_LabelsEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_score_v1_ListFlaggedScoresByAgentRequest_LabelsEntry_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_score_v1_UpdateScoreInput_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -115,78 +130,89 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "agentic/score/v1/api.proto\032\033buf/validate" +
       "/validate.proto\032 google/protobuf/field_m" +
       "ask.proto\"\'\n\007ScoreId\022\034\n\005value\030\001 \001(\tB\006\272H\003" +
-      "\310\001\001R\005value\"\207\001\n\026ListScoresByRunRequest\022\036\n" +
+      "\310\001\001R\005value\"\233\002\n\026ListScoresByRunRequest\022\036\n" +
       "\006run_id\030\001 \001(\tB\007\272H\004r\002\020\001R\005runId\022$\n\tpage_si" +
       "ze\030\002 \001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'\n\npage_toke" +
-      "n\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageToken\"\223\001\n\032ListSco" +
-      "resBySessionRequest\022&\n\nsession_id\030\001 \001(\tB" +
-      "\007\272H\004r\002\020\001R\tsessionId\022$\n\tpage_size\030\002 \001(\005B\007" +
-      "\272H\004\032\002(\000R\010pageSize\022\'\n\npage_token\030\003 \001(\tB\010\272" +
-      "H\005r\003\030\200\010R\tpageToken\"\204\001\n\tScoreList\022<\n\007entr" +
-      "ies\030\002 \003(\0132\".ai.stigmer.agentic.score.v1." +
-      "ScoreR\007entries\022&\n\017next_page_token\030\003 \001(\tR" +
-      "\rnextPageTokenJ\004\010\001\020\002R\013total_count\"|\n\034Get" +
-      "AgentQualityReportRequest\022\031\n\003org\030\001 \001(\tB\007" +
-      "\272H\004r\002\020\001R\003org\022\"\n\010agent_id\030\002 \001(\tB\007\272H\004r\002\020\001R" +
-      "\007agentId\022\035\n\004days\030\003 \001(\005B\t\272H\006\032\004\030Z(\000R\004days\"" +
-      "\336\002\n\022AgentQualityReport\022\033\n\tfrom_date\030\001 \001(" +
-      "\tR\010fromDate\022\027\n\007to_date\030\002 \001(\tR\006toDate\022A\n\005" +
-      "total\030\003 \001(\0132+.ai.stigmer.agentic.score.v" +
-      "1.QualitySummaryR\005total\022;\n\004days\030\004 \003(\0132\'." +
-      "ai.stigmer.agentic.score.v1.QualityDayR\004" +
-      "days\022G\n\010versions\030\005 \003(\0132+.ai.stigmer.agen" +
-      "tic.score.v1.QualityVersionR\010versions\022I\n" +
-      "\tagreement\030\006 \003(\0132+.ai.stigmer.agentic.sc" +
-      "ore.v1.JudgeAgreementR\tagreement\"\312\001\n\016Jud" +
-      "geAgreement\022+\n\021evaluator_version\030\001 \001(\tR\020" +
-      "evaluatorVersion\022\022\n\004runs\030\002 \001(\005R\004runs\0225\n\027" +
-      "thumbs_down_none_failed\030\003 \001(\005R\024thumbsDow" +
-      "nNoneFailed\022@\n\005rules\030\004 \003(\0132*.ai.stigmer." +
-      "agentic.score.v1.RuleAgreementR\005rules\"\323\001" +
-      "\n\rRuleAgreement\022\022\n\004name\030\001 \001(\tR\004name\022,\n\022f" +
-      "ailed_thumbs_down\030\002 \001(\005R\020failedThumbsDow" +
-      "n\022(\n\020failed_thumbs_up\030\003 \001(\005R\016failedThumb" +
-      "sUp\022,\n\022passed_thumbs_down\030\004 \001(\005R\020passedT" +
-      "humbsDown\022(\n\020passed_thumbs_up\030\005 \001(\005R\016pas" +
-      "sedThumbsUp\"h\n\016QualitySummary\022\022\n\004runs\030\001 " +
-      "\001(\005R\004runs\022B\n\007metrics\030\002 \003(\0132(.ai.stigmer." +
-      "agentic.score.v1.MetricTallyR\007metrics\"\204\002" +
-      "\n\013MetricTally\022\026\n\006metric\030\001 \001(\tR\006metric\022+\n" +
-      "\021evaluator_version\030\002 \001(\tR\020evaluatorVersi" +
-      "on\022\026\n\006passed\030\003 \001(\005R\006passed\022\026\n\006failed\030\004 \001" +
-      "(\005R\006failed\022\035\n\nnot_graded\030\005 \001(\005R\tnotGrade" +
-      "d\022\030\n\007pending\030\006 \001(\005R\007pending\022G\n\010criteria\030" +
-      "\007 \003(\0132+.ai.stigmer.agentic.score.v1.Crit" +
-      "erionTallyR\010criteria\"{\n\016CriterionTally\022\022" +
-      "\n\004name\030\001 \001(\tR\004name\022\026\n\006passed\030\002 \001(\005R\006pass" +
-      "ed\022\026\n\006failed\030\003 \001(\005R\006failed\022%\n\016not_applic" +
-      "able\030\004 \001(\005R\rnotApplicable\"g\n\nQualityDay\022" +
-      "\022\n\004date\030\001 \001(\tR\004date\022E\n\007summary\030\002 \001(\0132+.a" +
-      "i.stigmer.agentic.score.v1.QualitySummar" +
-      "yR\007summary\"\301\001\n\016QualityVersion\022,\n\022agent_v" +
-      "ersion_hash\030\001 \001(\tR\020agentVersionHash\022\035\n\nf" +
-      "irst_date\030\002 \001(\tR\tfirstDate\022\033\n\tlast_date\030" +
-      "\003 \001(\tR\010lastDate\022E\n\007summary\030\004 \001(\0132+.ai.st" +
-      "igmer.agentic.score.v1.QualitySummaryR\007s" +
-      "ummary\"\316\001\n\037ListFlaggedScoresByAgentReque" +
-      "st\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022\"\n\010agent_i" +
-      "d\030\002 \001(\tB\007\272H\004r\002\020\001R\007agentId\022\035\n\004days\030\003 \001(\005B" +
-      "\t\272H\006\032\004\030Z(\000R\004days\022$\n\tpage_size\030\004 \001(\005B\007\272H\004" +
-      "\032\002(\000R\010pageSize\022\'\n\npage_token\030\005 \001(\tB\010\272H\005r" +
-      "\003\030\200\010R\tpageToken\"\337\002\n\020UpdateScoreInput\022F\n\010" +
-      "resource\030\001 \001(\0132\".ai.stigmer.agentic.scor" +
-      "e.v1.ScoreB\006\272H\003\330\001\003R\010resource\022C\n\013update_m" +
-      "ask\030\002 \001(\0132\032.google.protobuf.FieldMaskB\006\272" +
-      "H\003\310\001\001R\nupdateMask:\275\001\272H\271\001\032\266\001\n\027update_name" +
-      "s_its_target\022Eresource.metadata.id is re" +
-      "quired: an update names the score by its" +
-      " id\032Thas(this.resource) && has(this.reso" +
-      "urce.metadata) && this.resource.metadata" +
-      ".id != \'\'B\232\001B\007IoProtoP\001\242\002\004ASAS\252\002\033Ai.Stig" +
-      "mer.Agentic.Score.V1\312\002\033Ai\\Stigmer\\Agenti" +
-      "c\\Score\\V1\342\002\'Ai\\Stigmer\\Agentic\\Score\\V1" +
-      "\\GPBMetadata\352\002\037Ai::Stigmer::Agentic::Sco" +
-      "re::V1b\006proto3"
+      "n\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageToken\022W\n\006labels\030\004" +
+      " \003(\0132?.ai.stigmer.agentic.score.v1.ListS" +
+      "coresByRunRequest.LabelsEntryR\006labels\0329\n" +
+      "\013LabelsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030" +
+      "\002 \001(\tR\005value:\0028\001\"\253\002\n\032ListScoresBySession" +
+      "Request\022&\n\nsession_id\030\001 \001(\tB\007\272H\004r\002\020\001R\tse" +
+      "ssionId\022$\n\tpage_size\030\002 \001(\005B\007\272H\004\032\002(\000R\010pag" +
+      "eSize\022\'\n\npage_token\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpag" +
+      "eToken\022[\n\006labels\030\004 \003(\0132C.ai.stigmer.agen" +
+      "tic.score.v1.ListScoresBySessionRequest." +
+      "LabelsEntryR\006labels\0329\n\013LabelsEntry\022\020\n\003ke" +
+      "y\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\"\204" +
+      "\001\n\tScoreList\022<\n\007entries\030\002 \003(\0132\".ai.stigm" +
+      "er.agentic.score.v1.ScoreR\007entries\022&\n\017ne" +
+      "xt_page_token\030\003 \001(\tR\rnextPageTokenJ\004\010\001\020\002" +
+      "R\013total_count\"|\n\034GetAgentQualityReportRe" +
+      "quest\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022\"\n\010agen" +
+      "t_id\030\002 \001(\tB\007\272H\004r\002\020\001R\007agentId\022\035\n\004days\030\003 \001" +
+      "(\005B\t\272H\006\032\004\030Z(\000R\004days\"\336\002\n\022AgentQualityRepo" +
+      "rt\022\033\n\tfrom_date\030\001 \001(\tR\010fromDate\022\027\n\007to_da" +
+      "te\030\002 \001(\tR\006toDate\022A\n\005total\030\003 \001(\0132+.ai.sti" +
+      "gmer.agentic.score.v1.QualitySummaryR\005to" +
+      "tal\022;\n\004days\030\004 \003(\0132\'.ai.stigmer.agentic.s" +
+      "core.v1.QualityDayR\004days\022G\n\010versions\030\005 \003" +
+      "(\0132+.ai.stigmer.agentic.score.v1.Quality" +
+      "VersionR\010versions\022I\n\tagreement\030\006 \003(\0132+.a" +
+      "i.stigmer.agentic.score.v1.JudgeAgreemen" +
+      "tR\tagreement\"\312\001\n\016JudgeAgreement\022+\n\021evalu" +
+      "ator_version\030\001 \001(\tR\020evaluatorVersion\022\022\n\004" +
+      "runs\030\002 \001(\005R\004runs\0225\n\027thumbs_down_none_fai" +
+      "led\030\003 \001(\005R\024thumbsDownNoneFailed\022@\n\005rules" +
+      "\030\004 \003(\0132*.ai.stigmer.agentic.score.v1.Rul" +
+      "eAgreementR\005rules\"\323\001\n\rRuleAgreement\022\022\n\004n" +
+      "ame\030\001 \001(\tR\004name\022,\n\022failed_thumbs_down\030\002 " +
+      "\001(\005R\020failedThumbsDown\022(\n\020failed_thumbs_u" +
+      "p\030\003 \001(\005R\016failedThumbsUp\022,\n\022passed_thumbs" +
+      "_down\030\004 \001(\005R\020passedThumbsDown\022(\n\020passed_" +
+      "thumbs_up\030\005 \001(\005R\016passedThumbsUp\"h\n\016Quali" +
+      "tySummary\022\022\n\004runs\030\001 \001(\005R\004runs\022B\n\007metrics" +
+      "\030\002 \003(\0132(.ai.stigmer.agentic.score.v1.Met" +
+      "ricTallyR\007metrics\"\204\002\n\013MetricTally\022\026\n\006met" +
+      "ric\030\001 \001(\tR\006metric\022+\n\021evaluator_version\030\002" +
+      " \001(\tR\020evaluatorVersion\022\026\n\006passed\030\003 \001(\005R\006" +
+      "passed\022\026\n\006failed\030\004 \001(\005R\006failed\022\035\n\nnot_gr" +
+      "aded\030\005 \001(\005R\tnotGraded\022\030\n\007pending\030\006 \001(\005R\007" +
+      "pending\022G\n\010criteria\030\007 \003(\0132+.ai.stigmer.a" +
+      "gentic.score.v1.CriterionTallyR\010criteria" +
+      "\"{\n\016CriterionTally\022\022\n\004name\030\001 \001(\tR\004name\022\026" +
+      "\n\006passed\030\002 \001(\005R\006passed\022\026\n\006failed\030\003 \001(\005R\006" +
+      "failed\022%\n\016not_applicable\030\004 \001(\005R\rnotAppli" +
+      "cable\"g\n\nQualityDay\022\022\n\004date\030\001 \001(\tR\004date\022" +
+      "E\n\007summary\030\002 \001(\0132+.ai.stigmer.agentic.sc" +
+      "ore.v1.QualitySummaryR\007summary\"\301\001\n\016Quali" +
+      "tyVersion\022,\n\022agent_version_hash\030\001 \001(\tR\020a" +
+      "gentVersionHash\022\035\n\nfirst_date\030\002 \001(\tR\tfir" +
+      "stDate\022\033\n\tlast_date\030\003 \001(\tR\010lastDate\022E\n\007s" +
+      "ummary\030\004 \001(\0132+.ai.stigmer.agentic.score." +
+      "v1.QualitySummaryR\007summary\"\353\002\n\037ListFlagg" +
+      "edScoresByAgentRequest\022\031\n\003org\030\001 \001(\tB\007\272H\004" +
+      "r\002\020\001R\003org\022\"\n\010agent_id\030\002 \001(\tB\007\272H\004r\002\020\001R\007ag" +
+      "entId\022\035\n\004days\030\003 \001(\005B\t\272H\006\032\004\030Z(\000R\004days\022$\n\t" +
+      "page_size\030\004 \001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'\n\npa" +
+      "ge_token\030\005 \001(\tB\010\272H\005r\003\030\200\010R\tpageToken\022`\n\006l" +
+      "abels\030\006 \003(\0132H.ai.stigmer.agentic.score.v" +
+      "1.ListFlaggedScoresByAgentRequest.Labels" +
+      "EntryR\006labels\0329\n\013LabelsEntry\022\020\n\003key\030\001 \001(" +
+      "\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\"\337\002\n\020Upd" +
+      "ateScoreInput\022F\n\010resource\030\001 \001(\0132\".ai.sti" +
+      "gmer.agentic.score.v1.ScoreB\006\272H\003\330\001\003R\010res" +
+      "ource\022C\n\013update_mask\030\002 \001(\0132\032.google.prot" +
+      "obuf.FieldMaskB\006\272H\003\310\001\001R\nupdateMask:\275\001\272H\271" +
+      "\001\032\266\001\n\027update_names_its_target\022Eresource." +
+      "metadata.id is required: an update names" +
+      " the score by its id\032Thas(this.resource)" +
+      " && has(this.resource.metadata) && this." +
+      "resource.metadata.id != \'\'B\232\001B\007IoProtoP\001" +
+      "\242\002\004ASAS\252\002\033Ai.Stigmer.Agentic.Score.V1\312\002\033" +
+      "Ai\\Stigmer\\Agentic\\Score\\V1\342\002\'Ai\\Stigmer" +
+      "\\Agentic\\Score\\V1\\GPBMetadata\352\002\037Ai::Stig" +
+      "mer::Agentic::Score::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -206,13 +232,25 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_score_v1_ListScoresByRunRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_score_v1_ListScoresByRunRequest_descriptor,
-        new java.lang.String[] { "RunId", "PageSize", "PageToken", });
+        new java.lang.String[] { "RunId", "PageSize", "PageToken", "Labels", });
+    internal_static_ai_stigmer_agentic_score_v1_ListScoresByRunRequest_LabelsEntry_descriptor =
+      internal_static_ai_stigmer_agentic_score_v1_ListScoresByRunRequest_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_agentic_score_v1_ListScoresByRunRequest_LabelsEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_score_v1_ListScoresByRunRequest_LabelsEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
     internal_static_ai_stigmer_agentic_score_v1_ListScoresBySessionRequest_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_score_v1_ListScoresBySessionRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_score_v1_ListScoresBySessionRequest_descriptor,
-        new java.lang.String[] { "SessionId", "PageSize", "PageToken", });
+        new java.lang.String[] { "SessionId", "PageSize", "PageToken", "Labels", });
+    internal_static_ai_stigmer_agentic_score_v1_ListScoresBySessionRequest_LabelsEntry_descriptor =
+      internal_static_ai_stigmer_agentic_score_v1_ListScoresBySessionRequest_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_agentic_score_v1_ListScoresBySessionRequest_LabelsEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_score_v1_ListScoresBySessionRequest_LabelsEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
     internal_static_ai_stigmer_agentic_score_v1_ScoreList_descriptor =
       getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_agentic_score_v1_ScoreList_fieldAccessorTable = new
@@ -278,7 +316,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_score_v1_ListFlaggedScoresByAgentRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_score_v1_ListFlaggedScoresByAgentRequest_descriptor,
-        new java.lang.String[] { "Org", "AgentId", "Days", "PageSize", "PageToken", });
+        new java.lang.String[] { "Org", "AgentId", "Days", "PageSize", "PageToken", "Labels", });
+    internal_static_ai_stigmer_agentic_score_v1_ListFlaggedScoresByAgentRequest_LabelsEntry_descriptor =
+      internal_static_ai_stigmer_agentic_score_v1_ListFlaggedScoresByAgentRequest_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_agentic_score_v1_ListFlaggedScoresByAgentRequest_LabelsEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_score_v1_ListFlaggedScoresByAgentRequest_LabelsEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
     internal_static_ai_stigmer_agentic_score_v1_UpdateScoreInput_descriptor =
       getDescriptor().getMessageType(14);
     internal_static_ai_stigmer_agentic_score_v1_UpdateScoreInput_fieldAccessorTable = new

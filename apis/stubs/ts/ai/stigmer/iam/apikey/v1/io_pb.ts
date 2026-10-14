@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/apikey/v1/io.proto.
  */
 export const file_ai_stigmer_iam_apikey_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiFhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvaW8ucHJvdG8SGGFpLnN0aWdtZXIuaWFtLmFwaWtleS52MSJVCgdBcGlLZXlzEjEKB2VudHJpZXMYASADKAsyIC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSIhCghBcGlLZXlJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIiMKCkFwaUtleUhhc2gSFQoFdmFsdWUYASABKAlCBrpIA8gBASJMChBMaXN0QXBpS2V5c0lucHV0EhoKCXBhZ2Vfc2l6ZRgBIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAIgASgJQgi6SAVyAxiACCJxChlMaXN0QXBpS2V5c0J5QWNjb3VudElucHV0EhoKCmFjY291bnRfaWQYASABKAlCBrpIA8gBARIaCglwYWdlX3NpemUYAiABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgipAEKHENyZWF0ZVNlcnZpY2VBY2NvdW50S2V5SW5wdXQSIgoSc2VydmljZV9hY2NvdW50X2lkGAEgASgJQga6SAPIAQESGQoEbmFtZRgCIAEoCUILukgIyAEBcgMYgAESLgoKZXhwaXJlc19hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASFQoNbmV2ZXJfZXhwaXJlcxgEIAEoCCLKAgoRVXBkYXRlQXBpS2V5SW5wdXQSOgoIcmVzb3VyY2UYASABKAsyIC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5Qga6SAPYAQMSNwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrQga6SAPIAQE6vwG6SLsBGrgBChd1cGRhdGVfbmFtZXNfaXRzX3RhcmdldBJHcmVzb3VyY2UubWV0YWRhdGEuaWQgaXMgcmVxdWlyZWQ6IGFuIHVwZGF0ZSBuYW1lcyB0aGUgQVBJIGtleSBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJ2IGcHJvdG8z", [file_ai_stigmer_iam_apikey_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask, file_google_protobuf_timestamp]);
+  fileDesc("CiFhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvaW8ucHJvdG8SGGFpLnN0aWdtZXIuaWFtLmFwaWtleS52MSJVCgdBcGlLZXlzEjEKB2VudHJpZXMYASADKAsyIC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSIhCghBcGlLZXlJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIiMKCkFwaUtleUhhc2gSFQoFdmFsdWUYASABKAlCBrpIA8gBASLDAQoQTGlzdEFwaUtleXNJbnB1dBIaCglwYWdlX3NpemUYASABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgCIAEoCUIIukgFcgMYgAgSRgoGbGFiZWxzGAMgAygLMjYuYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxLkxpc3RBcGlLZXlzSW5wdXQuTGFiZWxzRW50cnkaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASLxAQoZTGlzdEFwaUtleXNCeUFjY291bnRJbnB1dBIaCgphY2NvdW50X2lkGAEgASgJQga6SAPIAQESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhwKCnBhZ2VfdG9rZW4YAyABKAlCCLpIBXIDGIAIEk8KBmxhYmVscxgEIAMoCzI/LmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5MaXN0QXBpS2V5c0J5QWNjb3VudElucHV0LkxhYmVsc0VudHJ5Gi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEipAEKHENyZWF0ZVNlcnZpY2VBY2NvdW50S2V5SW5wdXQSIgoSc2VydmljZV9hY2NvdW50X2lkGAEgASgJQga6SAPIAQESGQoEbmFtZRgCIAEoCUILukgIyAEBcgMYgAESLgoKZXhwaXJlc19hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASFQoNbmV2ZXJfZXhwaXJlcxgEIAEoCCLKAgoRVXBkYXRlQXBpS2V5SW5wdXQSOgoIcmVzb3VyY2UYASABKAsyIC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5Qga6SAPYAQMSNwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrQga6SAPIAQE6vwG6SLsBGrgBChd1cGRhdGVfbmFtZXNfaXRzX3RhcmdldBJHcmVzb3VyY2UubWV0YWRhdGEuaWQgaXMgcmVxdWlyZWQ6IGFuIHVwZGF0ZSBuYW1lcyB0aGUgQVBJIGtleSBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJ2IGcHJvdG8z", [file_ai_stigmer_iam_apikey_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask, file_google_protobuf_timestamp]);
 
 /**
  * ApiKeys contains a list of API key resources.
@@ -109,6 +109,15 @@ export type ListApiKeysInput = Message<"ai.stigmer.iam.apikey.v1.ListApiKeysInpu
    * @generated from field: string page_token = 2;
    */
   pageToken: string;
+
+  /**
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   *
+   * @generated from field: map<string, string> labels = 3;
+   */
+  labels: { [key: string]: string };
 };
 
 /**
@@ -147,6 +156,15 @@ export type ListApiKeysByAccountInput = Message<"ai.stigmer.iam.apikey.v1.ListAp
    * @generated from field: string page_token = 3;
    */
   pageToken: string;
+
+  /**
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   *
+   * @generated from field: map<string, string> labels = 4;
+   */
+  labels: { [key: string]: string };
 };
 
 /**
