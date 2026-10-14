@@ -473,6 +473,21 @@ describe("ResolveEvalRunDefaults' case sources and store faults", () => {
     await temp.store.saveResource(ApiResourceKind.plugin, "plg_1", PluginSchema, THERMOS);
   });
 
+  it("matches a case source named by organization and slug, and refuses one the try would not load by that slug", async () => {
+    const bySlug = (slug: string) => {
+      const ctx = withSources([]);
+      ctx.newState.spec!.cases = [
+        create(EvalRunCaseSourceSchema, { source: { case: "plugin", value: { kind: ApiResourceKind.plugin, org: ORG, slug } } }),
+      ];
+      return ctx;
+    };
+    const ctx = bySlug("thermos");
+    await newResolveEvalRunDefaultsStep(temp.store, ALLOW_ALL).execute(ctx);
+    expect([...(ctx.get(EVAL_RUN_LOAD_KEY) as EvaluatedLoad).selected]).toEqual(["plg_1"]);
+    const refused = await failure(() => newResolveEvalRunDefaultsStep(temp.store, ALLOW_ALL).execute(bySlug("elsewhere")));
+    expect(refused.rawMessage).toBe(evalRunUnloadedCaseSourceMessage("elsewhere"));
+  });
+
   it("matches a case source named by id, and passes over one that names no source", async () => {
     const ctx = withSources([undefined, "plg_1"]);
     await newResolveEvalRunDefaultsStep(temp.store, ALLOW_ALL).execute(ctx);

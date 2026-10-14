@@ -39,6 +39,7 @@ import {
   PLUGIN_NOT_SELECTED_REASON,
   PLUGIN_NO_CASES_REASON,
   cancelAndDeleteEvalRun,
+  casesOf,
   createAgentWith,
   evalCaseFiles,
   evalRunActiveDeleteMessage,
@@ -370,6 +371,16 @@ describe("triesOf", () => {
     expect(
       triesOf(evalRun).map((t) => `${t.pluginSlug}/${t.caseName}/${t.targetIndex}/${t.arm}/${t.attempt.index}`),
     ).toEqual(["notes/a/0/with/1", "notes/a/0/with/2", "notes/a/0/without/1", "notes/a/1/with/1", "tracker/c/0/with/1"]);
+  });
+});
+
+describe("casesOf", () => {
+  it("reads the cases of an eval run's one plugin, and none before its status lists one", () => {
+    const evalRun = create(EvalRunSchema, {
+      status: { plugins: [{ pluginSlug: "notes", cases: [{ caseName: "a" }, { caseName: "b" }] }] },
+    });
+    expect(casesOf(evalRun).map((c) => c.caseName)).toEqual(["a", "b"]);
+    expect(casesOf(create(EvalRunSchema, {}))).toEqual([]);
   });
 });
 
