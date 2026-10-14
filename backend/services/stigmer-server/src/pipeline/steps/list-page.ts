@@ -38,6 +38,7 @@
 import { createHash } from "node:crypto";
 
 import { toBinary } from "@bufbuild/protobuf";
+import { ConnectError } from "@connectrpc/connect";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 
 import type { Store } from "../../store/interface.js";
@@ -225,7 +226,10 @@ interface InHandResource {
   readonly status?: {
     readonly audit?: {
       readonly specAudit?: {
-        readonly createdAt?: { readonly seconds: bigint; readonly nanos: number };
+        readonly createdAt?: {
+          readonly seconds: bigint;
+          readonly nanos: number;
+        };
       };
     };
   };
@@ -252,7 +256,9 @@ export function inHandListPageSource<Desc extends DescMessage>(
         id,
         data: toBinary(schema, resource),
         cursor: {
-          createdAt: listIndexInstant(shaped.status?.audit?.specAudit?.createdAt),
+          createdAt: listIndexInstant(
+            shaped.status?.audit?.specAudit?.createdAt,
+          ),
           id,
         },
       };
@@ -313,6 +319,12 @@ async function queryOrFail<T>(
   try {
     return await params.source(after, limit);
   } catch (error) {
+    // A source's own refusal (a cursor it cannot read answers
+    // `invalid page_token`, as the source contract above asks) is the
+    // caller's answer; any other failure is a fault behind the lane.
+    if (error instanceof ConnectError) {
+      throw error;
+    }
     throw internalError(error, params.failure);
   }
 }

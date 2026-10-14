@@ -35,7 +35,10 @@ import {
   readListPage,
   readPage,
 } from "../list-page.js";
-import type { ListIndexCursor, ListIndexRow } from "../../../store/list-index.js";
+import type {
+  ListIndexCursor,
+  ListIndexRow,
+} from "../../../store/list-index.js";
 import type { ListPageParams, ListPageSource } from "../list-page.js";
 
 let temp: TempStore;
@@ -202,7 +205,10 @@ describe("readPage", () => {
       return {
         id,
         data: new TextEncoder().encode(id),
-        cursor: { createdAt: `2026-10-07T00:00:${String(n).padStart(2, "0")}.000000Z`, id },
+        cursor: {
+          createdAt: `2026-10-07T00:00:${String(n).padStart(2, "0")}.000000Z`,
+          id,
+        },
       };
     });
   }
@@ -214,7 +220,10 @@ describe("readPage", () => {
   ): ListPageSource {
     return (after: ListIndexCursor | undefined, limit: number | undefined) => {
       calls.push([after?.id, limit]);
-      const start = after === undefined ? 0 : rows.findIndex((row) => row.id === after.id) + 1;
+      const start =
+        after === undefined
+          ? 0
+          : rows.findIndex((row) => row.id === after.id) + 1;
       const rest = rows.slice(start);
       return Promise.resolve(limit === undefined ? rest : rest.slice(0, limit));
     };
@@ -250,11 +259,26 @@ describe("readPage", () => {
       ["row_003", 3],
       ["row_001", 3],
     ]);
-    expect((await pageOf(source, 0, "")).entries).toEqual(rows.map((row) => row.id));
+    expect((await pageOf(source, 0, "")).entries).toEqual(
+      rows.map((row) => row.id),
+    );
+  });
+
+  it("passes a source's own refusal through unwrapped", async () => {
+    const refusing: ListPageSource = () =>
+      Promise.reject(
+        new ConnectError("invalid page_token", Code.InvalidArgument),
+      );
+    const answer = await refusal(pageOf(refusing, 2, ""));
+    expect([answer.code, answer.rawMessage]).toEqual([
+      Code.InvalidArgument,
+      "invalid page_token",
+    ]);
   });
 
   it("answers a source fault INTERNAL with the lane's copy", async () => {
-    const failing: ListPageSource = () => Promise.reject(new Error("connection refused"));
+    const failing: ListPageSource = () =>
+      Promise.reject(new Error("connection refused"));
     const fault = await refusal(pageOf(failing, 2, ""));
     expect([fault.code, fault.rawMessage]).toEqual([
       Code.Internal,
