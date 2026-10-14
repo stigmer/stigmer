@@ -75,8 +75,8 @@ answers the log recorded.
 (`test/conformance/src/harness/git-workspace.ts`) as the session's local
 workspace, script write and edit turns, `awaitFileReview`, decide through the
 session's `reviewFileChanges` with `reviewFileByPath` or `reviewChangeSet`, read
-the decisions back from the log with `readFileReviewLog` and `reviewSetNow`, then
-read the tree back (`test/conformance/src/support/file-review.ts`).
+the decisions back from the log with `readFileReviewLog` and `reviewSetNow`,
+then read the tree back (`test/conformance/src/support/file-review.ts`).
 
 For a schedule: `makeSchedule` in `test/conformance/src/support/schedules.ts`.
 For anything else that advances on its own: `pollUntil` in
