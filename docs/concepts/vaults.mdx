@@ -51,12 +51,13 @@ stigmer vault set-secret ZENDESK_API_KEY --vault support-tools
 ```
 
 A sign-in starts from an address. Signing in to an MCP server from its plugin's
-page saves the login as a connection at that server's address in your vault (or
-a shared vault you may edit), and it serves every MCP server reached at that
-address, as a login you paste there does. GitHub is one more address: connecting
-GitHub signs you in at `github.com` and saves the login there, and the console's
-repository picker reads GitHub through the server with it, so the page never
-holds the token. Which OAuth app signs you in is found from the address
+page, or from the Agent's page for a server written in the Agent, saves the
+login as a connection at that server's address in your vault (or a shared vault
+you may edit), and it serves every MCP server reached at that address, as a
+login you paste there does. GitHub is one more address: connecting GitHub signs
+you in at `github.com` and saves the login there, and the console's repository
+picker reads GitHub through the server with it, so the page never holds the
+token. Which OAuth app signs you in is found from the address
 ([OAuth architecture](/docs/guides/integrations/oauth-architecture#a-login-is-found-by-its-address)).
 
 ## Declaring what a run needs
@@ -64,7 +65,9 @@ holds the token. Which OAuth app signs you in is found from the address
 [Agents](/docs/concepts/agents) declare the variables they need through the
 `env` map. A plugin declares the variables its MCP servers and hooks read in its
 manifest, and its page lists them; a variable a server names as `${NAME}`
-without declaring it is taken as a required secret.
+without declaring it is taken as a required secret. An MCP server written in an
+Agent's own `mcp_servers` follows the same rule from the Agent's `env`, and its
+`${NAME}` values are sent to that server only.
 
 ```yaml validate-as="Agent"
 spec:
