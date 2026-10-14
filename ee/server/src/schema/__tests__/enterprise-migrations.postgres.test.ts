@@ -18,7 +18,8 @@
  *     columns carry the federation issuer's names, the row reads the kind
  *     FederationIssuer under its idp_ id and passes the contract's
  *     validation, and the store resolves its issuer and audience to it; a
- *     row that does not decode fails v5, naming it, and leaves v4;
+ *     row that does not decode fails v5, naming it, and leaves v4; the
+ *     rewrite reads every row across its keyset pages;
  *   - each claim is the database's: a team's slug per organization, an
  *     issuer's route, an issuer's slug per organization, and an
  *     invitation's token are each refused with a unique violation naming
@@ -40,7 +41,7 @@ import {
   type ProvisionedEnterpriseDatabase,
 } from "../../__test-utils__/enterprise-postgres.js";
 import { newFederationIssuerStore } from "../../iam/issuer/postgres-store.js";
-import { ENTERPRISE_SCHEMA_VERSION, runEnterpriseMigrations } from "../enterprise-migrations.js";
+import { ENTERPRISE_SCHEMA_VERSION, ISSUER_RENAME_PAGE_SIZE, runEnterpriseMigrations } from "../enterprise-migrations.js";
 
 /** Postgres unique-violation SQLSTATE. */
 const UNIQUE_VIOLATION = "23505";
@@ -288,6 +289,41 @@ describe.skipIf(!TEST_DATABASE_URL)("the Enterprise schema chain", () => {
       await earlier.drop();
     }
   });
+
+  it("rewrites every identity provider row at v5 across its keyset pages, missing none past the first", async () => {
+    const earlier = await provisionEnterpriseDatabase({ migrate: false });
+    try {
+      const client = await earlier.pool.connect();
+      try {
+        await runEnterpriseMigrations(client, { through: 4 });
+        const ids = Array.from({ length: ISSUER_RENAME_PAGE_SIZE + 1 }, (_, i) => `idp_${String(i).padStart(4, "0")}`);
+        const bytes = (id: string) =>
+          Buffer.from(
+            toBinary(
+              FederationIssuerSchema,
+              create(FederationIssuerSchema, { apiVersion: "iam.stigmer.ai/v1", kind: "IdentityProvider", metadata: { id, org: "acme", slug: id } }),
+            ),
+          );
+        await earlier.pool.query(
+          `INSERT INTO ee.iam_identity_provider (id, data, org, slug, created_at)
+           SELECT id, data, 'acme', id, $3 FROM unnest($1::text[], $2::bytea[]) AS t(id, data)`,
+          [ids, ids.map(bytes), CREATED],
+        );
+
+        await runEnterpriseMigrations(client);
+
+        const last = ids[ids.length - 1]!;
+        const stored = await earlier.pool.query<{ data: Buffer }>(`SELECT data FROM ee.iam_federation_issuer WHERE id = $1`, [last]);
+        expect(fromBinary(FederationIssuerSchema, new Uint8Array(stored.rows[0]!.data)).kind).toBe("FederationIssuer");
+        const left = await earlier.pool.query<{ data: Buffer }>(`SELECT data FROM ee.iam_federation_issuer`);
+        expect(left.rows.filter((row) => fromBinary(FederationIssuerSchema, new Uint8Array(row.data)).kind !== "FederationIssuer")).toEqual([]);
+      } finally {
+        client.release();
+      }
+    } finally {
+      await earlier.drop();
+    }
+  }, 60_000);
 
   it("fails v5 on an identity provider row that does not decode, naming it, and leaves the database at v4", async () => {
     const earlier = await provisionEnterpriseDatabase({ migrate: false });

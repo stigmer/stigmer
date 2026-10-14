@@ -109,7 +109,7 @@ import { IamPermission, IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_p
 
 import { newFederationIssuerRegistrations, type FederationIssuerLaneDeps } from "../handlers.js";
 import type { IssuerInsertOutcome, IssuerSwapOutcome } from "../store.js";
-import { newLoadIssuerByReferenceStep, ISSUER_BEING_DELETED_MESSAGE } from "../steps.js";
+import { newLoadIssuerByReferenceStep, ISSUER_BEING_DELETED_MESSAGE, providerAt } from "../steps.js";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 
@@ -852,6 +852,33 @@ describe("reads", () => {
     );
     expect(inProcess.code).toBe(Code.InvalidArgument);
     expect(inProcess.rawMessage).toBe("slug or id is required in reference");
+  });
+
+  it("the reference step refuses, for an in-process caller, a reference of another kind or with no organization, and the chain refuses a lost row", async () => {
+    const r = rig();
+    const step = newLoadIssuerByReferenceStep(inMemoryNames(), r.store, { authorize: async () => ({ kind: "allow" as const }) });
+    const run = (reference: { org?: string; slug?: string; kind?: ApiResourceKind }) =>
+      failure(
+        Promise.resolve(
+          step.execute(
+            new RequestContext(
+              ApiResourceReferenceSchema,
+              create(ApiResourceReferenceSchema, reference),
+              { identityId: "usr_1", callerClass: "user", issuer: "stigmer", rawToken: "" },
+            ),
+          ),
+        ),
+      );
+
+    const otherKind = await run({ org: "acme", slug: "alpha", kind: ApiResourceKind.team });
+    expect(otherKind.code).toBe(Code.InvalidArgument);
+    expect(otherKind.rawMessage).toBe("kind mismatch: expected federation_issuer, got team");
+    const noOrg = await run({ slug: "alpha" });
+    expect(noOrg.code).toBe(Code.InvalidArgument);
+    expect(noOrg.rawMessage).toBe("org is required for FederationIssuer lookup");
+
+    const lost = await failure(Promise.resolve().then(() => providerAt({ get: () => undefined }, "target")));
+    expect(lost.code).toBe(Code.Internal);
   });
 
   it("getByReference answers a missing slug NOT_FOUND to the organization's admin, asking only the organization's can_create_federation_issuer", async () => {
