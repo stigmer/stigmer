@@ -55,6 +55,7 @@ Organization organization = client.organizations().get("org_01j5q3k7m8r2s4tnz2hf
 | [`apply`](#apply) | Create or update an organization. |
 | [`create`](#create) | Create an organization. |
 | [`update`](#update) | Update an organization: the fields update_mask names change, every other field keeps its stored value. |
+| [`updateEmbedding`](#updateembedding) | Change how people sign in to the organization from its own product (OrganizationEmbedding), the one way to change those settings: update and apply keep the stored ones. |
 | [`updatePolicies`](#updatepolicies) | Change what the organization lets its members do (OrganizationPolicies), the one way to change a policy: update and apply keep the stored policies. |
 | [`delete`](#delete) | Delete an organization, and everything it owned. |
 | [`rename`](#rename) | Rename an organization: change its slug, the name people type. |
@@ -254,6 +255,7 @@ const organization = await stigmer.organization.apply({
   preferences: {},
   parentOrg: "...",
   policies: {},
+  embedding: {},
 });
 ```
 </Tab>
@@ -269,6 +271,7 @@ organization, err := client.Organization.Apply(ctx, &stigmer.OrganizationInput{
   Preferences: &stigmer.OrganizationPreferencesInput{},
   ParentOrg:   "...",
   Policies:    &stigmer.OrganizationPoliciesInput{},
+  Embedding:   &stigmer.OrganizationEmbeddingInput{},
 })
 ```
 </Tab>
@@ -284,6 +287,7 @@ organization = client.organizations.apply(OrganizationInput(
     preferences=None,
     parent_org="...",
     policies=None,
+    embedding=None,
 ))
 ```
 </Tab>
@@ -299,6 +303,7 @@ Organization organization = client.organizations().apply(OrganizationInput.build
     .preferences(null)
     .parentOrg("...")
     .policies(null)
+    .embedding(null)
     .build());
 ```
 </Tab>
@@ -349,6 +354,7 @@ const organization = await stigmer.organization.create({
   preferences: {},
   parentOrg: "...",
   policies: {},
+  embedding: {},
 });
 ```
 </Tab>
@@ -364,6 +370,7 @@ organization, err := client.Organization.Create(ctx, &stigmer.OrganizationInput{
   Preferences: &stigmer.OrganizationPreferencesInput{},
   ParentOrg:   "...",
   Policies:    &stigmer.OrganizationPoliciesInput{},
+  Embedding:   &stigmer.OrganizationEmbeddingInput{},
 })
 ```
 </Tab>
@@ -379,6 +386,7 @@ organization = client.organizations.create(OrganizationInput(
     preferences=None,
     parent_org="...",
     policies=None,
+    embedding=None,
 ))
 ```
 </Tab>
@@ -394,6 +402,7 @@ Organization organization = client.organizations().create(OrganizationInput.buil
     .preferences(null)
     .parentOrg("...")
     .policies(null)
+    .embedding(null)
     .build());
 ```
 </Tab>
@@ -451,6 +460,51 @@ Organization updated = client.organizations().update(
 |-----------|------|-------------|
 | `resource` | [`Organization`](#organization) | The organization, named by `metadata.id`, with the new values at the paths it changes. Carry the `metadata.etag` it was read at to be refused if it changed since. |
 | `paths` | `string[]` | The fields the update changes, as proto field paths (`spec.description`, `metadata.name`), or `*` for every one. |
+
+**Returns**: [`Organization`](#organization)
+
+### updateEmbedding
+
+Change how people sign in to the organization from its own product (OrganizationEmbedding), the one way to change those settings: update and apply keep the stored ones. Replaces every embedding setting with the input's.
+
+A vault the caller may not use is refused, as is a My vault. A sign_in_role of owner, or one an organization cannot be granted, is refused with INVALID_ARGUMENT.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const organization = await stigmer.organization.updateEmbedding({
+  orgId: "...",
+  embedding: {},
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+organization, err := client.Organization.UpdateEmbedding(ctx, &stigmer.UpdateOrganizationEmbeddingInput{
+  OrgId:     "...",
+  Embedding: &stigmer.OrganizationEmbeddingInput{},
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+organization = client.organizations.update_embedding(UpdateOrganizationEmbeddingInput(
+    org_id="...",
+    embedding=None,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+Organization organization = client.organizations().updateEmbedding(UpdateOrganizationEmbeddingInput.builder()
+    .orgId("...")
+    .embedding(null)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`UpdateOrganizationEmbeddingInput`](#updateorganizationembeddinginput)
 
 **Returns**: [`Organization`](#organization)
 
@@ -606,6 +660,7 @@ Input for creating or updating an Organization.
     preferences: { type: "OrganizationPreferencesInput", description: "Standing preferences declared by the organization.", typeDescriptionLink: "#organizationpreferencesinput" },
     parentOrg: { type: "string", description: "The organization this one is a child of, by id or slug; empty for an organization that has no parent." },
     policies: { type: "OrganizationPoliciesInput", description: "What the organization lets its members do.", typeDescriptionLink: "#organizationpoliciesinput" },
+    embedding: { type: "OrganizationEmbeddingInput", description: "How people sign in to the organization from its own product, when the product's backend mints their tokens (TokenService.mintUserToken).", typeDescriptionLink: "#organizationembeddinginput" },
   }}
 />
 
@@ -630,6 +685,33 @@ OrganizationPolicies holds what an organization lets its members do.
   }}
 />
 
+### OrganizationEmbeddingInput
+
+OrganizationEmbedding holds how people sign in to an organization from the organization's own product: which web pages may use their tokens, whether their first sign-in creates their account and with which role, and which vaults their conversations use.
+
+<TypeTable
+  type={{
+    allowedOrigins: { type: "string[]", description: "Web origins allowed for browser requests that bear a minted user token." },
+    createAccountsOnSignIn: { type: "boolean", description: "Whether mintUserToken creates an identity account for a user_id that has none yet." },
+    signInRole: { type: "IamRole", description: "The role an account mintUserToken creates receives on the organization the token is for.", typeDescriptionLink: "#iamrole" },
+    vaults: { type: "ResourceRef[]", description: "Vaults whose logins and secrets every run an app user creates uses, in order: the first vault holding a match wins.", typeDescriptionLink: "#resourceref" },
+  }}
+/>
+
+### ResourceRef
+
+Generic reference to any API resource.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the referenced resource, by slug or id." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
+    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org)." },
+    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+    id: { type: "string", description: "The referenced resource's id: what a stored reference holds." },
+  }}
+/>
+
 ### UpdateOrganizationInput
 
 The changes an update makes to an organization: the fields update_mask names, taken from resource.
@@ -649,6 +731,17 @@ Input for updatePolicies: the organization and the whole set of policies it hold
   type={{
     orgId: { type: "string", description: "The organization's id or slug." },
     policies: { type: "OrganizationPoliciesInput", description: "Every policy, as it should stand: a field left at its zero value turns that policy off.", typeDescriptionLink: "#organizationpoliciesinput", required: true },
+  }}
+/>
+
+### UpdateOrganizationEmbeddingInput
+
+Input for updateEmbedding: the organization and the whole set of embedding settings it holds from now on.
+
+<TypeTable
+  type={{
+    orgId: { type: "string", description: "The organization's id or slug." },
+    embedding: { type: "OrganizationEmbeddingInput", description: "Every embedding setting, as it should stand: a field left at its zero value clears that setting.", typeDescriptionLink: "#organizationembeddinginput", required: true },
   }}
 />
 
@@ -729,7 +822,32 @@ Organization is the top-level container for all Stigmer resources.
     kind: { type: "string", description: "Resource kind identifier." },
     metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcemetadata" },
     spec: { type: "OrganizationInput", description: "Resource specification. See [`OrganizationInput`](#organizationinput).", typeDescriptionLink: "#organizationinput" },
-    status: { type: "OrganizationStatus", description: "System-managed state. See `OrganizationStatus`." },
+    status: { type: "OrganizationStatus", description: "System-managed state. See [`OrganizationStatus`](#organizationstatus).", typeDescriptionLink: "#organizationstatus" },
   }}
 />
+
+### OrganizationStatus
+
+OrganizationStatus is an organization's server-owned state.
+
+<TypeTable
+  type={{
+    audit: { type: "ApiResourceAudit", description: "Audit information tracking creation and modification.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
+    embeddingVaultAttachers: { type: "Record<string, string>", description: "Who attached each of the embedding settings' vaults, by vault id: the account whose permission to use the vault each app user's run checks." },
+  }}
+/>
+
+### IamRole
+
+IamRole defines the roles that can be assigned to principals on resources via IAM policies.
+
+| Value | Description |
+|-------|-------------|
+| `owner` | Full control of the resource, including deleting it and deciding who has access. |
+| `admin` | Administers an organization: its people, settings and resources, short of its owners, its deletion and its private conversations. |
+| `member` | Belongs to an organization or a team. |
+| `viewer` | Sees the resource and changes nothing. |
+| `participant` | A person who takes part in a conversation: reads it and sends messages. |
+| `editor` | Editor of a blueprint (an agent): may change its definition and do whatever a viewer can, and may not delete it, change its visibility, publish it on a share link or a channel, or decide who else has access. |
+| `user` | May use a shared vault: the runs of a person who holds it use the vault's logins and secrets. |
 

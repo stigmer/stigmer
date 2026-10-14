@@ -86,7 +86,7 @@
         "kind": "message",
         "messageType": "OrganizationEmbedding"
       },
-      "description": "How people sign in to the organization from its own product, when the\n product's backend mints their tokens (TokenService.mintUserToken). Set\n only through updateEmbedding, so an update or apply of a manifest\n neither fails on nor reverts it: embedding carried by update or apply\n is ignored.",
+      "description": "How people sign in to the organization from its own product, when the\n product's backend mints their tokens (TokenService.mintUserToken). Set\n only through updateEmbedding, so a create, update or apply of a\n manifest neither fails on nor changes it: embedding carried by any of\n them is ignored.",
       "required": false
     }
   ]

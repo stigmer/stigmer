@@ -213,11 +213,6 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "Components for structured error display and troubleshooting guidance.",
   },
-  "platform-client": {
-    title: "Platform Client",
-    description:
-      "Hooks and components for low-level platform API client access and request management.",
-  },
   user: {
     title: "User",
     description:

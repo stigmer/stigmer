@@ -343,9 +343,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * How people sign in to the organization from its own product, when the
    * product's backend mints their tokens (TokenService.mintUserToken). Set
-   * only through updateEmbedding, so an update or apply of a manifest
-   * neither fails on nor reverts it: embedding carried by update or apply
-   * is ignored.
+   * only through updateEmbedding, so a create, update or apply of a
+   * manifest neither fails on nor changes it: embedding carried by any of
+   * them is ignored.
    * </pre>
    *
    * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
@@ -359,9 +359,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * How people sign in to the organization from its own product, when the
    * product's backend mints their tokens (TokenService.mintUserToken). Set
-   * only through updateEmbedding, so an update or apply of a manifest
-   * neither fails on nor reverts it: embedding carried by update or apply
-   * is ignored.
+   * only through updateEmbedding, so a create, update or apply of a
+   * manifest neither fails on nor changes it: embedding carried by any of
+   * them is ignored.
    * </pre>
    *
    * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
@@ -375,9 +375,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * How people sign in to the organization from its own product, when the
    * product's backend mints their tokens (TokenService.mintUserToken). Set
-   * only through updateEmbedding, so an update or apply of a manifest
-   * neither fails on nor reverts it: embedding carried by update or apply
-   * is ignored.
+   * only through updateEmbedding, so a create, update or apply of a
+   * manifest neither fails on nor changes it: embedding carried by any of
+   * them is ignored.
    * </pre>
    *
    * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
@@ -1613,9 +1613,9 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * How people sign in to the organization from its own product, when the
      * product's backend mints their tokens (TokenService.mintUserToken). Set
-     * only through updateEmbedding, so an update or apply of a manifest
-     * neither fails on nor reverts it: embedding carried by update or apply
-     * is ignored.
+     * only through updateEmbedding, so a create, update or apply of a
+     * manifest neither fails on nor changes it: embedding carried by any of
+     * them is ignored.
      * </pre>
      *
      * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
@@ -1628,9 +1628,9 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * How people sign in to the organization from its own product, when the
      * product's backend mints their tokens (TokenService.mintUserToken). Set
-     * only through updateEmbedding, so an update or apply of a manifest
-     * neither fails on nor reverts it: embedding carried by update or apply
-     * is ignored.
+     * only through updateEmbedding, so a create, update or apply of a
+     * manifest neither fails on nor changes it: embedding carried by any of
+     * them is ignored.
      * </pre>
      *
      * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
@@ -1647,9 +1647,9 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * How people sign in to the organization from its own product, when the
      * product's backend mints their tokens (TokenService.mintUserToken). Set
-     * only through updateEmbedding, so an update or apply of a manifest
-     * neither fails on nor reverts it: embedding carried by update or apply
-     * is ignored.
+     * only through updateEmbedding, so a create, update or apply of a
+     * manifest neither fails on nor changes it: embedding carried by any of
+     * them is ignored.
      * </pre>
      *
      * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
@@ -1671,9 +1671,9 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * How people sign in to the organization from its own product, when the
      * product's backend mints their tokens (TokenService.mintUserToken). Set
-     * only through updateEmbedding, so an update or apply of a manifest
-     * neither fails on nor reverts it: embedding carried by update or apply
-     * is ignored.
+     * only through updateEmbedding, so a create, update or apply of a
+     * manifest neither fails on nor changes it: embedding carried by any of
+     * them is ignored.
      * </pre>
      *
      * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
@@ -1693,9 +1693,9 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * How people sign in to the organization from its own product, when the
      * product's backend mints their tokens (TokenService.mintUserToken). Set
-     * only through updateEmbedding, so an update or apply of a manifest
-     * neither fails on nor reverts it: embedding carried by update or apply
-     * is ignored.
+     * only through updateEmbedding, so a create, update or apply of a
+     * manifest neither fails on nor changes it: embedding carried by any of
+     * them is ignored.
      * </pre>
      *
      * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
@@ -1722,9 +1722,9 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * How people sign in to the organization from its own product, when the
      * product's backend mints their tokens (TokenService.mintUserToken). Set
-     * only through updateEmbedding, so an update or apply of a manifest
-     * neither fails on nor reverts it: embedding carried by update or apply
-     * is ignored.
+     * only through updateEmbedding, so a create, update or apply of a
+     * manifest neither fails on nor changes it: embedding carried by any of
+     * them is ignored.
      * </pre>
      *
      * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
@@ -1743,9 +1743,9 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * How people sign in to the organization from its own product, when the
      * product's backend mints their tokens (TokenService.mintUserToken). Set
-     * only through updateEmbedding, so an update or apply of a manifest
-     * neither fails on nor reverts it: embedding carried by update or apply
-     * is ignored.
+     * only through updateEmbedding, so a create, update or apply of a
+     * manifest neither fails on nor changes it: embedding carried by any of
+     * them is ignored.
      * </pre>
      *
      * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
@@ -1759,9 +1759,9 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * How people sign in to the organization from its own product, when the
      * product's backend mints their tokens (TokenService.mintUserToken). Set
-     * only through updateEmbedding, so an update or apply of a manifest
-     * neither fails on nor reverts it: embedding carried by update or apply
-     * is ignored.
+     * only through updateEmbedding, so a create, update or apply of a
+     * manifest neither fails on nor changes it: embedding carried by any of
+     * them is ignored.
      * </pre>
      *
      * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>
@@ -1778,9 +1778,9 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * How people sign in to the organization from its own product, when the
      * product's backend mints their tokens (TokenService.mintUserToken). Set
-     * only through updateEmbedding, so an update or apply of a manifest
-     * neither fails on nor reverts it: embedding carried by update or apply
-     * is ignored.
+     * only through updateEmbedding, so a create, update or apply of a
+     * manifest neither fails on nor changes it: embedding carried by any of
+     * them is ignored.
      * </pre>
      *
      * <code>.ai.stigmer.tenancy.organization.v1.OrganizationEmbedding embedding = 10 [json_name = "embedding"];</code>

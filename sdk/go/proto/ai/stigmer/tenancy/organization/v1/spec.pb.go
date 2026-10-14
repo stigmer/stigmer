@@ -47,9 +47,9 @@ type OrganizationSpec struct {
 	Policies *OrganizationPolicies `protobuf:"bytes,9,opt,name=policies,proto3" json:"policies,omitempty"`
 	// How people sign in to the organization from its own product, when the
 	// product's backend mints their tokens (TokenService.mintUserToken). Set
-	// only through updateEmbedding, so an update or apply of a manifest
-	// neither fails on nor reverts it: embedding carried by update or apply
-	// is ignored.
+	// only through updateEmbedding, so a create, update or apply of a
+	// manifest neither fails on nor changes it: embedding carried by any of
+	// them is ignored.
 	Embedding     *OrganizationEmbedding `protobuf:"bytes,10,opt,name=embedding,proto3" json:"embedding,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
