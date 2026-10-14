@@ -219,7 +219,10 @@ export function newValidateExecutionTargetImmutabilityStep(
 // lose each other's id.
 // ---------------------------------------------------------------------------
 
-export function recordHarnessState(status: SessionStatus, harnessStateId: string): void {
+export function recordHarnessState(
+  status: SessionStatus,
+  harnessStateId: string,
+): void {
   const previousId = status.harnessStateId;
   if (
     previousId !== "" &&
@@ -297,8 +300,7 @@ export function newRejectDeleteWithActiveExecutionsStep<
       for (const execution of executions) {
         if (
           isActiveExecutionPhase(
-            execution.status?.phase ??
-              RunPhase.RUN_PHASE_UNSPECIFIED,
+            execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED,
           )
         ) {
           activeCount++;
@@ -349,10 +351,7 @@ export function newCascadeDeleteAgentExecutionsStep<Desc extends DescMessage>(
         const executionId = execution.metadata?.id ?? "";
         await runScores.deleteScoresOfRun(executionId);
         try {
-          await store.deleteResource(
-            ApiResourceKind.run,
-            executionId,
-          );
+          await store.deleteResource(ApiResourceKind.run, executionId);
         } catch (error) {
           throw internalError(
             error,
@@ -366,10 +365,7 @@ export function newCascadeDeleteAgentExecutionsStep<Desc extends DescMessage>(
           caller: ctx.callerIdentity,
         });
         try {
-          await store.deleteSearchIndex(
-            ApiResourceKind.run,
-            executionId,
-          );
+          await store.deleteSearchIndex(ApiResourceKind.run, executionId);
         } catch (error) {
           logger.warn(
             "CascadeDeleteAgentExecutions: failed to remove search index entry (best-effort)",
@@ -613,6 +609,5 @@ async function readSessionPage(
   return create(SessionListSchema, {
     entries: page.entries,
     nextPageToken: page.nextPageToken,
-    totalPages: page.nextPageToken === "" ? 1 : 0,
   });
 }

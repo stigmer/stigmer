@@ -24,7 +24,7 @@ import { apiResourceKindName } from "../../../store/proto-fields.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
-import { listOrganizationMemories, listSubjectMemories } from "../queries.js";
+import { listSubjectMemories } from "../queries.js";
 
 let temp: TempStore;
 
@@ -153,21 +153,6 @@ describe("listSubjectMemories", () => {
     ).toEqual(["mem_carol_2", "mem_carol_1"]);
     expect(ids(await listSubjectMemories(temp.store, "acme", ""))).toEqual([
       "mem_local",
-    ]);
-  });
-});
-
-describe("listOrganizationMemories", () => {
-  it("answers every subject's rows in the organization, newest first, and none elsewhere", async () => {
-    await seedTwoOrganizations(temp.store);
-    expect(ids(await listOrganizationMemories(temp.store, "acme"))).toEqual([
-      "mem_local",
-      "mem_carol_2",
-      "mem_dave",
-      "mem_carol_1",
-    ]);
-    expect(ids(await listOrganizationMemories(temp.store, "zeta"))).toEqual([
-      "mem_carol_zeta",
     ]);
   });
 });

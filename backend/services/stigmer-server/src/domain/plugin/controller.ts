@@ -57,12 +57,18 @@ import type {
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { PluginStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+import { PluginListSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+import type {
+  PluginList,
+  ListPluginsRequest,
+} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
 
 import { ArtifactNotFoundError } from "../../archive/content-store.js";
 import type { ContentAddressedArchiveStore } from "../../archive/content-store.js";
 import { MAX_ZIP_SIZE } from "../../archive/limits.js";
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import {
   failedPreconditionError,
@@ -91,7 +97,10 @@ import {
   newExtractResourceIdStep,
   newLoadExistingForDeleteStep,
 } from "../../pipeline/steps/delete.js";
-import { newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
+import {
+  newReleaseNamesStep,
+  releaseNameOnFailure,
+} from "../../pipeline/steps/names.js";
 import { newDeleteSearchIndexStep } from "../../pipeline/steps/index-search.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import {
@@ -100,6 +109,8 @@ import {
 } from "../../pipeline/steps/load-target.js";
 import { newResolveArtifactSourceStep } from "../../pipeline/steps/resolve-artifact-source.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
+import { readOrgListPage } from "../../pipeline/steps/org-list-page.js";
+import { pluginListIndex } from "./list-index.js";
 import {
   newRefuseChildOrgsVisibilityInChildUpdateStep,
   newValidateVisibilityUpdateStep,
@@ -165,6 +176,8 @@ export interface PluginControllerDeps {
   readonly logger: Logger;
   readonly authorizer: Authorizer;
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
+  /** The composed list read scope — list narrows through it; undefined = the OSS full scan. */
+  readonly listReadScope: ListReadScope | undefined;
   readonly artifactStorage: ContentAddressedArchiveStore;
   /** The one fetch install's sign-in probe dials a plugin's server addresses with, under the edition's egress policy. */
   readonly outboundFetch: OutboundFetch;
@@ -187,12 +200,16 @@ export function registerPluginServices(
       createArtifactUploadUrl(deps, req, ctx),
     updateVisibility: (input, ctx) => updateVisibility(deps, input, ctx),
     delete: (id, ctx) => deletePlugin(deps, id, ctx),
-    listTools: (input: ListPluginToolsInput, ctx): Promise<ListPluginToolsOutput> =>
+    listTools: (
+      input: ListPluginToolsInput,
+      ctx,
+    ): Promise<ListPluginToolsOutput> =>
       listTools(deps.tools, input, callerIdentityOf(ctx)),
   });
   router.service(PluginQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
     getByReference: (ref, ctx) => getByReference(deps, ref, ctx),
+    list: (req, ctx) => list(deps, req, ctx),
     listVersions: (req, ctx) => listVersions(deps, req, ctx),
     getArtifact: (req, ctx) => getArtifact(deps, req, ctx),
     getArtifactDownloadUrl: (req, ctx) =>
@@ -383,7 +400,12 @@ async function updateVisibility(
     .addStep(newLoadPluginByIdStep(deps.store, UPDATE_VISIBILITY_PLUGIN_KEY))
     .addStep(newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_PLUGIN_KEY))
     .addStep(newValidateVisibilityUpdateStep())
-    .addStep(newRefuseChildOrgsVisibilityInChildUpdateStep(deps.store, UPDATE_VISIBILITY_PLUGIN_KEY))
+    .addStep(
+      newRefuseChildOrgsVisibilityInChildUpdateStep(
+        deps.store,
+        UPDATE_VISIBILITY_PLUGIN_KEY,
+      ),
+    )
     .addStep(newSetPluginVisibilityStep())
     .addStep(
       newPersistPluginStep(
@@ -493,7 +515,9 @@ async function deletePlugin(
       }),
     )
     .addStep(newDeleteResourceStep(deps.store))
-    .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.plugin))
+    .addStep(
+      newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.plugin),
+    )
     .addStep(newSweepPluginEvalsAfterDeleteStep<DeleteDesc>(deps.pluginEvals))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
@@ -539,7 +563,6 @@ async function get(
 }
 
 type ListVersionsDesc = typeof PluginQueryController.method.listVersions.input;
-
 
 /**
  * GetByReference — slug + org with the version ladder, then can_view on
@@ -693,7 +716,11 @@ async function getArtifactDownloadUrl(
  */
 function pluginStorageKey(req: GetArtifactRequest): string {
   const key = req.artifactStorageKey;
-  if (!key.startsWith(PLUGIN_ARTIFACT_KEY_PREFIX) || posix.normalize(key) !== key || key.split("/").includes("..")) {
+  if (
+    !key.startsWith(PLUGIN_ARTIFACT_KEY_PREFIX) ||
+    posix.normalize(key) !== key ||
+    key.split("/").includes("..")
+  ) {
     throw new ArtifactNotFoundError(req.artifactStorageKey);
   }
   return req.artifactStorageKey;
@@ -835,4 +862,58 @@ function newIndexPluginStep<Desc extends UpdateVisibilityDesc>(
       }
     },
   };
+}
+
+const PLUGIN_LIST_KEY = "pluginList";
+
+/**
+ * List — one page of an organization's plugins, newest first, through the
+ * plugin list index; the read scope keeps the plugins the caller could get by
+ * id, as every organization list does. Search finds plugins by their
+ * words; this browses them.
+ */
+async function list(
+  deps: PluginControllerDeps,
+  req: ListPluginsRequest,
+  ctx: HandlerContext,
+): Promise<PluginList> {
+  const reqCtx = new RequestContext(
+    PluginQueryController.method.list.input,
+    req,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<typeof PluginQueryController.method.list.input>(
+    "plugin-list",
+    deps.logger,
+  )
+    .addStep(
+      newAuthorizeStep(PluginQueryController.method.list, deps.authorizer),
+    )
+    .addStep(newValidateProtoStep())
+    .addStep({
+      name: "ListByOrg",
+      async execute(step): Promise<void> {
+        const page = await readOrgListPage({
+          store: deps.store,
+          logger: deps.logger,
+          listReadScope: deps.listReadScope,
+          caller: step.callerIdentity,
+          kind: ApiResourceKind.plugin,
+          schema: PluginSchema,
+          declaration: pluginListIndex,
+          request: step.input,
+        });
+        step.set(
+          PLUGIN_LIST_KEY,
+          create(PluginListSchema, {
+            entries: page.entries,
+            nextPageToken: page.nextPageToken,
+          }),
+        );
+      },
+    })
+    .build()
+    .execute(reqCtx);
+  return reqCtx.get(PLUGIN_LIST_KEY) as PluginList;
 }

@@ -36,7 +36,10 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { AgentStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/status_pb";
 import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentId, UpdateAgentInput } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import type {
+  AgentId,
+  UpdateAgentInput,
+} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { UpdateAgentInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import type {
   AgentVersionEntry,
@@ -51,9 +54,15 @@ import type {
   UpdateVisibilityInput,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { AgentListSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import type {
+  AgentList,
+  ListAgentsRequest,
+} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError, notFoundError } from "../../pipeline/errors.js";
@@ -119,13 +128,25 @@ import {
   newRecordVisibilityBeforeUpdateStep,
   newUpdateVisibilityTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
-import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
+import {
+  newClaimNameStep,
+  newReleaseNamesStep,
+  releaseNameOnFailure,
+} from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
-import { everyPathUpdate, updateContext } from "../../pipeline/steps/update-input.js";
-import { renameResource, storeRenameRows } from "../../pipeline/steps/rename.js";
+import {
+  everyPathUpdate,
+  updateContext,
+} from "../../pipeline/steps/update-input.js";
+import {
+  renameResource,
+  storeRenameRows,
+} from "../../pipeline/steps/rename.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
+import { readOrgListPage } from "../../pipeline/steps/org-list-page.js";
+import { agentListIndex } from "./list-index.js";
 import {
   LIST_VERSIONS_RESPONSE_KEY,
   getVersionEntry,
@@ -176,6 +197,8 @@ export interface AgentControllerDeps {
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
+  /** The composed list read scope — list narrows through it; undefined = the OSS full scan. */
+  readonly listReadScope: ListReadScope | undefined;
   /**
    * The model registry — ValidateAgentRunConfig judges an agent's run
    * defaults against the engine they name.
@@ -202,6 +225,7 @@ export function registerAgentServices(
   router.service(AgentQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
     getByReference: (ref, ctx) => getByReference(deps, ref, ctx),
+    list: (req, ctx) => list(deps, req, ctx),
     listVersions: (input, ctx) => listVersions(deps, input, ctx),
     getVersion: (input, ctx) => getVersion(deps, input, callerIdentityOf(ctx)),
   });
@@ -311,7 +335,9 @@ async function update(
       .addStep(newPopulateAgentVersionStep())
       .addStep(newPersistStep(deps.store))
       .addStep(newSaveAgentVersionStep(deps.store, deps.logger))
-      .addStep(newIndexSearchStep(deps.store, agentSearchExtractor, deps.logger))
+      .addStep(
+        newIndexSearchStep(deps.store, agentSearchExtractor, deps.logger),
+      )
       .build()
       .execute(reqCtx);
     return reqCtx.newState;
@@ -425,7 +451,9 @@ async function deleteAgent(
       ),
     )
     .addStep(
-      newCascadeDeleteAgentEvalsStep<typeof AgentCommandController.method.delete.input>(deps.agentEvals),
+      newCascadeDeleteAgentEvalsStep<
+        typeof AgentCommandController.method.delete.input
+      >(deps.agentEvals),
     )
     .addStep(
       newCascadeDeleteSharesStep(
@@ -443,7 +471,9 @@ async function deleteAgent(
     )
     .addStep(newDeleteAgentVersionsStep(deps.store, deps.logger))
     .addStep(newDeleteResourceStep(deps.store))
-    .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.agent))
+    .addStep(
+      newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.agent),
+    )
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     )
@@ -498,7 +528,12 @@ async function updateVisibility(
     .addStep(newLoadAgentForVisibilityUpdateStep(deps.store))
     .addStep(newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_AGENT_KEY))
     .addStep(newValidateVisibilityUpdateStep())
-    .addStep(newRefuseChildOrgsVisibilityInChildUpdateStep(deps.store, UPDATE_VISIBILITY_AGENT_KEY))
+    .addStep(
+      newRefuseChildOrgsVisibilityInChildUpdateStep(
+        deps.store,
+        UPDATE_VISIBILITY_AGENT_KEY,
+      ),
+    )
     .addStep(
       newRequireChildOrgsAuthorityOnUpdateStep(
         deps.authorizer,
@@ -597,7 +632,8 @@ function newPersistAgentForVisibilityUpdateStep(
           AgentSchema,
           (row) => {
             if (row.metadata !== undefined) {
-              row.metadata.visibility = agent.metadata?.visibility ?? row.metadata.visibility;
+              row.metadata.visibility =
+                agent.metadata?.visibility ?? row.metadata.visibility;
             }
             const audit = ((row.status ??= create(AgentStatusSchema)).audit ??=
               create(ApiResourceAuditSchema));
@@ -810,7 +846,10 @@ async function tagVersion(
   );
   await newPipeline<TagVersionDesc>("agent-tag-version", deps.logger)
     .addStep(
-      newAuthorizeStep(AgentCommandController.method.tagVersion, deps.authorizer),
+      newAuthorizeStep(
+        AgentCommandController.method.tagVersion,
+        deps.authorizer,
+      ),
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadAgentForTagVersionStep(deps.store))
@@ -818,4 +857,58 @@ async function tagVersion(
     .build()
     .execute(reqCtx);
   return reqCtx.get(TAG_VERSION_RESULT_KEY) as Agent;
+}
+
+const AGENT_LIST_KEY = "agentList";
+
+/**
+ * List — one page of an organization's agents, newest first, through the
+ * agent list index; the read scope keeps the agents the caller could get by
+ * id, as every organization list does. Search finds agents by their
+ * words; this browses them.
+ */
+async function list(
+  deps: AgentControllerDeps,
+  req: ListAgentsRequest,
+  ctx: HandlerContext,
+): Promise<AgentList> {
+  const reqCtx = new RequestContext(
+    AgentQueryController.method.list.input,
+    req,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<typeof AgentQueryController.method.list.input>(
+    "agent-list",
+    deps.logger,
+  )
+    .addStep(
+      newAuthorizeStep(AgentQueryController.method.list, deps.authorizer),
+    )
+    .addStep(newValidateProtoStep())
+    .addStep({
+      name: "ListByOrg",
+      async execute(step): Promise<void> {
+        const page = await readOrgListPage({
+          store: deps.store,
+          logger: deps.logger,
+          listReadScope: deps.listReadScope,
+          caller: step.callerIdentity,
+          kind: ApiResourceKind.agent,
+          schema: AgentSchema,
+          declaration: agentListIndex,
+          request: step.input,
+        });
+        step.set(
+          AGENT_LIST_KEY,
+          create(AgentListSchema, {
+            entries: page.entries,
+            nextPageToken: page.nextPageToken,
+          }),
+        );
+      },
+    })
+    .build()
+    .execute(reqCtx);
+  return reqCtx.get(AGENT_LIST_KEY) as AgentList;
 }

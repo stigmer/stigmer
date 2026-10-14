@@ -62,6 +62,7 @@ function skillCommand(store: Store): Client<typeof SkillCommandController> {
         logger: silentLogger,
         authorizer: newPermissiveSingleTeamAuthorizer(),
         authorizationLifecycle: undefined,
+        listReadScope: undefined,
         artifactStorage: untouchable("artifactStorage"),
       });
     },

@@ -403,10 +403,7 @@ async function createExecution(
     deps.logger,
   )
     .addStep(
-      newAuthorizeStep(
-        RunCommandController.method.create,
-        deps.authorizer,
-      ),
+      newAuthorizeStep(RunCommandController.method.create, deps.authorizer),
     )
     .addStep(newRefuseBoundElsewhereStep())
     .addStep(newValidateProtoStep())
@@ -554,16 +551,13 @@ async function update(
       callerIdentityOf(ctx),
       kindOf(ctx),
     );
-    await newPipeline<typeof RunSchema>(
-      "agent-execution-update",
-      deps.logger,
-    )
+    await newPipeline<typeof RunSchema>("agent-execution-update", deps.logger)
       .addStep(
         newAuthorizeStep(
           RunCommandController.method.update,
           deps.authorizer,
-        input,
-      ),
+          input,
+        ),
       )
       .addStep(newResolveSlugStep({ update: true }))
       .addStep(newLoadExistingStep(deps.store))
@@ -611,10 +605,7 @@ async function deleteExecution(
     deps.logger,
   )
     .addStep(
-      newAuthorizeStep(
-        RunCommandController.method.delete,
-        deps.authorizer,
-      ),
+      newAuthorizeStep(RunCommandController.method.delete, deps.authorizer),
     )
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
@@ -656,12 +647,7 @@ async function get(
     "agent-execution-get",
     deps.logger,
   )
-    .addStep(
-      newAuthorizeStep(
-        RunQueryController.method.get,
-        deps.authorizer,
-      ),
-    )
+    .addStep(newAuthorizeStep(RunQueryController.method.get, deps.authorizer))
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetStep(deps.store, RunSchema))
     .build()
@@ -689,12 +675,7 @@ async function list(
     "agent-execution-list",
     deps.logger,
   )
-    .addStep(
-      newAuthorizeStep(
-        RunQueryController.method.list,
-        deps.authorizer,
-      ),
-    )
+    .addStep(newAuthorizeStep(RunQueryController.method.list, deps.authorizer))
     .addStep(newValidateListRequestStep())
     .addStep(
       newQueryExecutionPageStep(deps.store, deps.logger, deps.listReadScope),
@@ -705,7 +686,7 @@ async function list(
   return requireListResult(reqCtx.get(EXECUTION_LIST_KEY));
 }
 
-/** ListBySession — list_by_session.go: the session's executions, whole, newest first. */
+/** ListBySession — list_by_session.go: one page of the session's executions, newest first. */
 async function listBySession(
   deps: AgentExecutionControllerDeps,
   req: ListRunsBySessionRequest,
@@ -717,9 +698,10 @@ async function listBySession(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<
-    typeof RunQueryController.method.listBySession.input
-  >("agent-execution-list-by-session", deps.logger)
+  await newPipeline<typeof RunQueryController.method.listBySession.input>(
+    "agent-execution-list-by-session",
+    deps.logger,
+  )
     .addStep(
       newAuthorizeStep(
         RunQueryController.method.listBySession,

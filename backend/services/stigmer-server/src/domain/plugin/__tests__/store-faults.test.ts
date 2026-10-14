@@ -72,6 +72,7 @@ function pluginCommand(store: Store): Client<typeof PluginCommandController> {
         logger: silentLogger,
         authorizer: newPermissiveSingleTeamAuthorizer(),
         authorizationLifecycle: undefined,
+        listReadScope: undefined,
         artifactStorage: untouchable("artifactStorage"),
         outboundFetch: () =>
           Promise.reject(

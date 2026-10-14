@@ -4,12 +4,12 @@
  *
  * Both lists read through the list index (list-index.ts beside this file;
  * the store's contract in store/interface.ts), newest first by spec-audit
- * created_at. `list` pages (pipeline/steps/list-page.ts): the store
- * narrows by the request's org, the phase filter and then the read scope
- * run on each batch — the scope last, so a composed driver is asked about
- * the rows the request keeps. `listBySession` returns the session's
- * executions whole: a conversation is read as one, and its consumers (the
- * transcript, the channel and guest turn limits) need all of it.
+ * created_at, one page at a time (pipeline/steps/list-page.ts). `list`:
+ * the store narrows by the request's org, the phase filter and then the
+ * read scope run on each batch — the scope last, so a composed driver is
+ * asked about the rows the request keeps. `listBySession`: the store
+ * narrows by the session's key, then the read scope; a reader that needs a
+ * conversation whole walks its tokens.
  */
 import { create, fromBinary } from "@bufbuild/protobuf";
 
@@ -31,7 +31,6 @@ import {
 } from "../../pipeline/steps/list-page.js";
 import type { ListPage } from "../../pipeline/steps/list-page.js";
 import type { Store } from "../../store/interface.js";
-import type { ListIndexRow } from "../../store/list-index.js";
 import { agentExecutionListIndex } from "./list-index.js";
 
 /**
@@ -42,8 +41,7 @@ import { agentExecutionListIndex } from "./list-index.js";
 export const EXECUTION_LIST_KEY = "execution_list";
 
 type ListDesc = typeof RunQueryController.method.list.input;
-type ListBySessionDesc =
-  typeof RunQueryController.method.listBySession.input;
+type ListBySessionDesc = typeof RunQueryController.method.listBySession.input;
 
 /** ValidateListRequest — list.go: no required fields today (a no-op). */
 export function newValidateListRequestStep(): PipelineStep<ListDesc> {
@@ -85,8 +83,8 @@ export function newQueryExecutionPageStep(
         decode: (data) => decodeExecution(data, logger),
         keep: (execution) =>
           input.phase === RunPhase.RUN_PHASE_UNSPECIFIED ||
-          (execution.status?.phase ??
-            RunPhase.RUN_PHASE_UNSPECIFIED) === input.phase,
+          (execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED) ===
+            input.phase,
         scope: (executions) =>
           restrictListByReadScope(
             listReadScope,
@@ -117,9 +115,9 @@ export function newValidateListBySessionRequestStep(): PipelineStep<ListBySessio
 }
 
 /**
- * QueryExecutionsBySession — list_by_session.go: the session's executions
- * through the index's session key, whole and newest first, then the read
- * scope (bounded by the session id, org never consulted).
+ * QueryExecutionsBySession — one page of the session's executions through
+ * the index's session key, newest first, then the read scope (bounded by
+ * the session id, org never consulted).
  */
 export function newQueryExecutionsBySessionStep(
   store: Store,
@@ -129,32 +127,27 @@ export function newQueryExecutionsBySessionStep(
   return {
     name: "QueryExecutionsBySession",
     async execute(ctx) {
-      let rows: ListIndexRow[];
-      try {
-        rows = await store.queryResources(agentExecutionListIndex, {
-          anyKey: [{ name: "session", value: ctx.input.sessionId }],
-        });
-      } catch (error) {
-        throw internalError(error, "failed to list agent executions");
-      }
-      const executions = await restrictListByReadScope(
-        listReadScope,
-        ctx.callerIdentity,
-        ApiResourceKind.run,
-        decodeExecutions(
-          rows.map((row) => row.data),
-          logger,
-        ),
-        "",
-      );
-      logger.debug("Successfully queried executions by session", {
-        sessionId: ctx.input.sessionId,
-        count: executions.length,
+      const sessionId = ctx.input.sessionId;
+      const page = await readListPage({
+        store,
+        declaration: agentExecutionListIndex,
+        query: { anyKey: [{ name: "session", value: sessionId }] },
+        request: ctx.input,
+        fingerprint: listPageFingerprint({
+          lane: "agentExecution.listBySession",
+          sessionId,
+        }),
+        decode: (data) => decodeExecution(data, logger),
+        scope: (executions) =>
+          restrictListByReadScope(
+            listReadScope,
+            ctx.callerIdentity,
+            ApiResourceKind.run,
+            executions,
+            "",
+          ),
+        failure: "failed to list agent executions",
       });
-      const page: ListPage<Run> = {
-        entries: executions,
-        nextPageToken: "",
-      };
       ctx.set(EXECUTION_LIST_KEY, page);
     },
   };
@@ -162,8 +155,7 @@ export function newQueryExecutionsBySessionStep(
 
 /**
  * BuildExecutionListResponse — both list files: wraps the page into
- * RunList; total_pages is 1 when the response is whole and 0
- * when a token follows (the contract's "not computed").
+ * RunList.
  */
 export function newBuildExecutionListResponseStep<
   Desc extends ListDesc | ListBySessionDesc,
@@ -175,7 +167,6 @@ export function newBuildExecutionListResponseStep<
       ctx.set(
         EXECUTION_LIST_KEY,
         create(RunListSchema, {
-          totalPages: page.nextPageToken === "" ? 1 : 0,
           entries: page.entries,
           nextPageToken: page.nextPageToken,
         }),
@@ -184,10 +175,7 @@ export function newBuildExecutionListResponseStep<
   };
 }
 
-function decodeExecution(
-  data: Uint8Array,
-  logger: Logger,
-): Run | undefined {
+function decodeExecution(data: Uint8Array, logger: Logger): Run | undefined {
   try {
     return fromBinary(RunSchema, data);
   } catch (error) {
@@ -196,20 +184,6 @@ function decodeExecution(
     });
     return undefined;
   }
-}
-
-function decodeExecutions(
-  rows: ReadonlyArray<Uint8Array>,
-  logger: Logger,
-): Run[] {
-  const executions: Run[] = [];
-  for (const data of rows) {
-    const execution = decodeExecution(data, logger);
-    if (execution !== undefined) {
-      executions.push(execution);
-    }
-  }
-  return executions;
 }
 
 function requirePage(value: unknown): ListPage<Run> {

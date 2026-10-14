@@ -391,7 +391,7 @@ describe("get / list / listBySession over the wire", () => {
     expect(got.spec?.message).toBe("Say hello.");
   });
 
-  it("list with no page_size returns every row whole (total_pages 1), filtered by phase on request", async () => {
+  it("list with no page_size returns the default page, filtered by phase on request", async () => {
     const completed = await seed(
       seedInput({ phase: RunPhase.RUN_COMPLETED }),
     );
@@ -400,7 +400,7 @@ describe("get / list / listBySession over the wire", () => {
     );
 
     const all = await query.list({});
-    expect(all.totalPages).toBe(1);
+    expect(all.nextPageToken).toBe("");
     const ids = all.entries.map((e) => e.metadata?.id);
     expect(ids).toContain(completed);
     expect(ids).toContain(failed);
@@ -423,7 +423,7 @@ describe("get / list / listBySession over the wire", () => {
     const outOfSession = await seed(seedInput({ sessionId: "ses_other" }));
 
     const result = await query.listBySession({ sessionId: "ses_shared" });
-    expect(result.totalPages).toBe(1);
+    expect(result.nextPageToken).toBe("");
     const ids = result.entries.map((e) => e.metadata?.id);
     expect(ids).toContain(inSession);
     expect(ids).not.toContain(outOfSession);
@@ -447,7 +447,6 @@ describe("get / list / listBySession over the wire", () => {
     do {
       const page = await query.list({ org, pageSize: 2, pageToken });
       expect(page.entries.length).toBeLessThanOrEqual(2);
-      expect(page.totalPages).toBe(page.nextPageToken === "" ? 1 : 0);
       walked.push(...page.entries.map((e) => e.metadata!.id));
       pageToken = page.nextPageToken;
     } while (pageToken !== "");
@@ -489,19 +488,30 @@ describe("get / list / listBySession over the wire", () => {
     );
   });
 
-  it("listBySession returns the session's executions whole, whatever page_size says", async () => {
+  it("listBySession pages the session's executions one page_size at a time", async () => {
     const ids = new Set<string>();
     for (let i = 0; i < 3; i++) {
-      ids.add(await seed(seedInput({ sessionId: "ses_whole" })));
+      ids.add(await seed(seedInput({ sessionId: "ses_paged" })));
     }
 
-    const result = await query.listBySession({
-      sessionId: "ses_whole",
-      pageSize: 1,
-    });
-    expect(new Set(result.entries.map((e) => e.metadata!.id))).toEqual(ids);
-    expect(result.nextPageToken).toBe("");
-    expect(result.totalPages).toBe(1);
+    const walked: string[] = [];
+    let pageToken = "";
+    let pages = 0;
+    do {
+      const page = await query.listBySession({
+        sessionId: "ses_paged",
+        pageSize: 1,
+        pageToken,
+      });
+      expect(page.entries.length).toBeLessThanOrEqual(1);
+      walked.push(...page.entries.map((e) => e.metadata!.id));
+      pageToken = page.nextPageToken;
+      pages += 1;
+    } while (pageToken !== "");
+
+    expect(pages).toBe(3);
+    expect(new Set(walked)).toEqual(ids);
+    expect(walked).toHaveLength(3);
   });
 });
 

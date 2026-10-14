@@ -71,15 +71,17 @@ import type {
 } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import type {
   ChannelConversation,
+  ChannelConversationCount,
   ChannelConversationList,
   ConversationControlInput,
   ConversationMediaDownloadUrl,
   ConversationTimeline,
+  CountChannelConversationsInput,
   EscalateConversationInput,
   GetChannelConversationInput,
   GetConversationMediaDownloadUrlInput,
-  GetConversationTimelineInput,
   ListChannelConversationsInput,
+  ListConversationTimelineInput,
   ReplyToConversationInput,
 } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
 
@@ -139,16 +141,20 @@ export interface ChannelRuntimeMessaging {
  * the conversation from the caller's session labels.
  */
 export interface ChannelRuntimeConversations {
-  listConversations(
+  list(
     input: ListChannelConversationsInput,
     caller: CallerIdentity,
   ): Promise<ChannelConversationList>;
+  countConversations(
+    input: CountChannelConversationsInput,
+    caller: CallerIdentity,
+  ): Promise<ChannelConversationCount>;
   getConversation(
     input: GetChannelConversationInput,
     caller: CallerIdentity,
   ): Promise<ChannelConversation>;
-  getTimeline(
-    input: GetConversationTimelineInput,
+  listTimeline(
+    input: ListConversationTimelineInput,
     caller: CallerIdentity,
   ): Promise<ConversationTimeline>;
   getMediaDownloadUrl(

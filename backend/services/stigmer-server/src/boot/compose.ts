@@ -1859,6 +1859,7 @@ export async function composeServer(
       logger,
       authorizer,
       authorizationLifecycle,
+      listReadScope,
       modelRegistry: modelCatalog,
       agentEvals: {
         store,
@@ -2026,6 +2027,7 @@ export async function composeServer(
       logger,
       authorizer,
       authorizationLifecycle,
+      listReadScope,
       artifactStorage: skillArtifactStorage,
       // The agentexecution blob store (server.go:362-363) — read side of
       // pushFromRunArtifact.
@@ -2041,6 +2043,7 @@ export async function composeServer(
       logger,
       authorizer,
       authorizationLifecycle,
+      listReadScope,
       artifactStorage: pluginArtifactStorage,
       outboundFetch,
       staging: skillArchiveStaging,
