@@ -4,9 +4,10 @@
 // The server's ready line only proves the listeners are up; this probe proves
 // the gRPC pipeline and backing store answer real requests before any test
 // runs.
-// listMine takes Empty and runs no validation, so it is a pure store
-// probe with no request to construct. Shared by every managed target (local
-// CRUD, local-execution) so they gate on one identical readiness definition.
+// listMine with an empty request reads the caller's first page of
+// organizations, so it is a pure store probe with no request to construct.
+// Shared by every managed target (local CRUD, local-execution) so they gate
+// on one identical readiness definition.
 import { setTimeout as delay } from "node:timers/promises";
 import type { ConformanceClients } from "./clients";
 
