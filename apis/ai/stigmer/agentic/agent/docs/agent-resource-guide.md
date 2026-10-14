@@ -13,8 +13,6 @@ metadata:
   visibility: visibility_private
   labels:
     team: engineering
-  annotations:
-    docs-url: "https://internal.example.com/agents/my-agent"
   tags:
     - code-review
     - security
@@ -32,6 +30,11 @@ spec:
   run_config: {}
 status: {}  # System-managed, never set by users
 ```
+
+Metadata carries labels and tags only. A link about the agent, such as its
+runbook at `https://internal.example.com/agents/my-agent`, belongs in
+`spec.description` or the instructions, where a person reading the agent finds
+it.
 
 ## Top-Level Fields
 
@@ -54,9 +57,8 @@ All metadata fields are defined by `ApiResourceMetadata` in `ai/stigmer/commons/
 | `metadata.id` | No | System-generated unique identifier. Never set by users. |
 | `metadata.org` | Recommended | Organization that owns this agent. Set automatically from `context.org` if omitted during apply. Format: lowercase alphanumeric with hyphens (e.g., `acme-corp`). |
 | `metadata.visibility` | No | Access control. `visibility_org` (default): every member of the owning organization can read. `visibility_private`: the creator and anyone granted access directly. `visibility_child_orgs`: everyone in the owning organization's child organizations. Nothing is readable outside the organization otherwise; another organization's agent reaches yours as a plugin you install. |
-| `metadata.labels` | No | Key-value pairs for organization and filtering (e.g., `team: engineering`). |
-| `metadata.annotations` | No | Key-value pairs for additional metadata not used for filtering (e.g., `docs-url: "https://..."`). |
-| `metadata.tags` | No | String array for categorization and search (e.g., `["code-review", "security"]`). |
+| `metadata.labels` | No | Key-value pairs for organization and filtering (e.g., `team: engineering`). Each key is an optional DNS-subdomain prefix and `/`, then a name of at most 63 letters, digits, `-`, `_` and `.`, starting and ending with a letter or digit; each value is empty or such a name; at most 64 pairs. Every list of this kind filters by labels (`--label team=engineering` in the CLI). |
+| `metadata.tags` | No | String array for categorization and search (e.g., `["code-review", "security"]`). Search words: lowercase letters, digits and hyphens, starting with a letter or digit, at most 50 characters each, at most 20, no repeats. |
 | `metadata.version` | No | System-managed version tracking. Contains `id`, `message`, and `previous_version_id` for audit trail. Never set directly in YAML. |
 
 ### Visibility
