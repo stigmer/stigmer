@@ -29,21 +29,16 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
-  # Two pull requests made before launch each remove or rename a contract,
-  # and the release notes name both under Upgrading. One renames the
-  # IamPolicy kind Grant: the package moves to iam/grant/v1 and the kind's
-  # enum value takes the new word, every number kept. The other replaces
-  # the PluginEval and AgentEval kinds with one EvalRun kind
-  # (agentic/evalrun/v1): the two kinds' values are reserved, their packages
-  # removed, and the run's case context and files (fields 25 and 34)
-  # renamed with their messages, numbers kept. This block exists for those
-  # two pull requests. While it stays, buf breaking does not report these
-  # rules on the listed files, so the pull request that removes it lands
-  # straight after the second merges.
+  # One pull request made before launch replaces the PluginEval and
+  # AgentEval kinds with one EvalRun kind (agentic/evalrun/v1): the two
+  # kinds' values are reserved, their packages removed, and the run's case
+  # context and files (fields 25 and 34) renamed with their messages,
+  # numbers kept. The release notes name it under Upgrading. This block
+  # exists for that one pull request. While it stays, buf breaking does not
+  # report these rules on the listed files, so the pull request that removes
+  # it lands straight after the merge.
   ignore_only:
     ENUM_VALUE_NO_DELETE:
-      - ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto
-    ENUM_VALUE_SAME_NAME:
       - ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto
     FIELD_SAME_JSON_NAME:
       - ai/stigmer/agentic/run/v1/api.proto
@@ -68,8 +63,3 @@ breaking:
       - ai/stigmer/agentic/plugineval/v1/spec.proto
       - ai/stigmer/agentic/plugineval/v1/status.proto
       - ai/stigmer/agentic/run/v1/plugin_eval_case.proto
-      - ai/stigmer/iam/iampolicy/v1/api.proto
-      - ai/stigmer/iam/iampolicy/v1/command.proto
-      - ai/stigmer/iam/iampolicy/v1/io.proto
-      - ai/stigmer/iam/iampolicy/v1/query.proto
-      - ai/stigmer/iam/iampolicy/v1/spec.proto
