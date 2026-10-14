@@ -86,14 +86,14 @@ never changes the slug.
 ### Plugins
 
 A Plugin is one folder's Skills, agents, hooks and MCP servers, kept together as
-one resource; an MCP server lives only in a Plugin. It is the unit of install,
-upgrade and removal: `stigmer push plugin <dir>` installs the folder as one
-Plugin, the Marketplace installs one from a catalogue, and `stigmer mcp add`
-installs a Plugin of one MCP server. An Agent or a conversation uses a Plugin
-whole by listing it in `plugins`; removing a Plugin is refused while an Agent
-lists it. A Plugin is not written as YAML; it is read from a folder in the open
-Agent Plugins format (or the Cursor, Claude Code or Codex dialect), and the
-resource the server keeps records what the folder holds:
+one resource; a Plugin is how an MCP server is packaged and shared. It is the
+unit of install, upgrade and removal: `stigmer push plugin <dir>` installs the
+folder as one Plugin, the Marketplace installs one from a catalogue, and
+`stigmer mcp add` installs a Plugin of one MCP server. An Agent or a
+conversation uses a Plugin whole by listing it in `plugins`; removing a Plugin
+is refused while an Agent lists it. A Plugin is not written as YAML; it is read
+from a folder in the open Agent Plugins format (or the Cursor, Claude Code or
+Codex dialect), and the resource the server keeps records what the folder holds:
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -175,9 +175,9 @@ parent's admins grant its first members and owner.
 
 A child's people sign in through the parent's Federation Issuer, whose
 `external_id_claim` names each token's child by its `external_id`, or with
-tokens a PlatformClient of the parent mints for that child. On Stigmer Cloud a
-child runs on its parent's plan. An Organization can be deleted once every child
-it has is being deleted (see
+tokens an admin service account of the parent mints for that child. On Stigmer
+Cloud a child runs on its parent's plan. An Organization can be deleted once
+every child it has is being deleted (see
 [Deleting an Organization](#deleting-an-organization)).
 
 <Callout type="info">
@@ -303,10 +303,10 @@ new resource that takes a deleted one's name.
   walks through Federation Issuer registration, account provisioning, and access
   granting.
 - Want to embed Stigmer without OIDC setup? The
-  [PlatformClient guide](/docs/guides/authentication/platform-client/overview)
-  shows how to mint user tokens from your backend. PlatformClient identities are
-  org-scoped --- the same user across multiple PlatformClients in your
-  Organization shares one Identity Account.
+  [product users guide](/docs/guides/authentication/product-users) shows how to
+  mint user tokens from your backend with a service account's key. App users are
+  org-scoped --- every mint for your Organization resolves the same user to one
+  Identity Account.
 - Need tenant isolation for multiple customers? The
   [Child organizations](/docs/guides/authentication/federation/child-organizations)
   guide covers creating a child organization per customer, managing it, and

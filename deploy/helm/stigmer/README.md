@@ -59,7 +59,7 @@ Secret with your backups: without the encryption key, every encrypted value in
 the database is unreadable.
 
 The Secret may also carry `STIGMER_PLATFORM_TOKEN_KEY`, the RSA key that signs
-the short-lived user tokens PlatformClients mint once authentication is on
+the short-lived user tokens a service account's API key mints once authentication is on
 (base64 of a PKCS#8 PEM:
 `openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 | base64 | tr -d '\n'`).
 It is optional: without it the server generates one on its volume, and losing it

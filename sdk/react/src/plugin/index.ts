@@ -1,7 +1,8 @@
 /**
  * Plugin: what you install, used whole. A chat or an agent lists a plugin
  * and gets its skills, its agents, its hooks and its MCP servers; a plugin
- * is the only home of an MCP server.
+ * is how an MCP server is packaged and shared (an agent's own servers are
+ * in its spec, see `agent/`).
  *
  * Data hooks over the installed kind (`usePlugin`, `usePluginList`,
  * `usePluginCount`, `usePluginSearch`, `usePluginVersions`), the

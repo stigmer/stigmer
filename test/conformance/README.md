@@ -39,9 +39,10 @@ Covered against the `local` target:
   an agent listing an existing plugin is accepted with its reference org
   normalized, one listing a missing plugin is rejected with
   `FailedPrecondition`, and the floor and the parent-organization clause hold.
-- **Plugin** — the unit of install and the only home of an MCP server. A
-  plugin is pushed as the archive of a plugin folder; install writes the one
-  plugin row, whose status lists what the archive holds (skills, agents, MCP
+- **Plugin** — the unit of install, and how an MCP server is packaged and
+  shared (an agent's own servers are in its `mcp_servers`). A plugin is
+  pushed as the archive of a plugin folder; install writes the one plugin
+  row, whose status lists what the archive holds (skills, agents, MCP
   server entries, the variables they read, hooks), and a turn that lists the
   plugin gets every part of it, named under the plugin. The `plugin` suite
   pins install, versions, visibility and the delete guard;

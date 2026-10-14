@@ -99,23 +99,26 @@ server, the way `claude mcp add` adds a server to Claude Code.
 
 ## How it compares
 
-| On Stigmer                                                     | What you already know                                                     |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| A plugin, its parts named `plugin:name`, installed by an admin | Claude Code, Cursor and Codex plugins; claude.ai's admin-added connectors |
-| An MCP server: an entry in a plugin's `mcp.json`               | `.mcp.json` in a Claude Code plugin                                       |
-| A plugin's agents, joining as subagents                        | A Claude Code plugin's `agents/` folder                                   |
-| A plugin's hooks                                               | A Claude Code or Cursor plugin's `hooks.json`                             |
-| The built-in assistant with plugins turned on                  | Claude on claude.ai with connectors and plugins                           |
+| On Stigmer                                                     | What you already know                                                       |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| A plugin, its parts named `plugin:name`, installed by an admin | Claude Code, Cursor and Codex plugins; claude.ai's admin-added connectors   |
+| An MCP server: an entry in a plugin's `mcp.json`               | `.mcp.json` in a Claude Code plugin                                         |
+| An Agent's own MCP server, in its `mcp_servers`                | Claude Managed Agents' `mcp_servers`; a Claude Code subagent's `mcpServers` |
+| A plugin's agents, joining as subagents                        | A Claude Code plugin's `agents/` folder                                     |
+| A plugin's hooks                                               | A Claude Code or Cursor plugin's `hooks.json`                               |
+| The built-in assistant with plugins turned on                  | Claude on claude.ai with connectors and plugins                             |
 
 ## Where Stigmer differs, and why
 
 Three choices are Stigmer's own:
 
-- **An MCP server lives only in a plugin.** Claude Managed Agents lets an agent
-  name servers of its own. On Stigmer an Organization is shared, and its admins
-  decide which tools exist, as claude.ai's Team plan does with connectors. A
-  server reaches an Agent only through a plugin an admin installed, and a
-  one-off server is a plugin of one server.
+- **Only admins add or change an MCP server.** A server reaches an Agent in a
+  plugin it lists or in the Agent's own `mcp_servers`, as in Claude Managed
+  Agents. On Stigmer an Organization is shared, and its admins decide which
+  addresses its runs reach, as claude.ai's Team plan does with connectors: only
+  an admin installs a plugin, or adds a server to an Agent or changes one's
+  address or headers. Anyone who may edit the Agent may keep or remove what is
+  there.
 - **An Agent can carry hooks written in it.** A one-off rule for one Agent does
   not need a plugin of its own, and a Claude Code subagent file carries `hooks`
   the same way. A policy that must hold against the Agent still belongs in a
@@ -131,5 +134,5 @@ Where a plugin's servers find their keys is the conversation's
 ## What's next
 
 A plugin gives an Agent its tools. The next page explains
-[Tools](/docs/concepts/tools): how an Agent calls a plugin's MCP servers, and
-how Stigmer keeps those calls safe.
+[Tools](/docs/concepts/tools): how an Agent calls MCP servers, its plugins' and
+its own, and how Stigmer keeps those calls safe.

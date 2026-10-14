@@ -3,16 +3,19 @@ title: Connect an MCP server
 description:
   Add an MCP server by its address as a plugin of its own, sign in to it, see
   its tools and which of them ask for approval, and use it in a chat or an
-  Agent.
+  Agent; or give one Agent a server of its own in one call.
 ---
 
 import { DemoMarketplaceConnectTour } from "@/components/docs";
 
-An MCP server lives in a plugin. A plugin from a marketplace may carry the
-servers you need already; to use one server at an address, Stigmer builds a
-plugin holding just that server and installs it, the way `claude mcp add` adds a
-server to Claude Code. This guide adds a server, signs in to it, reads its
-tools, and puts it to work.
+An MCP server reaches an Agent two ways: in a plugin the Agent lists, or written
+in the Agent itself under `mcp_servers`. Use a plugin to share a server across
+Agents and chats: a plugin from a marketplace may carry the servers you need
+already, and to use one server at an address, Stigmer builds a plugin holding
+just that server and installs it, the way `claude mcp add` adds a server to
+Claude Code. This guide adds a server, signs in to it, reads its tools, and puts
+it to work. When one Agent needs a server, or you create Agents from code,
+[give the Agent its own MCP server](#give-an-agent-its-own-mcp-server) instead.
 
 <Callout type="info">
   New to tools in Stigmer? Start with the [Tools concept
@@ -145,6 +148,178 @@ and cannot run shell commands or write files. See
 
 For a hands-on walk through adding a server and running a Session on it, see the
 [Connect your tools](/docs/getting-started/connect-tools) tutorial.
+
+## Give an agent its own MCP server
+
+A plugin shares a server with every Agent and chat that lists it. When one Agent
+needs a server, or you create Agents from your own code, write the server in the
+Agent itself under `mcp_servers`, as an agent in Claude Managed Agents or a
+Claude Code subagent lists its own. There is no plugin to package.
+
+- **Who may.** Only your Organization's admins add a server to an Agent or
+  change its address or headers. Anyone who may edit the Agent may keep or
+  remove its servers.
+- **What it can be.** A server reached over HTTP: an `https` address, or `http`
+  on your own machine. An Agent lists at most 20.
+- **Its name.** 2 to 63 lowercase letters, digits and hyphens, starting with a
+  letter and not ending with a hyphen. A name starting with `stigmer` is the
+  platform's, and `plugin` is reserved.
+- **Its tools.** `mcp__<name>__<tool>` for one tool, and `mcp__<name>` for every
+  tool of the server, in the Agent's `tools` and `disallowed_tools`.
+
+### From the console
+
+On the Agent's page, the **MCP servers** section lists the Agent's own servers;
+an admin adds one with its name, address and headers. The new-Agent wizard's
+**Capabilities** step has the same **MCP servers** list. Both show the section
+to admins only; anyone else sees the servers the Agent already has.
+
+### From YAML
+
+```yaml validate-as="Agent"
+spec:
+  instructions: Answer support tickets. Look a ticket up before you reply.
+  mcp_servers:
+    - name: tickets
+      url: https://tickets.acme-helpdesk.example/mcp
+      headers:
+        Authorization: Bearer ${TICKETS_API_KEY}
+  tools: [Read, mcp__tickets]
+```
+
+Save it with the rest of the Agent's manifest and apply it with
+`stigmer apply -f support-agent.yaml`.
+
+### From your code
+
+One call creates the Agent with its server, or updates it if it exists: `apply`
+finds the Agent by its slug, so your backend can run the same call every time it
+starts.
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+```typescript
+const agent = await stigmer.agent.apply({
+  org: "acme-helpdesk",
+  name: "Support agent",
+  instructions: "Answer support tickets. Look a ticket up before you reply.",
+  mcpServers: [
+    {
+      name: "tickets",
+      url: "https://tickets.acme-helpdesk.example/mcp",
+      headers: { Authorization: "Bearer ${TICKETS_API_KEY}" },
+    },
+  ],
+  tools: ["Read", "mcp__tickets"],
+});
+```
+
+</Tab>
+<Tab value="Go">
+
+```go
+agent, err := client.Agent.Apply(ctx, &stigmer.AgentInput{
+  Org:          "acme-helpdesk",
+  Name:         "Support agent",
+  Instructions: "Answer support tickets. Look a ticket up before you reply.",
+  McpServers: []*stigmer.AgentMcpServerInput{{
+    Name:    "tickets",
+    Url:     "https://tickets.acme-helpdesk.example/mcp",
+    Headers: map[string]string{"Authorization": "Bearer ${TICKETS_API_KEY}"},
+  }},
+  Tools: []string{"Read", "mcp__tickets"},
+})
+if err != nil {
+  return fmt.Errorf("apply agent: %w", err)
+}
+```
+
+</Tab>
+<Tab value="Python">
+
+```python
+agent = client.agents.apply(AgentInput(
+    org="acme-helpdesk",
+    name="Support agent",
+    instructions="Answer support tickets. Look a ticket up before you reply.",
+    mcp_servers=[AgentMcpServerInput(
+        name="tickets",
+        url="https://tickets.acme-helpdesk.example/mcp",
+        headers={"Authorization": "Bearer ${TICKETS_API_KEY}"},
+    )],
+    tools=["Read", "mcp__tickets"],
+))
+```
+
+</Tab>
+<Tab value="Java">
+
+```java
+Agent agent = client.agent.apply(AgentInput.builder()
+    .org("acme-helpdesk")
+    .name("Support agent")
+    .instructions("Answer support tickets. Look a ticket up before you reply.")
+    .mcpServers(List.of(AgentInput.AgentMcpServerInput.builder()
+        .name("tickets")
+        .url("https://tickets.acme-helpdesk.example/mcp")
+        .headers(Map.of("Authorization", "Bearer ${TICKETS_API_KEY}"))
+        .build()))
+    .tools(List.of("Read", "mcp__tickets"))
+    .build());
+```
+
+</Tab>
+</SDKTabs>
+
+`${TICKETS_API_KEY}` stays as written: it names a key, and each run fills it
+from its own vaults. One Agent serves all your customers, because the key comes
+from the conversation, not from the Agent. If each customer's server has its own
+address, run the same call once per customer, with a name and address each.
+
+### How it logs in
+
+A run finds the server's login the way the contract states it:
+
+- **With an `Authorization` header** that names `${NAME}`, as in the example,
+  the login is that key, and the run needs it: a run whose vaults do not hold it
+  is refused before it starts, naming the key.
+- **With no `Authorization` header**, the run uses the login saved in its vaults
+  at the server's address, else a secret named `<NAME>_ACCESS_TOKEN` (here
+  `TICKETS_ACCESS_TOKEN`: the server's name upper-cased, each other character
+  written as `_`), else it calls the server with no login. For a server that
+  asks you to sign in, the server's row on the Agent's page carries **Sign in**,
+  which saves the login at the address in your vault.
+
+A `${NAME}` value is sent to that server only, never to the Agent's shell, and a
+header's `${NAME}` is a required secret unless the Agent's `env` declares it.
+Header values themselves are stored in the Agent and returned to anyone who can
+read it, so a key goes in a vault and the header names it.
+
+For a product's customers, each customer's vault holds that customer's key, or
+their own sign-in through a Connect link, and you name the vault on each of
+their conversations:
+[Keep your customers' keys](/docs/guides/authentication/customer-keys).
+
+### What to know
+
+- **No tool listing yet.** **Check tools** and `stigmer connect` list a plugin's
+  servers only ([#2325](https://github.com/stigmer/stigmer/issues/2325)). Name
+  the whole server as `mcp__tickets` in `tools`, or take the tool names from the
+  server's own documentation. Destructive tools still ask first: the annotation
+  is read from the live server at the start of every turn.
+- **On the Agent only.** A conversation adds plugins, not servers of its own,
+  and a local program (stdio) comes in a plugin.
+- **One name per turn.** An Agent and a subagent it lists can't both have a
+  server of the same name; the turn is refused, naming both.
+- **Changes reach new conversations.** A conversation keeps the Agent version it
+  started on, so a changed address or header reaches the conversations that
+  start after the change.
+- **Evals.** An eval's tries leave the Agent's own servers off, as they do its
+  plugins' servers, unless the eval runs real servers.
+- **The Cursor engine.** It runs the main Agent's own servers. A saved subagent
+  that brings servers of its own is refused there, by name; run such an Agent on
+  the native engine.
 
 ## What's next
 

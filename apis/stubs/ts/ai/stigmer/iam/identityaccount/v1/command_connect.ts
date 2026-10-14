@@ -169,9 +169,9 @@ export const IdentityAccountCommandController = {
      * and the SDK's ensureMyIdentityAccount. Derives the account from the
      * caller's token and the userinfo endpoint of the issuer that vouched for
      * it. Idempotent: returns the existing account on retry. A caller another
-     * lane vouched for (an organization's federation issuer, a platform
-     * client, a system lane) already has the account that lane provisions,
-     * and is refused PERMISSION_DENIED.
+     * lane vouched for (an organization's federation issuer, a product
+     * minting its users' tokens, a system lane) already has the account that
+     * lane provisions, and is refused PERMISSION_DENIED.
      *
      * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.provisionMyAccount
      */

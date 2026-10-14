@@ -28,7 +28,7 @@ export interface ServerInfo {
    * Whether the server authenticates its callers. `false` on a server that
    * trusts every request (the default single-operator posture), where
    * features that hand out credentials only a verifying server honours —
-   * minting PlatformClient user tokens — are unavailable.
+   * minting user tokens — are unavailable.
    *
    * `undefined` when the server predates the field, so its posture is
    * unknown: offer the feature and let the server's own answer decide.

@@ -20,7 +20,6 @@ export type ManagementNavId =
   | "invitations"
   | "federation-issuers"
   | "api-keys"
-  | "platform-clients"
   | "vaults"
   | "oauth-apps"
   | "channel-apps"
