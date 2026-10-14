@@ -1675,8 +1675,10 @@ type AccessHistoryPage struct {
 	// organization's administrators are not shown the entries about a child's
 	// resources.
 	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
-	// The lowest sequence the organization's history still holds, 0 when it
-	// holds none. A server that keeps the history for a limited time removes
+	// The lowest sequence the organization's history still holds. When it
+	// holds none because every entry was removed, the sequence its next entry
+	// will get (one past the last it held); 0 only when it never held one. A
+	// server that keeps the history for a limited time removes
 	// the oldest entries first, so an organization's kept entries are always
 	// one unbroken run ending at its newest. A tool that asked for what came
 	// after N and reads an oldest_sequence above N + 1 knows that N + 1 to

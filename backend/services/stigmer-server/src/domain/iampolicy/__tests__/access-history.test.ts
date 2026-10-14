@@ -531,6 +531,21 @@ describe("listAccessHistory's retention", () => {
     expect(follow.retentionDays).toBe(365);
   });
 
+  it("answers one past the last number when retention removed every entry, so a tool learns what it lost", async () => {
+    const h = await harness({ retentionDays: 365 });
+    for (let n = 1; n <= 3; n += 1) {
+      await h.grant(orgRole(`ida_${n}`, "member", ACME));
+    }
+    await h.policies.pruneChanges(LATER, 10);
+
+    const follow = await h.query.listAccessHistory({ org: ACME, afterSequence: 1n });
+    expect(follow.entries).toEqual([]);
+    expect(follow.oldestSequence).toBe(4n);
+    expect((await h.query.listAccessHistory({ org: ACME })).oldestSequence).toBe(4n);
+    await h.grant(orgRole("ida_4", "member", ACME));
+    expect((await h.query.listAccessHistory({ org: ACME, afterSequence: 1n })).oldestSequence).toBe(4n);
+  });
+
   it("says 0 for both when no window is declared and the organization holds nothing", async () => {
     const h = await harness();
     const page = await h.query.listAccessHistory({ org: ACME });

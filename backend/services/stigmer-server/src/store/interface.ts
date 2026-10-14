@@ -809,6 +809,14 @@ export interface Store {
   prunePermissionHistory(before: Date, limit: number): Promise<number>;
 
   /**
+   * The last number an organization's permission history handed out, read
+   * from its head (permission-history.ts): 0 when it has recorded none.
+   * Retention never lowers it, so when every entry has been removed it
+   * still says where the numbering stands.
+   */
+  permissionHistoryHead(org: string): Promise<bigint>;
+
+  /**
    * The one door for a write that must commit with session events
    * (session-events.ts states the contract): under the session's lock, the
    * committed row (undefined when absent) and the count of the session's

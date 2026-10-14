@@ -179,8 +179,10 @@ private static final long serialVersionUID = 0L;
   private long oldestSequence_ = 0L;
   /**
    * <pre>
-   * The lowest sequence the organization's history still holds, 0 when it
-   * holds none. A server that keeps the history for a limited time removes
+   * The lowest sequence the organization's history still holds. When it
+   * holds none because every entry was removed, the sequence its next entry
+   * will get (one past the last it held); 0 only when it never held one. A
+   * server that keeps the history for a limited time removes
    * the oldest entries first, so an organization's kept entries are always
    * one unbroken run ending at its newest. A tool that asked for what came
    * after N and reads an oldest_sequence above N + 1 knows that N + 1 to
@@ -1080,8 +1082,10 @@ private static final long serialVersionUID = 0L;
     private long oldestSequence_ ;
     /**
      * <pre>
-     * The lowest sequence the organization's history still holds, 0 when it
-     * holds none. A server that keeps the history for a limited time removes
+     * The lowest sequence the organization's history still holds. When it
+     * holds none because every entry was removed, the sequence its next entry
+     * will get (one past the last it held); 0 only when it never held one. A
+     * server that keeps the history for a limited time removes
      * the oldest entries first, so an organization's kept entries are always
      * one unbroken run ending at its newest. A tool that asked for what came
      * after N and reads an oldest_sequence above N + 1 knows that N + 1 to
@@ -1099,8 +1103,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The lowest sequence the organization's history still holds, 0 when it
-     * holds none. A server that keeps the history for a limited time removes
+     * The lowest sequence the organization's history still holds. When it
+     * holds none because every entry was removed, the sequence its next entry
+     * will get (one past the last it held); 0 only when it never held one. A
+     * server that keeps the history for a limited time removes
      * the oldest entries first, so an organization's kept entries are always
      * one unbroken run ending at its newest. A tool that asked for what came
      * after N and reads an oldest_sequence above N + 1 knows that N + 1 to
@@ -1122,8 +1128,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The lowest sequence the organization's history still holds, 0 when it
-     * holds none. A server that keeps the history for a limited time removes
+     * The lowest sequence the organization's history still holds. When it
+     * holds none because every entry was removed, the sequence its next entry
+     * will get (one past the last it held); 0 only when it never held one. A
+     * server that keeps the history for a limited time removes
      * the oldest entries first, so an organization's kept entries are always
      * one unbroken run ending at its newest. A tool that asked for what came
      * after N and reads an oldest_sequence above N + 1 knows that N + 1 to

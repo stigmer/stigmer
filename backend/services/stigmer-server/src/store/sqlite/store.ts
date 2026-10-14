@@ -1224,6 +1224,13 @@ export class SqliteStore implements Store {
     return Number(result.changes);
   }
 
+  async permissionHistoryHead(org: string): Promise<bigint> {
+    const head = this.open()
+      .prepare(`SELECT last_sequence FROM iam_policy_history_heads WHERE org = ?`)
+      .get(org) as { last_sequence: number | bigint } | undefined;
+    return head === undefined ? 0n : BigInt(head.last_sequence);
+  }
+
   async listAuditRecords(
     kind: ApiResourceKind,
     resourceId: string,

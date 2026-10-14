@@ -595,6 +595,7 @@ const consumerIamPolicyStore: IamPolicyStore = {
   // composed above open source keeps one, reads it back and ages it out here.
   listChanges: () => Promise.resolve([]),
   pruneChanges: () => Promise.resolve(0),
+  lastChangeSequence: () => Promise.resolve(0n),
 };
 
 /**

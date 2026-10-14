@@ -725,6 +725,12 @@ const HISTORY_CASES: ReadonlyArray<PortContractDeclaration<IamPolicyStore>> = [
       assert.deepEqual(await keptChanges(store, orgs), ["globex:2"], "the next call takes the next oldest");
       assert.equal(await store.pruneChanges(cutoff, 2), 1, "a short last batch");
       assert.equal(await store.pruneChanges(cutoff, 2), 0, "nothing is left to remove");
+      assert.equal(
+        await store.lastChangeSequence("acme"),
+        3n,
+        "an organization whose every change was removed still reads its last number",
+      );
+      assert.equal(await store.lastChangeSequence("nowhere"), 0n, "an organization with no history reads 0");
       await store.save(policyRow(orgRole("ida_late", "member", "globex")), recordOf("grant", "globex"));
       assert.deepEqual(
         await keptChanges(store, orgs),
@@ -755,6 +761,7 @@ const NO_HISTORY_CASES: ReadonlyArray<PortContractDeclaration<IamPolicyStore>> =
         0,
         "a store that keeps no history removes nothing",
       );
+      assert.equal(await store.lastChangeSequence("acme"), 0n, "a store that keeps no history reads 0");
     },
   ],
 ];

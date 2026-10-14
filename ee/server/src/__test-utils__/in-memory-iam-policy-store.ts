@@ -89,6 +89,11 @@ export class InMemoryIamPolicyStore implements IamPolicyStore {
       .slice(0, page.limit);
   }
 
+  async lastChangeSequence(org: string): Promise<bigint> {
+    this.guard();
+    return this.heads.get(org) ?? 0n;
+  }
+
   async pruneChanges(before: Date, limit: number): Promise<number> {
     this.guard();
     if (!Number.isSafeInteger(limit) || limit <= 0) {

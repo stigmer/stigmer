@@ -811,7 +811,7 @@
           "type": {
             "kind": "int64"
           },
-          "description": "The lowest sequence the organization's history still holds, 0 when it\n holds none. A server that keeps the history for a limited time removes\n the oldest entries first, so an organization's kept entries are always\n one unbroken run ending at its newest. A tool that asked for what came\n after N and reads an oldest_sequence above N + 1 knows that N + 1 to\n oldest_sequence - 1 were removed by retention, not missed; any other\n gap in the numbers is a parent organization's administrator not being\n shown the entries about a child's resources.",
+          "description": "The lowest sequence the organization's history still holds. When it\n holds none because every entry was removed, the sequence its next entry\n will get (one past the last it held); 0 only when it never held one. A\n server that keeps the history for a limited time removes\n the oldest entries first, so an organization's kept entries are always\n one unbroken run ending at its newest. A tool that asked for what came\n after N and reads an oldest_sequence above N + 1 knows that N + 1 to\n oldest_sequence - 1 were removed by retention, not missed; any other\n gap in the numbers is a parent organization's administrator not being\n shown the entries about a child's resources.",
           "required": false
         },
         {

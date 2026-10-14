@@ -2985,6 +2985,10 @@ export function describeStoreContract(
         await expect(fx.store.prunePermissionHistory(cutoff, 2)).resolves.toBe(1);
         await expect(fx.store.prunePermissionHistory(cutoff, 2)).resolves.toBe(0);
         expect(await kept()).toEqual([]);
+        // Every entry removed, the heads still say where each numbering stands.
+        await expect(fx.store.permissionHistoryHead("acme")).resolves.toBe(4n);
+        await expect(fx.store.permissionHistoryHead("beta")).resolves.toBe(1n);
+        await expect(fx.store.permissionHistoryHead("gamma")).resolves.toBe(0n);
 
         await grantAll([["iamp_a5", "acme"]]);
         expect(await kept()).toEqual([["acme", 5]]);

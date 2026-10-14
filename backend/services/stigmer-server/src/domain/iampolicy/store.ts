@@ -77,7 +77,9 @@
  * numbers rise, what goes is a prefix of its numbers: its kept changes
  * stay one unbroken run ending at its newest, and "no gaps" holds above
  * the oldest kept change. The numbering is never reset, so the next
- * change continues it. A store that keeps no history answers 0.
+ * change continues it, and `lastChangeSequence` reads where it stands even
+ * when every change has been removed. A store that keeps no history
+ * answers 0 to both.
  */
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 
@@ -171,4 +173,10 @@ export interface IamPolicyStore {
    * limit that is not a positive integer rejects.
    */
   pruneChanges(before: Date, limit: number): Promise<number>;
+  /**
+   * The last number the organization's history handed out; 0 when it has
+   * recorded none, and for a store that keeps no history. A removal never
+   * lowers it.
+   */
+  lastChangeSequence(org: string): Promise<bigint>;
 }

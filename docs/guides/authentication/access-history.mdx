@@ -141,11 +141,11 @@ A server that keeps the history for a limited time removes the oldest entries
 first (see [How long it is kept](#how-long-it-is-kept)), so a tool that has not
 asked for a long time may find that the entries after the one it stored are
 gone. Every page of the history says the oldest number the Organization still
-holds (`oldestSequence`) and how many days the server keeps the history
-(`retentionDays`, 0 when it keeps it for good). When the tool asked after 42 and
-the oldest kept entry is 101, entries 43 to 100 were removed, not missed. The
-export says so on stderr, in a line of its own, and writes only entries to
-stdout:
+holds (`oldestSequence`; when every entry has been removed, the number its next
+one will get) and how many days the server keeps the history (`retentionDays`, 0
+when it keeps it for good). When the tool asked after 42 and the oldest kept
+entry is 101, entries 43 to 100 were removed, not missed. The export says so on
+stderr, in a line of its own, and writes only entries to stdout:
 
 ```text
 entries 43 to 100 are no longer kept: this server removes entries older than 365 days

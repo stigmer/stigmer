@@ -89,7 +89,8 @@ a prefix of its numbers and its kept entries stay one unbroken run; the
 `(org, sequence)` tie-break keeps entries sharing a millisecond in number order
 across a batch boundary. It takes no lock: an entry still being written is
 stamped after the cutoff. The heads are never removed, so a number is never
-handed out twice. The runner that calls it, and how long a history is kept, are
+handed out twice, and `Store.permissionHistoryHead` reads an organization's last
+number even when every entry has gone. The runner that calls it, and how long a history is kept, are
 the domain's (`domain/iampolicy/history-retention.ts`).
 
 ## Contract and continuity

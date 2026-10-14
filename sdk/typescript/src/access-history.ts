@@ -12,7 +12,8 @@
  *
  * A server may keep the history for a limited time, set by its operator,
  * and remove the oldest entries first. Every page says the oldest number
- * the organization still holds (`oldestSequence`) and how many days the
+ * the organization still holds (`oldestSequence`; when every entry was
+ * removed, the number its next entry will get) and how many days the
  * server keeps the history (`retentionDays`, 0 for good). When a tool asks
  * after N and the oldest kept entry is above N + 1, the entries between
  * were removed, not missed: `onRemoved` hears that once, before the first

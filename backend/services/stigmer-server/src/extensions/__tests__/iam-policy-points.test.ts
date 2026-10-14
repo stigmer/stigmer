@@ -48,6 +48,7 @@ const store: IamPolicyStore = {
   findByResourceKindAndRelation: unimplemented,
   listChanges: unimplemented,
   pruneChanges: unimplemented,
+  lastChangeSequence: unimplemented,
 };
 
 const scope: PolicyGrantScope = {

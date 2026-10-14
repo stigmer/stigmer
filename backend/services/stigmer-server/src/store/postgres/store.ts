@@ -1269,6 +1269,15 @@ export class PostgresStore implements Store {
     return result.rowCount ?? 0;
   }
 
+  async permissionHistoryHead(org: string): Promise<bigint> {
+    const result = await this.open().query(
+      `SELECT last_sequence FROM iam_policy_history_heads WHERE org = $1`,
+      [org],
+    );
+    const head = result.rows[0] as { last_sequence: string } | undefined;
+    return head === undefined ? 0n : BigInt(head.last_sequence);
+  }
+
   async listAuditRecords(
     kind: ApiResourceKind,
     resourceId: string,

@@ -46,7 +46,11 @@
  * reads with no snapshot between them, so a retention pass between them
  * could have removed entries the page just returned, and the answer is the
  * smaller of the read and the page's lowest examined number. A page never
- * reports an entry it returned as removed.
+ * reports an entry it returned as removed. An organization whose every
+ * entry was removed holds none, so the page answers one past the last
+ * number its history handed out (`lastChangeSequence`, which retention
+ * never lowers): a tool that held 42 of 100 still learns 43 to 100 are
+ * gone. Only an organization that never recorded an entry reads 0.
  *
  * Naming happens at read time, never from the stored row's audit stamp: the
  * actor and the principal through the account resolver and the composed
@@ -277,26 +281,33 @@ async function readAccessHistory(
 }
 
 /**
- * The lowest number the organization still holds, 0 when none, never above
- * the lowest the page examined: read after the page, a retention pass may
- * have removed entries in between that the page returned.
+ * The lowest number the organization still holds, never above the lowest
+ * the page examined: read after the page, a retention pass may have
+ * removed entries in between that the page returned. When it holds none,
+ * one past the last number it handed out, or 0 when it never recorded one.
  */
 async function oldestKeptSequence(
   deps: AccessHistoryDeps,
   org: string,
   lowestExamined: bigint | undefined,
 ): Promise<bigint> {
-  let oldest: ReadonlyArray<PolicyChange>;
+  let held: bigint | undefined;
+  let last = 0n;
   try {
-    oldest = await deps.policies.listChanges(org, { limit: 1, after: 0n });
+    held = (await deps.policies.listChanges(org, { limit: 1, after: 0n })).at(0)?.sequence;
+    if (held === undefined && lowestExamined === undefined) {
+      last = await deps.policies.lastChangeSequence(org);
+    }
   } catch (error) {
     throw internalError(error, "failed to read the access history");
   }
-  const held = oldest.at(0)?.sequence;
-  if (held === undefined) {
-    return lowestExamined ?? 0n;
+  if (lowestExamined !== undefined && (held === undefined || lowestExamined < held)) {
+    return lowestExamined;
   }
-  return lowestExamined !== undefined && lowestExamined < held ? lowestExamined : held;
+  if (held !== undefined) {
+    return held;
+  }
+  return last === 0n ? 0n : last + 1n;
 }
 
 /** Whether a change is about the organization itself rather than a resource in it. */

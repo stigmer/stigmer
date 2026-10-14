@@ -265,6 +265,9 @@ export function fakeIamPolicyStore(
         .reverse()
         .slice(0, page.limit);
     },
+    async lastChangeSequence(org) {
+      return heads.get(org) ?? 0n;
+    },
     async pruneChanges(before, limit) {
       if (!Number.isSafeInteger(limit) || limit <= 0) {
         throw new Error(`limit must be a positive integer, got ${limit}`);

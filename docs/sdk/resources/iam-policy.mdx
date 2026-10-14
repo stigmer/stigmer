@@ -1048,7 +1048,7 @@ AccessHistoryPage is one page of an organization's access history.
   type={{
     entries: { type: "AccessHistoryEntryInput[]", description: "The entries, newest first, or oldest first when the request named after_sequence." },
     nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token, with the same request otherwise, to continue." },
-    oldestSequence: { type: "number", description: "The lowest sequence the organization's history still holds, 0 when it holds none." },
+    oldestSequence: { type: "number", description: "The lowest sequence the organization's history still holds." },
     retentionDays: { type: "number", description: "How many days this server keeps the access history, 0 when it removes nothing." },
   }}
 />

@@ -95,6 +95,15 @@ describe("exportAccessHistory and retention", () => {
     expect(events).toEqual([{ first: 8n, last: 11n, retentionDays: 365 }, 12n, 13n, 14n]);
   });
 
+  it("tells the caller its whole run was removed when the organization holds no entry any more", async () => {
+    const client = pagesClient([create(AccessHistoryPageSchema, { oldestSequence: 101n, retentionDays: 365 })]);
+    const removed: RemovedAccessHistory[] = [];
+    for await (const _ of exportAccessHistory(client, "org_acme", { after: 42n, onRemoved: (run) => removed.push(run) })) {
+      throw new Error("an organization with every entry removed exports nothing");
+    }
+    expect(removed).toEqual([{ first: 43n, last: 100n, retentionDays: 365 }]);
+  });
+
   it("says nothing when the oldest kept entry follows the caller's, or the history is empty", async () => {
     for (const [after, oldestSequence] of [
       [7n, 8n],
