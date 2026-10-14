@@ -88,6 +88,7 @@ import {
 import type { CreateAccount } from "./provisioning.js";
 import type { IdentityAccountStore } from "./store.js";
 import type { Store } from "../../store/interface.js";
+import { matchesAllLabels, sortedLabels } from "../../pipeline/steps/helpers.js";
 
 /** The reason a held name is refused with, so a client tells it apart without parsing text. */
 export const SERVICE_ACCOUNT_NAME_TAKEN = "SERVICE_ACCOUNT_NAME_TAKEN";
@@ -197,8 +198,13 @@ export async function listServiceAccounts(
   const page = await readPage({
     source: inHandListPageSource(IdentityAccountSchema, accounts),
     request: { pageSize: input.pageSize, pageToken: input.pageToken },
-    fingerprint: listPageFingerprint({ org: input.org }),
+    fingerprint: listPageFingerprint({
+      org: input.org,
+      labels: sortedLabels(input.labels),
+    }),
     decode: (data) => fromBinary(IdentityAccountSchema, data),
+    keep: (account) =>
+      matchesAllLabels(account.metadata?.labels ?? {}, input.labels),
     scope: (rows) => Promise.resolve(rows),
     failure: "failed to list the organization's accounts",
   });

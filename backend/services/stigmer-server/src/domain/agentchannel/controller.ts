@@ -710,7 +710,7 @@ function newListByOrgAndLabelsStep(
     async execute(
       ctx: RequestContext<typeof AgentChannelQueryController.method.list.input>,
     ): Promise<void> {
-      const { org, labels: filterLabels } = ctx.input;
+      const { org } = ctx.input;
       // The org is an indexed predicate and the labels a per-row filter,
       // in both editions; the scope narrows the org's rows last (the scope
       // is the last per-row predicate).
@@ -723,13 +723,7 @@ function newListByOrgAndLabelsStep(
           ctx.input,
           {
             query: { org },
-            keep: (channel) =>
-              matchesAllLabels(channel.metadata?.labels ?? {}, filterLabels),
-            fingerprint: {
-              lane: "agentChannel.list",
-              org,
-              labels: sortedLabels(filterLabels),
-            },
+            fingerprint: { lane: "agentChannel.list", org },
           },
         ),
       );
@@ -737,15 +731,14 @@ function newListByOrgAndLabelsStep(
   };
 }
 
-/** The two channel lanes' shared read: one page, the scope last, as an AgentChannelList. */
+/** The two channel lanes' shared read: one page, the request's labels as each row's keep, the scope last, as an AgentChannelList. */
 async function readChannelPage(
   store: Store,
   listReadScope: ListReadScope | undefined,
   caller: CallerIdentity,
-  request: ListPageRequest,
+  request: ListPageRequest & { readonly labels: Readonly<Record<string, string>> },
   lane: {
     readonly query: ListIndexQuery<"agent">;
-    readonly keep?: (channel: AgentChannel) => boolean;
     readonly fingerprint: Readonly<Record<string, unknown>>;
   },
 ): Promise<AgentChannelList> {
@@ -754,9 +747,13 @@ async function readChannelPage(
     declaration: agentChannelListIndex,
     query: lane.query,
     request,
-    fingerprint: listPageFingerprint(lane.fingerprint),
+    fingerprint: listPageFingerprint({
+      ...lane.fingerprint,
+      labels: sortedLabels(request.labels),
+    }),
     decode: decodeOrSkip(AgentChannelSchema),
-    ...(lane.keep === undefined ? {} : { keep: lane.keep }),
+    keep: (channel: AgentChannel) =>
+      matchesAllLabels(channel.metadata?.labels ?? {}, request.labels),
     scope: (channels) =>
       restrictListByReadScope(
         listReadScope,
