@@ -159,7 +159,8 @@ function OnboardingState({
           <p className="text-muted-foreground text-sm">
             Create an organization to get started. Organizations are the
             top-level context that owns your agents, vaults, and
-            resources.
+            resources. To join an existing one instead, ask one of its
+            admins to invite you.
           </p>
         </div>
 

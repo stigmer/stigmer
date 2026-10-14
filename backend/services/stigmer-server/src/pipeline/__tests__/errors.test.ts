@@ -3,7 +3,8 @@
  * as a google.rpc.ErrorInfo detail beside the byte-pinned message, and
  * reaches a client over a real Connect call. The SDK's getErrorReason
  * reads the detail the same way the round trip below does, so a refusal
- * this helper builds is one a console can branch on.
+ * this helper builds is one a console can branch on. The PermissionDenied
+ * twin shares the same detail builder and keeps its own code.
  */
 import { create } from "@bufbuild/protobuf";
 import {
@@ -16,7 +17,12 @@ import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { Health, HealthCheckRequestSchema } from "@stigmer/protos/grpc/health/v1/health_pb";
 import { describe, expect, it } from "vitest";
 
-import { ERROR_REASON_DOMAIN, failedPreconditionError, quoteJoin } from "../errors.js";
+import {
+  ERROR_REASON_DOMAIN,
+  failedPreconditionError,
+  permissionDeniedWithReasonError,
+  quoteJoin,
+} from "../errors.js";
 
 describe("failedPreconditionError", () => {
   it("carries no detail without a reason", () => {
@@ -68,6 +74,22 @@ describe("failedPreconditionError", () => {
     expect(info?.reason).toBe("PAYMENT_METHOD_REQUIRED");
     expect(info?.domain).toBe(ERROR_REASON_DOMAIN);
     expect(info?.metadata).toEqual({ org: "org_2" });
+  });
+});
+
+describe("permissionDeniedWithReasonError", () => {
+  it("keeps the PermissionDenied code and carries the reason beside the message", () => {
+    const error = permissionDeniedWithReasonError("Only listed accounts may do this.", {
+      reason: "ORGANIZATION_CREATOR_NOT_LISTED",
+      metadata: { account: "ida_0123456789abcdefghjkmnpqrs" },
+    });
+
+    expect(error.code).toBe(Code.PermissionDenied);
+    expect(error.rawMessage).toBe("Only listed accounts may do this.");
+    const [info] = error.findDetails(ErrorInfoSchema);
+    expect(info?.reason).toBe("ORGANIZATION_CREATOR_NOT_LISTED");
+    expect(info?.domain).toBe(ERROR_REASON_DOMAIN);
+    expect(info?.metadata).toEqual({ account: "ida_0123456789abcdefghjkmnpqrs" });
   });
 });
 
