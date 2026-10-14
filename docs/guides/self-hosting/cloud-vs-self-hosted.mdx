@@ -36,18 +36,18 @@ change, not a rewrite.
 
 ## Side by side
 
-| Capability                            | Self-hosted                                                                   | Stigmer Cloud                                                                       |
-| ------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Agents, Skills, Sessions, MCP servers | Full — the same contracts                                                     | Full — the same contracts                                                           |
-| Storage                               | Your Postgres                                                                 | Managed                                                                             |
-| Authentication                        | Your OIDC provider, API keys, service accounts and PlatformClient             | Hosted login, identity federation, service accounts, PlatformClient                 |
-| Organizations                         | One team's — the server does not stop a signed-in person creating more        | As many as you need                                                                 |
-| Permissions                           | Owner, admin, member and viewer roles per Organization; Private stays private | The Organization's roles, plus per-resource roles (Viewer, Editor, Owner) and Teams |
-| Sandbox isolation                     | Pluggable drivers: local process, Docker, Kubernetes (off by default)         | Managed Kubernetes isolation                                                        |
-| Channels (Slack, WhatsApp)            | Not available                                                                 | Included                                                                            |
-| LLM costs                             | Your provider keys, billed by providers directly                              | Your Organization's provider keys, billed by providers directly                     |
-| Model catalog                         | Bundled, refreshes automatically                                              | Always current                                                                      |
-| Operations, backups, upgrades         | Yours                                                                         | Managed                                                                             |
+| Capability                            | Self-hosted                                                                                                       | Stigmer Cloud                                                                       |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Agents, Skills, Sessions, MCP servers | Full — the same contracts                                                                                         | Full — the same contracts                                                           |
+| Storage                               | Your Postgres                                                                                                     | Managed                                                                             |
+| Authentication                        | Your OIDC provider, API keys, service accounts and PlatformClient                                                 | Hosted login, identity federation, service accounts, PlatformClient                 |
+| Organizations                         | One with open source; with Enterprise, as many as the license allows, and the operator may limit who creates them | As many as you need                                                                 |
+| Permissions                           | Owner, admin, member and viewer roles per Organization; Private stays private                                     | The Organization's roles, plus per-resource roles (Viewer, Editor, Owner) and Teams |
+| Sandbox isolation                     | Pluggable drivers: local process, Docker, Kubernetes (off by default)                                             | Managed Kubernetes isolation                                                        |
+| Channels (Slack, WhatsApp)            | Not available                                                                                                     | Included                                                                            |
+| LLM costs                             | Your provider keys, billed by providers directly                                                                  | Your Organization's provider keys, billed by providers directly                     |
+| Model catalog                         | Bundled, refreshes automatically                                                                                  | Always current                                                                      |
+| Operations, backups, upgrades         | Yours                                                                                                             | Managed                                                                             |
 
 ## What self-hosting includes
 

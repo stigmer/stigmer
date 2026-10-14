@@ -12,7 +12,8 @@
  *     sign-in). Without a key the server is the open-source edition exactly,
  *     with open source's own posture, and this setting is not read. Unset,
  *     blank or `strict`: public addresses only, the default, because anyone
- *     who signs in may found an organization and write such URLs. `relaxed`:
+ *     who signs in may found an organization (unless the operator lists who
+ *     may) and write such URLs. `relaxed`:
  *     private and loopback addresses too (a federation issuer or MCP server
  *     on the operator's own network), with link-local still refused, which
  *     trusts every signed-in person with the operator's network. Any other
@@ -24,15 +25,27 @@
  *     deleted ones included. Any other value (`0`, `-5`, `365d`, `1y`)
  *     refuses the boot: an operator who believes records are destroyed
  *     after a year must not find them kept, nor kept ones destroyed.
+ *   - `STIGMER_ORGANIZATION_CREATORS`: who may create a top-level
+ *     organization on a licensed server (editions/organization-creators.ts).
+ *     Unset, blank or `anyone`: anyone signed in, the library's contract.
+ *     Otherwise a comma-separated list of account ids (`ida_...`, what
+ *     `stigmer auth whoami` prints), whitespace around each trimmed and
+ *     duplicates collapsed: only those accounts. An entry that is not an
+ *     account id, an empty entry, or `anyone` inside a list refuses the
+ *     boot naming it: an operator who believes creation is restricted must
+ *     not find it open over a typo. A change takes a restart.
  *
  * `readEnterpriseSettings` is the one reading the process entry makes, and
  * it carries the order the promise needs: the key first, then the egress
- * posture and the retention window only when a key is present. A keyless
+ * posture, the retention window and the creators list only when a key is
+ * present. A keyless
  * server therefore never looks at an Enterprise variable, and a typo in one
  * cannot refuse the boot of a server that is the open-source edition
  * exactly. The order lives here
  * rather than in the entry because the entry runs under no suite.
  */
+
+import { isAccountId } from "./organization-creators.js";
 
 /** The variable an operator sets to the license key. */
 export const LICENSE_KEY_VARIABLE = "STIGMER_LICENSE_KEY";
@@ -43,15 +56,23 @@ export const OUTBOUND_EGRESS_VARIABLE = "STIGMER_OUTBOUND_EGRESS";
 /** The variable an operator sets to the number of days the access history is kept. */
 export const ACCESS_HISTORY_RETENTION_VARIABLE = "STIGMER_ACCESS_HISTORY_RETENTION_DAYS";
 
+/** The variable an operator sets to the accounts that may create an organization. */
+export const ORGANIZATION_CREATORS_VARIABLE = "STIGMER_ORGANIZATION_CREATORS";
+
+/** The value that keeps creation open to anyone signed in, as unset does. */
+const ANYONE = "anyone";
+
 /** Which addresses a person-written URL may reach. */
 export type EgressPosture = "strict" | "relaxed";
 
-/** What the entry hands the composition; `egress` and the window are read only when a key is present. */
+/** What the entry hands the composition; everything but the key is read only when a key is present. */
 export interface EnterpriseSettings {
   readonly licenseKey: string | undefined;
   readonly egress?: EgressPosture;
   /** Days the access history is kept; absent keeps every entry. */
   readonly accessHistoryRetentionDays?: number;
+  /** The accounts that may create a top-level organization; absent means anyone signed in. */
+  readonly organizationCreators?: ReadonlySet<string>;
 }
 
 /** The server's own settings, the key first and the Enterprise variables only with a key. */
@@ -62,10 +83,12 @@ export function readEnterpriseSettings(env: NodeJS.ProcessEnv = process.env): En
   }
   const egress = readEgressPosture(env);
   const accessHistoryRetentionDays = readAccessHistoryRetentionDays(env);
+  const organizationCreators = readOrganizationCreators(env);
   return {
     licenseKey,
     egress,
     ...(accessHistoryRetentionDays === undefined ? {} : { accessHistoryRetentionDays }),
+    ...(organizationCreators === undefined ? {} : { organizationCreators }),
   };
 }
 
@@ -102,4 +125,33 @@ export function readAccessHistoryRetentionDays(
     );
   }
   return days;
+}
+
+/** The accounts that may create a top-level organization, or undefined for anyone signed in; a malformed list throws naming the entry. */
+export function readOrganizationCreators(
+  env: NodeJS.ProcessEnv = process.env,
+): ReadonlySet<string> | undefined {
+  const value = env[ORGANIZATION_CREATORS_VARIABLE]?.trim() ?? "";
+  if (value === "" || value === ANYONE) {
+    return undefined;
+  }
+  const creators = new Set<string>();
+  for (const raw of value.split(",")) {
+    const entry = raw.trim();
+    if (entry === "") {
+      throw new Error(`${ORGANIZATION_CREATORS_VARIABLE} has an empty entry; it is "${value}"`);
+    }
+    if (entry === ANYONE) {
+      throw new Error(
+        `${ORGANIZATION_CREATORS_VARIABLE} is either "${ANYONE}" or a list of account ids, not both; it is "${value}"`,
+      );
+    }
+    if (!isAccountId(entry)) {
+      throw new Error(
+        `${ORGANIZATION_CREATORS_VARIABLE} must be "${ANYONE}" or comma-separated account ids (ida_ and 26 characters, as stigmer auth whoami prints them); "${entry}" is not one`,
+      );
+    }
+    creators.add(entry);
+  }
+  return creators;
 }

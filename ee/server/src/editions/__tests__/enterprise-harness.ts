@@ -116,6 +116,8 @@ export interface BootOptions {
   readonly egress?: EgressPosture;
   /** Days the access history is kept; absent keeps every entry. */
   readonly accessHistoryRetentionDays?: number;
+  /** The accounts that may create a top-level organization; absent means anyone signed in. */
+  readonly organizationCreators?: ReadonlySet<string>;
   /** Units the suite composes after the entry's, to receive the composition's hand-over. */
   readonly extraUnits?: ReadonlyArray<ServerExtension>;
 }
@@ -154,6 +156,9 @@ export async function bootEnterprise(options: BootOptions): Promise<BootedServer
       ...(options.accessHistoryRetentionDays === undefined
         ? {}
         : { accessHistoryRetentionDays: options.accessHistoryRetentionDays }),
+      ...(options.organizationCreators === undefined
+        ? {}
+        : { organizationCreators: options.organizationCreators }),
     },
   );
   const server = await composeServer({

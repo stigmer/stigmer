@@ -28,9 +28,12 @@
  * variable so they share one key), which the library generates unasked for
  * open source alone, registers the grant scope every host
  * registers beside the identity unit (iam/policy/roles.ts; a single-instance
- * driver, so never inside that unit), refuses a new organization once the
- * license and its grace period have ended (after the library's own limit
- * on `org-create:pre-side-effect-gate`), declares how long the access
+ * driver, so never inside that unit), refuses a top-level organization to
+ * an account the operator did not list when a list is set
+ * (`STIGMER_ORGANIZATION_CREATORS`, editions/organization-creators.ts),
+ * then refuses a new organization once the license and its grace period
+ * have ended (both after the library's own limit on
+ * `org-create:pre-side-effect-gate`), declares how long the access
  * history is kept when the operator set a window
  * (`STIGMER_ACCESS_HISTORY_RETENTION_DAYS`, editions/enterprise-config.ts;
  * the library's retention runner removes what is older, and a lapsed
@@ -52,7 +55,8 @@
  *   - every URL a person writes is dialed under one egress posture, the
  *     operator's choice (editions/enterprise-config.ts): strict by default,
  *     public addresses only, because anyone who signs in may found an
- *     organization and write a provider's or an MCP server's URL that the
+ *     organization (unless the operator lists who may) and write a
+ *     provider's or an MCP server's URL that the
  *     server itself dials (a provider's documents, an MCP or plugin install
  *     probe, a vault sign-in; a run's own MCP connections leave from the
  *     runner, which this does not govern); relaxed
@@ -115,6 +119,7 @@ import { newCompositionPool } from "../postgres/pool.js";
 import { newEnterprisePostgres } from "../schema/enterprise-postgres.js";
 import { newEnterpriseAccounts } from "./enterprise-accounts.js";
 import { OUTBOUND_EGRESS_VARIABLE, type EgressPosture } from "./enterprise-config.js";
+import { newOrganizationCreatorsStep } from "./organization-creators.js";
 
 /** The license unit's name, in boot logs and every registration error. */
 export const ENTERPRISE_LICENSE_UNIT = "enterprise-license";
@@ -142,6 +147,8 @@ export interface EnterpriseOptions {
   readonly egress?: EgressPosture;
   /** Days the access history is kept; absent keeps every entry. */
   readonly accessHistoryRetentionDays?: number;
+  /** The accounts that may create a top-level organization; absent means anyone signed in. */
+  readonly organizationCreators?: ReadonlySet<string>;
 }
 
 /** The units the license key decides (the header's verdict). */
@@ -183,6 +190,12 @@ export async function composeEnterprise(
       ? "access history kept for good"
       : `access history kept for ${retentionDays} days`,
   );
+  const creators = options.organizationCreators;
+  logger.info(
+    creators === undefined
+      ? "organizations may be created by anyone signed in"
+      : `organizations may be created by ${creators.size} listed account${creators.size === 1 ? "" : "s"}`,
+  );
   if (egress === "relaxed") {
     logger.warn(
       `${OUTBOUND_EGRESS_VARIABLE}=relaxed: URLs anyone signed in writes may reach this server's private network`,
@@ -207,7 +220,13 @@ export async function composeEnterprise(
       policyGrantScope: newKindMetaPolicyGrantScope(),
     },
     gateSteps: new Map<GateSlotName, ReadonlyArray<PipelineStep<DescMessage>>>([
-      ["org-create:pre-side-effect-gate", [newGrowthGateStep(growthGate)]],
+      [
+        "org-create:pre-side-effect-gate",
+        [
+          ...(creators === undefined ? [] : [newOrganizationCreatorsStep(creators)]),
+          newGrowthGateStep(growthGate),
+        ],
+      ],
     ]),
     onComposed(services): void {
       accounts.fill(services);

@@ -107,6 +107,7 @@ describe("OrgGate", () => {
 
     expect(screen.queryByText("the app")).toBeNull();
     expect(screen.getByText("Welcome to Stigmer")).toBeTruthy();
+    expect(screen.getByText(/ask one of its admins to invite you/)).toBeTruthy();
 
     await userEvent.click(screen.getByRole("button", { name: "create org" }));
     expect(gate.refresh).toHaveBeenCalledWith("org_01jnnnnnnnnnnnnnnnnnnnnnnn");

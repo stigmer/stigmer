@@ -36,8 +36,8 @@ const (
 type OrganizationCommandControllerClient interface {
 	// Create or update an organization.
 	//
-	// Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED and
-	// LICENSE_RENEWAL_REQUIRED included.
+	// Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED,
+	// LICENSE_RENEWAL_REQUIRED and ORGANIZATION_CREATOR_NOT_LISTED included.
 	//
 	// A request that carries metadata.id updates that organization, and its
 	// slug changes only through rename. A slug the organization was renamed
@@ -112,6 +112,16 @@ type OrganizationCommandControllerClient interface {
 	//
 	//   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
 	//     organization that exists keeps working. No metadata.
+	//
+	// On Stigmer Enterprise, the server's operator may list the accounts that
+	// may create an organization. Any other caller's create of a top-level
+	// organization is refused with PERMISSION_DENIED carrying a
+	// google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+	// written; a child organization is not refused by it:
+	//
+	//   - ORGANIZATION_CREATOR_NOT_LISTED — the caller's account is not one
+	//     the operator listed. Metadata: account (the caller's own account
+	//     id, which the operator lists).
 	Create(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
 	// Update an organization: the fields update_mask names change, every other
 	// field keeps its stored value.
@@ -256,8 +266,8 @@ func (c *organizationCommandControllerClient) Delete(ctx context.Context, in *Or
 type OrganizationCommandControllerServer interface {
 	// Create or update an organization.
 	//
-	// Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED and
-	// LICENSE_RENEWAL_REQUIRED included.
+	// Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED,
+	// LICENSE_RENEWAL_REQUIRED and ORGANIZATION_CREATOR_NOT_LISTED included.
 	//
 	// A request that carries metadata.id updates that organization, and its
 	// slug changes only through rename. A slug the organization was renamed
@@ -332,6 +342,16 @@ type OrganizationCommandControllerServer interface {
 	//
 	//   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
 	//     organization that exists keeps working. No metadata.
+	//
+	// On Stigmer Enterprise, the server's operator may list the accounts that
+	// may create an organization. Any other caller's create of a top-level
+	// organization is refused with PERMISSION_DENIED carrying a
+	// google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+	// written; a child organization is not refused by it:
+	//
+	//   - ORGANIZATION_CREATOR_NOT_LISTED — the caller's account is not one
+	//     the operator listed. Metadata: account (the caller's own account
+	//     id, which the operator lists).
 	Create(context.Context, *Organization) (*Organization, error)
 	// Update an organization: the fields update_mask names change, every other
 	// field keeps its stored value.

@@ -120,6 +120,22 @@ export function unauthenticatedWithReasonError(
   ]);
 }
 
+/**
+ * A PermissionDenied refusal a client acts on without parsing text: a
+ * caller who lacks a right an edition's own policy grants, for a reason
+ * the client can explain (Enterprise's operator list of who may create an
+ * organization). The code stays PermissionDenied, so a client that keys on
+ * the code alone still treats it as a refusal of this caller.
+ */
+export function permissionDeniedWithReasonError(
+  message: string,
+  reason: RefusalReason,
+): ConnectError {
+  return new ConnectError(message, Code.PermissionDenied, undefined, [
+    reasonDetail(reason),
+  ]);
+}
+
 /** The ErrorInfo detail every reasoned refusal carries beside its message. */
 function reasonDetail(reason: RefusalReason) {
   return {

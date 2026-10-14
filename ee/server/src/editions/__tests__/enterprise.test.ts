@@ -12,7 +12,9 @@
  *     that does not load refuses the boot), registers the grant scope, and
  *     refuses growth before an organization is written, and declares the
  *     access history's window when the operator set one (logged at boot
- *     either way); with no key the window is not composed;
+ *     either way); with no key the window is not composed; registers the
+ *     operator's list of who may create an organization ahead of the
+ *     growth gate only when a list is set (logged at boot either way);
  *     `enterprise-identity` is the identity unit. Neither declares the
  *     require-authentication posture.
  *
@@ -32,6 +34,7 @@ import { ENTERPRISE_IDENTITY_UNIT } from "../../extension/enterprise-identity.js
 import { newTestSigner, writeTicket } from "../../license/__tests__/test-tickets.js";
 import { readEnterpriseSettings } from "../enterprise-config.js";
 import { composeEnterprise, ENTERPRISE_LICENSE_UNIT } from "../enterprise.js";
+import { ORGANIZATION_CREATORS_STEP } from "../organization-creators.js";
 import { licenseClaims, SILENT_LOGGER } from "./enterprise-harness.js";
 
 const ISSUED = new Date("2026-10-01T00:00:00Z");
@@ -204,6 +207,38 @@ describe("composeEnterprise: the verdict as units", () => {
     expect(await composeEnterprise(boot, { licenseKey: undefined, accessHistoryRetentionDays: 365 })).toEqual([
       openSourceEdition,
     ]);
+  });
+
+  it("registers the creators list ahead of the growth gate only when one is set, and logs who may create", async () => {
+    const signer = newTestSigner();
+    const claims = licenseClaims({ issuedAt: ISSUED, days: 365, graceDays: 30 });
+    const lines: string[] = [];
+    const logger = createLogger({
+      level: "info",
+      pretty: false,
+      write: (line: string) => {
+        lines.push(String((JSON.parse(line) as { message?: unknown }).message ?? ""));
+      },
+    });
+    const licensed = { licenseKey: writeTicket(signer, claims), ring: signer.ring, keyLoader: KEY_LOADER };
+    const slot = (unit: Awaited<ReturnType<typeof composeEnterprise>>[number] | undefined) =>
+      unit?.gateSteps?.get("org-create:pre-side-effect-gate")?.map((step) => step.name);
+
+    const [listed] = await composeEnterprise(
+      { config: boot.config, logger },
+      { ...licensed, organizationCreators: new Set(["ida_0123456789abcdefghjkmnpqrs", "ida_tvwxyz0123456789abcdefghjk"]) },
+    );
+    expect(slot(listed)).toEqual([ORGANIZATION_CREATORS_STEP, "GrowthGate"]);
+    expect(lines).toContain("organizations may be created by 2 listed accounts");
+
+    lines.length = 0;
+    const [open] = await composeEnterprise({ config: boot.config, logger }, licensed);
+    expect(slot(open)).toEqual(["GrowthGate"]);
+    expect(lines).toContain("organizations may be created by anyone signed in");
+
+    expect(
+      await composeEnterprise(boot, { licenseKey: undefined, organizationCreators: new Set(["ida_0123456789abcdefghjkmnpqrs"]) }),
+    ).toEqual([openSourceEdition]);
   });
 
   it("declares no organization limit when the license grants none", async () => {

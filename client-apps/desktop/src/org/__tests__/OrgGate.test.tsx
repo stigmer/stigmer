@@ -58,6 +58,7 @@ describe("desktop OrgGate", () => {
     renderGate();
 
     expect(screen.getByText("Welcome to Stigmer")).toBeTruthy();
+    expect(screen.getByText(/ask one of its admins to invite you/)).toBeTruthy();
     expect(screen.queryByText("the app")).toBeNull();
 
     const created = create(OrganizationSchema, {
