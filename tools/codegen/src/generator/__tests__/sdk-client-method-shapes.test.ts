@@ -3,7 +3,8 @@
  * method shapes no served service has today, each under its SDK method
  * name: a call that takes and answers nothing, a delete by id that answers
  * nothing, a resource passed through as it is when its kind has no spec
- * input, a stream read by id, and a bidirectional stream.
+ * input, a read by id beside the kind's get, a stream read by id, and a
+ * bidirectional stream.
  *
  * The generators run over a copy of the real schemas into temporary
  * directories; the copy's license service gains these methods and loses
@@ -46,7 +47,10 @@ describe("the generated clients' rarer method shapes", () => {
       method("Replace", "License", "License"),
       method("Talk", "LicenseCommand", "LicenseEvent", { clientStreaming: true, serverStreaming: true }),
     );
-    query.methods.push(method("Watch", "LicenseId", "License", { serverStreaming: true }));
+    query.methods.push(
+      method("Watch", "LicenseId", "License", { serverStreaming: true }),
+      method("Fetch", "LicenseId", "License"),
+    );
     fs.writeFileSync(file, JSON.stringify(license));
 
     const goOut = path.join(root, "go", "internal", "gen");
@@ -88,7 +92,8 @@ describe("the generated clients' rarer method shapes", () => {
     expect(ts).toContain("  talk(signal?: AbortSignal): BidiStream<LicenseCommand, LicenseEvent> {\n");
   });
 
-  it("a get by id", () => {
+  it("a read by id beside the kind's get", () => {
     expect(ts).toContain("  async get(id: string): Promise<License> {\n");
+    expect(ts).toContain("  async fetch(id: string): Promise<License> {\n");
   });
 });
