@@ -1,6 +1,6 @@
 /**
  * Pure reads over a run's scores for the console: the run-health score and
- * its flags, the AI judge's verdict, a plugin eval's checks on one of its
+ * its flags, the AI judge's verdict, an eval run's checks on one of its
  * tries, and the viewer's own feedback. Kept apart from the components so
  * the rules are unit-testable without React.
  *
@@ -140,7 +140,7 @@ export function judgeViewOf(scores: readonly Score[]): JudgeView {
   };
 }
 
-/** The metric a plugin eval's checks on one try are recorded under. */
+/** The metric an eval run's checks on one try are recorded under. */
 export const EVAL_METRIC = "eval";
 
 /**
@@ -160,7 +160,7 @@ export type EvalView =
       readonly criteria: readonly JudgeCriterion[];
     };
 
-/** The run's plugin-eval score, the newest when several graded it. */
+/** The run's eval score, the newest when several graded it. */
 export function evalScoreOf(scores: readonly Score[]): Score | undefined {
   return scores.find(
     (score) =>
@@ -195,7 +195,7 @@ export function evalViewOf(scores: readonly Score[]): EvalView {
 
 /**
  * The first reason a grader gave for failing the run: the AI judge's, else
- * the plugin eval's; empty when neither failed it. It seeds the FAIL line
+ * the eval run's; empty when neither failed it. It seeds the FAIL line
  * of a test case made from the run.
  */
 export function failingReasonOf(scores: readonly Score[]): string {

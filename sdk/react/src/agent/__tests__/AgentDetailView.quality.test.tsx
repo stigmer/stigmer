@@ -13,7 +13,7 @@ import { StigmerError } from "@stigmer/sdk";
 import { samples } from "../../test/samples";
 import { AgentDetailView } from "../AgentDetailView";
 import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
-import { agentEvalWith } from "../../agent-eval/__tests__/agent-eval-fixture";
+import { agentEvalRunWith } from "../../eval-run/__tests__/eval-fixture.agent";
 import {
   VERSION_HASH,
   emptyReport,
@@ -44,7 +44,7 @@ describe("AgentDetailView's Quality tab", () => {
             getAgentQualityReport: vi.fn(async () => emptyReport()),
             listFlaggedByAgent: vi.fn(async () => ({ entries: [], nextPageToken: "" })),
           },
-          agenteval: { listByAgent: vi.fn(async () => ({ entries: [], nextPageToken: "" })) },
+          evalrun: { listByAgent: vi.fn(async () => ({ entries: [], nextPageToken: "" })) },
           plugin: { getByReference: vi.fn(async () => undefined) },
           platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
           iamPolicy: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
@@ -62,9 +62,9 @@ describe("AgentDetailView's Quality tab", () => {
 
   it("opens a flagged run through the host, and a version's eval on the Evals tab", async () => {
     const agent = samples.agent({ name: "Support Bot", org: ACME_ID });
-    const newer = agentEvalWith([], { id: "aev_newer", version: "ffffffffffffffff" });
-    const linked = agentEvalWith([{ slug: "p", cases: [{ name: "a", score: 1 }] }], {
-      id: "aev_linked",
+    const newer = agentEvalRunWith([], { id: "evr_newer", version: "ffffffffffffffff" });
+    const linked = agentEvalRunWith([{ slug: "p", cases: [{ name: "a", score: 1 }] }], {
+      id: "evr_linked",
       version: VERSION_HASH,
     });
     const onNavigateToRun = vi.fn();
@@ -82,9 +82,9 @@ describe("AgentDetailView's Quality tab", () => {
             listFlaggedByAgent: vi.fn(async () => ({ entries: [flaggedScore("s1", "judge", "run_judged", ["task"])],
               nextPageToken: "" })),
           },
-          agenteval: {
+          evalrun: {
             listByAgent: vi.fn(async () => ({ entries: [newer, linked], nextPageToken: "" })),
-            get: vi.fn(async (id: string) => (id === "aev_linked" ? linked : newer)),
+            get: vi.fn(async (id: string) => (id === "evr_linked" ? linked : newer)),
           },
           plugin: { getByReference: vi.fn(async () => undefined) },
           platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
@@ -102,7 +102,7 @@ describe("AgentDetailView's Quality tab", () => {
     await waitFor(() =>
       expect(screen.getByRole("tab", { name: "Evals" }).getAttribute("aria-selected")).toBe("true"),
     );
-    const past = await screen.findByRole("list", { name: "Past evals" });
+    const past = await screen.findByRole("list", { name: "Past eval runs" });
     const current = within(past)
       .getAllByRole("button")
       .find((button) => button.getAttribute("aria-current") === "true");

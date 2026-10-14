@@ -4,7 +4,7 @@
  * How an agent's runs went, at the top of its Quality tab: the last 7, 30
  * or 90 days in the active organization, as summary tiles with a daily
  * trend each, a table by agent version beside that version's latest
- * finished agent eval, and the flagged runs the viewer can open.
+ * finished eval run, and the flagged runs the viewer can open.
  *
  * The tiles read the report's total: the runs graded, the run-health pass
  * rate, the AI judge's pass rate per rubric with how many runs it graded,
@@ -76,7 +76,7 @@ export interface AgentQualityReportViewProps {
    */
   readonly onNavigateToRun?: (runId: string) => void;
   /**
-   * Called with an agent eval's id when the person opens a version's eval;
+   * Called with an eval run's id when the person opens a version's eval;
    * `AgentDetailView` opens its Evals tab on it. The eval column is plain
    * text when omitted.
    */
@@ -421,9 +421,9 @@ function VersionTable({
           {report.versions.map((version) => {
             const summary = version.summary;
             const thumbs = metricTallyOf(summary, FEEDBACK_METRIC);
-            const agentEval = latestEval.get(version.agentVersionHash);
-            const evalRate = agentEval === undefined ? null : evalPassRateOf(agentEval);
-            const evalId = agentEval?.metadata?.id ?? "";
+            const evalRun = latestEval.get(version.agentVersionHash);
+            const evalRate = evalRun === undefined ? null : evalPassRateOf(evalRun);
+            const evalId = evalRun?.metadata?.id ?? "";
             return (
               <tr
                 key={version.agentVersionHash}
@@ -456,7 +456,7 @@ function VersionTable({
                   {thumbs === null ? "—" : `${thumbs.passed} up · ${thumbs.failed} down`}
                 </td>
                 <td className={cn(CELL_CLASS, "stg:tabular-nums")}>
-                  {agentEval === undefined ? (
+                  {evalRun === undefined ? (
                     <span className="stg:text-muted-foreground">no eval</span>
                   ) : onOpenEval !== undefined && evalId !== "" ? (
                     <button

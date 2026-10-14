@@ -4,13 +4,13 @@
  * The fields every Run evals form shares: the switch between sending no
  * models and picking them, the picked models (one to six, each an engine
  * and a model, the engine's default when none is picked), and a labelled
- * number field with its hint. A plugin eval's form and an agent eval's
- * form render them alike; only the switch's words differ, since sending no
- * models means each case's own model for a plugin eval and the agent as it
- * runs for an agent eval.
+ * number field with its hint. The form on a plugin and the form on an
+ * agent render them alike; only the switch's words differ, since sending
+ * no models means each case's own model on a plugin and the agent as it
+ * runs on an agent.
  *
  * Internal to the SDK: the forms are the public surface. Pinned through
- * `__tests__/PluginEvalsTab.test.tsx` and the agent eval's tab tests.
+ * the tab tests.
  *
  * All visual properties flow through `--stgm-*` tokens.
  */

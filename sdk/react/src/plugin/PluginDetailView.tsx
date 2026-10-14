@@ -19,7 +19,7 @@
  * does not run (the warnings of `HOOK_WARNING_KINDS`); the keys the plugin
  * declares; what the manifest said; what else the push warned about; the
  * version history; and, on the Evals tab, its own evals/ test cases, run
- * with and without it (`PluginEvalsTab`). Nothing here edits the plugin:
+ * with and without it (`EvalRunsTab`). Nothing here edits the plugin:
  * it changes by being pushed again.
  *
  * The shape is `SkillDetailView`'s: the resource fetched inside, rendered
@@ -56,7 +56,7 @@ import { PluginServerRow } from "./PluginServerRow.js";
 import { usePlugin } from "./usePlugin.js";
 import { usePluginVersions } from "./usePluginVersions.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
-import { PluginEvalsTab } from "../plugin-eval/PluginEvalsTab.js";
+import { EvalRunsTab } from "../eval-run/EvalRunsTab.js";
 import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
 
 const OVERVIEW_TAB: TabItem = { id: "overview", label: "Overview" };
@@ -207,7 +207,7 @@ export function PluginDetailView({
   if (activeAdditionalTab) {
     tabContent = activeAdditionalTab.content;
   } else if (effectiveActiveTab === "evals") {
-    tabContent = <PluginEvalsTab plugin={plugin} onNavigateToRun={onNavigateToRun} />;
+    tabContent = <EvalRunsTab plugin={plugin} onNavigateToRun={onNavigateToRun} />;
   } else if (effectiveActiveTab === "versions" && versions.length > 0) {
     tabContent = (
       <>

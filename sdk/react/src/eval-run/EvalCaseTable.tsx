@@ -1,21 +1,22 @@
 "use client";
 
 /**
- * An eval's cases as a table: one row per case, one column group per
- * target, each case opening to its notes, its MCP servers and its tries,
- * each try a link to its run when the caller passes `onNavigateToRun`;
- * the cases not run listed below with their reasons.
+ * One plugin's cases in an eval run as a table: one row per case, one
+ * column group per target, each case opening to its notes, its MCP
+ * servers and its tries, each try a link to its run when the caller
+ * passes `onNavigateToRun`; the cases not run listed below with their
+ * reasons.
  *
- * Two forms. A plugin eval's, both arms: `WITH`, `W/OUT`, `Δ` (marked
- * provisional when the eval says so) and pass^k per target, each try
- * labelled with its arm. An agent eval's, one arm: the score and pass^k
- * per target, each try by its number alone, since every try ran the agent
- * with its plugins. The form is the caller's choice, never inferred from
- * the data, so a plugin eval run without the comparison keeps its columns.
+ * Two forms. An eval run that compares a plugin, both arms: `WITH`,
+ * `W/OUT`, `Δ` and pass^k per target, each try labelled with its arm. One
+ * that compares none, one arm: the score and pass^k per target, each try
+ * by its number alone. The form is the caller's choice, never inferred
+ * from one plugin's data, so every plugin block of an eval run keeps the
+ * same columns.
  *
- * Kept apart from the results views so a plugin eval and each plugin block
- * of an agent eval render one table. Pinned through
- * `__tests__/PluginEvalResults.test.tsx` and the agent eval's tab tests.
+ * Kept apart from the results view so each plugin block renders one
+ * table. Pinned through `__tests__/EvalRunResults.test.tsx` and the tab
+ * tests.
  *
  * All visual properties flow through `--stgm-*` tokens.
  */
@@ -30,18 +31,16 @@ import {
   type EvalCaseRow,
 } from "./eval-view.js";
 
-/** Which arms the table shows: both (a plugin eval) or the with-arm alone (an agent eval). */
+/** Which arms the table shows: both (an eval run that compares a plugin) or the with-arm alone. */
 export type EvalCaseTableArms = "both" | "with";
 
 /** Props for {@link EvalCaseTable}. */
 export interface EvalCaseTableProps {
-  /** The cases, from `evalCaseRowsOf` or `caseSourceRowsOf`. */
+  /** The cases, from `caseSourceRowsOf`. */
   readonly rows: readonly EvalCaseRow[];
   /** The target columns, in order. */
   readonly labels: readonly string[];
   readonly arms: EvalCaseTableArms;
-  /** Marks the difference provisional; read only when both arms show. */
-  readonly provisional?: boolean;
   /** Opens a try's run; tries are not links when omitted. */
   readonly onNavigateToRun?: (runId: string) => void;
 }
@@ -51,7 +50,6 @@ export function EvalCaseTable({
   rows,
   labels,
   arms,
-  provisional = false,
   onNavigateToRun,
 }: EvalCaseTableProps) {
   const [openCase, setOpenCase] = useState<string | null>(null);
@@ -85,12 +83,7 @@ export function EvalCaseTable({
                   Case
                 </th>
                 {labels.map((label) => (
-                  <TargetHeaders
-                    key={label}
-                    label={label}
-                    arms={arms}
-                    provisional={provisional}
-                  />
+                  <TargetHeaders key={label} label={label} arms={arms} />
                 ))}
               </tr>
             </thead>
@@ -134,11 +127,9 @@ export function EvalCaseTable({
 function TargetHeaders({
   label,
   arms,
-  provisional,
 }: {
   readonly label: string;
   readonly arms: EvalCaseTableArms;
-  readonly provisional: boolean;
 }) {
   if (arms === "with") {
     return (
@@ -175,9 +166,9 @@ function TargetHeaders({
       <th
         scope="col"
         className={CELL_CLASS}
-        aria-label={`Difference, ${label}${provisional ? ", provisional" : ""}`}
+        aria-label={`Difference, ${label}`}
       >
-        Δ{provisional ? "*" : ""}
+        Δ
       </th>
       <th
         scope="col"

@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * Behavior hook that starts a plugin eval and keeps the server's refusal
- * as `error`.
+ * Behavior hook that starts an eval run and keeps the server's refusal as
+ * `error`.
  *
  * The input is passed through unchanged: the form's rules are in
  * `eval-view.ts`, and the server checks every limit again, so the hook
@@ -11,15 +11,15 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
-import type { PluginEvalInput } from "@stigmer/sdk";
+import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
+import type { EvalRunInput } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
-/** Return value of {@link useStartPluginEval}. */
-export interface UseStartPluginEvalReturn {
-  /** Start an eval; resolves with it, pending, as the server stored it. */
-  readonly start: (input: PluginEvalInput) => Promise<PluginEval>;
+/** Return value of {@link useStartEvalRun}. */
+export interface UseStartEvalRunReturn {
+  /** Start an eval run; resolves with it, pending, as the server stored it. */
+  readonly start: (input: EvalRunInput) => Promise<EvalRun>;
   /** `true` while the create is in flight. */
   readonly isStarting: boolean;
   /** Error from the last failed start, or `null` when healthy. */
@@ -29,20 +29,21 @@ export interface UseStartPluginEvalReturn {
 }
 
 /**
- * Behavior hook that starts a {@link PluginEval} through
- * `plugineval.create()`. Only the plugin's editors may; the server's
- * refusal (a plugin with no evals/ cases, a suite larger than an eval may
- * run, a missing permission) is surfaced as `error`. The eval's
- * organization pays for every try and every AI-graded check.
+ * Behavior hook that starts an {@link EvalRun} through `evalrun.create()`.
+ * Only the editors of its agent or plugin may, and comparing a plugin the
+ * agent does not attach takes being able to view it; the server's refusal
+ * (no evals/ cases, more than an eval run may run, a missing permission)
+ * is surfaced as `error`. The eval run's organization pays for every try
+ * and every AI-graded check.
  *
  * @example
  * ```tsx
- * const { start } = useStartPluginEval();
- * // Unnamed: the server names the eval by its id.
- * const started = await start({ name: "", org, pluginId, maxCostUsd: 5 });
+ * const { start } = useStartEvalRun();
+ * // Unnamed: the server names the eval run by its id.
+ * const started = await start({ name: "", org, agentId, comparedPluginId, maxCostUsd: 5 });
  * ```
  */
-export function useStartPluginEval(): UseStartPluginEvalReturn {
+export function useStartEvalRun(): UseStartEvalRunReturn {
   const stigmer = useStigmer();
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -50,11 +51,11 @@ export function useStartPluginEval(): UseStartPluginEvalReturn {
   const clearError = useCallback(() => setError(null), []);
 
   const start = useCallback(
-    async (input: PluginEvalInput): Promise<PluginEval> => {
+    async (input: EvalRunInput): Promise<EvalRun> => {
       setIsStarting(true);
       setError(null);
       try {
-        return await stigmer.plugineval.create(input);
+        return await stigmer.evalrun.create(input);
       } catch (err) {
         const failure = toError(err);
         setError(failure);

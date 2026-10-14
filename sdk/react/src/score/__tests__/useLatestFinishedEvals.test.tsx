@@ -9,7 +9,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
-import { agentEvalWith } from "../../agent-eval/__tests__/agent-eval-fixture";
+import { agentEvalRunWith } from "../../eval-run/__tests__/eval-fixture.agent";
 import { useLatestFinishedEvals } from "../useLatestFinishedEvals";
 
 function wrapper(client: unknown) {
@@ -26,20 +26,20 @@ describe("useLatestFinishedEvals", () => {
   it("stops reading once every version shown has its latest finished eval", async () => {
     const listByAgent = vi.fn(async (req: { pageToken: string }) =>
       req.pageToken === ""
-        ? { entries: [agentEvalWith([], { id: "aev_new", version: "v1" })], nextPageToken: "page-2" }
-        : { entries: [agentEvalWith([], { id: "aev_old", version: "v1" })], nextPageToken: "" },
+        ? { entries: [agentEvalRunWith([], { id: "evr_new", version: "v1" })], nextPageToken: "page-2" }
+        : { entries: [agentEvalRunWith([], { id: "evr_old", version: "v1" })], nextPageToken: "" },
     );
     const { result } = renderHook(() => useLatestFinishedEvals("agt_1", ["v1"]), {
-      wrapper: wrapper({ agenteval: { listByAgent } }),
+      wrapper: wrapper({ evalrun: { listByAgent } }),
     });
-    await waitFor(() => expect(result.current.get("v1")?.metadata?.id).toBe("aev_new"));
+    await waitFor(() => expect(result.current.get("v1")?.metadata?.id).toBe("evr_new"));
     expect(listByAgent).toHaveBeenCalledTimes(1);
   });
 
   it("asks nothing for an empty agent or no versions", () => {
     const listByAgent = vi.fn();
-    renderHook(() => useLatestFinishedEvals("", ["v1"]), { wrapper: wrapper({ agenteval: { listByAgent } }) });
-    renderHook(() => useLatestFinishedEvals("agt_1", []), { wrapper: wrapper({ agenteval: { listByAgent } }) });
+    renderHook(() => useLatestFinishedEvals("", ["v1"]), { wrapper: wrapper({ evalrun: { listByAgent } }) });
+    renderHook(() => useLatestFinishedEvals("agt_1", []), { wrapper: wrapper({ evalrun: { listByAgent } }) });
     expect(listByAgent).not.toHaveBeenCalled();
   });
 });

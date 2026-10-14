@@ -1,23 +1,23 @@
 /**
- * Pins the plugin's Evals tab: the suite summary (cases, tags, findings,
- * the cases not run yet with their feature) or the sentence for a plugin
- * with no cases; the Run evals form only for the plugin's editors (asked
- * as `can_edit` on the plugin, and shown only once the check answers yes:
- * neither it nor Cancel shows while the check is pending or after it
- * failed, nor to a non-editor), whose start sends the plugin's id,
- * organization and the form's settings, no name, and opens the new eval
- * (by default no models and 0 tries, so each case's own model and runs
- * apply, and a cleared tries field sends 0 again), each eval labelled by
- * the plugin and when it started, its targets added once the case's own
- * model is switched off, switched to another engine (which drops the model
- * picked) and removed; a past eval opened from the list;
- * an eval's view with a row per case, WITH, W/OUT and a provisional Δ, and
- * its tries as links to their runs; Cancel for an editor while the eval
- * runs; and Compare, case by case, with a changed case marked, a
- * request for two different evals when both pickers name one, and each
- * read's error when one fails; a failed read again of the past evals keeps
- * the last list with a notice, and a failed first read shows the error; a
- * finding shows its message once, which starts with its path.
+ * Pins the Evals tab on a plugin: the suite summary (cases, tags,
+ * findings, the cases not run yet with their feature) or the sentence for
+ * a plugin with no cases; the Run evals form only for the plugin's editors
+ * (asked as `can_edit` on the plugin, and shown only once the check
+ * answers yes: neither it nor Cancel shows while the check is pending or
+ * after it failed, nor to a non-editor), whose start sends the plugin's
+ * id, organization and the form's settings, no name, and opens the new
+ * eval run (by default no models and 0 tries, so each case's own model and
+ * runs apply, and a cleared tries field sends 0 again), each eval run
+ * labelled by the plugin and when it started, its targets added once the
+ * case's own model is switched off, switched to another engine (which
+ * drops the model picked) and removed; a past eval run opened from the
+ * list; an eval run's view with a row per case, WITH, W/OUT and Δ, and its
+ * tries as links to their runs; Cancel for an editor while it runs; and
+ * Compare, case by case, with a changed case marked, a request for two
+ * different eval runs when both pickers name one, and each read's error
+ * when one fails; a failed read again of the past eval runs keeps the last
+ * list with a notice, and a failed first read shows the error; a finding
+ * shows its message once, which starts with its path.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -31,13 +31,13 @@ import {
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
-import { PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
-import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
+import { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import { EvalRunPhase } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
+import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
-import { PluginEvalsTab } from "../PluginEvalsTab";
+import { EvalRunsTab } from "../EvalRunsTab";
 import { evalStartOf, evalWith } from "./eval-fixture";
 
 /** How the tab labels the fixture's eval `id` of thermos. */
@@ -96,20 +96,20 @@ const plugin = create(PluginSchema, {
 });
 
 function client(
-  evals: PluginEval[],
+  evals: EvalRun[],
   opts: {
     canEdit?: boolean;
-    started?: PluginEval;
+    started?: EvalRun;
     /** The `can_edit` check never answers, or fails. */
     check?: "pending" | "fails";
   } = {},
 ) {
   const byId = new Map(
-    evals.map((pluginEval) => [pluginEval.metadata?.id ?? "", pluginEval]),
+    evals.map((evalRun) => [evalRun.metadata?.id ?? "", evalRun]),
   );
   if (opts.started) byId.set(opts.started.metadata?.id ?? "", opts.started);
   return {
-    plugineval: {
+    evalrun: {
       listByPlugin: vi.fn(async () => ({ entries: evals, nextPageToken: "" })),
       get: vi.fn(async (id: string) => byId.get(id)),
       create: vi.fn(async () => opts.started),
@@ -157,9 +157,9 @@ function wrap(mock: unknown) {
   };
 }
 
-describe("PluginEvalsTab", () => {
+describe("EvalRunsTab on a plugin", () => {
   it("summarises the suite: cases, tags, findings, and the cases not run yet", async () => {
-    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(client([])) });
+    render(<EvalRunsTab plugin={plugin} />, { wrapper: wrap(client([])) });
     expect(screen.getByText(/2 cases in/)).toBeDefined();
     expect(screen.getByText(/tags: smoke/)).toBeDefined();
     const notRun = screen.getByRole("list", { name: "Cases not run yet" });
@@ -169,23 +169,23 @@ describe("PluginEvalsTab", () => {
     // The message starts with the path, as the library writes it: shown once.
     expect(screen.getByText("evals/bad/prompt.md: unknown key 'foo'")).toBeDefined();
     expect(screen.getAllByText(/evals\/bad\/prompt\.md/)).toHaveLength(1);
-    expect(await screen.findByText("No evals have run yet.")).toBeDefined();
+    expect(await screen.findByText("No eval runs yet.")).toBeDefined();
   });
 
   it("says so for a plugin with no evals/ cases, and offers no form", async () => {
     const bare = create(PluginSchema, {
       metadata: { id: "plg_2", org: "org_acme", name: "bare" },
     });
-    render(<PluginEvalsTab plugin={bare} />, { wrapper: wrap(client([])) });
+    render(<EvalRunsTab plugin={bare} />, { wrapper: wrap(client([])) });
     expect(screen.getByText(/This plugin has no evals\/ cases/)).toBeDefined();
-    await screen.findByText("No evals have run yet.");
+    await screen.findByText("No eval runs yet.");
     expect(screen.queryByRole("button", { name: "Run evals" })).toBeNull();
   });
 
   it("hides Run evals from someone who cannot edit the plugin", async () => {
     const mock = client([], { canEdit: false });
-    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
-    await screen.findByText("No evals have run yet.");
+    render(<EvalRunsTab plugin={plugin} />, { wrapper: wrap(mock) });
+    await screen.findByText("No eval runs yet.");
     await vi.waitFor(() =>
       expect(mock.iamPolicy.checkMyPermission).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -203,10 +203,10 @@ describe("PluginEvalsTab", () => {
     const started = evalWith(
       [{ name: "review-fires", score: 1, delta: 0.67 }],
       undefined,
-      "pev_new",
+      "evr_new",
     );
     const mock = client([], { started });
-    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
+    render(<EvalRunsTab plugin={plugin} />, { wrapper: wrap(mock) });
     fireEvent.click(
       await screen.findByRole("switch", { name: "Use each case's own model" }),
     );
@@ -219,26 +219,26 @@ describe("PluginEvalsTab", () => {
     });
     fireEvent.click(screen.getByRole("switch", { name: /without the plugin/ }));
     fireEvent.click(screen.getByRole("button", { name: "Run evals" }));
-    await vi.waitFor(() => expect(mock.plugineval.create).toHaveBeenCalled());
-    expect(mock.plugineval.create).toHaveBeenCalledWith(
+    await vi.waitFor(() => expect(mock.evalrun.create).toHaveBeenCalled());
+    expect(mock.evalrun.create).toHaveBeenCalledWith(
       expect.objectContaining({
         org: "org_acme",
         pluginId: "plg_1",
         name: "",
         targets: [{ harness: Harness.NATIVE, modelName: "claude-haiku-4-5" }],
         runs: 5,
-        ablation: PluginEvalAblation.none,
+        ablation: EvalRunAblation.none,
         maxCostUsd: 2,
         concurrency: 1,
       }),
     );
-    expect(await screen.findByText(labelOf("pev_new"))).toBeDefined();
+    expect(await screen.findByText(labelOf("evr_new"))).toBeDefined();
   });
 
   it("sends no models and no tries by default, so each case's own model and runs apply", async () => {
-    const started = evalWith([], undefined, "pev_new");
+    const started = evalWith([], undefined, "evr_new");
     const mock = client([], { started });
-    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
+    render(<EvalRunsTab plugin={plugin} />, { wrapper: wrap(mock) });
     const own = await screen.findByRole("switch", {
       name: "Use each case's own model",
     });
@@ -248,30 +248,30 @@ describe("PluginEvalsTab", () => {
       (screen.getByLabelText("Tries per case") as HTMLInputElement).value,
     ).toBe("");
     fireEvent.click(screen.getByRole("button", { name: "Run evals" }));
-    await vi.waitFor(() => expect(mock.plugineval.create).toHaveBeenCalled());
-    expect(mock.plugineval.create).toHaveBeenCalledWith(
+    await vi.waitFor(() => expect(mock.evalrun.create).toHaveBeenCalled());
+    expect(mock.evalrun.create).toHaveBeenCalledWith(
       expect.objectContaining({ targets: [], runs: 0 }),
     );
   });
 
   it("sends 0 tries again once the tries field is cleared", async () => {
-    const started = evalWith([], undefined, "pev_new");
+    const started = evalWith([], undefined, "evr_new");
     const mock = client([], { started });
-    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
+    render(<EvalRunsTab plugin={plugin} />, { wrapper: wrap(mock) });
     const runs = await screen.findByLabelText("Tries per case");
     fireEvent.change(runs, { target: { value: "4" } });
     fireEvent.change(runs, { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: "Run evals" }));
-    await vi.waitFor(() => expect(mock.plugineval.create).toHaveBeenCalled());
-    expect(mock.plugineval.create).toHaveBeenCalledWith(
+    await vi.waitFor(() => expect(mock.evalrun.create).toHaveBeenCalled());
+    expect(mock.evalrun.create).toHaveBeenCalledWith(
       expect.objectContaining({ runs: 0 }),
     );
   });
 
   it("builds the targets from the form: adds a model, switches an engine (dropping its model), removes one, and sets tries at once", async () => {
-    const started = evalWith([], undefined, "pev_new");
+    const started = evalWith([], undefined, "evr_new");
     const mock = client([], { started });
-    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
+    render(<EvalRunsTab plugin={plugin} />, { wrapper: wrap(mock) });
     fireEvent.click(
       await screen.findByRole("switch", { name: "Use each case's own model" }),
     );
@@ -290,8 +290,8 @@ describe("PluginEvalsTab", () => {
       target: { value: "4" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Run evals" }));
-    await vi.waitFor(() => expect(mock.plugineval.create).toHaveBeenCalled());
-    expect(mock.plugineval.create).toHaveBeenCalledWith(
+    await vi.waitFor(() => expect(mock.evalrun.create).toHaveBeenCalled());
+    expect(mock.evalrun.create).toHaveBeenCalledWith(
       expect.objectContaining({
         targets: [{ harness: Harness.CURSOR }],
         concurrency: 4,
@@ -300,7 +300,7 @@ describe("PluginEvalsTab", () => {
   });
 
   it("refuses to start with a cost limit the API refuses", async () => {
-    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(client([])) });
+    render(<EvalRunsTab plugin={plugin} />, { wrapper: wrap(client([])) });
     fireEvent.change(await screen.findByLabelText("Cost limit (USD)"), {
       target: { value: "0" },
     });
@@ -311,25 +311,23 @@ describe("PluginEvalsTab", () => {
     ).toBe(true);
   });
 
-  it("shows the newest eval case by case, a provisional Δ, and its tries as links to their runs", async () => {
+  it("shows the newest eval run case by case, with Δ, and its tries as links to their runs", async () => {
     const latest = evalWith([{ name: "review-fires", score: 1, delta: 0.67 }]);
-    latest.status!.provisionalDelta = true;
     const onNavigateToRun = vi.fn();
     render(
-      <PluginEvalsTab plugin={plugin} onNavigateToRun={onNavigateToRun} />,
+      <EvalRunsTab plugin={plugin} onNavigateToRun={onNavigateToRun} />,
       { wrapper: wrap(client([latest])) },
     );
     const table = await screen.findByRole("table");
     expect(
       within(table).getByRole("columnheader", {
-        name: /Difference.*provisional/,
+        name: /Difference/,
       }),
     ).toBeDefined();
     const row = within(table).getByRole("row", { name: /review-fires/ });
     expect(within(row).getByText("1.00")).toBeDefined();
     expect(within(row).getByText("0.33")).toBeDefined();
     expect(within(row).getByText("+0.67")).toBeDefined();
-    expect(screen.getByText(/Δ is provisional/)).toBeDefined();
     fireEvent.click(within(row).getByRole("button", { name: "review-fires" }));
     fireEvent.click(screen.getByRole("button", { name: "with #1: 1.00" }));
     expect(onNavigateToRun).toHaveBeenCalledWith("run_review-fires_1");
@@ -339,69 +337,69 @@ describe("PluginEvalsTab", () => {
   });
 
   it("opens a past eval picked from the list", async () => {
-    const newer = evalWith([{ name: "a", score: 1 }], undefined, "pev_2");
-    const older = evalWith([{ name: "a", score: 0.5 }], undefined, "pev_1");
-    render(<PluginEvalsTab plugin={plugin} />, {
+    const newer = evalWith([{ name: "a", score: 1 }], undefined, "evr_2");
+    const older = evalWith([{ name: "a", score: 0.5 }], undefined, "evr_1");
+    render(<EvalRunsTab plugin={plugin} />, {
       wrapper: wrap(client([newer, older])),
     });
-    expect(await screen.findByText(labelOf("pev_2"))).toBeDefined();
-    const list = screen.getByRole("list", { name: "Past evals" });
+    expect(await screen.findByText(labelOf("evr_2"))).toBeDefined();
+    const list = screen.getByRole("list", { name: "Past eval runs" });
     const [first, second] = within(list).getAllByRole("button");
     expect(first?.getAttribute("aria-current")).toBe("true");
     fireEvent.click(second!);
-    expect(await screen.findByText(labelOf("pev_1"))).toBeDefined();
-    expect(screen.queryByText(labelOf("pev_2"))).toBeNull();
+    expect(await screen.findByText(labelOf("evr_1"))).toBeDefined();
+    expect(screen.queryByText(labelOf("evr_2"))).toBeNull();
     expect(second?.getAttribute("aria-current")).toBe("true");
     expect(first?.getAttribute("aria-current")).toBeNull();
   });
 
   it("offers an editor Cancel while the eval runs", async () => {
     const running = evalWith([{ name: "review-fires" }]);
-    running.status!.phase = PluginEvalPhase.running;
+    running.status!.phase = EvalRunPhase.running;
     const mock = client([running]);
-    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
+    render(<EvalRunsTab plugin={plugin} />, { wrapper: wrap(mock) });
     fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
     await vi.waitFor(() =>
-      expect(mock.plugineval.cancel).toHaveBeenCalledWith("pev_1"),
+      expect(mock.evalrun.cancel).toHaveBeenCalledWith("evr_1"),
     );
   });
 
   it("keeps the last list when a read again fails, with a small stale notice", async () => {
     const running = evalWith([{ name: "review-fires" }]);
-    running.status!.phase = PluginEvalPhase.running;
+    running.status!.phase = EvalRunPhase.running;
     const mock = client([running]);
-    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
-    expect(await screen.findByText(labelOf("pev_1"))).toBeDefined();
-    mock.plugineval.listByPlugin.mockRejectedValueOnce(
+    render(<EvalRunsTab plugin={plugin} />, { wrapper: wrap(mock) });
+    expect(await screen.findByText(labelOf("evr_1"))).toBeDefined();
+    mock.evalrun.listByPlugin.mockRejectedValueOnce(
       new Error("the server is unavailable"),
     );
     // A cancel reads the list again.
     fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
     expect(
       await screen.findByText(
-        "Could not refresh the evals (the server is unavailable); this is the last list read.",
+        "Could not refresh the eval runs (the server is unavailable); this is the last list read.",
       ),
     ).toBeDefined();
-    const list = screen.getByRole("list", { name: "Past evals" });
+    const list = screen.getByRole("list", { name: "Past eval runs" });
     expect(within(list).getAllByRole("button")).toHaveLength(1);
   });
 
   it("shows the error alone when the first read of the list fails", async () => {
     const mock = client([]);
-    mock.plugineval.listByPlugin.mockRejectedValueOnce(
+    mock.evalrun.listByPlugin.mockRejectedValueOnce(
       new Error("the server is unavailable"),
     );
-    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
+    render(<EvalRunsTab plugin={plugin} />, { wrapper: wrap(mock) });
     expect(await screen.findByText(/the server is unavailable/)).toBeDefined();
-    expect(screen.queryByRole("list", { name: "Past evals" })).toBeNull();
-    expect(screen.queryByText("No evals have run yet.")).toBeNull();
+    expect(screen.queryByRole("list", { name: "Past eval runs" })).toBeNull();
+    expect(screen.queryByText("No eval runs yet.")).toBeNull();
   });
 
   it("offers no Cancel to someone who cannot edit the plugin", async () => {
     const running = evalWith([{ name: "review-fires" }]);
-    running.status!.phase = PluginEvalPhase.running;
+    running.status!.phase = EvalRunPhase.running;
     const mock = client([running], { canEdit: false });
-    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
+    render(<EvalRunsTab plugin={plugin} />, { wrapper: wrap(mock) });
     expect(await screen.findByRole("table")).toBeDefined();
     await permissionSettled(mock);
     expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
@@ -412,9 +410,9 @@ describe("PluginEvalsTab", () => {
     "shows neither Run evals nor Cancel while the can_edit check %s",
     async (check) => {
       const running = evalWith([{ name: "review-fires" }]);
-      running.status!.phase = PluginEvalPhase.running;
+      running.status!.phase = EvalRunPhase.running;
       const mock = client([running], { check });
-      render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
+      render(<EvalRunsTab plugin={plugin} />, { wrapper: wrap(mock) });
       expect(await screen.findByRole("table")).toBeDefined();
       if (check === "fails") {
         await permissionSettled(mock);
@@ -435,7 +433,7 @@ describe("PluginEvalsTab", () => {
         { name: "better", score: 1, delta: 0.6 },
       ],
       undefined,
-      "pev_2",
+      "evr_2",
     );
     const older = evalWith(
       [
@@ -443,9 +441,9 @@ describe("PluginEvalsTab", () => {
         { name: "better", score: 0.5, delta: 0.1 },
       ],
       undefined,
-      "pev_1",
+      "evr_1",
     );
-    render(<PluginEvalsTab plugin={plugin} />, {
+    render(<EvalRunsTab plugin={plugin} />, {
       wrapper: wrap(client([newer, older])),
     });
     expect(await screen.findByLabelText("Before")).toBeDefined();
@@ -467,30 +465,30 @@ describe("PluginEvalsTab", () => {
   });
 
   it("shows a comparison read's error, never loading forever", async () => {
-    const newer = evalWith([{ name: "a", score: 1 }], undefined, "pev_2");
-    const older = evalWith([{ name: "a", score: 0.5 }], undefined, "pev_1");
+    const newer = evalWith([{ name: "a", score: 1 }], undefined, "evr_2");
+    const older = evalWith([{ name: "a", score: 0.5 }], undefined, "evr_1");
     const mock = client([newer, older]);
-    mock.plugineval.get.mockImplementation(async (id: string) => {
-      if (id === "pev_1") throw new Error("the server is unavailable");
+    mock.evalrun.get.mockImplementation(async (id: string) => {
+      if (id === "evr_1") throw new Error("the server is unavailable");
       return newer;
     });
-    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
-    const alert = await screen.findByText("Could not read the Before eval");
+    render(<EvalRunsTab plugin={plugin} />, { wrapper: wrap(mock) });
+    const alert = await screen.findByText("Could not read the Before eval run");
     expect(alert).toBeDefined();
     expect(screen.queryByText("Loading the comparison…")).toBeNull();
   });
 
   it("asks for two different evals when both pickers name the same one", async () => {
-    const newer = evalWith([{ name: "a", score: 1 }], undefined, "pev_2");
-    const older = evalWith([{ name: "a", score: 0.5 }], undefined, "pev_1");
-    render(<PluginEvalsTab plugin={plugin} />, {
+    const newer = evalWith([{ name: "a", score: 1 }], undefined, "evr_2");
+    const older = evalWith([{ name: "a", score: 0.5 }], undefined, "evr_1");
+    render(<EvalRunsTab plugin={plugin} />, {
       wrapper: wrap(client([newer, older])),
     });
-    expect(screen.queryByText("Pick two different evals.")).toBeNull();
+    expect(screen.queryByText("Pick two different eval runs.")).toBeNull();
     fireEvent.change(await screen.findByLabelText("After"), {
-      target: { value: "pev_1" },
+      target: { value: "evr_1" },
     });
-    expect(screen.getByText("Pick two different evals.")).toBeDefined();
+    expect(screen.getByText("Pick two different eval runs.")).toBeDefined();
     expect(
       screen
         .queryAllByRole("table")

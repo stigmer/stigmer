@@ -1,24 +1,28 @@
 /**
- * An agent eval built for the Evals tab's tests: one plugin block per
- * entry, each case on every target given with one arm (with the plugin):
- * its first try graded with the case's score and a run, its second not
- * graded ("platform busy") with no run. A plugin given a `notRun` reason
- * has no cases. Named by its id, as the server names an eval the client
- * sent unnamed, stamped with `version` and started at the plugin eval
- * fixture's {@link evalStartOf} its id, so two evals read apart.
+ * An eval run about an agent built for the Evals tab's tests: one plugin
+ * block per entry, each case on every target given with one arm (with the
+ * plugin): its first try graded with the case's score and a run, its
+ * second not graded ("platform busy") with no run. A plugin given a
+ * `notRun` reason has no cases. Named by its id, as the server names an
+ * eval run the client sent unnamed, stamped with `version` and started at
+ * eval-fixture.ts's {@link evalStartOf} its id, so two eval runs read
+ * apart. `compared` names the slug of a plugin compared.
  */
 import { create } from "@bufbuild/protobuf";
 import { timestampFromMs } from "@bufbuild/protobuf/wkt";
 import {
-  AgentEvalSchema,
-  type AgentEval,
-} from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
+  EvalRunSchema,
+  type EvalRun,
+} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
 import {
-  PluginEvalPhase,
-  PluginEvalTryState,
-} from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
-import type { PluginEvalTarget } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
-import { evalStartOf } from "../../plugin-eval/__tests__/eval-fixture";
+  EvalRunAblation,
+  type EvalRunTarget,
+} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import {
+  EvalRunPhase,
+  EvalRunTryState,
+} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { evalStartOf } from "./eval-fixture";
 
 export { evalStartOf };
 
@@ -33,20 +37,24 @@ export interface FixturePlugin {
   readonly digest?: string;
   readonly notRun?: string;
   readonly cases?: readonly { readonly name: string; readonly score?: number }[];
+  /** Whether the agent attaches it. @default true */
+  readonly attached?: boolean;
 }
 
-export function agentEvalWith(
+export function agentEvalRunWith(
   plugins: readonly FixturePlugin[],
   opts: {
     readonly id?: string;
     readonly version?: string;
-    readonly targets?: readonly PluginEvalTarget[];
+    readonly targets?: readonly EvalRunTarget[];
     /** The target every case ran on when the spec names none: the agent as it runs. */
-    readonly caseTargets?: readonly PluginEvalTarget[];
-    readonly phase?: PluginEvalPhase;
+    readonly caseTargets?: readonly EvalRunTarget[];
+    readonly phase?: EvalRunPhase;
+    /** The slug of the plugin compared, with and without; none when omitted. */
+    readonly compared?: string;
   } = {},
-): AgentEval {
-  const id = opts.id ?? "aev_1";
+): EvalRun {
+  const id = opts.id ?? "evr_1";
   const specTargets = opts.targets ?? [];
   const caseTargets =
     opts.caseTargets ?? (specTargets.length > 0 ? specTargets : [{ modelName: "claude-sonnet-4-6" }]);
@@ -61,6 +69,8 @@ export function agentEvalWith(
       pluginId: `plg_${index + 1}`,
       pluginSlug: plugin.slug,
       pluginDigest: plugin.digest ?? digestOf(`${index + 1}abc`),
+      attached: plugin.attached ?? true,
+      compared: plugin.slug === opts.compared,
       notRunReason: plugin.notRun ?? "",
       aggregates: { casesPassed: passed, casesTotal: cases.length, overallScore: 0.5 },
       cases: cases.map((entry) => ({
@@ -72,14 +82,14 @@ export function agentEvalWith(
             tries: [
               {
                 index: 1,
-                state: PluginEvalTryState.graded,
+                state: EvalRunTryState.graded,
                 score: entry.score ?? 0,
                 runId: `run_${plugin.slug}_${entry.name}_1`,
                 costUsd: 0.25,
               },
               {
                 index: 2,
-                state: PluginEvalTryState.not_graded,
+                state: EvalRunTryState.not_graded,
                 notGradedReason: "platform busy",
                 runId: "",
               },
@@ -91,11 +101,20 @@ export function agentEvalWith(
       })),
     };
   });
-  return create(AgentEvalSchema, {
+  const comparedIndex = plugins.findIndex((plugin) => plugin.slug === opts.compared);
+  return create(EvalRunSchema, {
     metadata: { id, org: "org_acme", name: id },
-    spec: { agentId: "agt_1", targets: [...specTargets], maxCostUsd: 5 },
+    spec: {
+      subject: { case: "agentId", value: "agt_1" },
+      targets: [...specTargets],
+      maxCostUsd: 5,
+      ...(comparedIndex >= 0 && {
+        comparedPluginId: `plg_${comparedIndex + 1}`,
+        ablation: EvalRunAblation.with_without,
+      }),
+    },
     status: {
-      phase: opts.phase ?? PluginEvalPhase.completed,
+      phase: opts.phase ?? EvalRunPhase.completed,
       agentVersionHash: opts.version ?? "1a2b3c4d5e6f7a8b",
       audit: { specAudit: { createdAt: timestampFromMs(evalStartOf(id).getTime()) } },
       plugins: blocks,

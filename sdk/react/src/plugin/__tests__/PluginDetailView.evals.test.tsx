@@ -14,13 +14,13 @@ import { Stigmer } from "@stigmer/sdk";
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { PluginEvalQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/query_pb";
-import { PluginEvalListSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/io_pb";
+import { EvalRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/query_pb";
+import { EvalRunListSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 import { StigmerContext } from "../../context.js";
 import { PluginDetailView } from "../PluginDetailView.js";
-import { evalWith } from "../../plugin-eval/__tests__/eval-fixture.js";
+import { evalWith } from "../../eval-run/__tests__/eval-fixture.js";
 
 vi.mock("../../models/ModelSelector.js", () => ({
   ModelSelector: () => <span>model picker</span>,
@@ -31,7 +31,7 @@ afterEach(cleanup);
 function renderView(onNavigateToRun: (runId: string) => void) {
   const latest = evalWith([{ name: "review-fires", score: 1, delta: 0.67 }]);
   const listByPlugin = vi.fn(() =>
-    create(PluginEvalListSchema, { entries: [latest], nextPageToken: "" }),
+    create(EvalRunListSchema, { entries: [latest], nextPageToken: "" }),
   );
   const transport = createRouterTransport(({ service }) => {
     service(PluginQueryController, {
@@ -52,7 +52,7 @@ function renderView(onNavigateToRun: (runId: string) => void) {
           }),
         }),
     });
-    service(PluginEvalQueryController, {
+    service(EvalRunQueryController, {
       listByPlugin,
       get: () => latest,
     });

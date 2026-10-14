@@ -67,7 +67,7 @@ function client(evaluator: ReturnType<typeof stored> | null) {
       getAgentQualityReport: vi.fn(async () => emptyReport()),
       listFlaggedByAgent: vi.fn(async () => ({ entries: [], nextPageToken: "" })),
     },
-    agenteval: { listByAgent: vi.fn(async () => ({ entries: [], nextPageToken: "" })) },
+    evalrun: { listByAgent: vi.fn(async () => ({ entries: [], nextPageToken: "" })) },
   };
 }
 
