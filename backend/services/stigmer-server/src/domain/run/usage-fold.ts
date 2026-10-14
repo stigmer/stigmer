@@ -5,6 +5,10 @@
  * functions over decoded runs; the pipelines in usage.ts load the runs,
  * ask the composed meter once, and call these.
  *
+ * A run's working time is its session's stretches of work it started
+ * (domain/session/events/working-time.ts), read by the caller and handed
+ * to `countRun`; it does not depend on how the run's tokens are counted.
+ *
  * Each run is counted from one source, decided once by `countRun`:
  *   - the rows the composed meter (extensions/metered-usage.ts) returned
  *     for it, when it answered for the run: not estimated;
@@ -37,7 +41,10 @@
  *   - a harness row counts the distinct runs that contributed a row to it,
  *     so a run with no tokens is in no harness row;
  *   - a daily row is the UTC day of the run's creation instant; a run with
- *     no creation stamp has no day and is in no daily row.
+ *     no creation stamp has no day and is in no daily row;
+ *   - working_seconds is the rows' runs' working milliseconds summed, then
+ *     floored to whole seconds once per field, so no run is rounded on its
+ *     own and a row never shows more than its runs worked.
  * Ties keep first-seen order (Map insertion, stable sort); tie order is
  * not part of the contract.
  */
@@ -85,6 +92,8 @@ export interface CountedRun {
   readonly rows: readonly MeteredUsageRow[];
   /** True when the rows are the runner's own report rather than the meter's. */
   readonly estimated: boolean;
+  /** The milliseconds the run's session worked in the stretches the run started. */
+  readonly workingMillis: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -171,11 +180,14 @@ export function runnerReportRows(
  * Decides the run's source once: the meter's rows when it answered for the
  * run, else the runner's report (estimated when it holds tokens). A meter
  * row that names no harness takes the run's (`harness`, its session's).
+ * `workingMillis` is the run's working time, whichever source counts its
+ * tokens.
  */
 export function countRun(
   run: Run,
   metered: MeteredRunUsage | undefined,
   harness: Harness,
+  workingMillis: number,
 ): CountedRun {
   if (metered !== undefined && metered.rows.length > 0) {
     const runHarness = harnessName(harness);
@@ -185,10 +197,11 @@ export function countRun(
         row.harness === "" ? { ...row, harness: runHarness } : row,
       ),
       estimated: false,
+      workingMillis,
     };
   }
   const rows = runnerReportRows(run, harness);
-  return { run, rows, estimated: rows.length > 0 };
+  return { run, rows, estimated: rows.length > 0, workingMillis };
 }
 
 /** The run's total tokens (cache-inclusive). */
@@ -198,6 +211,15 @@ export function totalTokensOf(counted: CountedRun): bigint {
     total += row.totalTokens;
   }
   return total;
+}
+
+/** The runs' working time in whole seconds, floored once over their sum. */
+export function workingSecondsOf(runs: readonly CountedRun[]): bigint {
+  let millis = 0;
+  for (const counted of runs) {
+    millis += counted.workingMillis;
+  }
+  return BigInt(Math.floor(millis / 1000));
 }
 
 function callCountOf(counted: CountedRun): number {
@@ -263,6 +285,7 @@ export function aggregateOf(runs: readonly CountedRun[]): UsageReportAggregate {
       served.llmCallCount += row.callCount;
     }
   }
+  aggregate.workingSeconds = workingSecondsOf(runs);
   const primary = modelBreakdownOf(runs)[0];
   if (primary !== undefined) {
     aggregate.primaryModel = primary.model;
@@ -310,6 +333,7 @@ export function runSummaryOf(
     subAgentCount: threads,
     phase: run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED,
     isEstimated: counted.estimated,
+    workingSeconds: workingSecondsOf([counted]),
   });
 }
 
@@ -352,6 +376,7 @@ export function sessionSummariesOf(
         totalTokens: sumTokens(group),
         firstRunAt: earliestStartedAt(groupRuns),
         lastRunAt: latestStartedAt(groupRuns),
+        workingSeconds: workingSecondsOf(group),
       }),
     );
   }
@@ -375,6 +400,7 @@ export function topAgentsOf(
         agentId,
         runCount: group.length,
         totalTokens: sumTokens(group),
+        workingSeconds: workingSecondsOf(group),
       }),
     );
   }

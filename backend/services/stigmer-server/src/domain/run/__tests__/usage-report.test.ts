@@ -18,6 +18,10 @@
  *     is the sum of its runs;
  *   - the session report counts each run's sub-agents from the
  *     `session.thread_created` events of its session's log, not its row;
+ *   - every report carries working time: each run the stretches of work
+ *     it started in its session's status events, every total their sum
+ *     floored once, an open stretch counted to the report's clock; a
+ *     store fault on that read fails the report as Internal;
  *   - a store fault on the index read, or on a session's harness read,
  *     fails the report as Internal, and an index row that will not decode
  *     is skipped while the rest are counted.
@@ -30,7 +34,7 @@ import { create } from "@bufbuild/protobuf";
 import type { DescMessage, MessageInitShape } from "@bufbuild/protobuf";
 import { timestampFromMs } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -46,6 +50,7 @@ import {
 import type { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
 import { ProviderKeySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -60,6 +65,7 @@ import type {
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import type { Store } from "../../../store/interface.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
+import { draftOf } from "../../session/events/codec.js";
 import {
   RunEventsBuilder,
   appendRunEvents,
@@ -280,6 +286,82 @@ describe("the session report's sub-agent count", () => {
       ["run_threads_a", 2],
       ["run_threads_b", 0],
     ]);
+  });
+});
+
+describe("working time", () => {
+  const T0 = Date.UTC(2026, 9, 14, 9, 0, 0);
+
+  /** Appends one status event of `runId`, accepted at `atMs`. */
+  async function statusAt(sessionId: string, runId: string, kind: "running" | "idle", atMs: number): Promise<void> {
+    vi.setSystemTime(atMs);
+    const event = create(SessionEventSchema, {
+      runId,
+      event:
+        kind === "running"
+          ? { case: "sessionStatusRunning", value: { id: `sevt_${runId}_${String(atMs)}` } }
+          : { case: "sessionStatusIdle", value: { id: `sevt_${runId}_${String(atMs)}`, stopReason: { type: "end_turn" } } },
+    });
+    await store.sessionEvents.append(sessionId, "org_work", [draftOf(event)], {
+      kind: ApiResourceKind.run,
+      id: runId,
+      schema: RunSchema,
+      admit: () => undefined,
+    });
+  }
+
+  it("each run carries the stretches it started, the session and the organization their sum, an open stretch counted to the report's clock", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      await seedSession("ses_work", "org_work", Harness.NATIVE);
+      await seedRun("run_work_a", { org: "org_work", sessionId: "ses_work", agentId: "agt_work", usage: NATIVE_USAGE, startedAt: "2026-10-14T09:00:00Z", createdAtMs: T0 });
+      await seedRun("run_work_b", { org: "org_work", sessionId: "ses_work", agentId: "agt_work", startedAt: "2026-10-14T09:10:00Z", createdAtMs: T0 + 600_000, phase: RunPhase.RUN_IN_PROGRESS });
+      await statusAt("ses_work", "run_work_a", "running", T0);
+      await statusAt("ses_work", "run_work_a", "idle", T0 + 3_400);
+      await statusAt("ses_work", "run_work_b", "running", T0 + 600_000);
+    } finally {
+      vi.useRealTimers();
+    }
+    const clocked = deps({ now: () => new Date(T0 + 601_900) });
+
+    const session = await getSessionUsageReport(clocked, create(GetSessionUsageReportInputSchema, { sessionId: "ses_work" }), testCallerIdentity());
+    expect(session.runs.map((r) => [r.runId, r.workingSeconds])).toEqual([
+      ["run_work_a", 3n],
+      ["run_work_b", 1n],
+    ]);
+    expect(session.totalUsage?.workingSeconds, "5,300 ms floored once, not 3 + 1").toBe(5n);
+
+    const run = await getRunUsageReport(clocked, create(GetRunUsageReportInputSchema, { runId: "run_work_b" }), testCallerIdentity());
+    expect(run.aggregate?.workingSeconds).toBe(1n);
+
+    const org = await getOrgUsageReport(clocked, create(GetOrgUsageReportInputSchema, { org: "org_work", fromDate: "2026-10-14", toDate: "2026-10-14" }), testCallerIdentity());
+    expect(org.totalUsage?.workingSeconds).toBe(5n);
+    expect(org.topAgents.map((a) => [a.agentId, a.workingSeconds])).toEqual([["agt_work", 5n]]);
+
+    const agent = await getAgentUsageReport(
+      clocked,
+      create(GetAgentUsageReportInputSchema, { org: "org_work", agentId: "agt_work", fromDate: "2026-10-14", toDate: "2026-10-14" }),
+      testCallerIdentity(),
+    );
+    expect(agent.sessions.map((s) => [s.sessionId, s.workingSeconds])).toEqual([["ses_work", 5n]]);
+  });
+
+  it("a store fault on the status read fails the report as Internal", async () => {
+    await seedSession("ses_work_fault", "org_work_fault", Harness.NATIVE);
+    await seedRun("run_work_fault", { org: "org_work_fault", sessionId: "ses_work_fault" });
+    const faulty = new Proxy(store, {
+      get(target, member, receiver) {
+        if (member === "sessionEvents") {
+          return { ...target.sessionEvents, list: () => Promise.reject(new Error("disk gone")) };
+        }
+        const value: unknown = Reflect.get(target, member, receiver);
+        return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(target) : value;
+      },
+    });
+    const error = await refusal(() =>
+      getRunUsageReport(deps({ store: faulty }), create(GetRunUsageReportInputSchema, { runId: "run_work_fault" }), testCallerIdentity()),
+    );
+    expect(error.code).toBe(Code.Internal);
   });
 });
 
