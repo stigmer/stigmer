@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/invitation/v1/io.proto.
  */
 export const file_ai_stigmer_iam_invitation_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiVhaS9zdGlnbWVyL2lhbS9pbnZpdGF0aW9uL3YxL2lvLnByb3RvEhxhaS5zdGlnbWVyLmlhbS5pbnZpdGF0aW9uLnYxIiUKDEludml0YXRpb25JZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBImEKC0ludml0YXRpb25zEjkKB2VudHJpZXMYASADKAsyKC5haS5zdGlnbWVyLmlhbS5pbnZpdGF0aW9uLnYxLkludml0YXRpb24SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJImYKFExpc3RJbnZpdGF0aW9uc0lucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQARIaCglwYWdlX3NpemUYAiABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgiLgoUSW52aXRhdGlvblRva2VuSW5wdXQSFgoFdG9rZW4YASABKAlCB7pIBHICEAEiLwoVUmVkZWVtSW52aXRhdGlvbklucHV0EhYKBXRva2VuGAEgASgJQge6SARyAhABIuABChFJbnZpdGF0aW9uUHJldmlldxIQCghvcmdfbmFtZRgBIAEoCRIQCghvcmdfc2x1ZxgCIAEoCRIUCgxvcmdfbG9nb191cmwYAyABKAkSKAoEcm9sZRgEIAEoDjIaLmFpLnN0aWdtZXIuaWFtLnYxLklhbVJvbGUSLgoKZXhwaXJlc19hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDQoFbGFiZWwYBiABKAkSEAoIaXNfdmFsaWQYByABKAgSFgoOaW52YWxpZF9yZWFzb24YCCABKAliBnByb3RvMw", [file_ai_stigmer_iam_invitation_v1_api, file_ai_stigmer_iam_v1_enum, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CiVhaS9zdGlnbWVyL2lhbS9pbnZpdGF0aW9uL3YxL2lvLnByb3RvEhxhaS5zdGlnbWVyLmlhbS5pbnZpdGF0aW9uLnYxIiUKDEludml0YXRpb25JZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBImEKC0ludml0YXRpb25zEjkKB2VudHJpZXMYASADKAsyKC5haS5zdGlnbWVyLmlhbS5pbnZpdGF0aW9uLnYxLkludml0YXRpb24SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIuUBChRMaXN0SW52aXRhdGlvbnNJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhwKCnBhZ2VfdG9rZW4YAyABKAlCCLpIBXIDGIAIEk4KBmxhYmVscxgEIAMoCzI+LmFpLnN0aWdtZXIuaWFtLmludml0YXRpb24udjEuTGlzdEludml0YXRpb25zSW5wdXQuTGFiZWxzRW50cnkaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASIuChRJbnZpdGF0aW9uVG9rZW5JbnB1dBIWCgV0b2tlbhgBIAEoCUIHukgEcgIQASIvChVSZWRlZW1JbnZpdGF0aW9uSW5wdXQSFgoFdG9rZW4YASABKAlCB7pIBHICEAEi4AEKEUludml0YXRpb25QcmV2aWV3EhAKCG9yZ19uYW1lGAEgASgJEhAKCG9yZ19zbHVnGAIgASgJEhQKDG9yZ19sb2dvX3VybBgDIAEoCRIoCgRyb2xlGAQgASgOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZRIuCgpleHBpcmVzX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBINCgVsYWJlbBgGIAEoCRIQCghpc192YWxpZBgHIAEoCBIWCg5pbnZhbGlkX3JlYXNvbhgIIAEoCWIGcHJvdG8z", [file_ai_stigmer_iam_invitation_v1_api, file_ai_stigmer_iam_v1_enum, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * InvitationId identifies an invitation by its unique identifier.
@@ -99,6 +99,15 @@ export type ListInvitationsInput = Message<"ai.stigmer.iam.invitation.v1.ListInv
    * @generated from field: string page_token = 3;
    */
   pageToken: string;
+
+  /**
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   *
+   * @generated from field: map<string, string> labels = 4;
+   */
+  labels: { [key: string]: string };
 };
 
 /**

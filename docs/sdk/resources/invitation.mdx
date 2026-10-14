@@ -138,6 +138,7 @@ const invitations = await stigmer.invitation.list({
   org: "...",
   pageSize: 0,
   pageToken: "...",
+  labels: {},
 });
 ```
 </Tab>
@@ -147,6 +148,7 @@ invitations, err := client.Invitation.List(ctx, &stigmer.ListInvitationsInput{
   Org:       "...",
   PageSize:  0,
   PageToken: "...",
+  Labels:    map[string]string{},
 })
 ```
 </Tab>
@@ -156,6 +158,7 @@ invitations = client.invitations.list(ListInvitationsInput(
     org="...",
     page_size=0,
     page_token="...",
+    labels={},
 ))
 ```
 </Tab>
@@ -165,6 +168,7 @@ Invitations invitations = client.invitations().list(ListInvitationsInput.builder
     .org("...")
     .pageSize(0)
     .pageToken("...")
+    .labels(Map.of())
     .build());
 ```
 </Tab>
@@ -365,6 +369,7 @@ ListInvitationsInput specifies the organization whose invitations should be retu
     org: { type: "string", description: "Organization slug to list invitations for." },
     pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
     pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
+    labels: { type: "Record<string, string>", description: "Only resources carrying every label given, each matched exactly (AND)." },
   }}
 />
 

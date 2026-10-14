@@ -92,6 +92,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_skill_v1_ListSkillsRequest_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_skill_v1_ListSkillsRequest_LabelsEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_skill_v1_ListSkillsRequest_LabelsEntry_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_skill_v1_SkillList_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -112,67 +117,79 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "/commons/apiresource/status.proto\032\033buf/v" +
       "alidate/validate.proto\032\037google/protobuf/" +
       "timestamp.proto\"\'\n\007SkillId\022\034\n\005value\030\001 \001(" +
-      "\tB\006\272H\003\310\001\001R\005value\"\341\004\n\020PushSkillRequest\022\030\n" +
+      "\tB\006\272H\003\310\001\001R\005value\"\272\007\n\020PushSkillRequest\022\030\n" +
       "\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022\032\n\010artifact\030\002 \001(" +
       "\014R\010artifact\022-\n\003tag\030\003 \001(\tB\033\272H\030r\0262\024^$|^[a-" +
       "zA-Z0-9._-]+$R\003tag\022Q\n\016git_provenance\030\004 \001" +
       "(\0132*.ai.stigmer.agentic.skill.v1.GitProv" +
       "enanceR\rgitProvenance\022\030\n\007message\030\006 \001(\tR\007" +
       "message\022.\n\023artifact_upload_ref\030\007 \001(\tR\021ar" +
-      "tifactUploadRef\022Q\n\006labels\030\010 \003(\01329.ai.sti" +
-      "gmer.agentic.skill.v1.PushSkillRequest.L" +
-      "abelsEntryR\006labels\0329\n\013LabelsEntry\022\020\n\003key" +
-      "\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001:\266\001" +
-      "\272H\262\001\032\257\001\n\"push_skill_request.artifact_sou" +
-      "rce\022Iexactly one of artifact (inline byt" +
-      "es) or artifact_upload_ref must be set\032>" +
-      "(this.artifact.size() > 0) != (this.arti" +
-      "fact_upload_ref != \'\')J\004\010\005\020\006\"g\n#CreateSk" +
-      "illArtifactUploadUrlRequest\022\030\n\003org\030\001 \001(\t" +
-      "B\006\272H\003\310\001\001R\003org\022&\n\nsize_bytes\030\002 \001(\003B\007\272H\004\"\002" +
-      " \000R\tsizeBytes\"{\n\026SkillArtifactUploadUrl\022" +
-      "\020\n\003url\030\001 \001(\tR\003url\022.\n\023artifact_upload_ref" +
-      "\030\002 \001(\tR\021artifactUploadRef\022\037\n\013ttl_seconds" +
-      "\030\003 \001(\005R\nttlSeconds\"l\n\030SkillArtifactDownl" +
-      "oadUrl\022\020\n\003url\030\001 \001(\tR\003url\022\037\n\013ttl_seconds\030" +
-      "\002 \001(\005R\nttlSeconds\022\035\n\nsize_bytes\030\003 \001(\003R\ts" +
-      "izeBytes\"\264\001\n\037PushSkillFromRunArtifactReq" +
-      "uest\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022\036\n\006run_id" +
-      "\030\002 \001(\tB\007\272H\004r\002\020\001R\005runId\022(\n\013storage_key\030\003 " +
-      "\001(\tB\007\272H\004r\002\020\001R\nstorageKey\022-\n\003tag\030\004 \001(\tB\033\272" +
-      "H\030r\0262\024^$|^[a-zA-Z0-9._-]+$R\003tag\"N\n\022GetAr" +
-      "tifactRequest\0228\n\024artifact_storage_key\030\001 " +
-      "\001(\tB\006\272H\003\310\001\001R\022artifactStorageKey\"1\n\023GetAr" +
-      "tifactResponse\022\032\n\010artifact\030\001 \001(\014R\010artifa" +
-      "ct\"\235\001\n\026ListSkillVersionsInput\022\030\n\003org\030\001 \001" +
-      "(\tB\006\272H\003\310\001\001R\003org\022\032\n\004slug\030\002 \001(\tB\006\272H\003\310\001\001R\004s" +
-      "lug\022\'\n\npage_token\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageT" +
-      "oken\022$\n\tpage_size\030\004 \001(\005B\007\272H\004\032\002(\000R\010pageSi" +
-      "ze\"\223\003\n\021SkillVersionEntry\022!\n\014version_hash" +
-      "\030\001 \001(\tR\013versionHash\0227\n\tpushed_at\030\002 \001(\0132\032" +
-      ".google.protobuf.TimestampR\010pushedAt\022R\n\t" +
-      "pushed_by\030\003 \001(\01325.ai.stigmer.commons.api" +
-      "resource.ApiResourceAuditActorR\010pushedBy" +
-      "\022\020\n\003tag\030\004 \001(\tR\003tag\022\035\n\nis_current\030\005 \001(\010R\t" +
-      "isCurrent\022Q\n\016git_provenance\030\006 \001(\0132*.ai.s" +
-      "tigmer.agentic.skill.v1.GitProvenanceR\rg" +
-      "itProvenance\022\030\n\007message\030\007 \001(\tR\007message\0220" +
-      "\n\024artifact_storage_key\030\010 \001(\tR\022artifactSt" +
-      "orageKey\"\240\001\n\031ListSkillVersionsResponse\022H" +
-      "\n\007entries\030\001 \003(\0132..ai.stigmer.agentic.ski" +
-      "ll.v1.SkillVersionEntryR\007entries\022&\n\017next" +
-      "_page_token\030\002 \001(\tR\rnextPageTokenJ\004\010\003\020\004R\013" +
-      "total_count\"}\n\021ListSkillsRequest\022\031\n\003org\030" +
-      "\001 \001(\tB\007\272H\004r\002\020\001R\003org\022$\n\tpage_size\030\002 \001(\005B\007" +
-      "\272H\004\032\002(\000R\010pageSize\022\'\n\npage_token\030\003 \001(\tB\010\272" +
-      "H\005r\003\030\200\010R\tpageToken\"q\n\tSkillList\022<\n\007entri" +
-      "es\030\001 \003(\0132\".ai.stigmer.agentic.skill.v1.S" +
-      "killR\007entries\022&\n\017next_page_token\030\002 \001(\tR\r" +
-      "nextPageTokenB\232\001B\007IoProtoP\001\242\002\004ASAS\252\002\033Ai." +
-      "Stigmer.Agentic.Skill.V1\312\002\033Ai\\Stigmer\\Ag" +
-      "entic\\Skill\\V1\342\002\'Ai\\Stigmer\\Agentic\\Skil" +
-      "l\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic:" +
-      ":Skill::V1b\006proto3"
+      "tifactUploadRef\022\251\003\n\006labels\030\010 \003(\01329.ai.st" +
+      "igmer.agentic.skill.v1.PushSkillRequest." +
+      "LabelsEntryB\325\002\272H\321\002\232\001\301\001\020@\"\204\001r\201\001\030\275\0022|^([a-" +
+      "z0-9]([-a-z0-9]{0,61}[a-z0-9])?(\\.[a-z0-" +
+      "9]([-a-z0-9]{0,61}[a-z0-9])?)*/)?[A-Za-z" +
+      "0-9]([-A-Za-z0-9_.]{0,61}[A-Za-z0-9])?$*" +
+      "6r422^([A-Za-z0-9]([-A-Za-z0-9_.]{0,61}[" +
+      "A-Za-z0-9])?)?$\272\001\210\001\n\031labels.key_prefix_m" +
+      "ax_len\022.a label key\'s prefix is at most " +
+      "253 characters\032;this.all(k, !k.contains(" +
+      "\'/\') || k.matches(\'^[^/]{1,253}/\'))R\006lab" +
+      "els\0329\n\013LabelsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005" +
+      "value\030\002 \001(\tR\005value:\0028\001:\266\001\272H\262\001\032\257\001\n\"push_s" +
+      "kill_request.artifact_source\022Iexactly on" +
+      "e of artifact (inline bytes) or artifact" +
+      "_upload_ref must be set\032>(this.artifact." +
+      "size() > 0) != (this.artifact_upload_ref" +
+      " != \'\')J\004\010\005\020\006\"g\n#CreateSkillArtifactUplo" +
+      "adUrlRequest\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022&" +
+      "\n\nsize_bytes\030\002 \001(\003B\007\272H\004\"\002 \000R\tsizeBytes\"{" +
+      "\n\026SkillArtifactUploadUrl\022\020\n\003url\030\001 \001(\tR\003u" +
+      "rl\022.\n\023artifact_upload_ref\030\002 \001(\tR\021artifac" +
+      "tUploadRef\022\037\n\013ttl_seconds\030\003 \001(\005R\nttlSeco" +
+      "nds\"l\n\030SkillArtifactDownloadUrl\022\020\n\003url\030\001" +
+      " \001(\tR\003url\022\037\n\013ttl_seconds\030\002 \001(\005R\nttlSecon" +
+      "ds\022\035\n\nsize_bytes\030\003 \001(\003R\tsizeBytes\"\264\001\n\037Pu" +
+      "shSkillFromRunArtifactRequest\022\030\n\003org\030\001 \001" +
+      "(\tB\006\272H\003\310\001\001R\003org\022\036\n\006run_id\030\002 \001(\tB\007\272H\004r\002\020\001" +
+      "R\005runId\022(\n\013storage_key\030\003 \001(\tB\007\272H\004r\002\020\001R\ns" +
+      "torageKey\022-\n\003tag\030\004 \001(\tB\033\272H\030r\0262\024^$|^[a-zA" +
+      "-Z0-9._-]+$R\003tag\"N\n\022GetArtifactRequest\0228" +
+      "\n\024artifact_storage_key\030\001 \001(\tB\006\272H\003\310\001\001R\022ar" +
+      "tifactStorageKey\"1\n\023GetArtifactResponse\022" +
+      "\032\n\010artifact\030\001 \001(\014R\010artifact\"\235\001\n\026ListSkil" +
+      "lVersionsInput\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org" +
+      "\022\032\n\004slug\030\002 \001(\tB\006\272H\003\310\001\001R\004slug\022\'\n\npage_tok" +
+      "en\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageToken\022$\n\tpage_si" +
+      "ze\030\004 \001(\005B\007\272H\004\032\002(\000R\010pageSize\"\223\003\n\021SkillVer" +
+      "sionEntry\022!\n\014version_hash\030\001 \001(\tR\013version" +
+      "Hash\0227\n\tpushed_at\030\002 \001(\0132\032.google.protobu" +
+      "f.TimestampR\010pushedAt\022R\n\tpushed_by\030\003 \001(\013" +
+      "25.ai.stigmer.commons.apiresource.ApiRes" +
+      "ourceAuditActorR\010pushedBy\022\020\n\003tag\030\004 \001(\tR\003" +
+      "tag\022\035\n\nis_current\030\005 \001(\010R\tisCurrent\022Q\n\016gi" +
+      "t_provenance\030\006 \001(\0132*.ai.stigmer.agentic." +
+      "skill.v1.GitProvenanceR\rgitProvenance\022\030\n" +
+      "\007message\030\007 \001(\tR\007message\0220\n\024artifact_stor" +
+      "age_key\030\010 \001(\tR\022artifactStorageKey\"\240\001\n\031Li" +
+      "stSkillVersionsResponse\022H\n\007entries\030\001 \003(\013" +
+      "2..ai.stigmer.agentic.skill.v1.SkillVers" +
+      "ionEntryR\007entries\022&\n\017next_page_token\030\002 \001" +
+      "(\tR\rnextPageTokenJ\004\010\003\020\004R\013total_count\"\214\002\n" +
+      "\021ListSkillsRequest\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001" +
+      "R\003org\022$\n\tpage_size\030\002 \001(\005B\007\272H\004\032\002(\000R\010pageS" +
+      "ize\022\'\n\npage_token\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageT" +
+      "oken\022R\n\006labels\030\004 \003(\0132:.ai.stigmer.agenti" +
+      "c.skill.v1.ListSkillsRequest.LabelsEntry" +
+      "R\006labels\0329\n\013LabelsEntry\022\020\n\003key\030\001 \001(\tR\003ke" +
+      "y\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\"q\n\tSkillList" +
+      "\022<\n\007entries\030\001 \003(\0132\".ai.stigmer.agentic.s" +
+      "kill.v1.SkillR\007entries\022&\n\017next_page_toke" +
+      "n\030\002 \001(\tR\rnextPageTokenB\232\001B\007IoProtoP\001\242\002\004A" +
+      "SAS\252\002\033Ai.Stigmer.Agentic.Skill.V1\312\002\033Ai\\S" +
+      "tigmer\\Agentic\\Skill\\V1\342\002\'Ai\\Stigmer\\Age" +
+      "ntic\\Skill\\V1\\GPBMetadata\352\002\037Ai::Stigmer:" +
+      ":Agentic::Skill::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -260,7 +277,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_skill_v1_ListSkillsRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_skill_v1_ListSkillsRequest_descriptor,
-        new java.lang.String[] { "Org", "PageSize", "PageToken", });
+        new java.lang.String[] { "Org", "PageSize", "PageToken", "Labels", });
+    internal_static_ai_stigmer_agentic_skill_v1_ListSkillsRequest_LabelsEntry_descriptor =
+      internal_static_ai_stigmer_agentic_skill_v1_ListSkillsRequest_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_agentic_skill_v1_ListSkillsRequest_LabelsEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_skill_v1_ListSkillsRequest_LabelsEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
     internal_static_ai_stigmer_agentic_skill_v1_SkillList_descriptor =
       getDescriptor().getMessageType(12);
     internal_static_ai_stigmer_agentic_skill_v1_SkillList_fieldAccessorTable = new

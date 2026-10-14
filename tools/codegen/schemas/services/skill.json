@@ -193,8 +193,11 @@
               "kind": "string"
             }
           },
-          "description": "Labels to set on the skill, replacing any stored labels: a push is the\n skill's definition, so the labels it carries are the labels it has.",
-          "required": false
+          "description": "Labels to set on the skill, replacing any stored labels: a push is the\n skill's definition, so the labels it carries are the labels it has.\n A key is an optional DNS subdomain prefix of at most 253 characters and\n a slash, then a name of at most 63 characters that starts and ends with\n a letter or digit and holds only letters, digits, `-`, `_` and `.`. A\n value is empty or follows the name rule. At most 64 labels.",
+          "required": false,
+          "validation": {
+            "maxItems": 64
+          }
         }
       ]
     },
@@ -511,6 +514,22 @@
           "validation": {
             "maxLength": 1024
           }
+        },
+        {
+          "name": "Labels",
+          "jsonName": "labels",
+          "protoField": "labels",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "string"
+            }
+          },
+          "description": "Only resources carrying every label given, each matched exactly (AND).\n A selective filter may answer short pages, even empty ones, that still\n carry a token.",
+          "required": false
         }
       ]
     },

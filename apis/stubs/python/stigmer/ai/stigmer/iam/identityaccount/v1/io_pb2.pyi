@@ -45,14 +45,23 @@ class IdentityAccountsList(_message.Message):
     def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.IdentityAccount, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
 
 class ListServiceAccountsInput(_message.Message):
-    __slots__ = ("org", "page_size", "page_token")
+    __slots__ = ("org", "page_size", "page_token", "labels")
+    class LabelsEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
     ORG_FIELD_NUMBER: _ClassVar[int]
     PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
     PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    LABELS_FIELD_NUMBER: _ClassVar[int]
     org: str
     page_size: int
     page_token: str
-    def __init__(self, org: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
+    labels: _containers.ScalarMap[str, str]
+    def __init__(self, org: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ...) -> None: ...
 
 class ExternalSubLookup(_message.Message):
     __slots__ = ("org", "identity_provider_ref", "external_sub")

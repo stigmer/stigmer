@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/commons/apiresource/metadata.proto.
  */
 export const file_ai_stigmer_commons_apiresource_metadata: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvbWV0YWRhdGEucHJvdG8SHmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZSLNBAoTQXBpUmVzb3VyY2VNZXRhZGF0YRIZCgRuYW1lGAEgASgJQgu6SAjYAQFyAxjIARI1CgRzbHVnGAIgASgJQie6SCTYAQFyHxACGD8yGV5bYS16XVthLXowLTktXSpbYS16MC05XSQSCgoCaWQYAyABKAkSCwoDb3JnGAQgASgJElMKCnZpc2liaWxpdHkYBSABKA4yNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VWaXNpYmlsaXR5Qgi6SAWCAQIQARJPCgZsYWJlbHMYBiADKAsyPy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VNZXRhZGF0YS5MYWJlbHNFbnRyeRJZCgthbm5vdGF0aW9ucxgHIAMoCzJELmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhLkFubm90YXRpb25zRW50cnkSDAoEdGFncxgIIAMoCRJLCgd2ZXJzaW9uGAkgASgLMjouYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlTWV0YWRhdGFWZXJzaW9uEgwKBGV0YWcYCiABKAkaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARoyChBBbm5vdGF0aW9uc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiYwoaQXBpUmVzb3VyY2VNZXRhZGF0YVZlcnNpb24SCgoCaWQYASABKAkSDwoHbWVzc2FnZRgCIAEoCRIbChNwcmV2aW91c192ZXJzaW9uX2lkGAMgASgJEgsKA3RhZxgEIAEoCWIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_enum, file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvbWV0YWRhdGEucHJvdG8SHmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZSLVBgoTQXBpUmVzb3VyY2VNZXRhZGF0YRIZCgRuYW1lGAEgASgJQgu6SAjYAQFyAxjIARI1CgRzbHVnGAIgASgJQie6SCTYAQFyHxACGD8yGV5bYS16XVthLXowLTktXSpbYS16MC05XSQSCgoCaWQYAyABKAkSCwoDb3JnGAQgASgJElMKCnZpc2liaWxpdHkYBSABKA4yNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VWaXNpYmlsaXR5Qgi6SAWCAQIQARKnAwoGbGFiZWxzGAYgAygLMj8uYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlTWV0YWRhdGEuTGFiZWxzRW50cnlC1QK6SNECugGIAQoZbGFiZWxzLmtleV9wcmVmaXhfbWF4X2xlbhIuYSBsYWJlbCBrZXkncyBwcmVmaXggaXMgYXQgbW9zdCAyNTMgY2hhcmFjdGVycxo7dGhpcy5hbGwoaywgIWsuY29udGFpbnMoJy8nKSB8fCBrLm1hdGNoZXMoJ15bXi9dezEsMjUzfS8nKSmaAcEBEEAihAFygQEYvQIyfF4oW2EtejAtOV0oWy1hLXowLTldezAsNjF9W2EtejAtOV0pPyhcLlthLXowLTldKFstYS16MC05XXswLDYxfVthLXowLTldKT8pKi8pP1tBLVphLXowLTldKFstQS1aYS16MC05Xy5dezAsNjF9W0EtWmEtejAtOV0pPyQqNnI0MjJeKFtBLVphLXowLTldKFstQS1aYS16MC05Xy5dezAsNjF9W0EtWmEtejAtOV0pPyk/JBI3CgR0YWdzGAggAygJQim6SCaSASMQFBgBIh1yGzIZXlthLXowLTldW2EtejAtOS1dezAsNDl9JBJLCgd2ZXJzaW9uGAkgASgLMjouYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlTWV0YWRhdGFWZXJzaW9uEgwKBGV0YWcYCiABKAkaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AUoECAcQCFILYW5ub3RhdGlvbnMiYwoaQXBpUmVzb3VyY2VNZXRhZGF0YVZlcnNpb24SCgoCaWQYASABKAkSDwoHbWVzc2FnZRgCIAEoCRIbChNwcmV2aW91c192ZXJzaW9uX2lkGAMgASgJEgsKA3RhZxgEIAEoCWIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_enum, file_buf_validate_validate]);
 
 /**
  * ApiResourceMetadata contains standard metadata for all API resources.
@@ -112,21 +112,21 @@ export type ApiResourceMetadata = Message<"ai.stigmer.commons.apiresource.ApiRes
   visibility: ApiResourceVisibility;
 
   /**
-   * Key-value labels for organization and filtering.
+   * Key-value labels for organizing and filtering resources, in the
+   * Kubernetes form, so a label is always a valid selector.
+   * A key is an optional DNS subdomain prefix of at most 253 characters and
+   * a slash, then a name of at most 63 characters that starts and ends with
+   * a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+   * value is empty or follows the name rule. At most 64 labels.
    *
    * @generated from field: map<string, string> labels = 6;
    */
   labels: { [key: string]: string };
 
   /**
-   * Key-value annotations for additional metadata.
-   *
-   * @generated from field: map<string, string> annotations = 7;
-   */
-  annotations: { [key: string]: string };
-
-  /**
-   * Tags for categorization.
+   * Search words for the resource, in GitHub's topic form: lowercase
+   * letters, digits and hyphens, starting with a letter or digit, at most 50
+   * characters each. At most 20, each once.
    *
    * @generated from field: repeated string tags = 8;
    */

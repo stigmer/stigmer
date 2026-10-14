@@ -79,7 +79,11 @@ type ListScoresByRunRequest struct {
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
-	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Only resources carrying every label given, each matched exactly (AND).
+	// A selective filter may answer short pages, even empty ones, that still
+	// carry a token.
+	Labels        map[string]string `protobuf:"bytes,4,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -135,6 +139,13 @@ func (x *ListScoresByRunRequest) GetPageToken() string {
 	return ""
 }
 
+func (x *ListScoresByRunRequest) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
+}
+
 // ListScoresBySessionRequest lists the scores of every run in a session,
 // newest first.
 type ListScoresBySessionRequest struct {
@@ -146,7 +157,11 @@ type ListScoresBySessionRequest struct {
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
-	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Only resources carrying every label given, each matched exactly (AND).
+	// A selective filter may answer short pages, even empty ones, that still
+	// carry a token.
+	Labels        map[string]string `protobuf:"bytes,4,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -200,6 +215,13 @@ func (x *ListScoresBySessionRequest) GetPageToken() string {
 		return x.PageToken
 	}
 	return ""
+}
+
+func (x *ListScoresBySessionRequest) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
 }
 
 // ScoreList is a list of scores.
@@ -960,7 +982,11 @@ type ListFlaggedScoresByAgentRequest struct {
 	PageSize int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
-	PageToken     string `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Only resources carrying every label given, each matched exactly (AND).
+	// A selective filter may answer short pages, even empty ones, that still
+	// carry a token.
+	Labels        map[string]string `protobuf:"bytes,6,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1030,6 +1056,13 @@ func (x *ListFlaggedScoresByAgentRequest) GetPageToken() string {
 	return ""
 }
 
+func (x *ListFlaggedScoresByAgentRequest) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
+}
+
 // The changes an update makes to a score: the fields update_mask names,
 // taken from resource.
 type UpdateScoreInput struct {
@@ -1096,18 +1129,26 @@ const file_ai_stigmer_agentic_score_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"$ai/stigmer/agentic/score/v1/io.proto\x12\x1bai.stigmer.agentic.score.v1\x1a%ai/stigmer/agentic/score/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"'\n" +
 	"\aScoreId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x87\x01\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x9b\x02\n" +
 	"\x16ListScoresByRunRequest\x12\x1e\n" +
 	"\x06run_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05runId\x12$\n" +
 	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x93\x01\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12W\n" +
+	"\x06labels\x18\x04 \x03(\v2?.ai.stigmer.agentic.score.v1.ListScoresByRunRequest.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xab\x02\n" +
 	"\x1aListScoresBySessionRequest\x12&\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tsessionId\x12$\n" +
 	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x84\x01\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12[\n" +
+	"\x06labels\x18\x04 \x03(\v2C.ai.stigmer.agentic.score.v1.ListScoresBySessionRequest.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x84\x01\n" +
 	"\tScoreList\x12<\n" +
 	"\aentries\x18\x02 \x03(\v2\".ai.stigmer.agentic.score.v1.ScoreR\aentries\x12&\n" +
 	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\b\x01\x10\x02R\vtotal_count\"|\n" +
@@ -1159,14 +1200,18 @@ const file_ai_stigmer_agentic_score_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"first_date\x18\x02 \x01(\tR\tfirstDate\x12\x1b\n" +
 	"\tlast_date\x18\x03 \x01(\tR\blastDate\x12E\n" +
-	"\asummary\x18\x04 \x01(\v2+.ai.stigmer.agentic.score.v1.QualitySummaryR\asummary\"\xce\x01\n" +
+	"\asummary\x18\x04 \x01(\v2+.ai.stigmer.agentic.score.v1.QualitySummaryR\asummary\"\xeb\x02\n" +
 	"\x1fListFlaggedScoresByAgentRequest\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12\"\n" +
 	"\bagent_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aagentId\x12\x1d\n" +
 	"\x04days\x18\x03 \x01(\x05B\t\xbaH\x06\x1a\x04\x18Z(\x00R\x04days\x12$\n" +
 	"\tpage_size\x18\x04 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\xdf\x02\n" +
+	"page_token\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12`\n" +
+	"\x06labels\x18\x06 \x03(\v2H.ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xdf\x02\n" +
 	"\x10UpdateScoreInput\x12F\n" +
 	"\bresource\x18\x01 \x01(\v2\".ai.stigmer.agentic.score.v1.ScoreB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
@@ -1186,7 +1231,7 @@ func file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_score_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_ai_stigmer_agentic_score_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_ai_stigmer_agentic_score_v1_io_proto_goTypes = []any{
 	(*ScoreId)(nil),                         // 0: ai.stigmer.agentic.score.v1.ScoreId
 	(*ListScoresByRunRequest)(nil),          // 1: ai.stigmer.agentic.score.v1.ListScoresByRunRequest
@@ -1203,27 +1248,33 @@ var file_ai_stigmer_agentic_score_v1_io_proto_goTypes = []any{
 	(*QualityVersion)(nil),                  // 12: ai.stigmer.agentic.score.v1.QualityVersion
 	(*ListFlaggedScoresByAgentRequest)(nil), // 13: ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest
 	(*UpdateScoreInput)(nil),                // 14: ai.stigmer.agentic.score.v1.UpdateScoreInput
-	(*Score)(nil),                           // 15: ai.stigmer.agentic.score.v1.Score
-	(*fieldmaskpb.FieldMask)(nil),           // 16: google.protobuf.FieldMask
+	nil,                                     // 15: ai.stigmer.agentic.score.v1.ListScoresByRunRequest.LabelsEntry
+	nil,                                     // 16: ai.stigmer.agentic.score.v1.ListScoresBySessionRequest.LabelsEntry
+	nil,                                     // 17: ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest.LabelsEntry
+	(*Score)(nil),                           // 18: ai.stigmer.agentic.score.v1.Score
+	(*fieldmaskpb.FieldMask)(nil),           // 19: google.protobuf.FieldMask
 }
 var file_ai_stigmer_agentic_score_v1_io_proto_depIdxs = []int32{
-	15, // 0: ai.stigmer.agentic.score.v1.ScoreList.entries:type_name -> ai.stigmer.agentic.score.v1.Score
-	8,  // 1: ai.stigmer.agentic.score.v1.AgentQualityReport.total:type_name -> ai.stigmer.agentic.score.v1.QualitySummary
-	11, // 2: ai.stigmer.agentic.score.v1.AgentQualityReport.days:type_name -> ai.stigmer.agentic.score.v1.QualityDay
-	12, // 3: ai.stigmer.agentic.score.v1.AgentQualityReport.versions:type_name -> ai.stigmer.agentic.score.v1.QualityVersion
-	6,  // 4: ai.stigmer.agentic.score.v1.AgentQualityReport.agreement:type_name -> ai.stigmer.agentic.score.v1.JudgeAgreement
-	7,  // 5: ai.stigmer.agentic.score.v1.JudgeAgreement.rules:type_name -> ai.stigmer.agentic.score.v1.RuleAgreement
-	9,  // 6: ai.stigmer.agentic.score.v1.QualitySummary.metrics:type_name -> ai.stigmer.agentic.score.v1.MetricTally
-	10, // 7: ai.stigmer.agentic.score.v1.MetricTally.criteria:type_name -> ai.stigmer.agentic.score.v1.CriterionTally
-	8,  // 8: ai.stigmer.agentic.score.v1.QualityDay.summary:type_name -> ai.stigmer.agentic.score.v1.QualitySummary
-	8,  // 9: ai.stigmer.agentic.score.v1.QualityVersion.summary:type_name -> ai.stigmer.agentic.score.v1.QualitySummary
-	15, // 10: ai.stigmer.agentic.score.v1.UpdateScoreInput.resource:type_name -> ai.stigmer.agentic.score.v1.Score
-	16, // 11: ai.stigmer.agentic.score.v1.UpdateScoreInput.update_mask:type_name -> google.protobuf.FieldMask
-	12, // [12:12] is the sub-list for method output_type
-	12, // [12:12] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	15, // 0: ai.stigmer.agentic.score.v1.ListScoresByRunRequest.labels:type_name -> ai.stigmer.agentic.score.v1.ListScoresByRunRequest.LabelsEntry
+	16, // 1: ai.stigmer.agentic.score.v1.ListScoresBySessionRequest.labels:type_name -> ai.stigmer.agentic.score.v1.ListScoresBySessionRequest.LabelsEntry
+	18, // 2: ai.stigmer.agentic.score.v1.ScoreList.entries:type_name -> ai.stigmer.agentic.score.v1.Score
+	8,  // 3: ai.stigmer.agentic.score.v1.AgentQualityReport.total:type_name -> ai.stigmer.agentic.score.v1.QualitySummary
+	11, // 4: ai.stigmer.agentic.score.v1.AgentQualityReport.days:type_name -> ai.stigmer.agentic.score.v1.QualityDay
+	12, // 5: ai.stigmer.agentic.score.v1.AgentQualityReport.versions:type_name -> ai.stigmer.agentic.score.v1.QualityVersion
+	6,  // 6: ai.stigmer.agentic.score.v1.AgentQualityReport.agreement:type_name -> ai.stigmer.agentic.score.v1.JudgeAgreement
+	7,  // 7: ai.stigmer.agentic.score.v1.JudgeAgreement.rules:type_name -> ai.stigmer.agentic.score.v1.RuleAgreement
+	9,  // 8: ai.stigmer.agentic.score.v1.QualitySummary.metrics:type_name -> ai.stigmer.agentic.score.v1.MetricTally
+	10, // 9: ai.stigmer.agentic.score.v1.MetricTally.criteria:type_name -> ai.stigmer.agentic.score.v1.CriterionTally
+	8,  // 10: ai.stigmer.agentic.score.v1.QualityDay.summary:type_name -> ai.stigmer.agentic.score.v1.QualitySummary
+	8,  // 11: ai.stigmer.agentic.score.v1.QualityVersion.summary:type_name -> ai.stigmer.agentic.score.v1.QualitySummary
+	17, // 12: ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest.labels:type_name -> ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest.LabelsEntry
+	18, // 13: ai.stigmer.agentic.score.v1.UpdateScoreInput.resource:type_name -> ai.stigmer.agentic.score.v1.Score
+	19, // 14: ai.stigmer.agentic.score.v1.UpdateScoreInput.update_mask:type_name -> google.protobuf.FieldMask
+	15, // [15:15] is the sub-list for method output_type
+	15, // [15:15] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_score_v1_io_proto_init() }
@@ -1238,7 +1289,7 @@ func file_ai_stigmer_agentic_score_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_score_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_score_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

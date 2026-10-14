@@ -84,24 +84,11 @@
               "kind": "string"
             }
           },
-          "description": "Key-value labels for organization and filtering.",
-          "required": false
-        },
-        {
-          "name": "Annotations",
-          "jsonName": "annotations",
-          "protoField": "annotations",
-          "type": {
-            "kind": "map",
-            "keyType": {
-              "kind": "string"
-            },
-            "valueType": {
-              "kind": "string"
-            }
-          },
-          "description": "Key-value annotations for additional metadata.",
-          "required": false
+          "description": "Key-value labels for organizing and filtering resources, in the\n Kubernetes form, so a label is always a valid selector.\n A key is an optional DNS subdomain prefix of at most 253 characters and\n a slash, then a name of at most 63 characters that starts and ends with\n a letter or digit and holds only letters, digits, `-`, `_` and `.`. A\n value is empty or follows the name rule. At most 64 labels.",
+          "required": false,
+          "validation": {
+            "maxItems": 64
+          }
         },
         {
           "name": "Tags",
@@ -113,8 +100,11 @@
               "kind": "string"
             }
           },
-          "description": "Tags for categorization.",
-          "required": false
+          "description": "Search words for the resource, in GitHub's topic form: lowercase\n letters, digits and hyphens, starting with a letter or digit, at most 50\n characters each. At most 20, each once.",
+          "required": false,
+          "validation": {
+            "maxItems": 20
+          }
         },
         {
           "name": "Version",

@@ -42,6 +42,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_iam_oauthapp_v1_ListOAuthAppsInput_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_iam_oauthapp_v1_ListOAuthAppsInput_LabelsEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_iam_oauthapp_v1_ListOAuthAppsInput_LabelsEntry_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_iam_oauthapp_v1_UpdateOAuthAppInput_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -63,23 +68,27 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "r\004\020\001\030@R\005value\"s\n\tOAuthApps\022>\n\007entries\030\001 " +
       "\003(\0132$.ai.stigmer.iam.oauthapp.v1.OAuthAp" +
       "pR\007entries\022&\n\017next_page_token\030\002 \001(\tR\rnex" +
-      "tPageToken\"~\n\022ListOAuthAppsInput\022\031\n\003org\030" +
-      "\001 \001(\tB\007\272H\004r\002\020\001R\003org\022$\n\tpage_size\030\002 \001(\005B\007" +
-      "\272H\004\032\002(\000R\010pageSize\022\'\n\npage_token\030\003 \001(\tB\010\272" +
-      "H\005r\003\030\200\010R\tpageToken\"\350\002\n\023UpdateOAuthAppInp" +
-      "ut\022H\n\010resource\030\001 \001(\0132$.ai.stigmer.iam.oa" +
-      "uthapp.v1.OAuthAppB\006\272H\003\330\001\003R\010resource\022C\n\013" +
-      "update_mask\030\002 \001(\0132\032.google.protobuf.Fiel" +
-      "dMaskB\006\272H\003\310\001\001R\nupdateMask:\301\001\272H\275\001\032\272\001\n\027upd" +
-      "ate_names_its_target\022Iresource.metadata." +
-      "id is required: an update names the OAut" +
-      "h app by its id\032Thas(this.resource) && h" +
-      "as(this.resource.metadata) && this.resou" +
-      "rce.metadata.id != \'\'B\226\001B\007IoProtoP\001\242\002\004AS" +
-      "IO\252\002\032Ai.Stigmer.Iam.Oauthapp.V1\312\002\032Ai\\Sti" +
-      "gmer\\Iam\\Oauthapp\\V1\342\002&Ai\\Stigmer\\Iam\\Oa" +
-      "uthapp\\V1\\GPBMetadata\352\002\036Ai::Stigmer::Iam" +
-      "::Oauthapp::V1b\006proto3"
+      "tPageToken\"\215\002\n\022ListOAuthAppsInput\022\031\n\003org" +
+      "\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022$\n\tpage_size\030\002 \001(\005B" +
+      "\007\272H\004\032\002(\000R\010pageSize\022\'\n\npage_token\030\003 \001(\tB\010" +
+      "\272H\005r\003\030\200\010R\tpageToken\022R\n\006labels\030\004 \003(\0132:.ai" +
+      ".stigmer.iam.oauthapp.v1.ListOAuthAppsIn" +
+      "put.LabelsEntryR\006labels\0329\n\013LabelsEntry\022\020" +
+      "\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\002" +
+      "8\001\"\350\002\n\023UpdateOAuthAppInput\022H\n\010resource\030\001" +
+      " \001(\0132$.ai.stigmer.iam.oauthapp.v1.OAuthA" +
+      "ppB\006\272H\003\330\001\003R\010resource\022C\n\013update_mask\030\002 \001(" +
+      "\0132\032.google.protobuf.FieldMaskB\006\272H\003\310\001\001R\nu" +
+      "pdateMask:\301\001\272H\275\001\032\272\001\n\027update_names_its_ta" +
+      "rget\022Iresource.metadata.id is required: " +
+      "an update names the OAuth app by its id\032" +
+      "Thas(this.resource) && has(this.resource" +
+      ".metadata) && this.resource.metadata.id " +
+      "!= \'\'B\226\001B\007IoProtoP\001\242\002\004ASIO\252\002\032Ai.Stigmer." +
+      "Iam.Oauthapp.V1\312\002\032Ai\\Stigmer\\Iam\\Oauthap" +
+      "p\\V1\342\002&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMet" +
+      "adata\352\002\036Ai::Stigmer::Iam::Oauthapp::V1b\006" +
+      "proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -105,7 +114,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_oauthapp_v1_ListOAuthAppsInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_oauthapp_v1_ListOAuthAppsInput_descriptor,
-        new java.lang.String[] { "Org", "PageSize", "PageToken", });
+        new java.lang.String[] { "Org", "PageSize", "PageToken", "Labels", });
+    internal_static_ai_stigmer_iam_oauthapp_v1_ListOAuthAppsInput_LabelsEntry_descriptor =
+      internal_static_ai_stigmer_iam_oauthapp_v1_ListOAuthAppsInput_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_iam_oauthapp_v1_ListOAuthAppsInput_LabelsEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_iam_oauthapp_v1_ListOAuthAppsInput_LabelsEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
     internal_static_ai_stigmer_iam_oauthapp_v1_UpdateOAuthAppInput_descriptor =
       getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_iam_oauthapp_v1_UpdateOAuthAppInput_fieldAccessorTable = new

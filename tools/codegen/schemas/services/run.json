@@ -489,19 +489,6 @@
           "required": false
         },
         {
-          "name": "Tags",
-          "jsonName": "tags",
-          "protoField": "tags",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "string"
-            }
-          },
-          "description": "Filter by tags (optional).",
-          "required": false
-        },
-        {
           "name": "Org",
           "jsonName": "org",
           "protoField": "org",
@@ -509,6 +496,22 @@
             "kind": "string"
           },
           "description": "Organization slug to scope the results to.\n\n When set, only runs whose metadata.org matches are returned — the\n org-context view a console tab needs. When empty, results are bounded\n only by the caller's view permissions, which for a member of several\n organizations spans all of them.",
+          "required": false
+        },
+        {
+          "name": "Labels",
+          "jsonName": "labels",
+          "protoField": "labels",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "string"
+            }
+          },
+          "description": "Only resources carrying every label given, each matched exactly (AND).\n A selective filter may answer short pages, even empty ones, that still\n carry a token.",
           "required": false
         }
       ]
@@ -586,6 +589,22 @@
           "validation": {
             "maxLength": 1024
           }
+        },
+        {
+          "name": "Labels",
+          "jsonName": "labels",
+          "protoField": "labels",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "string"
+            }
+          },
+          "description": "Only resources carrying every label given, each matched exactly (AND).\n A selective filter may answer short pages, even empty ones, that still\n carry a token.",
+          "required": false
         }
       ]
     },

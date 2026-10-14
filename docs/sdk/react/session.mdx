@@ -2096,9 +2096,9 @@ Options for [`useSessionList`](#usesessionlist).
 
 <TypeTable
   type={{
+    labels: { type: "Record<string, string>", description: "Only sessions carrying every label given, each matched exactly." },
     org: { type: "string | null", description: "Organization id to list the sessions of (a slug is also accepted). When omitted, the list spans every organization the caller can view. Console pages should pass the active org (`useActiveOrgId()`)." },
     pageSize: { type: "number", description: "Sessions per page, the first and each `loadMore`. Defaults to 50; the server caps it at 100." },
-    tags: { type: "string[]", description: "Optional tag filter." },
   }}
 />
 

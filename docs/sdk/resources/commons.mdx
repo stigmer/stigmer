@@ -20,9 +20,8 @@ ApiResourceMetadata contains standard metadata for all API resources.
     id: { type: "string", description: "System-generated unique identifier." },
     org: { type: "string", description: "Organization that owns this resource, by id." },
     visibility: { type: "ApiResourceVisibility", description: "Visibility controls who can read this resource.", typeDescriptionLink: "#apiresourcevisibility" },
-    labels: { type: "Record<string, string>", description: "Key-value labels for organization and filtering." },
-    annotations: { type: "Record<string, string>", description: "Key-value annotations for additional metadata." },
-    tags: { type: "string[]", description: "Tags for categorization." },
+    labels: { type: "Record<string, string>", description: "Key-value labels for organizing and filtering resources, in the Kubernetes form, so a label is always a valid selector." },
+    tags: { type: "string[]", description: "Search words for the resource, in GitHub's topic form: lowercase letters, digits and hyphens, starting with a letter or digit, at most 50 characters each." },
     version: { type: "ApiResourceMetadataVersion", description: "Version information for the resource.", typeDescriptionLink: "#apiresourcemetadataversion" },
     etag: { type: "string", description: "A fingerprint of what a person edits on the resource: its spec, name, labels, tags and annotations, as stored." },
   }}

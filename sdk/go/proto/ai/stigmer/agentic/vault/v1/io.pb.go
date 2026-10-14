@@ -597,7 +597,11 @@ type ListVaultsRequest struct {
 	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
-	PageToken     string `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Only resources carrying every label given, each matched exactly (AND).
+	// A selective filter may answer short pages, even empty ones, that still
+	// carry a token.
+	Labels        map[string]string `protobuf:"bytes,5,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -651,6 +655,13 @@ func (x *ListVaultsRequest) GetPageToken() string {
 		return x.PageToken
 	}
 	return ""
+}
+
+func (x *ListVaultsRequest) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
 }
 
 // VaultList contains a paginated list of vaults.
@@ -1218,12 +1229,16 @@ const file_ai_stigmer_agentic_vault_v1_io_proto_rawDesc = "" +
 	"\x19GetVaultByExternalIdInput\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12(\n" +
 	"\vexternal_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
-	"externalId\"\x8e\x01\n" +
+	"externalId\"\x9d\x02\n" +
 	"\x11ListVaultsRequest\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
 	"\tpage_size\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageTokenJ\x04\b\x02\x10\x03R\tpage_info\"\x84\x01\n" +
+	"page_token\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12R\n" +
+	"\x06labels\x18\x05 \x03(\v2:.ai.stigmer.agentic.vault.v1.ListVaultsRequest.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x02\x10\x03R\tpage_info\"\x84\x01\n" +
 	"\tVaultList\x12<\n" +
 	"\aentries\x18\x02 \x03(\v2\".ai.stigmer.agentic.vault.v1.VaultR\aentries\x12&\n" +
 	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\b\x01\x10\x02R\vtotal_count\"\x9b\x04\n" +
@@ -1286,7 +1301,7 @@ func file_ai_stigmer_agentic_vault_v1_io_proto_rawDescGZIP() []byte {
 }
 
 var file_ai_stigmer_agentic_vault_v1_io_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_ai_stigmer_agentic_vault_v1_io_proto_goTypes = []any{
 	(SignInReturn)(0),                   // 0: ai.stigmer.agentic.vault.v1.SignInReturn
 	(*VaultTarget)(nil),                 // 1: ai.stigmer.agentic.vault.v1.VaultTarget
@@ -1307,9 +1322,10 @@ var file_ai_stigmer_agentic_vault_v1_io_proto_goTypes = []any{
 	(*ConnectLink)(nil),                 // 16: ai.stigmer.agentic.vault.v1.ConnectLink
 	(*UpdateVaultInput)(nil),            // 17: ai.stigmer.agentic.vault.v1.UpdateVaultInput
 	nil,                                 // 18: ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.SecretsEntry
-	(*Vault)(nil),                       // 19: ai.stigmer.agentic.vault.v1.Vault
-	(*timestamppb.Timestamp)(nil),       // 20: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil),       // 21: google.protobuf.FieldMask
+	nil,                                 // 19: ai.stigmer.agentic.vault.v1.ListVaultsRequest.LabelsEntry
+	(*Vault)(nil),                       // 20: ai.stigmer.agentic.vault.v1.Vault
+	(*timestamppb.Timestamp)(nil),       // 21: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil),       // 22: google.protobuf.FieldMask
 }
 var file_ai_stigmer_agentic_vault_v1_io_proto_depIdxs = []int32{
 	1,  // 0: ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.vault:type_name -> ai.stigmer.agentic.vault.v1.VaultTarget
@@ -1317,18 +1333,19 @@ var file_ai_stigmer_agentic_vault_v1_io_proto_depIdxs = []int32{
 	1,  // 2: ai.stigmer.agentic.vault.v1.RemoveVaultSecretsInput.vault:type_name -> ai.stigmer.agentic.vault.v1.VaultTarget
 	1,  // 3: ai.stigmer.agentic.vault.v1.SetVaultConnectionInput.vault:type_name -> ai.stigmer.agentic.vault.v1.VaultTarget
 	1,  // 4: ai.stigmer.agentic.vault.v1.RemoveVaultConnectionsInput.vault:type_name -> ai.stigmer.agentic.vault.v1.VaultTarget
-	19, // 5: ai.stigmer.agentic.vault.v1.VaultList.entries:type_name -> ai.stigmer.agentic.vault.v1.Vault
-	1,  // 6: ai.stigmer.agentic.vault.v1.StartSignInInput.vault:type_name -> ai.stigmer.agentic.vault.v1.VaultTarget
-	0,  // 7: ai.stigmer.agentic.vault.v1.StartSignInInput.return_to:type_name -> ai.stigmer.agentic.vault.v1.SignInReturn
-	20, // 8: ai.stigmer.agentic.vault.v1.ConnectLink.expires_at:type_name -> google.protobuf.Timestamp
-	19, // 9: ai.stigmer.agentic.vault.v1.UpdateVaultInput.resource:type_name -> ai.stigmer.agentic.vault.v1.Vault
-	21, // 10: ai.stigmer.agentic.vault.v1.UpdateVaultInput.update_mask:type_name -> google.protobuf.FieldMask
-	2,  // 11: ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.SecretsEntry.value:type_name -> ai.stigmer.agentic.vault.v1.VaultSecretInput
-	12, // [12:12] is the sub-list for method output_type
-	12, // [12:12] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	19, // 5: ai.stigmer.agentic.vault.v1.ListVaultsRequest.labels:type_name -> ai.stigmer.agentic.vault.v1.ListVaultsRequest.LabelsEntry
+	20, // 6: ai.stigmer.agentic.vault.v1.VaultList.entries:type_name -> ai.stigmer.agentic.vault.v1.Vault
+	1,  // 7: ai.stigmer.agentic.vault.v1.StartSignInInput.vault:type_name -> ai.stigmer.agentic.vault.v1.VaultTarget
+	0,  // 8: ai.stigmer.agentic.vault.v1.StartSignInInput.return_to:type_name -> ai.stigmer.agentic.vault.v1.SignInReturn
+	21, // 9: ai.stigmer.agentic.vault.v1.ConnectLink.expires_at:type_name -> google.protobuf.Timestamp
+	20, // 10: ai.stigmer.agentic.vault.v1.UpdateVaultInput.resource:type_name -> ai.stigmer.agentic.vault.v1.Vault
+	22, // 11: ai.stigmer.agentic.vault.v1.UpdateVaultInput.update_mask:type_name -> google.protobuf.FieldMask
+	2,  // 12: ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.SecretsEntry.value:type_name -> ai.stigmer.agentic.vault.v1.VaultSecretInput
+	13, // [13:13] is the sub-list for method output_type
+	13, // [13:13] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_vault_v1_io_proto_init() }
@@ -1347,7 +1364,7 @@ func file_ai_stigmer_agentic_vault_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_vault_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_vault_v1_io_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   18,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

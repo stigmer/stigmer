@@ -172,6 +172,7 @@ const result = await stigmer.score.listByRun({
   runId: "...",
   pageSize: 0,
   pageToken: "...",
+  labels: {},
 });
 ```
 </Tab>
@@ -181,6 +182,7 @@ result, err := client.Score.ListByRun(ctx, &stigmer.ListScoresByRunRequest{
   RunId:     "...",
   PageSize:  0,
   PageToken: "...",
+  Labels:    map[string]string{},
 })
 ```
 </Tab>
@@ -190,6 +192,7 @@ result = client.scores.list_by_run(ListScoresByRunRequest(
     run_id="...",
     page_size=0,
     page_token="...",
+    labels={},
 ))
 ```
 </Tab>
@@ -199,6 +202,7 @@ ScoreList result = client.scores().listByRun(ListScoresByRunRequest.builder()
     .runId("...")
     .pageSize(0)
     .pageToken("...")
+    .labels(Map.of())
     .build());
 ```
 </Tab>
@@ -221,6 +225,7 @@ const result = await stigmer.score.listBySession({
   sessionId: "...",
   pageSize: 0,
   pageToken: "...",
+  labels: {},
 });
 ```
 </Tab>
@@ -230,6 +235,7 @@ result, err := client.Score.ListBySession(ctx, &stigmer.ListScoresBySessionReque
   SessionId: "...",
   PageSize:  0,
   PageToken: "...",
+  Labels:    map[string]string{},
 })
 ```
 </Tab>
@@ -239,6 +245,7 @@ result = client.scores.list_by_session(ListScoresBySessionRequest(
     session_id="...",
     page_size=0,
     page_token="...",
+    labels={},
 ))
 ```
 </Tab>
@@ -248,6 +255,7 @@ ScoreList result = client.scores().listBySession(ListScoresBySessionRequest.buil
     .sessionId("...")
     .pageSize(0)
     .pageToken("...")
+    .labels(Map.of())
     .build());
 ```
 </Tab>
@@ -274,6 +282,7 @@ const result = await stigmer.score.listFlaggedByAgent({
   days: 0,
   pageSize: 0,
   pageToken: "...",
+  labels: {},
 });
 ```
 </Tab>
@@ -285,6 +294,7 @@ result, err := client.Score.ListFlaggedByAgent(ctx, &stigmer.ListFlaggedScoresBy
   Days:      0,
   PageSize:  0,
   PageToken: "...",
+  Labels:    map[string]string{},
 })
 ```
 </Tab>
@@ -296,6 +306,7 @@ result = client.scores.list_flagged_by_agent(ListFlaggedScoresByAgentRequest(
     days=0,
     page_size=0,
     page_token="...",
+    labels={},
 ))
 ```
 </Tab>
@@ -307,6 +318,7 @@ ScoreList result = client.scores().listFlaggedByAgent(ListFlaggedScoresByAgentRe
     .days(0)
     .pageSize(0)
     .pageToken("...")
+    .labels(Map.of())
     .build());
 ```
 </Tab>
@@ -553,6 +565,7 @@ ListScoresByRunRequest lists the scores of one run, newest first.
     runId: { type: "string", description: "ID of the run whose scores to list." },
     pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
     pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
+    labels: { type: "Record<string, string>", description: "Only resources carrying every label given, each matched exactly (AND)." },
   }}
 />
 
@@ -576,6 +589,7 @@ ListScoresBySessionRequest lists the scores of every run in a session, newest fi
     sessionId: { type: "string", description: "ID of the session whose runs' scores to list." },
     pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
     pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
+    labels: { type: "Record<string, string>", description: "Only resources carrying every label given, each matched exactly (AND)." },
   }}
 />
 
@@ -617,6 +631,7 @@ ListFlaggedScoresByAgentRequest lists the failed grades of one agent's runs in o
     days: { type: "number", description: "How many days to look back, ending today, from 1 to 90." },
     pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
     pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
+    labels: { type: "Record<string, string>", description: "Only resources carrying every label given, each matched exactly (AND)." },
   }}
 />
 

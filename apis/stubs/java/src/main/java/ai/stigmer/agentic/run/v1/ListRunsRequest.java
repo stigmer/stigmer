@@ -34,8 +34,6 @@ private static final long serialVersionUID = 0L;
   private ListRunsRequest() {
     pageToken_ = "";
     phase_ = 0;
-    tags_ =
-        com.google.protobuf.LazyStringArrayList.emptyList();
     org_ = "";
   }
 
@@ -49,6 +47,18 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.run.v1.IoProto.internal_static_ai_stigmer_agentic_run_v1_ListRunsRequest_descriptor;
   }
 
+  @SuppressWarnings({"rawtypes"})
+  @java.lang.Override
+  protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
+      int number) {
+    switch (number) {
+      case 6:
+        return internalGetLabels();
+      default:
+        throw new RuntimeException(
+            "Invalid map field number: " + number);
+    }
+  }
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internalGetFieldAccessorTable() {
@@ -148,59 +158,6 @@ private static final long serialVersionUID = 0L;
     return result == null ? ai.stigmer.agentic.run.v1.RunPhase.UNRECOGNIZED : result;
   }
 
-  public static final int TAGS_FIELD_NUMBER = 4;
-  @SuppressWarnings("serial")
-  private com.google.protobuf.LazyStringArrayList tags_ =
-      com.google.protobuf.LazyStringArrayList.emptyList();
-  /**
-   * <pre>
-   * Filter by tags (optional).
-   * </pre>
-   *
-   * <code>repeated string tags = 4 [json_name = "tags"];</code>
-   * @return A list containing the tags.
-   */
-  public com.google.protobuf.ProtocolStringList
-      getTagsList() {
-    return tags_;
-  }
-  /**
-   * <pre>
-   * Filter by tags (optional).
-   * </pre>
-   *
-   * <code>repeated string tags = 4 [json_name = "tags"];</code>
-   * @return The count of tags.
-   */
-  public int getTagsCount() {
-    return tags_.size();
-  }
-  /**
-   * <pre>
-   * Filter by tags (optional).
-   * </pre>
-   *
-   * <code>repeated string tags = 4 [json_name = "tags"];</code>
-   * @param index The index of the element to return.
-   * @return The tags at the given index.
-   */
-  public java.lang.String getTags(int index) {
-    return tags_.get(index);
-  }
-  /**
-   * <pre>
-   * Filter by tags (optional).
-   * </pre>
-   *
-   * <code>repeated string tags = 4 [json_name = "tags"];</code>
-   * @param index The index of the value to return.
-   * @return The bytes of the tags at the given index.
-   */
-  public com.google.protobuf.ByteString
-      getTagsBytes(int index) {
-    return tags_.getByteString(index);
-  }
-
   public static final int ORG_FIELD_NUMBER = 5;
   @SuppressWarnings("serial")
   private volatile java.lang.Object org_ = "";
@@ -258,6 +215,109 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int LABELS_FIELD_NUMBER = 6;
+  private static final class LabelsDefaultEntryHolder {
+    static final com.google.protobuf.MapEntry<
+        java.lang.String, java.lang.String> defaultEntry =
+            com.google.protobuf.MapEntry
+            .<java.lang.String, java.lang.String>newDefaultInstance(
+                ai.stigmer.agentic.run.v1.IoProto.internal_static_ai_stigmer_agentic_run_v1_ListRunsRequest_LabelsEntry_descriptor, 
+                com.google.protobuf.WireFormat.FieldType.STRING,
+                "",
+                com.google.protobuf.WireFormat.FieldType.STRING,
+                "");
+  }
+  @SuppressWarnings("serial")
+  private com.google.protobuf.MapField<
+      java.lang.String, java.lang.String> labels_;
+  private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+  internalGetLabels() {
+    if (labels_ == null) {
+      return com.google.protobuf.MapField.emptyMapField(
+          LabelsDefaultEntryHolder.defaultEntry);
+    }
+    return labels_;
+  }
+  public int getLabelsCount() {
+    return internalGetLabels().getMap().size();
+  }
+  /**
+   * <pre>
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+   */
+  @java.lang.Override
+  public boolean containsLabels(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    return internalGetLabels().getMap().containsKey(key);
+  }
+  /**
+   * Use {@link #getLabelsMap()} instead.
+   */
+  @java.lang.Override
+  @java.lang.Deprecated
+  public java.util.Map<java.lang.String, java.lang.String> getLabels() {
+    return getLabelsMap();
+  }
+  /**
+   * <pre>
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+   */
+  @java.lang.Override
+  public java.util.Map<java.lang.String, java.lang.String> getLabelsMap() {
+    return internalGetLabels().getMap();
+  }
+  /**
+   * <pre>
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+   */
+  @java.lang.Override
+  public /* nullable */
+java.lang.String getLabelsOrDefault(
+      java.lang.String key,
+      /* nullable */
+java.lang.String defaultValue) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, java.lang.String> map =
+        internalGetLabels().getMap();
+    return map.containsKey(key) ? map.get(key) : defaultValue;
+  }
+  /**
+   * <pre>
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+   */
+  @java.lang.Override
+  public java.lang.String getLabelsOrThrow(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, java.lang.String> map =
+        internalGetLabels().getMap();
+    if (!map.containsKey(key)) {
+      throw new java.lang.IllegalArgumentException();
+    }
+    return map.get(key);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -281,12 +341,15 @@ private static final long serialVersionUID = 0L;
     if (phase_ != ai.stigmer.agentic.run.v1.RunPhase.RUN_PHASE_UNSPECIFIED.getNumber()) {
       output.writeEnum(3, phase_);
     }
-    for (int i = 0; i < tags_.size(); i++) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 4, tags_.getRaw(i));
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 5, org_);
     }
+    com.google.protobuf.GeneratedMessage
+      .serializeStringMapTo(
+        output,
+        internalGetLabels(),
+        LabelsDefaultEntryHolder.defaultEntry,
+        6);
     getUnknownFields().writeTo(output);
   }
 
@@ -307,16 +370,18 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(3, phase_);
     }
-    {
-      int dataSize = 0;
-      for (int i = 0; i < tags_.size(); i++) {
-        dataSize += computeStringSizeNoTag(tags_.getRaw(i));
-      }
-      size += dataSize;
-      size += 1 * getTagsList().size();
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(5, org_);
+    }
+    for (java.util.Map.Entry<java.lang.String, java.lang.String> entry
+         : internalGetLabels().getMap().entrySet()) {
+      com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
+      labels__ = LabelsDefaultEntryHolder.defaultEntry.newBuilderForType()
+          .setKey(entry.getKey())
+          .setValue(entry.getValue())
+          .buildPartial();
+      size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(6, labels__);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -338,10 +403,10 @@ private static final long serialVersionUID = 0L;
     if (!getPageToken()
         .equals(other.getPageToken())) return false;
     if (phase_ != other.phase_) return false;
-    if (!getTagsList()
-        .equals(other.getTagsList())) return false;
     if (!getOrg()
         .equals(other.getOrg())) return false;
+    if (!internalGetLabels().equals(
+        other.internalGetLabels())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -359,12 +424,12 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getPageToken().hashCode();
     hash = (37 * hash) + PHASE_FIELD_NUMBER;
     hash = (53 * hash) + phase_;
-    if (getTagsCount() > 0) {
-      hash = (37 * hash) + TAGS_FIELD_NUMBER;
-      hash = (53 * hash) + getTagsList().hashCode();
-    }
     hash = (37 * hash) + ORG_FIELD_NUMBER;
     hash = (53 * hash) + getOrg().hashCode();
+    if (!internalGetLabels().getMap().isEmpty()) {
+      hash = (37 * hash) + LABELS_FIELD_NUMBER;
+      hash = (53 * hash) + internalGetLabels().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -478,6 +543,28 @@ private static final long serialVersionUID = 0L;
       return ai.stigmer.agentic.run.v1.IoProto.internal_static_ai_stigmer_agentic_run_v1_ListRunsRequest_descriptor;
     }
 
+    @SuppressWarnings({"rawtypes"})
+    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
+        int number) {
+      switch (number) {
+        case 6:
+          return internalGetLabels();
+        default:
+          throw new RuntimeException(
+              "Invalid map field number: " + number);
+      }
+    }
+    @SuppressWarnings({"rawtypes"})
+    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMutableMapFieldReflection(
+        int number) {
+      switch (number) {
+        case 6:
+          return internalGetMutableLabels();
+        default:
+          throw new RuntimeException(
+              "Invalid map field number: " + number);
+      }
+    }
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
@@ -503,9 +590,8 @@ private static final long serialVersionUID = 0L;
       pageSize_ = 0;
       pageToken_ = "";
       phase_ = 0;
-      tags_ =
-          com.google.protobuf.LazyStringArrayList.emptyList();
       org_ = "";
+      internalGetMutableLabels().clear();
       return this;
     }
 
@@ -549,11 +635,11 @@ private static final long serialVersionUID = 0L;
         result.phase_ = phase_;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
-        tags_.makeImmutable();
-        result.tags_ = tags_;
+        result.org_ = org_;
       }
       if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.org_ = org_;
+        result.labels_ = internalGetLabels();
+        result.labels_.makeImmutable();
       }
     }
 
@@ -580,21 +666,14 @@ private static final long serialVersionUID = 0L;
       if (other.phase_ != 0) {
         setPhaseValue(other.getPhaseValue());
       }
-      if (!other.tags_.isEmpty()) {
-        if (tags_.isEmpty()) {
-          tags_ = other.tags_;
-          bitField0_ |= 0x00000008;
-        } else {
-          ensureTagsIsMutable();
-          tags_.addAll(other.tags_);
-        }
-        onChanged();
-      }
       if (!other.getOrg().isEmpty()) {
         org_ = other.org_;
-        bitField0_ |= 0x00000010;
+        bitField0_ |= 0x00000008;
         onChanged();
       }
+      internalGetMutableLabels().mergeFrom(
+          other.internalGetLabels());
+      bitField0_ |= 0x00000010;
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -636,16 +715,20 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 24
-            case 34: {
-              ensureTagsIsMutable();
-              tags_.add(input.readStringRequireUtf8());
-              break;
-            } // case 34
             case 42: {
               org_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000010;
+              bitField0_ |= 0x00000008;
               break;
             } // case 42
+            case 50: {
+              com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
+              labels__ = input.readMessage(
+                  LabelsDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
+              internalGetMutableLabels().getMutableMap().put(
+                  labels__.getKey(), labels__.getValue());
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 50
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -879,153 +962,6 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private com.google.protobuf.LazyStringArrayList tags_ =
-        com.google.protobuf.LazyStringArrayList.emptyList();
-    private void ensureTagsIsMutable() {
-      if (!tags_.isModifiable()) {
-        tags_ = new com.google.protobuf.LazyStringArrayList(tags_);
-      }
-      bitField0_ |= 0x00000008;
-    }
-    /**
-     * <pre>
-     * Filter by tags (optional).
-     * </pre>
-     *
-     * <code>repeated string tags = 4 [json_name = "tags"];</code>
-     * @return A list containing the tags.
-     */
-    public com.google.protobuf.ProtocolStringList
-        getTagsList() {
-      tags_.makeImmutable();
-      return tags_;
-    }
-    /**
-     * <pre>
-     * Filter by tags (optional).
-     * </pre>
-     *
-     * <code>repeated string tags = 4 [json_name = "tags"];</code>
-     * @return The count of tags.
-     */
-    public int getTagsCount() {
-      return tags_.size();
-    }
-    /**
-     * <pre>
-     * Filter by tags (optional).
-     * </pre>
-     *
-     * <code>repeated string tags = 4 [json_name = "tags"];</code>
-     * @param index The index of the element to return.
-     * @return The tags at the given index.
-     */
-    public java.lang.String getTags(int index) {
-      return tags_.get(index);
-    }
-    /**
-     * <pre>
-     * Filter by tags (optional).
-     * </pre>
-     *
-     * <code>repeated string tags = 4 [json_name = "tags"];</code>
-     * @param index The index of the value to return.
-     * @return The bytes of the tags at the given index.
-     */
-    public com.google.protobuf.ByteString
-        getTagsBytes(int index) {
-      return tags_.getByteString(index);
-    }
-    /**
-     * <pre>
-     * Filter by tags (optional).
-     * </pre>
-     *
-     * <code>repeated string tags = 4 [json_name = "tags"];</code>
-     * @param index The index to set the value at.
-     * @param value The tags to set.
-     * @return This builder for chaining.
-     */
-    public Builder setTags(
-        int index, java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      ensureTagsIsMutable();
-      tags_.set(index, value);
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Filter by tags (optional).
-     * </pre>
-     *
-     * <code>repeated string tags = 4 [json_name = "tags"];</code>
-     * @param value The tags to add.
-     * @return This builder for chaining.
-     */
-    public Builder addTags(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      ensureTagsIsMutable();
-      tags_.add(value);
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Filter by tags (optional).
-     * </pre>
-     *
-     * <code>repeated string tags = 4 [json_name = "tags"];</code>
-     * @param values The tags to add.
-     * @return This builder for chaining.
-     */
-    public Builder addAllTags(
-        java.lang.Iterable<java.lang.String> values) {
-      ensureTagsIsMutable();
-      com.google.protobuf.AbstractMessageLite.Builder.addAll(
-          values, tags_);
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Filter by tags (optional).
-     * </pre>
-     *
-     * <code>repeated string tags = 4 [json_name = "tags"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearTags() {
-      tags_ =
-        com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00000008);;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Filter by tags (optional).
-     * </pre>
-     *
-     * <code>repeated string tags = 4 [json_name = "tags"];</code>
-     * @param value The bytes of the tags to add.
-     * @return This builder for chaining.
-     */
-    public Builder addTagsBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      ensureTagsIsMutable();
-      tags_.add(value);
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-
     private java.lang.Object org_ = "";
     /**
      * <pre>
@@ -1096,7 +1032,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       org_ = value;
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1115,7 +1051,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearOrg() {
       org_ = getDefaultInstance().getOrg();
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000008);
       onChanged();
       return this;
     }
@@ -1138,8 +1074,177 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       org_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+
+    private com.google.protobuf.MapField<
+        java.lang.String, java.lang.String> labels_;
+    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+        internalGetLabels() {
+      if (labels_ == null) {
+        return com.google.protobuf.MapField.emptyMapField(
+            LabelsDefaultEntryHolder.defaultEntry);
+      }
+      return labels_;
+    }
+    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+        internalGetMutableLabels() {
+      if (labels_ == null) {
+        labels_ = com.google.protobuf.MapField.newMapField(
+            LabelsDefaultEntryHolder.defaultEntry);
+      }
+      if (!labels_.isMutable()) {
+        labels_ = labels_.copy();
+      }
       bitField0_ |= 0x00000010;
       onChanged();
+      return labels_;
+    }
+    public int getLabelsCount() {
+      return internalGetLabels().getMap().size();
+    }
+    /**
+     * <pre>
+     * Only resources carrying every label given, each matched exactly (AND).
+     * A selective filter may answer short pages, even empty ones, that still
+     * carry a token.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+     */
+    @java.lang.Override
+    public boolean containsLabels(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      return internalGetLabels().getMap().containsKey(key);
+    }
+    /**
+     * Use {@link #getLabelsMap()} instead.
+     */
+    @java.lang.Override
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, java.lang.String> getLabels() {
+      return getLabelsMap();
+    }
+    /**
+     * <pre>
+     * Only resources carrying every label given, each matched exactly (AND).
+     * A selective filter may answer short pages, even empty ones, that still
+     * carry a token.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+     */
+    @java.lang.Override
+    public java.util.Map<java.lang.String, java.lang.String> getLabelsMap() {
+      return internalGetLabels().getMap();
+    }
+    /**
+     * <pre>
+     * Only resources carrying every label given, each matched exactly (AND).
+     * A selective filter may answer short pages, even empty ones, that still
+     * carry a token.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+     */
+    @java.lang.Override
+    public /* nullable */
+java.lang.String getLabelsOrDefault(
+        java.lang.String key,
+        /* nullable */
+java.lang.String defaultValue) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, java.lang.String> map =
+          internalGetLabels().getMap();
+      return map.containsKey(key) ? map.get(key) : defaultValue;
+    }
+    /**
+     * <pre>
+     * Only resources carrying every label given, each matched exactly (AND).
+     * A selective filter may answer short pages, even empty ones, that still
+     * carry a token.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+     */
+    @java.lang.Override
+    public java.lang.String getLabelsOrThrow(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, java.lang.String> map =
+          internalGetLabels().getMap();
+      if (!map.containsKey(key)) {
+        throw new java.lang.IllegalArgumentException();
+      }
+      return map.get(key);
+    }
+    public Builder clearLabels() {
+      bitField0_ = (bitField0_ & ~0x00000010);
+      internalGetMutableLabels().getMutableMap()
+          .clear();
+      return this;
+    }
+    /**
+     * <pre>
+     * Only resources carrying every label given, each matched exactly (AND).
+     * A selective filter may answer short pages, even empty ones, that still
+     * carry a token.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+     */
+    public Builder removeLabels(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      internalGetMutableLabels().getMutableMap()
+          .remove(key);
+      return this;
+    }
+    /**
+     * Use alternate mutation accessors instead.
+     */
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, java.lang.String>
+        getMutableLabels() {
+      bitField0_ |= 0x00000010;
+      return internalGetMutableLabels().getMutableMap();
+    }
+    /**
+     * <pre>
+     * Only resources carrying every label given, each matched exactly (AND).
+     * A selective filter may answer short pages, even empty ones, that still
+     * carry a token.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+     */
+    public Builder putLabels(
+        java.lang.String key,
+        java.lang.String value) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      if (value == null) { throw new NullPointerException("map value"); }
+      internalGetMutableLabels().getMutableMap()
+          .put(key, value);
+      bitField0_ |= 0x00000010;
+      return this;
+    }
+    /**
+     * <pre>
+     * Only resources carrying every label given, each matched exactly (AND).
+     * A selective filter may answer short pages, even empty ones, that still
+     * carry a token.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; labels = 6 [json_name = "labels"];</code>
+     */
+    public Builder putAllLabels(
+        java.util.Map<java.lang.String, java.lang.String> values) {
+      internalGetMutableLabels().getMutableMap()
+          .putAll(values);
+      bitField0_ |= 0x00000010;
       return this;
     }
 

@@ -91,11 +91,16 @@ type ApiResourceMetadata struct {
 	// on update must follow up with UpdateVisibility (the CLI and MCP apply
 	// surfaces do this automatically).
 	Visibility ApiResourceVisibility `protobuf:"varint,5,opt,name=visibility,proto3,enum=ai.stigmer.commons.apiresource.ApiResourceVisibility" json:"visibility,omitempty"`
-	// Key-value labels for organization and filtering.
+	// Key-value labels for organizing and filtering resources, in the
+	// Kubernetes form, so a label is always a valid selector.
+	// A key is an optional DNS subdomain prefix of at most 253 characters and
+	// a slash, then a name of at most 63 characters that starts and ends with
+	// a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+	// value is empty or follows the name rule. At most 64 labels.
 	Labels map[string]string `protobuf:"bytes,6,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Key-value annotations for additional metadata.
-	Annotations map[string]string `protobuf:"bytes,7,rep,name=annotations,proto3" json:"annotations,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Tags for categorization.
+	// Search words for the resource, in GitHub's topic form: lowercase
+	// letters, digits and hyphens, starting with a letter or digit, at most 50
+	// characters each. At most 20, each once.
 	Tags []string `protobuf:"bytes,8,rep,name=tags,proto3" json:"tags,omitempty"`
 	// Version information for the resource.
 	Version *ApiResourceMetadataVersion `protobuf:"bytes,9,opt,name=version,proto3" json:"version,omitempty"`
@@ -178,13 +183,6 @@ func (x *ApiResourceMetadata) GetVisibility() ApiResourceVisibility {
 func (x *ApiResourceMetadata) GetLabels() map[string]string {
 	if x != nil {
 		return x.Labels
-	}
-	return nil
-}
-
-func (x *ApiResourceMetadata) GetAnnotations() map[string]string {
-	if x != nil {
-		return x.Annotations
 	}
 	return nil
 }
@@ -298,7 +296,7 @@ var File_ai_stigmer_commons_apiresource_metadata_proto protoreflect.FileDescript
 
 const file_ai_stigmer_commons_apiresource_metadata_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/commons/apiresource/metadata.proto\x12\x1eai.stigmer.commons.apiresource\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xb0\x05\n" +
+	"-ai/stigmer/commons/apiresource/metadata.proto\x12\x1eai.stigmer.commons.apiresource\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x9f\a\n" +
 	"\x13ApiResourceMetadata\x12\x1f\n" +
 	"\x04name\x18\x01 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\x18\xc8\x01R\x04name\x12;\n" +
 	"\x04slug\x18\x02 \x01(\tB'\xbaH$\xd8\x01\x01r\x1f\x10\x02\x18?2\x19^[a-z][a-z0-9-]*[a-z0-9]$R\x04slug\x12\x0e\n" +
@@ -306,19 +304,16 @@ const file_ai_stigmer_commons_apiresource_metadata_proto_rawDesc = "" +
 	"\x03org\x18\x04 \x01(\tR\x03org\x12_\n" +
 	"\n" +
 	"visibility\x18\x05 \x01(\x0e25.ai.stigmer.commons.apiresource.ApiResourceVisibilityB\b\xbaH\x05\x82\x01\x02\x10\x01R\n" +
-	"visibility\x12W\n" +
-	"\x06labels\x18\x06 \x03(\v2?.ai.stigmer.commons.apiresource.ApiResourceMetadata.LabelsEntryR\x06labels\x12f\n" +
-	"\vannotations\x18\a \x03(\v2D.ai.stigmer.commons.apiresource.ApiResourceMetadata.AnnotationsEntryR\vannotations\x12\x12\n" +
-	"\x04tags\x18\b \x03(\tR\x04tags\x12T\n" +
+	"visibility\x12\xaf\x03\n" +
+	"\x06labels\x18\x06 \x03(\v2?.ai.stigmer.commons.apiresource.ApiResourceMetadata.LabelsEntryB\xd5\x02\xbaH\xd1\x02\xba\x01\x88\x01\n" +
+	"\x19labels.key_prefix_max_len\x12.a label key's prefix is at most 253 characters\x1a;this.all(k, !k.contains('/') || k.matches('^[^/]{1,253}/'))\x9a\x01\xc1\x01\x10@\"\x84\x01r\x81\x01\x18\xbd\x022|^([a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?)*/)?[A-Za-z0-9]([-A-Za-z0-9_.]{0,61}[A-Za-z0-9])?$*6r422^([A-Za-z0-9]([-A-Za-z0-9_.]{0,61}[A-Za-z0-9])?)?$R\x06labels\x12=\n" +
+	"\x04tags\x18\b \x03(\tB)\xbaH&\x92\x01#\x10\x14\x18\x01\"\x1dr\x1b2\x19^[a-z0-9][a-z0-9-]{0,49}$R\x04tags\x12T\n" +
 	"\aversion\x18\t \x01(\v2:.ai.stigmer.commons.apiresource.ApiResourceMetadataVersionR\aversion\x12\x12\n" +
 	"\x04etag\x18\n" +
 	" \x01(\tR\x04etag\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a>\n" +
-	"\x10AnnotationsEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x88\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\a\x10\bR\vannotations\"\x88\x01\n" +
 	"\x1aApiResourceMetadataVersion\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12.\n" +
@@ -338,24 +333,22 @@ func file_ai_stigmer_commons_apiresource_metadata_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_commons_apiresource_metadata_proto_rawDescData
 }
 
-var file_ai_stigmer_commons_apiresource_metadata_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_ai_stigmer_commons_apiresource_metadata_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_ai_stigmer_commons_apiresource_metadata_proto_goTypes = []any{
 	(*ApiResourceMetadata)(nil),        // 0: ai.stigmer.commons.apiresource.ApiResourceMetadata
 	(*ApiResourceMetadataVersion)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceMetadataVersion
 	nil,                                // 2: ai.stigmer.commons.apiresource.ApiResourceMetadata.LabelsEntry
-	nil,                                // 3: ai.stigmer.commons.apiresource.ApiResourceMetadata.AnnotationsEntry
-	(ApiResourceVisibility)(0),         // 4: ai.stigmer.commons.apiresource.ApiResourceVisibility
+	(ApiResourceVisibility)(0),         // 3: ai.stigmer.commons.apiresource.ApiResourceVisibility
 }
 var file_ai_stigmer_commons_apiresource_metadata_proto_depIdxs = []int32{
-	4, // 0: ai.stigmer.commons.apiresource.ApiResourceMetadata.visibility:type_name -> ai.stigmer.commons.apiresource.ApiResourceVisibility
+	3, // 0: ai.stigmer.commons.apiresource.ApiResourceMetadata.visibility:type_name -> ai.stigmer.commons.apiresource.ApiResourceVisibility
 	2, // 1: ai.stigmer.commons.apiresource.ApiResourceMetadata.labels:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata.LabelsEntry
-	3, // 2: ai.stigmer.commons.apiresource.ApiResourceMetadata.annotations:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata.AnnotationsEntry
-	1, // 3: ai.stigmer.commons.apiresource.ApiResourceMetadata.version:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadataVersion
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	1, // 2: ai.stigmer.commons.apiresource.ApiResourceMetadata.version:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadataVersion
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_commons_apiresource_metadata_proto_init() }
@@ -370,7 +363,7 @@ func file_ai_stigmer_commons_apiresource_metadata_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_commons_apiresource_metadata_proto_rawDesc), len(file_ai_stigmer_commons_apiresource_metadata_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
