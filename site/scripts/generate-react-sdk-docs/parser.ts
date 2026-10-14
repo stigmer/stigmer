@@ -118,10 +118,10 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "Hooks and components for turning an agent into a hosted, shareable chat link and embed.",
   },
-  "identity-provider": {
-    title: "Identity Provider",
+  "federation-issuer": {
+    title: "Federation Issuer",
     description:
-      "Hooks and components for federated identity provider setup and management.",
+      "Hooks and components for registering federation issuers, the outside issuers whose tokens Stigmer accepts.",
   },
   "identity-account": {
     title: "Identity Account",
@@ -288,7 +288,7 @@ const PROTO_TYPE_TO_SLUG: Record<string, string> = {
   Project: "project",
   IamPolicy: "iam-policy",
   IdentityAccount: "identity-account",
-  IdentityProvider: "identity-provider",
+  FederationIssuer: "federation-issuer",
 };
 
 // Source-path segments that map to non-obvious domain slugs

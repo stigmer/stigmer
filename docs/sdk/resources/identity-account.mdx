@@ -54,7 +54,7 @@ IdentityAccount identityAccount = client.identityAccounts().get("ida_01j5q3k7m8r
 | [`get`](#get) | Get an identity account by its unique identifier. |
 | [`getActorInfo`](#getactorinfo) | Get lightweight actor information for an identity account. |
 | [`getByEmail`](#getbyemail) | Get a direct identity account by email address. |
-| [`getByExternalSub`](#getbyexternalsub) | Get a federated identity account by identity provider reference and external subject. |
+| [`getByExternalSub`](#getbyexternalsub) | Get a federated identity account by federation issuer reference and external subject. |
 | [`getByIdpId`](#getbyidpid) | Get an identity account by identity provider ID (Auth0 subject). |
 | [`listServiceAccounts`](#listserviceaccounts) | List an organization's service accounts, newest first. |
 | [`create`](#create) | Create a new identity account. |
@@ -141,7 +141,7 @@ ApiResourceAuditActor apiResourceAuditActor = client.identityAccounts().getActor
 
 Get a direct identity account by email address.
 
-Only returns direct (non-federated) accounts. Federated accounts are not returned by this RPC — use getByExternalSub for IdP-scoped federated lookups.
+Only returns direct (non-federated) accounts. Federated accounts are not returned by this RPC — use getByExternalSub for issuer-scoped federated lookups.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -180,20 +180,20 @@ IdentityAccount identityAccount = client.identityAccounts().getByEmail(IdentityA
 
 ### getByExternalSub
 
-Get a federated identity account by identity provider reference and external subject.
+Get a federated identity account by federation issuer reference and external subject.
 
 Used by platform backends to check whether a federated account already exists for a given OIDC subject before calling createFederatedAccount.
 
 Served by the Enterprise and Cloud editions; the open-source server answers UNIMPLEMENTED.
 
-Authorization: Requires can_create_identity_account on the organization that owns the identity provider.
+Authorization: Requires can_create_identity_account on the organization that owns the federation issuer.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
 const identityAccount = await stigmer.identityAccount.getByExternalSub({
   org: "...",
-  identityProviderRef: {},
+  federationIssuerRef: {},
   externalSub: "...",
 });
 ```
@@ -202,7 +202,7 @@ const identityAccount = await stigmer.identityAccount.getByExternalSub({
 ```go
 identityAccount, err := client.IdentityAccount.GetByExternalSub(ctx, &stigmer.ExternalSubLookup{
   Org:                 "...",
-  IdentityProviderRef: &stigmer.ResourceRef{},
+  FederationIssuerRef: &stigmer.ResourceRef{},
   ExternalSub:         "...",
 })
 ```
@@ -211,7 +211,7 @@ identityAccount, err := client.IdentityAccount.GetByExternalSub(ctx, &stigmer.Ex
 ```python
 identity_account = client.identity_accounts.get_by_external_sub(ExternalSubLookup(
     org="...",
-    identity_provider_ref=None,
+    federation_issuer_ref=None,
     external_sub="...",
 ))
 ```
@@ -220,7 +220,7 @@ identity_account = client.identity_accounts.get_by_external_sub(ExternalSubLooku
 ```java
 IdentityAccount identityAccount = client.identityAccounts().getByExternalSub(ExternalSubLookup.builder()
     .org("...")
-    .identityProviderRef(null)
+    .federationIssuerRef(null)
     .externalSub("...")
     .build());
 ```
@@ -235,7 +235,7 @@ IdentityAccount identityAccount = client.identityAccounts().getByExternalSub(Ext
 
 Get an identity account by identity provider ID (Auth0 subject).
 
-Primarily used for direct and machine accounts where the IDP ID is the Auth0 user_id or client_id. A federated account is never answered: its subject is its identity provider's, so it is looked up with getByExternalSub, which is scoped to that provider.
+Primarily used for direct and machine accounts where the IDP ID is the Auth0 user_id or client_id. A federated account is never answered: its subject is its federation issuer's, so it is looked up with getByExternalSub, which is scoped to that provider.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -344,7 +344,7 @@ const identityAccount = await stigmer.identityAccount.create({
   pictureUrl: "...",
   isMachineAccount: false,
   provisioningMode: "...",
-  identityProviderRef: {},
+  federationIssuerRef: {},
   preferences: {},
 });
 ```
@@ -363,7 +363,7 @@ identityAccount, err := client.IdentityAccount.Create(ctx, &stigmer.IdentityAcco
   PictureUrl:          "...",
   IsMachineAccount:    false,
   ProvisioningMode:    "...",
-  IdentityProviderRef: &stigmer.ResourceRef{},
+  FederationIssuerRef: &stigmer.ResourceRef{},
   Preferences:         &stigmer.IdentityAccountPreferencesInput{},
 })
 ```
@@ -382,7 +382,7 @@ identity_account = client.identity_accounts.create(IdentityAccountInput(
     picture_url="...",
     is_machine_account=False,
     provisioning_mode="...",
-    identity_provider_ref=None,
+    federation_issuer_ref=None,
     preferences=None,
 ))
 ```
@@ -401,7 +401,7 @@ IdentityAccount identityAccount = client.identityAccounts().create(IdentityAccou
     .pictureUrl("...")
     .isMachineAccount(false)
     .provisioningMode("...")
-    .identityProviderRef(null)
+    .federationIssuerRef(null)
     .preferences(null)
     .build());
 ```
@@ -467,20 +467,20 @@ IdentityAccount updated = client.identityAccounts().update(
 
 Update profile fields on a federated identity account.
 
-Looks up the account by natural key (identity_provider_ref + external_sub) and updates email, name, and picture. Identity keys are immutable.
+Looks up the account by natural key (federation_issuer_ref + external_sub) and updates email, name, and picture. Identity keys are immutable.
 
 Called by platform backends when a user's profile changes on their platform.
 
 Served by the Enterprise and Cloud editions; the open-source server answers UNIMPLEMENTED.
 
-Authorization: Requires can_create_identity_account on the organization that owns the identity provider.
+Authorization: Requires can_create_identity_account on the organization that owns the federation issuer.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
 const identityAccount = await stigmer.identityAccount.updateFederatedAccount({
   org: "...",
-  identityProviderRef: {},
+  federationIssuerRef: {},
   externalSub: "...",
   email: "...",
   firstName: "...",
@@ -493,7 +493,7 @@ const identityAccount = await stigmer.identityAccount.updateFederatedAccount({
 ```go
 identityAccount, err := client.IdentityAccount.UpdateFederatedAccount(ctx, &stigmer.UpdateFederatedAccountInput{
   Org:                 "...",
-  IdentityProviderRef: &stigmer.ResourceRef{},
+  FederationIssuerRef: &stigmer.ResourceRef{},
   ExternalSub:         "...",
   Email:               "...",
   FirstName:           "...",
@@ -506,7 +506,7 @@ identityAccount, err := client.IdentityAccount.UpdateFederatedAccount(ctx, &stig
 ```python
 identity_account = client.identity_accounts.update_federated_account(UpdateFederatedAccountInput(
     org="...",
-    identity_provider_ref=None,
+    federation_issuer_ref=None,
     external_sub="...",
     email="...",
     first_name="...",
@@ -519,7 +519,7 @@ identity_account = client.identity_accounts.update_federated_account(UpdateFeder
 ```java
 IdentityAccount identityAccount = client.identityAccounts().updateFederatedAccount(UpdateFederatedAccountInput.builder()
     .org("...")
-    .identityProviderRef(null)
+    .federationIssuerRef(null)
     .externalSub("...")
     .email("...")
     .firstName("...")
@@ -579,14 +579,14 @@ Returns the full identity account including its ID, which the platform uses to g
 
 Served by the Enterprise and Cloud editions; the open-source server answers UNIMPLEMENTED.
 
-Authorization: Requires can_create_identity_account on the organization that owns the identity provider.
+Authorization: Requires can_create_identity_account on the organization that owns the federation issuer.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
 const identityAccount = await stigmer.identityAccount.createFederatedAccount({
   org: "...",
-  identityProviderRef: {},
+  federationIssuerRef: {},
   externalSub: "...",
   email: "...",
   firstName: "...",
@@ -599,7 +599,7 @@ const identityAccount = await stigmer.identityAccount.createFederatedAccount({
 ```go
 identityAccount, err := client.IdentityAccount.CreateFederatedAccount(ctx, &stigmer.CreateFederatedAccountInput{
   Org:                 "...",
-  IdentityProviderRef: &stigmer.ResourceRef{},
+  FederationIssuerRef: &stigmer.ResourceRef{},
   ExternalSub:         "...",
   Email:               "...",
   FirstName:           "...",
@@ -612,7 +612,7 @@ identityAccount, err := client.IdentityAccount.CreateFederatedAccount(ctx, &stig
 ```python
 identity_account = client.identity_accounts.create_federated_account(CreateFederatedAccountInput(
     org="...",
-    identity_provider_ref=None,
+    federation_issuer_ref=None,
     external_sub="...",
     email="...",
     first_name="...",
@@ -625,7 +625,7 @@ identity_account = client.identity_accounts.create_federated_account(CreateFeder
 ```java
 IdentityAccount identityAccount = client.identityAccounts().createFederatedAccount(CreateFederatedAccountInput.builder()
     .org("...")
-    .identityProviderRef(null)
+    .federationIssuerRef(null)
     .externalSub("...")
     .email("...")
     .firstName("...")
@@ -697,20 +697,20 @@ IdentityAccount identityAccount = client.identityAccounts().createServiceAccount
 
 Deprovision a federated identity account by revoking access or deleting it.
 
-Looks up the account by natural key (identity_provider_ref + external_sub). When delete_account is false, revokes all IAM policies in the organization. When delete_account is true, revokes policies and deletes the account. Under a just-in-time provider, a deleted account is created again at the user's next sign-in, with any role the provider grants automatically; a revoked account that is kept is never granted a role at sign-in.
+Looks up the account by natural key (federation_issuer_ref + external_sub). When delete_account is false, revokes all IAM policies in the organization. When delete_account is true, revokes policies and deletes the account. Under a just-in-time provider, a deleted account is created again at the user's next sign-in, with any role the provider grants automatically; a revoked account that is kept is never granted a role at sign-in.
 
 Called by platform backends during user offboarding.
 
 Served by the Enterprise and Cloud editions; the open-source server answers UNIMPLEMENTED.
 
-Authorization: Requires can_create_identity_account on the organization that owns the identity provider.
+Authorization: Requires can_create_identity_account on the organization that owns the federation issuer.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
 const identityAccount = await stigmer.identityAccount.deprovisionFederatedAccount({
   org: "...",
-  identityProviderRef: {},
+  federationIssuerRef: {},
   externalSub: "...",
   deleteAccount: false,
 });
@@ -720,7 +720,7 @@ const identityAccount = await stigmer.identityAccount.deprovisionFederatedAccoun
 ```go
 identityAccount, err := client.IdentityAccount.DeprovisionFederatedAccount(ctx, &stigmer.DeprovisionFederatedAccountInput{
   Org:                 "...",
-  IdentityProviderRef: &stigmer.ResourceRef{},
+  FederationIssuerRef: &stigmer.ResourceRef{},
   ExternalSub:         "...",
   DeleteAccount:       false,
 })
@@ -730,7 +730,7 @@ identityAccount, err := client.IdentityAccount.DeprovisionFederatedAccount(ctx, 
 ```python
 identity_account = client.identity_accounts.deprovision_federated_account(DeprovisionFederatedAccountInput(
     org="...",
-    identity_provider_ref=None,
+    federation_issuer_ref=None,
     external_sub="...",
     delete_account=False,
 ))
@@ -740,7 +740,7 @@ identity_account = client.identity_accounts.deprovision_federated_account(Deprov
 ```java
 IdentityAccount identityAccount = client.identityAccounts().deprovisionFederatedAccount(DeprovisionFederatedAccountInput.builder()
     .org("...")
-    .identityProviderRef(null)
+    .federationIssuerRef(null)
     .externalSub("...")
     .deleteAccount(false)
     .build());
@@ -756,7 +756,7 @@ IdentityAccount identityAccount = client.identityAccounts().deprovisionFederated
 
 Provision the caller's own identity account.
 
-The first-sign-in step every client runs when whoAmI() returns NOT_FOUND: the console's identity gate, `stigmer auth login` and `stigmer auth whoami`, and the SDK's ensureMyIdentityAccount. Derives the account from the caller's token and the userinfo endpoint of the issuer that vouched for it. Idempotent: returns the existing account on retry. A caller another lane vouched for (an organization's identity provider, a platform client, a system lane) already has the account that lane provisions, and is refused PERMISSION_DENIED.
+The first-sign-in step every client runs when whoAmI() returns NOT_FOUND: the console's identity gate, `stigmer auth login` and `stigmer auth whoami`, and the SDK's ensureMyIdentityAccount. Derives the account from the caller's token and the userinfo endpoint of the issuer that vouched for it. Idempotent: returns the existing account on retry. A caller another lane vouched for (an organization's federation issuer, a platform client, a system lane) already has the account that lane provisions, and is refused PERMISSION_DENIED.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -833,7 +833,7 @@ Input for creating or updating an Identity Account.
     pictureUrl: { type: "string", description: "URL of the profile picture." },
     isMachineAccount: { type: "boolean", description: "Indicates if this is a machine account used for inter-service communication." },
     provisioningMode: { type: "IdentityAccountProvisioningMode", description: "How this identity account was provisioned.", typeDescriptionLink: "#identityaccountprovisioningmode" },
-    identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider that owns this federated account.", typeDescriptionLink: "#resourceref" },
+    federationIssuerRef: { type: "ResourceRef", description: "Reference to the FederationIssuer that owns this federated account.", typeDescriptionLink: "#resourceref" },
     preferences: { type: "IdentityAccountPreferencesInput", description: "Standing preferences declared by this identity account.", typeDescriptionLink: "#identityaccountpreferencesinput" },
   }}
 />
@@ -880,12 +880,12 @@ The changes an update makes to an identity account: the fields update_mask names
 
 ### CreateFederatedAccountInput
 
-CreateFederatedAccountInput is the command for creating a federated identity account linked to an external platform's identity provider.
+CreateFederatedAccountInput is the command for creating a federated identity account linked to an external platform's federation issuer.
 
 <TypeTable
   type={{
-    org: { type: "string", description: "Organization that owns the identity provider.", required: true },
-    identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider that this federated account belongs to.", typeDescriptionLink: "#resourceref" },
+    org: { type: "string", description: "Organization that owns the federation issuer.", required: true },
+    federationIssuerRef: { type: "ResourceRef", description: "Reference to the FederationIssuer that this federated account belongs to.", typeDescriptionLink: "#resourceref" },
     externalSub: { type: "string", description: "External subject identifier from the platform's OIDC provider.", required: true },
     email: { type: "string", description: "Email address of the user.", required: true },
     firstName: { type: "string", description: "First name of the user." },
@@ -896,12 +896,12 @@ CreateFederatedAccountInput is the command for creating a federated identity acc
 
 ### UpdateFederatedAccountInput
 
-UpdateFederatedAccountInput is the command for updating profile fields on a federated identity account identified by its natural key (identity provider reference + external subject).
+UpdateFederatedAccountInput is the command for updating profile fields on a federated identity account identified by its natural key (federation issuer reference + external subject).
 
 <TypeTable
   type={{
-    org: { type: "string", description: "Organization that owns the identity provider.", required: true },
-    identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider that the federated account belongs to.", typeDescriptionLink: "#resourceref" },
+    org: { type: "string", description: "Organization that owns the federation issuer.", required: true },
+    federationIssuerRef: { type: "ResourceRef", description: "Reference to the FederationIssuer that the federated account belongs to.", typeDescriptionLink: "#resourceref" },
     externalSub: { type: "string", description: "External subject identifier (OIDC sub claim) — lookup key, not updatable.", required: true },
     email: { type: "string", description: "Updated email address.", required: true },
     firstName: { type: "string", description: "Updated first name." },
@@ -916,10 +916,10 @@ DeprovisionFederatedAccountInput is the command for revoking a federated identit
 
 <TypeTable
   type={{
-    org: { type: "string", description: "Organization that owns the identity provider.", required: true },
-    identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider that the federated account belongs to.", typeDescriptionLink: "#resourceref" },
+    org: { type: "string", description: "Organization that owns the federation issuer.", required: true },
+    federationIssuerRef: { type: "ResourceRef", description: "Reference to the FederationIssuer that the federated account belongs to.", typeDescriptionLink: "#resourceref" },
     externalSub: { type: "string", description: "External subject identifier (OIDC sub claim) — lookup key.", required: true },
-    deleteAccount: { type: "boolean", description: "When false (default): revoke the account's access in this organization and the organizations its identity provider manages." },
+    deleteAccount: { type: "boolean", description: "When false (default): revoke the account's access in this organization and the organizations its federation issuer manages." },
   }}
 />
 
@@ -947,12 +947,12 @@ IdentityAccountEmail identifies an identity account by its email address.
 
 ### ExternalSubLookup
 
-ExternalSubLookup identifies a federated identity account by its identity provider reference and external subject identifier (OIDC sub claim).
+ExternalSubLookup identifies a federated identity account by its federation issuer reference and external subject identifier (OIDC sub claim).
 
 <TypeTable
   type={{
-    org: { type: "string", description: "Organization that owns the identity provider.", required: true },
-    identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider that the federated account belongs to.", typeDescriptionLink: "#resourceref" },
+    org: { type: "string", description: "Organization that owns the federation issuer.", required: true },
+    federationIssuerRef: { type: "ResourceRef", description: "Reference to the FederationIssuer that the federated account belongs to.", typeDescriptionLink: "#resourceref" },
     externalSub: { type: "string", description: "External subject identifier from the platform's OIDC provider.", required: true },
   }}
 />
@@ -1016,7 +1016,7 @@ IdentityAccountProvisioningMode defines how an identity account was created.
 | Value | Description |
 |-------|-------------|
 | `direct` | User signed up directly via Stigmer's own authentication tenant. |
-| `federated` | Account was created by the platform for federated authentication via an IdentityProvider. |
+| `federated` | Account was created by the platform for federated authentication via a FederationIssuer. |
 | `machine` | Machine-to-machine client credentials account for inter-service communication. |
 | `platform_client` | Account provisioned via a PlatformClient's mintUserToken endpoint. |
 | `service_account` | An organization's own non-person account: the principal its automation (a CI job, a script, an integration) acts as, so the automation keeps working when the person who set it up leaves. |

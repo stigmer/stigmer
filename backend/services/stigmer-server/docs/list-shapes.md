@@ -89,7 +89,7 @@ Rows read `| \`package.Service.method\` | class |`.
 | `ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listAuthorizedResourceIds` | exempt: an outside system's answer, the authorization engine's enumeration, capped at 1,000 and refused past it |
 | `ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listResourceAccessByPrincipal` | exempt: an outside system's answer, the authorization engine's enumeration, capped at 1,000 and refused past it |
 | `ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.listServiceAccounts` | paged |
-| `ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.list` | paged |
+| `ai.stigmer.iam.federationissuer.v1.FederationIssuerQueryController.list` | paged |
 | `ai.stigmer.iam.invitation.v1.InvitationQueryController.list` | paged |
 | `ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController.list` | paged |
 | `ai.stigmer.iam.platformclient.v1.PlatformClientQueryController.list` | paged |

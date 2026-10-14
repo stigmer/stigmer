@@ -817,7 +817,7 @@ describe("resolveExtensions — resource row readers", () => {
         name: "identity",
         drivers: {
           resourceRowReaders: new Map([
-            [ApiResourceKind.identity_provider, providers],
+            [ApiResourceKind.federation_issuer, providers],
           ]),
         },
       },
@@ -830,7 +830,7 @@ describe("resolveExtensions — resource row readers", () => {
     ]);
     expect(
       resolved.drivers.resourceRowReaders.get(
-        ApiResourceKind.identity_provider,
+        ApiResourceKind.federation_issuer,
       ),
     ).toBe(providers);
     expect(resolved.drivers.resourceRowReaders.get(ApiResourceKind.team)).toBe(

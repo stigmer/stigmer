@@ -24,7 +24,7 @@
 // enforcing lane (the single-organization target, which binds trivially:
 // it holds one organization) skips visibly.
 //
-// Out of scope: an identity provider's federated tokens, whose binding is
+// Out of scope: a federation issuer's federated tokens, whose binding is
 // the hosted edition's verifier and is proven by its own suites over a
 // signed test issuer.
 import { Code } from "@connectrpc/connect";

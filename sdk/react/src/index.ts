@@ -1435,7 +1435,7 @@ export { AccountPreferencesSection } from "./settings/index.js";
 export { MemorySection } from "./settings/index.js";
 export { VaultsSection } from "./settings/index.js";
 export { InvitationsSection } from "./settings/index.js";
-export { IdentityProvidersSection } from "./settings/index.js";
+export { FederationIssuersSection } from "./settings/index.js";
 export { PlatformClientsSection } from "./settings/index.js";
 export { ServiceAccountsSection } from "./settings/index.js";
 export { TeamsSection } from "./settings/index.js";
@@ -1581,36 +1581,36 @@ export type {
   SlackChannelAppManifestInput,
 } from "./channel-app/index.js";
 
-// Identity Provider — data hooks, mutation hooks, styled components, presets, and guided wizard for managing the platforms whose tokens an organization trusts
+// Federation Issuer — data hooks, mutation hooks, styled components, presets, and guided wizard for managing the platforms whose tokens an organization trusts
 export {
-  useIdentityProviderList,
-  useIdentityProvider,
-  useCreateIdentityProvider,
-  useUpdateIdentityProvider,
-  useDeleteIdentityProvider,
-  IdentityProviderListPanel,
-  CreateIdentityProviderForm,
+  useFederationIssuerList,
+  useFederationIssuer,
+  useCreateFederationIssuer,
+  useUpdateFederationIssuer,
+  useDeleteFederationIssuer,
+  FederationIssuerListPanel,
+  CreateFederationIssuerForm,
   PROVIDER_PRESETS,
   getPreset,
   ProviderPicker,
-  IdentityProviderWizard,
-  IdentityProviderDetailPanel,
-} from "./identity-provider/index.js";
+  FederationIssuerWizard,
+  FederationIssuerDetailPanel,
+} from "./federation-issuer/index.js";
 export type {
-  UseIdentityProviderListReturn,
-  UseIdentityProviderReturn,
-  UseCreateIdentityProviderReturn,
-  UseUpdateIdentityProviderReturn,
-  UseDeleteIdentityProviderReturn,
-  IdentityProviderListPanelProps,
-  CreateIdentityProviderFormProps,
+  UseFederationIssuerListReturn,
+  UseFederationIssuerReturn,
+  UseCreateFederationIssuerReturn,
+  UseUpdateFederationIssuerReturn,
+  UseDeleteFederationIssuerReturn,
+  FederationIssuerListPanelProps,
+  CreateFederationIssuerFormProps,
   ProviderPreset,
   ProviderVariable,
   ProviderConfig,
   ProviderPickerProps,
-  IdentityProviderWizardProps,
-  IdentityProviderDetailPanelProps,
-} from "./identity-provider/index.js";
+  FederationIssuerWizardProps,
+  FederationIssuerDetailPanelProps,
+} from "./federation-issuer/index.js";
 
 // Teams — an organization's named groups of people that access is shared
 // with as one (Enterprise and Cloud editions)

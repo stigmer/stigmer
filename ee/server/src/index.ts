@@ -56,8 +56,8 @@ export type {
   IdentityAccountServiceContractFixture,
   IdentityAccountServiceUnderTest,
 } from "./iam/account/port-contract.js";
-export { identityProviderStoreContract } from "./iam/provider/store-contract.js";
-export type { IdentityProviderStoreContractFixture } from "./iam/provider/store-contract.js";
+export { federationIssuerStoreContract } from "./iam/issuer/store-contract.js";
+export type { FederationIssuerStoreContractFixture } from "./iam/issuer/store-contract.js";
 export { teamStoreContract } from "./iam/team/store-contract.js";
 export type { TeamStoreContractFixture } from "./iam/team/store-contract.js";
 export { invitationStoreContract } from "./iam/invitation/store-contract.js";
@@ -82,7 +82,7 @@ export { audienceMatches, decodeJwt, verifiesRs256 } from "./verifiers/jwt.js";
 export { newJwksKeyCache } from "./verifiers/jwks.js";
 export type { JwksKeyCache } from "./verifiers/jwks.js";
 export { readDiscoveryDocument } from "./verifiers/oidc-discovery.js";
-export { normalizeIssuerUrl } from "./iam/provider/issuer-url.js";
+export { normalizeIssuerUrl } from "./iam/issuer/issuer-url.js";
 export { newIamPolicyGrantPathClient } from "./iam/policy/grant-path-client.js";
 export type { IamPolicyGrantPathClient } from "./iam/policy/grant-path-client.js";
 export { isPersonCaller, newKindMetaPolicyGrantScope } from "./iam/policy/roles.js";

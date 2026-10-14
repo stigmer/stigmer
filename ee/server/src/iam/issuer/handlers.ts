@@ -1,0 +1,476 @@
+/**
+ * The FederationIssuer RPCs as extension services: the command side's
+ * create, update, apply and delete, the query side's get, getByReference
+ * and list. FederationIssuer is an enterprise-tier
+ * kind open source registers no service for, so these are its only
+ * handlers; every one runs the composition's unary chain (Authorize from
+ * the proto annotation, then ValidateProto, then the lane's steps and its
+ * domain step), Team's shape (team/handlers.ts).
+ *
+ * The chains are the OSS steps wherever a step's question is the
+ * library's, and the provider's own only where the question reads this
+ * table or the library's answer is not this kind's (steps.ts):
+ *
+ *   create          ResolveSlug → CheckDuplicate → BuildNewState (the
+ *                   server's minted id, whatever the request carried: a
+ *                   provider's id names the grant rows on it, so a chosen
+ *                   one could name rows it never earned), then the
+ *                   validation matrix
+ *                   (validation.ts), the row, the verifier's invalidation
+ *                   and the lifecycle driver's creation event
+ *   update          LoadExisting → BuildUpdateState, then the matrix, the
+ *                   row and the invalidation
+ *                   (create and update end their steps with GrowthGate
+ *                   when the host fills the port, iam/growth-gate.ts, so a
+ *                   refused write reaches neither the matrix's live reads
+ *                   nor the row; apply reaches it through the arm it runs)
+ *   apply           AuthorizeResolvedTarget (`can_create_federation_issuer` on the
+ *                   request's organization, create's own question and
+ *                   copy) → ResolveSlug → LoadForApply decides; then
+ *                   create with the original request, or update with the
+ *                   resolved id. Both arms need the organization's admins,
+ *                   so the first question refuses no one they would admit,
+ *                   and a caller who is not one reads create's refusal
+ *                   whether or not the slug exists: the two arms' copies
+ *                   would otherwise say which. Each arm then runs its own
+ *                   chain and authorizes as its own door (`apply` itself
+ *                   carries no annotation). The
+ *                   delegation runs after the deciding chain returns, as
+ *                   the OSS apply does: inside its domain step, every
+ *                   refusal would be logged by both pipelines.
+ *   get             LoadTarget, then the row
+ *   getByReference  LoadByReference → AuthorizeResolvedTarget, as `get`;
+ *                   a missing slug or id is NOT_FOUND only to the
+ *                   organization's admins, who see every provider it
+ *                   holds, and `get`'s denial to anyone else
+ *                   (reference-miss.ts), so the code never tells an
+ *                   outsider whether a provider exists; the trust
+ *                   configuration is what a caller must be allowed to see
+ *   list            the organization's rows, newest first, a page at a
+ *                   time (the library's page loop over the store's keyset
+ *                   source), narrowed by the list read scope to what the
+ *                   caller could `get`
+ *   rename          the library's rename chain over this table
+ *                   (`renameResource`): RefuseServiceAccountCaller,
+ *                   LoadForRename, RefuseBeingDeleted, ValidateNewSlug,
+ *                   RenameName, PersistRenamed through `modifyById`, then
+ *                   the verifier's invalidation; sign-in routes by issuer
+ *                   and audience and federated accounts hold the
+ *                   provider's id, so nobody's sign-in moves
+ *   delete          LoadTarget, then the removal (removal.ts)
+ *
+ * Create follows the lifecycle contract every create chain follows: the
+ * row is written first, then the creation event (the organization link;
+ * the kind records no owner, so its organization's admins manage it); a
+ * failed event fails the request with the row
+ * in place, and the boot reconcile (iam/organization-links.ts) restores
+ * the organization link, which is all an organization's admins need to
+ * manage it. The verifier is told of every write as soon as the row
+ * changes, so a failed event never leaves a provider the verifier ignores
+ * until its cache expires.
+ */
+import type { DescMessage } from "@bufbuild/protobuf";
+import { create, fromBinary } from "@bufbuild/protobuf";
+import type { ServiceImpl } from "@connectrpc/connect";
+import type { OutboundFetch } from "@stigmer/outbound/egress";
+
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
+import {
+  FederationIssuersSchema,
+  UpdateFederationIssuerInputSchema,
+} from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/io_pb";
+import { FederationIssuerQueryController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/query_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import type {
+  Authorizer,
+  ExtensionServiceRegistration,
+  ListReadScope,
+  Logger,
+  NameTable,
+  PipelineStep,
+  RequestContext,
+  ResourceAuthorizationLifecycle,
+} from "@stigmer/server";
+import type { ServiceAccountLookup } from "@stigmer/server";
+import {
+  callerIdentityOf,
+  everyPathUpdate,
+  internalError,
+  listPageFingerprint,
+  loadedTargetAsMethod,
+  newAuthorizeResolvedTargetStep,
+  newBuildNewStateStep,
+  newBuildUpdateStateStep,
+  runGuardedWrite,
+  writeConflictError,
+  EXISTING_RESOURCE_BYTES_KEY,
+  newClaimNameStep,
+  newResolveSlugStep,
+  portRenameRows,
+  readPage,
+  releaseNameOnFailure,
+  renameResource,
+  resolveResourceCreatedEvent,
+  restrictListByReadScope,
+  TARGET_RESOURCE_KEY,
+  newRefuseServiceAccountCallerStep,
+} from "@stigmer/server";
+
+import { runUnaryChain, runUpdateChain } from "../../rpc/unary-chain.js";
+import { deniedCopyOf } from "../reference-miss.js";
+import type { OrganizationLookup } from "../organization-links.js";
+import type { IssuerRemoval } from "./removal.js";
+import {
+  duplicateIssuerError,
+  findIssuerByName,
+  newRefuseRenamingDeletedIssuerStep,
+  newCheckDuplicateIssuerStep,
+  providerNameHolder,
+  newLoadExistingIssuerStep,
+  newLoadIssuerByReferenceStep,
+  newLoadIssuerForApplyStep,
+  newLoadIssuerStep,
+  providerAt,
+  providerForApply,
+  withResolvedIssuerId,
+} from "./steps.js";
+import { newGrowthGateStep, type GrowthGate } from "../growth-gate.js";
+import type { FederationIssuerStore } from "./store.js";
+import { normalizeIssuers, routeTakenError, validateIssuer } from "./validation.js";
+
+export interface FederationIssuerLaneDeps {
+  readonly authorizer: Authorizer;
+  readonly logger: Logger;
+  readonly store: FederationIssuerStore;
+  /** The server's one name table, where a provider's slug is claimed (steps.ts). */
+  readonly names: NameTable;
+  /** The egress-guarded fetch the matrix's live reads dial through (the composition's one). */
+  readonly outboundFetch: OutboundFetch;
+  /** The issuers the host's own sign-in lanes claim, which no provider may name. */
+  readonly reservedIssuers: ReadonlyArray<string>;
+  readonly removal: Pick<IssuerRemoval, "remove">;
+  /** The composition's one lifecycle driver: creation grants through the grant path. */
+  readonly lifecycle: Pick<ResourceAuthorizationLifecycle, "onResourceCreated">;
+  /** The composition's one list read scope, the same instance the driver slot holds. */
+  readonly listReadScope: ListReadScope;
+  /** The federated verifier's issuer-cache invalidation, after every row write. */
+  readonly invalidate: () => void;
+  /** The slug the delete's refusal names the provider's organization by. */
+  readonly organizations: OrganizationLookup;
+  /**
+   * The identity-account port: whether the caller is an organization's
+   * service account, which creates, changes and deletes no identity
+   * provider (its sign-in role makes members; @stigmer/server's
+   * refuse-service-account step).
+   */
+  readonly accounts: ServiceAccountLookup;
+  /** The host's growth gate (iam/growth-gate.ts); absent, every create and update is allowed. */
+  readonly growthGate?: GrowthGate;
+}
+
+type Commands = ServiceImpl<typeof FederationIssuerCommandController>;
+type Queries = ServiceImpl<typeof FederationIssuerQueryController>;
+
+const KIND = ApiResourceKind.federation_issuer;
+
+/** Apply's first refusal is create's own copy (the header's apply line says why). */
+const APPLY_DENIED = deniedCopyOf(FederationIssuerCommandController.method.create);
+
+/** The growth gate's step, last in create and update, when the host fills the port. */
+function growthGateOf(
+  deps: FederationIssuerLaneDeps,
+): ReadonlyArray<PipelineStep<typeof FederationIssuerSchema>> {
+  return deps.growthGate === undefined ? [] : [newGrowthGateStep(deps.growthGate)];
+}
+
+export function providerCommands(deps: FederationIssuerLaneDeps): Commands {
+  const method = FederationIssuerCommandController.method;
+  // A service account decides no sign-in path into the organization
+  // (@stigmer/server's refuse-service-account step), on every write.
+  const refuseServiceAccount = <Desc extends DescMessage>() =>
+    newRefuseServiceAccountCallerStep<Desc>(
+      "create, change or delete federation issuers",
+      deps.accounts,
+    );
+  const commands: Commands = {
+    create: (input, ctx) =>
+      runUnaryChain(
+        { chain: "federation-issuer-create", step: "CreateFederationIssuer" },
+        method.create,
+        input,
+        ctx,
+        deps,
+        (reqCtx) => createIssuer(reqCtx, deps),
+        {
+          kind: KIND,
+          steps: [
+            refuseServiceAccount(),
+            newResolveSlugStep(),
+            newCheckDuplicateIssuerStep(deps.names, deps.store),
+            newBuildNewStateStep(),
+            ...growthGateOf(deps),
+            newClaimNameStep<typeof FederationIssuerSchema>(
+              deps.names,
+              KIND,
+              providerNameHolder(deps.store),
+            ),
+          ],
+        },
+      ),
+    // The guarded write (`@stigmer/server`'s pipeline/guarded-write.ts): a
+    // rename or any other write between the load and the swap makes the
+    // chain run again from a fresh read.
+    update: (input, ctx) =>
+      runGuardedWrite(() =>
+        runUpdateChain(
+          { chain: "federation-issuer-update", step: "UpdateFederationIssuer" },
+          method.update,
+          FederationIssuerSchema,
+          input,
+          ctx,
+          deps,
+          (reqCtx) => updateIssuer(reqCtx, deps),
+          {
+            kind: KIND,
+            steps: [
+              refuseServiceAccount(),
+              newLoadExistingIssuerStep(deps.store),
+              newBuildUpdateStateStep(),
+              ...growthGateOf(deps),
+            ],
+          },
+        ),
+      ),
+    apply: async (input, ctx) => {
+      const existing = await runUnaryChain(
+        { chain: "federation-issuer-apply", step: "DecideApply" },
+        method.apply,
+        input,
+        ctx,
+        deps,
+        (reqCtx) => Promise.resolve(providerForApply(reqCtx)),
+        {
+          kind: KIND,
+          steps: [
+            refuseServiceAccount(),
+            newAuthorizeResolvedTargetStep(deps.authorizer, (reqCtx) => [
+              {
+                permission: IamPermission.can_create_federation_issuer,
+                resourceKind: ApiResourceKind.organization,
+                resourceId: reqCtx.input.metadata?.org ?? "",
+                deniedMessage: APPLY_DENIED,
+              },
+            ]),
+            newResolveSlugStep(),
+            newLoadIssuerForApplyStep(deps.names, deps.store),
+          ],
+        },
+      );
+      return existing === undefined
+        ? commands.create(input, ctx)
+        : commands.update(
+            everyPathUpdate(UpdateFederationIssuerInputSchema, withResolvedIssuerId(input, existing)),
+            ctx,
+          );
+    },
+    rename: async (input, ctx) => {
+      const renamed = await renameResource(
+        {
+          method: method.rename,
+          names: deps.names,
+          rows: portRenameRows(FederationIssuerSchema, deps.store),
+          authorizer: deps.authorizer,
+          logger: deps.logger,
+          beforeLoad: [refuseServiceAccount()],
+          afterLoad: [newRefuseRenamingDeletedIssuerStep(deps.store)],
+        },
+        input,
+        callerIdentityOf(ctx),
+        KIND,
+      );
+      deps.invalidate();
+      return renamed;
+    },
+    delete: (input, ctx) =>
+      runUnaryChain(
+        { chain: "federation-issuer-delete", step: "DeleteFederationIssuer" },
+        method.delete,
+        input,
+        ctx,
+        deps,
+        async (reqCtx) => {
+          const provider = providerAt(reqCtx, TARGET_RESOURCE_KEY);
+          await deps.removal.remove(
+            provider.metadata?.id ?? "",
+            reqCtx.callerIdentity.identityId,
+          );
+          return provider;
+        },
+        {
+          kind: KIND,
+          steps: [refuseServiceAccount(), newLoadIssuerStep(deps.store, (del) => del.resourceId)],
+        },
+      ),
+  };
+  return commands;
+}
+
+export function providerQueries(deps: FederationIssuerLaneDeps): Queries {
+  const method = FederationIssuerQueryController.method;
+  return {
+    get: (input, ctx) =>
+      runUnaryChain(
+        { chain: "federation-issuer-get", step: "GetFederationIssuer" },
+        method.get,
+        input,
+        ctx,
+        deps,
+        (reqCtx) => Promise.resolve(providerAt(reqCtx, TARGET_RESOURCE_KEY)),
+        {
+          kind: KIND,
+          steps: [newLoadIssuerStep(deps.store, (id) => id.value)],
+        },
+      ),
+    getByReference: (input, ctx) =>
+      runUnaryChain(
+        { chain: "federation-issuer-get-by-reference", step: "GetFederationIssuerByReference" },
+        method.getByReference,
+        input,
+        ctx,
+        deps,
+        (reqCtx) => Promise.resolve(providerAt(reqCtx, TARGET_RESOURCE_KEY)),
+        {
+          kind: KIND,
+          steps: [
+            newLoadIssuerByReferenceStep(deps.names, deps.store, deps.authorizer),
+            newAuthorizeResolvedTargetStep(deps.authorizer, loadedTargetAsMethod(method.get)),
+          ],
+        },
+      ),
+    list: (input, ctx) =>
+      runUnaryChain(
+        { chain: "federation-issuer-list", step: "ListFederationIssuers" },
+        method.list,
+        input,
+        ctx,
+        deps,
+        async (reqCtx) => {
+          const { org, pageSize, pageToken } = reqCtx.input;
+          const page = await readPage<FederationIssuer>({
+            source: (after, limit) => deps.store.pageByOrg(org, after, limit),
+            request: { pageSize, pageToken },
+            fingerprint: listPageFingerprint({ org }),
+            decode: (data) => fromBinary(FederationIssuerSchema, data),
+            scope: (rows) =>
+              restrictListByReadScope(deps.listReadScope, reqCtx.callerIdentity, KIND, rows, org),
+            failure: "failed to list federation issuers",
+          });
+          return create(FederationIssuersSchema, {
+            entries: page.entries,
+            nextPageToken: page.nextPageToken,
+          });
+        },
+      ),
+  };
+}
+
+/**
+ * The create's domain step: the matrix, the row, the invalidation, then
+ * the creation event; ClaimName took the slug in the name table just
+ * before, and a failure before the row landed lets it go. A slug or a
+ * route a racing create claimed first answers the copy the chain's check
+ * or the matrix would have.
+ */
+async function createIssuer(
+  reqCtx: RequestContext<typeof FederationIssuerCommandController.method.create.input>,
+  deps: FederationIssuerLaneDeps,
+): Promise<FederationIssuer> {
+  return insertIssuer(reqCtx, deps).catch(
+    releaseNameOnFailure(deps.names, deps.logger, reqCtx),
+  );
+}
+
+async function insertIssuer(
+  reqCtx: RequestContext<typeof FederationIssuerCommandController.method.create.input>,
+  deps: FederationIssuerLaneDeps,
+): Promise<FederationIssuer> {
+  const provider = reqCtx.newState;
+  normalizeIssuers(provider);
+  await validateIssuer(deps, provider, /* isUpdate */ false);
+  const outcome = await deps.store.insert(provider);
+  switch (outcome.kind) {
+    case "inserted":
+      break;
+    case "slug-taken": {
+      const winner = await findIssuerByName(
+        deps.names,
+        deps.store,
+        provider.metadata?.org ?? "",
+        provider.metadata?.slug ?? "",
+      );
+      throw duplicateIssuerError(winner ?? provider);
+    }
+    case "route-taken":
+      throw routeTakenError(outcome.route);
+    default: {
+      const exhaustive: never = outcome;
+      throw new Error(`unknown insert outcome: ${JSON.stringify(exhaustive)}`);
+    }
+  }
+  deps.invalidate();
+  const event = resolveResourceCreatedEvent(KIND, provider, reqCtx.callerIdentity, deps.logger);
+  if (event !== undefined) {
+    try {
+      await deps.lifecycle.onResourceCreated(event);
+    } catch (error) {
+      throw internalError(error, "failed to create authorization tuples");
+    }
+  }
+  return provider;
+}
+
+/**
+ * The update's domain step over BuildUpdateState's row (the request's
+ * spec, name and labels on the stored id, slug, organization, visibility
+ * and status): the matrix, the row, the invalidation.
+ */
+async function updateIssuer(
+  reqCtx: RequestContext<typeof FederationIssuerSchema>,
+  deps: FederationIssuerLaneDeps,
+): Promise<FederationIssuer> {
+  const provider = reqCtx.newState;
+  normalizeIssuers(provider);
+  await validateIssuer(deps, provider, /* isUpdate */ true);
+  const outcome = await deps.store.swap(
+    provider.metadata?.id ?? "",
+    // LoadExisting runs first in this chain and keeps the bytes.
+    reqCtx.get(EXISTING_RESOURCE_BYTES_KEY) as Uint8Array,
+    provider,
+  );
+  switch (outcome.kind) {
+    case "replaced":
+      break;
+    case "route-taken":
+      throw routeTakenError(outcome.route);
+    case "changed":
+      throw writeConflictError(KIND, provider.metadata?.org ?? "", provider.metadata?.slug ?? "");
+    default: {
+      const exhaustive: never = outcome;
+      throw new Error(`unknown replace outcome: ${JSON.stringify(exhaustive)}`);
+    }
+  }
+  deps.invalidate();
+  return provider;
+}
+
+export function newFederationIssuerRegistrations(
+  deps: FederationIssuerLaneDeps,
+): ReadonlyArray<ExtensionServiceRegistration> {
+  return [
+    (router) => router.service(FederationIssuerCommandController, providerCommands(deps)),
+    (router) => router.service(FederationIssuerQueryController, providerQueries(deps)),
+  ];
+}

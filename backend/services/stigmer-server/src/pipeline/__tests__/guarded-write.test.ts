@@ -244,7 +244,7 @@ describe("changeThroughGuardedPort", () => {
     const port = new FakeGuardedPort(seededRow(), false);
     const stored = await changeThroughGuardedPort(
       port,
-      ApiResourceKind.identity_provider,
+      ApiResourceKind.federation_issuer,
       "row_1",
       (row) => {
         row.value = "after";
@@ -262,7 +262,7 @@ describe("changeThroughGuardedPort", () => {
     const error = await failureOf(
       changeThroughGuardedPort(
         port,
-        ApiResourceKind.identity_provider,
+        ApiResourceKind.federation_issuer,
         "row_1",
         (row) => {
           changedGenerations.push(row.generation);
@@ -276,7 +276,7 @@ describe("changeThroughGuardedPort", () => {
     expect(changedGenerations).toEqual([0, 1, 2]);
     expectWriteConflict(
       error,
-      "Identity provider 'org_acme/provider' kept changing while this update was being saved; try again",
+      "Federation issuer 'org_acme/provider' kept changing while this update was being saved; try again",
     );
     // Every move survived; the change never landed.
     expect(port.current()).toEqual({ ...seededRow(), generation: 3 });
@@ -287,7 +287,7 @@ describe("changeThroughGuardedPort", () => {
     let changes = 0;
     const stored = await changeThroughGuardedPort(
       port,
-      ApiResourceKind.identity_provider,
+      ApiResourceKind.federation_issuer,
       "row_1",
       () => {
         changes += 1;

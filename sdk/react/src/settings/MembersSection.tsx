@@ -4,7 +4,7 @@ import { useId } from "react";
 import { OrgMembersPanel } from "../iam-policy/OrgMembersPanel.js";
 import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
 import { useOrg } from "../organization/OrgProvider.js";
-import { useIdentityProviderList } from "../identity-provider/useIdentityProviderList.js";
+import { useFederationIssuerList } from "../federation-issuer/useFederationIssuerList.js";
 
 /** Props for {@link MembersSection}. */
 export interface MembersSectionProps {
@@ -33,17 +33,17 @@ export function MembersSection({ serviceAccountsHref }: MembersSectionProps = {}
   const invitationsAvailable = useResourceAvailable(
     ApiResourceKind.invitation,
   );
-  const idpAvailable = useResourceAvailable(ApiResourceKind.identity_provider);
+  const issuerAvailable = useResourceAvailable(ApiResourceKind.federation_issuer);
   const org = activeOrg?.metadata?.id ?? "";
 
-  const { identityProviders } = useIdentityProviderList(
-    idpAvailable && org ? org : null,
+  const { federationIssuers } = useFederationIssuerList(
+    issuerAvailable && org ? org : null,
   );
 
-  // A provider with a sign-in role adds people here on their first
+  // An issuer with a sign-in role adds people here on their first
   // sign-in.
-  const hasSignInRoleProviders = identityProviders.some((idp) =>
-    Boolean(idp.spec?.signInRole),
+  const hasSignInRoleProviders = federationIssuers.some((issuer) =>
+    Boolean(issuer.spec?.signInRole),
   );
 
   return (
@@ -77,7 +77,7 @@ export function MembersSection({ serviceAccountsHref }: MembersSectionProps = {}
           {hasSignInRoleProviders && (
             <div className="stg:mb-3 stg:rounded-md stg:border stg:border-border-muted stg:bg-muted-faint stg:px-3 stg:py-2">
               <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-                This organization has identity providers that grant a sign-in
+                This organization has federation issuers that grant a sign-in
                 role. People appear here the first time they sign in through
                 one of them.
               </p>

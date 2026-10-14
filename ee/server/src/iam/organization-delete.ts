@@ -52,16 +52,16 @@ import { EXISTING_RESOURCE_KEY, internalError } from "@stigmer/server";
 
 import type { SignInGrantLedger } from "./federation/sign-in-grants.js";
 import type { InvitationRemoval } from "./invitation/removal.js";
-import type { ProviderRemoval } from "./provider/removal.js";
+import type { IssuerRemoval } from "./issuer/removal.js";
 import type { TeamRemoval } from "./team/removal.js";
 
 /** The fixed copy a removal fault answers; the cause is logged, never sent. */
 export const ORGANIZATION_IDENTITY_REMOVAL_FAILED =
-  "failed to remove the organization's identity providers, teams and invitations";
+  "failed to remove the organization's federation issuers, teams and invitations";
 
 export interface RemoveOrganizationIdentityDeps {
   readonly teams: Pick<TeamRemoval, "removeByOrgId">;
-  readonly providers: Pick<ProviderRemoval, "removeByOrgId">;
+  readonly providers: Pick<IssuerRemoval, "removeByOrgId">;
   readonly invitations: Pick<InvitationRemoval, "removeByOrgId">;
 }
 
@@ -108,7 +108,7 @@ export function newOrganizationIdentityPurgeStage(
   return {
     name: IDENTITY_PURGE_STAGE,
     kinds: [
-      ApiResourceKind.identity_provider,
+      ApiResourceKind.federation_issuer,
       ApiResourceKind.team,
       ApiResourceKind.invitation,
     ],
@@ -125,7 +125,7 @@ export function newOrganizationIdentityPurgeStage(
         await deps.invitations.removeByOrgId(org, actingFor);
       } catch (error) {
         deps.logger.error(
-          "could not remove the identity providers, teams, sign-in grants or invitations of an organization being deleted",
+          "could not remove the federation issuers, teams, sign-in grants or invitations of an organization being deleted",
           { org, error: error instanceof Error ? error.message : String(error) },
         );
         throw error;

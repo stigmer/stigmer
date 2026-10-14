@@ -104,7 +104,7 @@ import {
   reservedSubjectMessage,
 } from "./constants.js";
 import { isServiceAccount } from "./actor.js";
-import type { AccountProvisioning, FederatedProvider } from "./provisioning.js";
+import type { AccountProvisioning, FederatedIssuer } from "./provisioning.js";
 import {
   serviceAccountNameTakenError,
   serviceAccountSlugOf,
@@ -230,7 +230,7 @@ export function assignDirectBackendFields(
 ): IdentityAccountSpec {
   spec.isMachineAccount = isMachineSubject(spec.idpId);
   spec.provisioningMode = IdentityAccountProvisioningMode.direct;
-  spec.identityProviderRef = undefined;
+  spec.federationIssuerRef = undefined;
   return spec;
 }
 
@@ -245,7 +245,7 @@ function assignPlatformClientBackendFields(
 ): IdentityAccountSpec {
   spec.isMachineAccount = isMachineSubject(spec.idpId);
   spec.provisioningMode = IdentityAccountProvisioningMode.platform_client;
-  spec.identityProviderRef = undefined;
+  spec.federationIssuerRef = undefined;
   return spec;
 }
 
@@ -260,7 +260,7 @@ function assignServiceAccountBackendFields(
 ): IdentityAccountSpec {
   spec.isMachineAccount = false;
   spec.provisioningMode = IdentityAccountProvisioningMode.service_account;
-  spec.identityProviderRef = undefined;
+  spec.federationIssuerRef = undefined;
   spec.email = "";
   spec.firstName = "";
   spec.lastName = "";
@@ -277,13 +277,13 @@ function assignServiceAccountBackendFields(
  */
 function assignFederatedBackendFields(
   spec: IdentityAccountSpec,
-  provider: FederatedProvider,
+  provider: FederatedIssuer,
 ): IdentityAccountSpec {
   spec.isMachineAccount = isMachineSubject(spec.idpId);
   spec.provisioningMode = IdentityAccountProvisioningMode.federated;
-  spec.identityProviderRef = create(ApiResourceReferenceSchema, {
+  spec.federationIssuerRef = create(ApiResourceReferenceSchema, {
     org: provider.org,
-    kind: ApiResourceKind.identity_provider,
+    kind: ApiResourceKind.federation_issuer,
     id: provider.id,
   });
   return spec;
@@ -432,7 +432,7 @@ export function newPreserveBackendFieldsStep(): AccountStep {
       spec.provisioningMode =
         existingSpec?.provisioningMode ??
         IdentityAccountProvisioningMode.identity_account_provisioning_mode_unspecified;
-      spec.identityProviderRef = existingSpec?.identityProviderRef;
+      spec.federationIssuerRef = existingSpec?.federationIssuerRef;
     },
   };
 }

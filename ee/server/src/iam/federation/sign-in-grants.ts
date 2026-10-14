@@ -1,6 +1,6 @@
 /**
  * The sign-in grant ledger: one row per (account, organization) an
- * identity provider has signed the account in to. The federated lane
+ * federation issuer has signed the account in to. The federated lane
  * grants the provider's `sign_in_role` the first time an account signs in
  * to an organization and never again, so a
  * role an admin removes stays removed; the row is how "first" is known.
@@ -25,10 +25,10 @@
  * The host's Postgres adapter is postgres-sign-in-grants.ts beside it.
  */
 export interface SignInGrantLedger {
-  /** Whether the account has signed in to `org` through an identity provider before. */
+  /** Whether the account has signed in to `org` through a federation issuer before. */
   recorded(accountId: string, org: string): Promise<boolean>;
   /** Records the first sign-in; true only for the request that wrote the row. */
-  claim(accountId: string, org: string, identityProviderId: string): Promise<boolean>;
+  claim(accountId: string, org: string, federationIssuerId: string): Promise<boolean>;
   /** Removes a claimed row whose grant failed, so the next sign-in grants again. */
   release(accountId: string, org: string): Promise<void>;
   /** Every account's row for an organization being deleted; answers how many went. Idempotent. */

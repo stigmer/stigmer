@@ -89,7 +89,7 @@ const ACME = "org_01jz00000000000000000acme0";
 /** The kinds whose slugs are names. A change here is a change to the contract every kind meets. */
 const CLAIMING_KINDS = [
   ApiResourceKind.identity_account,
-  ApiResourceKind.identity_provider,
+  ApiResourceKind.federation_issuer,
   ApiResourceKind.oauth_app,
   ApiResourceKind.platform_client,
   ApiResourceKind.team,

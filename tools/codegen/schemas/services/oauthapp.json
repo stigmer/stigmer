@@ -186,7 +186,7 @@
               "identity_account",
               "api_key",
               "invitation",
-              "identity_provider",
+              "federation_issuer",
               "oauth_app",
               "platform_client",
               "team",
@@ -383,9 +383,9 @@
           "description": "Shareable link for joining an organization with a configurable role."
         },
         {
-          "name": "identity_provider",
+          "name": "federation_issuer",
           "number": 21,
-          "description": "External identity provider for federated authentication."
+          "description": "An outside issuer whose tokens Stigmer accepts for its own users\n (identity federation): its keys, its audience, and what its tokens get."
         },
         {
           "name": "oauth_app",
@@ -571,5 +571,5 @@
       ]
     }
   ],
-  "resourceDescription": "OAuthApp represents a registered OAuth application with an external vendor.\n\n An OAuthApp is owned by an organization and holds the client credentials\n needed for vendor-specific OAuth flows. It enables Stigmer to authenticate\n with external services (Slack, Salesforce, Figma, etc.) on behalf of users.\n\n OAuthApp is the outbound counterpart to IdentityProvider (inbound auth).\n While IdentityProvider configures how external platforms authenticate\n *into* Stigmer, OAuthApp configures how Stigmer authenticates *outward*\n to external services.\n\n Used for the sign-in of MCP servers that require vendor-specific OAuth.\n\n Example YAML:\n   apiVersion: iam.stigmer.ai/v1\n   kind: OAuthApp\n   metadata:\n     name: Slack OAuth\n     slug: slack-oauth\n     org: acme\n   spec:\n     provider: \"Slack\"\n     client_id: \"1234567890.abcdef\"\n     client_secret: \"xoxs-...\"\n     authorization_url: \"https://slack.com/oauth/v2/authorize\"\n     token_url: \"https://slack.com/api/oauth.v2.access\"\n     scopes: [\"channels:read\", \"chat:write\"]"
+  "resourceDescription": "OAuthApp represents a registered OAuth application with an external vendor.\n\n An OAuthApp is owned by an organization and holds the client credentials\n needed for vendor-specific OAuth flows. It enables Stigmer to authenticate\n with external services (Slack, Salesforce, Figma, etc.) on behalf of users.\n\n OAuthApp is the outbound counterpart to FederationIssuer (inbound auth).\n While FederationIssuer configures how external platforms authenticate\n *into* Stigmer, OAuthApp configures how Stigmer authenticates *outward*\n to external services.\n\n Used for the sign-in of MCP servers that require vendor-specific OAuth.\n\n Example YAML:\n   apiVersion: iam.stigmer.ai/v1\n   kind: OAuthApp\n   metadata:\n     name: Slack OAuth\n     slug: slack-oauth\n     org: acme\n   spec:\n     provider: \"Slack\"\n     client_id: \"1234567890.abcdef\"\n     client_secret: \"xoxs-...\"\n     authorization_url: \"https://slack.com/oauth/v2/authorize\"\n     token_url: \"https://slack.com/api/oauth.v2.access\"\n     scopes: [\"channels:read\", \"chat:write\"]"
 }

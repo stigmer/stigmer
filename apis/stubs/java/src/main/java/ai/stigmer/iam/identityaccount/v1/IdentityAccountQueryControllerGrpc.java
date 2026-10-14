@@ -323,7 +323,7 @@ public final class IdentityAccountQueryControllerGrpc {
      * <pre>
      * Get a direct identity account by email address.
      * Only returns direct (non-federated) accounts. Federated accounts are not
-     * returned by this RPC — use getByExternalSub for IdP-scoped federated lookups.
+     * returned by this RPC — use getByExternalSub for issuer-scoped federated lookups.
      * </pre>
      */
     default void getByEmail(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request,
@@ -336,7 +336,7 @@ public final class IdentityAccountQueryControllerGrpc {
      * Get an identity account by identity provider ID (Auth0 subject).
      * Primarily used for direct and machine accounts where the IDP ID is
      * the Auth0 user_id or client_id. A federated account is never answered:
-     * its subject is its identity provider's, so it is looked up with
+     * its subject is its federation issuer's, so it is looked up with
      * getByExternalSub, which is scoped to that provider.
      * </pre>
      */
@@ -347,13 +347,13 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a federated identity account by identity provider reference and external subject.
+     * Get a federated identity account by federation issuer reference and external subject.
      * Used by platform backends to check whether a federated account already exists
      * for a given OIDC subject before calling createFederatedAccount.
      * Served by the Enterprise and Cloud editions; the open-source server
      * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
-     * that owns the identity provider.
+     * that owns the federation issuer.
      * </pre>
      */
     default void getByExternalSub(ai.stigmer.iam.identityaccount.v1.ExternalSubLookup request,
@@ -445,7 +445,7 @@ public final class IdentityAccountQueryControllerGrpc {
      * <pre>
      * Get a direct identity account by email address.
      * Only returns direct (non-federated) accounts. Federated accounts are not
-     * returned by this RPC — use getByExternalSub for IdP-scoped federated lookups.
+     * returned by this RPC — use getByExternalSub for issuer-scoped federated lookups.
      * </pre>
      */
     public void getByEmail(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request,
@@ -459,7 +459,7 @@ public final class IdentityAccountQueryControllerGrpc {
      * Get an identity account by identity provider ID (Auth0 subject).
      * Primarily used for direct and machine accounts where the IDP ID is
      * the Auth0 user_id or client_id. A federated account is never answered:
-     * its subject is its identity provider's, so it is looked up with
+     * its subject is its federation issuer's, so it is looked up with
      * getByExternalSub, which is scoped to that provider.
      * </pre>
      */
@@ -471,13 +471,13 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a federated identity account by identity provider reference and external subject.
+     * Get a federated identity account by federation issuer reference and external subject.
      * Used by platform backends to check whether a federated account already exists
      * for a given OIDC subject before calling createFederatedAccount.
      * Served by the Enterprise and Cloud editions; the open-source server
      * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
-     * that owns the identity provider.
+     * that owns the federation issuer.
      * </pre>
      */
     public void getByExternalSub(ai.stigmer.iam.identityaccount.v1.ExternalSubLookup request,
@@ -556,7 +556,7 @@ public final class IdentityAccountQueryControllerGrpc {
      * <pre>
      * Get a direct identity account by email address.
      * Only returns direct (non-federated) accounts. Federated accounts are not
-     * returned by this RPC — use getByExternalSub for IdP-scoped federated lookups.
+     * returned by this RPC — use getByExternalSub for issuer-scoped federated lookups.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount getByEmail(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request) throws io.grpc.StatusException {
@@ -569,7 +569,7 @@ public final class IdentityAccountQueryControllerGrpc {
      * Get an identity account by identity provider ID (Auth0 subject).
      * Primarily used for direct and machine accounts where the IDP ID is
      * the Auth0 user_id or client_id. A federated account is never answered:
-     * its subject is its identity provider's, so it is looked up with
+     * its subject is its federation issuer's, so it is looked up with
      * getByExternalSub, which is scoped to that provider.
      * </pre>
      */
@@ -580,13 +580,13 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a federated identity account by identity provider reference and external subject.
+     * Get a federated identity account by federation issuer reference and external subject.
      * Used by platform backends to check whether a federated account already exists
      * for a given OIDC subject before calling createFederatedAccount.
      * Served by the Enterprise and Cloud editions; the open-source server
      * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
-     * that owns the identity provider.
+     * that owns the federation issuer.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount getByExternalSub(ai.stigmer.iam.identityaccount.v1.ExternalSubLookup request) throws io.grpc.StatusException {
@@ -662,7 +662,7 @@ public final class IdentityAccountQueryControllerGrpc {
      * <pre>
      * Get a direct identity account by email address.
      * Only returns direct (non-federated) accounts. Federated accounts are not
-     * returned by this RPC — use getByExternalSub for IdP-scoped federated lookups.
+     * returned by this RPC — use getByExternalSub for issuer-scoped federated lookups.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount getByEmail(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request) {
@@ -675,7 +675,7 @@ public final class IdentityAccountQueryControllerGrpc {
      * Get an identity account by identity provider ID (Auth0 subject).
      * Primarily used for direct and machine accounts where the IDP ID is
      * the Auth0 user_id or client_id. A federated account is never answered:
-     * its subject is its identity provider's, so it is looked up with
+     * its subject is its federation issuer's, so it is looked up with
      * getByExternalSub, which is scoped to that provider.
      * </pre>
      */
@@ -686,13 +686,13 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a federated identity account by identity provider reference and external subject.
+     * Get a federated identity account by federation issuer reference and external subject.
      * Used by platform backends to check whether a federated account already exists
      * for a given OIDC subject before calling createFederatedAccount.
      * Served by the Enterprise and Cloud editions; the open-source server
      * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
-     * that owns the identity provider.
+     * that owns the federation issuer.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount getByExternalSub(ai.stigmer.iam.identityaccount.v1.ExternalSubLookup request) {
@@ -770,7 +770,7 @@ public final class IdentityAccountQueryControllerGrpc {
      * <pre>
      * Get a direct identity account by email address.
      * Only returns direct (non-federated) accounts. Federated accounts are not
-     * returned by this RPC — use getByExternalSub for IdP-scoped federated lookups.
+     * returned by this RPC — use getByExternalSub for issuer-scoped federated lookups.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> getByEmail(
@@ -784,7 +784,7 @@ public final class IdentityAccountQueryControllerGrpc {
      * Get an identity account by identity provider ID (Auth0 subject).
      * Primarily used for direct and machine accounts where the IDP ID is
      * the Auth0 user_id or client_id. A federated account is never answered:
-     * its subject is its identity provider's, so it is looked up with
+     * its subject is its federation issuer's, so it is looked up with
      * getByExternalSub, which is scoped to that provider.
      * </pre>
      */
@@ -796,13 +796,13 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a federated identity account by identity provider reference and external subject.
+     * Get a federated identity account by federation issuer reference and external subject.
      * Used by platform backends to check whether a federated account already exists
      * for a given OIDC subject before calling createFederatedAccount.
      * Served by the Enterprise and Cloud editions; the open-source server
      * answers UNIMPLEMENTED.
      * Authorization: Requires can_create_identity_account on the organization
-     * that owns the identity provider.
+     * that owns the federation issuer.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> getByExternalSub(

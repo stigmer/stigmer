@@ -41,7 +41,7 @@ public interface ApiResourceMetadataOrBuilder extends
    * Combined with org, forms the canonical reference: "org/slug".
    * Update and apply never change it: a kind whose slug may change has a
    * rename RPC (organization, agent, vault, schedule, channel app, OAuth
-   * app, platform client, team and identity provider), after which the old
+   * app, platform client, team and federation issuer), after which the old
    * slug leads to the resource for reading for 30 days.
    * Format: lowercase alphanumeric characters and hyphens, 2 to 63
    * characters, the length every reference to a resource holds; must start
@@ -65,7 +65,7 @@ public interface ApiResourceMetadataOrBuilder extends
    * Combined with org, forms the canonical reference: "org/slug".
    * Update and apply never change it: a kind whose slug may change has a
    * rename RPC (organization, agent, vault, schedule, channel app, OAuth
-   * app, platform client, team and identity provider), after which the old
+   * app, platform client, team and federation issuer), after which the old
    * slug leads to the resource for reading for 30 days.
    * Format: lowercase alphanumeric characters and hyphens, 2 to 63
    * characters, the length every reference to a resource holds; must start

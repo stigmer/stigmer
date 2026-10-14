@@ -3,10 +3,10 @@
  * issuer's document lives, and the document read into the facts a lane
  * trusts it for. One mechanism with two callers, the way `jwks.ts` is: a
  * host's direct-login lane discovers the platform's own tenant once at
- * boot, and the identity-provider lane reads each issuer a provider names
+ * boot, and the federation-issuer lane reads each issuer a provider names
  * when the provider is saved, so that the key set and the userinfo endpoint
  * it trusts are the ones the issuer itself publishes
- * (`iam/provider/validation.ts`).
+ * (`iam/issuer/validation.ts`).
  *
  * One mechanism, one POLICY PER CALLER: the fetch is a required input
  * because the two lanes dial different kinds of URL (the tenant is the

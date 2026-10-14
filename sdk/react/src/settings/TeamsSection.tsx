@@ -5,7 +5,7 @@
  * team's own page where its members are managed.
  *
  * Teams are an Enterprise and Cloud kind. The section is always listed in
- * the settings navigation, as Identity Providers is, and where the edition
+ * the settings navigation, as Federation Issuers is, and where the edition
  * does not serve teams it says so instead of showing an empty list; the
  * navigation hides nothing by edition. "New team" is offered only to those
  * who hold `can_create_team` on the organization, its administrators.

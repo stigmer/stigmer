@@ -142,7 +142,7 @@ describe("the identity purge stage", () => {
     const stage = newOrganizationIdentityPurgeStage(removals(calls));
     expect(stage.name).toBe(IDENTITY_PURGE_STAGE);
     expect(stage.kinds).toEqual([
-      ApiResourceKind.identity_provider,
+      ApiResourceKind.federation_issuer,
       ApiResourceKind.team,
       ApiResourceKind.invitation,
     ]);

@@ -20,7 +20,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/identityaccount/v1/io.proto.
  */
 export const file_ai_stigmer_iam_identityaccount_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvaW8ucHJvdG8SIWFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MSJXChBJZGVudGl0eUFjY291bnRzEkMKB2VudHJpZXMYASADKAsyMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50IioKEUlkZW50aXR5QWNjb3VudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiLQoUSWRlbnRpdHlBY2NvdW50RW1haWwSFQoFdmFsdWUYASABKAlCBrpIA8gBASIeCgVJZHBJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIocBChRJZGVudGl0eUFjY291bnRzTGlzdBJDCgdlbnRyaWVzGAIgAygLMjIuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudBIXCg9uZXh0X3BhZ2VfdG9rZW4YAyABKAlKBAgBEAJSC3RvdGFsX3BhZ2VzIvUBChhMaXN0U2VydmljZUFjY291bnRzSW5wdXQSCwoDb3JnGAEgASgJEhoKCXBhZ2Vfc2l6ZRgDIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAQgASgJQgi6SAVyAxiACBJXCgZsYWJlbHMYBSADKAsyRy5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuTGlzdFNlcnZpY2VBY2NvdW50c0lucHV0LkxhYmVsc0VudHJ5Gi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFKBAgCEANSBHBhZ2UioQEKEUV4dGVybmFsU3ViTG9va3VwEhMKA29yZxgBIAEoCUIGukgDyAEBElkKFWlkZW50aXR5X3Byb3ZpZGVyX3JlZhgCIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIE4IUsFRIcCgxleHRlcm5hbF9zdWIYAyABKAlCBrpIA8gBASL+AQobQ3JlYXRlRmVkZXJhdGVkQWNjb3VudElucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBElkKFWlkZW50aXR5X3Byb3ZpZGVyX3JlZhgCIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIE4IUsFRIcCgxleHRlcm5hbF9zdWIYAyABKAlCBrpIA8gBARIVCgVlbWFpbBgEIAEoCUIGukgDyAEBEhIKCmZpcnN0X25hbWUYBSABKAkSEQoJbGFzdF9uYW1lGAYgASgJEhMKC3BpY3R1cmVfdXJsGAcgASgJIv4BChtVcGRhdGVGZWRlcmF0ZWRBY2NvdW50SW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQESWQoVaWRlbnRpdHlfcHJvdmlkZXJfcmVmGAIgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSwVEhwKDGV4dGVybmFsX3N1YhgDIAEoCUIGukgDyAEBEhUKBWVtYWlsGAQgASgJQga6SAPIAQESEgoKZmlyc3RfbmFtZRgFIAEoCRIRCglsYXN0X25hbWUYBiABKAkSEwoLcGljdHVyZV91cmwYByABKAkiyAEKIERlcHJvdmlzaW9uRmVkZXJhdGVkQWNjb3VudElucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBElkKFWlkZW50aXR5X3Byb3ZpZGVyX3JlZhgCIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIE4IUsFRIcCgxleHRlcm5hbF9zdWIYAyABKAlCBrpIA8gBARIWCg5kZWxldGVfYWNjb3VudBgEIAEoCCKoAgoZQ3JlYXRlU2VydmljZUFjY291bnRJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIZCgRuYW1lGAIgASgJQgu6SAjIAQFyAxiAARIoCgRyb2xlGAMgASgOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZTqwAbpIrAEaqQEKHnNlcnZpY2VfYWNjb3VudC5yb2xlX25vdF9vd25lchJTcm9sZSBtdXN0IGJlIGFkbWluLCBtZW1iZXIgb3Igdmlld2VyOyBhIHNlcnZpY2UgYWNjb3VudCBuZXZlciBvd25zIGl0cyBvcmdhbml6YXRpb24aMnRoaXMucm9sZSA9PSAyIHx8IHRoaXMucm9sZSA9PSAzIHx8IHRoaXMucm9sZSA9PSA0Iu4CChpVcGRhdGVJZGVudGl0eUFjY291bnRJbnB1dBJMCghyZXNvdXJjZRgBIAEoCzIyLmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MS5JZGVudGl0eUFjY291bnRCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATrIAbpIxAEawQEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0ElByZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBpZGVudGl0eSBhY2NvdW50IGJ5IGl0cyBpZBpUaGFzKHRoaXMucmVzb3VyY2UpICYmIGhhcyh0aGlzLnJlc291cmNlLm1ldGFkYXRhKSAmJiB0aGlzLnJlc291cmNlLm1ldGFkYXRhLmlkICE9ICcnYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_iam_identityaccount_v1_api, file_ai_stigmer_iam_v1_enum, file_buf_validate_validate, file_google_protobuf_field_mask]);
+  fileDesc("CiphaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvaW8ucHJvdG8SIWFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MSJXChBJZGVudGl0eUFjY291bnRzEkMKB2VudHJpZXMYASADKAsyMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50IioKEUlkZW50aXR5QWNjb3VudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiLQoUSWRlbnRpdHlBY2NvdW50RW1haWwSFQoFdmFsdWUYASABKAlCBrpIA8gBASIeCgVJZHBJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIocBChRJZGVudGl0eUFjY291bnRzTGlzdBJDCgdlbnRyaWVzGAIgAygLMjIuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudBIXCg9uZXh0X3BhZ2VfdG9rZW4YAyABKAlKBAgBEAJSC3RvdGFsX3BhZ2VzIvUBChhMaXN0U2VydmljZUFjY291bnRzSW5wdXQSCwoDb3JnGAEgASgJEhoKCXBhZ2Vfc2l6ZRgDIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAQgASgJQgi6SAVyAxiACBJXCgZsYWJlbHMYBSADKAsyRy5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuTGlzdFNlcnZpY2VBY2NvdW50c0lucHV0LkxhYmVsc0VudHJ5Gi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFKBAgCEANSBHBhZ2UioQEKEUV4dGVybmFsU3ViTG9va3VwEhMKA29yZxgBIAEoCUIGukgDyAEBElkKFWZlZGVyYXRpb25faXNzdWVyX3JlZhgCIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIE4IUsFRIcCgxleHRlcm5hbF9zdWIYAyABKAlCBrpIA8gBASL+AQobQ3JlYXRlRmVkZXJhdGVkQWNjb3VudElucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBElkKFWZlZGVyYXRpb25faXNzdWVyX3JlZhgCIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIE4IUsFRIcCgxleHRlcm5hbF9zdWIYAyABKAlCBrpIA8gBARIVCgVlbWFpbBgEIAEoCUIGukgDyAEBEhIKCmZpcnN0X25hbWUYBSABKAkSEQoJbGFzdF9uYW1lGAYgASgJEhMKC3BpY3R1cmVfdXJsGAcgASgJIv4BChtVcGRhdGVGZWRlcmF0ZWRBY2NvdW50SW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQESWQoVZmVkZXJhdGlvbl9pc3N1ZXJfcmVmGAIgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSwVEhwKDGV4dGVybmFsX3N1YhgDIAEoCUIGukgDyAEBEhUKBWVtYWlsGAQgASgJQga6SAPIAQESEgoKZmlyc3RfbmFtZRgFIAEoCRIRCglsYXN0X25hbWUYBiABKAkSEwoLcGljdHVyZV91cmwYByABKAkiyAEKIERlcHJvdmlzaW9uRmVkZXJhdGVkQWNjb3VudElucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBElkKFWZlZGVyYXRpb25faXNzdWVyX3JlZhgCIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIE4IUsFRIcCgxleHRlcm5hbF9zdWIYAyABKAlCBrpIA8gBARIWCg5kZWxldGVfYWNjb3VudBgEIAEoCCKoAgoZQ3JlYXRlU2VydmljZUFjY291bnRJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIZCgRuYW1lGAIgASgJQgu6SAjIAQFyAxiAARIoCgRyb2xlGAMgASgOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZTqwAbpIrAEaqQEKHnNlcnZpY2VfYWNjb3VudC5yb2xlX25vdF9vd25lchJTcm9sZSBtdXN0IGJlIGFkbWluLCBtZW1iZXIgb3Igdmlld2VyOyBhIHNlcnZpY2UgYWNjb3VudCBuZXZlciBvd25zIGl0cyBvcmdhbml6YXRpb24aMnRoaXMucm9sZSA9PSAyIHx8IHRoaXMucm9sZSA9PSAzIHx8IHRoaXMucm9sZSA9PSA0Iu4CChpVcGRhdGVJZGVudGl0eUFjY291bnRJbnB1dBJMCghyZXNvdXJjZRgBIAEoCzIyLmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MS5JZGVudGl0eUFjY291bnRCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATrIAbpIxAEawQEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0ElByZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBpZGVudGl0eSBhY2NvdW50IGJ5IGl0cyBpZBpUaGFzKHRoaXMucmVzb3VyY2UpICYmIGhhcyh0aGlzLnJlc291cmNlLm1ldGFkYXRhKSAmJiB0aGlzLnJlc291cmNlLm1ldGFkYXRhLmlkICE9ICcnYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_iam_identityaccount_v1_api, file_ai_stigmer_iam_v1_enum, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * IdentityAccounts contains a list of identity account resources.
@@ -182,7 +182,7 @@ export const ListServiceAccountsInputSchema: GenMessage<ListServiceAccountsInput
   messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 5);
 
 /**
- * ExternalSubLookup identifies a federated identity account by its identity provider
+ * ExternalSubLookup identifies a federated identity account by its federation issuer
  * reference and external subject identifier (OIDC sub claim).
  *
  * Used by platform backends to check whether a federated account already exists
@@ -192,7 +192,7 @@ export const ListServiceAccountsInputSchema: GenMessage<ListServiceAccountsInput
  */
 export type ExternalSubLookup = Message<"ai.stigmer.iam.identityaccount.v1.ExternalSubLookup"> & {
   /**
-   * Organization that owns the identity provider.
+   * Organization that owns the federation issuer.
    * Used as the authorization scope: caller must have can_create_identity_account
    * permission on this organization.
    *
@@ -201,11 +201,11 @@ export type ExternalSubLookup = Message<"ai.stigmer.iam.identityaccount.v1.Exter
   org: string;
 
   /**
-   * Reference to the IdentityProvider that the federated account belongs to.
+   * Reference to the FederationIssuer that the federated account belongs to.
    *
-   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2;
+   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2;
    */
-  identityProviderRef?: ApiResourceReference;
+  federationIssuerRef?: ApiResourceReference;
 
   /**
    * External subject identifier from the platform's OIDC provider.
@@ -225,7 +225,7 @@ export const ExternalSubLookupSchema: GenMessage<ExternalSubLookup> = /*@__PURE_
 
 /**
  * CreateFederatedAccountInput is the command for creating a federated identity account
- * linked to an external platform's identity provider.
+ * linked to an external platform's federation issuer.
  *
  * Called by platform backends (via API key) when a new user signs up on their platform.
  * The platform provides the user's OIDC subject identifier and profile data.
@@ -236,28 +236,28 @@ export const ExternalSubLookupSchema: GenMessage<ExternalSubLookup> = /*@__PURE_
  */
 export type CreateFederatedAccountInput = Message<"ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput"> & {
   /**
-   * Organization that owns the identity provider.
+   * Organization that owns the federation issuer.
    * Used as the authorization scope: caller must have can_create_identity_account
    * permission on this organization.
-   * Must match identity_provider_ref.org (when identity_provider_ref.org is non-empty).
+   * Must match federation_issuer_ref.org (when federation_issuer_ref.org is non-empty).
    *
    * @generated from field: string org = 1;
    */
   org: string;
 
   /**
-   * Reference to the IdentityProvider that this federated account belongs to.
-   * The IdP must exist and belong to the specified org.
+   * Reference to the FederationIssuer that this federated account belongs to.
+   * The federation issuer must exist and belong to the specified org.
    *
-   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2;
+   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2;
    */
-  identityProviderRef?: ApiResourceReference;
+  federationIssuerRef?: ApiResourceReference;
 
   /**
    * External subject identifier from the platform's OIDC provider.
    * The raw OIDC sub claim (e.g., "google-oauth2|109876543210").
    * Stored as-is without any prefix transformation.
-   * Must match the sub claim in JWTs issued by this IdP for authentication to work.
+   * Must match the sub claim in JWTs this federation issuer accepts for authentication to work.
    *
    * @generated from field: string external_sub = 3;
    */
@@ -301,19 +301,19 @@ export const CreateFederatedAccountInputSchema: GenMessage<CreateFederatedAccoun
 
 /**
  * UpdateFederatedAccountInput is the command for updating profile fields on a
- * federated identity account identified by its natural key (identity provider
+ * federated identity account identified by its natural key (federation issuer
  * reference + external subject).
  *
  * Called by platform backends when a user's profile changes on their platform
  * (e.g., name update, email change). Uses full-replace semantics: all profile
- * fields must be provided. Identity keys (org, identity_provider_ref, external_sub)
+ * fields must be provided. Identity keys (org, federation_issuer_ref, external_sub)
  * are immutable and used only for lookup.
  *
  * @generated from message ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput
  */
 export type UpdateFederatedAccountInput = Message<"ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput"> & {
   /**
-   * Organization that owns the identity provider.
+   * Organization that owns the federation issuer.
    * Used as the authorization scope: caller must have can_create_identity_account
    * permission on this organization.
    *
@@ -322,11 +322,11 @@ export type UpdateFederatedAccountInput = Message<"ai.stigmer.iam.identityaccoun
   org: string;
 
   /**
-   * Reference to the IdentityProvider that the federated account belongs to.
+   * Reference to the FederationIssuer that the federated account belongs to.
    *
-   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2;
+   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2;
    */
-  identityProviderRef?: ApiResourceReference;
+  federationIssuerRef?: ApiResourceReference;
 
   /**
    * External subject identifier (OIDC sub claim) — lookup key, not updatable.
@@ -377,16 +377,16 @@ export const UpdateFederatedAccountInputSchema: GenMessage<UpdateFederatedAccoun
  *
  * Called by platform backends when a user is removed from their platform
  * (e.g., employee offboarding, account suspension). Uses the natural key
- * (identity provider reference + external subject) for lookup.
+ * (federation issuer reference + external subject) for lookup.
  *
  * Two modes:
  *   - Revoke only (delete_account = false): removes all IAM policies for the
- *     account in the organization and in every organization the identity
- *     provider manages, where its sign-in grants roles too. The identity
+ *     account in the organization and in every organization the federation
+ *     issuer manages, where its sign-in grants roles too. The identity
  *     account is preserved for audit trail. The user can still sign in but
  *     holds no role in those organizations, and an existing account is never
  *     granted one at sign-in, so this is the mode that keeps a user of a
- *     just-in-time provider out.
+ *     just-in-time federation issuer out.
  *   - Revoke and delete (delete_account = true): revokes access AND deletes
  *     the identity account. All IAM policies across all organizations are
  *     cleaned up. Under a just-in-time provider, the user's next
@@ -398,7 +398,7 @@ export const UpdateFederatedAccountInputSchema: GenMessage<UpdateFederatedAccoun
  */
 export type DeprovisionFederatedAccountInput = Message<"ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput"> & {
   /**
-   * Organization that owns the identity provider.
+   * Organization that owns the federation issuer.
    * Used as the authorization scope: caller must have can_create_identity_account
    * permission on this organization.
    *
@@ -407,11 +407,11 @@ export type DeprovisionFederatedAccountInput = Message<"ai.stigmer.iam.identitya
   org: string;
 
   /**
-   * Reference to the IdentityProvider that the federated account belongs to.
+   * Reference to the FederationIssuer that the federated account belongs to.
    *
-   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2;
+   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2;
    */
-  identityProviderRef?: ApiResourceReference;
+  federationIssuerRef?: ApiResourceReference;
 
   /**
    * External subject identifier (OIDC sub claim) — lookup key.
@@ -421,7 +421,7 @@ export type DeprovisionFederatedAccountInput = Message<"ai.stigmer.iam.identitya
   externalSub: string;
 
   /**
-   * When false (default): revoke the account's access in this organization and the organizations its identity provider manages.
+   * When false (default): revoke the account's access in this organization and the organizations its federation issuer manages.
    * When true: revoke access AND delete the identity account; a just-in-time
    * provider creates a new one at the user's next sign-in.
    *

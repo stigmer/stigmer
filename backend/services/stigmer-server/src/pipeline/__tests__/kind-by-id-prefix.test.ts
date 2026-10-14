@@ -36,6 +36,8 @@ describe("kindByIdPrefix — a minted id names its kind by prefix", () => {
   it.each([
     ["run_01m2mp45efcjvq2z1e1yn4cyz7", ApiResourceKind.run],
     ["aex_01m2mp45efcjvq2z1e1yn4cyz7", ApiResourceKind.run],
+    ["fis_01m2mp45efcjvq2z1e1yn4cyz7", ApiResourceKind.federation_issuer],
+    ["idp_01m2mp45efcjvq2z1e1yn4cyz7", ApiResourceKind.federation_issuer],
     ["ses_x", ApiResourceKind.session],
     ["ida_carol", ApiResourceKind.identity_account],
   ])("%s is %s", (id, kind) => {
@@ -89,5 +91,14 @@ describe("kindByIdPrefix — a minted id names its kind by prefix", () => {
       kind_meta,
     );
     expect(meta.retiredIdPrefixes).toEqual(["aex"]);
+  });
+
+  it("the federation issuer kind mints fis_ and still reads the idp_ ids its stores hold", () => {
+    expect(getIdPrefix(ApiResourceKind.federation_issuer)).toBe("fis");
+    const meta = getOption(
+      ApiResourceKindSchema.values.find((v) => v.number === ApiResourceKind.federation_issuer)!,
+      kind_meta,
+    );
+    expect(meta.retiredIdPrefixes).toEqual(["idp"]);
   });
 });

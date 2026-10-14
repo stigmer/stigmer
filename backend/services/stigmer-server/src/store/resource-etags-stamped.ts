@@ -50,7 +50,7 @@ import { SubscriptionSchema } from "@stigmer/protos/ai/stigmer/billing/subscript
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { InvitationSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
@@ -76,7 +76,7 @@ export const RESOURCE_SCHEMAS: ReadonlyMap<ApiResourceKind, DescMessage> = new M
   [ApiResourceKind.evaluator, EvaluatorSchema],
   [ApiResourceKind.iam_policy, IamPolicySchema],
   [ApiResourceKind.identity_account, IdentityAccountSchema],
-  [ApiResourceKind.identity_provider, IdentityProviderSchema],
+  [ApiResourceKind.federation_issuer, FederationIssuerSchema],
   [ApiResourceKind.invitation, InvitationSchema],
   [ApiResourceKind.license, LicenseSchema],
   [ApiResourceKind.memory, MemorySchema],

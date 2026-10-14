@@ -25,7 +25,7 @@ const KINDS: ReadonlyArray<readonly [RenamableResourceKind, string]> = [
   ["oauth_app", "oauthapp"],
   ["platform_client", "platformclient"],
   ["team", "team"],
-  ["identity_provider", "identityProvider"],
+  ["federation_issuer", "federationIssuer"],
 ];
 
 function clientWith(

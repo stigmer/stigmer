@@ -13,9 +13,9 @@ type Client struct {
 	ApiKey           *ApiKeyClient
 	ChannelApp       *ChannelAppClient
 	Evaluator        *EvaluatorClient
+	FederationIssuer *FederationIssuerClient
 	IamPolicy        *IamPolicyClient
 	IdentityAccount  *IdentityAccountClient
-	IdentityProvider *IdentityProviderClient
 	Invitation       *InvitationClient
 	License          *LicenseClient
 	Memory           *MemoryClient
@@ -46,9 +46,9 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		ApiKey:           NewApiKeyClient(conn),
 		ChannelApp:       NewChannelAppClient(conn),
 		Evaluator:        NewEvaluatorClient(conn),
+		FederationIssuer: NewFederationIssuerClient(conn),
 		IamPolicy:        NewIamPolicyClient(conn),
 		IdentityAccount:  NewIdentityAccountClient(conn),
-		IdentityProvider: NewIdentityProviderClient(conn),
 		Invitation:       NewInvitationClient(conn),
 		License:          NewLicenseClient(conn),
 		Memory:           NewMemoryClient(conn),

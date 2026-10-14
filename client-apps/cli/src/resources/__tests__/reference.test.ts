@@ -63,6 +63,7 @@ describe("parseReference", () => {
 describe("a kind's retired id prefixes", () => {
   it("are read beside its current one, current first", () => {
     expect(idPrefixesFor(ApiResourceKind.run)).toEqual(["run", "aex"]);
+    expect(idPrefixesFor(ApiResourceKind.federation_issuer)).toEqual(["fis", "idp"]);
     expect(idPrefixesFor(ApiResourceKind.agent)).toEqual(["agt"]);
   });
 

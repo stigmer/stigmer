@@ -67,19 +67,19 @@ message ListServiceAccountsInput {
   map<string, string> labels = 5;
 }
 
-// ExternalSubLookup identifies a federated identity account by its identity provider
+// ExternalSubLookup identifies a federated identity account by its federation issuer
 // reference and external subject identifier (OIDC sub claim).
 //
 // Used by platform backends to check whether a federated account already exists
 // before calling createFederatedAccount.
 message ExternalSubLookup {
-  // Organization that owns the identity provider.
+  // Organization that owns the federation issuer.
   // Used as the authorization scope: caller must have can_create_identity_account
   // permission on this organization.
   string org = 1 [(buf.validate.field).required = true];
 
-  // Reference to the IdentityProvider that the federated account belongs to.
-  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [(ai.stigmer.commons.apiresource.reference_kind) = identity_provider];
+  // Reference to the FederationIssuer that the federated account belongs to.
+  ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2 [(ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];
 
   // External subject identifier from the platform's OIDC provider.
   // The raw OIDC sub claim (e.g., "google-oauth2|109876543210").
@@ -87,27 +87,27 @@ message ExternalSubLookup {
 }
 
 // CreateFederatedAccountInput is the command for creating a federated identity account
-// linked to an external platform's identity provider.
+// linked to an external platform's federation issuer.
 //
 // Called by platform backends (via API key) when a new user signs up on their platform.
 // The platform provides the user's OIDC subject identifier and profile data.
 // Under a provider in manual mode the account must exist before the user can
 // authenticate; a just-in-time provider creates it on first sign-in.
 message CreateFederatedAccountInput {
-  // Organization that owns the identity provider.
+  // Organization that owns the federation issuer.
   // Used as the authorization scope: caller must have can_create_identity_account
   // permission on this organization.
-  // Must match identity_provider_ref.org (when identity_provider_ref.org is non-empty).
+  // Must match federation_issuer_ref.org (when federation_issuer_ref.org is non-empty).
   string org = 1 [(buf.validate.field).required = true];
 
-  // Reference to the IdentityProvider that this federated account belongs to.
-  // The IdP must exist and belong to the specified org.
-  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [(ai.stigmer.commons.apiresource.reference_kind) = identity_provider];
+  // Reference to the FederationIssuer that this federated account belongs to.
+  // The federation issuer must exist and belong to the specified org.
+  ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2 [(ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];
 
   // External subject identifier from the platform's OIDC provider.
   // The raw OIDC sub claim (e.g., "google-oauth2|109876543210").
   // Stored as-is without any prefix transformation.
-  // Must match the sub claim in JWTs issued by this IdP for authentication to work.
+  // Must match the sub claim in JWTs this federation issuer accepts for authentication to work.
   string external_sub = 3 [(buf.validate.field).required = true];
 
   // Email address of the user.
@@ -124,21 +124,21 @@ message CreateFederatedAccountInput {
 }
 
 // UpdateFederatedAccountInput is the command for updating profile fields on a
-// federated identity account identified by its natural key (identity provider
+// federated identity account identified by its natural key (federation issuer
 // reference + external subject).
 //
 // Called by platform backends when a user's profile changes on their platform
 // (e.g., name update, email change). Uses full-replace semantics: all profile
-// fields must be provided. Identity keys (org, identity_provider_ref, external_sub)
+// fields must be provided. Identity keys (org, federation_issuer_ref, external_sub)
 // are immutable and used only for lookup.
 message UpdateFederatedAccountInput {
-  // Organization that owns the identity provider.
+  // Organization that owns the federation issuer.
   // Used as the authorization scope: caller must have can_create_identity_account
   // permission on this organization.
   string org = 1 [(buf.validate.field).required = true];
 
-  // Reference to the IdentityProvider that the federated account belongs to.
-  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [(ai.stigmer.commons.apiresource.reference_kind) = identity_provider];
+  // Reference to the FederationIssuer that the federated account belongs to.
+  ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2 [(ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];
 
   // External subject identifier (OIDC sub claim) — lookup key, not updatable.
   string external_sub = 3 [(buf.validate.field).required = true];
@@ -161,16 +161,16 @@ message UpdateFederatedAccountInput {
 //
 // Called by platform backends when a user is removed from their platform
 // (e.g., employee offboarding, account suspension). Uses the natural key
-// (identity provider reference + external subject) for lookup.
+// (federation issuer reference + external subject) for lookup.
 //
 // Two modes:
 //   - Revoke only (delete_account = false): removes all IAM policies for the
-//     account in the organization and in every organization the identity
-//     provider manages, where its sign-in grants roles too. The identity
+//     account in the organization and in every organization the federation
+//     issuer manages, where its sign-in grants roles too. The identity
 //     account is preserved for audit trail. The user can still sign in but
 //     holds no role in those organizations, and an existing account is never
 //     granted one at sign-in, so this is the mode that keeps a user of a
-//     just-in-time provider out.
+//     just-in-time federation issuer out.
 //   - Revoke and delete (delete_account = true): revokes access AND deletes
 //     the identity account. All IAM policies across all organizations are
 //     cleaned up. Under a just-in-time provider, the user's next
@@ -178,18 +178,18 @@ message UpdateFederatedAccountInput {
 //     automatically; use it when the user can no longer sign in to the
 //     provider.
 message DeprovisionFederatedAccountInput {
-  // Organization that owns the identity provider.
+  // Organization that owns the federation issuer.
   // Used as the authorization scope: caller must have can_create_identity_account
   // permission on this organization.
   string org = 1 [(buf.validate.field).required = true];
 
-  // Reference to the IdentityProvider that the federated account belongs to.
-  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [(ai.stigmer.commons.apiresource.reference_kind) = identity_provider];
+  // Reference to the FederationIssuer that the federated account belongs to.
+  ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2 [(ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];
 
   // External subject identifier (OIDC sub claim) — lookup key.
   string external_sub = 3 [(buf.validate.field).required = true];
 
-  // When false (default): revoke the account's access in this organization and the organizations its identity provider manages.
+  // When false (default): revoke the account's access in this organization and the organizations its federation issuer manages.
   // When true: revoke access AND delete the identity account; a just-in-time
   // provider creates a new one at the user's next sign-in.
   bool delete_account = 4;

@@ -7,13 +7,13 @@
  *   - `STIGMER_LICENSE_KEY`: the license key an operator pastes. Blank or
  *     unset means no key, and the server runs as open source.
  *   - `STIGMER_OUTBOUND_EGRESS`: which addresses a licensed server may dial
- *     when it reaches a URL a person wrote (an identity provider's
+ *     when it reaches a URL a person wrote (a federation issuer's
  *     discovery, keys and userinfo; an MCP or plugin install probe; a vault
  *     sign-in). Without a key the server is the open-source edition exactly,
  *     with open source's own posture, and this setting is not read. Unset,
  *     blank or `strict`: public addresses only, the default, because anyone
  *     who signs in may found an organization and write such URLs. `relaxed`:
- *     private and loopback addresses too (an identity provider or MCP server
+ *     private and loopback addresses too (a federation issuer or MCP server
  *     on the operator's own network), with link-local still refused, which
  *     trusts every signed-in person with the operator's network. Any other
  *     value refuses the boot rather than guessing.

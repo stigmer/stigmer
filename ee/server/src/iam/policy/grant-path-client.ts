@@ -39,7 +39,7 @@
  * `internal` class, so the same admission and the same skip, but the row's
  * audit stamp and the permission history name that principal as the one
  * the server acted for (the person whose act caused the write, or the
- * identity provider that asserted it). A lane passes it whenever a
+ * federation issuer that asserted it). A lane passes it whenever a
  * principal is behind the write; the boot repairs, which act for no one,
  * do not. The user-facing `revokeOrgAccess` is never called here — the
  * composition acts for a person, never as one. The transport is the

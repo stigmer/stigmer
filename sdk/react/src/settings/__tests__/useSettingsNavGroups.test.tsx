@@ -84,7 +84,7 @@ describe("useSettingsNavGroups on a server that holds one organization", () => {
       "Members",
       "Teams",
       "Invitations",
-      "Identity Providers",
+      "Federation Issuers",
     ]);
     expect(SINGLE_ORG_SETTINGS_NAV_GROUPS.slice(1)).toEqual(SETTINGS_NAV_GROUPS.slice(1));
   });

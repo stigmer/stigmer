@@ -126,32 +126,32 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "belsEntryR\006labels\0329\n\013LabelsEntry\022\020\n\003key\030" +
       "\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001J\004\010\002" +
       "\020\003R\004page\"\310\001\n\021ExternalSubLookup\022\030\n\003org\030\001 " +
-      "\001(\tB\006\272H\003\310\001\001R\003org\022n\n\025identity_provider_re" +
+      "\001(\tB\006\272H\003\310\001\001R\003org\022n\n\025federation_issuer_re" +
       "f\030\002 \001(\01324.ai.stigmer.commons.apiresource" +
-      ".ApiResourceReferenceB\004\340\205,\025R\023identityPro" +
-      "viderRef\022)\n\014external_sub\030\003 \001(\tB\006\272H\003\310\001\001R\013" +
+      ".ApiResourceReferenceB\004\340\205,\025R\023federationI" +
+      "ssuerRef\022)\n\014external_sub\030\003 \001(\tB\006\272H\003\310\001\001R\013" +
       "externalSub\"\315\002\n\033CreateFederatedAccountIn" +
-      "put\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022n\n\025identit" +
-      "y_provider_ref\030\002 \001(\01324.ai.stigmer.common" +
+      "put\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022n\n\025federat" +
+      "ion_issuer_ref\030\002 \001(\01324.ai.stigmer.common" +
       "s.apiresource.ApiResourceReferenceB\004\340\205,\025" +
-      "R\023identityProviderRef\022)\n\014external_sub\030\003 " +
+      "R\023federationIssuerRef\022)\n\014external_sub\030\003 " +
       "\001(\tB\006\272H\003\310\001\001R\013externalSub\022\034\n\005email\030\004 \001(\tB" +
       "\006\272H\003\310\001\001R\005email\022\035\n\nfirst_name\030\005 \001(\tR\tfirs" +
       "tName\022\033\n\tlast_name\030\006 \001(\tR\010lastName\022\037\n\013pi" +
       "cture_url\030\007 \001(\tR\npictureUrl\"\315\002\n\033UpdateFe" +
       "deratedAccountInput\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001" +
-      "R\003org\022n\n\025identity_provider_ref\030\002 \001(\01324.a" +
+      "R\003org\022n\n\025federation_issuer_ref\030\002 \001(\01324.a" +
       "i.stigmer.commons.apiresource.ApiResourc" +
-      "eReferenceB\004\340\205,\025R\023identityProviderRef\022)\n" +
+      "eReferenceB\004\340\205,\025R\023federationIssuerRef\022)\n" +
       "\014external_sub\030\003 \001(\tB\006\272H\003\310\001\001R\013externalSub" +
       "\022\034\n\005email\030\004 \001(\tB\006\272H\003\310\001\001R\005email\022\035\n\nfirst_" +
       "name\030\005 \001(\tR\tfirstName\022\033\n\tlast_name\030\006 \001(\t" +
       "R\010lastName\022\037\n\013picture_url\030\007 \001(\tR\npicture" +
       "Url\"\376\001\n DeprovisionFederatedAccountInput" +
-      "\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022n\n\025identity_p" +
-      "rovider_ref\030\002 \001(\01324.ai.stigmer.commons.a" +
-      "piresource.ApiResourceReferenceB\004\340\205,\025R\023i" +
-      "dentityProviderRef\022)\n\014external_sub\030\003 \001(\t" +
+      "\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022n\n\025federation" +
+      "_issuer_ref\030\002 \001(\01324.ai.stigmer.commons.a" +
+      "piresource.ApiResourceReferenceB\004\340\205,\025R\023f" +
+      "ederationIssuerRef\022)\n\014external_sub\030\003 \001(\t" +
       "B\006\272H\003\310\001\001R\013externalSub\022%\n\016delete_account\030" +
       "\004 \001(\010R\rdeleteAccount\"\271\002\n\031CreateServiceAc" +
       "countInput\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022\037\n\004" +
@@ -234,25 +234,25 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_identityaccount_v1_ExternalSubLookup_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_identityaccount_v1_ExternalSubLookup_descriptor,
-        new java.lang.String[] { "Org", "IdentityProviderRef", "ExternalSub", });
+        new java.lang.String[] { "Org", "FederationIssuerRef", "ExternalSub", });
     internal_static_ai_stigmer_iam_identityaccount_v1_CreateFederatedAccountInput_descriptor =
       getDescriptor().getMessageType(7);
     internal_static_ai_stigmer_iam_identityaccount_v1_CreateFederatedAccountInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_identityaccount_v1_CreateFederatedAccountInput_descriptor,
-        new java.lang.String[] { "Org", "IdentityProviderRef", "ExternalSub", "Email", "FirstName", "LastName", "PictureUrl", });
+        new java.lang.String[] { "Org", "FederationIssuerRef", "ExternalSub", "Email", "FirstName", "LastName", "PictureUrl", });
     internal_static_ai_stigmer_iam_identityaccount_v1_UpdateFederatedAccountInput_descriptor =
       getDescriptor().getMessageType(8);
     internal_static_ai_stigmer_iam_identityaccount_v1_UpdateFederatedAccountInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_identityaccount_v1_UpdateFederatedAccountInput_descriptor,
-        new java.lang.String[] { "Org", "IdentityProviderRef", "ExternalSub", "Email", "FirstName", "LastName", "PictureUrl", });
+        new java.lang.String[] { "Org", "FederationIssuerRef", "ExternalSub", "Email", "FirstName", "LastName", "PictureUrl", });
     internal_static_ai_stigmer_iam_identityaccount_v1_DeprovisionFederatedAccountInput_descriptor =
       getDescriptor().getMessageType(9);
     internal_static_ai_stigmer_iam_identityaccount_v1_DeprovisionFederatedAccountInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_identityaccount_v1_DeprovisionFederatedAccountInput_descriptor,
-        new java.lang.String[] { "Org", "IdentityProviderRef", "ExternalSub", "DeleteAccount", });
+        new java.lang.String[] { "Org", "FederationIssuerRef", "ExternalSub", "DeleteAccount", });
     internal_static_ai_stigmer_iam_identityaccount_v1_CreateServiceAccountInput_descriptor =
       getDescriptor().getMessageType(10);
     internal_static_ai_stigmer_iam_identityaccount_v1_CreateServiceAccountInput_fieldAccessorTable = new

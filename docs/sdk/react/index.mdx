@@ -108,9 +108,9 @@ function App() {
 }
 ```
 
-Stigmer validates the JWT against your registered Identity Provider's JWKS
+Stigmer validates the JWT against your registered Federation Issuer's JWKS
 endpoint. Register your auth provider as an
-[Identity Provider](/docs/guides/authentication/federation/register-identity-provider)
+[Federation Issuer](/docs/guides/authentication/federation/register-federation-issuer)
 with JIT provisioning enabled — Stigmer creates accounts and grants roles
 automatically on first authentication.
 
@@ -191,7 +191,7 @@ are available:
 |------|---------|--------|
 | `"cloud"` | Stigmer Cloud | All features enabled. Default. |
 | `"enterprise"` | Stigmer Enterprise, self-hosted | Open-source- and Enterprise-tier resources are served. |
-| `"local"` | Stigmer, the open-source edition | Enterprise- and cloud-only kinds (identity providers, invitations) are hidden. |
+| `"local"` | Stigmer, the open-source edition | Enterprise- and cloud-only kinds (federation issuers, invitations) are hidden. |
 
 Two hooks read the deployment mode from context:
 

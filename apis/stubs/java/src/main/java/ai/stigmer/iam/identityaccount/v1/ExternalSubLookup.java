@@ -7,7 +7,7 @@ package ai.stigmer.iam.identityaccount.v1;
 
 /**
  * <pre>
- * ExternalSubLookup identifies a federated identity account by its identity provider
+ * ExternalSubLookup identifies a federated identity account by its federation issuer
  * reference and external subject identifier (OIDC sub claim).
  *
  * Used by platform backends to check whether a federated account already exists
@@ -64,7 +64,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object org_ = "";
   /**
    * <pre>
-   * Organization that owns the identity provider.
+   * Organization that owns the federation issuer.
    * Used as the authorization scope: caller must have can_create_identity_account
    * permission on this organization.
    * </pre>
@@ -87,7 +87,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Organization that owns the identity provider.
+   * Organization that owns the federation issuer.
    * Used as the authorization scope: caller must have can_create_identity_account
    * permission on this organization.
    * </pre>
@@ -110,42 +110,42 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int IDENTITY_PROVIDER_REF_FIELD_NUMBER = 2;
-  private ai.stigmer.commons.apiresource.ApiResourceReference identityProviderRef_;
+  public static final int FEDERATION_ISSUER_REF_FIELD_NUMBER = 2;
+  private ai.stigmer.commons.apiresource.ApiResourceReference federationIssuerRef_;
   /**
    * <pre>
-   * Reference to the IdentityProvider that the federated account belongs to.
+   * Reference to the FederationIssuer that the federated account belongs to.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
-   * @return Whether the identityProviderRef field is set.
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
+   * @return Whether the federationIssuerRef field is set.
    */
   @java.lang.Override
-  public boolean hasIdentityProviderRef() {
+  public boolean hasFederationIssuerRef() {
     return ((bitField0_ & 0x00000001) != 0);
   }
   /**
    * <pre>
-   * Reference to the IdentityProvider that the federated account belongs to.
+   * Reference to the FederationIssuer that the federated account belongs to.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
-   * @return The identityProviderRef.
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
+   * @return The federationIssuerRef.
    */
   @java.lang.Override
-  public ai.stigmer.commons.apiresource.ApiResourceReference getIdentityProviderRef() {
-    return identityProviderRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : identityProviderRef_;
+  public ai.stigmer.commons.apiresource.ApiResourceReference getFederationIssuerRef() {
+    return federationIssuerRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : federationIssuerRef_;
   }
   /**
    * <pre>
-   * Reference to the IdentityProvider that the federated account belongs to.
+   * Reference to the FederationIssuer that the federated account belongs to.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
    */
   @java.lang.Override
-  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getIdentityProviderRefOrBuilder() {
-    return identityProviderRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : identityProviderRef_;
+  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getFederationIssuerRefOrBuilder() {
+    return federationIssuerRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : federationIssuerRef_;
   }
 
   public static final int EXTERNAL_SUB_FIELD_NUMBER = 3;
@@ -215,7 +215,7 @@ private static final long serialVersionUID = 0L;
       com.google.protobuf.GeneratedMessage.writeString(output, 1, org_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
-      output.writeMessage(2, getIdentityProviderRef());
+      output.writeMessage(2, getFederationIssuerRef());
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(externalSub_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, externalSub_);
@@ -234,7 +234,7 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(2, getIdentityProviderRef());
+        .computeMessageSize(2, getFederationIssuerRef());
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(externalSub_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, externalSub_);
@@ -256,10 +256,10 @@ private static final long serialVersionUID = 0L;
 
     if (!getOrg()
         .equals(other.getOrg())) return false;
-    if (hasIdentityProviderRef() != other.hasIdentityProviderRef()) return false;
-    if (hasIdentityProviderRef()) {
-      if (!getIdentityProviderRef()
-          .equals(other.getIdentityProviderRef())) return false;
+    if (hasFederationIssuerRef() != other.hasFederationIssuerRef()) return false;
+    if (hasFederationIssuerRef()) {
+      if (!getFederationIssuerRef()
+          .equals(other.getFederationIssuerRef())) return false;
     }
     if (!getExternalSub()
         .equals(other.getExternalSub())) return false;
@@ -276,9 +276,9 @@ private static final long serialVersionUID = 0L;
     hash = (19 * hash) + getDescriptor().hashCode();
     hash = (37 * hash) + ORG_FIELD_NUMBER;
     hash = (53 * hash) + getOrg().hashCode();
-    if (hasIdentityProviderRef()) {
-      hash = (37 * hash) + IDENTITY_PROVIDER_REF_FIELD_NUMBER;
-      hash = (53 * hash) + getIdentityProviderRef().hashCode();
+    if (hasFederationIssuerRef()) {
+      hash = (37 * hash) + FEDERATION_ISSUER_REF_FIELD_NUMBER;
+      hash = (53 * hash) + getFederationIssuerRef().hashCode();
     }
     hash = (37 * hash) + EXTERNAL_SUB_FIELD_NUMBER;
     hash = (53 * hash) + getExternalSub().hashCode();
@@ -381,7 +381,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ExternalSubLookup identifies a federated identity account by its identity provider
+   * ExternalSubLookup identifies a federated identity account by its federation issuer
    * reference and external subject identifier (OIDC sub claim).
    *
    * Used by platform backends to check whether a federated account already exists
@@ -420,7 +420,7 @@ private static final long serialVersionUID = 0L;
     private void maybeForceBuilderInitialization() {
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
-        internalGetIdentityProviderRefFieldBuilder();
+        internalGetFederationIssuerRefFieldBuilder();
       }
     }
     @java.lang.Override
@@ -428,10 +428,10 @@ private static final long serialVersionUID = 0L;
       super.clear();
       bitField0_ = 0;
       org_ = "";
-      identityProviderRef_ = null;
-      if (identityProviderRefBuilder_ != null) {
-        identityProviderRefBuilder_.dispose();
-        identityProviderRefBuilder_ = null;
+      federationIssuerRef_ = null;
+      if (federationIssuerRefBuilder_ != null) {
+        federationIssuerRefBuilder_.dispose();
+        federationIssuerRefBuilder_ = null;
       }
       externalSub_ = "";
       return this;
@@ -472,9 +472,9 @@ private static final long serialVersionUID = 0L;
       }
       int to_bitField0_ = 0;
       if (((from_bitField0_ & 0x00000002) != 0)) {
-        result.identityProviderRef_ = identityProviderRefBuilder_ == null
-            ? identityProviderRef_
-            : identityProviderRefBuilder_.build();
+        result.federationIssuerRef_ = federationIssuerRefBuilder_ == null
+            ? federationIssuerRef_
+            : federationIssuerRefBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
@@ -500,8 +500,8 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000001;
         onChanged();
       }
-      if (other.hasIdentityProviderRef()) {
-        mergeIdentityProviderRef(other.getIdentityProviderRef());
+      if (other.hasFederationIssuerRef()) {
+        mergeFederationIssuerRef(other.getFederationIssuerRef());
       }
       if (!other.getExternalSub().isEmpty()) {
         externalSub_ = other.externalSub_;
@@ -541,7 +541,7 @@ private static final long serialVersionUID = 0L;
             } // case 10
             case 18: {
               input.readMessage(
-                  internalGetIdentityProviderRefFieldBuilder().getBuilder(),
+                  internalGetFederationIssuerRefFieldBuilder().getBuilder(),
                   extensionRegistry);
               bitField0_ |= 0x00000002;
               break;
@@ -571,7 +571,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object org_ = "";
     /**
      * <pre>
-     * Organization that owns the identity provider.
+     * Organization that owns the federation issuer.
      * Used as the authorization scope: caller must have can_create_identity_account
      * permission on this organization.
      * </pre>
@@ -593,7 +593,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization that owns the identity provider.
+     * Organization that owns the federation issuer.
      * Used as the authorization scope: caller must have can_create_identity_account
      * permission on this organization.
      * </pre>
@@ -616,7 +616,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization that owns the identity provider.
+     * Organization that owns the federation issuer.
      * Used as the authorization scope: caller must have can_create_identity_account
      * permission on this organization.
      * </pre>
@@ -635,7 +635,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization that owns the identity provider.
+     * Organization that owns the federation issuer.
      * Used as the authorization scope: caller must have can_create_identity_account
      * permission on this organization.
      * </pre>
@@ -651,7 +651,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization that owns the identity provider.
+     * Organization that owns the federation issuer.
      * Used as the authorization scope: caller must have can_create_identity_account
      * permission on this organization.
      * </pre>
@@ -670,50 +670,50 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private ai.stigmer.commons.apiresource.ApiResourceReference identityProviderRef_;
+    private ai.stigmer.commons.apiresource.ApiResourceReference federationIssuerRef_;
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> identityProviderRefBuilder_;
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> federationIssuerRefBuilder_;
     /**
      * <pre>
-     * Reference to the IdentityProvider that the federated account belongs to.
+     * Reference to the FederationIssuer that the federated account belongs to.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
-     * @return Whether the identityProviderRef field is set.
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
+     * @return Whether the federationIssuerRef field is set.
      */
-    public boolean hasIdentityProviderRef() {
+    public boolean hasFederationIssuerRef() {
       return ((bitField0_ & 0x00000002) != 0);
     }
     /**
      * <pre>
-     * Reference to the IdentityProvider that the federated account belongs to.
+     * Reference to the FederationIssuer that the federated account belongs to.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
-     * @return The identityProviderRef.
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
+     * @return The federationIssuerRef.
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReference getIdentityProviderRef() {
-      if (identityProviderRefBuilder_ == null) {
-        return identityProviderRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : identityProviderRef_;
+    public ai.stigmer.commons.apiresource.ApiResourceReference getFederationIssuerRef() {
+      if (federationIssuerRefBuilder_ == null) {
+        return federationIssuerRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : federationIssuerRef_;
       } else {
-        return identityProviderRefBuilder_.getMessage();
+        return federationIssuerRefBuilder_.getMessage();
       }
     }
     /**
      * <pre>
-     * Reference to the IdentityProvider that the federated account belongs to.
+     * Reference to the FederationIssuer that the federated account belongs to.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
      */
-    public Builder setIdentityProviderRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (identityProviderRefBuilder_ == null) {
+    public Builder setFederationIssuerRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (federationIssuerRefBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        identityProviderRef_ = value;
+        federationIssuerRef_ = value;
       } else {
-        identityProviderRefBuilder_.setMessage(value);
+        federationIssuerRefBuilder_.setMessage(value);
       }
       bitField0_ |= 0x00000002;
       onChanged();
@@ -721,17 +721,17 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Reference to the IdentityProvider that the federated account belongs to.
+     * Reference to the FederationIssuer that the federated account belongs to.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
      */
-    public Builder setIdentityProviderRef(
+    public Builder setFederationIssuerRef(
         ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
-      if (identityProviderRefBuilder_ == null) {
-        identityProviderRef_ = builderForValue.build();
+      if (federationIssuerRefBuilder_ == null) {
+        federationIssuerRef_ = builderForValue.build();
       } else {
-        identityProviderRefBuilder_.setMessage(builderForValue.build());
+        federationIssuerRefBuilder_.setMessage(builderForValue.build());
       }
       bitField0_ |= 0x00000002;
       onChanged();
@@ -739,24 +739,24 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Reference to the IdentityProvider that the federated account belongs to.
+     * Reference to the FederationIssuer that the federated account belongs to.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
      */
-    public Builder mergeIdentityProviderRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (identityProviderRefBuilder_ == null) {
+    public Builder mergeFederationIssuerRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (federationIssuerRefBuilder_ == null) {
         if (((bitField0_ & 0x00000002) != 0) &&
-          identityProviderRef_ != null &&
-          identityProviderRef_ != ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance()) {
-          getIdentityProviderRefBuilder().mergeFrom(value);
+          federationIssuerRef_ != null &&
+          federationIssuerRef_ != ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance()) {
+          getFederationIssuerRefBuilder().mergeFrom(value);
         } else {
-          identityProviderRef_ = value;
+          federationIssuerRef_ = value;
         }
       } else {
-        identityProviderRefBuilder_.mergeFrom(value);
+        federationIssuerRefBuilder_.mergeFrom(value);
       }
-      if (identityProviderRef_ != null) {
+      if (federationIssuerRef_ != null) {
         bitField0_ |= 0x00000002;
         onChanged();
       }
@@ -764,67 +764,67 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Reference to the IdentityProvider that the federated account belongs to.
+     * Reference to the FederationIssuer that the federated account belongs to.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
      */
-    public Builder clearIdentityProviderRef() {
+    public Builder clearFederationIssuerRef() {
       bitField0_ = (bitField0_ & ~0x00000002);
-      identityProviderRef_ = null;
-      if (identityProviderRefBuilder_ != null) {
-        identityProviderRefBuilder_.dispose();
-        identityProviderRefBuilder_ = null;
+      federationIssuerRef_ = null;
+      if (federationIssuerRefBuilder_ != null) {
+        federationIssuerRefBuilder_.dispose();
+        federationIssuerRefBuilder_ = null;
       }
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Reference to the IdentityProvider that the federated account belongs to.
+     * Reference to the FederationIssuer that the federated account belongs to.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getIdentityProviderRefBuilder() {
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getFederationIssuerRefBuilder() {
       bitField0_ |= 0x00000002;
       onChanged();
-      return internalGetIdentityProviderRefFieldBuilder().getBuilder();
+      return internalGetFederationIssuerRefFieldBuilder().getBuilder();
     }
     /**
      * <pre>
-     * Reference to the IdentityProvider that the federated account belongs to.
+     * Reference to the FederationIssuer that the federated account belongs to.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getIdentityProviderRefOrBuilder() {
-      if (identityProviderRefBuilder_ != null) {
-        return identityProviderRefBuilder_.getMessageOrBuilder();
+    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getFederationIssuerRefOrBuilder() {
+      if (federationIssuerRefBuilder_ != null) {
+        return federationIssuerRefBuilder_.getMessageOrBuilder();
       } else {
-        return identityProviderRef_ == null ?
-            ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : identityProviderRef_;
+        return federationIssuerRef_ == null ?
+            ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : federationIssuerRef_;
       }
     }
     /**
      * <pre>
-     * Reference to the IdentityProvider that the federated account belongs to.
+     * Reference to the FederationIssuer that the federated account belongs to.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-        internalGetIdentityProviderRefFieldBuilder() {
-      if (identityProviderRefBuilder_ == null) {
-        identityProviderRefBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+        internalGetFederationIssuerRefFieldBuilder() {
+      if (federationIssuerRefBuilder_ == null) {
+        federationIssuerRefBuilder_ = new com.google.protobuf.SingleFieldBuilder<
             ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
-                getIdentityProviderRef(),
+                getFederationIssuerRef(),
                 getParentForChildren(),
                 isClean());
-        identityProviderRef_ = null;
+        federationIssuerRef_ = null;
       }
-      return identityProviderRefBuilder_;
+      return federationIssuerRefBuilder_;
     }
 
     private java.lang.Object externalSub_ = "";
