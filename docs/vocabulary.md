@@ -56,35 +56,35 @@ definitions, API names, and examples follow below.
 
 <!-- vale Stigmer.terms = NO -->
 
-| Term                   | Sales site       | Quickstart / tutorial                  | Concepts / how-to      | Reference / SDK                                 | README             |
-| ---------------------- | ---------------- | -------------------------------------- | ---------------------- | ----------------------------------------------- | ------------------ |
-| **Agent**              | Agent            | Agent                                  | Agent                  | Agent, `kind: Agent`                            | Agent              |
-| **Skill**              | domain knowledge | Skill ("domain knowledge")             | Skill                  | Skill, `skill_refs`                             | Skill              |
-| **Plugin**             | plugin           | plugin ("what you install")            | Plugin                 | Plugin, `kind: Plugin`                          | plugin             |
-| **Marketplace**        | marketplace      | Marketplace ("where you install from") | Marketplace            | Marketplace; source, `stigmer install`          | marketplace        |
-| **MCP server**         | tools            | MCP server ("tool connection")         | MCP server             | `PluginStatus.mcp_servers`, `plugins`           | MCP server         |
-| **Session**            | conversation     | Session ("conversation")               | Session                | Session, `kind: Session`                        | Session            |
-| **Session event**      | ---              | ---                                    | event                  | `SessionEvent`, `agent.message`, `stigmer.*`    | event              |
-| **Runner**             | compute          | runner ("where your Agent runs")       | Runner                 | Runner                                          | runner             |
-| **Harness**            | execution engine | harness ("execution engine")           | Harness                | Harness, `SessionSpec.harness`                  | harness            |
-| **Approval flow**      | approval flow    | approval flow                          | approval flow, HITL    | `destructiveHint`, `confirmToolUse`             | HITL, approval     |
-| **Organization**       | Organization     | Organization                           | Organization           | Organization, `kind: organization`              | Organization       |
-| **Agent hour**         | agent hours      | ---                                    | agent hours            | `included_agent_hours`, `per_agent_hour_micros` | agent hours        |
-| **Working time**       | ---              | working time                           | working time           | `working_seconds`                               | working time       |
-| **Team**               | teams            | ---                                    | Team                   | Team, `kind: team`                              | Team               |
-| **Vault**              | vault            | vault ("your keys and logins")         | Vault                  | Vault, `kind: Vault`                            | vault              |
-| **Preference**         | preferences      | preference ("standing context")        | Preference             | `spec.preferences.standing_context`             | Preference         |
-| **Federation Issuer**  | ---              | identity provider (Auth0, Okta, …)     | Federation Issuer      | FederationIssuer, `kind: FederationIssuer`      | Federation Issuer  |
-| **Identity Account**   | ---              | ---                                    | Identity Account       | IdentityAccount, `kind: identity_account`       | Identity Account   |
-| **Embedding settings** | ---              | ---                                    | embedding settings     | `OrganizationSpec.embedding`                    | embedding settings |
-| **App user**           | ---              | ---                                    | app user               | `provisioning_mode: app_user`                   | app user           |
-| **Run**                | ---              | run                                    | run                    | Run, `kind: Run`                                | Run                |
-| **Subagent**           | ---              | ---                                    | subagent               | subagent, `subagents`, `<plugin>:<agent>`       | subagent           |
-| **Agent Channel**      | ---              | ---                                    | channel, Agent Channel | AgentChannel, `kind: AgentChannel`              | Agent Channel      |
-| **Channel App**        | ---              | ---                                    | Channel App            | ChannelApp, `kind: ChannelApp`                  | Channel App        |
-| **Schedule**           | ---              | ---                                    | schedule, Schedule     | Schedule, `kind: Schedule`                      | Schedule           |
-| **Label**              | ---              | label                                  | label                  | `metadata.labels`, `labels` filter              | label              |
-| **Tag**                | ---              | tag                                    | tag                    | `metadata.tags`                                 | tag                |
+| Term                   | Sales site       | Quickstart / tutorial                  | Concepts / how-to      | Reference / SDK                                     | README             |
+| ---------------------- | ---------------- | -------------------------------------- | ---------------------- | --------------------------------------------------- | ------------------ |
+| **Agent**              | Agent            | Agent                                  | Agent                  | Agent, `kind: Agent`                                | Agent              |
+| **Skill**              | domain knowledge | Skill ("domain knowledge")             | Skill                  | Skill, `skill_refs`                                 | Skill              |
+| **Plugin**             | plugin           | plugin ("what you install")            | Plugin                 | Plugin, `kind: Plugin`                              | plugin             |
+| **Marketplace**        | marketplace      | Marketplace ("where you install from") | Marketplace            | Marketplace; source, `stigmer install`              | marketplace        |
+| **MCP server**         | tools            | MCP server ("tool connection")         | MCP server             | `PluginStatus.mcp_servers`, `AgentSpec.mcp_servers` | MCP server         |
+| **Session**            | conversation     | Session ("conversation")               | Session                | Session, `kind: Session`                            | Session            |
+| **Session event**      | ---              | ---                                    | event                  | `SessionEvent`, `agent.message`, `stigmer.*`        | event              |
+| **Runner**             | compute          | runner ("where your Agent runs")       | Runner                 | Runner                                              | runner             |
+| **Harness**            | execution engine | harness ("execution engine")           | Harness                | Harness, `SessionSpec.harness`                      | harness            |
+| **Approval flow**      | approval flow    | approval flow                          | approval flow, HITL    | `destructiveHint`, `confirmToolUse`                 | HITL, approval     |
+| **Organization**       | Organization     | Organization                           | Organization           | Organization, `kind: organization`                  | Organization       |
+| **Agent hour**         | agent hours      | ---                                    | agent hours            | `included_agent_hours`, `per_agent_hour_micros`     | agent hours        |
+| **Working time**       | ---              | working time                           | working time           | `working_seconds`                                   | working time       |
+| **Team**               | teams            | ---                                    | Team                   | Team, `kind: team`                                  | Team               |
+| **Vault**              | vault            | vault ("your keys and logins")         | Vault                  | Vault, `kind: Vault`                                | vault              |
+| **Preference**         | preferences      | preference ("standing context")        | Preference             | `spec.preferences.standing_context`                 | Preference         |
+| **Federation Issuer**  | ---              | identity provider (Auth0, Okta, …)     | Federation Issuer      | FederationIssuer, `kind: FederationIssuer`          | Federation Issuer  |
+| **Identity Account**   | ---              | ---                                    | Identity Account       | IdentityAccount, `kind: identity_account`           | Identity Account   |
+| **Embedding settings** | ---              | ---                                    | embedding settings     | `OrganizationSpec.embedding`                        | embedding settings |
+| **App user**           | ---              | ---                                    | app user               | `provisioning_mode: app_user`                       | app user           |
+| **Run**                | ---              | run                                    | run                    | Run, `kind: Run`                                    | Run                |
+| **Subagent**           | ---              | ---                                    | subagent               | subagent, `subagents`, `<plugin>:<agent>`           | subagent           |
+| **Agent Channel**      | ---              | ---                                    | channel, Agent Channel | AgentChannel, `kind: AgentChannel`                  | Agent Channel      |
+| **Channel App**        | ---              | ---                                    | Channel App            | ChannelApp, `kind: ChannelApp`                      | Channel App        |
+| **Schedule**           | ---              | ---                                    | schedule, Schedule     | Schedule, `kind: Schedule`                          | Schedule           |
+| **Label**              | ---              | label                                  | label                  | `metadata.labels`, `labels` filter                  | label              |
+| **Tag**                | ---              | tag                                    | tag                    | `metadata.tags`                                     | tag                |
 
 <!-- vale Stigmer.terms = YES -->
 
@@ -115,7 +115,9 @@ A reusable definition of what an AI assistant knows and can do.
   `stigmer apply -f agent.yaml`, `stigmer run <name>`,
   `stigmer get agent <name>`, `stigmer list agent`.
 - **YAML fields**: `spec.instructions`, `spec.plugins` (references with
-  `kind: plugin`, each plugin attached whole), `spec.skill_refs`, `spec.tools`,
+  `kind: plugin`, each plugin attached whole), `spec.mcp_servers` (MCP servers
+  written in the Agent itself, reached over HTTP; only the Organization's admins
+  add one or change its address or headers), `spec.skill_refs`, `spec.tools`,
   `spec.subagents` (saved Agents it may hand work to, each pinned to a version
   when this Agent is saved, one level deep), and `spec.run_config` with
   `spec.harness`: the model and engine a conversation on the Agent starts on, a
@@ -182,9 +184,9 @@ A piece of knowledge you attach to an Agent so it has domain expertise.
 #### Plugin
 
 A package you install to add capabilities to your Organization: skills, agents,
-hooks and MCP servers, as one unit. A plugin is the only home of an MCP server.
-Installing it stores the plugin alone; an Agent or a conversation that lists it
-in `plugins` gets all of it.
+hooks and MCP servers, as one unit. A plugin is how an MCP server is packaged
+and shared. Installing it stores the plugin alone; an Agent or a conversation
+that lists it in `plugins` gets all of it.
 
 - **User-facing alternative**: none needed. "Plugin" is the word the Cursor,
   Claude Code and Codex communities already use for the same package, and
@@ -313,45 +315,49 @@ on offer by default.
 #### MCP server
 
 An external tool connection that lets an Agent interact with other systems. In
-Stigmer an MCP server lives only inside a plugin; it is not a resource of its
-own.
+Stigmer an MCP server is an entry in a plugin, or one an Agent lists itself; it
+is not a resource of its own.
 
 - **User-facing alternative**: "tools" or "tool access" on the sales site. "Tool
   connection" in introductory docs. "MCP server" everywhere else.
 - **Capitalize**: "MCP server", lowercase "server", in every context: it is part
-  of a plugin, not a Stigmer resource kind.
+  of a plugin or an Agent, not a Stigmer resource kind.
 - **API surface**: `PluginStatus.mcp_servers` (`McpServerEntry`: `name`, `stdio`
-  or `http`, `env`, `sign_in`), `PluginCommandController.listTools`. CLI:
-  `stigmer mcp add <name> <url>` (install one server as a plugin),
-  `stigmer connect plugin <plugin>` (sign in and list its tools). Not to be
-  confused with `stigmer mcp-server`, which starts Stigmer's own MCP server for
-  IDEs. Console: Library > Plugins > "Add MCP server"; a plugin's page shows
-  "Sign in" and "Check tools" per server.
-- **YAML fields**: an Agent or Session lists plugins in `spec.plugins`; the
-  Agent narrows a plugin server's tools with `spec.tools` and
-  `spec.disallowed_tools` (`mcp__plugin_<plugin>_<server>`,
-  `mcp__plugin_<plugin>_<server>__<tool>`). A tool asks first when its server's
-  MCP annotation says `destructiveHint: true`, read live each turn.
+  or `http`, `env`, `sign_in`), `PluginCommandController.listTools`;
+  `AgentSpec.mcp_servers` (`AgentMcpServer`: `name`, `url`, `headers`), a server
+  written in the Agent itself, HTTP only. CLI: `stigmer mcp add <name> <url>`
+  (install one server as a plugin), `stigmer connect plugin <plugin>` (sign in
+  and list its tools). Not to be confused with `stigmer mcp-server`, which
+  starts Stigmer's own MCP server for IDEs. Console: Library > Plugins > "Add
+  MCP server"; a plugin's page shows "Sign in" and "Check tools" per server; an
+  Agent's page and the new-Agent wizard's Capabilities step show "MCP servers"
+  to admins.
+- **YAML fields**: an Agent or Session lists plugins in `spec.plugins`; an Agent
+  writes its own servers in `spec.mcp_servers`. The Agent narrows a server's
+  tools with `spec.tools` and `spec.disallowed_tools`: a plugin's server as
+  `mcp__plugin_<plugin>_<server>` and `mcp__plugin_<plugin>_<server>__<tool>`,
+  its own as `mcp__<server>` and `mcp__<server>__<tool>`. A tool asks first when
+  its server's MCP annotation says `destructiveHint: true`, read live each turn.
 - **Protocol**: MCP stands for Model Context Protocol, an open standard. Spell
   out on first use in any context. Link to `https://modelcontextprotocol.io` in
   docs.
 
 **Good examples**:
 
-| Context    | Copy                                                                                                                                                  |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sales site | "Connect your Agent to your systems. It checks inventory, creates tickets, updates records---with the same APIs your team already uses."              |
-| Quickstart | "Give your Agent tools by adding an MCP server---a connection to an external system like GitHub, a database, or a file store."                        |
-| Concepts   | "An MCP server is a bridge between your Agent and an external system. It lives in a plugin; the Agent that lists the plugin gets the server's tools." |
-| Reference  | "`McpServerEntry`---one MCP server a plugin carries, a local program (`stdio`) or an address (`http`). Its tools are listed live, never stored."      |
+| Context    | Copy                                                                                                                                             |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Sales site | "Connect your Agent to your systems. It checks inventory, creates tickets, updates records---with the same APIs your team already uses."         |
+| Quickstart | "Give your Agent tools by adding an MCP server---a connection to an external system like GitHub, a database, or a file store."                   |
+| Concepts   | "An MCP server is a bridge between your Agent and an external system. It comes in a plugin the Agent lists, or is written in the Agent itself."  |
+| Reference  | "`McpServerEntry`---one MCP server a plugin carries, a local program (`stdio`) or an address (`http`). Its tools are listed live, never stored." |
 
 **Bad examples**:
 
-| Context    | Copy                                              | Problem                                                                                                             |
-| ---------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Sales site | "Configure MCP servers for tool integration."     | Technical jargon. Say "connect your tools."                                                                         |
-| Quickstart | "Set up the McpServerEntry in the plugin status." | proto message names in a tutorial. Say "add an MCP server." Show the command or YAML by example, not by field name. |
-| Any        | "Create an MCP Server resource."                  | There is no MCP server kind; a server lives in a plugin. Say "add an MCP server" (`stigmer mcp add`).               |
+| Context    | Copy                                              | Problem                                                                                                                |
+| ---------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Sales site | "Configure MCP servers for tool integration."     | Technical jargon. Say "connect your tools."                                                                            |
+| Quickstart | "Set up the McpServerEntry in the plugin status." | proto message names in a tutorial. Say "add an MCP server." Show the command or YAML by example, not by field name.    |
+| Any        | "Create an MCP Server resource."                  | There is no MCP server kind; a server is an entry in a plugin or in an Agent's `mcp_servers`. Say "add an MCP server". |
 
 ---
 
@@ -1927,10 +1933,10 @@ surface that started it, or the sending person's own).
 
 Retired term. A `kind: McpServer` was a resource of its own that described one
 MCP server, and an Agent attached it through `mcp_server_usages`. The kind was
-removed: an MCP server is an entry in a plugin's `mcp.json`, an Agent or a
-conversation lists the plugin in `plugins`, and an admin's one-off server is a
-plugin of one server (`stigmer mcp add <name> <url>`). See MCP server and
-Plugin.
+removed: an MCP server is an entry in a plugin's `mcp.json`, which an Agent or a
+conversation lists in `plugins`, or an entry in an Agent's own `mcp_servers`. An
+admin's one-off server to share is a plugin of one server
+(`stigmer mcp add <name> <url>`). See MCP server and Plugin.
 
 - **Capitalize**: Yes, when naming the retired kind in an upgrade note.
 - **Context rule**: Do not use in new writing; write "MCP server", lowercase
@@ -2039,6 +2045,11 @@ the real YAML structure (`mcp_server_usages` with `McpServerUsage` entries). No
 shorthand exists or is planned. Since the MCP server kind was removed, an Agent
 lists the plugins that carry its servers in `plugins`, and `mcp_server_usages`
 is a reserved field.
+
+2026-10-15: an Agent now has a real `mcp_servers` field (#2286), a list of the
+servers written in the Agent itself (`name`, `url`, `headers`). It is a new
+field with its own shape, not the old `mcpServers:` shorthand, which never
+pointed at a server kind's references.
 
 ---
 
