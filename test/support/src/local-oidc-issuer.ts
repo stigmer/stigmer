@@ -41,7 +41,12 @@
 //   - every browser-facing document answers CORS (`*`), because the console
 //     calls `/token` cross-origin from `next dev` in the e2e stack shape.
 // A `port` option pins the listener, because the e2e config must know the
-// issuer URL before the browser starts. `local-oidc-issuer-main.ts` runs
+// issuer URL before the browser starts. A `tls` option serves every
+// document over HTTPS with the certificate the caller hands in, and the
+// issuer spells itself `https://127.0.0.1:<port>`: the shape an outside
+// provider an organization registers as its federation issuer must have,
+// since the server reads such a provider only over HTTPS. This module
+// mints no certificate; the caller makes one its server under test trusts. `local-oidc-issuer-main.ts` runs
 // it as a process for the e2e package, which never imports across test
 // packages.
 //
@@ -59,7 +64,8 @@ import {
 import type { KeyObject } from "node:crypto";
 import { once } from "node:events";
 import { createServer } from "node:http";
-import type { IncomingMessage, Server, ServerResponse } from "node:http";
+import type { IncomingMessage, RequestListener, Server, ServerResponse } from "node:http";
+import { createServer as createHttpsServer } from "node:https";
 
 import { signRs256Jwt } from "./jwt.ts";
 
@@ -98,11 +104,16 @@ export interface LocalOidcIssuerOptions {
   readonly endSession?: boolean;
   // Who `/authorize` signs in as. Defaults to LOCAL_ISSUER_PERSON.
   readonly person?: { readonly sub: string; readonly email: string };
+  // Serve HTTPS with this certificate and key (PEM), and spell the issuer
+  // `https://`. The certificate must name 127.0.0.1; the client decides
+  // whether to trust it.
+  readonly tls?: { readonly certPem: string; readonly keyPem: string };
 }
 
 export interface LocalOidcIssuer {
-  // `http://127.0.0.1:<port>`, no trailing slash — exactly what the server
-  // is configured with and what every minted token's `iss` says.
+  // `http://127.0.0.1:<port>` (`https://` under the `tls` option), no
+  // trailing slash — exactly what the server is configured with and what
+  // every minted token's `iss` says.
   readonly issuer: string;
   readonly audience: string;
   readonly profile: typeof LOCAL_ISSUER_PROFILE;
@@ -112,8 +123,10 @@ export interface LocalOidcIssuer {
   // published kid, `iss` / `aud` as above, `iat` / `exp`, and the `email`
   // claim (the server's verifier carries it onto CallerIdentity). It lives
   // five minutes unless `ttlSeconds` says otherwise: a person a target
-  // holds for a whole suite file asks for longer.
-  mint(input: { sub: string; email: string; ttlSeconds?: number }): Promise<string>;
+  // holds for a whole suite file asks for longer. `audience` replaces the
+  // issuer's own for this one token, as a provider mints for each
+  // registration an organization made with it.
+  mint(input: { sub: string; email: string; ttlSeconds?: number; audience?: string }): Promise<string>;
   // Make /userinfo answer 503 for one subject; `undefined` clears the lever.
   refuseUserinfoFor(sub: string | undefined): void;
   close(): Promise<void>;
@@ -159,7 +172,7 @@ export async function startLocalOidcIssuer(
   const pendingCodes = new Map<string, PendingCode>();
   const refreshGrants = new Map<string, RefreshGrant>();
 
-  const mintAccessToken = (input: { sub: string; email: string; ttlSeconds?: number }): string => {
+  const mintAccessToken = (input: { sub: string; email: string; ttlSeconds?: number; audience?: string }): string => {
     const now = Math.floor(Date.now() / 1000);
     return signRs256Jwt({
       privateKeyPem,
@@ -167,7 +180,7 @@ export async function startLocalOidcIssuer(
       claims: {
         iss: issuer,
         sub: input.sub,
-        aud: audience,
+        aud: input.audience ?? audience,
         iat: now,
         exp: now + (input.ttlSeconds ?? TOKEN_TTL_SECONDS),
         email: input.email,
@@ -220,7 +233,7 @@ export async function startLocalOidcIssuer(
     return body;
   };
 
-  const server: Server = createServer((req, res) => {
+  const answer: RequestListener = (req, res) => {
     // Every document is browser-facing in the e2e shape; CORS is answered
     // before routing so a preflight on any path succeeds.
     res.setHeader("access-control-allow-origin", "*");
@@ -290,14 +303,17 @@ export async function startLocalOidcIssuer(
       // until the test's timeout hides which side broke.
       json(res, 500, { error: String(error) });
     }
-  });
+  };
+  const tls = options.tls;
+  const server: Server =
+    tls === undefined ? createServer(answer) : createHttpsServer({ cert: tls.certPem, key: tls.keyPem }, answer);
   server.listen(options.port ?? 0, "127.0.0.1");
   await once(server, "listening");
   const address = server.address();
   if (address === null || typeof address === "string") {
     throw new Error("local OIDC issuer did not bind a TCP port");
   }
-  issuer = `http://127.0.0.1:${address.port}`;
+  issuer = `${tls === undefined ? "http" : "https"}://127.0.0.1:${address.port}`;
 
   return {
     issuer,

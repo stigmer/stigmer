@@ -34,7 +34,7 @@ import { ProviderKeySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usa
 import { BillingAccountStatus } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
 import { ModelPricingBaselineStatus } from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { FixtureTracker } from "../harness/fixtures";
-import { FAKE_CARD, postStripeWebhook, signStripePayload, signedEvent, stripeEvent } from "../harness/fake-stripe";
+import { FAKE_CARD, paymentMethodAttached, postStripeWebhook, signStripePayload, signedEvent, stripeEvent } from "../harness/fake-stripe";
 import { expectGrpcCode } from "../contract/errors";
 import { requireCloudFixtures, type CloudFixturesClient } from "../support/cloud-fixtures-client";
 import { agentRefOf, makeAgent } from "../support/agents";
@@ -154,7 +154,8 @@ async function operator(): Promise<PrivilegedScope> {
 // the suite IS Stripe — it authors the event payloads below and signs them
 // with the secret the server was booted with. The fake owns Stripe's response
 // shapes; the suite owns the events it posts, so the builders live here
-// beside the arms that use them.
+// beside the arms that use them, except `payment_method.attached`, which
+// the plan move shares (harness/fake-stripe.ts).
 
 async function post(event: ReturnType<typeof stripeEvent>, options: { secret?: string; timestamp?: number } = {}) {
   const lane = target.stripeWebhook!();
@@ -167,16 +168,6 @@ async function post(event: ReturnType<typeof stripeEvent>, options: { secret?: s
 // the account.
 function customerUpdated(customerId: string, defaultPaymentMethodId: string | null) {
   return stripeEvent("customer.updated", { id: customerId, object: "customer", invoice_settings: { default_payment_method: defaultPaymentMethodId } });
-}
-
-// `payment_method.attached` carries the payment method itself — the handler
-// reads the card from the event, never from the API. `card` defaults to the
-// fake's one card; pass `type: "us_bank_account"` (no card) for the non-card
-// arm.
-function paymentMethodAttached(paymentMethodId: string, customerId: string, options: { type?: string; card?: typeof FAKE_CARD | null } = {}) {
-  const type = options.type ?? "card";
-  const card = options.card === undefined ? (type === "card" ? FAKE_CARD : null) : options.card;
-  return stripeEvent("payment_method.attached", { id: paymentMethodId, object: "payment_method", type, customer: customerId, ...(card === null ? {} : { card }) });
 }
 
 // The server mints the org's Stripe customer the first time the org saves a

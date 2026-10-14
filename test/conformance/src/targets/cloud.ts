@@ -27,6 +27,7 @@ import {
 import { newPrimaryEnforcingLane } from "../harness/enforcing-lane";
 import { awaitGrpcReady } from "../harness/grpc-ready";
 import { PERSON_TOKEN_TTL_SECONDS, PrimaryPeople } from "../harness/people";
+import { moveToTeamPlan } from "../harness/plan-move";
 import { freshSubject, optInToMemory } from "../support/identityaccounts";
 import { uniqueName } from "../support/naming";
 import { createUniqueOrganization } from "../support/organizations";
@@ -152,6 +153,15 @@ export class CloudTarget implements TargetProfile {
     membershipOnArrival: false,
     // The Cloud holds no license key: its plans are subscriptions.
     licenseStatus: "absent",
+    // The enterprise identity unit, composed with the Cloud's plan gate on
+    // teams: a Free organization is refused one, so the team arms run on a
+    // tenancy moved to the Team plan (provisionTeamsTenancy). Invitation
+    // links and federation issuers ride no plan.
+    teams: "plan-gated",
+    invitations: true,
+    federationIssuers: true,
+    // The composition always dials user-supplied addresses strictly.
+    outboundEgress: "strict",
     // The three cloud-capability surfaces, all served by the composition (the
     // flag is the edition's contract; the lane address is CLOUD_ENV's).
     billingEngine: true,
@@ -235,6 +245,15 @@ export class CloudTarget implements TargetProfile {
     // account as such a person does, so the suites that capture memory run
     // past the member half of the double opt-in (firstPartyMemoryCapture).
     await optInToMemory(this.clients());
+  }
+
+  // The tenant's issuer, as the environment publishes it: the one the
+  // composition reserves for its own sign-in.
+  signInIssuer(): string {
+    if (this.tenant === undefined) {
+      throw new Error("CloudTarget.setup() must be called before signInIssuer()");
+    }
+    return this.tenant.issuer;
   }
 
   directLoginUnavailable(): string {
@@ -372,6 +391,20 @@ export class CloudTarget implements TargetProfile {
   // relying on which target it happens to run under.
   provisionKeylessTenancy(): Promise<TenancyContext> {
     return this.provisionTenancy();
+  }
+
+  // A tenancy whose organization is on the Team plan, the plan the team
+  // lane's gate admits (harness/plan-move.ts says how it moves). The plain
+  // tenancy stays on Free, which the billing suites start from.
+  async provisionTeamsTenancy(): Promise<TenancyContext> {
+    const context = await this.provisionTenancy();
+    try {
+      await moveToTeamPlan(this.clients(), this.stripeWebhook(), context.org);
+    } catch (error) {
+      await this.cleanupTenancy(context);
+      throw error;
+    }
+    return context;
   }
 
   // Saves the fixture keys through the org owner's own ProviderKey.set, the
