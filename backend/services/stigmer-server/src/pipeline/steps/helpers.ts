@@ -75,3 +75,16 @@ export function matchesAllLabels(
     ([key, value]) => resourceLabels[key] === value,
   );
 }
+
+/**
+ * A label filter as a page token's fingerprint holds it: its pairs sorted
+ * by key, so the same filter sent in another order continues the same
+ * list.
+ */
+export function sortedLabels(
+  labels: Record<string, string>,
+): Array<[string, string]> {
+  return Object.entries(labels).sort(([a], [b]) =>
+    a < b ? -1 : a > b ? 1 : 0,
+  );
+}

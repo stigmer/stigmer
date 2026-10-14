@@ -38,9 +38,9 @@ import type {
   AgentChannelId,
   AgentChannelList,
   CompleteChannelInstallInput,
-  GetAgentChannelsByAgentRequest,
   InitiateChannelInstallInput,
   InitiateChannelInstallOutput,
+  ListAgentChannelsByAgentRequest,
   ListAgentChannelsRequest,
 } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -48,6 +48,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
@@ -79,9 +80,14 @@ import {
   newLoadExistingForDeleteStep,
 } from "../../pipeline/steps/delete.js";
 import {
-  compareCreatedAtDesc,
   matchesAllLabels,
+  sortedLabels,
 } from "../../pipeline/steps/helpers.js";
+import {
+  listPageFingerprint,
+  readListPage,
+} from "../../pipeline/steps/list-page.js";
+import type { ListPageRequest } from "../../pipeline/steps/list-page.js";
 import {
   EXISTING_RESOURCE_KEY,
   newLoadExistingStep,
@@ -103,17 +109,26 @@ import {
   newCleanupIamPoliciesStep,
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
-import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
+import {
+  newClaimNameStep,
+  newReleaseNamesStep,
+  releaseNameOnFailure,
+} from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
-import { everyPathUpdate, updateContext } from "../../pipeline/steps/update-input.js";
+import {
+  everyPathUpdate,
+  updateContext,
+} from "../../pipeline/steps/update-input.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
+import type { ListIndexQuery } from "../../store/list-index.js";
 import type { Store } from "../../store/interface.js";
 import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
 import type { ChannelRuntime } from "./channel-runtime.js";
+import { agentChannelListIndex } from "./list-index.js";
 import { INSTALL_UNAVAILABLE_MESSAGE } from "./constants.js";
 import {
   newInitInstallStateStep,
@@ -143,17 +158,20 @@ export interface AgentChannelControllerDeps {
    * site states which posture it composes.
    */
   readonly channelRuntime: ChannelRuntime | undefined;
-  /** The composed list read scope — list/getByAgent narrow through it; undefined = the OSS full scan. */
+  /** The composed list read scope — list/listByAgent narrow through it; undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
 }
 
 /** A channel's runs have no person: each asks the account that attached each vault. */
-const CHANNEL_VAULT_ATTACHMENTS: VaultAttachmentOptions<typeof AgentChannelSchema> = {
+const CHANNEL_VAULT_ATTACHMENTS: VaultAttachmentOptions<
+  typeof AgentChannelSchema
+> = {
   surface: "a channel",
   attachers: {
     get: (row) => row.status?.vaultAttachers,
     set: (row, attachers) => {
-      (row.status ??= create(AgentChannelStatusSchema)).vaultAttachers = attachers;
+      (row.status ??= create(AgentChannelStatusSchema)).vaultAttachers =
+        attachers;
     },
   },
 };
@@ -174,7 +192,7 @@ export function registerAgentChannelServices(
   router.service(AgentChannelQueryController, {
     get: (channelId, ctx) => get(deps, channelId, ctx),
     getByReference: (ref, ctx) => getByReference(deps, ref, ctx),
-    getByAgent: (req, ctx) => getByAgent(deps, req, ctx),
+    listByAgent: (req, ctx) => listByAgent(deps, req, ctx),
     list: (req, ctx) => list(deps, req, ctx),
   });
 }
@@ -233,7 +251,13 @@ async function createChannel(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newInitInstallStateStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-    .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, CHANNEL_VAULT_ATTACHMENTS))
+    .addStep(
+      newVaultAttachmentsStep(
+        deps.store,
+        deps.authorizer,
+        CHANNEL_VAULT_ATTACHMENTS,
+      ),
+    )
     .addStep(newClaimNameStep(deps.store, ApiResourceKind.agent_channel))
     .addStep(newPersistStep(deps.store))
     .addStep(
@@ -274,8 +298,8 @@ async function update(
         newAuthorizeStep(
           AgentChannelCommandController.method.update,
           deps.authorizer,
-        input,
-      ),
+          input,
+        ),
       )
       .addStep(newResolveSlugStep({ update: true }))
       .addStep(newLoadExistingStep(deps.store))
@@ -291,7 +315,13 @@ async function update(
       )
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-      .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, CHANNEL_VAULT_ATTACHMENTS))
+      .addStep(
+        newVaultAttachmentsStep(
+          deps.store,
+          deps.authorizer,
+          CHANNEL_VAULT_ATTACHMENTS,
+        ),
+      )
       .addStep(newPersistStep(deps.store))
       .build()
       .execute(reqCtx);
@@ -355,7 +385,11 @@ async function apply(
   const resolved = reqCtx.newState;
   return shouldCreate
     ? createChannel(deps, resolved, ctx)
-    : update(deps, everyPathUpdate(UpdateAgentChannelInputSchema, resolved), ctx);
+    : update(
+        deps,
+        everyPathUpdate(UpdateAgentChannelInputSchema, resolved),
+        ctx,
+      );
 }
 
 // ---------------------------------------------------------------------------
@@ -486,7 +520,13 @@ async function deleteChannel(
   }
   await pipeline
     .addStep(newDeleteResourceStep(deps.store))
-    .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.agent_channel))
+    .addStep(
+      newReleaseNamesStep(
+        deps.store,
+        deps.logger,
+        ApiResourceKind.agent_channel,
+      ),
+    )
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     )
@@ -566,32 +606,31 @@ async function getByReference(
 const CHANNEL_LIST_KEY = "agentChannelList";
 
 /**
- * GetByAgent — all channels of one agent, optionally org-scoped. This is
- * how the agent's integrations surface and CLI resolve an agent's
+ * ListByAgent — one page of one agent's channels, optionally org-scoped.
+ * This is how the agent's integrations surface and CLI resolve an agent's
  * channels regardless of slug (channels are N-per-agent across
  * providers). A nonexistent agent yields an EMPTY list, not an error.
  * The org filter is contract parity, not authorization (channels are
  * same-org by invariant, so it only excludes rows when the requested org
  * differs from the agent's — kept for parity with the sibling RPCs).
  */
-async function getByAgent(
+async function listByAgent(
   deps: AgentChannelControllerDeps,
-  req: GetAgentChannelsByAgentRequest,
+  req: ListAgentChannelsByAgentRequest,
   ctx: HandlerContext,
 ): Promise<AgentChannelList> {
   const reqCtx = new RequestContext(
-    AgentChannelQueryController.method.getByAgent.input,
+    AgentChannelQueryController.method.listByAgent.input,
     req,
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof AgentChannelQueryController.method.getByAgent.input>(
-    "agent-channel-get-by-agent",
-    deps.logger,
-  )
+  await newPipeline<
+    typeof AgentChannelQueryController.method.listByAgent.input
+  >("agent-channel-get-by-agent", deps.logger)
     .addStep(
       newAuthorizeStep(
-        AgentChannelQueryController.method.getByAgent,
+        AgentChannelQueryController.method.listByAgent,
         deps.authorizer,
       ),
     )
@@ -611,69 +650,41 @@ async function getByAgent(
 }
 
 /**
- * LoadChannelsByAgent — Go loadChannelsByAgentStep: the channels whose
- * spec.agent_ref holds the agent's id, so a channel of an agent since
- * deleted never lists under a new agent of the same name.
+ * LoadChannelsByAgent — one page of the channels whose spec.agent_ref
+ * holds the agent's id (the index's `agent` key), so a channel of an agent
+ * since deleted never lists under a new agent of the same name.
  */
 function newLoadChannelsByAgentStep(
   store: Store,
   listReadScope: ListReadScope | undefined,
-): PipelineStep<typeof AgentChannelQueryController.method.getByAgent.input> {
+): PipelineStep<typeof AgentChannelQueryController.method.listByAgent.input> {
   return {
     name: "LoadChannelsByAgent",
     async execute(
       ctx: RequestContext<
-        typeof AgentChannelQueryController.method.getByAgent.input
+        typeof AgentChannelQueryController.method.listByAgent.input
       >,
     ): Promise<void> {
       const req = ctx.input;
-      const emptyList = create(AgentChannelListSchema, {
-        totalCount: 0,
-        items: [],
-      });
-
       if (req.agentId === "") {
-        ctx.set(CHANNEL_LIST_KEY, emptyList);
+        ctx.set(CHANNEL_LIST_KEY, create(AgentChannelListSchema));
         return;
       }
-
-      let rows: Uint8Array[];
-      try {
-        rows = await store.listResources(ApiResourceKind.agent_channel);
-      } catch (error) {
-        throw internalError(error, "failed to list agent channels");
-      }
-
-      const decoded: AgentChannel[] = [];
-      for (const bytes of rows) {
-        try {
-          decoded.push(fromBinary(AgentChannelSchema, bytes));
-        } catch {
-          continue;
-        }
-      }
-      // The org/agent filters are contract parity in both editions and run
-      // FIRST; the scope narrows the agent's channels last (the scope is
-      // the last per-row predicate).
-      const channels = await restrictListByReadScope(
-        listReadScope,
-        ctx.callerIdentity,
-        ApiResourceKind.agent_channel,
-        decoded.filter((channel) => {
-          const ref = channel.spec?.agentRef;
-          return (
-            (ref?.id ?? "") === req.agentId &&
-            (req.org === "" || (channel.metadata?.org ?? "") === req.org)
-          );
-        }),
-        "",
-      );
-
+      // The org and agent filters are indexed predicates in both editions;
+      // the scope narrows the agent's channels last (the scope is the last
+      // per-row predicate).
       ctx.set(
         CHANNEL_LIST_KEY,
-        create(AgentChannelListSchema, {
-          totalCount: channels.length,
-          items: channels,
+        await readChannelPage(store, listReadScope, ctx.callerIdentity, req, {
+          query: {
+            org: req.org,
+            anyKey: [{ name: "agent", value: req.agentId }],
+          },
+          fingerprint: {
+            lane: "agentChannel.listByAgent",
+            agentId: req.agentId,
+            org: req.org,
+          },
         }),
       );
     },
@@ -682,7 +693,7 @@ function newLoadChannelsByAgentStep(
 
 const LIST_RESULT_KEY = "listResult";
 
-/** List — org + labels filter (AND semantics), newest first (Go list.go). */
+/** List — one page of an org's channels, labels filter (AND semantics), newest first. */
 async function list(
   deps: AgentChannelControllerDeps,
   req: ListAgentChannelsRequest,
@@ -720,9 +731,10 @@ async function list(
 }
 
 /**
- * ListByOrgAndLabels — Go listByOrgAndLabelsStep. Malformed rows are
- * skipped SILENTLY (Go's list routes through unmarshalChannel, which does
- * not log — unlike agentshare's list, which warns; the asymmetry is Go's).
+ * ListByOrgAndLabels — one page of the org's channels, the label filter
+ * per row. Malformed rows are skipped SILENTLY (Go's list routed through
+ * unmarshalChannel, which did not log — unlike agentshare's list, which
+ * warns).
  */
 function newListByOrgAndLabelsStep(
   store: Store,
@@ -734,51 +746,70 @@ function newListByOrgAndLabelsStep(
       ctx: RequestContext<typeof AgentChannelQueryController.method.list.input>,
     ): Promise<void> {
       const { org, labels: filterLabels } = ctx.input;
-
-      let rows: Uint8Array[];
-      try {
-        rows = await store.listResources(ctx.apiResourceKind);
-      } catch (error) {
-        throw internalError(error, "failed to list agent channels");
-      }
-
-      const decoded: AgentChannel[] = [];
-      for (const bytes of rows) {
-        try {
-          decoded.push(fromBinary(AgentChannelSchema, bytes));
-        } catch {
-          continue;
-        }
-      }
-      // The org and label filters run FIRST, in both editions; the scope
-      // narrows the org's rows last (the scope is the last per-row
-      // predicate).
-      const channels = await restrictListByReadScope(
-        listReadScope,
-        ctx.callerIdentity,
-        ApiResourceKind.agent_channel,
-        decoded.filter(
-          (channel) =>
-            (channel.metadata?.org ?? "") === org &&
-            matchesAllLabels(channel.metadata?.labels ?? {}, filterLabels),
-        ),
-        "",
-      );
-
-      channels.sort((a, b) =>
-        compareCreatedAtDesc(
-          a.status?.audit?.specAudit?.createdAt,
-          b.status?.audit?.specAudit?.createdAt,
-        ),
-      );
-
+      // The org is an indexed predicate and the labels a per-row filter,
+      // in both editions; the scope narrows the org's rows last (the scope
+      // is the last per-row predicate).
       ctx.set(
         LIST_RESULT_KEY,
-        create(AgentChannelListSchema, {
-          totalCount: channels.length,
-          items: channels,
-        }),
+        await readChannelPage(
+          store,
+          listReadScope,
+          ctx.callerIdentity,
+          ctx.input,
+          {
+            query: { org },
+            keep: (channel) =>
+              matchesAllLabels(channel.metadata?.labels ?? {}, filterLabels),
+            fingerprint: {
+              lane: "agentChannel.list",
+              org,
+              labels: sortedLabels(filterLabels),
+            },
+          },
+        ),
       );
     },
   };
+}
+
+/** The two channel lanes' shared read: one page, the scope last, as an AgentChannelList. */
+async function readChannelPage(
+  store: Store,
+  listReadScope: ListReadScope | undefined,
+  caller: CallerIdentity,
+  request: ListPageRequest,
+  lane: {
+    readonly query: ListIndexQuery<"agent">;
+    readonly keep?: (channel: AgentChannel) => boolean;
+    readonly fingerprint: Readonly<Record<string, unknown>>;
+  },
+): Promise<AgentChannelList> {
+  const page = await readListPage({
+    store,
+    declaration: agentChannelListIndex,
+    query: lane.query,
+    request,
+    fingerprint: listPageFingerprint(lane.fingerprint),
+    decode: (data) => {
+      try {
+        return fromBinary(AgentChannelSchema, data);
+      } catch {
+        return undefined;
+      }
+    },
+    ...(lane.keep === undefined ? {} : { keep: lane.keep }),
+    scope: (channels) =>
+      restrictListByReadScope(
+        listReadScope,
+        caller,
+        ApiResourceKind.agent_channel,
+        channels,
+        "",
+      ),
+    failure: "failed to list agent channels",
+  });
+  return create(AgentChannelListSchema, {
+    entries: page.entries,
+    nextPageToken: page.nextPageToken,
+  });
 }

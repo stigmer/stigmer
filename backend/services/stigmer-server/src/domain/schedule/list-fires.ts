@@ -28,6 +28,10 @@ import type { ScheduleFire } from "@stigmer/protos/ai/stigmer/agentic/schedule/v
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { internalError, notFoundError } from "../../pipeline/errors.js";
+import {
+  listPageFingerprint,
+  readPage,
+} from "../../pipeline/steps/list-page.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
@@ -38,18 +42,13 @@ type ListFiresInput = typeof ScheduleQueryController.method.listFires.input;
 export const LIST_FIRES_RESULT_KEY = "listFiresResult";
 
 /**
- * Bounds an unpaginated listFires read — history can hold a quarter's worth
- * of daily fires, and "the recent runs" is the question the surface
- * answers (Go defaultRunsPageSize).
- */
-export const DEFAULT_FIRES_PAGE_SIZE = 50;
-
-/**
  * Confirms the schedule exists — a missing schedule answers NOT_FOUND,
  * never an empty history that reads as "exists but never fired" (Go
  * loadScheduleForRunsStep).
  */
-export function newLoadScheduleForFiresStep(store: Store): PipelineStep<ListFiresInput> {
+export function newLoadScheduleForFiresStep(
+  store: Store,
+): PipelineStep<ListFiresInput> {
   return {
     name: "LoadScheduleForRuns",
     async execute(ctx: RequestContext<ListFiresInput>): Promise<void> {
@@ -71,50 +70,67 @@ export function newLoadScheduleForFiresStep(store: Store): PipelineStep<ListFire
 }
 
 /**
- * Pages the fire ledger (newest first) and enriches in-flight rows with
- * the execution's live phase (Go listRunsFromLedgerStep).
+ * Pages the fire ledger (newest first) by its key, then enriches the
+ * page's in-flight rows with the execution's live phase (Go
+ * listRunsFromLedgerStep). The ledger's rows carry their key as the page
+ * cursor: the nominal fire time in the cursor's instant and the origin in
+ * its id, the two columns the ledger orders by.
  */
-export function newListFiresFromLedgerStep(store: Store): PipelineStep<ListFiresInput> {
+export function newListFiresFromLedgerStep(
+  store: Store,
+): PipelineStep<ListFiresInput> {
   return {
     name: "ListRunsFromLedger",
     async execute(ctx: RequestContext<ListFiresInput>): Promise<void> {
       const req = ctx.input;
+      const page = await readPage<ScheduleFireRecord>({
+        source: async (after, limit) =>
+          (
+            await store.listScheduleFires(
+              req.scheduleId,
+              after === undefined
+                ? undefined
+                : { nominalFireTime: after.createdAt, origin: after.id },
+              limit,
+            )
+          ).map((record) => ({
+            id: record.origin,
+            data: encodeRecord(record),
+            cursor: { createdAt: record.nominalFireTime, id: record.origin },
+          })),
+        request: req,
+        fingerprint: listPageFingerprint({
+          lane: "schedule.listFires",
+          scheduleId: req.scheduleId,
+        }),
+        decode: decodeRecord,
+        // Authorized once, on the schedule: the fires are its own record.
+        scope: (records) => Promise.resolve(records),
+        failure: "failed to list schedule fires",
+      });
 
-      // PageInfo.num is 1-indexed by contract (pagination.proto); a
-      // zero/absent page reads as the first.
-      let size = req.pageInfo?.size ?? 0;
-      if (size <= 0) {
-        size = DEFAULT_FIRES_PAGE_SIZE;
+      const entries: ScheduleFire[] = [];
+      for (const record of page.entries) {
+        entries.push(await toProtoFire(store, record));
       }
-      let num = req.pageInfo?.num ?? 0;
-      if (num < 1) {
-        num = 1;
-      }
-      const offset = (num - 1) * size;
-
-      let fires: ScheduleFireRecord[];
-      let total: number;
-      try {
-        ({ fires, total } = await store.listScheduleFires(
-          req.scheduleId,
-          offset,
-          size,
-        ));
-      } catch (error) {
-        throw internalError(error, "failed to list schedule fires");
-      }
-
-      const items: ScheduleFire[] = [];
-      for (const record of fires) {
-        items.push(await toProtoFire(store, record));
-      }
-
       ctx.set(
         LIST_FIRES_RESULT_KEY,
-        create(ScheduleFireListSchema, { totalCount: total, items }),
+        create(ScheduleFireListSchema, {
+          entries,
+          nextPageToken: page.nextPageToken,
+        }),
       );
     },
   };
+}
+
+/** A ledger row as the page loop carries it: its own fields, as JSON bytes. */
+function encodeRecord(record: ScheduleFireRecord): Uint8Array {
+  return new TextEncoder().encode(JSON.stringify(record));
+}
+
+function decodeRecord(data: Uint8Array): ScheduleFireRecord {
+  return JSON.parse(new TextDecoder().decode(data)) as ScheduleFireRecord;
 }
 
 /**

@@ -78,7 +78,9 @@ export interface ListPageRequest {
  * its own. The edge validator refuses a negative size before a handler
  * runs; this refuses one again for in-process callers that skip it.
  */
-export function listPageSizeOf(request: Pick<ListPageRequest, "pageSize">): number {
+export function listPageSizeOf(
+  request: Pick<ListPageRequest, "pageSize">,
+): number {
   if (request.pageSize < 0) {
     throw invalidArgumentError("page_size must not be negative");
   }
@@ -91,7 +93,7 @@ export function listPageSizeOf(request: Pick<ListPageRequest, "pageSize">): numb
 /**
  * Where a page's rows come from: the rows after `after` (from the start
  * when undefined) in the list index's order, newest first, ties broken by
- * id in byte order, at most `limit` of them (every one when undefined).
+ * id in byte order, at most `limit` of them.
  * Each row carries the cursor a later read continues after.
  *
  * `after` comes from the client's page token: opaque, but not signed, so
@@ -102,7 +104,7 @@ export function listPageSizeOf(request: Pick<ListPageRequest, "pageSize">): numb
  */
 export type ListPageSource = (
   after: ListIndexCursor | undefined,
-  limit: number | undefined,
+  limit: number,
 ) => Promise<ReadonlyArray<ListIndexRow>>;
 
 /** What one page needs, whatever its rows' source. */
@@ -151,7 +153,7 @@ export function readListPage<T, K extends string>(
       store.queryResources(declaration, {
         ...query,
         ...(after === undefined ? {} : { after }),
-        ...(limit === undefined ? {} : { limit }),
+        limit,
       }),
   });
 }
@@ -251,7 +253,7 @@ interface Admitted<T> {
 async function queryOrFail<T>(
   params: ReadPageParams<T>,
   after: ListIndexCursor | undefined,
-  limit: number | undefined,
+  limit: number,
 ): Promise<ReadonlyArray<ListIndexRow>> {
   try {
     return await params.source(after, limit);

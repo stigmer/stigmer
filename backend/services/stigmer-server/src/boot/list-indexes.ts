@@ -31,8 +31,19 @@
  * (domain/agent-eval/list-index.ts). And `api_key` joins for its owner:
  * a person's key list, a service account's key list and an account's
  * delete read one owner's keys (domain/apikey/list-index.ts).
+ *
+ * Since every list pages (2026-10-14), every kind a list RPC reads joins:
+ * `agent`, `skill` and `plugin` for their organization lists, and
+ * `schedule`, `agent_channel` and `agent_share` for theirs and for one
+ * agent's (each domain's list-index.ts).
  */
+import { agentListIndex } from "../domain/agent/list-index.js";
+import { agentChannelListIndex } from "../domain/agentchannel/list-index.js";
+import { agentShareListIndex } from "../domain/agentshare/list-index.js";
 import { apiKeyListIndex } from "../domain/apikey/list-index.js";
+import { pluginListIndex } from "../domain/plugin/list-index.js";
+import { scheduleListIndex } from "../domain/schedule/list-index.js";
+import { skillListIndex } from "../domain/skill/list-index.js";
 import { agentExecutionListIndex } from "../domain/run/list-index.js";
 import { evaluatorListIndex } from "../domain/evaluator/list-index.js";
 import { pluginEvalListIndex } from "../domain/plugin-eval/list-index.js";
@@ -47,7 +58,13 @@ import type { ListIndexDeclaration } from "../store/list-index.js";
 
 export const LIST_INDEXES: ReadonlyArray<ListIndexDeclaration> = [
   agentExecutionListIndex,
+  agentListIndex,
+  agentChannelListIndex,
+  agentShareListIndex,
   apiKeyListIndex,
+  pluginListIndex,
+  scheduleListIndex,
+  skillListIndex,
   evaluatorListIndex,
   pluginEvalListIndex,
   agentEvalListIndex,
