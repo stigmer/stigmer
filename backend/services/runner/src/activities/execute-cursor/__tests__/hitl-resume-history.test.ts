@@ -201,8 +201,8 @@ describe("Cursor HITL resume — append-only transcript", () => {
   it("BUG (no seeding): a from-empty rebuild drops committed ids and the guard rejects it", () => {
     const committed = persistedRunOneMessages();
 
-    // Pre-fix behavior: status.messages starts empty on resume, so the
-    // translator can never reconcile onto the committed calls.
+    // Pre-fix behavior: the rows start empty on resume, so the translator
+    // can never reconcile onto the committed calls.
     const fromEmpty: AgentMessage[] = [];
     new CursorFold({ messages: fromEmpty }).events(...resumeEvents()).finalize();
 
@@ -219,8 +219,8 @@ describe("Cursor HITL resume — append-only transcript", () => {
   it("FIX (seeding + identity reconciliation): the resume is a strict superset the guard accepts", async () => {
     const committed = persistedRunOneMessages();
 
-    // Post-fix behavior: index.ts seeds status.messages from the persisted
-    // execution (cloned) before constructing the translator and the builder.
+    // Post-fix behavior: the resume seeds the turn's rows (cloned) before
+    // constructing the translator and the builder.
     const seeded = committed.map((m) => clone(AgentMessageSchema, m));
     new CursorFold({ messages: seeded }).events(...resumeEvents()).finalize();
 
@@ -266,11 +266,11 @@ describe("Cursor HITL resume — append-only transcript", () => {
   });
 
   it("FIX: a sub-agent's gated tool also survives resume (the seeded sub-agent rows are wrapped by reference and indexed)", () => {
-    // Sub-agent parity: the runtime seeds `status.subAgentExecutions` on a
-    // resume (`seedFromPersistedStatus`, through the builder's `seed()`) and
-    // the builder holds that very array, exactly as it holds
-    // `status.messages`, so the seeded row is retained, indexed by id, and a
-    // resumed update lands on it in place. This arm hands the seeded status
+    // Sub-agent parity: a resume seeds the sub-agent rows that hold an ask
+    // (`harness/transcript/resume-seed.ts`, through the builder's `seed()`)
+    // and the builder holds that very array, exactly as it holds the
+    // messages, so the seeded row is retained, indexed by id, and a resumed
+    // update lands on it in place. This arm hands the seeded status
     // to the constructor, which indexes by the same routine `seed()` does.
     const seededSub = create(SubAgentRunSchema, {
       id: "sub_1",
