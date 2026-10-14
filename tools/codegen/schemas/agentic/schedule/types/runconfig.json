@@ -21,7 +21,7 @@
       "type": {
         "kind": "double"
       },
-      "description": "Maximum estimated cost in USD per run.\n\n When the run's estimated spend reaches this limit, the run stops with a\n \"send another message to continue\" prompt and ends TERMINATED; the work\n done so far is kept. The limit is checked each time the engine reports\n its spend, so a run can end somewhat above it. The native harness\n reports after every model call, counts a sub-agent's spend toward the\n limit, and advises the agent to wrap up at about 80% of the budget; the\n Cursor harness gives no warning.\n\n 0 = not set at this layer. The budget is per message: a follow-up\n message, or a run resuming after an approval, starts a fresh count. The\n spend is the runner's estimate, reported on\n RunStatus.streaming_usage.estimated_cost_usd, not the billed\n amount.",
+      "description": "Maximum estimated cost in USD per run.\n\n When the run's estimated spend reaches this limit, the run stops with a\n \"send another message to continue\" prompt and ends TERMINATED; the work\n done so far is kept. The limit is checked each time the engine reports\n its spend, so a run can end somewhat above it. The native harness\n reports after every model call, counts a subagent's spend toward the\n limit, and advises the agent to wrap up at about 80% of the budget; the\n Cursor harness gives no warning.\n\n 0 = not set at this layer. The budget is per message: a follow-up\n message, or a run resuming after an approval, starts a fresh count. The\n spend is the runner's estimate, reported on\n RunStatus.streaming_usage.estimated_cost_usd, not the billed\n amount.",
       "required": false
     },
     {
@@ -31,7 +31,7 @@
       "type": {
         "kind": "int32"
       },
-      "description": "Maximum model-to-tools reasoning cycles per message.\n\n A round is one model response that proposes one or more tool calls,\n followed by their execution; parallel tool calls in one response are one\n round. When the limit is reached the run stops with a \"send another\n message to continue\" prompt, and the work done so far is kept. The agent\n is advised to wrap up at about 80% of the budget.\n\n 0 = not set at this layer; with no layer setting it the agent runs until\n the task completes or loop detection stops a repetitive pattern. When\n set, the valid range is 10–1000; values outside it are clamped to the\n nearest bound. The budget is per message: a follow-up message, or a run\n resuming after an approval, starts a fresh count. Sub-agent rounds are\n not counted, and the Cursor harness does not enforce this field.",
+      "description": "Maximum model-to-tools reasoning cycles per message.\n\n A round is one model response that proposes one or more tool calls,\n followed by their execution; parallel tool calls in one response are one\n round. When the limit is reached the run stops with a \"send another\n message to continue\" prompt, and the work done so far is kept. The agent\n is advised to wrap up at about 80% of the budget.\n\n 0 = not set at this layer; with no layer setting it the agent runs until\n the task completes or loop detection stops a repetitive pattern. When\n set, the valid range is 10–1000; values outside it are clamped to the\n nearest bound. The budget is per message: a follow-up message, or a run\n resuming after an approval, starts a fresh count. Subagent rounds are\n not counted, and the Cursor harness does not enforce this field.",
       "required": false
     },
     {

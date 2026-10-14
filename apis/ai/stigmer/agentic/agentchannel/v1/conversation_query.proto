@@ -91,8 +91,8 @@ service ChannelConversationQueryController {
   //
   // @internal
   // Stitched on read from the webhook
-  // event store, the delivery store (via the same last-AI-message
-  // extraction the delivery posted — never run transcripts), and
+  // event store, the delivery store (via the same extraction of the run's
+  // last agent.message the delivery posted, from the session's events), and
   // the outbound ledger; internal-lane events join as the fourth source.
   // Authorization is declarative on the channel: conversations
   // carry no per-conversation FGA tuples — the channel is

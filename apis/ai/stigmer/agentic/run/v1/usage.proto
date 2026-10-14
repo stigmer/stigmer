@@ -197,7 +197,7 @@ message LlmCallUsageRecord {
   // Run this call belongs to.
   string run_id = 2;
 
-  // For sub-agent rollups: root run of the tree.
+  // For subagent rollups: root run of the tree.
   string root_run_id = 3;
 
   // 1-based call ordering within the run, as the reporting proxy

@@ -54,7 +54,7 @@ public interface LlmCallUsageRecordOrBuilder extends
 
   /**
    * <pre>
-   * For sub-agent rollups: root run of the tree.
+   * For subagent rollups: root run of the tree.
    * </pre>
    *
    * <code>string root_run_id = 3 [json_name = "rootRunId"];</code>
@@ -63,7 +63,7 @@ public interface LlmCallUsageRecordOrBuilder extends
   java.lang.String getRootRunId();
   /**
    * <pre>
-   * For sub-agent rollups: root run of the tree.
+   * For subagent rollups: root run of the tree.
    * </pre>
    *
    * <code>string root_run_id = 3 [json_name = "rootRunId"];</code>

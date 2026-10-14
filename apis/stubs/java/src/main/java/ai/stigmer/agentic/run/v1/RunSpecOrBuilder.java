@@ -306,12 +306,9 @@ public interface RunSpecOrBuilder extends
    * <pre>
    * JSON Schema that the agent's output must conform to (optional).
    *
-   * When set, the runner enforces structured output:
-   * - Native harness: uses deepagents responseFormat/ToolStrategy
-   * - Cursor harness: prompt instruction + extraction fallback
-   *
-   * The validated structured data is the turn's
-   * stigmer.agent.structured_output session event.
+   * When set, the agent's answer is validated against this schema, and the
+   * validated structured data is the turn's stigmer.agent.structured_output
+   * session event.
    * </pre>
    *
    * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -322,12 +319,9 @@ public interface RunSpecOrBuilder extends
    * <pre>
    * JSON Schema that the agent's output must conform to (optional).
    *
-   * When set, the runner enforces structured output:
-   * - Native harness: uses deepagents responseFormat/ToolStrategy
-   * - Cursor harness: prompt instruction + extraction fallback
-   *
-   * The validated structured data is the turn's
-   * stigmer.agent.structured_output session event.
+   * When set, the agent's answer is validated against this schema, and the
+   * validated structured data is the turn's stigmer.agent.structured_output
+   * session event.
    * </pre>
    *
    * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -338,12 +332,9 @@ public interface RunSpecOrBuilder extends
    * <pre>
    * JSON Schema that the agent's output must conform to (optional).
    *
-   * When set, the runner enforces structured output:
-   * - Native harness: uses deepagents responseFormat/ToolStrategy
-   * - Cursor harness: prompt instruction + extraction fallback
-   *
-   * The validated structured data is the turn's
-   * stigmer.agent.structured_output session event.
+   * When set, the agent's answer is validated against this schema, and the
+   * validated structured data is the turn's stigmer.agent.structured_output
+   * session event.
    * </pre>
    *
    * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>

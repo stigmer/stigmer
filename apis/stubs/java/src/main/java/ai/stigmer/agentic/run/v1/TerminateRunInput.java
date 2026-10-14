@@ -9,17 +9,10 @@ package ai.stigmer.agentic.run.v1;
  * <pre>
  * TerminateRunInput requests immediate termination of a run.
  *
- * Termination forcefully kills the run without allowing cleanup.
- * Unlike cancellation, the agent cannot respond to termination - it is stopped
- * immediately. Use this for stuck or unresponsive runs.
- *
- * ## Behavior
- *
- * - Force-kills workflow via Temporal TerminateWorkflow API
- * - Agent activity does NOT receive any signal (cannot clean up)
- * - Run transitions to RUN_TERMINATED phase immediately
- * - All in-progress tool calls are stopped abruptly
- * - LangGraph checkpoint may be incomplete
+ * Termination forcefully stops the run without allowing cleanup.
+ * Unlike an interrupt, the agent cannot respond to termination - it is stopped
+ * immediately. Use this for stuck or unresponsive runs. The run moves to
+ * RUN_TERMINATED at once, and any tool call in progress is stopped abruptly.
  *
  * ## Preconditions
  *
@@ -35,8 +28,8 @@ package ai.stigmer.agentic.run.v1;
  *
  * | Aspect | Interrupt (session) | Terminate |
  * |--------|--------|-----------|
- * | Signal | Agent receives cancellation signal | No signal sent |
- * | Cleanup | Agent can save checkpoint | No cleanup possible |
+ * | Signal | The agent is told to stop | Nothing is sent |
+ * | Cleanup | The turn ends cleanly | No cleanup possible |
  * | Use case | Normal cancellation | Stuck/unresponsive agents |
  * | Recovery | Cannot recover | Cannot recover |
  *
@@ -163,7 +156,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Human-readable reason for termination.
    *
-   * Stored in the audit trail and passed to Temporal for operational debugging.
+   * Stored in the audit trail for operational debugging.
    * Optional but strongly recommended - termination is a drastic action
    * and the reason helps with post-incident analysis.
    *
@@ -194,7 +187,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Human-readable reason for termination.
    *
-   * Stored in the audit trail and passed to Temporal for operational debugging.
+   * Stored in the audit trail for operational debugging.
    * Optional but strongly recommended - termination is a drastic action
    * and the reason helps with post-incident analysis.
    *
@@ -393,17 +386,10 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * TerminateRunInput requests immediate termination of a run.
    *
-   * Termination forcefully kills the run without allowing cleanup.
-   * Unlike cancellation, the agent cannot respond to termination - it is stopped
-   * immediately. Use this for stuck or unresponsive runs.
-   *
-   * ## Behavior
-   *
-   * - Force-kills workflow via Temporal TerminateWorkflow API
-   * - Agent activity does NOT receive any signal (cannot clean up)
-   * - Run transitions to RUN_TERMINATED phase immediately
-   * - All in-progress tool calls are stopped abruptly
-   * - LangGraph checkpoint may be incomplete
+   * Termination forcefully stops the run without allowing cleanup.
+   * Unlike an interrupt, the agent cannot respond to termination - it is stopped
+   * immediately. Use this for stuck or unresponsive runs. The run moves to
+   * RUN_TERMINATED at once, and any tool call in progress is stopped abruptly.
    *
    * ## Preconditions
    *
@@ -419,8 +405,8 @@ private static final long serialVersionUID = 0L;
    *
    * | Aspect | Interrupt (session) | Terminate |
    * |--------|--------|-----------|
-   * | Signal | Agent receives cancellation signal | No signal sent |
-   * | Cleanup | Agent can save checkpoint | No cleanup possible |
+   * | Signal | The agent is told to stop | Nothing is sent |
+   * | Cleanup | The turn ends cleanly | No cleanup possible |
    * | Use case | Normal cancellation | Stuck/unresponsive agents |
    * | Recovery | Cannot recover | Cannot recover |
    *
@@ -712,7 +698,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Human-readable reason for termination.
      *
-     * Stored in the audit trail and passed to Temporal for operational debugging.
+     * Stored in the audit trail for operational debugging.
      * Optional but strongly recommended - termination is a drastic action
      * and the reason helps with post-incident analysis.
      *
@@ -742,7 +728,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Human-readable reason for termination.
      *
-     * Stored in the audit trail and passed to Temporal for operational debugging.
+     * Stored in the audit trail for operational debugging.
      * Optional but strongly recommended - termination is a drastic action
      * and the reason helps with post-incident analysis.
      *
@@ -773,7 +759,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Human-readable reason for termination.
      *
-     * Stored in the audit trail and passed to Temporal for operational debugging.
+     * Stored in the audit trail for operational debugging.
      * Optional but strongly recommended - termination is a drastic action
      * and the reason helps with post-incident analysis.
      *
@@ -800,7 +786,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Human-readable reason for termination.
      *
-     * Stored in the audit trail and passed to Temporal for operational debugging.
+     * Stored in the audit trail for operational debugging.
      * Optional but strongly recommended - termination is a drastic action
      * and the reason helps with post-incident analysis.
      *
@@ -824,7 +810,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Human-readable reason for termination.
      *
-     * Stored in the audit trail and passed to Temporal for operational debugging.
+     * Stored in the audit trail for operational debugging.
      * Optional but strongly recommended - termination is a drastic action
      * and the reason helps with post-incident analysis.
      *

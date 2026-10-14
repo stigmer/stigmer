@@ -35,7 +35,7 @@ message AgentSpec {
   // Skill resources providing additional knowledge to the agent.
   repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [(ai.stigmer.commons.apiresource.reference_kind) = skill];
 
-  // Field 6 held sub-agents written inside this agent, which narrowed its
+  // Field 6 held subagents written inside this agent, which narrowed its
   // tools, until a subagent became a saved agent this agent lists in
   // subagents.
   reserved 6;

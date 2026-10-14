@@ -10,7 +10,7 @@ package ai.stigmer.agentic.run.v1;
  * RunStatus contains all run results and state.
  * Everything populated during or after the run goes here, not in spec.
  * The conversation itself (messages, tool calls, approvals, todos,
- * sub-agents, structured output and file-review decisions) is the session's
+ * subagents, structured output and file-review decisions) is the session's
  * event log (SessionEvent), not a field here.
  * </pre>
  *
@@ -1639,7 +1639,7 @@ private static final long serialVersionUID = 0L;
    * RunStatus contains all run results and state.
    * Everything populated during or after the run goes here, not in spec.
    * The conversation itself (messages, tool calls, approvals, todos,
-   * sub-agents, structured output and file-review decisions) is the session's
+   * subagents, structured output and file-review decisions) is the session's
    * event log (SessionEvent), not a field here.
    * </pre>
    *

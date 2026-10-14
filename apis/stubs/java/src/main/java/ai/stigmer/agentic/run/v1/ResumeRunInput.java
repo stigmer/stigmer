@@ -9,18 +9,9 @@ package ai.stigmer.agentic.run.v1;
  * <pre>
  * ResumeRunInput requests resuming a paused run.
  *
- * Continues the run from the checkpoint where it was paused. The agent
- * re-invokes activities with the same thread_id, which loads from checkpoint
- * and continues from where it left off.
- *
- * ## Behavior
- *
- * When an agent is resumed:
- * 1. A "resume" signal is sent to the paused Temporal workflow
- * 2. Workflow unblocks from its wait state
- * 3. Activity is re-invoked with the same input
- * 4. LangGraph loads checkpoint using thread_id
- * 5. Agent continues from exact pause point
+ * Continues the run from where it was paused; the run moves back to
+ * RUN_IN_PROGRESS. How a turn's state is saved is the harness's
+ * ([Harnesses](/docs/concepts/harnesses)).
  *
  * ## Preconditions
  *
@@ -34,6 +25,9 @@ package ai.stigmer.agentic.run.v1;
  *
  * ## Example
  *
+ * {
+ * "id": "run_abc123xyz456"
+ * }
  * {
  * "id": "run_abc123xyz456"
  * }
@@ -305,18 +299,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * ResumeRunInput requests resuming a paused run.
    *
-   * Continues the run from the checkpoint where it was paused. The agent
-   * re-invokes activities with the same thread_id, which loads from checkpoint
-   * and continues from where it left off.
-   *
-   * ## Behavior
-   *
-   * When an agent is resumed:
-   * 1. A "resume" signal is sent to the paused Temporal workflow
-   * 2. Workflow unblocks from its wait state
-   * 3. Activity is re-invoked with the same input
-   * 4. LangGraph loads checkpoint using thread_id
-   * 5. Agent continues from exact pause point
+   * Continues the run from where it was paused; the run moves back to
+   * RUN_IN_PROGRESS. How a turn's state is saved is the harness's
+   * ([Harnesses](/docs/concepts/harnesses)).
    *
    * ## Preconditions
    *
@@ -330,6 +315,9 @@ private static final long serialVersionUID = 0L;
    *
    * ## Example
    *
+   * {
+   * "id": "run_abc123xyz456"
+   * }
    * {
    * "id": "run_abc123xyz456"
    * }

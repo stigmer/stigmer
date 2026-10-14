@@ -122,7 +122,7 @@ public interface RunUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Number of sub-agent invocations in this run.
+   * Number of subagent invocations in this run.
    * </pre>
    *
    * <code>int32 sub_agent_count = 9 [json_name = "subAgentCount"];</code>

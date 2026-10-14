@@ -461,7 +461,7 @@ type SessionEvent_AgentMcpToolResult struct {
 }
 
 type SessionEvent_SessionThreadCreated struct {
-	// A thread (a sub-agent) was created.
+	// A thread (a subagent) was created.
 	SessionThreadCreated *SessionThreadCreatedEvent `protobuf:"bytes,20,opt,name=session_thread_created,json=sessionThreadCreated,proto3,oneof"`
 }
 
@@ -1369,7 +1369,7 @@ func (x *AgentMcpToolResultEvent) GetIsError() bool {
 	return false
 }
 
-// SessionThreadCreatedEvent says a thread (a sub-agent) was created:
+// SessionThreadCreatedEvent says a thread (a subagent) was created:
 // session.thread_created.
 type SessionThreadCreatedEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`

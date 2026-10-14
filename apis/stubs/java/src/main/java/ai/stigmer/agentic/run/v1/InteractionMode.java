@@ -15,7 +15,7 @@ package ai.stigmer.agentic.run.v1;
  * runs.
  *
  * Enforcement:
- * - Native harness (LangGraph): tool-level enforcement — write tools are
+ * - Native harness: tool-level enforcement — write tools are
  * removed from the tool set in PLAN mode.
  * - Cursor harness: best-effort via system prompt injection. The Cursor SDK
  * does not expose a mode parameter, so the agent is instructed not to

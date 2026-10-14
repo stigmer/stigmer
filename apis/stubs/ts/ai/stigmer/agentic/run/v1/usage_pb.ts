@@ -221,7 +221,7 @@ export type LlmCallUsageRecord = Message<"ai.stigmer.agentic.run.v1.LlmCallUsage
   runId: string;
 
   /**
-   * For sub-agent rollups: root run of the tree.
+   * For subagent rollups: root run of the tree.
    *
    * @generated from field: string root_run_id = 3;
    */
