@@ -29,46 +29,46 @@ waivers:
     proven_by: backend/services/stigmer-server/src/domain/apikey/__tests__/apikey.test.ts
     reason: >-
       A hash-lookup RPC the identity verifier never calls (it reads the same lookup, domain/apikey/lookup.ts, in process), served the same way to any authenticated caller in every edition; a client holding the plaintext key authenticates with it instead, so the lookup and its NotFound are the server's own contract, pinned by the open-source server's suite.
-  - rpc: IdentityProviderCommandController.apply
+  - rpc: FederationIssuerCommandController.apply
     kind: gap
     issue: 1545
     reason: >-
-      Served by the Enterprise and Cloud editions only; the open-source server routes no IdentityProvider service and the suite has no client for it.
-  - rpc: IdentityProviderCommandController.create
+      Served by the Enterprise and Cloud editions only; the open-source server routes no FederationIssuer service and the suite has no client for it.
+  - rpc: FederationIssuerCommandController.create
     kind: gap
     issue: 1545
     reason: >-
-      Served by the Enterprise and Cloud editions only; the open-source server routes no IdentityProvider service and the suite has no client for it.
-  - rpc: IdentityProviderCommandController.delete
+      Served by the Enterprise and Cloud editions only; the open-source server routes no FederationIssuer service and the suite has no client for it.
+  - rpc: FederationIssuerCommandController.delete
     kind: gap
     issue: 1545
     reason: >-
-      Served by the Enterprise and Cloud editions only; the open-source server routes no IdentityProvider service and the suite has no client for it.
-  - rpc: IdentityProviderCommandController.update
+      Served by the Enterprise and Cloud editions only; the open-source server routes no FederationIssuer service and the suite has no client for it.
+  - rpc: FederationIssuerCommandController.update
     kind: gap
     issue: 1545
     reason: >-
-      Served by the Enterprise and Cloud editions only; the open-source server routes no IdentityProvider service and the suite has no client for it.
-  - rpc: IdentityProviderCommandController.rename
+      Served by the Enterprise and Cloud editions only; the open-source server routes no FederationIssuer service and the suite has no client for it.
+  - rpc: FederationIssuerCommandController.rename
     kind: gap
     issue: 1545
     reason: >-
-      Served by the Enterprise and Cloud editions only; the open-source server routes no IdentityProvider service and the suite has no client for it.
-  - rpc: IdentityProviderQueryController.get
+      Served by the Enterprise and Cloud editions only; the open-source server routes no FederationIssuer service and the suite has no client for it.
+  - rpc: FederationIssuerQueryController.get
     kind: gap
     issue: 1545
     reason: >-
-      Served by the Enterprise and Cloud editions only; the open-source server routes no IdentityProvider service and the suite has no client for it.
-  - rpc: IdentityProviderQueryController.getByReference
+      Served by the Enterprise and Cloud editions only; the open-source server routes no FederationIssuer service and the suite has no client for it.
+  - rpc: FederationIssuerQueryController.getByReference
     kind: gap
     issue: 1545
     reason: >-
-      Served by the Enterprise and Cloud editions only; the open-source server routes no IdentityProvider service and the suite has no client for it.
-  - rpc: IdentityProviderQueryController.listByOrg
+      Served by the Enterprise and Cloud editions only; the open-source server routes no FederationIssuer service and the suite has no client for it.
+  - rpc: FederationIssuerQueryController.listByOrg
     kind: gap
     issue: 1545
     reason: >-
-      Served by the Enterprise and Cloud editions only; the open-source server routes no IdentityProvider service and the suite has no client for it.
+      Served by the Enterprise and Cloud editions only; the open-source server routes no FederationIssuer service and the suite has no client for it.
   - rpc: InvitationCommandController.create
     kind: gap
     issue: 1544

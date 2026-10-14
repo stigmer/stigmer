@@ -46,7 +46,7 @@
 // the server's unit suites pin it), the organization made at sign-up (a cloud
 // composition arm, pinned by the direct-login suite), authorization
 // postures on update/delete (edition-specific), and the cloud's
-// POSITIVE federation behavior (needs an IdentityProvider fixture no
+// POSITIVE federation behavior (needs a FederationIssuer fixture no
 // hermetic target provisions; the composition's own tests carry it).
 import { Code } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";

@@ -495,7 +495,7 @@ describe("manifest registry", () => {
       expect(await handler.rename?.(recording, input)).toBe(input);
     }
 
-    expect(renamable.map((h) => h.yamlKind).sort()).toEqual(["Agent", "ChannelApp", "IdentityProvider", "OAuthApp", "Schedule"]);
+    expect(renamable.map((h) => h.yamlKind).sort()).toEqual(["Agent", "ChannelApp", "FederationIssuer", "OAuthApp", "Schedule"]);
     expect(services).toEqual(renamable.map((h) => h.schema.typeName.replace(/\.([A-Za-z]+)$/, ".$1CommandController")));
   });
 });

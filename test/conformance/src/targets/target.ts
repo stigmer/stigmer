@@ -243,7 +243,7 @@ export interface CapabilityFlags {
   // dispatches to.
   //
   // True for cloud, whose cloud-iam unit provides it for real. The lane's
-  // positive behavior needs an IdentityProvider fixture no hermetic target
+  // positive behavior needs a FederationIssuer fixture no hermetic target
   // provisions, so it stays covered by the composition's own tests — the
   // channelMessaging coverage split.
   //

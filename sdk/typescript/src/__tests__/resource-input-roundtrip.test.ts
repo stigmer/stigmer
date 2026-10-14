@@ -608,7 +608,7 @@ describe("toFederationIssuerInput", () => {
       },
     });
 
-  it("fixture covers every IdentityProviderSpec field (schema tripwire)", () => {
+  it("fixture covers every FederationIssuerSpec field (schema tripwire)", () => {
     assertFixtureCoversSpec(FederationIssuerSpecSchema, fixture().spec!);
   });
 

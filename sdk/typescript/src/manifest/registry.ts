@@ -114,8 +114,8 @@ const HANDLERS: readonly ManifestKindHandler[] = [
   },
   {
     kind: ApiResourceKind.federation_issuer,
-    yamlKind: "IdentityProvider",
-    displayName: "Identity Provider",
+    yamlKind: "FederationIssuer",
+    displayName: "Federation Issuer",
     apiVersion: IAM_V1,
     schema: FederationIssuerSchema,
     applyOrder: 6,

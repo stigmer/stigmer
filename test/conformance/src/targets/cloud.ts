@@ -146,7 +146,7 @@ export class CloudTarget implements TargetProfile {
     directLogin: true,
     // The cloud-iam unit composes the IdentityFederation capability, so the
     // four federation RPCs are served for real; the OSS UNIMPLEMENTED pins
-    // gate off here (their positive behavior needs an IdentityProvider
+    // gate off here (their positive behavior needs a FederationIssuer
     // fixture — the channelMessaging coverage split, target.ts).
     federatedIdentityAccounts: true,
     // The cloud-iam unit registers every kind's kind_meta roles as the grant

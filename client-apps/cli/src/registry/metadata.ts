@@ -50,9 +50,10 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
   [
     ApiResourceKind.federation_issuer,
     {
-      name: "IdentityProvider",
-      displayName: "Identity Provider",
-      idPrefix: "idp",
+      name: "FederationIssuer",
+      displayName: "Federation Issuer",
+      idPrefix: "fis",
+      retiredIdPrefixes: ["idp"],
     },
   ],
   [
