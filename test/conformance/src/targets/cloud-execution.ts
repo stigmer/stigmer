@@ -210,6 +210,17 @@ export class CloudExecutionTarget implements TargetProfile {
     return this.cloud.provisionKeylessTenancy();
   }
 
+  // The inner target's Team-plan tenancy, keyed as every tenancy here is.
+  async provisionTeamsTenancy(): Promise<TenancyContext> {
+    const context = await this.cloud.provisionTeamsTenancy();
+    await this.keyTenancy(context.org);
+    return context;
+  }
+
+  signInIssuer(): string {
+    return this.cloud.signInIssuer();
+  }
+
   keyTenancy(org: string): Promise<void> {
     return this.cloud.keyTenancy(org);
   }

@@ -288,6 +288,21 @@ export function stripeEvent(type: string, dataObject: Record<string, unknown>, o
   };
 }
 
+// `payment_method.attached` carries the payment method itself — the
+// composition's handler reads the card from the event, never from the API.
+// `card` defaults to the fake's one card; pass `type: "us_bank_account"` (no
+// card) for a non-card method. The billing suite's card arms and the plan
+// move (plan-move.ts) save a card with it.
+export function paymentMethodAttached(
+  paymentMethodId: string,
+  customerId: string,
+  options: { type?: string; card?: typeof FAKE_CARD | null } = {},
+): StripeEvent {
+  const type = options.type ?? "card";
+  const card = options.card === undefined ? (type === "card" ? FAKE_CARD : null) : options.card;
+  return stripeEvent("payment_method.attached", { id: paymentMethodId, object: "payment_method", type, customer: customerId, ...(card === null ? {} : { card }) });
+}
+
 export interface SignedStripePayload {
   readonly payload: string;
   readonly signature: string;

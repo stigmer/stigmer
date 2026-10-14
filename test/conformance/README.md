@@ -288,6 +288,13 @@ A sibling (`spawnSibling`) is the same entry on its own database, in the env
 the suite names: its issuer, and license terms through
 `STIGMER_TEST_LICENSE_TERMS` (the entry's header lists them).
 
+An organization's federation issuer is an outside provider the server reads
+only over HTTPS, so the target can start one: `startOutsideIssuer()` is the
+harness's local issuer serving TLS on `127.0.0.1` with a certificate setup
+mints once (the runner's `mintLoopbackCertificate`, imported by path) and the
+primary trusts through `NODE_EXTRA_CA_CERTS`. The federation issuer suite
+registers it, signs its people in and deletes it on the wire.
+
 ```bash
 make test-conformance-enterprise   # needs CONFORMANCE_POSTGRES_URL; installs ee/server's dependencies
 ```
@@ -560,6 +567,16 @@ single-holder primitive), and
 `singleOrganization` is `true` only on `local-single-org`, the shipped
 open-source edition, where the single-organization suite runs (every other
 target spawns or reaches a server with many organizations).
+The identity kinds above open source ride four flags. `teams` is
+`unimplemented` on open source, `served` on Enterprise and `plan-gated` on the
+Cloud, whose team arms run on a tenancy the target moves to the Team plan the
+way a customer does (`provisionTeamsTenancy()`, `harness/plan-move.ts`: a card
+saved through the Stripe webhook lane, then `changePlan`). `invitations` and
+`federationIssuers` are booleans. `outboundEgress` says whether the primary
+dials loopback and private addresses (`relaxed`: open source and Enterprise)
+or refuses them before any dial (`strict`: the Cloud). Where a target serves
+federation issuers it names the issuer its people sign in with
+(`signInIssuer()`), which the server reserves for itself.
 Capabilities are retired when a surface converges: secret redaction was gated
 per edition until the Environment (stigmer#405) surface converged, after which
 the suites assert it unconditionally, and both editions serve a run's values
@@ -794,7 +811,7 @@ src/
   harness/          ts-build, ports, child-process (the one stop + tee discipline), server-process, grpc-ready, clients, fixtures, global-setup
                     + execution: temporal, runner-build, runner-process, runner-manager-process, mock-llm, llm-wire, mcp-server,
                       model-registry, git-workspace, global-setup-execution
-                    + cloud: cloud-env, cloud-fixtures, fake-llm-upstream, fake-stripe, fake-discord-webhook, global-setup-cloud
+                    + cloud: cloud-env, cloud-fixtures, fake-llm-upstream, fake-stripe, plan-move, fake-discord-webhook, global-setup-cloud
   targets/          target (interface + capabilities), local, local-execution, local-postgres, local-single-org, enterprise, cloud, cloud-execution, index
   contract/         errors, parity
   support/          naming, run-poll, runs, file-review, stigmer-mcp-stdio, working-agent (the benchmark's

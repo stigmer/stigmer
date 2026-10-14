@@ -68,6 +68,12 @@ import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/i
 import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
 import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
+import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
+import { FederationIssuerQueryController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/query_pb";
+import { InvitationCommandController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/command_pb";
+import { InvitationQueryController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/query_pb";
+import { TeamCommandController } from "@stigmer/protos/ai/stigmer/iam/team/v1/command_pb";
+import { TeamQueryController } from "@stigmer/protos/ai/stigmer/iam/team/v1/query_pb";
 import { rpcRecorder } from "./rpc-recorder";
 
 export interface ConformanceClients {
@@ -107,6 +113,17 @@ export interface ConformanceClients {
   identityAccountQuery: Client<typeof IdentityAccountQueryController>;
   grantCommand: Client<typeof GrantCommandController>;
   grantQuery: Client<typeof GrantQueryController>;
+  // The identity kinds above open source: teams, invitation links and an
+  // organization's own federation issuers. Open source routes none of the
+  // six, so every call answers Unimplemented there — the boundary their
+  // suites pin where `teams`, `invitations` and `federationIssuers` say
+  // the target does not serve them.
+  teamCommand: Client<typeof TeamCommandController>;
+  teamQuery: Client<typeof TeamQueryController>;
+  invitationCommand: Client<typeof InvitationCommandController>;
+  invitationQuery: Client<typeof InvitationQueryController>;
+  federationIssuerCommand: Client<typeof FederationIssuerCommandController>;
+  federationIssuerQuery: Client<typeof FederationIssuerQueryController>;
   organizationCommand: Client<typeof OrganizationCommandController>;
   organizationQuery: Client<typeof OrganizationQueryController>;
   agentExecutionCommand: Client<typeof RunCommandController>;
@@ -234,6 +251,12 @@ export function makeClients(transport: Transport): ConformanceClients {
     ),
     grantCommand: createClient(GrantCommandController, transport),
     grantQuery: createClient(GrantQueryController, transport),
+    teamCommand: createClient(TeamCommandController, transport),
+    teamQuery: createClient(TeamQueryController, transport),
+    invitationCommand: createClient(InvitationCommandController, transport),
+    invitationQuery: createClient(InvitationQueryController, transport),
+    federationIssuerCommand: createClient(FederationIssuerCommandController, transport),
+    federationIssuerQuery: createClient(FederationIssuerQueryController, transport),
     organizationCommand: createClient(OrganizationCommandController, transport),
     organizationQuery: createClient(OrganizationQueryController, transport),
     agentExecutionCommand: createClient(
