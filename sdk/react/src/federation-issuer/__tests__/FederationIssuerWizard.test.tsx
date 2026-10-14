@@ -26,8 +26,8 @@ const CREATED: FederationIssuer = create(FederationIssuerSchema, {
   metadata: { id: "issuer-1", name: "Acme", slug: "acme", org: "acme" },
 });
 
-function renderWizard(createIdp: ReturnType<typeof vi.fn>) {
-  const client = { federationIssuer: { create: createIdp } } as never;
+function renderWizard(createIssuer: ReturnType<typeof vi.fn>) {
+  const client = { federationIssuer: { create: createIssuer } } as never;
   return render(
     <StigmerContext.Provider value={client}>
       <FederationIssuerWizard org="acme" />

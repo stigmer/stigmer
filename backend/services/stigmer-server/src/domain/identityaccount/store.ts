@@ -9,7 +9,7 @@
  * pipeline steps take this interface, never `Store`. Open source's own
  * implementation is resource-store.ts over the generic Store.
  *
- * The two federated reads (`findByProviderAndIdpId`, `findByProvider`)
+ * The two federated reads (`findByIssuerAndIdpId`, `findByIssuer`)
  * joined the port when a second edition came to call them: the Enterprise
  * edition serves federation issuers over this port as the cloud does over
  * its own table, and a read two editions make belongs on the port. A port
@@ -49,12 +49,12 @@
  *     account's;
  *   - `findByIds` answers one row per distinct id, in first-occurrence
  *     order, and skips unknown ids;
- *   - `findByProviderAndIdpId` answers only a federated account, by the
+ *   - `findByIssuerAndIdpId` answers only a federated account, by the
  *     federation issuer that vouches for it and its subject: never one
  *     under another provider (two providers may assert one subject for two
  *     people) and never a direct account sharing the subject (the
  *     federated lane must never resolve a platform person);
- *   - `findByProvider` answers every federated account the provider
+ *   - `findByIssuer` answers every federated account the provider
  *     vouches for, in id order, and nothing of another provider's or any
  *     direct row;
  *   - a typed not-found reads as `undefined`; any other storage failure

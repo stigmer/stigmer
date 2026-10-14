@@ -107,9 +107,9 @@ function world(holds: Holds = {}) {
 
   const accountService = {
     store: {
-      findByProviderAndIdpId: (providerId: string, sub: string) =>
+      findByIssuerAndIdpId: (providerId: string, sub: string) =>
         Promise.resolve(byKey(`${providerId}:${sub}`)),
-      findByProvider: async (providerId: string) => {
+      findByIssuer: async (providerId: string) => {
         const listed = [...accounts.values()]
           .filter((held) => held.key.startsWith(`${providerId}:`))
           .map((held) => held.account);

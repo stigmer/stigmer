@@ -19,7 +19,7 @@
  * (constants.ts). The rule is this adapter's own, not the port's: an
  * edition with its own table keys federated rows by an index and keeps
  * the ids it minted.
- * `findDirectByEmail` and `findByProvider` are the lookups that scan
+ * `findDirectByEmail` and `findByIssuer` are the lookups that scan
  * (Store.findAllByField, a decode-and-scan of the kind's rows): an
  * administrative RPC and a provider's removal, never a per-request path.
  * The email scan reads every row with the email and answers the direct

@@ -239,7 +239,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("licensed", () => {
 
   it("saves a federation issuer through the guarded fetch, and it signs a federated person in", async () => {
     const provider = await createIssuer(owner, issuer, acme, "acme-okta");
-    expect(provider.metadata?.id).toMatch(/^idp_/);
+    expect(provider.metadata?.id).toMatch(/^fis_/);
     const token = federatedToken(issuer, "acme-okta", "okta|dana", "dana@acme.example");
     const dana = await createClient(IdentityAccountQueryController, transportTo(booted.port, token)).whoAmI({});
     expect(dana.spec?.email).toBe("dana@acme.example");
@@ -254,7 +254,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("licensed", () => {
       ).whoAmI({});
     const before = await asDana();
     const providerId = before.spec?.federationIssuerRef?.id ?? "";
-    expect(providerId).toMatch(/^idp_/);
+    expect(providerId).toMatch(/^fis_/);
     const providers = createClient(FederationIssuerCommandController, owner.transport);
 
     const renamed = await providers.rename({ resourceId: providerId, slug: "acme-sso" });

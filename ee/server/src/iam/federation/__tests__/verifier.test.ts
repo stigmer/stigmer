@@ -261,7 +261,7 @@ function verifierOf(
   };
   const accounts = {
     store: {
-      findByProviderAndIdpId: (providerId: string, sub: string) => {
+      findByIssuerAndIdpId: (providerId: string, sub: string) => {
         fakes.accountLookups += 1;
         return Promise.resolve(fakes.accountsByNaturalKey.get(`${providerId}:${sub}`));
       },

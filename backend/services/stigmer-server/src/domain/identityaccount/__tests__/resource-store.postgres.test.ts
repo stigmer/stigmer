@@ -9,7 +9,7 @@
  *     never calls Store.findByField or findAllByField (no per-request
  *     scan), the federated sign-in's lookup included. Asserted with a spy
  *     over the real store, not by inspection; findDirectByEmail and
- *     findByProvider are the lookups that scan (an administrative RPC and
+ *     findByIssuer are the lookups that scan (an administrative RPC and
  *     a provider's removal), each reading every matching row;
  *   - save refuses a direct account whose id is not its derived id, and a
  *     federated account whose id is not the address of its provider and
@@ -63,9 +63,9 @@ const CONTRACT_CASE_NAMES = [
   "a disconnected store is an infrastructure fault, never 'not found'",
   "two concurrent saves of one subject end in fulfilments and DuplicateAccountErrors only, and the winner is readable by subject",
   "no subject lookup answers a federated account: its subject is its federation issuer's",
-  "findByProviderAndIdpId finds a federated row by its provider and subject, and nothing under another provider or subject",
-  "findByProviderAndIdpId keeps two providers' same subject apart, and never answers a direct row sharing the subject",
-  "findByProvider answers every row the provider vouches for, in id order, and none of another provider's or a direct row",
+  "findByIssuerAndIdpId finds a federated row by its provider and subject, and nothing under another provider or subject",
+  "findByIssuerAndIdpId keeps two providers' same subject apart, and never answers a direct row sharing the subject",
+  "findByIssuer answers every row the provider vouches for, in id order, and none of another provider's or a direct row",
   "an outage is a fault on both federated reads, never 'no account'",
   "findDirectByEmail answers the direct account when federated and platform-client rows share its email",
   "findDirectByIdpId and findDirectByEmail never answer a platform-client account, while findByIdpId (any mode) does",
@@ -257,7 +257,7 @@ describe.each([sqliteFixture, postgresFixture])(
         expect(findAllByFieldPaths).toEqual([]);
       });
 
-      it("findByProvider scans by the provider's id (a provider's removal, never a per-request path)", async () => {
+      it("findByIssuer scans by the provider's id (a provider's removal, never a per-request path)", async () => {
         await accounts.save(makeFederatedAccount("okta|dana"));
         expect(
           (await accounts.findByIssuer(ISSUER_ID)).map(

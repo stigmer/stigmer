@@ -431,7 +431,7 @@ describe("the Enterprise identity unit on open source's own authorization (compo
 
     it("an org admin creates a provider: the row lands with its organization link and no owner row", async () => {
       providerId = await createIssuer("Acme Platform", ACME, CAROL);
-      expect(providerId).toMatch(/^idp_[0-9a-z]{26}$/);
+      expect(providerId).toMatch(/^fis_[0-9a-z]{26}$/);
       expect(await providers.findById(providerId)).toBeDefined();
       expect(
         policyStore

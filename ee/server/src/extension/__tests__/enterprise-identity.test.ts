@@ -139,7 +139,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const COVERAGE_DOC = join(HERE, "../../../docs/enterprise-authorization-coverage.md");
 
 /** The three kinds' own folders, whose non-test files declare the guards a row may name. */
-const KIND_FOLDERS = ["provider", "invitation", "team"].map((kind) => join(HERE, "../../iam", kind));
+const KIND_FOLDERS = ["issuer", "invitation", "team"].map((kind) => join(HERE, "../../iam", kind));
 
 /** The installed library's `src/`, which declares the shared steps a row may name. */
 const LIBRARY_SRC = join(dirname(createRequire(import.meta.url).resolve("@stigmer/server/package.json")), "src");

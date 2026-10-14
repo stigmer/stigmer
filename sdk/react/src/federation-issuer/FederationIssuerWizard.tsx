@@ -89,7 +89,7 @@ export function FederationIssuerWizard({
   const [signIn, setSignIn] = useState<SignInSettings>(EMPTY_SIGN_IN_SETTINGS);
 
   // Success step
-  const [createdIdp, setCreatedIdp] = useState<FederationIssuer | null>(null);
+  const [createdIssuer, setCreatedIssuer] = useState<FederationIssuer | null>(null);
 
   // -- Step transitions ------------------------------------------------
 
@@ -157,7 +157,7 @@ export function FederationIssuerWizard({
           userinfoEndpoint: userinfoEndpoint.trim() || undefined,
           ...toSignInInput(signIn),
         });
-        setCreatedIdp(issuer);
+        setCreatedIssuer(issuer);
         setStep("success");
       } catch {
         // error state is managed by useCreateFederationIssuer
@@ -229,11 +229,11 @@ export function FederationIssuerWizard({
         />
       )}
 
-      {step === "success" && createdIdp && (
+      {step === "success" && createdIssuer && (
         <SuccessStep
-          federationIssuer={createdIdp}
+          federationIssuer={createdIssuer}
           signIn={signIn}
-          onDone={() => onCreated?.(createdIdp)}
+          onDone={() => onCreated?.(createdIssuer)}
         />
       )}
     </div>

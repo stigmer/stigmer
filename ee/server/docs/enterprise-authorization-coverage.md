@@ -21,7 +21,7 @@ In short:
 | FederationIssuerCommandController.rename | config: can_delete on federation_issuer (field resource_id), error_msg yes | chain-with-Authorize (the library's rename chain, `renameResource`, over this table's `modifyById`; a service account refused before the load, a provider being deleted after it) |
 | FederationIssuerCommandController.delete | config: can_delete on federation_issuer (field resource_id), error_msg yes | chain-with-Authorize |
 | FederationIssuerQueryController.get | config: can_view on federation_issuer (field value), error_msg yes | chain-with-Authorize |
-| FederationIssuerQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: newLoadProviderByReferenceStep, then guard: AuthorizeResolvedTarget — the loaded row is authorized as `get`; a missing slug or id is NOT_FOUND only to a caller who holds `can_create_federation_issuer` on the organization, and `get`'s denial to anyone else) |
+| FederationIssuerQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: newLoadIssuerByReferenceStep, then guard: AuthorizeResolvedTarget — the loaded row is authorized as `get`; a missing slug or id is NOT_FOUND only to a caller who holds `can_create_federation_issuer` on the organization, and `get`'s denial to anyone else) |
 | FederationIssuerQueryController.list | config: can_view on organization (field org), error_msg yes | chain-with-Authorize |
 
 ## Invitation

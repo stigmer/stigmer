@@ -46,7 +46,7 @@ the sheets that Enterprise's surface needs.
 - **A person acting beyond their role** inside their own organization: a viewer
   acting as an admin, an admin acting as an owner, anyone reaching the
   platform's own authority.
-- **An organization admin who controls an identity provider's configuration**:
+- **An organization admin who controls a federation issuer's configuration**:
   the URLs the server dials, the keys it trusts, the claims it reads, and the
   roles it grants.
 - **A reader of the source**: what the code, its tests and its documents teach
@@ -60,7 +60,7 @@ secrets), and the platform's own signing keys.
 ## The pieces
 
 Judge each piece separately, so one piece's verdict cannot hide another's. A
-piece is one domain folder of `ee/server/src/iam/` (provider, federation,
+piece is one domain folder of `ee/server/src/iam/` (issuer, federation,
 invitation, team), the edition-neutral plumbing the barrel exports as host
 building blocks (rpc, postgres, verifiers, the grant path and the repairs: the
 barrel's "Host building blocks" group), the identity unit's wiring

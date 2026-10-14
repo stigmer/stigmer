@@ -767,7 +767,7 @@ function refuseUnlessLive(provider: FederationIssuer, liveness: IssuerLiveness):
  * left: it references a dead account and has no authorization effect.) A
  * sign-in refused because its provider's delete began undoes through the
  * account service instead, since a grant may already stand
- * (undoUnlessProviderLive).
+ * (undoUnlessIssuerLive).
  */
 async function rollBackCreated(
   deps: FederatedVerifierDeps,
@@ -781,7 +781,7 @@ async function rollBackCreated(
 
 /**
  * The sign-in role grant, built once so that an undo revokes exactly the
- * row that was made (undoUnlessProviderLive). Sign-in runs pre-authorization, inside the
+ * row that was made (undoUnlessIssuerLive). Sign-in runs pre-authorization, inside the
  * verifier chain, so the grant rides the OSS grant path as an in-process
  * `create` — the interceptor mints the `internal` class, the Authorize
  * step skips for it, and `ValidateGrantableRole` still runs: a provider's

@@ -471,7 +471,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
     },
   ],
   [
-    "findByProviderAndIdpId finds a federated row by its provider and subject, and nothing under another provider or subject",
+    "findByIssuerAndIdpId finds a federated row by its provider and subject, and nothing under another provider or subject",
     async ({ store }) => {
       const dana = federatedAccount({ idpId: "okta|dana" });
       await store.save(dana);
@@ -494,7 +494,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
     },
   ],
   [
-    "findByProviderAndIdpId keeps two providers' same subject apart, and never answers a direct row sharing the subject",
+    "findByIssuerAndIdpId keeps two providers' same subject apart, and never answers a direct row sharing the subject",
     async ({ store }) => {
       await store.save(directAccount({ idpId: "shared|sam" }));
       assert.equal(
@@ -524,7 +524,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
     },
   ],
   [
-    "findByProvider answers every row the provider vouches for, in id order, and none of another provider's or a direct row",
+    "findByIssuer answers every row the provider vouches for, in id order, and none of another provider's or a direct row",
     async ({ store }) => {
       const okta = [
         federatedAccount({ idpId: "okta|b" }),

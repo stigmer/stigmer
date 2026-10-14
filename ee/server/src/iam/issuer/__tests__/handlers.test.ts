@@ -397,7 +397,7 @@ describe("create", () => {
     const r = rig();
     const created = await r.commands.create(provider());
 
-    expect(created.metadata?.id).toMatch(/^idp_[0-9a-z]{26}$/);
+    expect(created.metadata?.id).toMatch(/^fis_[0-9a-z]{26}$/);
     expect(created.metadata?.slug).toBe("acme-platform");
     expect(created.spec?.allowedIssuers).toEqual(["https://idp.acme.test"]);
     expect(created.status?.audit?.specAudit?.createdBy?.id).toBe(ADMIN);
@@ -431,7 +431,7 @@ describe("create", () => {
     const r = rig();
     const created = await r.commands.create(provider({}, { id: "fis_chosen_by_caller" }));
     expect(created.metadata?.id).not.toBe("fis_chosen_by_caller");
-    expect(created.metadata?.id).toMatch(/^idp_[0-9a-z]{26}$/);
+    expect(created.metadata?.id).toMatch(/^fis_[0-9a-z]{26}$/);
     expect(await r.store.findById("fis_chosen_by_caller")).toBeUndefined();
   });
 
@@ -709,7 +709,7 @@ describe("apply", () => {
     const r = rig();
     const applied = await r.commands.apply(provider({}, { id: "fis_from_an_exported_file" }));
 
-    expect(applied.metadata?.id).toMatch(/^idp_[0-9a-z]{26}$/);
+    expect(applied.metadata?.id).toMatch(/^fis_[0-9a-z]{26}$/);
     expect(r.checks).toEqual([CREATE_ISSUER_ON_ACME, CREATE_ISSUER_ON_ACME]);
     expect(r.created).toHaveLength(1);
   });
@@ -988,7 +988,7 @@ describe("the issuer's endpoints on save, through the egress guard", () => {
   it("creates a provider whose issuer's document names its JWKS, which serves keys", async () => {
     const r = rig();
     const created = await r.commands.create(provider({ userinfoEndpoint: USERINFO }));
-    expect(created.metadata?.id).toMatch(/^idp_/);
+    expect(created.metadata?.id).toMatch(/^fis_/);
     expect(r.dialed).toEqual([DISCOVERY, JWKS]);
     expect(r.store.size).toBe(1);
   });

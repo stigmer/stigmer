@@ -151,7 +151,7 @@ import type {
   ComposedIdentityAccounts,
   ComposedServer,
   CreateAccountInput,
-  FederatedProvider,
+  FederatedIssuer,
   RunServerOptions,
   ServerBoot,
   GateSlotName,
@@ -281,8 +281,8 @@ const consumerIdentityAccountStore: IdentityAccountStore = {
   findDirectByEmail: () => Promise.resolve(undefined),
   findByIds: () => Promise.resolve([]),
   findByOrg: () => Promise.resolve([]),
-  findByProviderAndIdpId: () => Promise.resolve(undefined),
-  findByProvider: () => Promise.resolve([]),
+  findByIssuerAndIdpId: () => Promise.resolve(undefined),
+  findByIssuer: () => Promise.resolve([]),
 };
 
 /**
@@ -1474,7 +1474,7 @@ let consumerChildOrganizations: ChildOrganizations | undefined;
  */
 let consumerIdentityAccounts: ComposedIdentityAccounts | undefined;
 export async function consumerFederatedSignIn(
-  provider: FederatedProvider,
+  provider: FederatedIssuer,
   subject: string,
   caller: CallerIdentity,
 ): Promise<IdentityAccount | undefined> {
@@ -1482,7 +1482,7 @@ export async function consumerFederatedSignIn(
   if (accounts === undefined) {
     return undefined;
   }
-  const existing = await accounts.store.findByProviderAndIdpId(
+  const existing = await accounts.store.findByIssuerAndIdpId(
     provider.id,
     subject,
   );

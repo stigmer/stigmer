@@ -154,7 +154,7 @@ function harness(
   };
   const accounts = {
     store: {
-      findByProviderAndIdpId: (providerId: string, sub: string) => {
+      findByIssuerAndIdpId: (providerId: string, sub: string) => {
         recorded.naturalKeyLookups.push([providerId, sub]);
         return Promise.resolve(recorded.byNaturalKey);
       },

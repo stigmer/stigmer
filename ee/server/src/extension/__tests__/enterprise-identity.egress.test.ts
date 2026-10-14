@@ -273,7 +273,7 @@ describe("the enterprise-identity unit dials every tenant-written URL through it
       }),
     );
 
-    expect(saved.metadata?.id).toMatch(/^idp_/);
+    expect(saved.metadata?.id).toMatch(/^fis_/);
     expect(r.dialed).toEqual([DISCOVERY, JWKS]);
     expect(globalFetch).not.toHaveBeenCalled();
   });
