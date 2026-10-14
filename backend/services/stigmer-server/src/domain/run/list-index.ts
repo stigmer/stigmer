@@ -6,9 +6,9 @@
  * `listBySession` reads; `grades` is the judge label's value, which the
  * grading workflow's start reads to find the judge run an earlier attempt
  * created (temporal/grading/judge-activities.ts); `eval_run` is the
- * reserved plugin eval label's value (domain/eval-run/constants.ts),
- * which a try's start and the spend read take to find the try's run by
- * the eval and its run name (temporal/evals/case-activities.ts);
+ * reserved eval run label's value (domain/eval-run/constants.ts), which a
+ * try's start and the spend read take to find the try's run by the eval
+ * run and its run name (temporal/evals/case-activities.ts);
  * `schedule` is the schedule label's value (domain/schedule/labels.ts),
  * which a fire reads to find the run an earlier attempt of the same fire
  * created, by the schedule and the fire's deterministic name
@@ -22,10 +22,11 @@
  * run recorded (status.agent_id), by which the agent usage report reads one
  * agent's runs in an organization (usage.ts); the organization and the
  * creation order are every declaration's. Revision 2 added `grades`,
- * revision 3 `eval_run`, revision 4 `working_session`, revision 5
+ * revision 3 `plugin_eval`, revision 4 `working_session`, revision 5
  * `schedule`, revision 6 took waiting runs out of `working_session` into
- * `waiting_session`, and revision 7 added `agent`: the store derives every
- * existing run's keys again once, at open.
+ * `waiting_session`, revision 7 added `agent`, and revision 8 renamed
+ * `plugin_eval` to `eval_run` with its label (store/eval-kinds-retired.ts):
+ * the store derives every existing run's keys again once, at open.
  *
  * A change to `keys` bumps `revision` (boot/__tests__/list-indexes.test.ts
  * pins the pair).
@@ -42,7 +43,7 @@ import { WAITING_PHASES, WORKING_PHASES } from "./phases.js";
 export const agentExecutionListIndex = declareListIndex({
   kind: ApiResourceKind.run,
   schema: RunSchema,
-  revision: 7,
+  revision: 8,
   keys: {
     session: field("spec.session_id"),
     grades: label(GRADES_RUN_LABEL),

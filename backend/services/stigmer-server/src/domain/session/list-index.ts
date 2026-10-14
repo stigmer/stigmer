@@ -4,11 +4,14 @@
  * writes; whichever version the conversation runs), `channel` the one
  * `listByChannel` reads
  * (the channel's id is stamped as a label by the channel lanes, not held
- * in the spec). `eval_run` marks a plugin eval's tries (the reserved
- * label the eval's workflow stamps, domain/eval-run/constants.ts):
+ * in the spec). `eval_run` marks an eval run's tries (the reserved label
+ * the eval run's workflow stamps, domain/eval-run/constants.ts):
  * `session.list` leaves them out, so the conversation list never fills
- * with an eval's hundreds of tries, and an eval's delete finds them
- * through it. A session belongs to one organization, which is every
+ * with an eval run's hundreds of tries, and an eval run's delete finds
+ * them through it. Revision 4 renamed the key from `plugin_eval` when the
+ * label became `stigmer.ai/eval-run`; the store derives every session's
+ * keys again once, at open, after the store migration relabelled the
+ * retired kinds' tries (store/eval-kinds-retired.ts). A session belongs to one organization, which is every
  * declaration's first fact, so `session.list` narrows by it when the
  * request names one.
  *
@@ -27,7 +30,7 @@ export const SESSION_CHANNEL_ID_LABEL = "stigmer.ai/channel-id";
 export const sessionListIndex = declareListIndex({
   kind: ApiResourceKind.session,
   schema: SessionSchema,
-  revision: 3,
+  revision: 4,
   keys: {
     agent: field("status.agent_id"),
     channel: label(SESSION_CHANNEL_ID_LABEL),
