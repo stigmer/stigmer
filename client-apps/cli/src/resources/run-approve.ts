@@ -6,14 +6,16 @@
 // stigmer.permission.asked line. `--tool-call` picks one; without it the run
 // must wait on exactly one. The action answers it:
 //
-//   approve ...... confirmToolUse, allow
-//   deny/reject .. confirmToolUse, deny, with `--comment` as the reason the
-//                  agent reads
-//   approve-all .. grantPermission: this call and every waiting call of its
-//                  class run for the rest of the turn
+//   allow ...... confirmToolUse, allow
+//   deny ....... confirmToolUse, deny, with `--comment` as the reason the
+//                agent reads
+//   allow-all .. grantPermission: this call and every waiting call of its
+//                class run for the rest of the turn
 //
 // A comment rides only a deny (the contract refuses it on an allow), so a
-// comment with any other action is refused before anything is sent.
+// comment with any other action is refused before anything is sent. The
+// retired words approve, reject and approve-all are refused with the word that
+// replaced them.
 
 import { foldSession, turnOf, type Stigmer, type ToolUse } from "@stigmer/sdk";
 import { UsageError } from "../errors/index.js";
@@ -46,20 +48,28 @@ export async function approveAgentToolCall(client: Stigmer, opts: ApproveAgentOp
   return { toolUseId: ask.id, toolName: ask.name, answer: answer.kind };
 }
 
+// The actions `--action` no longer takes, each with the word that replaced it.
+const RETIRED: Readonly<Record<string, string>> = {
+  approve: '"approve" is now "allow"',
+  reject: '"reject" is now "deny"',
+  "approve-all": '"approve-all" is now "allow-all"',
+};
+
 function answerOf(action: string, comment: string): AskAnswer {
   switch (action) {
     case "deny":
-    case "reject":
       return { kind: "deny", reason: comment };
-    case "approve":
-    case "approve-all":
+    case "allow":
+    case "allow-all":
       if (comment !== "") {
-        throw new UsageError("--comment is the reason given with a deny; an approval carries none");
+        throw new UsageError("--comment is the reason given with a deny; an allow carries none");
       }
-      return action === "approve" ? { kind: "allow" } : { kind: "grant" };
-    default:
-      throw new UsageError(`invalid --action "${action}": must be one of: approve, deny, approve-all`);
+      return action === "allow" ? { kind: "allow" } : { kind: "grant" };
   }
+  const replaced = RETIRED[action];
+  throw new UsageError(
+    `invalid --action "${action}": ${replaced === undefined ? "" : `${replaced}; `}must be one of: allow, deny, allow-all`,
+  );
 }
 
 function pickAsk(runId: string, asks: readonly ToolUse[], toolCallId: string): ToolUse {

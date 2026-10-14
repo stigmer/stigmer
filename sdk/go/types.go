@@ -44,6 +44,7 @@ type HookConfigInput = gen.HookConfigInput
 type HookGroupInput = gen.HookGroupInput
 type HookHandlerInput = gen.HookHandlerInput
 type RunConfigInput = gen.RunConfigInput
+type AgentMcpServerInput = gen.AgentMcpServerInput
 type AgentChannelInput = gen.AgentChannelInput
 type SlackChannelConfigInput = gen.SlackChannelConfigInput
 type WhatsAppChannelConfigInput = gen.WhatsAppChannelConfigInput

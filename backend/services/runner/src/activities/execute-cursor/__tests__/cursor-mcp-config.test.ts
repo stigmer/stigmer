@@ -8,16 +8,17 @@
  */
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
+import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { ResolvedMcpServer } from "../../../shared/mcp-resolver.js";
-import { toCursorMcpConfig, validateMcpServerEnv } from "../cursor-mcp-config.js";
+import { declaredServerSlugs, toCursorMcpConfig, validateMcpServerEnv } from "../cursor-mcp-config.js";
 
 function server(overrides: Partial<ResolvedMcpServer>): ResolvedMcpServer {
   return {
     slug: "plugin_github_api",
     connectionType: "http",
     url: "https://mcp.example.com/mcp",
-    pluginOrigin: { pluginId: "plg_github", plugin: "github", server: "api" },
+    home: { kind: "plugin", pluginId: "plg_github", plugin: "github", server: "api" },
     ...overrides,
   };
 }
@@ -87,11 +88,21 @@ describe("toCursorMcpConfig", () => {
 
 describe("validateMcpServerEnv", () => {
   it("warns for a plugin's server that failed to resolve, by its turn name", () => {
-    const warnings = validateMcpServerEnv([], [plugin("srv one")]);
+    const warnings = validateMcpServerEnv([], declaredServerSlugs({ agent: undefined, plugins: [plugin("srv one")] }));
 
     expect(warnings).toHaveLength(1);
     expect(warnings[0]).toContain("'plugin_github_srv_one'");
     expect(warnings[0]).toContain("failed to resolve");
+  });
+
+  it("warns for a server the agent writes itself that failed to resolve, by its own name, beside the plugins'", () => {
+    const declared = declaredServerSlugs({
+      agent: { spec: create(AgentSpecSchema, { mcpServers: [{ name: "zendesk", url: "https://acme-co.zendesk.com/mcp" }] }) },
+      plugins: [plugin()],
+    });
+    expect(declared).toEqual(["zendesk", "plugin_github_api"]);
+    const warnings = validateMcpServerEnv([server({})], declared);
+    expect(warnings).toEqual(["MCP server 'zendesk': failed to resolve (server may not exist or is inaccessible)"]);
   });
 
   it("warns for a stdio server carrying empty env values", () => {
@@ -102,7 +113,7 @@ describe("validateMcpServerEnv", () => {
         command: "npx",
         env: { API_KEY: "", OTHER: "set" },
       })],
-      [plugin()],
+      declaredServerSlugs({ agent: undefined, plugins: [plugin()] }),
     );
 
     expect(warnings).toHaveLength(1);
@@ -110,7 +121,7 @@ describe("validateMcpServerEnv", () => {
   });
 
   it("stays quiet for healthy servers", () => {
-    const warnings = validateMcpServerEnv([server({})], [plugin()]);
+    const warnings = validateMcpServerEnv([server({})], declaredServerSlugs({ agent: undefined, plugins: [plugin()] }));
 
     expect(warnings).toEqual([]);
   });

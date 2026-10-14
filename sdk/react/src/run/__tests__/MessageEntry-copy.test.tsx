@@ -50,7 +50,7 @@ describe("MessageEntry copy affordance", () => {
     });
   });
 
-  it("copies an AI message's markdown — formatting characters included", () => {
+  it("copies an agent message's markdown — formatting characters included", () => {
     const writeText = stubClipboard();
     const md = "## Plan\n\n- step **one**\n- step `two`";
     render(<MessageEntry message={message("message", md)} />);
@@ -74,7 +74,7 @@ describe("MessageEntry copy affordance", () => {
     expect(writeText).toHaveBeenCalledExactlyOnceWith("# Title\nbody");
   });
 
-  it("offers no copy while an AI message is still streaming", () => {
+  it("offers no copy while an agent message is still streaming", () => {
     stubClipboard();
     render(
       <MessageEntry

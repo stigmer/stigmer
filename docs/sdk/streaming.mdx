@@ -154,7 +154,7 @@ defined in [Detect the end of a run](#detect-the-end-of-a-run).
 
 Each event carries its place in the log (`seq`), the run it belongs to
 (`run_id`), and its thread (`thread_id`). The thread is empty for the Agent's
-own events; a sub-agent's events carry the id of the `task` call that started
+own events; a subagent's events carry the id of the `task` call that started
 it. The events you read most often:
 
 | Event | What it says |
@@ -169,6 +169,9 @@ it. The events you read most often:
 | `session.status_idle` | The Session stopped working. A `stop_reason` of `requires_action` names the calls that wait. |
 | `stigmer.run.status` | A run's phase changed. See [Detect the end of a run](#detect-the-end-of-a-run). |
 | `session.error` | A run hit an error. |
+
+A type that starts with `stigmer.` is one of Stigmer's own;
+[Stigmer's own events](#stigmers-own-events) lists each with its reason.
 
 <Callout type="info">
   For every event type and field, see
@@ -193,6 +196,35 @@ for await (const frame of followSession(stigmer, sessionId)) {
   }
 }
 ```
+
+## Stigmer's own events
+
+Every event whose type starts with `stigmer.` carries something Claude Managed
+Agents' format has no place for. Each is optional: a client that skips them all
+still follows the whole conversation, and nothing waits on one of them.
+[Anthropic's SDK](/docs/sdk/managed-agents) never receives them.
+
+**Written by** says who may add the event to the log. A runner can't write an
+event the server writes.
+
+| Event | What it says | Why Managed Agents has none | Written by |
+| --- | --- | --- | --- |
+| `stigmer.agent.thinking` | The text of the Agent's thinking. It follows its `agent.thinking`. | Their `agent.thinking` carries no text, only that the Agent thought. | Runner |
+| `stigmer.permission.asked` | Why a tool call waits for a person: the message to show them, and the rule or hook that asked. | A tool call has no field for why it waits or what asked. Claude Code shows a hook's reason, and this event carries it. | Runner |
+| `stigmer.permission.grant` | A person allowed every call of one kind (a built-in category, an MCP server, or the hook that asked) for the rest of the turn. | They allow a kind of call only by a fixed policy set on the agent. This is Claude Code's "don't ask again", given during the conversation. | Server |
+| `stigmer.harness.note` | A line the platform added in its own voice, for example that its tools are off for this turn. | It isn't the Agent's words, so it can't be an `agent.message`. | Runner |
+| `stigmer.agent.structured_output` | The answer in the JSON schema the run asked for. | They have no output schema on an agent or a session. | Runner |
+| `stigmer.memory.recalled` | Which of the Agent's memories the turn recalled. | Their memory is files the agent reads with its tools, which show as tool calls. Stigmer recalls memories into the turn before the model runs, so no tool call shows it. | Runner |
+| `stigmer.file_review.changes` | The files a turn changed, offered to keep or undo. Only in a Session with file review on. | Their format has no Keep and Undo after an agent's edits, as Cursor and Copilot offer. Review is off by default and never makes a turn wait. | Runner |
+| `stigmer.file_review.decided` | A person kept or undid a turn's changes, or one of its files. | The same review. | Server |
+| `stigmer.file_review.reconciled` | The undone files were put back. | The same review. | Runner |
+| `stigmer.run.status` | A run changed phase: it started, waits, paused, or ended and how. | Stigmer keeps each turn as a run, which billing, Schedules and channels key on. The Session's status speaks for the whole Session and says nothing when one run ends while another still works. | Server |
+| `stigmer.tool_result.full_output` | Where the whole output of a tool result too large to keep inline is stored. The result holds its head. | A field can't be added to their `agent.tool_result`. | Runner |
+| `stigmer.tool_output_delta` (preview) | A piece of a running tool's output. Streamed when you name it in `event_deltas`, and never stored. | They preview only the Agent's message and thinking. This shows a long command's output as it runs. | Runner |
+
+Where Stigmer's Managed Agents events mean something slightly different, and
+which of their events Stigmer never writes, is in
+[Use Anthropic's SDK](/docs/sdk/managed-agents#where-stigmers-events-differ).
 
 ## Detect the end of a run
 

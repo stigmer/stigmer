@@ -26,16 +26,16 @@ message AgentSpec {
   // System prompt defining the agent's behavior and personality.
   string instructions = 3 [(buf.validate.field).string.min_len = 10];
 
-  // Field 4 named the MCP server resources this agent used until an MCP
-  // server became configuration inside a plugin: an agent lists the plugins
-  // it uses in plugins, and gets each plugin's servers with it.
+  // Field 4 named MCP server resources this agent used, a kind that no
+  // longer exists. An agent's MCP servers are written in mcp_servers or
+  // come with the plugins it lists.
   reserved 4;
   reserved "mcp_server_usages";
 
   // Skill resources providing additional knowledge to the agent.
   repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [(ai.stigmer.commons.apiresource.reference_kind) = skill];
 
-  // Field 6 held sub-agents written inside this agent, which narrowed its
+  // Field 6 held subagents written inside this agent, which narrowed its
   // tools, until a subagent became a saved agent this agent lists in
   // subagents.
   reserved 6;
@@ -159,7 +159,7 @@ message AgentSpec {
   reserved "vaults";
 
   // Plugins this agent uses, each whole: its skills, agents, hooks and MCP
-  // servers.
+  // servers. A server written in the agent itself goes in mcp_servers.
   //
   // @internal
   // Resolved at turn start like a skill reference: the reference's version
@@ -189,6 +189,69 @@ message AgentSpec {
     (ai.stigmer.commons.apiresource.reference_kind) = agent,
     (buf.validate.field).repeated.max_items = 20
   ];
+
+  // MCP servers written in this agent itself, reached over HTTP, beside the
+  // servers of the plugins it lists. At most 20.
+  //
+  // Only an organization's admins may add a server or change one's address
+  // or headers; anyone who may edit the agent may keep or remove them. A
+  // server's tools are named mcp__<name>__<tool> in tools and
+  // disallowed_tools. A run logs in with the vault connection saved at the
+  // server's address, else a vault secret named <NAME>_ACCESS_TOKEN (the
+  // server's name upper-cased, each other character written as _), which is
+  // sent to this server, or calls it with no login when there is neither; a
+  // header that names Authorization itself takes that login from its
+  // ${NAME} instead, and the run then needs it. Each ${NAME} in a header
+  // value is filled from the run's values and sent to this server only,
+  // never to the agent's shell. Header values are stored in the agent, so a
+  // secret goes in a vault and the header names it.
+  //
+  // @internal
+  // The save refuses a name used twice, the platform's own server names,
+  // any name starting with stigmer and the name plugin (its tools would read
+  // as a plugin's), an address the plugin reader would
+  // refuse (https, or http on a loopback host; no credentials or fragment),
+  // a header named twice in any letter case, a ${...} that is not a
+  // variable name, and a plugin's own directory (${CLAUDE_PLUGIN_ROOT} and
+  // its spellings). A ${NAME} no env entry declares is a required secret,
+  // except the platform's own variables, which the runner fills. The login
+  // without an Authorization header is the optional value
+  // <NAME>_ACCESS_TOKEN, found at the server's address. Like every key a
+  // tool reads, that key is the server's alone: the agent's own env
+  // declaring it gives the shell nothing.
+  repeated AgentMcpServer mcp_servers = 18 [(buf.validate.field).repeated.max_items = 20];
+}
+
+// AgentMcpServer is an MCP server written in an agent, reached over HTTP.
+message AgentMcpServer {
+  // The server's name in this agent, which names its tools
+  // mcp__<name>__<tool>: 2 to 63 lowercase letters, digits and hyphens,
+  // starting with a letter and not ending with a hyphen.
+  string name = 1 [(buf.validate.field).string = {
+    max_len: 63
+    pattern: "^[a-z][a-z0-9-]*[a-z0-9]$"
+  }];
+
+  // The server's address: an https URL, or http on this machine.
+  string url = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 2048
+  }];
+
+  // Headers sent with every request to this server. A value may name a run
+  // value as ${NAME}, filled when the run starts.
+  map<string, string> headers = 3 [(buf.validate.field).map = {
+    max_pairs: 64
+    keys: {
+      string: {
+        pattern: "^[!#$%&'*+.^_`|~0-9A-Za-z-]+$"
+        max_len: 256
+      }
+    }
+    values: {
+      string: {max_len: 4096}
+    }
+  }];
 }
 
 // HookSource is a hooks block written in the agent.

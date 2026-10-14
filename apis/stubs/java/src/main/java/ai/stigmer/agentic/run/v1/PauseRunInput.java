@@ -9,25 +9,9 @@ package ai.stigmer.agentic.run.v1;
  * <pre>
  * PauseRunInput requests temporarily pausing a run.
  *
- * Pauses the agent at its current checkpoint. Unlike an interrupt, the run
- * is NOT terminal and can be resumed later from where it left off.
- *
- * ## Behavior
- *
- * When an agent is paused:
- * 1. A "pause" signal is sent to the Temporal workflow
- * 2. Running activity is gracefully cancelled (checkpoint saved)
- * 3. LangGraph auto-saves checkpoint on cancellation
- * 4. Run transitions to RUN_PAUSED phase
- * 5. Workflow waits for resume signal (no resources consumed)
- *
- * ## Resume Flow
- *
- * The paused agent can be resumed via the resume RPC:
- * 1. Resume signal unblocks the workflow
- * 2. Activity is re-invoked with same thread_id
- * 3. LangGraph loads from checkpoint automatically
- * 4. Agent continues from exact pause point
+ * Pauses the agent where it is. Unlike an interrupt, the run is NOT terminal:
+ * it reads RUN_PAUSED, uses no resources while paused, and the resume RPC
+ * continues it from where it left off.
  *
  * ## Preconditions
  *
@@ -391,25 +375,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * PauseRunInput requests temporarily pausing a run.
    *
-   * Pauses the agent at its current checkpoint. Unlike an interrupt, the run
-   * is NOT terminal and can be resumed later from where it left off.
-   *
-   * ## Behavior
-   *
-   * When an agent is paused:
-   * 1. A "pause" signal is sent to the Temporal workflow
-   * 2. Running activity is gracefully cancelled (checkpoint saved)
-   * 3. LangGraph auto-saves checkpoint on cancellation
-   * 4. Run transitions to RUN_PAUSED phase
-   * 5. Workflow waits for resume signal (no resources consumed)
-   *
-   * ## Resume Flow
-   *
-   * The paused agent can be resumed via the resume RPC:
-   * 1. Resume signal unblocks the workflow
-   * 2. Activity is re-invoked with same thread_id
-   * 3. LangGraph loads from checkpoint automatically
-   * 4. Agent continues from exact pause point
+   * Pauses the agent where it is. Unlike an interrupt, the run is NOT terminal:
+   * it reads RUN_PAUSED, uses no resources while paused, and the resume RPC
+   * continues it from where it left off.
    *
    * ## Preconditions
    *

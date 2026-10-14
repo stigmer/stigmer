@@ -229,7 +229,7 @@ message CasManifestRef {
 //
 // Presence of this message on a change set asserts the runner-owned turn facts
 // the server cannot derive: the turn executed zero file-tool (write/delete)
-// calls, zero MCP tools, and delegated zero sub-agents — its only mutation
+// calls, zero MCP tools, and delegated zero subagents — its only mutation
 // source was consented commands. These facts carry the SAME trust level as the
 // captured bytes themselves. What the runner can NEVER assert is the consent:
 // the server verifies every claimed id below against the person's answers in

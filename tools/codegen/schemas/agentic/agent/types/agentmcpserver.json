@@ -1,0 +1,55 @@
+{
+  "name": "AgentMcpServer",
+  "description": "AgentMcpServer is an MCP server written in an agent, reached over HTTP.",
+  "protoType": "ai.stigmer.agentic.agent.v1.AgentMcpServer",
+  "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Name",
+      "jsonName": "name",
+      "protoField": "name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The server's name in this agent, which names its tools\n mcp__\u003cname\u003e__\u003ctool\u003e: 2 to 63 lowercase letters, digits and hyphens,\n starting with a letter and not ending with a hyphen.",
+      "required": false,
+      "validation": {
+        "maxLength": 63,
+        "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+      }
+    },
+    {
+      "name": "Url",
+      "jsonName": "url",
+      "protoField": "url",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The server's address: an https URL, or http on this machine.",
+      "required": false,
+      "validation": {
+        "minLength": 1,
+        "maxLength": 2048
+      }
+    },
+    {
+      "name": "Headers",
+      "jsonName": "headers",
+      "protoField": "headers",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "string"
+        }
+      },
+      "description": "Headers sent with every request to this server. A value may name a run\n value as ${NAME}, filled when the run starts.",
+      "required": false,
+      "validation": {
+        "maxItems": 64
+      }
+    }
+  ]
+}

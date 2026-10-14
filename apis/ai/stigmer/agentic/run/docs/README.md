@@ -20,7 +20,7 @@ A run continues a session (`session_id`) or starts a new one (`session_spec`, wh
 
 Runs are created via the API or CLI. You do not author them in YAML the way you author an Agent — you trigger them with a message and let the system manage the resource.
 
-A run does not carry its transcript. The agent's messages, thinking, tool calls and results, approvals, todos, sub-agent threads, structured output, recalled memories and file-review decisions are events in the session's log, read with the session's `listEvents` and `streamEvents`, each event naming the run it belongs to. See the [Session docs](../../session/docs/README.md).
+A run does not carry its transcript. The agent's messages, thinking, tool calls and results, approvals, todos, subagent threads, structured output, recalled memories and file-review decisions are events in the session's log, read with the session's `listEvents` and `streamEvents`, each event naming the run it belongs to. See the [Session docs](../../session/docs/README.md).
 
 ## Key Capabilities
 

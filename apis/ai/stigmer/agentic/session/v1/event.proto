@@ -69,7 +69,7 @@ message SessionEvent {
     // An MCP server's tool returned.
     AgentMcpToolResultEvent agent_mcp_tool_result = 19 [(ai.stigmer.commons.apiresource.event_type) = "agent.mcp_tool_result"];
 
-    // A thread (a sub-agent) was created.
+    // A thread (a subagent) was created.
     SessionThreadCreatedEvent session_thread_created = 20 [(ai.stigmer.commons.apiresource.event_type) = "session.thread_created"];
 
     // A thread started working.
@@ -94,7 +94,10 @@ message SessionEvent {
     UserInterruptEvent user_interrupt = 27 [(ai.stigmer.commons.apiresource.event_type) = "user.interrupt"];
 
     // Stigmer's own events (types starting with stigmer.): optional for a
-    // Managed Agents client, which skips a type it does not know.
+    // Managed Agents client, which skips a type it does not know. Each is
+    // listed with the reason Managed Agents has none in docs/sdk/streaming.mdx
+    // ("Stigmer's own events"), which scripts/stigmer-events-listed.test.mjs
+    // holds to these members.
 
     // The text of the agent's thinking.
     StigmerAgentThinkingEvent stigmer_agent_thinking = 100 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.thinking"];
@@ -313,7 +316,7 @@ message AgentMcpToolResultEvent {
   bool is_error = 5;
 }
 
-// SessionThreadCreatedEvent says a thread (a sub-agent) was created:
+// SessionThreadCreatedEvent says a thread (a subagent) was created:
 // session.thread_created.
 message SessionThreadCreatedEvent {
   // The event's id, unique in its session: letters, digits, _ . : -, at most 128.

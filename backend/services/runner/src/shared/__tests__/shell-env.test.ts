@@ -74,7 +74,7 @@ describe("shellRunValues", () => {
   const RUN_VALUES: RunValues = {
     agent: { AGENT_KEY: "agent-secret" },
     tools: new Map([
-      [toolValuesKey("plg_linear", "api"), { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "mcp-only-token", LINEAR_OAUTH_TOKEN: "oauth-access-token" } }],
+      [toolValuesKey("plugin", "plg_linear", "api"), { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "mcp-only-token", LINEAR_OAUTH_TOKEN: "oauth-access-token" } }],
     ]),
     plugins: new Map([["plg_linear", { HOOK_ONLY_KEY: "plugin-hook-value" }]]),
     subagents: new Map([["release-notes", { SUBAGENT_KEY: "subagent-secret" }]]),

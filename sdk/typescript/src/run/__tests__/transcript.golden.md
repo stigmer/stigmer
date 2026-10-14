@@ -83,7 +83,7 @@ edited prompt
 
 Delegating.
 
-> **Sub-agent — explore** (5.0s)
+> **Subagent — explore** (5.0s)
 >
 > Input:
 >

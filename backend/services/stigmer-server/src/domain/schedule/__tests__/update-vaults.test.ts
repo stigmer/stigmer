@@ -197,6 +197,8 @@ async function fire(...keys: string[]): Promise<Record<string, string>> {
       env: Object.fromEntries(keys.map((key) => [key, { isSecret: true }])),
     }),
     agentName: "Helper",
+    agentId: "agt_helper",
+    agentVersion: "",
     agentOrg: ORG,
     subagents: [],
     plugins: [],

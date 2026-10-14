@@ -211,9 +211,12 @@ async function openConnectValues(
     orgId: attempt.org,
     person: attempt.person === "" ? undefined : attempt.person,
     server: {
-      pluginId: attempt.pluginId,
-      pluginName: plugin.metadata?.name ?? "",
-      pluginDigest: plugin.status?.digest ?? "",
+      home: {
+        kind: "plugin",
+        pluginId: attempt.pluginId,
+        pluginName: plugin.metadata?.name ?? "",
+        pluginDigest: plugin.status?.digest ?? "",
+      },
       entry,
       env: plugin.status?.env ?? {},
     },

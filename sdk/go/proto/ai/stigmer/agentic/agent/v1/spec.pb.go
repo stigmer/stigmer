@@ -109,7 +109,7 @@ type AgentSpec struct {
 	// only new conversations.
 	Harness v12.Harness `protobuf:"varint,14,opt,name=harness,proto3,enum=ai.stigmer.agentic.session.v1.Harness" json:"harness,omitempty"`
 	// Plugins this agent uses, each whole: its skills, agents, hooks and MCP
-	// servers.
+	// servers. A server written in the agent itself goes in mcp_servers.
 	Plugins []*apiresource.ApiResourceReference `protobuf:"bytes,16,rep,name=plugins,proto3" json:"plugins,omitempty"`
 	// Saved agents this agent may hand work to, each running its own
 	// instructions, model, tools, plugins, skills, hooks and values.
@@ -120,7 +120,23 @@ type AgentSpec struct {
 	// pinned when this agent is saved: a reference without a version takes the
 	// listed agent's latest version, and one naming a tag or a version keeps
 	// that version until a later save sends the list again. At most 20.
-	Subagents     []*apiresource.ApiResourceReference `protobuf:"bytes,17,rep,name=subagents,proto3" json:"subagents,omitempty"`
+	Subagents []*apiresource.ApiResourceReference `protobuf:"bytes,17,rep,name=subagents,proto3" json:"subagents,omitempty"`
+	// MCP servers written in this agent itself, reached over HTTP, beside the
+	// servers of the plugins it lists. At most 20.
+	//
+	// Only an organization's admins may add a server or change one's address
+	// or headers; anyone who may edit the agent may keep or remove them. A
+	// server's tools are named mcp__<name>__<tool> in tools and
+	// disallowed_tools. A run logs in with the vault connection saved at the
+	// server's address, else a vault secret named <NAME>_ACCESS_TOKEN (the
+	// server's name upper-cased, each other character written as _), which is
+	// sent to this server, or calls it with no login when there is neither; a
+	// header that names Authorization itself takes that login from its
+	// ${NAME} instead, and the run then needs it. Each ${NAME} in a header
+	// value is filled from the run's values and sent to this server only,
+	// never to the agent's shell. Header values are stored in the agent, so a
+	// secret goes in a vault and the header names it.
+	McpServers    []*AgentMcpServer `protobuf:"bytes,18,rep,name=mcp_servers,json=mcpServers,proto3" json:"mcp_servers,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -239,6 +255,80 @@ func (x *AgentSpec) GetSubagents() []*apiresource.ApiResourceReference {
 	return nil
 }
 
+func (x *AgentSpec) GetMcpServers() []*AgentMcpServer {
+	if x != nil {
+		return x.McpServers
+	}
+	return nil
+}
+
+// AgentMcpServer is an MCP server written in an agent, reached over HTTP.
+type AgentMcpServer struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The server's name in this agent, which names its tools
+	// mcp__<name>__<tool>: 2 to 63 lowercase letters, digits and hyphens,
+	// starting with a letter and not ending with a hyphen.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// The server's address: an https URL, or http on this machine.
+	Url string `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
+	// Headers sent with every request to this server. A value may name a run
+	// value as ${NAME}, filled when the run starts.
+	Headers       map[string]string `protobuf:"bytes,3,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AgentMcpServer) Reset() {
+	*x = AgentMcpServer{}
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AgentMcpServer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AgentMcpServer) ProtoMessage() {}
+
+func (x *AgentMcpServer) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AgentMcpServer.ProtoReflect.Descriptor instead.
+func (*AgentMcpServer) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *AgentMcpServer) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *AgentMcpServer) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *AgentMcpServer) GetHeaders() map[string]string {
+	if x != nil {
+		return x.Headers
+	}
+	return nil
+}
+
 // HookSource is a hooks block written in the agent.
 type HookSource struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -252,7 +342,7 @@ type HookSource struct {
 
 func (x *HookSource) Reset() {
 	*x = HookSource{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -264,7 +354,7 @@ func (x *HookSource) String() string {
 func (*HookSource) ProtoMessage() {}
 
 func (x *HookSource) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -277,7 +367,7 @@ func (x *HookSource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HookSource.ProtoReflect.Descriptor instead.
 func (*HookSource) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{1}
+	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *HookSource) GetSource() isHookSource_Source {
@@ -311,7 +401,8 @@ var File_ai_stigmer_agentic_agent_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/vault/v1/declaration.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xc6\t\n" +
+	"&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/vault/v1/declaration.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\x9e\n" +
+	"\n" +
 	"\tAgentSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12\x19\n" +
 	"\bicon_url\x18\x02 \x01(\tR\aiconUrl\x12+\n" +
@@ -328,12 +419,22 @@ const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"run_config\x18\r \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfig\x12@\n" +
 	"\aharness\x18\x0e \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x12T\n" +
 	"\aplugins\x18\x10 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,:R\aplugins\x12`\n" +
-	"\tsubagents\x18\x11 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\f\xbaH\x05\x92\x01\x02\x10\x14\xe0\x85,(R\tsubagents\x1af\n" +
+	"\tsubagents\x18\x11 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\f\xbaH\x05\x92\x01\x02\x10\x14\xe0\x85,(R\tsubagents\x12V\n" +
+	"\vmcp_servers\x18\x12 \x03(\v2+.ai.stigmer.agentic.agent.v1.AgentMcpServerB\b\xbaH\x05\x92\x01\x02\x10\x14R\n" +
+	"mcpServers\x1af\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
 	"\x05value\x18\x02 \x01(\v2..ai.stigmer.agentic.vault.v1.EnvVarDeclarationR\x05value:\x028\x01J\x04\b\x04\x10\x05J\x04\b\x06\x10\aJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
 	"J\x04\b\x0f\x10\x10R\x11mcp_server_usagesR\n" +
-	"sub_agentsR\asharingR\x10datastore_usagesR\x06vaults\"o\n" +
+	"sub_agentsR\asharingR\x10datastore_usagesR\x06vaults\"\xae\x02\n" +
+	"\x0eAgentMcpServer\x126\n" +
+	"\x04name\x18\x01 \x01(\tB\"\xbaH\x1fr\x1d\x18?2\x19^[a-z][a-z0-9-]*[a-z0-9]$R\x04name\x12\x1c\n" +
+	"\x03url\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x10R\x03url\x12\x89\x01\n" +
+	"\aheaders\x18\x03 \x03(\v28.ai.stigmer.agentic.agent.v1.AgentMcpServer.HeadersEntryB5\xbaH2\x9a\x01/\x10@\"$r\"\x18\x80\x022\x1d^[!#$%&'*+.^_`|~0-9A-Za-z-]+$*\x05r\x03\x18\x80 R\aheaders\x1a:\n" +
+	"\fHeadersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"o\n" +
 	"\n" +
 	"HookSource\x12B\n" +
 	"\x06inline\x18\x02 \x01(\v2(.ai.stigmer.agentic.plugin.v1.HookConfigH\x00R\x06inlineB\x0f\n" +
@@ -352,32 +453,36 @@ func file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_ai_stigmer_agentic_agent_v1_spec_proto_goTypes = []any{
 	(*AgentSpec)(nil),                        // 0: ai.stigmer.agentic.agent.v1.AgentSpec
-	(*HookSource)(nil),                       // 1: ai.stigmer.agentic.agent.v1.HookSource
-	nil,                                      // 2: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
-	(*apiresource.ApiResourceReference)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*v11.RunConfig)(nil),                    // 4: ai.stigmer.agentic.run.v1.RunConfig
-	(v12.Harness)(0),                         // 5: ai.stigmer.agentic.session.v1.Harness
-	(*v13.HookConfig)(nil),                   // 6: ai.stigmer.agentic.plugin.v1.HookConfig
-	(*v1.EnvVarDeclaration)(nil),             // 7: ai.stigmer.agentic.vault.v1.EnvVarDeclaration
+	(*AgentMcpServer)(nil),                   // 1: ai.stigmer.agentic.agent.v1.AgentMcpServer
+	(*HookSource)(nil),                       // 2: ai.stigmer.agentic.agent.v1.HookSource
+	nil,                                      // 3: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
+	nil,                                      // 4: ai.stigmer.agentic.agent.v1.AgentMcpServer.HeadersEntry
+	(*apiresource.ApiResourceReference)(nil), // 5: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*v11.RunConfig)(nil),                    // 6: ai.stigmer.agentic.run.v1.RunConfig
+	(v12.Harness)(0),                         // 7: ai.stigmer.agentic.session.v1.Harness
+	(*v13.HookConfig)(nil),                   // 8: ai.stigmer.agentic.plugin.v1.HookConfig
+	(*v1.EnvVarDeclaration)(nil),             // 9: ai.stigmer.agentic.vault.v1.EnvVarDeclaration
 }
 var file_ai_stigmer_agentic_agent_v1_spec_proto_depIdxs = []int32{
-	3, // 0: ai.stigmer.agentic.agent.v1.AgentSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2, // 1: ai.stigmer.agentic.agent.v1.AgentSpec.env:type_name -> ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
-	1, // 2: ai.stigmer.agentic.agent.v1.AgentSpec.hooks:type_name -> ai.stigmer.agentic.agent.v1.HookSource
-	4, // 3: ai.stigmer.agentic.agent.v1.AgentSpec.run_config:type_name -> ai.stigmer.agentic.run.v1.RunConfig
-	5, // 4: ai.stigmer.agentic.agent.v1.AgentSpec.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
-	3, // 5: ai.stigmer.agentic.agent.v1.AgentSpec.plugins:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	3, // 6: ai.stigmer.agentic.agent.v1.AgentSpec.subagents:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	6, // 7: ai.stigmer.agentic.agent.v1.HookSource.inline:type_name -> ai.stigmer.agentic.plugin.v1.HookConfig
-	7, // 8: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.vault.v1.EnvVarDeclaration
-	9, // [9:9] is the sub-list for method output_type
-	9, // [9:9] is the sub-list for method input_type
-	9, // [9:9] is the sub-list for extension type_name
-	9, // [9:9] is the sub-list for extension extendee
-	0, // [0:9] is the sub-list for field type_name
+	5,  // 0: ai.stigmer.agentic.agent.v1.AgentSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	3,  // 1: ai.stigmer.agentic.agent.v1.AgentSpec.env:type_name -> ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
+	2,  // 2: ai.stigmer.agentic.agent.v1.AgentSpec.hooks:type_name -> ai.stigmer.agentic.agent.v1.HookSource
+	6,  // 3: ai.stigmer.agentic.agent.v1.AgentSpec.run_config:type_name -> ai.stigmer.agentic.run.v1.RunConfig
+	7,  // 4: ai.stigmer.agentic.agent.v1.AgentSpec.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
+	5,  // 5: ai.stigmer.agentic.agent.v1.AgentSpec.plugins:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	5,  // 6: ai.stigmer.agentic.agent.v1.AgentSpec.subagents:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	1,  // 7: ai.stigmer.agentic.agent.v1.AgentSpec.mcp_servers:type_name -> ai.stigmer.agentic.agent.v1.AgentMcpServer
+	4,  // 8: ai.stigmer.agentic.agent.v1.AgentMcpServer.headers:type_name -> ai.stigmer.agentic.agent.v1.AgentMcpServer.HeadersEntry
+	8,  // 9: ai.stigmer.agentic.agent.v1.HookSource.inline:type_name -> ai.stigmer.agentic.plugin.v1.HookConfig
+	9,  // 10: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.vault.v1.EnvVarDeclaration
+	11, // [11:11] is the sub-list for method output_type
+	11, // [11:11] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agent_v1_spec_proto_init() }
@@ -385,7 +490,7 @@ func file_ai_stigmer_agentic_agent_v1_spec_proto_init() {
 	if File_ai_stigmer_agentic_agent_v1_spec_proto != nil {
 		return
 	}
-	file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[1].OneofWrappers = []any{
+	file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[2].OneofWrappers = []any{
 		(*HookSource_Inline)(nil),
 	}
 	type x struct{}
@@ -394,7 +499,7 @@ func file_ai_stigmer_agentic_agent_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

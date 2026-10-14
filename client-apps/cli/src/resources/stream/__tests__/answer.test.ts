@@ -1,45 +1,53 @@
-// Tests for how an ask is answered: `--approve-default` parses its four
-// words (any case, with the approve-all spellings) and refuses anything
-// else; each choice maps to its answer, skip and an unset flag to a deny
-// carrying the neutral skip reason; each answer has its status word; and an
+// Tests for how an ask is answered: `--approve-default` parses its three
+// words (any case, with the allow-all spellings), refuses a retired word with
+// the word that replaced it, and refuses anything else; each choice maps to
+// its answer, deny and an unset flag to a deny carrying the neutral reason;
+// each answer has its status word; and an
 // answer goes out as confirmToolUse (allow, or deny with its reason) or as
 // grantPermission, naming the session and the tool use.
 
 import type { ConfirmToolUseInput, GrantPermissionInput } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { describe, expect, it } from "vitest";
 import { UsageError } from "../../../errors/index.js";
-import { answerFor, answerWord, parseApproveDefault, SKIP_REASON, submitAnswer } from "../answer.js";
+import { answerFor, answerWord, parseApproveDefault, DENY_REASON, submitAnswer } from "../answer.js";
 
 describe("parseApproveDefault", () => {
   it("parses each choice, case-insensitively, and empty as unset", () => {
     expect(parseApproveDefault("")).toBe("");
     expect(parseApproveDefault("  ")).toBe("");
-    expect(parseApproveDefault("approve")).toBe("approve");
-    expect(parseApproveDefault("SKIP")).toBe("skip");
-    expect(parseApproveDefault("reject")).toBe("reject");
-    expect(parseApproveDefault("approve-all")).toBe("approve-all");
-    expect(parseApproveDefault("approve_all")).toBe("approve-all");
-    expect(parseApproveDefault("ApproveAll")).toBe("approve-all");
+    expect(parseApproveDefault("allow")).toBe("allow");
+    expect(parseApproveDefault("DENY")).toBe("deny");
+    expect(parseApproveDefault("allow-all")).toBe("allow-all");
+    expect(parseApproveDefault("allow_all")).toBe("allow-all");
+    expect(parseApproveDefault("AllowAll")).toBe("allow-all");
+  });
+
+  it("refuses a retired word with the word that replaced it", () => {
+    expect(() => parseApproveDefault("approve")).toThrow(UsageError);
+    expect(() => parseApproveDefault("approve")).toThrow('"approve" is now "allow"');
+    expect(() => parseApproveDefault("Skip")).toThrow('"skip" and "reject" are now "deny"');
+    expect(() => parseApproveDefault("reject")).toThrow('"skip" and "reject" are now "deny"');
+    expect(() => parseApproveDefault("approve-all")).toThrow('"approve-all" is now "allow-all"');
+    expect(() => parseApproveDefault("approve_all")).toThrow('"approve-all" is now "allow-all"');
   });
 
   it("refuses any other word as a usage error", () => {
     expect(() => parseApproveDefault("maybe")).toThrow(UsageError);
-    expect(() => parseApproveDefault("maybe")).toThrow(/must be one of: approve, skip, reject, approve-all/);
+    expect(() => parseApproveDefault("maybe")).toThrow('invalid --approve-default value "maybe": must be one of: allow, deny, allow-all');
   });
 });
 
 describe("answerFor and answerWord", () => {
   it("maps each choice to its answer and names it", () => {
-    expect(answerFor("approve")).toEqual({ kind: "allow" });
-    expect(answerFor("reject")).toEqual({ kind: "deny", reason: "" });
-    expect(answerFor("approve-all")).toEqual({ kind: "grant" });
-    expect(answerFor("skip")).toEqual({ kind: "deny", reason: SKIP_REASON });
-    expect(answerFor("")).toEqual({ kind: "deny", reason: SKIP_REASON });
+    expect(answerFor("allow")).toEqual({ kind: "allow" });
+    expect(answerFor("allow-all")).toEqual({ kind: "grant" });
+    expect(answerFor("deny")).toEqual({ kind: "deny", reason: DENY_REASON });
+    expect(answerFor("")).toEqual({ kind: "deny", reason: DENY_REASON });
 
-    expect(answerWord(answerFor("approve"))).toBe("allowed");
-    expect(answerWord(answerFor("reject"))).toBe("denied");
-    expect(answerWord(answerFor("skip"))).toBe("skipped");
-    expect(answerWord(answerFor("approve-all"))).toBe("allowed for the rest of the turn");
+    expect(answerWord(answerFor("allow"))).toBe("allowed");
+    expect(answerWord(answerFor("deny"))).toBe("denied");
+    expect(answerWord(answerFor(""))).toBe("denied");
+    expect(answerWord(answerFor("allow-all"))).toBe("allowed for the rest of the turn");
   });
 });
 

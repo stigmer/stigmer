@@ -81,7 +81,7 @@ describe("extractIntent", () => {
     ).toBe("List files");
     expect(extractIntent({ name: "execute", mcpServerName: "", input: { command: "ls", [SHELL_INTENT_ARG_FIELD]: "" } })).toBeNull();
     expect(
-      extractIntent({ name: "task", mcpServerName: "", input: { [SHELL_INTENT_ARG_FIELD]: "a sub-agent's subject" } }),
+      extractIntent({ name: "task", mcpServerName: "", input: { [SHELL_INTENT_ARG_FIELD]: "a subagent's subject" } }),
     ).toBeNull();
   });
 });

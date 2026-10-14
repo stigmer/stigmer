@@ -26,9 +26,8 @@ export type PathClassification =
  * Classifies whether a path targets the virtual platform mount
  * (`.stigmer/skills/`, `.stigmer/inputs/`, etc.) or the workspace.
  *
- * Mirrors the Python `classify_platform_path` in
- * `graphton.core.backends.platform_mount` — same semantics, same
- * edge-case handling (leading-slash stripping, bare `.stigmer`).
+ * Leading slashes are stripped first, and a bare `.stigmer` is the
+ * platform mount's root.
  */
 export function classifyPath(path: string): PathClassification {
   const clean = path.replace(/^\/+/, "");

@@ -68,10 +68,9 @@ type SessionSpec struct {
 	SkillRefs []*apiresource.ApiResourceReference `protobuf:"bytes,8,rep,name=skill_refs,json=skillRefs,proto3" json:"skill_refs,omitempty"`
 	// Execution harness for this session.
 	//
-	// Determines which Temporal activity type is dispatched when an
-	// Run is created in this session:
-	// - NATIVE (default): ExecuteDeepAgent activity -> Stigmer unified runner
-	// - CURSOR: ExecuteCursor activity -> TypeScript/Cursor SDK worker
+	// Determines which harness runs every turn in this session:
+	// - NATIVE (default): Stigmer's own runner
+	// - CURSOR: the Cursor SDK
 	//
 	// The harness affects which tools the agent has, how conversation state
 	// is managed, available models, and billing tier. Once set and a run

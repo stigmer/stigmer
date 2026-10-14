@@ -3,7 +3,7 @@
  * memoized row relies on: `toolCallGroupPropsEqual` compares a group's tool
  * uses element by element (the array is rebuilt per build), and the session
  * fold, folded incrementally as a live turn streams, keeps every message,
- * tool use, group member and sub-agent thread no event touched as the same
+ * tool use, group member and subagent thread no event touched as the same
  * object, so buildThreadItems hands the rows the same references and only the
  * changing row re-renders.
  */
@@ -18,7 +18,7 @@ import {
   result,
   said,
   status,
-  subAgent,
+  subagent,
   toolId,
   use,
   user,
@@ -110,14 +110,14 @@ describe("the fold keeps unchanged items as the same objects across builds", () 
     expect(message?.kind === "message" && message.message).toMatchObject({ text: "Hi there", live: false });
   });
 
-  it("keeps a finished sub-agent's thread while the parent turn goes on", () => {
+  it("keeps a finished subagent's thread while the parent turn goes on", () => {
     const threadId = toolId(R, "task1");
     const log = new SessionLog();
     log.apply(samples.sessionEventList([
       user(R, "go"),
       status(R, "running"),
       use(R, "task1", "task"),
-      subAgent(R, "task1", { items: [said(R, 0, "nested", threadId)], finished: "completed", reply: "done" }),
+      subagent(R, "task1", { items: [said(R, 0, "nested", threadId)], finished: "completed", reply: "done" }),
       result(R, "task1", "done"),
     ].flat()).events);
     const before = byKey(itemsOf(log), `sa-${threadId}`);
@@ -125,7 +125,7 @@ describe("the fold keeps unchanged items as the same objects across builds", () 
     log.applyFrame(samples.eventFrame(said(R, 0, "Next step")));
     const after = byKey(itemsOf(log), `sa-${threadId}`);
 
-    expect(before?.kind === "sub-agent" && after?.kind === "sub-agent" && after.thread === before.thread).toBe(true);
-    expect(before?.kind === "sub-agent" && after?.kind === "sub-agent" && after.toolUse === before.toolUse).toBe(true);
+    expect(before?.kind === "subagent" && after?.kind === "subagent" && after.thread === before.thread).toBe(true);
+    expect(before?.kind === "subagent" && after?.kind === "subagent" && after.toolUse === before.toolUse).toBe(true);
   });
 });

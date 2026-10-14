@@ -27,6 +27,7 @@ from ._tokens import MintUserTokenResult, TokenClient
 from ._gen._agent import (
     AgentClient,
     AgentInput,
+    AgentMcpServerInput,
     RunConfigInput,
 )
 from ._gen._apikey import ApiKeyClient, ApiKeyInput
@@ -117,6 +118,7 @@ __all__ = [
     "MAX_INLINE_ARTIFACT_BYTES",
     # Input types
     "AgentInput",
+    "AgentMcpServerInput",
     "ApiKeyInput",
     "ApiResourceRefInput",
     "AttachmentInput",

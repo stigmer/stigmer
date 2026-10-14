@@ -18,9 +18,13 @@ import type { DescMessage } from "@bufbuild/protobuf";
 
 import {
   HOOK_CONDITION_PATTERN,
+  PLACEHOLDER_PATTERN,
   RUN_EVENTS,
+  findPluginRootPlaceholder,
+  isAcceptableServerUrl,
   isValidMatcher,
 } from "@stigmer/plugin-package";
+import { isReservedMcpServerName } from "@stigmer/tool-vocabulary";
 
 import type {
   Agent,
@@ -79,6 +83,65 @@ export function newValidatePluginListStep(
           );
         }
         pluginSlugs.add(slug);
+      }
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// ValidateMcpServers — the agent's own MCP servers, checked where the
+// proto's per-field rules cannot reach: across entries, and against the
+// rules a plugin's HTTP server is held to at install, so a server written
+// in an agent starts in a run exactly when the same server in a plugin
+// would. A name is used once, and never one of the platform's, any name
+// starting "stigmer", or "plugin" (`isReservedMcpServerName`), so
+// `mcp__<name>__<tool>` always names one server, never a plugin's. The
+// address is the plugin reader's (https, or http on a loopback host; no
+// credentials or fragment) and holds no `${...}`: where a run dials is
+// fixed when the agent is saved. A header is named once in any letter case,
+// as HTTP reads it. A header value's `${...}` is a run value only in the
+// runner's own grammar (`${NAME}`); anything else, a plugin's
+// `${user_config.x}`, would reach the server as literal text, so it is
+// refused here instead. A plugin's own directory (`${CLAUDE_PLUGIN_ROOT}`
+// and its spellings) fits the grammar but names nothing an agent has: a
+// header pasted from a plugin's .mcp.json that reads it is refused too.
+//
+// Pipeline position: right after ValidateHooks, before the version hash.
+// ---------------------------------------------------------------------------
+
+export function newValidateMcpServersStep(): PipelineStep<AgentDesc> {
+  return {
+    name: "ValidateMcpServers",
+    execute(ctx: RequestContext<AgentDesc>): void {
+      const names = new Set<string>();
+      for (const server of ctx.newState.spec?.mcpServers ?? []) {
+        const refuse = (why: string): never => {
+          throw invalidArgumentError(`mcp_servers: server '${server.name}' ${why}`);
+        };
+        if (names.has(server.name)) refuse("is listed more than once; give each server its own name");
+        names.add(server.name);
+        if (isReservedMcpServerName(server.name)) {
+          refuse("takes a reserved name: names starting with stigmer are the platform's, and plugin names a plugin's servers");
+        }
+        if (server.url.includes("${")) {
+          refuse("names a variable in its url; the address is fixed when the agent is saved, so write it out");
+        }
+        if (!isAcceptableServerUrl(server.url)) {
+          refuse(`has an address that is not https (or http on this machine), or holds credentials or a fragment: ${server.url}`);
+        }
+        const headers = new Set<string>();
+        for (const [header, value] of Object.entries(server.headers)) {
+          const key = header.toLowerCase();
+          if (headers.has(key)) refuse(`names header '${header}' more than once`);
+          headers.add(key);
+          const root = findPluginRootPlaceholder(value);
+          if (root !== undefined) {
+            refuse(`header '${header}' reads ${root}, a plugin's own directory, which an agent has none of`);
+          }
+          if (value.replace(PLACEHOLDER_PATTERN, "").includes("${")) {
+            refuse(`header '${header}' holds a \${...} that is not a run value; write \${NAME} with letters, digits and _`);
+          }
+        }
       }
     },
   };

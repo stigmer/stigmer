@@ -1,5 +1,5 @@
 // Pins ToolCallItem over the session fold's tool uses: the four disclosure
-// modes (summary, preview, tail, sub-agent), the density tier, the status
+// modes (summary, preview, tail, subagent), the density tier, the status
 // vocabulary read from `ToolUse.state`, duration chips from the use and
 // result times, the inline decision for a waiting call (ApprovalContext), the
 // Approved/Denied answer badge, and the file-review badge a file-edit row
@@ -18,7 +18,7 @@ function answering(onAnswer: ApprovalContextValue["onAnswer"] = () => {}, errors
   return { onAnswer, submittingIds: new Set(), errorsByToolUseId: errors };
 }
 
-// The card-level disclosure (header chevron) lives ONLY on summary / sub-agent
+// The card-level disclosure (header chevron) lives ONLY on summary / subagent
 // rows: a `div[role="button"]` header inside the row. Preview (content-bearing)
 // rows have no such control — their body is always visible — so these helpers
 // target that header specifically rather than "any [aria-expanded]" (a block's
@@ -520,9 +520,9 @@ describe("ToolCallItem disclosure", () => {
     expect(answerBadge(waiting.container)).toBeNull();
   });
 
-  // --- Sub-agent rows --------------------------------------------------------
+  // --- Subagent rows --------------------------------------------------------
 
-  it("titles a task row with what it asked its sub-agent, and nests the thread in its body", () => {
+  it("titles a task row with what it asked its subagent, and nests the thread in its body", () => {
     const tu = toolUse({
       name: "task",
       input: { description: "Survey the docs" },
@@ -535,7 +535,7 @@ describe("ToolCallItem disclosure", () => {
     expect(container.textContent).toContain("Find every page");
   });
 
-  it("falls back to the sub-agent's name when the task call carries no description", () => {
+  it("falls back to the subagent's name when the task call carries no description", () => {
     const tu = toolUse({ name: "task", thread: thread({ agentName: "researcher" }) });
     const { container } = render(<ToolCallItem toolUse={tu} />);
     expect(rowRoot(container).textContent).toContain("researcher");

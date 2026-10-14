@@ -48,11 +48,11 @@ function queryArticle(container: HTMLElement, name: string) {
 }
 
 // ---------------------------------------------------------------------------
-// AI Messages — Streamdown integration
+// Agent messages — Streamdown integration
 // ---------------------------------------------------------------------------
 
-describe("MessageEntry — AI messages (Streamdown)", () => {
-  it("renders AI message content as markdown", () => {
+describe("MessageEntry — agent messages (Streamdown)", () => {
+  it("renders agent message content as markdown", () => {
     const msg = makeMessage("message", "Hello **world**");
     const { container } = render(<MessageEntry message={msg} />);
 

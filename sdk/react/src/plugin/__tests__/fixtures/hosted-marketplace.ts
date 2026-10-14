@@ -2,7 +2,7 @@
  * A marketplace tree as a browser would receive it from a host: a flat
  * file map, and a `fetch` fake that answers the GitHub Trees API, raw
  * content, and jsdelivr's listing and CDN for it. Two plugins offered (one
- * with a skill, a sub-agent, an HTTP server declaring `${API_TOKEN}`, a
+ * with a skill, a subagent, an HTTP server declaring `${API_TOKEN}`, a
  * display name, an author and a logo, so a card has a face to show; one
  * MCP-only under a nested source directory with none of those), one entry
  * whose directory is missing, so a suite sees an offered list and a

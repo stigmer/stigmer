@@ -556,7 +556,7 @@ type LlmCallUsageRecord struct {
 	UsageRecordId string `protobuf:"bytes,1,opt,name=usage_record_id,json=usageRecordId,proto3" json:"usage_record_id,omitempty"`
 	// Run this call belongs to.
 	RunId string `protobuf:"bytes,2,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	// For sub-agent rollups: root run of the tree.
+	// For subagent rollups: root run of the tree.
 	RootRunId string `protobuf:"bytes,3,opt,name=root_run_id,json=rootRunId,proto3" json:"root_run_id,omitempty"`
 	// 1-based call ordering within the run, as the reporting proxy
 	// counted it. An ordering hint, not an identity: a proxy that restarts

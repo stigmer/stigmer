@@ -29,6 +29,7 @@ import { agentVersionBinding } from "../../domain/agent/versions.js";
 import { agentTargetOf } from "../../domain/agent-eval/target.js";
 import type { EvalMatrix } from "../../domain/plugin-eval/matrix.js";
 import { planMatrix } from "../../domain/plugin-eval/matrix.js";
+import { writtenServerNames } from "../../domain/agent-eval/written-servers.js";
 import { pluginVersionedBinding } from "../../domain/plugin-eval/suite.js";
 import { loadVersion } from "../../pipeline/steps/version-history.js";
 import type {
@@ -100,6 +101,7 @@ export async function loadAgentEvalContext(
       versionHash: spec.agentVersion,
     },
     attached: stamped.map((entry, index) => attachedPluginOf(plugins[index]!, entry.pluginDigest)),
+    ownServers: (await writtenServerNames(deps.store, agentSpec, agent.resource.metadata?.org ?? "")).map((name) => ({ slug: name, key: name })),
     sources,
     caseSources,
     matrix,

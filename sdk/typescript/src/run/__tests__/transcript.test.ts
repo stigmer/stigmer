@@ -5,7 +5,7 @@
 // The Markdown format is a pinned contract: transcript.golden.md freezes the
 // exact rendering of a transcript exercising every construct (thinking,
 // the platform's notes, a compaction, tool calls with input and output,
-// asks and their answers, offloaded outputs resolved and noted, sub-agent
+// asks and their answers, offloaded outputs resolved and noted, subagent
 // nesting, a structured output, build-from-plan and in-progress markers).
 // A deliberate format change regenerates the golden with
 //   UPDATE_TRANSCRIPT_GOLDEN=1 npx vitest run src/run/__tests__/transcript.test.ts
@@ -107,7 +107,7 @@ function allRuns(): Run[] {
  *     allowed (2s), a read whose output was offloaded, a screenshot stored as
  *     an image, an MCP call denied with a reason, a note, a compaction.
  *   run_01b: superseded by run_01c.
- *   Turn 2 (run_01c): a sub-agent thread with an offloaded grep output, a
+ *   Turn 2 (run_01c): a subagent thread with an offloaded grep output, a
  *     structured output.
  *   Turn 3 (run_01d): a Build-from-plan turn still running.
  * Plus the session's own status, which belongs to no turn.
@@ -314,7 +314,7 @@ function fakeArtifactClient(contentByKey: ContentByKey) {
 const allTurns = () => foldSession(allEvents()).turns;
 
 describe("resolveOffloadedOutputs", () => {
-  it("resolves the primary thread's and a sub-agent's outputs, each from its tool use's run", async () => {
+  it("resolves the primary thread's and a subagent's outputs, each from its tool use's run", async () => {
     const { client, requests } = fakeArtifactClient({
       "artifacts/run_01a/toolcalls/c2.txt": { content: "full file" },
       "artifacts/run_01c/toolcalls/g1.txt": { content: "3 matches in test/" },
@@ -322,9 +322,9 @@ describe("resolveOffloadedOutputs", () => {
     const resolved = await resolveOffloadedOutputs(client, allTurns());
 
     expect(resolved["artifacts/run_01a/toolcalls/c2.txt"].content).toBe("full file");
-    // The sub-agent's call is its turn's: its output is read from run_01c.
-    const subAgentRequest = requests.find((r) => r.storageKey === "artifacts/run_01c/toolcalls/g1.txt");
-    expect(subAgentRequest?.runId).toBe("run_01c");
+    // The subagent's call is its turn's: its output is read from run_01c.
+    const subagentRequest = requests.find((r) => r.storageKey === "artifacts/run_01c/toolcalls/g1.txt");
+    expect(subagentRequest?.runId).toBe("run_01c");
   });
 
   it("never fetches image outputs, but records them for the serializers", async () => {
@@ -671,7 +671,7 @@ describe("transcriptToMarkdown", () => {
     expect(transcriptToMarkdown(assembleSessionTranscript(session(), events, []))).toContain("**Tool — `shell`** (completed)\n");
   });
 
-  it("shows a sub-agent that failed by its error, and one its turn stopped", () => {
+  it("shows a subagent that failed by its error, and one its turn stopped", () => {
     const thread = "run_x.task1";
     const failed = oneTurn((log) => {
       log.add("run_x", { case: "agentToolUse", value: { id: thread, name: "task" } });
@@ -680,14 +680,14 @@ describe("transcriptToMarkdown", () => {
       log.add("run_x", { case: "sessionThreadStatusIdle", value: { id: `${thread}.idle`, sessionThreadId: thread, stopReason: { type: "retries_exhausted" } } });
     });
     const md = transcriptToMarkdown(assembleSessionTranscript(session(), failed, []));
-    expect(md).toContain("> **Sub-agent — sub-agent**\n>\n> Error:\n>\n> ```\n> ran out of retries\n> ```");
+    expect(md).toContain("> **Subagent — subagent**\n>\n> Error:\n>\n> ```\n> ran out of retries\n> ```");
 
     const stopped = oneTurn((log) => {
       log.add("run_x", { case: "agentToolUse", value: { id: thread, name: "task" } });
       log.add("run_x", { case: "sessionThreadCreated", value: { id: `${thread}.created`, agentName: "explore", sessionThreadId: thread } });
     });
     expect(transcriptToMarkdown(assembleSessionTranscript(session(), stopped, []))).toContain(
-      "> **Sub-agent — explore**\n>\n> _Stopped before it finished._",
+      "> **Subagent — explore**\n>\n> _Stopped before it finished._",
     );
   });
 

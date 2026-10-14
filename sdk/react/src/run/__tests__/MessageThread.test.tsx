@@ -6,7 +6,7 @@
  * or on the bottom backstop card, routed through `onAnswerToolUse` with the
  * tool use's id (allow, deny with a reason), its failure shown in-card, and
  * absent without the handler; the conversation's messages, version and
- * loaded-version markers, to-dos card, sub-agents and compactions; how a
+ * loaded-version markers, to-dos card, subagents and compactions; how a
  * turn ended (badge, reason and Retry, a quiet cancel); the pending bubble
  * and its Retry; editing the live turn's message; the set-up placeholder
  * yielding to the first output; Plan turns (live collapse, the build card,
@@ -41,7 +41,7 @@ import {
   result,
   said,
   status,
-  subAgent,
+  subagent,
   thought,
   toolId,
   use,
@@ -315,7 +315,7 @@ describe("MessageThread", () => {
     expect(region.textContent).toContain("0/2 completed");
   });
 
-  it("renders a sub-agent's card and a context compaction", () => {
+  it("renders a subagent's card and a context compaction", () => {
     const threadId = toolId("s", "task1");
     renderThread(
       conversation({
@@ -323,14 +323,14 @@ describe("MessageThread", () => {
         reply: "Delegating.",
         extra: [
           use("s", "task1", "task", { description: "Research renewables" }),
-          ...subAgent("s", "task1", { agentName: "researcher", items: [said("s", 0, "Looking", threadId)], finished: "completed" }),
+          ...subagent("s", "task1", { agentName: "researcher", items: [said("s", 0, "Looking", threadId)], finished: "completed" }),
           result("s", "task1", "found"),
           compaction("s", "cmp1"),
         ],
       }),
     );
 
-    expect(screen.getByRole("group", { name: /Sub-agent: Research renewables/ })).toBeTruthy();
+    expect(screen.getByRole("group", { name: /Subagent: Research renewables/ })).toBeTruthy();
     expect(screen.getByRole("status", { name: "Context compacted" })).toBeTruthy();
   });
 
@@ -474,12 +474,12 @@ describe("MessageThread liveness status line", () => {
     expect(container.querySelector(LINE)?.querySelector(".stgm-shimmer-label")?.textContent).toBe("Working…");
   });
 
-  it("yields to a running tool call, and to a working sub-agent", () => {
+  it("yields to a running tool call, and to a working subagent", () => {
     const tool = renderThread(conversation({ id: "l", phase: "running", reply: "Running.", extra: [use("l", "c1", "Shell", { command: "sleep 5" })] }));
     expect(tool.container.querySelector(LINE)).toBeNull();
     cleanup();
 
-    const sub = renderThread(conversation({ id: "l", phase: "running", reply: "Delegating.", extra: [use("l", "task1", "task"), ...subAgent("l", "task1")] }));
+    const sub = renderThread(conversation({ id: "l", phase: "running", reply: "Delegating.", extra: [use("l", "task1", "task"), ...subagent("l", "task1")] }));
     expect(sub.container.querySelector(LINE)).toBeNull();
   });
 

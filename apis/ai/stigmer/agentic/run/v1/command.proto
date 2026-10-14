@@ -206,7 +206,8 @@ service RunCommandController {
   // 1. Validates run exists and is in a pausable phase
   // 2. Sends "pause" signal to Temporal workflow
   // 3. Workflow cancels running activity gracefully
-  // 4. Python activity saves LangGraph checkpoint on cancellation
+  // 4. On the native harness, the runner saves the LangGraph checkpoint on
+  //    cancellation
   // 5. Run transitions to RUN_PAUSED phase
   // 6. Workflow waits for resume signal (no resources consumed)
   //
@@ -249,9 +250,8 @@ service RunCommandController {
 
   // Resume a paused run.
   //
-  // Continues the run from the checkpoint where it was paused. The agent
-  // re-invokes with the same thread_id, loading from LangGraph checkpoint
-  // and continuing from where it left off.
+  // Continues the run from where it was paused. How a turn's state is saved
+  // is the harness's ([Harnesses](/docs/concepts/harnesses)).
   //
   // @internal
   //

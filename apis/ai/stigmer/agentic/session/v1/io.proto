@@ -413,7 +413,7 @@ message BindHarnessStateInput {
   // The run whose session the id belongs to.
   string run_id = 1 [(buf.validate.field).required = true];
 
-  // The harness's conversation id (a LangGraph thread id, a Cursor agent id).
+  // The harness's own conversation id.
   string harness_state_id = 2 [(buf.validate.field).required = true];
 }
 

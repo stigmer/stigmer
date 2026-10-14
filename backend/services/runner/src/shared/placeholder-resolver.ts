@@ -7,7 +7,8 @@
  * cryptic auth failures from the remote server.
  */
 
-const PLACEHOLDER_RE = /\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
+/** The `${VAR_NAME}` scanner; the plugin library and the server hold a pinned copy. */
+export const PLACEHOLDER_RE = /\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
 
 export class PlaceholderResolutionError extends Error {
   constructor(

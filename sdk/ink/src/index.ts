@@ -16,7 +16,7 @@ export { MessageEntry, type MessageEntryProps } from "./components/MessageEntry.
 export { MessageThread, type MessageThreadProps } from "./components/MessageThread.js";
 export { ToolCallItem, type ToolCallItemProps } from "./components/ToolCallItem.js";
 export { ToolCallGroup, type ToolCallGroupProps } from "./components/ToolCallGroup.js";
-export { SubAgentBlock, type SubAgentBlockProps } from "./components/SubAgentBlock.js";
+export { SubagentBlock, type SubagentBlockProps } from "./components/SubagentBlock.js";
 export { TodoList, type TodoListProps } from "./components/TodoList.js";
 export { ApprovalPrompt, type ApprovalPromptProps } from "./components/ApprovalPrompt.js";
 export { FileReviewPrompt, type FileReviewPromptProps } from "./components/FileReviewPrompt.js";

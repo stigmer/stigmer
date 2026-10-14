@@ -42,6 +42,8 @@
  * synthesized-attachment.ts). Callers inject AFTER resolve.
  */
 
+import { CONVERSATION_MCP_SERVER } from "@stigmer/tool-vocabulary";
+
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
 import type { SynthesizedAttachmentOptions } from "./synthesized-attachment.js";
 
@@ -52,7 +54,7 @@ import type { SynthesizedAttachmentOptions } from "./synthesized-attachment.js";
  * Runner-internal (the resolved-server name and shadow key — the
  * mcp-server never sees it); pinned by this module's test.
  */
-export const CONVERSATION_ATTACHMENT_SLUG = "stigmer-conversation";
+export const CONVERSATION_ATTACHMENT_SLUG = CONVERSATION_MCP_SERVER;
 
 /**
  * The bridge route serving the conversation-only roster. The cross-repo
@@ -103,7 +105,7 @@ export function synthesizeConversationAttachment(
   // Approval-free by construction: see file header.
   return {
     slug: CONVERSATION_ATTACHMENT_SLUG,
-    pluginOrigin: null,
+    home: { kind: "platform" },
     connectionType: "http",
     url: options.bridgeEndpoint.replace(/\/+$/, "") + CONVERSATION_ROUTE,
     headers: options.credential !== null && options.credential !== ""

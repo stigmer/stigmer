@@ -49,7 +49,7 @@ interface ActionOption {
 }
 
 /**
- * Builds the truthful approve-all option label for a tool use's grant class —
+ * Builds the truthful "Approve all" option label for a tool use's grant class —
  * the terminal mirror of the React card's buildApproveAllLabel.
  *
  * A grant is scoped to ONE class: when a hook asked, that hook's asks on that

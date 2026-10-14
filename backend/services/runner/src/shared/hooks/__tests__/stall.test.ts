@@ -33,7 +33,7 @@ function slowHooks(onActivity: ((detail: string) => void) | undefined): HookEval
       workspaceRoot: process.cwd(),
       toVirtualPath: () => undefined,
       toolServerMap: new Map(),
-      pluginServers: new Map(),
+      serverNames: new Map(),
       platformServerSlugs: new Set(),
     }),
     sessionId: "ses",

@@ -32,7 +32,7 @@ import { RunScores } from "../score/RunScores.js";
 import { RunScoresProvider, useRunScoresEnabled } from "../score/RunScoresContext.js";
 import type { MessageAttachmentView } from "./MessageAttachments.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
-import { SubAgentSection, subAgentSubjectOf } from "./SubAgentSection.js";
+import { SubagentSection, subagentSubjectOf } from "./SubagentSection.js";
 import { RunPhaseBadge } from "./RunPhaseBadge.js";
 import { SetupProgress, type SetupProgressProps } from "./SetupProgress.js";
 import { RecalledMemoriesCard, type RecalledMemoriesCardProps } from "./RecalledMemoriesCard.js";
@@ -411,7 +411,7 @@ export function threadContentColumnClass(
 export type ThreadItem =
   | { readonly kind: "message"; readonly message: ThreadMessage; readonly key: string; readonly isPending?: boolean; readonly isFailed?: boolean; readonly isEditable?: boolean; readonly isPlanDocument?: boolean; readonly interactionMode?: InteractionMode; readonly attachments?: readonly MessageAttachmentView[]; readonly executionId?: string; readonly scoresRunId?: string }
   | { readonly kind: "tool-group"; readonly toolUses: readonly ToolUse[]; readonly key: string }
-  | { readonly kind: "sub-agent"; readonly toolUse: ToolUse; readonly thread: Thread; readonly key: string }
+  | { readonly kind: "subagent"; readonly toolUse: ToolUse; readonly thread: Thread; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: RunPhase; readonly key: string }
   | { readonly kind: "execution-error"; readonly error: string; readonly retryMessage?: string; readonly key: string }
   | { readonly kind: "approval-request"; readonly toolUse: ToolUse; readonly key: string }
@@ -467,7 +467,7 @@ export type ThreadItem =
       /**
        * The ambient-liveness status line at the thread's tail (stigmer#277):
        * emitted while the live turn is running with no running tool call,
-       * no live sub-agent, and no call waiting for a person — the quiet
+       * no live subagent, and no call waiting for a person — the quiet
        * stretches where the screen would otherwise be completely still.
        */
       readonly kind: "liveness";
@@ -521,7 +521,7 @@ function hasStartedResponding(turn: Turn): boolean {
 /**
  * True while the live turn already shows a live signal of its own somewhere
  * in the thread — a running tool call (its row's label carries the shimmer)
- * or a working sub-agent (its section carries a live indicator), at any
+ * or a working subagent (its section carries a live indicator), at any
  * depth. Suppresses the bottom liveness line: one ambient signal at a time.
  */
 function hasVisiblyRunningActivity(items: ReadonlyArray<TurnItem>): boolean {
@@ -572,7 +572,7 @@ function extractPlanTitle(content: string): string | undefined {
 }
 
 /**
- * Adds the ids of the tool uses a sub-agent renders as nested rows (its
+ * Adds the ids of the tool uses a subagent renders as nested rows (its
  * non-internal calls, at any depth) to `target`, so their asks are treated
  * as inline and skip the bottom backstop.
  */
@@ -692,7 +692,7 @@ export function buildThreadItems(
   // where a skill or plugin it loaded moved to another version.
   let lastLoaded: ReadonlyMap<string, LoadedVersionChange> | undefined;
   // Tool-use ids that render as an inline-decision-capable ToolCallItem (a
-  // row of the turn, or a sub-agent's nested row). Their asks show inline on
+  // row of the turn, or a subagent's nested row). Their asks show inline on
   // the row, so they are excluded from the bottom backstop below.
   const inlineToolUseIds = new Set<string>();
 
@@ -840,7 +840,7 @@ export function buildThreadItems(
     }
 
     // The turn's consecutive tool uses, waiting to be flushed as rows: one
-    // group per run of calls between messages, a sub-agent in its own card.
+    // group per run of calls between messages, a subagent in its own card.
     let group: ToolUse[] = [];
     const flushGroup = (): void => {
       if (group.length === 0) return;
@@ -861,7 +861,7 @@ export function buildThreadItems(
           if (item.thread !== undefined) {
             flushGroup();
             emitTodos();
-            items.push({ kind: "sub-agent", toolUse: item, thread: item.thread, key: `sa-${item.id}` });
+            items.push({ kind: "subagent", toolUse: item, thread: item.thread, key: `sa-${item.id}` });
             collectThreadToolUseIds(item.thread, inlineToolUseIds);
           } else {
             group.push(item);
@@ -1076,7 +1076,7 @@ function fileReviewContextOf(turns: readonly Turn[], runs: readonly Run[]): File
 /**
  * Renders a conversation from its session's folded turns: each turn's
  * person's message, the agent's messages, thinking and tool calls in the
- * order it produced them, its sub-agents, to-dos, plan, file reviews and
+ * order it produced them, its subagents, to-dos, plan, file reviews and
  * how it ended.
  *
  * Composes {@link MessageEntry}, {@link ToolCallGroup}, and
@@ -1502,11 +1502,11 @@ export function ThreadItemRenderer({
           className="stg:mx-4"
         />
       );
-    case "sub-agent":
+    case "subagent":
       return (
-        <SubAgentSection
+        <SubagentSection
           thread={item.thread}
-          subject={subAgentSubjectOf(item.toolUse)}
+          subject={subagentSubjectOf(item.toolUse)}
           startedAt={item.toolUse.processedAt}
           completedAt={item.toolUse.result?.processedAt}
           className="stg:mx-4"

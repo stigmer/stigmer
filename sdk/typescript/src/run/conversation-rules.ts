@@ -109,7 +109,7 @@ export function syntheticUserPrompt(exec: Run): string | null {
  * reject.
  *
  * The fetch id must always derive from the key, never from render or export
- * context: offloaded outputs inside a sub-agent's transcript are stored under
+ * context: offloaded outputs inside a subagent's transcript are stored under
  * the PARENT run's id (the run whose status was persisted), and
  * the key is the record of that.
  */

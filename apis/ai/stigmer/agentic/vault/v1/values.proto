@@ -74,18 +74,21 @@ message ExecutionValues {
   repeated SubagentValues subagents = 5;
 }
 
-// ToolValues are the values of one tool (an MCP server in a plugin) of the
-// execution.
+// ToolValues are the values of one tool (an MCP server in a plugin or in an
+// agent) of the execution.
 message ToolValues {
-  // Field 1 held the tool's MCP server id until an MCP server became an
-  // entry inside a plugin; a tool is named by plugin_id and server.
+  // Field 1 held the tool's MCP server id, from a kind that no longer
+  // exists; a tool is named by server and by plugin_id or agent_id.
   reserved 1;
   reserved "mcp_server_id";
 
-  // The tool's plugin.
+  // The tool's plugin; empty for a server written in an agent.
   string plugin_id = 4;
 
-  // The tool's server name in its plugin.
+  // The agent whose own server the tool is; empty for a plugin's server.
+  string agent_id = 6;
+
+  // The tool's server name in its plugin or its agent.
   string server = 5;
 
   // The tool's URL as the fetch read it, whose address was checked against

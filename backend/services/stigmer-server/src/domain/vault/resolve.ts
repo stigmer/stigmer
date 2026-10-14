@@ -12,9 +12,13 @@
  *   - every key each subagent declares, by the same rule, for that
  *     subagent's shell and hooks only (its own declarer, matched on its
  *     own);
- *   - every key each tool it uses reads (each MCP server of each plugin the
- *     agent and the conversation list), and each tool's login key: the
- *     variable its `Authorization: Bearer ${VAR}` header names;
+ *   - every key each tool it uses reads (each MCP server the agent and its
+ *     subagents write themselves, and each MCP server of each plugin the
+ *     agent, its subagents and the conversation list; domain/run/
+ *     run-servers.ts), and each tool's login key: the variable its
+ *     `Authorization: Bearer ${VAR}` header names, or, for a server written
+ *     in an agent that sends no Authorization header of its own, the
+ *     optional `<SERVER>_ACCESS_TOKEN`, found by the server's address;
  *   - every key each listed plugin's hooks read, for those hooks only;
  *   - GITHUB_TOKEN for each github.com repository the session clones
  *     (optional: a public repository needs none). The runner sends that
@@ -114,7 +118,9 @@
  * naming the key, its declarer and the vault, and saying to fix it and
  * recover; any other fault during renewal is INTERNAL. The values are
  * answered grouped by declarer: the agent's, each subagent's by its name,
- * each tool's with the URL the fetch read, each plugin's for its hooks,
+ * each tool's with the URL the fetch read (a plugin's tool read at the
+ * archive the run planned, an agent's at the agent version the run
+ * planned), each plugin's for its hooks,
  * each repository's token.
  *
  * A manifest names where a value lives and carries no value, except a
@@ -132,6 +138,7 @@ import { create } from "@bufbuild/protobuf";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 
+import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
@@ -140,7 +147,7 @@ import type { McpServerEntry, PluginStatus } from "@stigmer/protos/ai/stigmer/ag
 import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { AgentEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
 import { RunValueSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { Run, RunValueSource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run, RunValueDeclarer, RunValueSource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunValueDeclarerKind,
   RunValueOrigin,
@@ -166,6 +173,7 @@ import type {
   ToolValues,
 } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
 import { hookVariableReferences, PLATFORM_VARIABLES } from "@stigmer/plugin-package";
+import { accessTokenVariable } from "@stigmer/tool-vocabulary";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -178,11 +186,14 @@ import type { CallerIdentity } from "../../extensions/identity.js";
 import { isFirstPartyHumanOperator } from "../../extensions/identity.js";
 import { serverActingFor } from "../../pipeline/interceptors/auth.js";
 import { loadVersion } from "../../pipeline/steps/version-history.js";
+import { agentVersionBinding } from "../agent/versions.js";
 import { pluginVersionBinding } from "../plugin/versions.js";
 import { failedPreconditionError, internalError } from "../../pipeline/errors.js";
 import { evaluateAuthorizer } from "../../pipeline/steps/authorize.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
+import { runServers } from "../run/run-servers.js";
+import type { RunServer } from "../run/run-servers.js";
 import type { RunSubagent } from "../run/run-subagents.js";
 import { evalOfRun } from "../plugin-eval/plugin-eval-run.js";
 import { SCHEDULE_ID_LABEL_KEY } from "../schedule/labels.js";
@@ -190,6 +201,7 @@ import type { IdentityAccountStore } from "../identityaccount/store.js";
 import { sessionIdOf } from "../run/target.js";
 
 import { gitHostOf, toolAddressOf } from "./address.js";
+import { agentServerEntry } from "./agent-servers.js";
 import { GITHUB_HOST } from "./constants.js";
 import type {
   OpenedConnection,
@@ -253,17 +265,28 @@ export interface SignInFreshener {
   ): Promise<string>;
 }
 
+/**
+ * The saved resource a tool is part of, at the version the run planned,
+ * which the fetch reads the server at: a plugin's archive (its digest), or
+ * an agent's version (its hash). Empty reads it as it is now.
+ */
+export type ToolHome =
+  | { readonly kind: "plugin"; readonly pluginId: string; readonly pluginDigest: string }
+  | { readonly kind: "agent"; readonly agentId: string; readonly agentVersion: string };
+
 /** Who declares a requirement. */
 export type Declarer =
   | { readonly kind: "agent"; readonly name: string }
   | {
       readonly kind: "tool";
-      /** `plugin:<plugin>:<server>`, as Claude Code names a plugin's server. */
+      /**
+       * `plugin:<plugin>:<server>`, as Claude Code names a plugin's server;
+       * a server written in an agent by its own name, as Claude Code names
+       * a server added directly.
+       */
       readonly name: string;
-      readonly pluginId: string;
       readonly server: string;
-      /** The plugin's archive this run planned, which the fetch reads the server at. */
-      readonly pluginDigest: string;
+      readonly home: ToolHome;
     }
   | { readonly kind: "plugin"; readonly name: string; readonly pluginId: string }
   | { readonly kind: "repository"; readonly name: string; readonly url: string }
@@ -275,27 +298,6 @@ export interface RunPlugin {
   readonly id: string;
   readonly name: string;
   readonly status: PluginStatus;
-}
-
-/** One MCP server of a plugin, with the plugin's declarations of the keys it reads. */
-export interface PluginServer {
-  readonly pluginId: string;
-  readonly pluginName: string;
-  /** The plugin's archive, at the version the run resolved. */
-  readonly pluginDigest: string;
-  readonly entry: McpServerEntry;
-  readonly env: { readonly [key: string]: EnvVarDeclaration };
-}
-
-/** Each MCP server of a plugin. */
-export function serversOf(plugin: RunPlugin): PluginServer[] {
-  return plugin.status.mcpServers.map((entry) => ({
-    pluginId: plugin.id,
-    pluginName: plugin.name,
-    pluginDigest: plugin.status.digest,
-    entry,
-    env: plugin.status.env,
-  }));
 }
 
 /** One value a run needs. */
@@ -369,6 +371,9 @@ export interface RunCredentialInput {
   readonly session: Session;
   readonly agentSpec: AgentSpec | undefined;
   readonly agentName: string;
+  /** The agent's id, and the version the run planned (its stamped hash); empty for a run with no agent. */
+  readonly agentId: string;
+  readonly agentVersion: string;
   /**
    * The organization the agent belongs to, or undefined when its row
    * cannot be read. A run of another organization's agent (or an
@@ -386,7 +391,7 @@ export interface ConnectPlanInput {
   readonly orgId: string;
   /** The listing person; undefined for a caller who is no first-party person (reads no vault). */
   readonly person: string | undefined;
-  readonly server: PluginServer;
+  readonly server: RunServer;
 }
 
 export interface VaultResolver {
@@ -499,7 +504,7 @@ const RUNNER_FILLED_VARIABLES: ReadonlySet<string> = new Set(
  * declare is a required secret, and a key the runner always fills
  * (`RUNNER_FILLED_VARIABLES`) is none.
  */
-function declarationsOf(server: PluginServer): Record<string, EnvVarDeclaration> {
+function declarationsOf(server: RunServer): Record<string, EnvVarDeclaration> {
   const declarations: Record<string, EnvVarDeclaration> = {};
   for (const name of server.entry.env) {
     if (RUNNER_FILLED_VARIABLES.has(name)) {
@@ -511,15 +516,50 @@ function declarationsOf(server: PluginServer): Record<string, EnvVarDeclaration>
   return declarations;
 }
 
-/** Every requirement of a tool: its declarations, with its login key marked. */
-export function toolRequirements(server: PluginServer): Requirement[] {
-  const declarer: Declarer = {
-    kind: "tool",
-    name: toolNameOf(server.pluginName, server.entry.name),
-    pluginId: server.pluginId,
-    server: server.entry.name,
-    pluginDigest: server.pluginDigest,
-  };
+/** A server's declarer: its name in the messages and the home the fetch reads it from. */
+function toolDeclarerOf(server: RunServer): Declarer {
+  const home = server.home;
+  switch (home.kind) {
+    case "plugin":
+      return {
+        kind: "tool",
+        name: toolNameOf(home.pluginName, server.entry.name),
+        server: server.entry.name,
+        home: { kind: "plugin", pluginId: home.pluginId, pluginDigest: home.pluginDigest },
+      };
+    case "agent":
+      return {
+        kind: "tool",
+        name: server.entry.name,
+        server: server.entry.name,
+        home: { kind: "agent", agentId: home.agentId, agentVersion: home.agentVersion },
+      };
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
+    default: {
+      const unreachable: never = home;
+      return unreachable;
+    }
+  }
+}
+
+/** Whether an HTTP server sends an Authorization header of its own. */
+function sendsAuthorization(entry: McpServerEntry): boolean {
+  return (
+    entry.transport.case === "http" &&
+    Object.keys(entry.transport.value.headers).some((header) => header.toLowerCase() === "authorization")
+  );
+}
+
+/**
+ * Every requirement of a tool: its declarations, with its login key
+ * marked. A server written in an agent that sends no Authorization header
+ * of its own also takes an optional login, `<SERVER>_ACCESS_TOKEN`: a
+ * connection at its address, else a secret of that name, else none, and
+ * the server is called with no login (the runner adds the header only when
+ * a value arrived).
+ */
+export function toolRequirements(server: RunServer): Requirement[] {
+  const declarer = toolDeclarerOf(server);
   const loginKey = loginKeyOf(server.entry);
   const address = toolAddressOf(server.entry);
   const signIn = server.entry.signIn !== undefined;
@@ -550,6 +590,15 @@ export function toolRequirements(server: PluginServer): Requirement[] {
       signIn,
       ...(address === undefined ? {} : { loginAddress: address, tool }),
     });
+  }
+  const optionalLogin = accessTokenVariable(server.entry.name);
+  if (
+    server.home.kind === "agent" &&
+    address !== undefined &&
+    !sendsAuthorization(server.entry) &&
+    !requirements.some((requirement) => requirement.key === optionalLogin)
+  ) {
+    requirements.push({ key: optionalLogin, declarer, optional: true, loginAddress: address, tool, signIn: false });
   }
   return requirements;
 }
@@ -584,7 +633,15 @@ export function pluginHookRequirements(plugin: RunPlugin): Requirement[] {
  * that key is theirs, and the agent's shell never holds it.
  */
 export function runRequirements(input: RunCredentialInput): Requirement[] {
-  const tools = input.plugins.flatMap((plugin) => serversOf(plugin).flatMap(toolRequirements));
+  const servers = runServers({
+    agent:
+      input.agentSpec === undefined
+        ? undefined
+        : { id: input.agentId, name: input.agentName, version: input.agentVersion, spec: input.agentSpec },
+    subagents: input.subagents,
+    plugins: input.plugins,
+  });
+  const tools = servers.flatMap(toolRequirements);
   const hooks = input.plugins.flatMap(pluginHookRequirements);
   const pluginKeys = new Set([...tools, ...hooks].map((requirement) => requirement.key));
   const requirements: Requirement[] = [];
@@ -710,9 +767,16 @@ function sourceEntry(requirement: Requirement, location: Location): RunValueSour
     declarer: {
       kind: DECLARER_KINDS[declarer.kind],
       name: declarer.name,
-      pluginId: declarer.kind === "tool" || declarer.kind === "plugin" ? declarer.pluginId : "",
+      pluginId:
+        declarer.kind === "plugin"
+          ? declarer.pluginId
+          : declarer.kind === "tool" && declarer.home.kind === "plugin"
+            ? declarer.home.pluginId
+            : "",
       server: declarer.kind === "tool" ? declarer.server : "",
-      pluginDigest: declarer.kind === "tool" ? declarer.pluginDigest : "",
+      pluginDigest: declarer.kind === "tool" && declarer.home.kind === "plugin" ? declarer.home.pluginDigest : "",
+      agentId: declarer.kind === "tool" && declarer.home.kind === "agent" ? declarer.home.agentId : "",
+      agentVersion: declarer.kind === "tool" && declarer.home.kind === "agent" ? declarer.home.agentVersion : "",
       repositoryUrl: declarer.kind === "repository" ? declarer.url : "",
     },
   });
@@ -829,13 +893,7 @@ function declarerOfEntry(entry: RunValueSource): Declarer {
   const declarer = entry.declarer;
   switch (declarer?.kind) {
     case RunValueDeclarerKind.TOOL:
-      return {
-        kind: "tool",
-        name: declarer.name,
-        pluginId: declarer.pluginId,
-        server: declarer.server,
-        pluginDigest: declarer.pluginDigest,
-      };
+      return { kind: "tool", name: declarer.name, server: declarer.server, home: toolHomeOf(declarer) };
     case RunValueDeclarerKind.PLUGIN:
       return { kind: "plugin", name: declarer.name, pluginId: declarer.pluginId };
     case RunValueDeclarerKind.REPOSITORY:
@@ -845,6 +903,20 @@ function declarerOfEntry(entry: RunValueSource): Declarer {
     default:
       return { kind: "agent", name: declarer?.name ?? "" };
   }
+}
+
+/** One tool's values group: its home's kind and id, and its server. */
+function toolGroupKey(home: ToolHome, server: string): string {
+  return home.kind === "plugin"
+    ? `plugin\u0000${home.pluginId}\u0000${server}`
+    : `agent\u0000${home.agentId}\u0000${server}`;
+}
+
+/** A manifest's tool declarer's home: an agent's when it names one, else its plugin's. */
+function toolHomeOf(declarer: RunValueDeclarer): ToolHome {
+  return declarer.agentId !== ""
+    ? { kind: "agent", agentId: declarer.agentId, agentVersion: declarer.agentVersion }
+    : { kind: "plugin", pluginId: declarer.pluginId, pluginDigest: declarer.pluginDigest };
 }
 
 /** A refusal at the fetch: the key, its declarer, what went wrong, and the way out. */
@@ -1328,22 +1400,36 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
   }
 
   /**
-   * Loads the server a manifest names, from its plugin as installed now, or
-   * undefined when the plugin or the server is gone.
+   * A tool's server at the version the run planned: its plugin's archive
+   * (the digest), or its agent's version (the hash), so a run on a pinned
+   * version is checked against what it dials, not against a later push or
+   * edit; the head when no version was recorded. Undefined when the home
+   * or that version is gone, or holds no server of that name.
    */
-  /**
-   * A tool's server at the plugin's archive the run planned (`digest`), so
-   * a run on a pinned version is checked against what it dials, not against
-   * a later push; the installed head when no digest was recorded. Undefined
-   * when the plugin or that version is gone.
-   */
-  async function loadTool(pluginId: string, server: string, digest: string): Promise<McpServerEntry | undefined> {
+  async function loadTool(home: ToolHome, server: string): Promise<McpServerEntry | undefined> {
     try {
-      const plugin =
-        digest === ""
-          ? await deps.store.getResource(ApiResourceKind.plugin, pluginId, PluginSchema)
-          : (await loadVersion(deps.store, pluginVersionBinding, pluginId, digest)).resource;
-      return plugin.status?.mcpServers.find((entry) => entry.name === server);
+      switch (home.kind) {
+        case "plugin": {
+          const plugin =
+            home.pluginDigest === ""
+              ? await deps.store.getResource(ApiResourceKind.plugin, home.pluginId, PluginSchema)
+              : (await loadVersion(deps.store, pluginVersionBinding, home.pluginId, home.pluginDigest)).resource;
+          return plugin.status?.mcpServers.find((entry) => entry.name === server);
+        }
+        case "agent": {
+          const agent =
+            home.agentVersion === ""
+              ? await deps.store.getResource(ApiResourceKind.agent, home.agentId, AgentSchema)
+              : (await loadVersion(deps.store, agentVersionBinding, home.agentId, home.agentVersion)).resource;
+          const written = agent.spec?.mcpServers.find((entry) => entry.name === server);
+          return written === undefined ? undefined : agentServerEntry(written);
+        }
+        /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
+        default: {
+          const unreachable: never = home;
+          return unreachable;
+        }
+      }
     } catch (error) {
       if (error instanceof ResourceNotFoundError) {
         return undefined;
@@ -1376,11 +1462,11 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     const plugins = new Map<string, PluginValues>();
     const subagents = new Map<string, SubagentValues>();
     const loadedTools = new Map<string, Promise<McpServerEntry | undefined>>();
-    const toolOf = (pluginId: string, server: string, digest: string): Promise<McpServerEntry | undefined> => {
-      const key = `${pluginId}\u0000${server}\u0000${digest}`;
+    const toolOf = (home: ToolHome, server: string): Promise<McpServerEntry | undefined> => {
+      const key = `${toolGroupKey(home, server)}\u0000${home.kind === "plugin" ? home.pluginDigest : home.agentVersion}`;
       let loaded = loadedTools.get(key);
       if (loaded === undefined) {
-        loaded = loadTool(pluginId, server, digest);
+        loaded = loadTool(home, server);
         loadedTools.set(key, loaded);
       }
       return loaded;
@@ -1422,7 +1508,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
               throw unopenable(entry, `${vault.label} no longer holds a login for ${entry.entry}`, scope.retry);
             }
             if (declarer?.kind === RunValueDeclarerKind.TOOL) {
-              const tool = await toolOf(declarer.pluginId, declarer.server, declarer.pluginDigest);
+              const tool = await toolOf(toolHomeOf(declarer), declarer.server);
               if (tool === undefined || !loginStillFor(tool, entry.entry)) {
                 throw unopenable(
                   entry,
@@ -1456,12 +1542,14 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
 
       switch (declarer?.kind) {
         case RunValueDeclarerKind.TOOL: {
-          const key = `${declarer.pluginId}\u0000${declarer.server}`;
+          const home = toolHomeOf(declarer);
+          const key = toolGroupKey(home, declarer.server);
           let group = tools.get(key);
           if (group === undefined) {
-            const transport = (await toolOf(declarer.pluginId, declarer.server, declarer.pluginDigest))?.transport;
+            const transport = (await toolOf(home, declarer.server))?.transport;
             group = create(ToolValuesSchema, {
-              pluginId: declarer.pluginId,
+              pluginId: home.kind === "plugin" ? home.pluginId : "",
+              agentId: home.kind === "agent" ? home.agentId : "",
               server: declarer.server,
               url: transport?.case === "http" ? transport.value.url : "",
             });

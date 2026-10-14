@@ -168,7 +168,7 @@
           "kind": "string"
         }
       },
-      "description": "Tools every try may use beyond each case's own list, in Claude Code's\n names, as Claude Code's --allow-tools.\n\n A try runs the agent with only the tools its case and this list grant,\n within the agent's own tool lists: name the agent's working tools here\n (Skill for its skills, Agent for its hand-offs to subagents). A\n specifier in parentheses, as in Bash(npm test *), grants the whole\n tool. A plugin's MCP tools are named either way: Claude Code's\n mcp__plugin_\u003cplugin\u003e_\u003cserver\u003e__\u003ctool\u003e or Stigmer's\n mcp__\u003cserver\u003e__\u003ctool\u003e.",
+      "description": "Tools every try may use beyond each case's own list, in Claude Code's\n names, as Claude Code's --allow-tools.\n\n A try runs the agent with only the tools its case and this list grant,\n within the agent's own tool lists: name the agent's working tools here\n (Skill for its skills, Agent for its hand-offs to subagents). A\n specifier in parentheses, as in Bash(npm test *), grants the whole\n tool. A plugin's MCP tools are named as Claude Code names them,\n mcp__plugin_\u003cplugin\u003e_\u003cserver\u003e__\u003ctool\u003e; the tools of a server written in\n the agent itself are mcp__\u003cserver\u003e__\u003ctool\u003e.",
       "required": false,
       "validation": {
         "maxItems": 64
@@ -181,7 +181,7 @@
       "type": {
         "kind": "bool"
       },
-      "description": "Runs the plugins' MCP servers for real, with the organization's\n connections. Off by default: a try cannot call the plugins' MCP tools,\n as in Claude Code's evals without mocks.",
+      "description": "Runs the agent's and its plugins' MCP servers for real, with the\n organization's connections. Off by default: a try cannot call their MCP\n tools, as in Claude Code's evals without mocks.",
       "required": false
     },
     {
@@ -219,7 +219,7 @@
       "type": {
         "kind": "bool"
       },
-      "description": "Starts the plugins' real MCP servers for the servers no mock answers,\n as Claude Code's --allow-real-servers; mocked tools still answer from\n their files. Their tools still need allow_tools.",
+      "description": "Starts the real MCP servers no mock answers, the agent's own and its\n plugins', as Claude Code's --allow-real-servers; mocked tools still\n answer from their files. Their tools still need allow_tools.",
       "required": false
     }
   ]

@@ -4,7 +4,7 @@
  * What a plugin would install, in the CLI's words, before the act.
  *
  * `stigmer validate -f` prints the plugin's name, version and format; what
- * it installs (skills, MCP servers, sub-agents, its hooks, the variables
+ * it installs (skills, MCP servers, subagents, its hooks, the variables
  * its tools and hooks will ask for); the reader's warnings; what is not
  * installed. Every
  * console path that ends in a push shows the same facts through this one

@@ -172,7 +172,7 @@ describe("synthesizeMemoryAttachment", () => {
     // tool only creates a proposal, so gating it would stack a second
     // consent gate in front of the real one.
     const attachment = synthesizeMemoryAttachment(enabled, context, cloudOptions)!;
-    expect(attachment.pluginOrigin, "the platform's own server, no plugin's").toBeNull();
+    expect(attachment.home, "the platform's own server, no plugin's").toEqual({ kind: "platform" });
     const listing = await listTurnTools([attachment], () => Promise.reject(new Error("a platform server is never listed")));
     expect(listing).toEqual({ listed: [], destructive: [], unlisted: [] });
     const mcpDefault = buildMcpApprovalDefault(listing, noLeases);

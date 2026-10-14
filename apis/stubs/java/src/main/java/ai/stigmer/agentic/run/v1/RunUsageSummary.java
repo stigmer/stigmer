@@ -294,7 +294,7 @@ private static final long serialVersionUID = 0L;
   private int subAgentCount_ = 0;
   /**
    * <pre>
-   * Number of sub-agent invocations in this run.
+   * Number of subagent invocations in this run.
    * </pre>
    *
    * <code>int32 sub_agent_count = 9 [json_name = "subAgentCount"];</code>
@@ -1443,7 +1443,7 @@ private static final long serialVersionUID = 0L;
     private int subAgentCount_ ;
     /**
      * <pre>
-     * Number of sub-agent invocations in this run.
+     * Number of subagent invocations in this run.
      * </pre>
      *
      * <code>int32 sub_agent_count = 9 [json_name = "subAgentCount"];</code>
@@ -1455,7 +1455,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Number of sub-agent invocations in this run.
+     * Number of subagent invocations in this run.
      * </pre>
      *
      * <code>int32 sub_agent_count = 9 [json_name = "subAgentCount"];</code>
@@ -1471,7 +1471,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Number of sub-agent invocations in this run.
+     * Number of subagent invocations in this run.
      * </pre>
      *
      * <code>int32 sub_agent_count = 9 [json_name = "subAgentCount"];</code>

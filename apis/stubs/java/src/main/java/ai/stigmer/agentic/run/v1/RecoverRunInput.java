@@ -11,20 +11,12 @@ package ai.stigmer.agentic.run.v1;
  *
  * Recovery retries the failed run while preserving all completed work. The
  * agent continues from where it failed without re-executing successful steps.
- *
- * ## Behavior
- *
- * - Terminates the previous Temporal workflow and starts a fresh one
- * - The LangGraph checkpoint is loaded using the preserved thread_id, so
- * completed work carries over from the session's harness state
- * - Completed tool calls are NOT re-executed
- * - Run transitions from FAILED back to IN_PROGRESS phase
- * - Agent retries from where it failed
+ * The run moves from RUN_FAILED back to RUN_IN_PROGRESS.
  *
  * ## Preconditions
  *
  * - Run must be in RUN_FAILED phase
- * - TERMINATED runs cannot be recovered (incomplete checkpoint)
+ * - TERMINATED runs cannot be recovered (their saved state may be incomplete)
  * - CANCELLED runs cannot be recovered (intentional user action)
  * - User must have can_edit permission on the run
  *
@@ -315,20 +307,12 @@ private static final long serialVersionUID = 0L;
    *
    * Recovery retries the failed run while preserving all completed work. The
    * agent continues from where it failed without re-executing successful steps.
-   *
-   * ## Behavior
-   *
-   * - Terminates the previous Temporal workflow and starts a fresh one
-   * - The LangGraph checkpoint is loaded using the preserved thread_id, so
-   * completed work carries over from the session's harness state
-   * - Completed tool calls are NOT re-executed
-   * - Run transitions from FAILED back to IN_PROGRESS phase
-   * - Agent retries from where it failed
+   * The run moves from RUN_FAILED back to RUN_IN_PROGRESS.
    *
    * ## Preconditions
    *
    * - Run must be in RUN_FAILED phase
-   * - TERMINATED runs cannot be recovered (incomplete checkpoint)
+   * - TERMINATED runs cannot be recovered (their saved state may be incomplete)
    * - CANCELLED runs cannot be recovered (intentional user action)
    * - User must have can_edit permission on the run
    *
