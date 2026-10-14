@@ -4,7 +4,9 @@
  * (page size, organization), loadMore appending the next page from the
  * tail's token, a short page that still carries a token being followed, a
  * refetch after a new session walking the loaded depth again without a gap,
- * and an answer that lands after the list's identity changed being dropped.
+ * an answer that lands after the list's identity changed being dropped, and
+ * the label filter: sent on the request, read again when its pairs change,
+ * and not when a render passes an equal filter as a new object.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
@@ -48,7 +50,12 @@ function idsOf(sessions: readonly { metadata?: { id?: string } }[]) {
 }
 
 function requestOf(list: ReturnType<typeof vi.fn>, call: number) {
-  return list.mock.calls[call]![0] as { pageSize: number; pageToken: string; org: string };
+  return list.mock.calls[call]![0] as {
+    pageSize: number;
+    pageToken: string;
+    org: string;
+    labels: Record<string, string>;
+  };
 }
 
 describe("useSessionList", () => {
@@ -171,6 +178,26 @@ describe("useSessionList", () => {
 
     expect(idsOf(result.current.sessions)).toEqual(["beta-1"]);
     expect(result.current.isLoadingMore).toBe(false);
+  });
+
+  it("sends the label filter, and reads again only when its pairs change", async () => {
+    const list = vi.fn().mockResolvedValue(page(["ses-1"]));
+    const client = createMockStigmer({ list });
+
+    const { result, rerender } = renderHook(({ labels }) => useSessionList({ labels }), {
+      wrapper: wrapper(client),
+      initialProps: { labels: { team: "support" } as Record<string, string> },
+    });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(requestOf(list, 0).labels).toEqual({ team: "support" });
+
+    rerender({ labels: { team: "support" } });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(list).toHaveBeenCalledTimes(1);
+
+    rerender({ labels: { team: "billing" } });
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
+    expect(requestOf(list, 1).labels).toEqual({ team: "billing" });
   });
 
   it("exposes a failed loadMore without losing the loaded rows", async () => {
