@@ -16,8 +16,9 @@
  * `disconnect` turns every read and write into the rejection an outage is,
  * the kit's fault arm. It keeps a history, as every store composed above
  * open source does: each change a write is handed with is numbered from 1
- * per organization, in the order the writes were made, and read back by
- * `listChanges`.
+ * per organization, in the order the writes were made, from a head a
+ * removal never resets, read back by `listChanges` and removed oldest
+ * first by `pruneChanges`.
  *
  * Edition-neutral by what it imports (the library's barrel and the protos),
  * so the Enterprise identity unit's suites, which publish with it, can use
@@ -40,6 +41,7 @@ const NON_STRUCTURAL_RELATIONS: ReadonlySet<string> = new Set(["owner", "creator
 export class InMemoryIamPolicyStore implements IamPolicyStore {
   private readonly rows = new Map<string, IamPolicy>();
   private readonly history: PolicyChange[] = [];
+  private readonly heads = new Map<string, bigint>();
   private down = false;
 
   /** Every later call rejects, as a store whose connection is gone does. */
@@ -85,6 +87,27 @@ export class InMemoryIamPolicyStore implements IamPolicyStore {
       .filter((change) => before === undefined || change.sequence < before)
       .reverse()
       .slice(0, page.limit);
+  }
+
+  async lastChangeSequence(org: string): Promise<bigint> {
+    this.guard();
+    return this.heads.get(org) ?? 0n;
+  }
+
+  async pruneChanges(before: Date, limit: number): Promise<number> {
+    this.guard();
+    if (!Number.isSafeInteger(limit) || limit <= 0) {
+      throw new Error(`limit must be a positive integer, got ${limit}`);
+    }
+    const cutoff = before.toISOString();
+    const removed = this.history
+      .filter((change) => change.occurredAt < cutoff)
+      .sort(oldestChangeFirst)
+      .slice(0, limit);
+    for (const change of removed) {
+      this.history.splice(this.history.indexOf(change), 1);
+    }
+    return removed.length;
   }
 
   async findById(id: string): Promise<IamPolicy | undefined> {
@@ -171,7 +194,8 @@ export class InMemoryIamPolicyStore implements IamPolicyStore {
       return;
     }
     const org = record.organizationId;
-    const sequence = BigInt(this.history.filter((kept) => kept.organizationId === org).length) + 1n;
+    const sequence = (this.heads.get(org) ?? 0n) + 1n;
+    this.heads.set(org, sequence);
     this.history.push({
       sequence,
       occurredAt: new Date().toISOString(),
@@ -192,4 +216,15 @@ export class InMemoryIamPolicyStore implements IamPolicyStore {
 
 function onResource(spec: NonNullable<IamPolicy["spec"]>, kind: string, id: string): boolean {
   return spec.resource?.kind === kind && spec.resource?.id === id;
+}
+
+/** Retention's order: time, then organization, then number. */
+function oldestChangeFirst(a: PolicyChange, b: PolicyChange): number {
+  if (a.occurredAt !== b.occurredAt) {
+    return a.occurredAt < b.occurredAt ? -1 : 1;
+  }
+  if (a.organizationId !== b.organizationId) {
+    return a.organizationId < b.organizationId ? -1 : 1;
+  }
+  return a.sequence < b.sequence ? -1 : a.sequence > b.sequence ? 1 : 0;
 }

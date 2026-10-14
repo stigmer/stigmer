@@ -122,6 +122,7 @@ import {
   SCHEMA_VERSION_32,
   SCHEMA_VERSION_33,
   SCHEMA_VERSION_34,
+  SCHEMA_VERSION_35,
   SCHEMA_VERSION_7,
   getSchemaVersion,
   runMigrations,
@@ -340,7 +341,7 @@ describe("fresh database", () => {
       .all() as Array<{ version: number }>;
     expect(rows.map((row) => row.version)).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-      22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
+      22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
     ]);
   });
 
@@ -3227,6 +3228,32 @@ describe("v33 and v34: a session's harness state moves to its status, and every 
         message: "rows that do not decode were left without an etag",
         fields: { kind: "agent", count: 1, ids: ["agt_b_bad"] },
       },
+    ]);
+  });
+
+  it("v35 indexes the permission history in retention's order and keeps every entry", () => {
+    const { dbPath, db: setup } = databaseAt(SCHEMA_VERSION_34);
+    setup
+      .prepare(
+        `INSERT INTO iam_policy_history
+           (org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id,
+            principal_kind, principal_id, relation, resource_kind, resource_id, data)
+         VALUES ('acme', 1, '2026-01-01T00:00:00.000Z', 'granted', 'grant', 'ida_ana', 'user',
+                 'iamp_1', 'identity_account', 'ida_ana', 'member', 'organization', 'acme', x'00')`,
+      )
+      .run();
+    setup.close();
+
+    const db = reopen(dbPath);
+    runMigrations(db, SCHEMA_VERSION_35);
+
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_35);
+    const columns = db.prepare(`PRAGMA index_info('iam_policy_history_by_time')`).all() as Array<{
+      name: string;
+    }>;
+    expect(columns.map((column) => column.name)).toEqual(["occurred_at", "org", "sequence"]);
+    expect(db.prepare(`SELECT org, sequence FROM iam_policy_history`).all()).toEqual([
+      { org: "acme", sequence: 1 },
     ]);
   });
 });

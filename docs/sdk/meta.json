@@ -7,6 +7,7 @@
     "index",
     "overview",
     "streaming",
+    "managed-agents",
     "---API Clients---",
     "typescript",
     "go",

@@ -5,13 +5,18 @@
  * no key; the egress posture from `STIGMER_OUTBOUND_EGRESS`, strict
  * unless the operator says relaxed, any other value refused; and the one
  * reading the entry makes, which reads the egress posture only when a key
- * is present, so a keyless server ignores a typo in it.
+ * is present, so a keyless server ignores a typo in it; and the access
+ * history's window from `STIGMER_ACCESS_HISTORY_RETENTION_DAYS`, unset or
+ * blank keeping everything, a whole number of days of at least 1, any
+ * other value refused, read only with a key as the egress posture is.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  ACCESS_HISTORY_RETENTION_VARIABLE,
   LICENSE_KEY_VARIABLE,
   OUTBOUND_EGRESS_VARIABLE,
+  readAccessHistoryRetentionDays,
   readEgressPosture,
   readEnterpriseSettings,
   readLicenseKey,
@@ -67,6 +72,35 @@ describe("readEgressPosture", () => {
   });
 });
 
+describe("readAccessHistoryRetentionDays", () => {
+  it.each([
+    ["unset", {}],
+    ["empty", { STIGMER_ACCESS_HISTORY_RETENTION_DAYS: "" }],
+    ["blank", { STIGMER_ACCESS_HISTORY_RETENTION_DAYS: " \t" }],
+  ])("keeps everything when the variable is %s", (_name, env) => {
+    expect(ACCESS_HISTORY_RETENTION_VARIABLE).toBe("STIGMER_ACCESS_HISTORY_RETENTION_DAYS");
+    expect(readAccessHistoryRetentionDays(env)).toBeUndefined();
+  });
+
+  it.each([
+    ["365", 365],
+    [" 30 ", 30],
+    ["1", 1],
+    ["0400", 400],
+  ])("reads %j as that many days", (value, days) => {
+    expect(readAccessHistoryRetentionDays({ STIGMER_ACCESS_HISTORY_RETENTION_DAYS: value })).toBe(days);
+  });
+
+  it.each(["0", "-5", "365d", "1y", "1.5", "1e3", "99999999999999999999"])(
+    "refuses %s rather than guessing",
+    (value) => {
+      expect(() => readAccessHistoryRetentionDays({ STIGMER_ACCESS_HISTORY_RETENTION_DAYS: value })).toThrow(
+        `STIGMER_ACCESS_HISTORY_RETENTION_DAYS must be a whole number of days, at least 1, or unset to keep the access history for good; it is "${value}"`,
+      );
+    },
+  );
+});
+
 describe("readEnterpriseSettings", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
@@ -77,6 +111,18 @@ describe("readEnterpriseSettings", () => {
     expect(readEnterpriseSettings({ STIGMER_LICENSE_KEY: " ", STIGMER_OUTBOUND_EGRESS: "bogus" })).toEqual({
       licenseKey: undefined,
     });
+  });
+
+  it("never reads the retention variable without a key, and reads it with one", () => {
+    expect(readEnterpriseSettings({ STIGMER_ACCESS_HISTORY_RETENTION_DAYS: "1y" })).toEqual({
+      licenseKey: undefined,
+    });
+    expect(
+      readEnterpriseSettings({ STIGMER_LICENSE_KEY: "eyJ.a.b", STIGMER_ACCESS_HISTORY_RETENTION_DAYS: "365" }),
+    ).toEqual({ licenseKey: "eyJ.a.b", egress: "strict", accessHistoryRetentionDays: 365 });
+    expect(() =>
+      readEnterpriseSettings({ STIGMER_LICENSE_KEY: "eyJ.a.b", STIGMER_ACCESS_HISTORY_RETENTION_DAYS: "1y" }),
+    ).toThrow(`STIGMER_ACCESS_HISTORY_RETENTION_DAYS must be a whole number of days, at least 1`);
   });
 
   it("reads the egress posture with a key, and refuses an unknown value", () => {
@@ -93,6 +139,11 @@ describe("readEnterpriseSettings", () => {
   it("reads the process's environment by default", () => {
     vi.stubEnv(LICENSE_KEY_VARIABLE, "eyJ.from.process");
     vi.stubEnv(OUTBOUND_EGRESS_VARIABLE, "relaxed");
-    expect(readEnterpriseSettings()).toEqual({ licenseKey: "eyJ.from.process", egress: "relaxed" });
+    vi.stubEnv(ACCESS_HISTORY_RETENTION_VARIABLE, "90");
+    expect(readEnterpriseSettings()).toEqual({
+      licenseKey: "eyJ.from.process",
+      egress: "relaxed",
+      accessHistoryRetentionDays: 90,
+    });
   });
 });

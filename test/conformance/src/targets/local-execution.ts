@@ -246,6 +246,7 @@ export class LocalExecutionTarget implements TargetProfile {
     }
     return {
       clientsPresenting,
+      managedAgentsBaseUrl: () => server.baseUrl,
       teardown,
       engine: {
         temporalHostPort: temporal.hostPort,
@@ -327,6 +328,11 @@ export class LocalExecutionTarget implements TargetProfile {
   // LocalTarget accessor, here because the stdio-lane fixture's
   // mcp-server dials it and the registry lane lives on it).
   httpBaseUrl(): string {
+    return this.serverBaseUrl();
+  }
+
+  // The Managed Agents lane is on the same unified port (target.ts).
+  managedAgentsBaseUrl(): string {
     return this.serverBaseUrl();
   }
 

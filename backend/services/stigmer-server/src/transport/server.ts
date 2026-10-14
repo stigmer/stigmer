@@ -12,6 +12,14 @@
  *                                                   https origin)
  *   2. prefix       /v1/skill-artifacts            (the skill transfer
  *                                                   lane)
+ *      prefix       /v1/sessions/                  (the Claude Managed
+ *                                                   Agents lane: a
+ *                                                   session's events on
+ *                                                   Anthropic's own
+ *                                                   paths; it answers
+ *                                                   everything under the
+ *                                                   prefix, OPTIONS
+ *                                                   included)
  *   3. guarded      console statics                (GET/HEAD only, never RPC
  *                                                   or /v1/* paths; absent
  *                                                   when no export is bundled)
@@ -37,6 +45,7 @@ import type { Logger } from "../boot/logger.js";
 import {
   KEEPALIVE_PING_INTERVAL_MS,
   KEEPALIVE_PING_TIMEOUT_MS,
+  MANAGED_AGENTS_PATH_PREFIX,
   MAX_MESSAGE_BYTES,
   MODEL_REGISTRY_PATH,
   OAUTH_CLIENT_DOCUMENT_PATH,
@@ -74,6 +83,13 @@ export interface UnifiedPortServerOptions {
    * unknown paths.
    */
   skillTransferLane?: LaneHandler;
+  /**
+   * Lane 2: the Claude Managed Agents lane (managed-agents/lane.ts). It
+   * calls the native methods through the serving chain held in memory,
+   * so it needs no chain of its own here. When absent, the prefix falls
+   * through to the adapter's 404.
+   */
+  managedAgentsLane?: LaneHandler;
   /**
    * Lane 3: console statics + /config.json. Present only when a
    * console export is bundled/configured — absent, every request flows
@@ -117,6 +133,13 @@ export function createUnifiedPortServer(
       path.startsWith(SKILL_ARTIFACTS_PATH_PREFIX)
     ) {
       options.skillTransferLane(request, response);
+      return;
+    }
+    if (
+      options.managedAgentsLane !== undefined &&
+      path.startsWith(MANAGED_AGENTS_PATH_PREFIX)
+    ) {
+      options.managedAgentsLane(request, response);
       return;
     }
     if (options.consoleLane !== undefined && consoleLaneEligible(request)) {

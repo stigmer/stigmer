@@ -73,8 +73,10 @@ const HISTORY_CASE_NAMES = {
   kept: [
     "with a history, each recorded write that changed a row reads back as one change, in order, and nothing else does",
     "with a history, newest first below a number and oldest first above one page exactly at their edges",
+    "with a history, a removal takes only the changes recorded before the instant, a prefix of each organization, and the numbering continues",
+    "with a history, a limit removes the oldest first and leaves the rest for the next call",
   ],
-  notKept: ["without a history, a recorded write leaves no change to read"],
+  notKept: ["without a history, a recorded write leaves no change to read and a removal removes nothing"],
 } as const;
 
 /** One permission-history entry, the columns the adapter's cases read. */

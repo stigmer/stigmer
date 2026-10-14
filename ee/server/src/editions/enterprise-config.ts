@@ -17,12 +17,20 @@
  *     on the operator's own network), with link-local still refused, which
  *     trusts every signed-in person with the operator's network. Any other
  *     value refuses the boot rather than guessing.
+ *   - `STIGMER_ACCESS_HISTORY_RETENTION_DAYS`: how many days a licensed
+ *     server keeps the access history. Unset or blank keeps every entry.
+ *     A whole number of days, at least 1, is the window: once an hour the
+ *     server removes the entries older than it, in every organization,
+ *     deleted ones included. Any other value (`0`, `-5`, `365d`, `1y`)
+ *     refuses the boot: an operator who believes records are destroyed
+ *     after a year must not find them kept, nor kept ones destroyed.
  *
  * `readEnterpriseSettings` is the one reading the process entry makes, and
  * it carries the order the promise needs: the key first, then the egress
- * posture only when a key is present. A keyless server therefore never
- * looks at the Enterprise variable, and a typo in it cannot refuse the boot
- * of a server that is the open-source edition exactly. The order lives here
+ * posture and the retention window only when a key is present. A keyless
+ * server therefore never looks at an Enterprise variable, and a typo in one
+ * cannot refuse the boot of a server that is the open-source edition
+ * exactly. The order lives here
  * rather than in the entry because the entry runs under no suite.
  */
 
@@ -32,22 +40,33 @@ export const LICENSE_KEY_VARIABLE = "STIGMER_LICENSE_KEY";
 /** The variable an operator sets to choose the egress posture. */
 export const OUTBOUND_EGRESS_VARIABLE = "STIGMER_OUTBOUND_EGRESS";
 
+/** The variable an operator sets to the number of days the access history is kept. */
+export const ACCESS_HISTORY_RETENTION_VARIABLE = "STIGMER_ACCESS_HISTORY_RETENTION_DAYS";
+
 /** Which addresses a person-written URL may reach. */
 export type EgressPosture = "strict" | "relaxed";
 
-/** What the entry hands the composition; `egress` is read only when a key is present. */
+/** What the entry hands the composition; `egress` and the window are read only when a key is present. */
 export interface EnterpriseSettings {
   readonly licenseKey: string | undefined;
   readonly egress?: EgressPosture;
+  /** Days the access history is kept; absent keeps every entry. */
+  readonly accessHistoryRetentionDays?: number;
 }
 
-/** The server's own settings, the key first and the egress posture only with a key. */
+/** The server's own settings, the key first and the Enterprise variables only with a key. */
 export function readEnterpriseSettings(env: NodeJS.ProcessEnv = process.env): EnterpriseSettings {
   const licenseKey = readLicenseKey(env);
   if (licenseKey === undefined) {
     return { licenseKey };
   }
-  return { licenseKey, egress: readEgressPosture(env) };
+  const egress = readEgressPosture(env);
+  const accessHistoryRetentionDays = readAccessHistoryRetentionDays(env);
+  return {
+    licenseKey,
+    egress,
+    ...(accessHistoryRetentionDays === undefined ? {} : { accessHistoryRetentionDays }),
+  };
 }
 
 /** The key, or undefined when none is set. */
@@ -66,4 +85,21 @@ export function readEgressPosture(env: NodeJS.ProcessEnv = process.env): EgressP
     return "relaxed";
   }
   throw new Error(`${OUTBOUND_EGRESS_VARIABLE} must be "strict" or "relaxed"; it is "${value}"`);
+}
+
+/** The access history's window in days, or undefined to keep every entry; any value but a whole number of days of at least 1 throws. */
+export function readAccessHistoryRetentionDays(
+  env: NodeJS.ProcessEnv = process.env,
+): number | undefined {
+  const value = env[ACCESS_HISTORY_RETENTION_VARIABLE]?.trim() ?? "";
+  if (value === "") {
+    return undefined;
+  }
+  const days = /^\d+$/.test(value) ? Number(value) : Number.NaN;
+  if (!Number.isSafeInteger(days) || days < 1) {
+    throw new Error(
+      `${ACCESS_HISTORY_RETENTION_VARIABLE} must be a whole number of days, at least 1, or unset to keep the access history for good; it is "${value}"`,
+    );
+  }
+  return days;
 }

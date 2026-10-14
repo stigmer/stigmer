@@ -233,8 +233,11 @@ export const SCHEMA_VERSION_33 = 33;
 /** v34: every stored resource stamped with its etag. */
 export const SCHEMA_VERSION_34 = 34;
 
+/** v35: the permission history indexed by time, for retention (DDL only). */
+export const SCHEMA_VERSION_35 = 35;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_34;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_35;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -294,6 +297,7 @@ export function runMigrations(
     [SCHEMA_VERSION_32, migrateToV32],
     [SCHEMA_VERSION_33, migrateToV33],
     [SCHEMA_VERSION_34, (migrating) => migrateToV34(migrating, logger)],
+    [SCHEMA_VERSION_35, migrateToV35],
   ];
 
   for (const [version, migrate] of chain) {
@@ -1897,4 +1901,15 @@ function migrateToV34(db: DatabaseSync, logger: StoreLogger): void {
     }
     logUnreadableEtagRows(logger, kind, unreadable);
   }
+}
+
+/**
+ * v35: the permission history indexed by time, for retention — the
+ * Postgres driver's v31 in this engine's terms (its header has the reason).
+ */
+function migrateToV35(db: DatabaseSync): void {
+  db.exec(`
+    CREATE INDEX iam_policy_history_by_time
+      ON iam_policy_history (occurred_at, org, sequence);
+  `);
 }
