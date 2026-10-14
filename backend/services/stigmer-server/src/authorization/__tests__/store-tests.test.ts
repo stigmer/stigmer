@@ -57,7 +57,7 @@ const DOCUMENTS = [
   "channel-session-visibility.fga.yaml",
   "child-organizations.fga.yaml",
   "evaluator-agent-access.fga.yaml",
-  "identity-provider-administration.fga.yaml",
+  "federation-issuer-administration.fga.yaml",
   "invitation-administration.fga.yaml",
   "license-issuer.fga.yaml",
   "memory-subject-only.fga.yaml",

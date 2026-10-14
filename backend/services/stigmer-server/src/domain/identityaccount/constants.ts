@@ -147,7 +147,7 @@ export function isPlatformClientSubject(idpId: string): boolean {
  * The address namespace of federated accounts: a federated account's id is
  * `derivedId("ida", "stgm_fed|<provider id>|<subject>")`
  * (`federatedAccountIdFor`). Its natural key is the pair the port's
- * federated read takes, the identity provider that vouches for the subject
+ * federated read takes, the federation issuer that vouches for the subject
  * and the subject, because two providers may assert the same subject for
  * two people. The prefix is the text that address hashes, never a subject:
  * the account's `spec.idp_id` stays the subject its provider asserted.
@@ -171,7 +171,7 @@ export function isFederatedSubject(idpId: string): boolean {
 const FEDERATED_KEY_SEPARATOR = "|";
 
 /**
- * The derived id of the federated account the identity provider
+ * The derived id of the federated account the federation issuer
  * `providerId` vouches for under `idpId`. Pure; refuses an empty part (no
  * provider or no subject is no address) and a provider id holding the
  * separator (the text would be ambiguous), the way `policyIdFor` refuses
@@ -235,7 +235,7 @@ export function serviceAccountSubjectFor(org: string): string {
  */
 export function reservedSubjectMessage(idpId: string): string | undefined {
   if (isFederatedSubject(idpId)) {
-    return `subject '${idpId}' uses the '${FEDERATED_SUBJECT_PREFIX}' prefix reserved for the addresses of accounts an identity provider vouches for`;
+    return `subject '${idpId}' uses the '${FEDERATED_SUBJECT_PREFIX}' prefix reserved for the addresses of accounts a federation issuer vouches for`;
   }
   if (isPlatformClientSubject(idpId)) {
     return `subject '${idpId}' uses the '${PLATFORM_CLIENT_SUBJECT_PREFIX}' prefix reserved for accounts a platform client provisions`;
@@ -273,7 +273,7 @@ export const NO_IDP_ID_MESSAGE =
 
 /**
  * provisionMyAccount for a caller the platform's own sign-in did not vouch
- * for (PERMISSION_DENIED): a person of an organization's identity provider,
+ * for (PERMISSION_DENIED): a person of an organization's federation issuer,
  * a platform client's user, a system lane's token, or any caller that is
  * not a person. Names no account: the refusal answers before the store is
  * asked about the credential's subject.

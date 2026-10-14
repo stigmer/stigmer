@@ -1,6 +1,6 @@
 /**
  * Pins the federated lane's userinfo client:
- *   - the endpoint is dialed exactly as the IdentityProvider row states it
+ *   - the endpoint is dialed exactly as the FederationIssuer row states it
  *     (the full OIDC UserInfo URL, never a base with `/userinfo` appended —
  *     the append this client once made turned every documented endpoint
  *     into `.../userinfo/userinfo`), with the caller's token as Bearer;

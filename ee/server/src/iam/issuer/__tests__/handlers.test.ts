@@ -1,5 +1,5 @@
 /**
- * The IdentityProvider RPCs over a router transport with the serving
+ * The FederationIssuer RPCs over a router transport with the serving
  * chain's identity stamp (the Team suite's idiom), an in-memory store, a
  * recording authorizer, recording lifecycle, removal and list-scope
  * fakes, and the REAL guarded fetch over the strict posture the
@@ -106,12 +106,12 @@ import { FederationIssuerSpecSchema } from "@stigmer/protos/ai/stigmer/iam/feder
 import { IamPermission, IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import { newFederationIssuerRegistrations, type FederationIssuerLaneDeps } from "../handlers.js";
-import type { ProviderInsertOutcome, ProviderSwapOutcome } from "../store.js";
-import { newLoadProviderByReferenceStep, PROVIDER_BEING_DELETED_MESSAGE } from "../steps.js";
+import type { IssuerInsertOutcome, IssuerSwapOutcome } from "../store.js";
+import { newLoadIssuerByReferenceStep, ISSUER_BEING_DELETED_MESSAGE } from "../steps.js";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 
-import { InMemoryProviderStore, storedProvider } from "./in-memory-provider-store.js";
+import { InMemoryIssuerStore, storedIssuer } from "./in-memory-issuer-store.js";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { inMemoryNames } from "../../../__test-utils__/in-memory-names.js";
 
@@ -124,7 +124,7 @@ const DISCOVERY = "https://idp.acme.test/.well-known/openid-configuration";
 /** The route copy: the pair the caller wrote, the way forward, and never who holds it. */
 const ROUTE_TAKEN =
   `Issuer 'https://idp.acme.test' with audience '${AUDIENCE}' is already registered by another ` +
-  "identity provider. Register an audience of your organization's own for Stigmer at this " +
+  "federation issuer. Register an audience of your organization's own for Stigmer at this " +
   "issuer, such as an API identifier or a client ID, and use it here.";
 
 /** create's own question on the request's organization, which apply and a missing reference ask too. */
@@ -211,7 +211,7 @@ function identityInterceptor(): Interceptor {
 interface Rig {
   readonly commands: ReturnType<typeof createClient<typeof FederationIssuerCommandController>>;
   readonly queries: ReturnType<typeof createClient<typeof FederationIssuerQueryController>>;
-  readonly store: InMemoryProviderStore;
+  readonly store: InMemoryIssuerStore;
   readonly checks: AuthzCheck[];
   readonly created: ResourceCreatedEvent[];
   readonly removed: string[];
@@ -225,7 +225,7 @@ function rig(
   options: {
     answers?: Record<string, () => Response>;
     decide?: (check: AuthzCheck) => "allow" | "deny";
-    store?: InMemoryProviderStore;
+    store?: InMemoryIssuerStore;
     onCreated?: () => Promise<void>;
     onRemove?: () => Promise<void>;
     listable?: (id: string) => boolean;
@@ -238,7 +238,7 @@ function rig(
     slugs?: ReadonlyMap<string, string>;
   } = {},
 ): Rig {
-  const store = options.store ?? new InMemoryProviderStore();
+  const store = options.store ?? new InMemoryIssuerStore();
   const names = inMemoryNames(async (key) =>
     store.inOrg(key.org).find((held) => held.metadata?.slug === key.name)?.metadata?.id,
   );
@@ -344,7 +344,7 @@ function provider(
 ): FederationIssuer {
   return create(FederationIssuerSchema, {
     apiVersion: "iam.stigmer.ai/v1",
-    kind: "IdentityProvider",
+    kind: "FederationIssuer",
     metadata: create(ApiResourceMetadataSchema, {
       name: metadata.name ?? "Acme Platform",
       org: metadata.org ?? "acme",
@@ -373,18 +373,18 @@ async function failure(work: Promise<unknown>): Promise<ConnectError> {
 describe("an organization's service account", () => {
   it("is refused every write, before any check or write, whatever credential speaks for it", async () => {
     const r = rig({ callerIsServiceAccount: true });
-    await r.store.insert(storedProvider({ id: "idp_existing", org: "acme", slug: "acme-existing" }));
+    await r.store.insert(storedIssuer({ id: "fis_existing", org: "acme", slug: "acme-existing" }));
     const attempts: ReadonlyArray<() => Promise<unknown>> = [
       () => r.commands.create(provider()),
       () => r.commands.apply(provider()),
-      () => r.commands.update({ resource: provider({}, { id: "idp_existing", slug: "acme-existing" }), updateMask: { paths: ["*"] } }),
-      () => r.commands.delete({ resourceId: "idp_existing" }),
+      () => r.commands.update({ resource: provider({}, { id: "fis_existing", slug: "acme-existing" }), updateMask: { paths: ["*"] } }),
+      () => r.commands.delete({ resourceId: "fis_existing" }),
     ];
     for (const attempt of attempts) {
       const error = await failure(attempt());
       expect(error.code).toBe(Code.PermissionDenied);
       expect(error.rawMessage).toBe(
-        "a service account cannot create, change or delete identity providers; an organization admin must do it",
+        "a service account cannot create, change or delete federation issuers; an organization admin must do it",
       );
     }
     expect(r.removed).toEqual([]);
@@ -429,20 +429,20 @@ describe("create", () => {
 
   it("mints its own id whatever id the request carried", async () => {
     const r = rig();
-    const created = await r.commands.create(provider({}, { id: "idp_chosen_by_caller" }));
-    expect(created.metadata?.id).not.toBe("idp_chosen_by_caller");
+    const created = await r.commands.create(provider({}, { id: "fis_chosen_by_caller" }));
+    expect(created.metadata?.id).not.toBe("fis_chosen_by_caller");
     expect(created.metadata?.id).toMatch(/^idp_[0-9a-z]{26}$/);
-    expect(await r.store.findById("idp_chosen_by_caller")).toBeUndefined();
+    expect(await r.store.findById("fis_chosen_by_caller")).toBeUndefined();
   });
 
   it("refuses a slug the organization holds with the provider's copy, before any dial", async () => {
     const r = rig();
-    await r.store.insert(storedProvider({ id: "idp_held", org: "acme", slug: "acme-platform" }));
+    await r.store.insert(storedIssuer({ id: "fis_held", org: "acme", slug: "acme-platform" }));
 
     const refused = await failure(r.commands.create(provider({})));
     expect(refused.code).toBe(Code.AlreadyExists);
     expect(refused.rawMessage).toBe(
-      "IdentityProvider already exists: slug 'acme-platform' in org 'acme'",
+      "FederationIssuer already exists: slug 'acme-platform' in org 'acme'",
     );
     expect(r.dialed).toEqual([]);
 
@@ -451,9 +451,9 @@ describe("create", () => {
   });
 
   it("answers the same copy when the insert loses the slug race the pre-check could not see", async () => {
-    class RacingStore extends InMemoryProviderStore {
-      override async insert(row: FederationIssuer): Promise<ProviderInsertOutcome> {
-        await super.insert(storedProvider({ id: "idp_winner", org: "acme", slug: "acme-platform", issuers: [] }));
+    class RacingStore extends InMemoryIssuerStore {
+      override async insert(row: FederationIssuer): Promise<IssuerInsertOutcome> {
+        await super.insert(storedIssuer({ id: "fis_winner", org: "acme", slug: "acme-platform", issuers: [] }));
         return super.insert(row);
       }
     }
@@ -462,18 +462,18 @@ describe("create", () => {
     const refused = await failure(r.commands.create(provider()));
     expect(refused.code).toBe(Code.AlreadyExists);
     expect(refused.rawMessage).toBe(
-      "IdentityProvider already exists: slug 'acme-platform' in org 'acme'",
+      "FederationIssuer already exists: slug 'acme-platform' in org 'acme'",
     );
     expect(r.created).toEqual([]);
     expect(r.invalidations).toBe(0);
   });
 
   it("answers the route copy when a racing create claimed the route first", async () => {
-    class RacingStore extends InMemoryProviderStore {
-      override async insert(row: FederationIssuer): Promise<ProviderInsertOutcome> {
+    class RacingStore extends InMemoryIssuerStore {
+      override async insert(row: FederationIssuer): Promise<IssuerInsertOutcome> {
         await super.insert(
-          storedProvider({
-            id: "idp_winner",
+          storedIssuer({
+            id: "fis_winner",
             org: "other",
             slug: "winner",
             issuers: ["https://idp.acme.test"],
@@ -493,8 +493,8 @@ describe("create", () => {
   it("refuses a route another organization's provider holds, and admits that organization's own audience at the issuer", async () => {
     const r = rig();
     await r.store.insert(
-      storedProvider({
-        id: "idp_first",
+      storedIssuer({
+        id: "fis_first",
         org: "first",
         slug: "first",
         issuers: ["https://idp.acme.test"],
@@ -520,7 +520,7 @@ describe("create", () => {
     );
 
     expect(created.spec?.allowedIssuers).toEqual(["https://idp.acme.test"]);
-    expect(await r.store.findProviderIdByRoute("https://idp.acme.test", AUDIENCE)).toBe(
+    expect(await r.store.findIssuerIdByRoute("https://idp.acme.test", AUDIENCE)).toBe(
       created.metadata?.id,
     );
   });
@@ -540,7 +540,7 @@ describe("create", () => {
 
     const denied = await failure(r.commands.create(provider()));
     expect(denied.code).toBe(Code.PermissionDenied);
-    expect(denied.rawMessage).toBe("unauthorized to create identity provider in this organization");
+    expect(denied.rawMessage).toBe("unauthorized to create federation issuer in this organization");
     expect(r.store.size).toBe(0);
     expect(r.created).toEqual([]);
   });
@@ -597,9 +597,9 @@ describe("update", () => {
 
   it("is NOT_FOUND for a provider that does not exist, and INVALID_ARGUMENT without an id", async () => {
     const r = rig();
-    const missing = await failure(r.commands.update({ resource: provider({}, { id: "idp_gone" }), updateMask: { paths: ["*"] } }));
+    const missing = await failure(r.commands.update({ resource: provider({}, { id: "fis_gone" }), updateMask: { paths: ["*"] } }));
     expect(missing.code).toBe(Code.NotFound);
-    expect(missing.rawMessage).toBe("IdentityProvider not found: idp_gone");
+    expect(missing.rawMessage).toBe("FederationIssuer not found: fis_gone");
 
     const noId = await failure(r.commands.update({ resource: provider(), updateMask: { paths: ["*"] } }));
     expect(noId.code).toBe(Code.InvalidArgument);
@@ -607,19 +607,19 @@ describe("update", () => {
   });
 
   it("is NOT_FOUND when the provider is deleted between the load and the write", async () => {
-    class VanishingStore extends InMemoryProviderStore {
-      override async swap(id: string, expectedBytes: Uint8Array, row: FederationIssuer): Promise<ProviderSwapOutcome> {
+    class VanishingStore extends InMemoryIssuerStore {
+      override async swap(id: string, expectedBytes: Uint8Array, row: FederationIssuer): Promise<IssuerSwapOutcome> {
         await this.deleteById(id);
         return super.swap(id, expectedBytes, row);
       }
     }
     const store = new VanishingStore();
-    await store.insert(storedProvider({ id: "idp_a", org: "acme", slug: "idp-a" }));
+    await store.insert(storedIssuer({ id: "fis_a", org: "acme", slug: "idp-a" }));
     const r = rig({ store });
 
-    const missing = await failure(r.commands.update({ resource: provider({}, { id: "idp_a" }), updateMask: { paths: ["*"] } }));
+    const missing = await failure(r.commands.update({ resource: provider({}, { id: "fis_a" }), updateMask: { paths: ["*"] } }));
     expect(missing.code).toBe(Code.NotFound);
-    expect(missing.rawMessage).toBe("IdentityProvider not found: idp_a");
+    expect(missing.rawMessage).toBe("FederationIssuer not found: fis_a");
     expect(r.invalidations).toBe(0);
   });
 
@@ -638,7 +638,7 @@ describe("rename", () => {
     expect(renamed.status?.audit?.specAudit?.event).toBe("renamed");
     expect(r.checks.at(-1)).toEqual({ permission: IamPermission.can_delete, resourceKind: ApiResourceKind.federation_issuer, resourceId: id });
     expect(r.invalidations).toBe(before + 1);
-    expect(await r.store.findProviderIdByRoute("https://idp.acme.test", AUDIENCE), "the route is unchanged").toBe(id);
+    expect(await r.store.findIssuerIdByRoute("https://idp.acme.test", AUDIENCE), "the route is unchanged").toBe(id);
 
     const byOld = await r.queries.getByReference(create(ApiResourceReferenceSchema, { org: "acme", slug: "acme-platform" }));
     expect(byOld.metadata?.slug).toBe("acme-sso");
@@ -660,8 +660,8 @@ describe("rename", () => {
   it("an update that loaded the provider before a rename loses its swap, runs again, and keeps the new slug", async () => {
     let renameMidWrite: (() => Promise<unknown>) | undefined;
     let swaps = 0;
-    class RacingStore extends InMemoryProviderStore {
-      override async swap(id: string, expectedBytes: Uint8Array, row: FederationIssuer): Promise<ProviderSwapOutcome> {
+    class RacingStore extends InMemoryIssuerStore {
+      override async swap(id: string, expectedBytes: Uint8Array, row: FederationIssuer): Promise<IssuerSwapOutcome> {
         swaps += 1;
         const rename = renameMidWrite;
         renameMidWrite = undefined;
@@ -692,22 +692,22 @@ describe("rename", () => {
     await marked.store.markDeleting(id);
     const deleting = await failure(marked.commands.rename({ resourceId: id, slug: "acme-sso" }));
     expect(deleting.code).toBe(Code.FailedPrecondition);
-    expect(deleting.rawMessage).toBe(PROVIDER_BEING_DELETED_MESSAGE);
+    expect(deleting.rawMessage).toBe(ISSUER_BEING_DELETED_MESSAGE);
     expect((await marked.store.findById(id))?.metadata?.slug).toBe("acme-platform");
 
-    const store = new InMemoryProviderStore();
-    await store.insert(storedProvider({ id: "idp_sa", org: "acme", slug: "sa", issuers: [] }));
+    const store = new InMemoryIssuerStore();
+    await store.insert(storedIssuer({ id: "fis_sa", org: "acme", slug: "sa", issuers: [] }));
     const serviceAccount = rig({ store, callerIsServiceAccount: true });
-    const refused = await failure(serviceAccount.commands.rename({ resourceId: "idp_sa", slug: "sa-renamed" }));
+    const refused = await failure(serviceAccount.commands.rename({ resourceId: "fis_sa", slug: "sa-renamed" }));
     expect(refused.code).toBe(Code.PermissionDenied);
-    expect((await store.findById("idp_sa"))?.metadata?.slug).toBe("sa");
+    expect((await store.findById("fis_sa"))?.metadata?.slug).toBe("sa");
   });
 });
 
 describe("apply", () => {
   it("creates through the create door when the organization holds no such slug", async () => {
     const r = rig();
-    const applied = await r.commands.apply(provider({}, { id: "idp_from_an_exported_file" }));
+    const applied = await r.commands.apply(provider({}, { id: "fis_from_an_exported_file" }));
 
     expect(applied.metadata?.id).toMatch(/^idp_[0-9a-z]{26}$/);
     expect(r.checks).toEqual([CREATE_ISSUER_ON_ACME, CREATE_ISSUER_ON_ACME]);
@@ -716,21 +716,21 @@ describe("apply", () => {
 
   it("updates the row it resolved by org and slug through the update door, never the id the request carried", async () => {
     const r = rig();
-    await r.store.insert(storedProvider({ id: "idp_other_org", org: "other", slug: "acme-platform", issuers: [] }));
-    await r.store.insert(storedProvider({ id: "idp_held", org: "acme", slug: "acme-platform", issuers: [] }));
+    await r.store.insert(storedIssuer({ id: "fis_other_org", org: "other", slug: "acme-platform", issuers: [] }));
+    await r.store.insert(storedIssuer({ id: "fis_held", org: "acme", slug: "acme-platform", issuers: [] }));
 
-    const applied = await r.commands.apply(provider({}, { id: "idp_other_org" }));
+    const applied = await r.commands.apply(provider({}, { id: "fis_other_org" }));
 
-    expect(applied.metadata?.id).toBe("idp_held");
+    expect(applied.metadata?.id).toBe("fis_held");
     expect(r.checks).toEqual([
       CREATE_ISSUER_ON_ACME,
       {
         permission: IamPermission.can_edit,
         resourceKind: ApiResourceKind.federation_issuer,
-        resourceId: "idp_held",
+        resourceId: "fis_held",
       },
     ]);
-    expect((await r.store.findById("idp_other_org"))?.spec?.allowedIssuers).toEqual([]);
+    expect((await r.store.findById("fis_other_org"))?.spec?.allowedIssuers).toEqual([]);
     expect(r.created).toEqual([]);
   });
 });
@@ -738,14 +738,14 @@ describe("apply", () => {
 describe("apply by a caller who is not the organization's admin", () => {
   it("answers create's refusal whether or not the slug exists, and asks nothing else", async () => {
     const r = rig({ decide: () => "deny" });
-    await r.store.insert(storedProvider({ id: "idp_held", org: "acme", slug: "acme-platform", issuers: [] }));
+    await r.store.insert(storedIssuer({ id: "fis_held", org: "acme", slug: "acme-platform", issuers: [] }));
 
     const onHeld = await failure(r.commands.apply(provider()));
     const onFree = await failure(r.commands.apply(provider({}, { name: "Another Platform" })));
 
     for (const refused of [onHeld, onFree]) {
       expect(refused.code).toBe(Code.PermissionDenied);
-      expect(refused.rawMessage).toBe("unauthorized to create identity provider in this organization");
+      expect(refused.rawMessage).toBe("unauthorized to create federation issuer in this organization");
     }
     expect(r.checks).toEqual([CREATE_ISSUER_ON_ACME, CREATE_ISSUER_ON_ACME]);
     expect(r.store.size).toBe(1);
@@ -755,26 +755,26 @@ describe("apply by a caller who is not the organization's admin", () => {
 describe("delete", () => {
   it("goes through the removal and answers the provider", async () => {
     const r = rig();
-    await r.store.insert(storedProvider({ id: "idp_a", org: "acme", slug: "idp-a" }));
+    await r.store.insert(storedIssuer({ id: "fis_a", org: "acme", slug: "idp-a" }));
 
-    const deleted = await r.commands.delete({ resourceId: "idp_a" });
-    expect(deleted.metadata?.id).toBe("idp_a");
-    expect(r.removed).toEqual(["idp_a"]);
+    const deleted = await r.commands.delete({ resourceId: "fis_a" });
+    expect(deleted.metadata?.id).toBe("fis_a");
+    expect(r.removed).toEqual(["fis_a"]);
     expect(r.checks.at(-1)).toEqual({
       permission: IamPermission.can_delete,
       resourceKind: ApiResourceKind.federation_issuer,
-      resourceId: "idp_a",
+      resourceId: "fis_a",
     });
   });
 
   it("is NOT_FOUND for an unknown provider and removes nothing; a failed removal fails the delete", async () => {
     const r = rig({ onRemove: () => Promise.reject(new Error("engine down")) });
-    const missing = await failure(r.commands.delete({ resourceId: "idp_gone" }));
+    const missing = await failure(r.commands.delete({ resourceId: "fis_gone" }));
     expect(missing.code).toBe(Code.NotFound);
-    expect(missing.rawMessage).toBe("IdentityProvider not found: idp_gone");
+    expect(missing.rawMessage).toBe("FederationIssuer not found: fis_gone");
 
-    await r.store.insert(storedProvider({ id: "idp_a", org: "acme", slug: "idp-a" }));
-    const failed = await failure(r.commands.delete({ resourceId: "idp_a" }));
+    await r.store.insert(storedIssuer({ id: "fis_a", org: "acme", slug: "idp-a" }));
+    const failed = await failure(r.commands.delete({ resourceId: "fis_a" }));
     expect(failed.code).toBe(Code.Internal);
     expect(failed.rawMessage).not.toContain("engine down");
     expect(r.removed).toEqual([]);
@@ -784,50 +784,50 @@ describe("delete", () => {
 describe("reads", () => {
   it("get answers the provider, and refuses with the annotation's copy", async () => {
     const r = rig();
-    await r.store.insert(storedProvider({ id: "idp_a", org: "acme", slug: "idp-a" }));
-    expect((await r.queries.get({ value: "idp_a" })).metadata?.slug).toBe("idp-a");
+    await r.store.insert(storedIssuer({ id: "fis_a", org: "acme", slug: "idp-a" }));
+    expect((await r.queries.get({ value: "fis_a" })).metadata?.slug).toBe("idp-a");
 
     const denying = rig({ decide: () => "deny", store: r.store });
-    const denied = await failure(denying.queries.get({ value: "idp_a" }));
+    const denied = await failure(denying.queries.get({ value: "fis_a" }));
     expect(denied.code).toBe(Code.PermissionDenied);
-    expect(denied.rawMessage).toBe("unauthorized to view identity provider");
+    expect(denied.rawMessage).toBe("unauthorized to view federation issuer");
   });
 
   it("getByReference authorizes a found row as get, with get's copy", async () => {
     const r = rig({ decide: () => "deny" });
-    await r.store.insert(storedProvider({ id: "idp_a", org: "acme", slug: "alpha" }));
+    await r.store.insert(storedIssuer({ id: "fis_a", org: "acme", slug: "alpha" }));
 
     const denied = await failure(r.queries.getByReference({ org: "acme", slug: "alpha" }));
     expect(denied.code).toBe(Code.PermissionDenied);
-    expect(denied.rawMessage).toBe("unauthorized to view identity provider");
+    expect(denied.rawMessage).toBe("unauthorized to view federation issuer");
     expect(r.checks).toEqual([
       {
         permission: IamPermission.can_view,
         resourceKind: ApiResourceKind.federation_issuer,
-        resourceId: "idp_a",
+        resourceId: "fis_a",
       },
     ]);
   });
 
   it("getByReference reads a provider by its id, and never asks the name table about a slug beside it", async () => {
     const r = rig();
-    await r.store.insert(storedProvider({ id: "idp_a", org: "acme", slug: "alpha" }));
-    await r.store.insert(storedProvider({ id: "idp_b", org: "acme", slug: "beta" }));
+    await r.store.insert(storedIssuer({ id: "fis_a", org: "acme", slug: "alpha" }));
+    await r.store.insert(storedIssuer({ id: "fis_b", org: "acme", slug: "beta" }));
 
-    expect((await r.queries.getByReference({ org: "acme", id: "idp_a" })).metadata?.slug).toBe("alpha");
+    expect((await r.queries.getByReference({ org: "acme", id: "fis_a" })).metadata?.slug).toBe("alpha");
     // "beta" names another provider; beside an id the slug is not looked up.
-    expect((await r.queries.getByReference({ org: "acme", id: "idp_a", slug: "beta" })).metadata?.id).toBe("idp_a");
+    expect((await r.queries.getByReference({ org: "acme", id: "fis_a", slug: "beta" })).metadata?.id).toBe("fis_a");
   });
 
   it("getByReference by id answers a provider of another organization, or none, as missing, and asks for an id or a slug", async () => {
     const r = rig();
-    await r.store.insert(storedProvider({ id: "idp_x", org: "other", slug: "x" }));
+    await r.store.insert(storedIssuer({ id: "fis_x", org: "other", slug: "x" }));
 
-    const elsewhere = await failure(r.queries.getByReference({ org: "acme", id: "idp_x" }));
+    const elsewhere = await failure(r.queries.getByReference({ org: "acme", id: "fis_x" }));
     expect(elsewhere.code).toBe(Code.NotFound);
-    expect(elsewhere.rawMessage).toBe("IdentityProvider 'acme/idp_x' not found");
-    const gone = await failure(r.queries.getByReference({ org: "acme", id: "idp_gone" }));
-    expect(gone.rawMessage).toBe("IdentityProvider 'acme/idp_gone' not found");
+    expect(elsewhere.rawMessage).toBe("FederationIssuer 'acme/fis_x' not found");
+    const gone = await failure(r.queries.getByReference({ org: "acme", id: "fis_gone" }));
+    expect(gone.rawMessage).toBe("FederationIssuer 'acme/fis_gone' not found");
     // Each miss is answered only after the organization's bar, as a slug's is.
     expect(r.checks).toEqual([CREATE_ISSUER_ON_ACME, CREATE_ISSUER_ON_ACME]);
 
@@ -836,7 +836,7 @@ describe("reads", () => {
     const nothing = await failure(r.queries.getByReference({ org: "acme" }));
     expect(nothing.code).toBe(Code.InvalidArgument);
     expect(nothing.rawMessage).toBe("a reference names its resource by id or by slug [reference.id_or_slug]");
-    const step = newLoadProviderByReferenceStep(inMemoryNames(), r.store, { authorize: async () => ({ kind: "allow" as const }) });
+    const step = newLoadIssuerByReferenceStep(inMemoryNames(), r.store, { authorize: async () => ({ kind: "allow" as const }) });
     const inProcess = await failure(
       Promise.resolve(
         step.execute(
@@ -852,11 +852,11 @@ describe("reads", () => {
     expect(inProcess.rawMessage).toBe("slug or id is required in reference");
   });
 
-  it("getByReference answers a missing slug NOT_FOUND to the organization's admin, asking only the organization's can_create_idp", async () => {
+  it("getByReference answers a missing slug NOT_FOUND to the organization's admin, asking only the organization's can_create_federation_issuer", async () => {
     const r = rig();
     const unknown = await failure(r.queries.getByReference({ org: "acme", slug: "ops" }));
     expect(unknown.code).toBe(Code.NotFound);
-    expect(unknown.rawMessage).toBe("IdentityProvider 'acme/ops' not found");
+    expect(unknown.rawMessage).toBe("FederationIssuer 'acme/ops' not found");
     expect(r.checks).toEqual([CREATE_ISSUER_ON_ACME]);
   });
 
@@ -870,7 +870,7 @@ describe("reads", () => {
     const r = rig({ decide });
     const refused = await failure(r.queries.getByReference({ org: "acme", slug: "ops" }));
     expect(refused.code).toBe(Code.PermissionDenied);
-    expect(refused.rawMessage).toBe("unauthorized to view identity provider");
+    expect(refused.rawMessage).toBe("unauthorized to view federation issuer");
     expect(r.checks).toEqual([CREATE_ISSUER_ON_ACME]);
   });
 
@@ -882,43 +882,43 @@ describe("reads", () => {
     ],
   ])("getByReference answers %s get's denial for a missing id, another organization's provider included", async (_who, decide) => {
     const r = rig({ decide });
-    await r.store.insert(storedProvider({ id: "idp_x", org: "other", slug: "x" }));
+    await r.store.insert(storedIssuer({ id: "fis_x", org: "other", slug: "x" }));
 
-    for (const id of ["idp_x", "idp_gone"]) {
+    for (const id of ["fis_x", "fis_gone"]) {
       const refused = await failure(r.queries.getByReference({ org: "acme", id }));
       expect(refused.code).toBe(Code.PermissionDenied);
-      expect(refused.rawMessage).toBe("unauthorized to view identity provider");
+      expect(refused.rawMessage).toBe("unauthorized to view federation issuer");
     }
     expect(r.checks).toEqual([CREATE_ISSUER_ON_ACME, CREATE_ISSUER_ON_ACME]);
   });
 
   it("getByReference answers an outsider the same denial for a provider's id whether the organization holds it, another organization does, or none", async () => {
     const r = rig({ decide: () => "deny" });
-    await r.store.insert(storedProvider({ id: "idp_a", org: "acme", slug: "alpha" }));
-    await r.store.insert(storedProvider({ id: "idp_x", org: "other", slug: "x" }));
+    await r.store.insert(storedIssuer({ id: "fis_a", org: "acme", slug: "alpha" }));
+    await r.store.insert(storedIssuer({ id: "fis_x", org: "other", slug: "x" }));
 
-    for (const id of ["idp_a", "idp_x", "idp_gone"]) {
+    for (const id of ["fis_a", "fis_x", "fis_gone"]) {
       const refused = await failure(r.queries.getByReference({ org: "acme", id }));
       expect(refused.code).toBe(Code.PermissionDenied);
-      expect(refused.rawMessage).toBe("unauthorized to view identity provider");
+      expect(refused.rawMessage).toBe("unauthorized to view federation issuer");
     }
     expect(r.checks).toEqual([
-      { permission: IamPermission.can_view, resourceKind: ApiResourceKind.federation_issuer, resourceId: "idp_a" },
+      { permission: IamPermission.can_view, resourceKind: ApiResourceKind.federation_issuer, resourceId: "fis_a" },
       CREATE_ISSUER_ON_ACME,
       CREATE_ISSUER_ON_ACME,
     ]);
   });
 
   it("list offers the organization's rows newest first and answers only what the scope allows", async () => {
-    const r = rig({ listable: (id) => id !== "idp_b" });
-    await r.store.insert(storedProvider({ id: "idp_a", org: "acme", slug: "idp-a" }));
-    await r.store.insert(storedProvider({ id: "idp_x", org: "other", slug: "x" }));
-    await r.store.insert(storedProvider({ id: "idp_b", org: "acme", slug: "idp-b" }));
-    await r.store.insert(storedProvider({ id: "idp_c", org: "acme", slug: "c" }));
+    const r = rig({ listable: (id) => id !== "fis_b" });
+    await r.store.insert(storedIssuer({ id: "fis_a", org: "acme", slug: "idp-a" }));
+    await r.store.insert(storedIssuer({ id: "fis_x", org: "other", slug: "x" }));
+    await r.store.insert(storedIssuer({ id: "fis_b", org: "acme", slug: "idp-b" }));
+    await r.store.insert(storedIssuer({ id: "fis_c", org: "acme", slug: "c" }));
 
     const listed = await r.queries.list({ org: "acme" });
-    expect(listed.entries.map((row) => row.metadata?.id)).toEqual(["idp_c", "idp_a"]);
-    expect(r.offered.map((entries) => entries.map((e) => e.id))).toEqual([["idp_c", "idp_b", "idp_a"]]);
+    expect(listed.entries.map((row) => row.metadata?.id)).toEqual(["fis_c", "fis_a"]);
+    expect(r.offered.map((entries) => entries.map((e) => e.id))).toEqual([["fis_c", "fis_b", "fis_a"]]);
     expect(r.checks).toEqual([
       {
         permission: IamPermission.can_view,
@@ -933,42 +933,42 @@ describe("reads", () => {
 describe("a provider whose delete did not finish", () => {
   it("answers a caller who may not edit it exactly as on a live provider, so only an editor learns of the delete", async () => {
     const r = rig({ decide: () => "deny" });
-    await r.store.insert(storedProvider({ id: "idp_held", org: "acme", slug: "acme-platform" }));
-    const onLive = await failure(r.commands.update({ resource: provider({}, { id: "idp_held" }), updateMask: { paths: ["*"] } }));
+    await r.store.insert(storedIssuer({ id: "fis_held", org: "acme", slug: "acme-platform" }));
+    const onLive = await failure(r.commands.update({ resource: provider({}, { id: "fis_held" }), updateMask: { paths: ["*"] } }));
     const applyOnLive = await failure(r.commands.apply(provider({})));
 
-    await r.store.markDeleting("idp_held");
-    const onMarked = await failure(r.commands.update({ resource: provider({}, { id: "idp_held" }), updateMask: { paths: ["*"] } }));
+    await r.store.markDeleting("fis_held");
+    const onMarked = await failure(r.commands.update({ resource: provider({}, { id: "fis_held" }), updateMask: { paths: ["*"] } }));
     const applyOnMarked = await failure(r.commands.apply(provider({})));
 
     expect([onMarked.code, onMarked.rawMessage]).toEqual([onLive.code, onLive.rawMessage]);
     expect([applyOnMarked.code, applyOnMarked.rawMessage]).toEqual([applyOnLive.code, applyOnLive.rawMessage]);
-    expect(onMarked.rawMessage).not.toBe(PROVIDER_BEING_DELETED_MESSAGE);
-    expect(applyOnMarked.rawMessage).not.toBe(PROVIDER_BEING_DELETED_MESSAGE);
+    expect(onMarked.rawMessage).not.toBe(ISSUER_BEING_DELETED_MESSAGE);
+    expect(applyOnMarked.rawMessage).not.toBe(ISSUER_BEING_DELETED_MESSAGE);
   });
 
   it("refuses an update and an apply of a provider whose delete did not finish, and changes nothing", async () => {
     const r = rig();
-    const stored = storedProvider({ id: "idp_held", org: "acme", slug: "acme-platform" });
+    const stored = storedIssuer({ id: "fis_held", org: "acme", slug: "acme-platform" });
     await r.store.insert(stored);
-    await r.store.markDeleting("idp_held");
+    await r.store.markDeleting("fis_held");
 
-    const throughUpdate = await failure(r.commands.update({ resource: provider({}, { id: "idp_held" }), updateMask: { paths: ["*"] } }));
+    const throughUpdate = await failure(r.commands.update({ resource: provider({}, { id: "fis_held" }), updateMask: { paths: ["*"] } }));
     expect(throughUpdate.code).toBe(Code.FailedPrecondition);
-    expect(throughUpdate.rawMessage).toBe(PROVIDER_BEING_DELETED_MESSAGE);
+    expect(throughUpdate.rawMessage).toBe(ISSUER_BEING_DELETED_MESSAGE);
 
     const throughApply = await failure(r.commands.apply(provider({})));
     expect(throughApply.code).toBe(Code.FailedPrecondition);
-    expect(throughApply.rawMessage).toBe(PROVIDER_BEING_DELETED_MESSAGE);
+    expect(throughApply.rawMessage).toBe(ISSUER_BEING_DELETED_MESSAGE);
 
-    expect(await r.store.findById("idp_held")).toEqual(stored);
+    expect(await r.store.findById("fis_held")).toEqual(stored);
     expect(r.dialed, "refused before anything is dialed").toEqual([]);
     expect(r.invalidations).toBe(0);
   });
 
   it("answers NOT_FOUND to an update whose provider's delete finished between its two reads", async () => {
     /** A store whose delete finishes exactly while the update asks whether the provider is live. */
-    class DeletedWhileAsked extends InMemoryProviderStore {
+    class DeletedWhileAsked extends InMemoryIssuerStore {
       override async isLive(id: string): Promise<boolean> {
         await this.deleteById(id);
         return false;
@@ -976,9 +976,9 @@ describe("a provider whose delete did not finish", () => {
     }
     const store = new DeletedWhileAsked();
     const r = rig({ store });
-    await store.insert(storedProvider({ id: "idp_held", org: "acme", slug: "acme-platform" }));
+    await store.insert(storedIssuer({ id: "fis_held", org: "acme", slug: "acme-platform" }));
 
-    const refused = await failure(r.commands.update({ resource: provider({}, { id: "idp_held" }), updateMask: { paths: ["*"] } }));
+    const refused = await failure(r.commands.update({ resource: provider({}, { id: "fis_held" }), updateMask: { paths: ["*"] } }));
     expect(refused.code).toBe(Code.NotFound);
   });
 
@@ -1147,7 +1147,7 @@ describe("the discovery binding", () => {
     expect(error.code).toBe(Code.InvalidArgument);
     expect(error.rawMessage).toBe(
       "Issuer 'https://idp.acme.test' is this platform's own sign-in issuer and cannot be an " +
-        "organization's identity provider.",
+        "organization's federation issuer.",
     );
     expect(r.dialed).toEqual([]);
     expect(r.store.size).toBe(0);
@@ -1160,7 +1160,7 @@ describe("the discovery binding", () => {
     expect(noAudience.rawMessage).toContain("spec.expected_audience");
     const noKeys = await failure(r.commands.create(provider({ jwksUri: "" })));
     expect(noKeys.code).toBe(Code.InvalidArgument);
-    expect(noKeys.rawMessage).toContain("identity_provider.jwks_uri_required_with_issuers");
+    expect(noKeys.rawMessage).toContain("federation_issuer.jwks_uri_required_with_issuers");
     expect(r.dialed).toEqual([]);
     expect(r.store.size).toBe(0);
   });
@@ -1182,12 +1182,12 @@ describe("userinfo_endpoint on save", () => {
 
 /**
  * The contract's refusal of an owner sign-in role, as ValidateProto answers
- * it (`identity_provider.sign_in_role_not_owner` on IdentityProviderSpec,
+ * it (`federation_issuer.sign_in_role_not_owner` on FederationIssuerSpec,
  * the path its violation names, then its id).
  */
 const OWNER_SIGN_IN_ROLE_REFUSED =
   "spec: sign_in_role cannot be owner; organization ownership must be assigned explicitly " +
-  "[identity_provider.sign_in_role_not_owner]";
+  "[federation_issuer.sign_in_role_not_owner]";
 
 /** The sign-in fields a request may carry, set on a provider the builder made. */
 function withSignIn(
@@ -1242,16 +1242,16 @@ describe("the sign-in fields on save", () => {
     expect(created.rawMessage).toBe(copy);
     expect(r.store.size).toBe(0);
 
-    const stored = storedProvider({ id: "idp_a", org: "acme", slug: "idp-a" });
+    const stored = storedIssuer({ id: "fis_a", org: "acme", slug: "idp-a" });
     await r.store.insert(stored);
     const updated = await failure(
       r.commands.update(
-        { resource: withSignIn(provider({}, { id: "idp_a" }), { createAccountsOnSignIn: true, signInRole: role }), updateMask: { paths: ["*"] } },
+        { resource: withSignIn(provider({}, { id: "fis_a" }), { createAccountsOnSignIn: true, signInRole: role }), updateMask: { paths: ["*"] } },
       ),
     );
     expect(updated.code).toBe(Code.InvalidArgument);
     expect(updated.rawMessage).toBe(copy);
-    expect(await r.store.findById("idp_a")).toEqual(stored);
+    expect(await r.store.findById("fis_a")).toEqual(stored);
     expect(r.dialed).toEqual([]);
   });
 
@@ -1278,7 +1278,7 @@ describe("the sign-in fields on save", () => {
     );
     expect(error.code).toBe(Code.FailedPrecondition);
     expect(error.rawMessage).toBe(
-      "external_id_claim cannot be set on an identity provider of a child organization: a child " +
+      "external_id_claim cannot be set on a federation issuer of a child organization: a child " +
         "organization has no child organizations to route a sign-in to.",
     );
     expect(r.store.size).toBe(0);
@@ -1288,15 +1288,15 @@ describe("the sign-in fields on save", () => {
 
   it("refuses an owner sign-in role on update and leaves the stored row as it was", async () => {
     const r = rig();
-    const stored = storedProvider({ id: "idp_a", org: "acme", slug: "idp-a" });
+    const stored = storedIssuer({ id: "fis_a", org: "acme", slug: "idp-a" });
     await r.store.insert(stored);
 
     const error = await failure(
-      r.commands.update({ resource: withSignIn(provider({}, { id: "idp_a" }), OWNER_GRANT), updateMask: { paths: ["*"] } }),
+      r.commands.update({ resource: withSignIn(provider({}, { id: "fis_a" }), OWNER_GRANT), updateMask: { paths: ["*"] } }),
     );
     expect(error.code).toBe(Code.InvalidArgument);
     expect(error.rawMessage).toBe(OWNER_SIGN_IN_ROLE_REFUSED);
-    expect(await r.store.findById("idp_a")).toEqual(stored);
+    expect(await r.store.findById("fis_a")).toEqual(stored);
     expect(r.dialed).toEqual([]);
     expect(r.invalidations).toBe(0);
   });
@@ -1310,14 +1310,14 @@ describe("the sign-in fields on save", () => {
     expect(throughCreate.rawMessage).toBe(OWNER_SIGN_IN_ROLE_REFUSED);
     expect(r.store.size).toBe(0);
 
-    const stored = storedProvider({ id: "idp_held", org: "acme", slug: "acme-platform" });
+    const stored = storedIssuer({ id: "fis_held", org: "acme", slug: "acme-platform" });
     await r.store.insert(stored);
     const throughUpdate = await failure(
       r.commands.apply(withSignIn(provider({}), OWNER_GRANT)),
     );
     expect(throughUpdate.code).toBe(Code.InvalidArgument);
     expect(throughUpdate.rawMessage).toBe(OWNER_SIGN_IN_ROLE_REFUSED);
-    expect(await r.store.findById("idp_held")).toEqual(stored);
+    expect(await r.store.findById("fis_held")).toEqual(stored);
   });
 
   it.each([

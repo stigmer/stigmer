@@ -8,12 +8,12 @@
  * loads before it can authorize, because the row it authorizes is the one
  * the load finds. Answering NOT_FOUND for a miss and PERMISSION_DENIED for
  * a hit the caller may not see tells an outsider, by the code alone,
- * whether another organization holds a team or an identity provider of a
+ * whether another organization holds a team or a federation issuer of a
  * guessed name. So on a miss the lane asks the question that decides
  * whether the caller could see such a row at all: the kind's bar on the
  * organization the reference names (a team's viewers are its
  * organization's viewers, `team.fga`; every provider of an organization is
- * seen by its admins, `identity_provider.fga`). The order is the library's
+ * seen by its admins, `federation_issuer.fga`). The order is the library's
  * own anti-probing rule for mid-chain questions: the organization's bar
  * before the row, so an outsider learns nothing about the row
  * (`@stigmer/server` pipeline/steps/authorize-resolved-target.ts).

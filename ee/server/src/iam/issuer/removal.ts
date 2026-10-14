@@ -1,5 +1,5 @@
 /**
- * The one place an identity provider is removed: the delete RPC and the
+ * The one place a federation issuer is removed: the delete RPC and the
  * organization delete both come here, so "a provider dies" has one order.
  *
  * First the provider is marked as being deleted, and this process's
@@ -72,7 +72,7 @@ import type { FederationIssuerStore } from "./store.js";
 /** The provider's kind as an `ApiResourceRef.kind` spells it. */
 export const FEDERATION_ISSUER_KIND_NAME = ApiResourceKind[ApiResourceKind.federation_issuer];
 
-export interface ProviderRemoval {
+export interface IssuerRemoval {
   /**
    * The provider's delete mark, then its accounts and grants, then its
    * row; throws with the row intact, and still marked, when any of them
@@ -89,7 +89,7 @@ export interface ProviderRemoval {
   removeByOrgId(orgId: string, actingFor: string): Promise<void>;
 }
 
-export interface ProviderRemovalDeps {
+export interface IssuerRemovalDeps {
   readonly providers: Pick<
     FederationIssuerStore,
     "findById" | "findIdsByOrg" | "markDeleting" | "deleteById"
@@ -98,7 +98,7 @@ export interface ProviderRemovalDeps {
   readonly names: NameTable;
   /** The provider's federated accounts: listed by its id, each deleted with its policies. */
   readonly accounts: Pick<IdentityAccountService, "deleteAccount"> & {
-    readonly store: Pick<IdentityAccountStore, "findByProvider">;
+    readonly store: Pick<IdentityAccountStore, "findByIssuer">;
   };
   readonly policies: Pick<IamPolicyGrantPathClient, "cleanupResourcePolicies">;
   /** The federated verifier's issuer-cache invalidation. */
@@ -106,7 +106,7 @@ export interface ProviderRemovalDeps {
   readonly logger: Logger;
 }
 
-export function newProviderRemoval(deps: ProviderRemovalDeps): ProviderRemoval {
+export function newIssuerRemoval(deps: IssuerRemovalDeps): IssuerRemoval {
   /** The last sweep, after the row: never throws (the module header says why). */
   async function sweepAfterRow(id: string, org: string, slug: string, actingFor: string): Promise<void> {
     const report = (message: string, fields: Record<string, string>, error: unknown): void => {
@@ -121,9 +121,9 @@ export function newProviderRemoval(deps: ProviderRemovalDeps): ProviderRemoval {
     try {
       // Keyed by the provider's id: a provider made since under the same
       // name is another id, and its accounts are never this sweep's.
-      accounts = await deps.accounts.store.findByProvider(id);
+      accounts = await deps.accounts.store.findByIssuer(id);
     } catch (error) {
-      report("the last sweep of a deleted identity provider's accounts could not list them", {}, error);
+      report("the last sweep of a deleted federation issuer's accounts could not list them", {}, error);
       return;
     }
     for (const account of accounts) {
@@ -131,7 +131,7 @@ export function newProviderRemoval(deps: ProviderRemovalDeps): ProviderRemoval {
         await deps.accounts.deleteAccount(account, actingFor);
       } catch (error) {
         report(
-          "an account made during its identity provider's delete could not be removed",
+          "an account made during its federation issuer's delete could not be removed",
           { accountId: account.metadata?.id ?? "" },
           error,
         );
@@ -144,7 +144,7 @@ export function newProviderRemoval(deps: ProviderRemovalDeps): ProviderRemoval {
     if (provider !== undefined) {
       await deps.providers.markDeleting(id);
       deps.invalidate();
-      for (const account of await deps.accounts.store.findByProvider(id)) {
+      for (const account of await deps.accounts.store.findByIssuer(id)) {
         await deps.accounts.deleteAccount(account, actingFor);
       }
     }
@@ -156,7 +156,7 @@ export function newProviderRemoval(deps: ProviderRemovalDeps): ProviderRemoval {
     deps.invalidate();
     if (provider !== undefined) {
       await sweepAfterRow(id, provider.metadata?.org ?? "", provider.metadata?.slug ?? "", actingFor);
-      await releaseProviderNames(id, provider.metadata?.org ?? "");
+      await releaseIssuerNames(id, provider.metadata?.org ?? "");
     }
   }
 
@@ -164,11 +164,11 @@ export function newProviderRemoval(deps: ProviderRemovalDeps): ProviderRemoval {
    * Lets the removed provider's names go, after its last sweep. Best-effort, as every delete's post-row release is, since the next
    * claim of the slug frees a name whose provider is gone.
    */
-  async function releaseProviderNames(id: string, org: string): Promise<void> {
+  async function releaseIssuerNames(id: string, org: string): Promise<void> {
     try {
       await deps.names.resourceNames.release(FEDERATION_ISSUER_KIND_NAME, org, id);
     } catch (error) {
-      deps.logger.error("identity provider removed but its name could not be released; a later claim frees it", {
+      deps.logger.error("federation issuer removed but its name could not be released; a later claim frees it", {
         provider: id,
         org,
         error: error instanceof Error ? error.message : String(error),
@@ -186,7 +186,7 @@ export function newProviderRemoval(deps: ProviderRemovalDeps): ProviderRemoval {
         } catch (error) {
           failed += 1;
           deps.logger.error(
-            "identity provider removal failed with its organization; the provider row and its policies remain",
+            "federation issuer removal failed with its organization; the provider row and its policies remain",
             {
               provider: id,
               org: orgId,
@@ -196,7 +196,7 @@ export function newProviderRemoval(deps: ProviderRemovalDeps): ProviderRemoval {
         }
       }
       if (failed > 0) {
-        throw new Error(`${failed} identity provider(s) of organization '${orgId}' could not be removed`);
+        throw new Error(`${failed} federation issuer(s) of organization '${orgId}' could not be removed`);
       }
     },
   };

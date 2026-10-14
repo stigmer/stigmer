@@ -276,7 +276,7 @@ describe("changeThroughGuardedPort", () => {
     expect(changedGenerations).toEqual([0, 1, 2]);
     expectWriteConflict(
       error,
-      "Identity provider 'org_acme/provider' kept changing while this update was being saved; try again",
+      "Federation issuer 'org_acme/provider' kept changing while this update was being saved; try again",
     );
     // Every move survived; the change never landed.
     expect(port.current()).toEqual({ ...seededRow(), generation: 3 });

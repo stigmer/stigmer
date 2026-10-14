@@ -1,10 +1,10 @@
 /**
- * The enterprise-identity extension unit: identity providers and
+ * The enterprise-identity extension unit: federation issuers and
  * federation, invitations and teams, the identity code an organization
  * brings to Stigmer and the code Stigmer Enterprise ships. It fills:
  *
  *   - identityVerifiers: the federated lane (`federated-idp`), store-backed
- *     off the IdentityProvider resource, the single source of federation
+ *     off the FederationIssuer resource, the single source of federation
  *     trust, and told of every provider write;
  *   - drivers.identityFederation (the four federated IdentityAccount arms
  *     the library dispatches to), drivers.principalDisplay (an access list
@@ -19,7 +19,7 @@
  *     checked against the team, which exists and is the resource's
  *     organization's, a new member or a person a resource is shared with
  *     is one of its viewers; iam/team/grant-gate.ts);
- *   - services: IdentityProvider, Invitation and Team, kinds open source
+ *   - services: FederationIssuer, Invitation and Team, kinds open source
  *     does not serve. Their grant and revoke lanes reach the library's grant
  *     path through one client (iam/policy/grant-path-client.ts);
  *   - orgPurge: the `identity` stage, the same three removals again as the
@@ -82,7 +82,7 @@
  * from the public `ee/` package. Its place in the composition is
  * load-bearing, and the host's wiring test pins it: after the host's IAM
  * unit, so the host's own direct-login lane claims ahead of the federated
- * lane and an IdentityProvider row naming the host's own issuer can never
+ * lane and a FederationIssuer row naming the host's own issuer can never
  * capture console tokens, and so that unit's own start runs before this
  * unit's repairs.
  *
@@ -164,9 +164,9 @@ import type { OrganizationScopedRow } from "../iam/organization-links.js";
 import { reconcileOwnerRows } from "../iam/owner-rows.js";
 import type { OwnerRowKind } from "../iam/owner-rows.js";
 import { newIamPolicyGrantPathClient } from "../iam/policy/grant-path-client.js";
-import { newFederationIssuerRegistrations } from "../iam/provider/handlers.js";
-import { newProviderRemoval } from "../iam/provider/removal.js";
-import type { FederationIssuerStore } from "../iam/provider/store.js";
+import { newFederationIssuerRegistrations } from "../iam/issuer/handlers.js";
+import { newIssuerRemoval } from "../iam/issuer/removal.js";
+import type { FederationIssuerStore } from "../iam/issuer/store.js";
 import { newTeamPrincipalDisplay } from "../iam/team/display.js";
 import { newOrganizationGrantGateStep } from "../iam/team/grant-gate.js";
 import type { TeamPlanGate } from "../iam/team/plan-gate.js";
@@ -193,7 +193,7 @@ export interface EnterpriseIdentityPorts {
   /** The egress-guarded fetch every tenant-written URL is dialed through. */
   readonly outboundFetch: OutboundFetch;
   /**
-   * The issuers this host's own sign-in lanes claim; no identity provider
+   * The issuers this host's own sign-in lanes claim; no federation issuer
    * may name one.
    */
   readonly reservedIssuers: ReadonlyArray<string>;
@@ -215,7 +215,7 @@ export interface EnterpriseIdentityPorts {
 
 /** The kinds this domain serves that record no owner, in the order the boot reconciles them. */
 const ENTERPRISE_OWNER_ROW_KINDS: ReadonlyArray<OwnerRowKind> = [
-  { kind: ApiResourceKind.federation_issuer, key: "identity-provider", idField: "provider" },
+  { kind: ApiResourceKind.federation_issuer, key: "federation-issuer", idField: "provider" },
   { kind: ApiResourceKind.invitation, key: "invitation", idField: "invitation" },
 ];
 
@@ -330,13 +330,13 @@ export function newEnterpriseIdentityExtension(
     organizations,
     logger,
   });
-  const invalidateProviders = (): void => federatedVerifier.invalidate();
-  const providerRemoval = newProviderRemoval({
+  const invalidateIssuers = (): void => federatedVerifier.invalidate();
+  const providerRemoval = newIssuerRemoval({
     providers,
     names,
     accounts: ports.accounts,
     policies,
-    invalidate: invalidateProviders,
+    invalidate: invalidateIssuers,
     logger,
   });
   const teamRemoval = newTeamRemoval({ teams, names, policies, logger });
@@ -391,7 +391,7 @@ export function newEnterpriseIdentityExtension(
   async function repairOrganizationLinks(): Promise<void> {
     await repairOrganizationLinksOf(
       ApiResourceKind.federation_issuer,
-      { key: "identity-provider", phrase: "identity provider", idField: "provider" },
+      { key: "federation-issuer", phrase: "federation issuer", idField: "provider" },
       () => providers.findAll(),
     );
     // An invitation left unlinked is invisible to its own organization's
@@ -488,7 +488,7 @@ export function newEnterpriseIdentityExtension(
         removal: providerRemoval,
         lifecycle,
         listReadScope,
-        invalidate: invalidateProviders,
+        invalidate: invalidateIssuers,
         organizations,
         accounts: ports.accounts.store,
         ...(ports.growthGate === undefined ? {} : { growthGate: ports.growthGate }),

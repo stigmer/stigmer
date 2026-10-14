@@ -1,7 +1,7 @@
 /**
  * The OIDC /userinfo client of the federated login lane: the profile a
  * customer's IdP states for a JIT-provisioned subject, fetched with the
- * caller's own access token from the endpoint the IdentityProvider row
+ * caller's own access token from the endpoint the FederationIssuer row
  * names. The federated lane is its ONLY consumer: direct-account
  * provisioning is open source's, and discovers the userinfo endpoint of
  * the issuer that vouched for the token, so it never reads this module.
@@ -23,7 +23,7 @@ import type { OutboundFetch } from "@stigmer/outbound/egress";
 /** The bound on one userinfo call; the federated lane's JWKS fetch uses the same (verifiers/jwks.ts). */
 export const USERINFO_FETCH_TIMEOUT_MS = 10_000;
 
-/** The profile an identity provider's userinfo endpoint states. */
+/** The profile a federation issuer's userinfo endpoint states. */
 export interface UserProfile {
   readonly email: string;
   readonly firstName: string;

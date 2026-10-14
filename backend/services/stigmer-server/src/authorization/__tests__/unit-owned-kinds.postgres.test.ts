@@ -176,9 +176,9 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         ]);
         providers = memoryReader([
           [
-            "idp_acme",
-            fixtureRow(storedDeclaration("identity_provider"), {
-              id: "idp_acme",
+            "fis_acme",
+            fixtureRow(storedDeclaration("federation_issuer"), {
+              id: "fis_acme",
               org: "acme",
               visibility: ApiResourceVisibility.visibility_private,
               createdBy: ADMIN,
@@ -266,11 +266,11 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           });
         }
 
-        it("answers an identity provider from the model over its reader's row: its organization's admin views it, a member does not", async () => {
+        it("answers a federation issuer from the model over its reader's row: its organization's admin views it, a member does not", async () => {
           const check = {
             permission: IamPermission.can_view,
             resourceKind: ApiResourceKind.federation_issuer,
-            resourceId: "idp_acme",
+            resourceId: "fis_acme",
           };
           expect(await authorizer().authorize(caller(ADMIN), check)).toEqual({
             kind: "allow",
@@ -279,7 +279,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             kind: "deny",
             reason: "",
           });
-          expect(providers.asked).toContain("idp_acme");
+          expect(providers.asked).toContain("fis_acme");
         });
 
         it("answers a team: a member of its organization views it, one who left does not", async () => {
@@ -298,7 +298,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         });
 
         it.each([
-          [ApiResourceKind.federation_issuer, "idp_missing"],
+          [ApiResourceKind.federation_issuer, "fis_missing"],
           [ApiResourceKind.invitation, "inv_missing"],
           [ApiResourceKind.team, "tm_missing"],
           [ApiResourceKind.platform, "stigmer"],

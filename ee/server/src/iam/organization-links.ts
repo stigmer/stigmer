@@ -9,7 +9,7 @@
  *
  * Why the organization link alone: the first three kinds are managed by
  * their organization's current admins and by nobody else
- * (`identity_provider.fga`, `invitation.fga`, `team.fga`; the kinds record
+ * (`federation_issuer.fga`, `invitation.fga`, `team.fga`; the kinds record
  * no owner), and a service account's admins reach it and its keys through
  * it (`identity_account.fga`; its self-owner row is its own), so the link
  * is all a row needs to stay manageable. The owner rows an older server wrote are the
@@ -50,7 +50,7 @@
  * redemption and in its preview, because a link that outlived its
  * organization would otherwise open whichever organization took the slug
  * next (invitation/handlers.ts); and what the federated verifier's index
- * asks of an identity provider, because a provider that outlived its
+ * asks of a federation issuer, because a provider that outlived its
  * organization would otherwise sign people into it (federation/verifier.ts). The lookup therefore
  * answers the few facts its callers read from one organization read: its
  * creation time, and the name, slug and logo the invitation preview shows.

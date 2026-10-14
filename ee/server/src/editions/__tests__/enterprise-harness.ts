@@ -216,7 +216,7 @@ export async function createOrganization(founder: Person, slug: string): Promise
   return created.metadata?.id ?? "";
 }
 
-/** An identity provider request over the loopback server's https spelling of `issuerName` (its slug by default). */
+/** A federation issuer request over the loopback server's https spelling of `issuerName` (its slug by default). */
 export function providerRequest(
   issuer: LoopbackIssuer,
   org: string,
@@ -232,7 +232,7 @@ export function providerRequest(
   const issuerUrl = issuer.tlsIssuerUrl(options.issuerName ?? slug);
   return {
     apiVersion: "iam.stigmer.ai/v1",
-    kind: "IdentityProvider",
+    kind: "FederationIssuer",
     metadata: { name: slug, slug, org, ...(options.id === undefined ? {} : { id: options.id }) },
     spec: {
       displayName: options.displayName ?? slug,
@@ -245,8 +245,8 @@ export function providerRequest(
   };
 }
 
-/** Creates an identity provider as `admin`; answers it. */
-export async function createProvider(
+/** Creates a federation issuer as `admin`; answers it. */
+export async function createIssuer(
   admin: Person,
   issuer: LoopbackIssuer,
   org: string,

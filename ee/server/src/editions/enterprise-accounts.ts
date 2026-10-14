@@ -95,9 +95,9 @@ export function newEnterpriseAccounts(): EnterpriseAccounts {
     findDirectByEmail: async (...args: Parameters<Store["findDirectByEmail"]>) =>
       domain().store.findDirectByEmail(...args),
     findByIds: async (...args: Parameters<Store["findByIds"]>) => domain().store.findByIds(...args),
-    findByProviderAndIdpId: async (...args: Parameters<Store["findByProviderAndIdpId"]>) =>
-      domain().store.findByProviderAndIdpId(...args),
-    findByProvider: async (...args: Parameters<Store["findByProvider"]>) => domain().store.findByProvider(...args),
+    findByIssuerAndIdpId: async (...args: Parameters<Store["findByIssuerAndIdpId"]>) =>
+      domain().store.findByIssuerAndIdpId(...args),
+    findByIssuer: async (...args: Parameters<Store["findByIssuer"]>) => domain().store.findByIssuer(...args),
     findByOrg: async (...args: Parameters<Store["findByOrg"]>) => domain().store.findByOrg(...args),
   };
 
@@ -110,7 +110,7 @@ export function newEnterpriseAccounts(): EnterpriseAccounts {
         throw new Error("this server makes only federated accounts: a provider vouches for every person it signs in");
       }
       if (actingFor === undefined || actingFor === "") {
-        throw new Error("a federated account is made acting for the identity provider that vouches for it");
+        throw new Error("a federated account is made acting for the federation issuer that vouches for it");
       }
       try {
         return await domain().create(

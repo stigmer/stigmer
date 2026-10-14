@@ -1,5 +1,5 @@
 /**
- * The IdentityProvider row store's port: what the provider lanes, the
+ * The FederationIssuer row store's port: what the provider lanes, the
  * federated verifier and the removals read and write. The host's Postgres
  * adapter is postgres-store.ts beside it.
  *
@@ -41,28 +41,28 @@
  */
 import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 
-import type { ProviderRoute } from "./routes.js";
+import type { IssuerRoute } from "./routes.js";
 import type { GuardedWritePort, ListIndexCursor, ListIndexRow } from "@stigmer/server";
 
 /** A new provider's outcomes: written, or a claim another provider already holds. */
-export type ProviderInsertOutcome =
+export type IssuerInsertOutcome =
   | { readonly kind: "inserted" }
   | { readonly kind: "slug-taken" }
-  | { readonly kind: "route-taken"; readonly route: ProviderRoute };
+  | { readonly kind: "route-taken"; readonly route: IssuerRoute };
 
 /**
  * A guarded rewrite's outcomes: rewritten, a claimed route, or the row
  * changed or gone since it was read (the guarded write's loss).
  */
-export type ProviderSwapOutcome =
+export type IssuerSwapOutcome =
   | { readonly kind: "replaced" }
-  | { readonly kind: "route-taken"; readonly route: ProviderRoute }
+  | { readonly kind: "route-taken"; readonly route: IssuerRoute }
   | { readonly kind: "changed" };
 
 export interface FederationIssuerStore
-  extends GuardedWritePort<FederationIssuer, ProviderSwapOutcome> {
+  extends GuardedWritePort<FederationIssuer, IssuerSwapOutcome> {
   /** Adds a provider and claims its routes, all or nothing. */
-  insert(provider: FederationIssuer): Promise<ProviderInsertOutcome>;
+  insert(provider: FederationIssuer): Promise<IssuerInsertOutcome>;
   /**
    * The guarded rewrite of a held provider's payload and route claims,
    * all or nothing, under the row's lock, and only while its payload is
@@ -75,7 +75,7 @@ export interface FederationIssuerStore
     id: string,
     expectedBytes: Uint8Array,
     provider: FederationIssuer,
-  ): Promise<ProviderSwapOutcome>;
+  ): Promise<IssuerSwapOutcome>;
   /**
    * Atomic read-modify-write by id under the row's lock, for a change of
    * the payload and the slug alone (a rename): `modify` mutates the stored
@@ -104,7 +104,7 @@ export interface FederationIssuerStore
   /** The ids of the organization's providers (the organization delete's sweep). */
   findIdsByOrg(org: string): Promise<ReadonlyArray<string>>;
   /** Answered from the route side table (the check IS the constraint). */
-  findProviderIdByRoute(issuer: string, audience: string): Promise<string | undefined>;
+  findIssuerIdByRoute(issuer: string, audience: string): Promise<string | undefined>;
   /** Every provider, those being deleted included (the boot reconcile). */
   findAll(): Promise<ReadonlyArray<FederationIssuer>>;
   /** Every provider not being deleted (the federated verifier's routing). */

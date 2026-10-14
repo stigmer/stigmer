@@ -1,5 +1,5 @@
 /**
- * An in-memory IdentityProviderStore for the unit suites: the same
+ * An in-memory FederationIssuerStore for the unit suites: the same
  * outcomes the Postgres store answers (a slug taken within an
  * organization, a route, an issuer with an audience, another provider
  * claims, a replace of a row that is gone; newest first per
@@ -7,7 +7,7 @@
  * by `isLive`, and answered by every other read; a provider not
  * fully shaped by its chain refused), held to
  * the port's contract kit beside the Postgres store
- * (in-memory-provider-store.test.ts), so the chains, the
+ * (in-memory-issuer-store.test.ts), so the chains, the
  * removal and the reconcile are exercised without a database. A host's
  * adapter is pinned to the same contract over its real tables in its own
  * suites.
@@ -30,11 +30,11 @@ import type { GuardedRead, ListIndexCursor, ListIndexRow } from "@stigmer/server
 
 import { pageNewestFirst } from "../../../__test-utils__/in-memory-keyset.js";
 
-import { routesOf, type ProviderRoute } from "../routes.js";
+import { routesOf, type IssuerRoute } from "../routes.js";
 import type {
   FederationIssuerStore,
-  ProviderInsertOutcome,
-  ProviderSwapOutcome,
+  IssuerInsertOutcome,
+  IssuerSwapOutcome,
 } from "../store.js";
 
 /**
@@ -58,14 +58,14 @@ function unshapedRefusal(provider: FederationIssuer): Error | undefined {
     : new Error("a provider reaches the store fully shaped: id, organization, slug and audit are all set by its chain");
 }
 
-export class InMemoryProviderStore implements FederationIssuerStore {
+export class InMemoryIssuerStore implements FederationIssuerStore {
   private readonly rows = new Map<string, FederationIssuer>();
   /** Ids in insertion order, the newest last. */
   private readonly order: string[] = [];
   /** The providers marked as being deleted (the Postgres `deleting_since`). */
   private readonly deleting = new Set<string>();
 
-  insert(provider: FederationIssuer): Promise<ProviderInsertOutcome> {
+  insert(provider: FederationIssuer): Promise<IssuerInsertOutcome> {
     const refused = unshapedRefusal(provider);
     if (refused !== undefined) {
       return Promise.reject(refused);
@@ -98,7 +98,7 @@ export class InMemoryProviderStore implements FederationIssuerStore {
     );
   }
 
-  swap(id: string, expectedBytes: Uint8Array, provider: FederationIssuer): Promise<ProviderSwapOutcome> {
+  swap(id: string, expectedBytes: Uint8Array, provider: FederationIssuer): Promise<IssuerSwapOutcome> {
     const refused = unshapedRefusal(provider);
     if (refused !== undefined) {
       return Promise.reject(refused);
@@ -187,7 +187,7 @@ export class InMemoryProviderStore implements FederationIssuerStore {
     return Promise.resolve(this.order.filter((id) => this.rows.get(id)?.metadata?.org === org));
   }
 
-  findProviderIdByRoute(issuer: string, audience: string): Promise<string | undefined> {
+  findIssuerIdByRoute(issuer: string, audience: string): Promise<string | undefined> {
     return Promise.resolve(
       [...this.rows.values()].find((row) =>
         routesOf(row).some((route) => route.issuer === issuer && route.audience === audience),
@@ -223,7 +223,7 @@ export class InMemoryProviderStore implements FederationIssuerStore {
     return this.rows.size;
   }
 
-  private routeClaimedByAnother(provider: FederationIssuer, id: string): ProviderRoute | undefined {
+  private routeClaimedByAnother(provider: FederationIssuer, id: string): IssuerRoute | undefined {
     for (const route of routesOf(provider)) {
       for (const [heldId, held] of this.rows) {
         if (
@@ -243,7 +243,7 @@ export class InMemoryProviderStore implements FederationIssuerStore {
 }
 
 /** A stored provider as the create chain shapes one. */
-export function storedProvider(fields: {
+export function storedIssuer(fields: {
   id: string;
   org: string;
   slug: string;
@@ -254,7 +254,7 @@ export function storedProvider(fields: {
   const stamp = timestampFromDate(fields.createdAt ?? new Date("2026-09-25T10:00:00Z"));
   return create(FederationIssuerSchema, {
     apiVersion: "iam.stigmer.ai/v1",
-    kind: "IdentityProvider",
+    kind: "FederationIssuer",
     metadata: create(ApiResourceMetadataSchema, {
       id: fields.id,
       org: fields.org,

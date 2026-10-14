@@ -1,7 +1,7 @@
 /**
  * OpenID issuers on a loopback port, for a composed suite whose people sign
  * in through the library's own OIDC lane and through an organization's
- * identity provider. One HTTP server serves any number of named issuers at
+ * federation issuer. One HTTP server serves any number of named issuers at
  * `<base>/<name>`, each with its discovery document, its key set and its
  * userinfo endpoint; every issuer signs with one RS256 key, made here and
  * kept in memory.
@@ -10,7 +10,7 @@
  * different rules:
  *   - `issuerUrl(name)`, http: the library's own OIDC lane accepts http on
  *     a loopback address, and dials the server directly;
- *   - `tlsIssuerUrl(name)`, https: an identity provider's issuers must be
+ *   - `tlsIssuerUrl(name)`, https: a federation issuer's issuers must be
  *     https. The suite hands the server's `fetch` to the composition as the
  *     guarded fetch's dialer, so the composition's egress posture judges
  *     every address as it would in production, and only the final dial is
@@ -38,7 +38,7 @@ export interface LoopbackClaims {
   readonly sub: string;
   readonly aud: string;
   readonly email?: string;
-  /** Mint under the issuer's https spelling (an identity provider's token). */
+  /** Mint under the issuer's https spelling (a federation issuer's token). */
   readonly tls?: boolean;
   /** Any further claims, as given. */
   readonly extra?: Readonly<Record<string, unknown>>;

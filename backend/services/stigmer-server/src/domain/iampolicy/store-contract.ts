@@ -358,17 +358,17 @@ const CASES: ReadonlyArray<PortContractDeclaration<IamPolicyStore>> = [
     "findByResourceKindAndRelation answers every row granting the relation on the kind, and nothing on another kind or relation",
     async ({ store }) => {
       const providerA = spec({ kind: "identity_account", id: ALICE }, "owner", {
-        kind: "identity_provider",
-        id: "idp_01hzaaaaaaaaaaaaaaaaaaaaaa",
+        kind: "federation_issuer",
+        id: "fis_01hzaaaaaaaaaaaaaaaaaaaaaa",
       });
       const providerB = spec({ kind: "identity_account", id: BOB }, "owner", {
-        kind: "identity_provider",
-        id: "idp_01hzbbbbbbbbbbbbbbbbbbbbbb",
+        kind: "federation_issuer",
+        id: "fis_01hzbbbbbbbbbbbbbbbbbbbbbb",
       });
       const providerViewer = spec(
         { kind: "identity_account", id: BOB },
         "viewer",
-        { kind: "identity_provider", id: "idp_01hzaaaaaaaaaaaaaaaaaaaaaa" },
+        { kind: "federation_issuer", id: "fis_01hzaaaaaaaaaaaaaaaaaaaaaa" },
       );
       await saveAll(store, [
         policyRow(providerA),
@@ -379,7 +379,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<IamPolicyStore>> = [
       assert.deepEqual(
         (
           await store.findByResourceKindAndRelation(
-            "identity_provider",
+            "federation_issuer",
             "owner",
           )
         )
@@ -482,7 +482,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<IamPolicyStore>> = [
       );
       await assert.rejects(
         fixture.store.findByResourceKindAndRelation(
-          "identity_provider",
+          "federation_issuer",
           "owner",
         ),
         "a kind read on a disconnected store must reject: a reconcile that read no rows would leave every one standing",

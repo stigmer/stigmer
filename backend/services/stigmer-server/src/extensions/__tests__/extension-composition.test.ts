@@ -738,7 +738,7 @@ describe("extension composition (require-authentication posture)", () => {
           host: "127.0.0.1",
         }),
       ).rejects.toThrowError(
-        /serves edition 'enterprise' under the built-in authorizer but registers no row reader for 'identity_provider', 'invitation', 'team'/,
+        /serves edition 'enterprise' under the built-in authorizer but registers no row reader for 'federation_issuer', 'invitation', 'team'/,
       );
     } finally {
       rmSync(enterpriseDir, { recursive: true, force: true });
@@ -777,7 +777,7 @@ describe("extension composition (require-authentication posture)", () => {
           host: "127.0.0.1",
         }),
       ).rejects.toThrowError(
-        /serves edition 'enterprise' but registers no row reader for 'identity_provider', 'invitation', 'team' — the credential binding reads/,
+        /serves edition 'enterprise' but registers no row reader for 'federation_issuer', 'invitation', 'team' — the credential binding reads/,
       );
     } finally {
       rmSync(enterpriseDir, { recursive: true, force: true });

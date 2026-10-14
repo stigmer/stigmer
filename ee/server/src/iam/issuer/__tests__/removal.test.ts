@@ -1,5 +1,5 @@
 /**
- * The one place an identity provider is removed. Pins:
+ * The one place a federation issuer is removed. Pins:
  *   - the provider is marked as being deleted, and the verifier told,
  *     before a single account is listed, so a sign-in through it can no
  *     longer make an account the listing misses (the race itself is pinned
@@ -10,7 +10,7 @@
  *     provider, listed by the provider's id, so a provider re-created
  *     under the same slug (another id) inherits no account or role; a failed account delete stops before anything else
  *     and leaves the row, and a retry resumes with the accounts left;
- *   - the grants are revoked (as `identity_provider:<id>`, both
+ *   - the grants are revoked (as `federation_issuer:<id>`, both
  *     directions, by the grant path) before the row is deleted, acting for
  *     the person deleting it, and the verifier is told once the row is
  *     gone;
@@ -35,8 +35,8 @@ import type { ApiResourceRef } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1
 import { createLogger } from "@stigmer/server";
 import { describe, expect, it } from "vitest";
 
-import { newProviderRemoval } from "../removal.js";
-import { InMemoryProviderStore, storedProvider } from "./in-memory-provider-store.js";
+import { newIssuerRemoval } from "../removal.js";
+import { InMemoryIssuerStore, storedIssuer } from "./in-memory-issuer-store.js";
 import { inMemoryNames } from "../../../__test-utils__/in-memory-names.js";
 
 function federated(id: string): IdentityAccount {
@@ -59,14 +59,14 @@ function rig(
     listingFailsAfterRow?: boolean;
   } = {},
 ) {
-  const providers = new InMemoryProviderStore();
+  const providers = new InMemoryIssuerStore();
   const names = inMemoryNames();
   /** A long-held claim, as a provider made before this test holds its name. */
   const CLAIMED_AT = "2026-09-01T00:00:00.000Z";
-  const nameKey = (org: string, slug: string) => ({ kind: "identity_provider", org, name: slug });
+  const nameKey = (org: string, slug: string) => ({ kind: "federation_issuer", org, name: slug });
   const order: string[] = [];
   // Each provider's accounts by its id; a deleted one leaves the list.
-  const accountsByProvider = new Map<string, string[]>(
+  const accountsByIssuer = new Map<string, string[]>(
     Object.entries(options.accounts ?? {}).map(([key, ids]) => [key, [...ids]]),
   );
   const actors: Array<string | undefined> = [];
@@ -80,7 +80,7 @@ function rig(
       logged.push(JSON.parse(line) as Record<string, unknown>);
     },
   });
-  const removal = newProviderRemoval({
+  const removal = newIssuerRemoval({
     providers: {
       findById: (id) => providers.findById(id),
       findIdsByOrg: (org) => providers.findIdsByOrg(org),
@@ -93,7 +93,7 @@ function rig(
         await providers.deleteById(id);
         if (options.recreated !== undefined) {
           const { id: newId, org, slug } = options.recreated;
-          await providers.insert(storedProvider(options.recreated));
+          await providers.insert(storedIssuer(options.recreated));
           // The new provider's create frees the gone holder's name and takes it.
           await names.resourceNames.releaseName(nameKey(org, slug), id);
           await names.resourceNames.claim(nameKey(org, slug), newId, new Date().toISOString());
@@ -103,13 +103,13 @@ function rig(
     names,
     accounts: {
       store: {
-        findByProvider: async (providerId) => {
+        findByIssuer: async (providerId) => {
           if (options.listingFailsAfterRow === true && order.some((step) => step.startsWith("row:"))) {
             throw new Error("account store down");
           }
           const listed = await providers.findById(providerId);
           liveAtListing.push(listed !== undefined && (await providers.isLive(providerId)));
-          return (accountsByProvider.get(providerId) ?? []).map(federated);
+          return (accountsByIssuer.get(providerId) ?? []).map(federated);
         },
       },
       deleteAccount: (account, actingFor) => {
@@ -119,7 +119,7 @@ function rig(
         if (id === options.failAccount) {
           return Promise.reject(new Error("grant path down"));
         }
-        for (const ids of accountsByProvider.values()) {
+        for (const ids of accountsByIssuer.values()) {
           const at = ids.indexOf(id);
           if (at >= 0) {
             ids.splice(at, 1);
@@ -133,9 +133,9 @@ function rig(
         actors.push(actingFor);
         order.push(`grants:${ref.kind}:${ref.id}`);
         if (options.lateAccount !== undefined) {
-          const late = accountsByProvider.get(options.lateAccount.key) ?? [];
+          const late = accountsByIssuer.get(options.lateAccount.key) ?? [];
           late.push(options.lateAccount.id);
-          accountsByProvider.set(options.lateAccount.key, late);
+          accountsByIssuer.set(options.lateAccount.key, late);
         }
         return options.failFor?.has(ref.id) === true
           ? Promise.reject(new Error("engine down"))
@@ -149,7 +149,7 @@ function rig(
   });
   /** A provider as its create chain stores it: its row, and its slug as its name. */
   async function seed(id: string, org: string, slug: string): Promise<void> {
-    await providers.insert(storedProvider({ id, org, slug }));
+    await providers.insert(storedIssuer({ id, org, slug }));
     await names.resourceNames.claim(nameKey(org, slug), id, CLAIMED_AT);
   }
   return { providers, names, seed, order, actors, liveAtListing, logged, removal };
@@ -157,81 +157,81 @@ function rig(
 
 describe("remove", () => {
   it("marks the provider deleting and forgets it before it lists a single account", async () => {
-    const r = rig({ accounts: { "idp_a": ["ida_1"] } });
-    await r.seed("idp_a", "acme", "a");
+    const r = rig({ accounts: { "fis_a": ["ida_1"] } });
+    await r.seed("fis_a", "acme", "a");
 
-    await r.removal.remove("idp_a", DELETER);
-    expect(r.order.slice(0, 3)).toEqual(["mark:idp_a", "invalidate", "account:ida_1"]);
+    await r.removal.remove("fis_a", DELETER);
+    expect(r.order.slice(0, 3)).toEqual(["mark:fis_a", "invalidate", "account:ida_1"]);
     expect(r.liveAtListing, "the accounts are listed only once the provider is no longer live").toEqual([false, false]);
   });
 
   it("deletes the provider's accounts, then revokes its grants, then deletes the row and tells the verifier", async () => {
-    const r = rig({ accounts: { "idp_a": ["ida_1", "ida_2"], "idp_b": ["ida_9"] } });
-    await r.seed("idp_a", "acme", "a");
+    const r = rig({ accounts: { "fis_a": ["ida_1", "ida_2"], "fis_b": ["ida_9"] } });
+    await r.seed("fis_a", "acme", "a");
 
-    await r.removal.remove("idp_a", DELETER);
+    await r.removal.remove("fis_a", DELETER);
     expect(r.order).toEqual([
-      "mark:idp_a",
+      "mark:fis_a",
       "invalidate",
       "account:ida_1",
       "account:ida_2",
-      "grants:identity_provider:idp_a",
-      "row:idp_a",
+      "grants:federation_issuer:fis_a",
+      "row:fis_a",
       "invalidate",
     ]);
     expect(
       r.actors,
       "each account delete and the revoke are made acting for the person deleting the provider",
     ).toEqual([DELETER, DELETER, DELETER]);
-    expect(await r.providers.findById("idp_a")).toBeUndefined();
+    expect(await r.providers.findById("fis_a")).toBeUndefined();
   });
 
   it("stops at a failed account delete with the row and the grants in place and the provider dark, and a retry resumes", async () => {
-    const r = rig({ accounts: { "idp_a": ["ida_1", "ida_2", "ida_3"] }, failAccount: "ida_2" });
-    await r.seed("idp_a", "acme", "a");
+    const r = rig({ accounts: { "fis_a": ["ida_1", "ida_2", "ida_3"] }, failAccount: "ida_2" });
+    await r.seed("fis_a", "acme", "a");
 
-    await expect(r.removal.remove("idp_a", DELETER)).rejects.toThrow("grant path down");
-    expect(r.order).toEqual(["mark:idp_a", "invalidate", "account:ida_1", "account:ida_2"]);
-    expect(await r.providers.findById("idp_a")).toBeDefined();
-    expect(await r.providers.isLive("idp_a"), "a faulted delete keeps its mark").toBe(false);
+    await expect(r.removal.remove("fis_a", DELETER)).rejects.toThrow("grant path down");
+    expect(r.order).toEqual(["mark:fis_a", "invalidate", "account:ida_1", "account:ida_2"]);
+    expect(await r.providers.findById("fis_a")).toBeDefined();
+    expect(await r.providers.isLive("fis_a"), "a faulted delete keeps its mark").toBe(false);
 
-    const retry = rig({ accounts: { "idp_a": ["ida_2", "ida_3"] } });
-    await retry.seed("idp_a", "acme", "a");
-    await retry.providers.markDeleting("idp_a");
-    await retry.removal.remove("idp_a", DELETER);
+    const retry = rig({ accounts: { "fis_a": ["ida_2", "ida_3"] } });
+    await retry.seed("fis_a", "acme", "a");
+    await retry.providers.markDeleting("fis_a");
+    await retry.removal.remove("fis_a", DELETER);
     expect(retry.order.slice(0, 5)).toEqual([
-      "mark:idp_a",
+      "mark:fis_a",
       "invalidate",
       "account:ida_2",
       "account:ida_3",
-      "grants:identity_provider:idp_a",
+      "grants:federation_issuer:fis_a",
     ]);
-    expect(await retry.providers.findById("idp_a")).toBeUndefined();
+    expect(await retry.providers.findById("fis_a")).toBeUndefined();
   });
 
   it("leaves the row marked, and tells the verifier nothing more, when the grants cannot all be revoked", async () => {
-    const r = rig({ failFor: new Set(["idp_a"]) });
-    await r.seed("idp_a", "acme", "a");
+    const r = rig({ failFor: new Set(["fis_a"]) });
+    await r.seed("fis_a", "acme", "a");
 
-    await expect(r.removal.remove("idp_a", DELETER)).rejects.toThrow("engine down");
-    expect(r.order).toEqual(["mark:idp_a", "invalidate", "grants:identity_provider:idp_a"]);
-    expect(await r.providers.findById("idp_a")).toBeDefined();
-    expect(await r.providers.isLive("idp_a")).toBe(false);
+    await expect(r.removal.remove("fis_a", DELETER)).rejects.toThrow("engine down");
+    expect(r.order).toEqual(["mark:fis_a", "invalidate", "grants:federation_issuer:fis_a"]);
+    expect(await r.providers.findById("fis_a")).toBeDefined();
+    expect(await r.providers.isLive("fis_a")).toBe(false);
   });
 });
 
 describe("remove: the sweep after the row", () => {
   it("removes an account a sign-in wrote after the first sweep, once the row is gone", async () => {
-    const r = rig({ accounts: { "idp_a": ["ida_1"] }, lateAccount: { key: "idp_a", id: "ida_late" } });
-    await r.seed("idp_a", "acme", "a");
+    const r = rig({ accounts: { "fis_a": ["ida_1"] }, lateAccount: { key: "fis_a", id: "ida_late" } });
+    await r.seed("fis_a", "acme", "a");
 
-    await r.removal.remove("idp_a", DELETER);
+    await r.removal.remove("fis_a", DELETER);
     expect(r.order).toEqual([
-      "mark:idp_a",
+      "mark:fis_a",
       "invalidate",
       "account:ida_1",
-      "grants:identity_provider:idp_a",
-      "row:idp_a",
+      "grants:federation_issuer:fis_a",
+      "row:fis_a",
       "invalidate",
       "account:ida_late",
     ]);
@@ -239,32 +239,32 @@ describe("remove: the sweep after the row", () => {
   });
 
   it("logs an account the last sweep cannot remove, by its id, and still completes the delete", async () => {
-    const r = rig({ lateAccount: { key: "idp_a", id: "ida_late" }, failAccount: "ida_late" });
-    await r.seed("idp_a", "acme", "a");
+    const r = rig({ lateAccount: { key: "fis_a", id: "ida_late" }, failAccount: "ida_late" });
+    await r.seed("fis_a", "acme", "a");
 
-    await r.removal.remove("idp_a", DELETER);
-    expect(await r.providers.findById("idp_a")).toBeUndefined();
+    await r.removal.remove("fis_a", DELETER);
+    expect(await r.providers.findById("fis_a")).toBeUndefined();
     expect(r.logged).toHaveLength(1);
     expect(r.logged[0]).toMatchObject({
       level: "error",
       accountId: "ida_late",
-      provider: "idp_a",
+      provider: "fis_a",
       idp: "acme/a",
       error: "grant path down",
     });
   });
 
   it("logs a last sweep that cannot list the accounts, and still completes the delete", async () => {
-    const r = rig({ accounts: { "idp_a": ["ida_1"] }, listingFailsAfterRow: true });
-    await r.seed("idp_a", "acme", "a");
+    const r = rig({ accounts: { "fis_a": ["ida_1"] }, listingFailsAfterRow: true });
+    await r.seed("fis_a", "acme", "a");
 
-    await r.removal.remove("idp_a", DELETER);
-    expect(await r.providers.findById("idp_a")).toBeUndefined();
+    await r.removal.remove("fis_a", DELETER);
+    expect(await r.providers.findById("fis_a")).toBeUndefined();
     expect(r.logged).toHaveLength(1);
     expect(r.logged[0]).toMatchObject({
       level: "error",
-      message: "the last sweep of a deleted identity provider's accounts could not list them",
-      provider: "idp_a",
+      message: "the last sweep of a deleted federation issuer's accounts could not list them",
+      provider: "fis_a",
       idp: "acme/a",
       error: "account store down",
     });
@@ -272,39 +272,39 @@ describe("remove: the sweep after the row", () => {
 
   it("leaves the accounts of a provider re-created under the slug the moment the row went", async () => {
     const r = rig({
-      accounts: { "idp_a": [] },
+      accounts: { "fis_a": [] },
       // The new provider's accounts sit under its own id.
-      lateAccount: { key: "idp_a2", id: "ida_of_the_new_provider" },
-      recreated: { id: "idp_a2", org: "acme", slug: "a" },
+      lateAccount: { key: "fis_a2", id: "ida_of_the_new_provider" },
+      recreated: { id: "fis_a2", org: "acme", slug: "a" },
     });
-    await r.seed("idp_a", "acme", "a");
+    await r.seed("fis_a", "acme", "a");
 
-    await r.removal.remove("idp_a", DELETER);
+    await r.removal.remove("fis_a", DELETER);
     expect(r.order).not.toContain("account:ida_of_the_new_provider");
   });
 });
 
 describe("removeByOrgId", () => {
   it("removes each of the organization's providers on its own, logs the one that failed, then throws", async () => {
-    const r = rig({ failFor: new Set(["idp_b"]) });
-    await r.seed("idp_a", "acme", "a");
-    await r.seed("idp_b", "acme", "b");
-    await r.seed("idp_c", "acme", "c");
-    await r.seed("idp_x", "other", "x");
+    const r = rig({ failFor: new Set(["fis_b"]) });
+    await r.seed("fis_a", "acme", "a");
+    await r.seed("fis_b", "acme", "b");
+    await r.seed("fis_c", "acme", "c");
+    await r.seed("fis_x", "other", "x");
 
     await expect(r.removal.removeByOrgId("acme", DELETER)).rejects.toThrow(
-      "1 identity provider(s) of organization 'acme' could not be removed",
+      "1 federation issuer(s) of organization 'acme' could not be removed",
     );
 
-    expect(await r.providers.findIdsByOrg("acme")).toEqual(["idp_b"]);
-    expect(await r.providers.findIdsByOrg("other")).toEqual(["idp_x"]);
+    expect(await r.providers.findIdsByOrg("acme")).toEqual(["fis_b"]);
+    expect(await r.providers.findIdsByOrg("other")).toEqual(["fis_x"]);
     expect(r.logged).toHaveLength(1);
-    expect(r.logged[0]).toMatchObject({ provider: "idp_b", org: "acme", error: "engine down" });
+    expect(r.logged[0]).toMatchObject({ provider: "fis_b", org: "acme", error: "engine down" });
   });
 
   it("resolves when every provider is removed", async () => {
     const r = rig();
-    await r.seed("idp_a", "acme", "a");
+    await r.seed("fis_a", "acme", "a");
 
     await r.removal.removeByOrgId("acme", DELETER);
 
@@ -315,19 +315,19 @@ describe("removeByOrgId", () => {
 
 describe("the provider's name release", () => {
   it("logs a release that faults and still removes the provider: the next claim frees the name", async () => {
-    const providers = new InMemoryProviderStore();
-    await providers.insert(storedProvider({ id: "idp_gone", org: "acme", slug: "gone" }));
+    const providers = new InMemoryIssuerStore();
+    await providers.insert(storedIssuer({ id: "fis_gone", org: "acme", slug: "gone" }));
     const logged: Array<Record<string, unknown>> = [];
-    const removal = newProviderRemoval({
+    const removal = newIssuerRemoval({
       providers,
       names: {
         resourceNames: {
           resolve: () => Promise.resolve(undefined),
           release: () => Promise.reject(new Error("name table down")),
         },
-      } as unknown as Parameters<typeof newProviderRemoval>[0]["names"],
+      } as unknown as Parameters<typeof newIssuerRemoval>[0]["names"],
       accounts: {
-        store: { findByProvider: () => Promise.resolve([]) },
+        store: { findByIssuer: () => Promise.resolve([]) },
         deleteAccount: () => Promise.resolve(),
       },
       policies: { cleanupResourcePolicies: () => Promise.resolve() },
@@ -341,8 +341,8 @@ describe("the provider's name release", () => {
       }),
     });
 
-    await removal.remove("idp_gone", "ida_deleter");
-    expect(await providers.findById("idp_gone")).toBeUndefined();
+    await removal.remove("fis_gone", "ida_deleter");
+    expect(await providers.findById("fis_gone")).toBeUndefined();
     expect(logged.map((line) => line["msg"] ?? line["message"])).toEqual([
       expect.stringMatching(/its name could not be released/),
     ]);

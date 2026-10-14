@@ -54,10 +54,10 @@ import type { IdentityAccountService, NewAccountRequest } from "./port.js";
 /** What a service case drives: the service, two providers it may create under, and the host's probes. */
 export interface IdentityAccountServiceUnderTest {
   readonly service: IdentityAccountService;
-  /** An identity provider the host holds: its organization, slug and id (the id is who a create acts for). */
+  /** A federation issuer the host holds: its organization, slug and id (the id is who a create acts for). */
   readonly provider: { readonly org: string; readonly slug: string; readonly id: string };
-  /** A second identity provider in the same organization; a create may act for it too. */
-  readonly otherProvider: { readonly org: string; readonly slug: string; readonly id: string };
+  /** A second federation issuer in the same organization; a create may act for it too. */
+  readonly otherIssuer: { readonly org: string; readonly slug: string; readonly id: string };
   /** Gives the account one live key, through the host's own key lane. */
   issueKey(account: IdentityAccount): Promise<void>;
   /** How many live keys speak for the account. */
@@ -100,7 +100,7 @@ const SERVICE_CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountServic
       );
       const id = created.metadata?.id ?? "";
       assert.notEqual(id, "", "a created account carries its id");
-      const found = await service.store.findByProviderAndIdpId(provider.id, "okta|dana");
+      const found = await service.store.findByIssuerAndIdpId(provider.id, "okta|dana");
       assert.equal(found?.metadata?.id, id, "the natural key finds the account create made");
       assert.equal(found?.spec?.provisioningMode, IdentityAccountProvisioningMode.federated);
     },
@@ -169,31 +169,31 @@ const SERVICE_CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountServic
   [
     "createAccount under two providers keeps one subject apart: each account is found by its own provider's natural key, and a subject one provider vouches for is unknown to the other",
     async ({ store: host }) => {
-      const { provider, otherProvider, service } = host;
+      const { provider, otherIssuer, service } = host;
       const first = await service.createAccount(
         federatedRequest(provider, "okta|ivy", "ivy@acme.example"),
         provider.id,
       );
       const second = await service.createAccount(
-        federatedRequest(otherProvider, "okta|ivy", "ivy.other@acme.example"),
-        otherProvider.id,
+        federatedRequest(otherIssuer, "okta|ivy", "ivy.other@acme.example"),
+        otherIssuer.id,
       );
       await service.createAccount(federatedRequest(provider, "okta|jo", "jo@acme.example"), provider.id);
       const firstId = first.metadata?.id ?? "";
       const secondId = second.metadata?.id ?? "";
       assert.notEqual(firstId, secondId, "one subject under two providers is two people");
       assert.equal(
-        (await service.store.findByProviderAndIdpId(provider.id, "okta|ivy"))?.metadata?.id,
+        (await service.store.findByIssuerAndIdpId(provider.id, "okta|ivy"))?.metadata?.id,
         firstId,
         "the natural key finds the account its own provider vouches for",
       );
       assert.equal(
-        (await service.store.findByProviderAndIdpId(otherProvider.id, "okta|ivy"))?.metadata?.id,
+        (await service.store.findByIssuerAndIdpId(otherIssuer.id, "okta|ivy"))?.metadata?.id,
         secondId,
         "the other provider's natural key finds its own account, never the first",
       );
       assert.equal(
-        await service.store.findByProviderAndIdpId(otherProvider.id, "okta|jo"),
+        await service.store.findByIssuerAndIdpId(otherIssuer.id, "okta|jo"),
         undefined,
         "a subject only one provider vouches for is unknown to the other",
       );
@@ -202,16 +202,16 @@ const SERVICE_CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountServic
   [
     "the store lists a provider's accounts in id order: every account createAccount made under it, and none another provider vouches for",
     async ({ store: host }) => {
-      const { provider, otherProvider, service } = host;
+      const { provider, otherIssuer, service } = host;
       const kai = await service.createAccount(federatedRequest(provider, "okta|kai", "kai@acme.example"), provider.id);
       const lee = await service.createAccount(federatedRequest(provider, "okta|lee", "lee@acme.example"), provider.id);
       const mo = await service.createAccount(
-        federatedRequest(otherProvider, "okta|mo", "mo@acme.example"),
-        otherProvider.id,
+        federatedRequest(otherIssuer, "okta|mo", "mo@acme.example"),
+        otherIssuer.id,
       );
       const [kaiId, leeId, moId] = [kai, lee, mo].map((created) => created.metadata?.id ?? "");
 
-      const listed = await service.store.findByProvider(provider.id);
+      const listed = await service.store.findByIssuer(provider.id);
       const ids = listed.map((row) => row.metadata?.id ?? "");
       assert.ok(ids.includes(kaiId) && ids.includes(leeId), "every account made under the provider is listed");
       assert.ok(!ids.includes(moId), "an account another provider vouches for is never listed");
@@ -220,7 +220,7 @@ const SERVICE_CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountServic
       }
       assert.deepEqual(ids, [...ids].sort(), "the provider's accounts come in id order");
 
-      const otherIds = (await service.store.findByProvider(otherProvider.id)).map((row) => row.metadata?.id ?? "");
+      const otherIds = (await service.store.findByIssuer(otherIssuer.id)).map((row) => row.metadata?.id ?? "");
       assert.ok(otherIds.includes(moId), "the other provider lists its own account");
       assert.ok(!otherIds.includes(kaiId) && !otherIds.includes(leeId), "and none the first provider vouches for");
     },

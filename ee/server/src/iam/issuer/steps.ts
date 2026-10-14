@@ -1,5 +1,5 @@
 /**
- * The IdentityProvider chains' own steps: the reads the OSS chain steps
+ * The FederationIssuer chains' own steps: the reads the OSS chain steps
  * need done over the composition's table (`ee.iam_identity_provider`),
  * because the library's versions read its Store. Each keeps the OSS step's
  * name, and each refusal keeps the provider's own copy, so a failure log
@@ -58,13 +58,13 @@ import { deniedCopyOf, refuseMissUnlessOrganizationBar } from "../reference-miss
 import type { FederationIssuerStore } from "./store.js";
 
 /** The kind's name in refusal copy, as the provider service has always rendered it. */
-export const PROVIDER_DISPLAY_NAME = "IdentityProvider";
+export const ISSUER_DISPLAY_NAME = "FederationIssuer";
 
 /**
  * The provider a slug names in an organization: the server's one name
  * table (@stigmer/server `resolveName`), then this table by id.
  */
-export async function findProviderByName(
+export async function findIssuerByName(
   names: NameTable,
   providers: Pick<FederationIssuerStore, "findById">,
   org: string,
@@ -87,7 +87,7 @@ export function providerNameHolder(
  * the library's SLUG_RESERVED (`nameTakenError`); a current holder keeps
  * the duplicate copy.
  */
-export function newCheckDuplicateProviderStep(
+export function newCheckDuplicateIssuerStep(
   names: NameTable,
   providers: Pick<FederationIssuerStore, "findById">,
 ): PipelineStep<typeof FederationIssuerSchema> {
@@ -104,17 +104,17 @@ export function newCheckDuplicateProviderStep(
       if (entry !== undefined && existing !== undefined) {
         throw entry.state === "previous"
           ? nameTakenError(ApiResourceKind.federation_issuer, entry)
-          : duplicateProviderError(existing);
+          : duplicateIssuerError(existing);
       }
     },
   };
 }
 
 /** The provider's duplicate copy, naming the held slug and organization. */
-export function duplicateProviderError(existing: FederationIssuer): Error {
+export function duplicateIssuerError(existing: FederationIssuer): Error {
   const metadata = existing.metadata;
   return alreadyExistsError(
-    PROVIDER_DISPLAY_NAME,
+    ISSUER_DISPLAY_NAME,
     `slug '${metadata?.slug ?? ""}' in org '${metadata?.org ?? ""}'`,
   );
 }
@@ -125,15 +125,15 @@ export function duplicateProviderError(existing: FederationIssuer): Error {
  * until it runs to the end (removal.ts), so an edit would change nothing
  * an admin could see work.
  */
-export const PROVIDER_BEING_DELETED_MESSAGE =
-  "This identity provider is being deleted. If its delete failed, delete it again to finish.";
+export const ISSUER_BEING_DELETED_MESSAGE =
+  "This federation issuer is being deleted. If its delete failed, delete it again to finish.";
 
 /**
  * The update's stored row, for the OSS BuildUpdateState; apply's update
  * arm comes here too. A provider being deleted is refused after the
  * Authorize step, so only a caller who may edit it learns of the delete.
  */
-export function newLoadExistingProviderStep(
+export function newLoadExistingIssuerStep(
   providers: Pick<FederationIssuerStore, "findById" | "isLive" | "readForWrite">,
 ): PipelineStep<typeof FederationIssuerSchema> {
   return {
@@ -147,8 +147,8 @@ export function newLoadExistingProviderStep(
       if (read === undefined || !(await providers.isLive(id))) {
         // Absent, or not live: marked, or, if its delete finished between
         // the two reads, gone; a gone provider answers as one.
-        await requireProvider(providers, id);
-        throw failedPreconditionError(PROVIDER_BEING_DELETED_MESSAGE);
+        await requireIssuer(providers, id);
+        throw failedPreconditionError(ISSUER_BEING_DELETED_MESSAGE);
       }
       ctx.set(EXISTING_RESOURCE_KEY, read.row);
       // The bytes the update's guarded write swaps on.
@@ -162,7 +162,7 @@ export function newLoadExistingProviderStep(
  * row is under EXISTING_RESOURCE_KEY), with the update's copy: the delete
  * keeps the provider dark until it runs to the end.
  */
-export function newRefuseRenamingDeletedProviderStep<Desc extends DescMessage>(
+export function newRefuseRenamingDeletedIssuerStep<Desc extends DescMessage>(
   providers: Pick<FederationIssuerStore, "isLive">,
 ): PipelineStep<Desc> {
   return {
@@ -170,7 +170,7 @@ export function newRefuseRenamingDeletedProviderStep<Desc extends DescMessage>(
     async execute(ctx: RequestContext<Desc>): Promise<void> {
       const provider = ctx.get(EXISTING_RESOURCE_KEY) as FederationIssuer;
       if (!(await providers.isLive(provider.metadata?.id ?? ""))) {
-        throw failedPreconditionError(PROVIDER_BEING_DELETED_MESSAGE);
+        throw failedPreconditionError(ISSUER_BEING_DELETED_MESSAGE);
       }
     },
   };
@@ -183,7 +183,7 @@ export function newRefuseRenamingDeletedProviderStep<Desc extends DescMessage>(
  * slug the provider was renamed away from is refused with SLUG_RENAMED;
  * nothing else refuses here.
  */
-export function newLoadProviderForApplyStep(
+export function newLoadIssuerForApplyStep(
   names: NameTable,
   providers: Pick<FederationIssuerStore, "findById">,
 ): PipelineStep<typeof FederationIssuerSchema> {
@@ -220,7 +220,7 @@ export function providerForApply(ctx: { get(key: string): unknown }): Federation
  * `withResolvedApplyId`: a provider's id is the server's, and a request's
  * own id could name another organization's provider.
  */
-export function withResolvedProviderId(
+export function withResolvedIssuerId(
   original: FederationIssuer,
   resolved: FederationIssuer,
 ): FederationIssuer {
@@ -233,11 +233,11 @@ export function withResolvedProviderId(
 
 /**
  * The reference read's row, for the OSS AuthorizeResolvedTarget. A miss
- * asks the organization's `can_create_idp` (its admins, the people who see
+ * asks the organization's `can_create_federation_issuer` (its admins, the people who see
  * every provider it holds) before it answers NOT_FOUND; anyone else gets
  * the refusal `get` answers a provider they may not see.
  */
-export function newLoadProviderByReferenceStep(
+export function newLoadIssuerByReferenceStep(
   names: NameTable,
   providers: Pick<FederationIssuerStore, "findById">,
   authorizer: Authorizer,
@@ -255,11 +255,11 @@ export function newLoadProviderByReferenceStep(
         ref.kind !== ApiResourceKind.federation_issuer
       ) {
         throw invalidArgumentError(
-          `kind mismatch: expected identity_provider, got ${ApiResourceKind[ref.kind] ?? String(ref.kind)}`,
+          `kind mismatch: expected federation_issuer, got ${ApiResourceKind[ref.kind] ?? String(ref.kind)}`,
         );
       }
       if (ref.org === "") {
-        throw invalidArgumentError(`org is required for ${PROVIDER_DISPLAY_NAME} lookup`);
+        throw invalidArgumentError(`org is required for ${ISSUER_DISPLAY_NAME} lookup`);
       }
       const provider = await findByHeldReference(names, providers, ApiResourceKind.federation_issuer, ref);
       if (provider === undefined) {
@@ -276,7 +276,7 @@ export function newLoadProviderByReferenceStep(
 }
 
 /** A read by id, for `get` and `delete`; `idOf` names the request's id field. */
-export function newLoadProviderStep<Desc extends DescMessage>(
+export function newLoadIssuerStep<Desc extends DescMessage>(
   providers: Pick<FederationIssuerStore, "findById">,
   idOf: (input: MessageShape<Desc>) => string,
 ): PipelineStep<Desc> {
@@ -287,7 +287,7 @@ export function newLoadProviderStep<Desc extends DescMessage>(
       if (id === "") {
         throw invalidArgumentError("resource id is required");
       }
-      ctx.set(TARGET_RESOURCE_KEY, await requireProvider(providers, id));
+      ctx.set(TARGET_RESOURCE_KEY, await requireIssuer(providers, id));
     },
   };
 }
@@ -297,8 +297,8 @@ export function providerAt(ctx: { get(key: string): unknown }, key: string): Fed
   const provider = ctx.get(key) as FederationIssuer | undefined;
   if (provider === undefined) {
     throw internalError(
-      new Error(`no identity provider under ${key}`),
-      "identity provider chain lost its loaded resource",
+      new Error(`no federation issuer under ${key}`),
+      "federation issuer chain lost its loaded resource",
     );
   }
   return provider;
@@ -306,15 +306,15 @@ export function providerAt(ctx: { get(key: string): unknown }, key: string): Fed
 
 /** The provider's by-id not-found copy. */
 export function notFoundById(id: string): Error {
-  return notFoundError(PROVIDER_DISPLAY_NAME, id);
+  return notFoundError(ISSUER_DISPLAY_NAME, id);
 }
 
 /** The provider's by-reference not-found copy, which names the organization too. */
 function notFoundByReference(org: string, slug: string): Error {
-  return new ConnectError(`${PROVIDER_DISPLAY_NAME} '${org}/${slug}' not found`, Code.NotFound);
+  return new ConnectError(`${ISSUER_DISPLAY_NAME} '${org}/${slug}' not found`, Code.NotFound);
 }
 
-async function requireProvider(
+async function requireIssuer(
   providers: Pick<FederationIssuerStore, "findById">,
   id: string,
 ): Promise<FederationIssuer> {
@@ -326,7 +326,7 @@ async function requireProvider(
 }
 
 /**
- * The identity provider a reference request names: by its id, the row in the
+ * The federation issuer a reference request names: by its id, the row in the
  * reference's organization; else by its org and slug through the name
  * table. Beside an id the slug is not looked up: the lane authorizes the
  * row only after this finds it, so asking the name table here would tell a

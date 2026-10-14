@@ -1,7 +1,7 @@
 /**
  * An organization's invitations die with it: the organization delete's
  * removal for this kind (iam/organization-delete.ts, beside the teams' and
- * the identity providers'), run before the organization's row goes: an
+ * the federation issuers'), run before the organization's row goes: an
  * invitation left behind would name an organization that is gone, trust
  * nobody administers.
  *

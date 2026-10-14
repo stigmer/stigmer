@@ -182,7 +182,7 @@ These files are the authorization model of every Stigmer edition. They are compi
 - the suites under `../tests/` run them on the real engine (each suite's `model_file` names the compiled file) and, through the same evaluator the server runs, on every `make test-server`;
 - an edition that runs OpenFGA applies them as they are, from the published package's data subpath `@stigmer/server/authorization-model.json`.
 
-The model defines every type, whichever edition serves it. Which kinds an edition evaluates is the tier's question (`kind_meta.tier`), answered before any evaluation: the open-source server refuses a check on `platform`, `identity_provider`, `invitation` or `team`, and a tuple that names one of those types matches nothing it stores.
+The model defines every type, whichever edition serves it. Which kinds an edition evaluates is the tier's question (`kind_meta.tier`), answered before any evaluation: the open-source server refuses a check on `platform`, `federation_issuer`, `invitation` or `team`, and a tuple that names one of those types matches nothing it stores.
 
 ### The compiled file's contract
 
@@ -283,7 +283,7 @@ fga/
 │   ├── platform.fga                # Root singleton (operators)
 │   ├── iam/
 │   │   ├── identity_account.fga    # User accounts
-│   │   ├── identity_provider.fga   # An organization's own identity providers
+│   │   ├── federation_issuer.fga   # The outside issuers an organization trusts
 │   │   ├── iam_policy.fga          # Access policies
 │   │   ├── api_key.fga             # User API keys
 │   │   ├── oauth_app.fga           # OAuth client registrations

@@ -6,10 +6,10 @@
  * organization domain keeps them (domain/organization/children.ts). A
  * composition never reads the rows or the name table for them itself:
  *
- *   - a sign-in through a parent's identity provider routes a token's
+ *   - a sign-in through a parent's federation issuer routes a token's
  *     external_id_claim to a child with `findByExternalId`;
  *   - billing rolls a parent's children up with `listIds`;
- *   - offboarding a person from a parent's identity provider revokes their
+ *   - offboarding a person from a parent's federation issuer revokes their
  *     roles in the parent's children (`listIds`) and learns from
  *     `listIdsBeingDeleted` which children it cannot reach yet.
  *

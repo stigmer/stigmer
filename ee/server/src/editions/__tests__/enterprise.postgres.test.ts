@@ -22,7 +22,7 @@
  *     when the account is made again under the same id;
  *   - lapsed: once the license and its grace period have run out (an
  *     injected clock moved past them), creating an organization, a team or
- *     an identity provider, and changing one, are refused with the renewal
+ *     a federation issuer, and changing one, are refused with the renewal
  *     reason, while invitations, their redemption, team membership, a
  *     provider's delete and sign-ins all keep working.
  *
@@ -58,7 +58,7 @@ import { composeEnterprise, ENTERPRISE_NEEDS_POSTGRES } from "../enterprise.js";
 import {
   bootEnterprise,
   createOrganization,
-  createProvider,
+  createIssuer,
   federatedToken,
   grant,
   issueKey,
@@ -237,8 +237,8 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("licensed", () => {
     expect(reasonOf(refused)).toBe("ORGANIZATION_LIMIT_REACHED");
   });
 
-  it("saves an identity provider through the guarded fetch, and it signs a federated person in", async () => {
-    const provider = await createProvider(owner, issuer, acme, "acme-okta");
+  it("saves a federation issuer through the guarded fetch, and it signs a federated person in", async () => {
+    const provider = await createIssuer(owner, issuer, acme, "acme-okta");
     expect(provider.metadata?.id).toMatch(/^idp_/);
     const token = federatedToken(issuer, "acme-okta", "okta|dana", "dana@acme.example");
     const dana = await createClient(IdentityAccountQueryController, transportTo(booted.port, token)).whoAmI({});
@@ -246,7 +246,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("licensed", () => {
     expect(dana.spec?.federationIssuerRef?.slug).toBe("acme-okta");
   });
 
-  it("a renamed identity provider signs the same person in, and the account names it by its new slug", async () => {
+  it("a renamed federation issuer signs the same person in, and the account names it by its new slug", async () => {
     const asDana = () =>
       createClient(
         IdentityAccountQueryController,
@@ -317,7 +317,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("licensed", () => {
     const accounts = createClient(IdentityAccountCommandController, owner.transport);
     const input = {
       org: acme,
-      identityProviderRef: { org: acme, slug: "acme-okta" },
+      federationIssuerRef: { org: acme, slug: "acme-okta" },
       externalSub: "okta|fay",
       email: "fay@acme.example",
     };
@@ -335,7 +335,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("licensed", () => {
   it("does not bring a deleted federated account's key back when the account is made again", async () => {
     const accounts = createClient(IdentityAccountCommandController, owner.transport);
     const providerRef = { org: acme, slug: "acme-okta" };
-    const input = { org: acme, identityProviderRef: providerRef, externalSub: "okta|gus", email: "gus@acme.example" };
+    const input = { org: acme, federationIssuerRef: providerRef, externalSub: "okta|gus", email: "gus@acme.example" };
     const first = await accounts.createFederatedAccount(input);
     const key = await issueKey(booted.server, first.metadata?.id ?? "", acme);
     const withKey = createClient(IdentityAccountQueryController, transportTo(booted.port, key));
@@ -374,8 +374,8 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("lapsed: growth refused, everyt
     owner = await signIn(booted, issuer, "operator|carol");
     joiner = await signIn(booted, issuer, "operator|dave");
     acme = await createOrganization(owner, "acme");
-    providerId = (await createProvider(owner, issuer, acme, "acme-entra")).metadata?.id ?? "";
-    await createProvider(owner, issuer, acme, "acme-okta");
+    providerId = (await createIssuer(owner, issuer, acme, "acme-entra")).metadata?.id ?? "";
+    await createIssuer(owner, issuer, acme, "acme-okta");
     teamId =
       (
         await createClient(TeamCommandController, owner.transport).create({
@@ -411,7 +411,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("lapsed: growth refused, everyt
     );
   });
 
-  it("refuses a new identity provider, a change to one and an apply either way, with the renewal reason", async () => {
+  it("refuses a new federation issuer, a change to one and an apply either way, with the renewal reason", async () => {
     const providers = createClient(FederationIssuerCommandController, owner.transport);
     expectRenewalRefusal(await refusalOf(providers.create(providerRequest(issuer, acme, "acme-google"))));
     const changed = providerRequest(issuer, acme, "acme-entra", { displayName: "Acme Entra (renamed)" });

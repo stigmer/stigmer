@@ -9,7 +9,7 @@
  * What it registers, and nothing else: the federated verifier; the
  * IdentityFederation capability and the team principal display; the
  * removal on `org-delete:pre-delete`; the organization grant
- * gate on `iam-policy-create:pre-side-effect-gate`; the IdentityProvider,
+ * gate on `iam-policy-create:pre-side-effect-gate`; the FederationIssuer,
  * Invitation and Team services; the row readers of its three kinds; the
  * hand-over, which refuses a composition with no list scope or no
  * authorization check; and the start its boot repairs run on. No removal
@@ -105,8 +105,8 @@ import type { IdentityAccountService } from "../../iam/account/port.js";
 import type { InvitationStore } from "../../iam/invitation/store.js";
 import { InMemoryTeamStore, storedTeam } from "../../iam/team/__tests__/in-memory-team-store.js";
 import type { TeamStore } from "../../iam/team/store.js";
-import { storedProvider } from "../../iam/provider/__tests__/in-memory-provider-store.js";
-import type { FederationIssuerStore } from "../../iam/provider/store.js";
+import { storedIssuer } from "../../iam/issuer/__tests__/in-memory-issuer-store.js";
+import type { FederationIssuerStore } from "../../iam/issuer/store.js";
 import { newEnterpriseIdentityExtension } from "../enterprise-identity.js";
 import type { ResourceNameStore } from "@stigmer/server";
 
@@ -308,7 +308,7 @@ describe("the enterprise-identity unit", () => {
     expect(unit().callerGuards ?? []).toHaveLength(0);
   });
 
-  it("serves the IdentityProvider, Invitation and Team services, which open source does not, with every method bound", () => {
+  it("serves the FederationIssuer, Invitation and Team services, which open source does not, with every method bound", () => {
     const router = createConnectRouter();
     for (const register of unit().services ?? []) {
       register(router);
@@ -550,9 +550,9 @@ describe("the unit's start", () => {
   it("makes its schema current first, and a schema that fails stops the start before any repair", async () => {
     const r = repairRig({
       providers: () =>
-        Promise.resolve([storedProvider({ id: "idp_acme", org: "acme", slug: "acme-idp" })]),
+        Promise.resolve([storedIssuer({ id: "fis_acme", org: "acme", slug: "acme-idp" })]),
       invitations: [],
-      policiesOn: new Map([["idp_acme", [ownerRow("identity_provider", "idp_acme", "ida_carol")]]]),
+      policiesOn: new Map([["fis_acme", [ownerRow("federation_issuer", "fis_acme", "ida_carol")]]]),
       failSchema: true,
     });
 
@@ -566,10 +566,10 @@ describe("the owner-row reconcile", () => {
   it("revokes every provider's, then every invitation's, direct owner row, and logs each with its account", async () => {
     const r = repairRig({
       providers: () =>
-        Promise.resolve([storedProvider({ id: "idp_acme", org: "acme", slug: "acme-idp" })]),
+        Promise.resolve([storedIssuer({ id: "fis_acme", org: "acme", slug: "acme-idp" })]),
       invitations: [storedInvitation({ id: "inv_acme", org: "acme", token: "AcmeToken" })],
       policiesOn: new Map([
-        ["idp_acme", [ownerRow("identity_provider", "idp_acme", "ida_carol")]],
+        ["fis_acme", [ownerRow("federation_issuer", "fis_acme", "ida_carol")]],
         ["inv_acme", [ownerRow("invitation", "inv_acme", "ida_carl")]],
       ]),
     });
@@ -577,13 +577,13 @@ describe("the owner-row reconcile", () => {
     await r.start();
 
     expect(r.revoked).toEqual([
-      "identity_provider:idp_acme#owner@ida_carol",
+      "federation_issuer:fis_acme#owner@ida_carol",
       "invitation:inv_acme#owner@ida_carl",
     ]);
     expect(r.logged).toContainEqual(
       expect.objectContaining({
-        message: "identity-provider owner row revoked; its organization's admins manage it",
-        provider: "idp_acme",
+        message: "federation-issuer owner row revoked; its organization's admins manage it",
+        provider: "fis_acme",
         account: "ida_carol",
       }),
     );
@@ -601,10 +601,10 @@ describe("the owner-row reconcile", () => {
       providers: () => Promise.resolve([]),
       invitations: [],
       policiesOn: new Map([
-        ["idp_acme", [ownerRow("identity_provider", "idp_acme", "ida_carol")]],
+        ["fis_acme", [ownerRow("federation_issuer", "fis_acme", "ida_carol")]],
         ["inv_acme", [ownerRow("invitation", "inv_acme", "ida_carl")]],
       ]),
-      failKindReadFor: new Set(["identity_provider"]),
+      failKindReadFor: new Set(["federation_issuer"]),
     });
 
     await r.start();
@@ -613,7 +613,7 @@ describe("the owner-row reconcile", () => {
     expect(r.logged).toContainEqual(
       expect.objectContaining({
         level: "error",
-        message: "identity-provider owner-row reconcile failed",
+        message: "federation-issuer owner-row reconcile failed",
         error: "store down",
       }),
     );
@@ -624,7 +624,7 @@ describe("the boot repair", () => {
   it("links every provider, then every invitation, then every team missing its organization link, and counts each kind", async () => {
     const r = repairRig({
       providers: () =>
-        Promise.resolve([storedProvider({ id: "idp_acme", org: "acme", slug: "acme-idp" })]),
+        Promise.resolve([storedIssuer({ id: "fis_acme", org: "acme", slug: "acme-idp" })]),
       invitations: [storedInvitation({ id: "inv_acme", org: "acme", token: "AcmeToken" })],
       teams: [storedTeam({ id: "tm_acme", org: "acme", slug: "acme-team" })],
     });
@@ -632,7 +632,7 @@ describe("the boot repair", () => {
     await r.start();
 
     expect(r.granted).toEqual([
-      "identity_provider:idp_acme",
+      "federation_issuer:fis_acme",
       "invitation:inv_acme",
       "team:tm_acme",
     ]);
@@ -640,7 +640,7 @@ describe("the boot repair", () => {
       expect.objectContaining({ message: "team organization links converged", count: 1 }),
     );
     expect(r.logged).toContainEqual(
-      expect.objectContaining({ message: "identity-provider organization links converged", count: 1 }),
+      expect.objectContaining({ message: "federation-issuer organization links converged", count: 1 }),
     );
     expect(r.logged).toContainEqual(
       expect.objectContaining({ message: "invitation organization links converged", count: 1 }),
@@ -659,7 +659,7 @@ describe("the boot repair", () => {
     expect(r.logged).toContainEqual(
       expect.objectContaining({
         level: "error",
-        message: "identity-provider organization-link reconcile failed",
+        message: "federation-issuer organization-link reconcile failed",
         error: "store down",
       }),
     );
@@ -689,11 +689,11 @@ describe("the boot repair", () => {
     const r = repairRig({
       providers: () =>
         Promise.resolve([
-          storedProvider({ id: "idp_gone", org: "gone", slug: "gone-idp" }),
-          storedProvider({ id: "idp_down", org: "acme", slug: "down-idp" }),
+          storedIssuer({ id: "fis_gone", org: "gone", slug: "gone-idp" }),
+          storedIssuer({ id: "fis_down", org: "acme", slug: "down-idp" }),
         ]),
       invitations: [storedInvitation({ id: "inv_gone", org: "gone", token: "GoneToken" })],
-      failGrantFor: new Set(["idp_down"]),
+      failGrantFor: new Set(["fis_down"]),
     });
 
     await r.start();
@@ -702,8 +702,8 @@ describe("the boot repair", () => {
       expect.objectContaining({
         level: "warn",
         message:
-          "identity provider left without its organization link; nobody can manage it until a hand decides",
-        provider: "idp_gone",
+          "federation issuer left without its organization link; nobody can manage it until a hand decides",
+        provider: "fis_gone",
         org: "gone",
         reason: "organization-gone",
       }),
@@ -711,8 +711,8 @@ describe("the boot repair", () => {
     expect(r.logged).toContainEqual(
       expect.objectContaining({
         level: "error",
-        message: "identity-provider organization link could not converge",
-        provider: "idp_down",
+        message: "federation-issuer organization link could not converge",
+        provider: "fis_down",
         error: "[unavailable] engine down",
       }),
     );

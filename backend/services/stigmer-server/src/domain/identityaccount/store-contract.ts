@@ -88,19 +88,19 @@ function directAccount(overrides: {
   });
 }
 
-/** An identity provider as a stored reference names it: its organization's id and its own id. */
+/** A federation issuer as a stored reference names it: its organization's id and its own id. */
 interface ProviderRef {
   readonly org: string;
   readonly id: string;
 }
 
 const ACME_ORG = "org_01hzacme000000000000000000";
-const ACME_OKTA: ProviderRef = { org: ACME_ORG, id: "idp_01hzacmeokta00000000000000" };
-const ACME_AZURE: ProviderRef = { org: ACME_ORG, id: "idp_01hzacmeazure0000000000000" };
+const ACME_OKTA: ProviderRef = { org: ACME_ORG, id: "fis_01hzacmeokta00000000000000" };
+const ACME_AZURE: ProviderRef = { org: ACME_ORG, id: "fis_01hzacmeazure0000000000000" };
 
 /**
  * A federated account: a customer IdP's subject, marked by its
- * identity_provider_ref and mode, at the address of its provider and
+ * federation_issuer_ref and mode, at the address of its provider and
  * subject, in the provider's organization.
  */
 function federatedAccount(overrides: {
@@ -448,7 +448,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
     },
   ],
   [
-    "no subject lookup answers a federated account: its subject is its identity provider's",
+    "no subject lookup answers a federated account: its subject is its federation issuer's",
     async ({ store }) => {
       await store.save(
         federatedAccount({ idpId: "auth0|fed", email: "fed@example.com" }),
@@ -476,18 +476,18 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
       const dana = federatedAccount({ idpId: "okta|dana" });
       await store.save(dana);
       assert.equal(
-        (await store.findByProviderAndIdpId(ACME_OKTA.id, "okta|dana"))
+        (await store.findByIssuerAndIdpId(ACME_OKTA.id, "okta|dana"))
           ?.metadata?.id,
         idOf(dana),
         "the natural key must find the row it names",
       );
       assert.equal(
-        await store.findByProviderAndIdpId(ACME_AZURE.id, "okta|dana"),
+        await store.findByIssuerAndIdpId(ACME_AZURE.id, "okta|dana"),
         undefined,
         "another provider's subject is another person",
       );
       assert.equal(
-        await store.findByProviderAndIdpId(ACME_OKTA.id, "okta|erin"),
+        await store.findByIssuerAndIdpId(ACME_OKTA.id, "okta|erin"),
         undefined,
         "an unknown subject answers undefined",
       );
@@ -498,7 +498,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
     async ({ store }) => {
       await store.save(directAccount({ idpId: "shared|sam" }));
       assert.equal(
-        await store.findByProviderAndIdpId(ACME_OKTA.id, "shared|sam"),
+        await store.findByIssuerAndIdpId(ACME_OKTA.id, "shared|sam"),
         undefined,
         "a provider's lookup never answers a direct row that shares the subject",
       );
@@ -507,12 +507,12 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
       await store.save(viaOkta);
       await store.save(viaAzure);
       assert.equal(
-        (await store.findByProviderAndIdpId(ACME_OKTA.id, "shared|sam"))
+        (await store.findByIssuerAndIdpId(ACME_OKTA.id, "shared|sam"))
           ?.metadata?.id,
         idOf(viaOkta),
       );
       assert.equal(
-        (await store.findByProviderAndIdpId(ACME_AZURE.id, "shared|sam"))
+        (await store.findByIssuerAndIdpId(ACME_AZURE.id, "shared|sam"))
           ?.metadata?.id,
         idOf(viaAzure),
       );
@@ -537,14 +537,14 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
       await store.save(federatedAccount({ idpId: "azure|c", provider: ACME_AZURE }));
       await store.save(directAccount({ idpId: "okta|d" }));
       assert.deepEqual(
-        (await store.findByProvider(ACME_OKTA.id)).map(
+        (await store.findByIssuer(ACME_OKTA.id)).map(
           (row) => row.metadata?.id,
         ),
         okta.map(idOf).sort(),
         "every row the provider vouches for, ordered by id",
       );
       assert.deepEqual(
-        await store.findByProvider("idp_01hzunknown000000000000000"),
+        await store.findByIssuer("fis_01hzunknown000000000000000"),
         [],
         "a provider that vouches for nobody answers no row",
       );
@@ -555,11 +555,11 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
     async ({ store, disconnect }) => {
       await disconnect();
       await assert.rejects(
-        store.findByProviderAndIdpId(ACME_OKTA.id, "okta|dana"),
+        store.findByIssuerAndIdpId(ACME_OKTA.id, "okta|dana"),
         "a federated sign-in that read undefined from a broken store would provision a second account",
       );
       await assert.rejects(
-        store.findByProvider(ACME_OKTA.id),
+        store.findByIssuer(ACME_OKTA.id),
         "a provider's removal that read nothing from a broken store would leave its accounts behind",
       );
     },

@@ -44,7 +44,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 
-import { storedProvider } from "../provider/__tests__/in-memory-provider-store.js";
+import { storedIssuer } from "../issuer/__tests__/in-memory-issuer-store.js";
 import {
   newInProcessOrganizationLookup,
   reconcileOrganizationLinks,
@@ -58,7 +58,7 @@ function policy(principal: { kind: string; id: string }, relation: string, provi
     spec: create(IamPolicySpecSchema, {
       principal: create(ApiResourceRefSchema, principal),
       relation,
-      resource: create(ApiResourceRefSchema, { kind: "identity_provider", id: providerId }),
+      resource: create(ApiResourceRefSchema, { kind: "federation_issuer", id: providerId }),
     }),
   });
 }
@@ -105,7 +105,7 @@ describe("reconcileOrganizationLinks", () => {
   it("writes exactly the organization link for a row missing it, and nothing for a row that has it", async () => {
     const r = rig({
       policies: new Map([
-        ["idp_linked", [policy({ kind: "organization", id: "acme" }, "organization", "idp_linked")]],
+        ["fis_linked", [policy({ kind: "organization", id: "acme" }, "organization", "fis_linked")]],
       ]),
       organizations: new Map([["acme", live(new Date("2026-01-01T00:00:00Z"))]]),
     });
@@ -113,8 +113,8 @@ describe("reconcileOrganizationLinks", () => {
     const report = await reconcileOrganizationLinks(
       ApiResourceKind.federation_issuer,
       [
-        storedProvider({ id: "idp_linked", org: "acme", slug: "linked", createdAt: ROW_CREATED }),
-        storedProvider({ id: "idp_bare", org: "acme", slug: "bare", createdAt: ROW_CREATED }),
+        storedIssuer({ id: "fis_linked", org: "acme", slug: "linked", createdAt: ROW_CREATED }),
+        storedIssuer({ id: "fis_bare", org: "acme", slug: "bare", createdAt: ROW_CREATED }),
       ],
       r.deps,
     );
@@ -124,7 +124,7 @@ describe("reconcileOrganizationLinks", () => {
       create(IamPolicySpecSchema, {
         principal: create(ApiResourceRefSchema, { kind: "organization", id: "acme" }),
         relation: "organization",
-        resource: create(ApiResourceRefSchema, { kind: "identity_provider", id: "idp_bare" }),
+        resource: create(ApiResourceRefSchema, { kind: "federation_issuer", id: "fis_bare" }),
       }),
     ]);
   });
@@ -133,10 +133,10 @@ describe("reconcileOrganizationLinks", () => {
     const r = rig({
       policies: new Map([
         [
-          "idp_platform",
+          "fis_platform",
           [
-            policy({ kind: "organization", id: "tenant" }, "viewer", "idp_platform"),
-            policy({ kind: "organization", id: "elsewhere" }, "organization", "idp_platform"),
+            policy({ kind: "organization", id: "tenant" }, "viewer", "fis_platform"),
+            policy({ kind: "organization", id: "elsewhere" }, "organization", "fis_platform"),
           ],
         ],
       ]),
@@ -145,7 +145,7 @@ describe("reconcileOrganizationLinks", () => {
 
     const report = await reconcileOrganizationLinks(
       ApiResourceKind.federation_issuer,
-      [storedProvider({ id: "idp_platform", org: "acme", slug: "platform", createdAt: ROW_CREATED })],
+      [storedIssuer({ id: "fis_platform", org: "acme", slug: "platform", createdAt: ROW_CREATED })],
       r.deps,
     );
 
@@ -160,26 +160,26 @@ describe("reconcileOrganizationLinks", () => {
         ["acme", live(new Date("2026-01-01T00:00:00Z"))],
       ]),
     });
-    const undated = storedProvider({ id: "idp_undated", org: "acme", slug: "undated" });
+    const undated = storedIssuer({ id: "fis_undated", org: "acme", slug: "undated" });
     undated.status = undefined;
 
     const report = await reconcileOrganizationLinks(
       ApiResourceKind.federation_issuer,
       [
-        storedProvider({ id: "idp_gone", org: "deleted", slug: "gone", createdAt: ROW_CREATED }),
-        storedProvider({ id: "idp_old", org: "recreated", slug: "old", createdAt: ROW_CREATED }),
+        storedIssuer({ id: "fis_gone", org: "deleted", slug: "gone", createdAt: ROW_CREATED }),
+        storedIssuer({ id: "fis_old", org: "recreated", slug: "old", createdAt: ROW_CREATED }),
         undated,
-        storedProvider({ id: "idp_orgless", org: "", slug: "orgless", createdAt: ROW_CREATED }),
+        storedIssuer({ id: "fis_orgless", org: "", slug: "orgless", createdAt: ROW_CREATED }),
       ],
       r.deps,
     );
 
     expect(report.converged).toBe(0);
     expect(report.orphaned).toEqual([
-      { id: "idp_gone", org: "deleted", reason: "organization-gone" },
-      { id: "idp_old", org: "recreated", reason: "organization-recreated" },
-      { id: "idp_undated", org: "acme", reason: "row-has-no-creation-time" },
-      { id: "idp_orgless", org: "", reason: "row-has-no-organization" },
+      { id: "fis_gone", org: "deleted", reason: "organization-gone" },
+      { id: "fis_old", org: "recreated", reason: "organization-recreated" },
+      { id: "fis_undated", org: "acme", reason: "row-has-no-creation-time" },
+      { id: "fis_orgless", org: "", reason: "row-has-no-organization" },
     ]);
     expect(r.written).toEqual([]);
   });
@@ -195,8 +195,8 @@ describe("reconcileOrganizationLinks", () => {
     const report = await reconcileOrganizationLinks(
       ApiResourceKind.federation_issuer,
       [
-        storedProvider({ id: "idp_legacy", org: "legacy", slug: "legacy", createdAt: ROW_CREATED }),
-        storedProvider({ id: "idp_same", org: "sametime", slug: "same", createdAt: ROW_CREATED }),
+        storedIssuer({ id: "fis_legacy", org: "legacy", slug: "legacy", createdAt: ROW_CREATED }),
+        storedIssuer({ id: "fis_same", org: "sametime", slug: "same", createdAt: ROW_CREATED }),
       ],
       r.deps,
     );
@@ -207,21 +207,21 @@ describe("reconcileOrganizationLinks", () => {
   it("looks each organization up once, and reports one row's failure while the rest converge", async () => {
     const r = rig({
       organizations: new Map([["acme", live(new Date("2026-01-01T00:00:00Z"))]]),
-      failWritesFor: new Set(["idp_b"]),
+      failWritesFor: new Set(["fis_b"]),
     });
 
     const report = await reconcileOrganizationLinks(
       ApiResourceKind.federation_issuer,
       [
-        storedProvider({ id: "idp_a", org: "acme", slug: "a", createdAt: ROW_CREATED }),
-        storedProvider({ id: "idp_b", org: "acme", slug: "b", createdAt: ROW_CREATED }),
-        storedProvider({ id: "idp_c", org: "acme", slug: "c", createdAt: ROW_CREATED }),
+        storedIssuer({ id: "fis_a", org: "acme", slug: "a", createdAt: ROW_CREATED }),
+        storedIssuer({ id: "fis_b", org: "acme", slug: "b", createdAt: ROW_CREATED }),
+        storedIssuer({ id: "fis_c", org: "acme", slug: "c", createdAt: ROW_CREATED }),
       ],
       r.deps,
     );
 
     expect(report.converged).toBe(2);
-    expect(report.failures).toEqual([{ id: "idp_b", error: "engine down" }]);
+    expect(report.failures).toEqual([{ id: "fis_b", error: "engine down" }]);
     expect(r.lookedUp).toEqual(["acme"]);
   });
   it("links an invitation, the second kind the boot reconciles, by the same rule under its own kind name", async () => {

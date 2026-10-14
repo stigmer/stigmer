@@ -1,5 +1,5 @@
 /**
- * The IdentityProvider store's Postgres adapter (../postgres-store.ts) on
+ * The FederationIssuer store's Postgres adapter (../postgres-store.ts) on
  * a driver error that holds no claim: anything but a unique violation of
  * one of the two claiming constraints, including a thrown value that is
  * not an error object at all, is the driver's fault and comes back as it
@@ -11,7 +11,7 @@ import type { Pool, PoolClient } from "pg";
 import { describe, expect, it } from "vitest";
 
 import { newFederationIssuerStore } from "../postgres-store.js";
-import { storedProvider } from "./in-memory-provider-store.js";
+import { storedIssuer } from "./in-memory-issuer-store.js";
 
 /** A pool whose transaction's insert fails with `fault`; BEGIN and ROLLBACK succeed. */
 function failingPool(fault: unknown): Pool {
@@ -22,8 +22,8 @@ function failingPool(fault: unknown): Pool {
   return { connect: () => Promise.resolve(client) } as unknown as Pool;
 }
 
-describe("the IdentityProvider store's Postgres adapter", () => {
-  const provider = storedProvider({ id: "idp_acme", org: "acme", slug: "acme-okta", issuers: ["https://okta.acme.test"] });
+describe("the FederationIssuer store's Postgres adapter", () => {
+  const provider = storedIssuer({ id: "fis_acme", org: "acme", slug: "acme-okta", issuers: ["https://okta.acme.test"] });
 
   it("returns a thrown value that is not an error object as it was", async () => {
     await expect(newFederationIssuerStore(failingPool("socket closed")).insert(provider)).rejects.toBe("socket closed");

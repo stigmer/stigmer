@@ -1,5 +1,5 @@
 /**
- * The IdentityProvider validation matrix: every rule a provider's write
+ * The FederationIssuer validation matrix: every rule a provider's write
  * must meet, rendered flat, with byte-pinned copy because clients match on
  * it, run as the create and update lanes' domain step after the chain has
  * shaped the row, plus the rules that make an issuer claim mean something:
@@ -21,7 +21,7 @@
  *     leave out owner, which the contract refuses on its own; unset grants
  *     nothing. The contract holds the rest, run by
  *     the chain's ValidateProto: an owner sign-in role
- *     (`identity_provider.sign_in_role_not_owner`; the federated verifier
+ *     (`federation_issuer.sign_in_role_not_owner`; the federated verifier
  *     also refuses a row stored before that at sign-in).
  *   - ValidateReservedIssuers: an issuer the host's own sign-in lanes
  *     claim (its own platform tenant or operator issuer) is never an
@@ -37,7 +37,7 @@
  *     their own audience, so nobody holds an issuer for everyone. The
  *     audience's presence is the contract's (`expected_audience` is
  *     required), and so is a `jwks_uri` wherever an issuer is named
- *     (`identity_provider.jwks_uri_required_with_issuers`).
+ *     (`federation_issuer.jwks_uri_required_with_issuers`).
  *   - ValidateUserinfoEndpoint: a non-empty `userinfo_endpoint` is a
  *     valid HTTPS URL — the same two pure arms `jwks_uri` has, because
  *     the federated lane sends a Bearer token there. No fetch (userinfo
@@ -87,14 +87,14 @@ import {
 import type { OrganizationLookup } from "../organization-links.js";
 import { grantableRolesFor } from "../policy/roles.js";
 import { normalizeIssuerUrl } from "./issuer-url.js";
-import { routesOf, type ProviderRoute } from "./routes.js";
+import { routesOf, type IssuerRoute } from "./routes.js";
 import type { FederationIssuerStore } from "./store.js";
 
 /** The JWKS reachability check's timeout, and the budget of every live read here. */
 const JWKS_VALIDATION_TIMEOUT_MS = 5_000;
 
-export interface ProviderValidationDeps {
-  readonly store: Pick<FederationIssuerStore, "findProviderIdByRoute">;
+export interface IssuerValidationDeps {
+  readonly store: Pick<FederationIssuerStore, "findIssuerIdByRoute">;
   /** The provider's organization, read for its parent when the provider routes to children. */
   readonly organizations: OrganizationLookup;
   /** The egress-guarded fetch every live read dials through (the composition's one). */
@@ -120,8 +120,8 @@ export function normalizeIssuers(provider: FederationIssuer): void {
 }
 
 /** The matrix, in its pinned order; every refusal is a ConnectError with its pinned copy. */
-export async function validateProvider(
-  deps: ProviderValidationDeps,
+export async function validateIssuer(
+  deps: IssuerValidationDeps,
   provider: FederationIssuer,
   isUpdate: boolean,
 ): Promise<void> {
@@ -140,7 +140,7 @@ export async function validateProvider(
   if (spec.externalIdClaim !== "") {
     if (((await deps.organizations.find(org))?.parentOrg ?? "") !== "") {
       throw new ConnectError(
-        "external_id_claim cannot be set on an identity provider of a child " +
+        "external_id_claim cannot be set on a federation issuer of a child " +
           "organization: a child organization has no child organizations to " +
           "route a sign-in to.",
         Code.FailedPrecondition,
@@ -169,7 +169,7 @@ export async function validateProvider(
 
   // ── ValidateRouteUniqueness (the app-level first line) ──
   for (const route of routesOf(provider)) {
-    const claimedBy = await deps.store.findProviderIdByRoute(route.issuer, route.audience);
+    const claimedBy = await deps.store.findIssuerIdByRoute(route.issuer, route.audience);
     if (claimedBy !== undefined && claimedBy !== id) {
       throw routeTakenError(route);
     }
@@ -208,10 +208,10 @@ function signInRoleNotGrantableError(role: IamRole): ConnectError {
  * constraint backstop when a racing write claimed the route first. It
  * names the pair the caller wrote and the way forward, never who holds it.
  */
-export function routeTakenError(route: ProviderRoute): ConnectError {
+export function routeTakenError(route: IssuerRoute): ConnectError {
   return new ConnectError(
     `Issuer '${route.issuer}' with audience '${route.audience}' is already ` +
-      "registered by another identity provider. Register an audience of " +
+      "registered by another federation issuer. Register an audience of " +
       "your organization's own for Stigmer at this issuer, such as an API " +
       "identifier or a client ID, and use it here.",
     Code.AlreadyExists,
@@ -222,7 +222,7 @@ export function routeTakenError(route: ProviderRoute): ConnectError {
 function reservedIssuerError(issuer: string): ConnectError {
   return new ConnectError(
     `Issuer '${issuer}' is this platform's own sign-in issuer and cannot be ` +
-      "an organization's identity provider.",
+      "an organization's federation issuer.",
     Code.InvalidArgument,
   );
 }
@@ -250,7 +250,7 @@ function validateUserinfoEndpoint(endpoint: string): void {
  * order so the first refusal is always the same one.
  */
 async function validateIssuerDiscovery(
-  deps: ProviderValidationDeps,
+  deps: IssuerValidationDeps,
   provider: FederationIssuer,
 ): Promise<void> {
   const spec = provider.spec;
@@ -316,7 +316,7 @@ function discoveredDocument(
     case "document":
       return read.document;
     case "unreachable": {
-      logger.warn("identity provider issuer discovery unreachable", {
+      logger.warn("federation issuer issuer discovery unreachable", {
         issuer,
         url: read.url,
         error: read.cause instanceof Error ? read.cause.message : String(read.cause),
@@ -361,7 +361,7 @@ function discoveredDocument(
 
 async function validateJwksReachability(
   jwksUri: string,
-  deps: ProviderValidationDeps,
+  deps: IssuerValidationDeps,
 ): Promise<void> {
   let url: URL;
   try {
@@ -384,7 +384,7 @@ async function validateJwksReachability(
       signal: AbortSignal.timeout(JWKS_VALIDATION_TIMEOUT_MS),
     });
   } catch (error) {
-    deps.logger.warn("identity provider JWKS URI unreachable", {
+    deps.logger.warn("federation issuer JWKS URI unreachable", {
       jwksUri,
       error: error instanceof Error ? error.message : String(error),
     });

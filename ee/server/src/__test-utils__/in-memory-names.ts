@@ -1,6 +1,6 @@
 /**
  * An in-memory name table for the unit rigs of the lanes whose rows this
- * composition keeps (teams, identity providers): the server's one name
+ * composition keeps (teams, federation issuers): the server's one name
  * table (`ComposedServices.resourceNames`) as those lanes meet it. It
  * claims, resolves and releases as `@stigmer/server`'s store contract pins
  * for a current name, and renames as it pins a rename: the new name

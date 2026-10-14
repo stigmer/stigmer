@@ -104,7 +104,7 @@ import {
   reservedSubjectMessage,
 } from "./constants.js";
 import { isServiceAccount } from "./actor.js";
-import type { AccountProvisioning, FederatedProvider } from "./provisioning.js";
+import type { AccountProvisioning, FederatedIssuer } from "./provisioning.js";
 import {
   serviceAccountNameTakenError,
   serviceAccountSlugOf,
@@ -277,7 +277,7 @@ function assignServiceAccountBackendFields(
  */
 function assignFederatedBackendFields(
   spec: IdentityAccountSpec,
-  provider: FederatedProvider,
+  provider: FederatedIssuer,
 ): IdentityAccountSpec {
   spec.isMachineAccount = isMachineSubject(spec.idpId);
   spec.provisioningMode = IdentityAccountProvisioningMode.federated;

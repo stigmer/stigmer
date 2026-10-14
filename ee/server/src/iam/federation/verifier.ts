@@ -1,7 +1,7 @@
 /**
  * The store-backed federated verifier: token authentication, identity
  * resolution and auto-provisioning for an organization's own identity
- * providers, as one chain entry. The IdentityProvider RESOURCE is the
+ * providers, as one chain entry. The FederationIssuer RESOURCE is the
  * single source of federation trust, with no environment variable beside
  * it: two configuration sources for one trust decision drift by
  * construction.
@@ -10,7 +10,7 @@
  * provider that names the token's `iss` among its issuers and whose
  * audience the token's `aud` carries. The issuer alone is not a claim,
  * because organizations that federate with one issuer (a shared tenant,
- * a public identity provider) each register their own audience, and a
+ * a public federation issuer) each register their own audience, and a
  * token minted for one organization's registration must never sign
  * anyone into another's. A token no provider's route matches is passed,
  * claim-or-pass, which answers nothing about what is registered; the
@@ -45,7 +45,7 @@
  *
  * The identity minted is the ACCOUNT id, not the raw sub, so every
  * policy row and audit line names the platform's account, never an
- * identity provider's subject.
+ * federation issuer's subject.
  *
  * EVERY TOKEN IS BOUND TO ONE ORGANIZATION (`boundOrg`; the library's
  * credential binding enforces it wherever the server decides): the child
@@ -66,7 +66,7 @@
  * every provider of a parent that sets `external_id_claim` can bind a
  * token to any of that parent's children, so a parent's providers share
  * that trust. A provider whose issuer another party controls (a
- * customer's own identity provider, say) belongs in that customer's child
+ * customer's own federation issuer, say) belongs in that customer's child
  * organization, never on the parent with the claim set.
  *
  * Then the account, by the (provider ref, external sub) natural key; a
@@ -153,8 +153,8 @@ import type { UserInfoClient } from "./userinfo.js";
 import type { IdentityAccountService } from "../account/port.js";
 import { orphanReason } from "../organization-links.js";
 import type { OrganizationFacts, OrganizationLookup } from "../organization-links.js";
-import { normalizeIssuerUrl } from "../provider/issuer-url.js";
-import type { FederationIssuerStore } from "../provider/store.js";
+import { normalizeIssuerUrl } from "../issuer/issuer-url.js";
+import type { FederationIssuerStore } from "../issuer/store.js";
 import {
   audienceMatches,
   decodeJwt,
@@ -250,7 +250,7 @@ export function newStoreBackedFederatedVerifier(
         // No log line: it would be one per token, which anyone can send
         // (see verify). The provider's save already refused this address.
         throw unauthenticated(
-          `the identity provider for issuer '${iss}' names a JWKS address ` +
+          `the federation issuer for issuer '${iss}' names a JWKS address ` +
             "this platform does not dial",
         );
       }
@@ -288,7 +288,7 @@ export function newStoreBackedFederatedVerifier(
     if (alsoRouted.length > 0) {
       // A shared route is logged once per index rebuild (indexRoutes).
       throw unauthenticated(
-        `token from issuer '${iss}' matches more than one identity provider`,
+        `token from issuer '${iss}' matches more than one federation issuer`,
       );
     }
 
@@ -323,7 +323,7 @@ export function newStoreBackedFederatedVerifier(
     refuseUnlessLive(provider, live ? "live" : "not-live");
 
     const boundOrg = await resolveBoundOrg(deps, provider, decoded);
-    const existing = await deps.accounts.store.findByProviderAndIdpId(
+    const existing = await deps.accounts.store.findByIssuerAndIdpId(
       provider.metadata?.id ?? "",
       sub,
     );
@@ -337,7 +337,7 @@ export function newStoreBackedFederatedVerifier(
       externalSub: sub,
     });
     if (signedIn.createdNow || settled.claimed) {
-      await undoUnlessProviderLive(deps, provider, signedIn, boundOrg, settled);
+      await undoUnlessIssuerLive(deps, provider, signedIn, boundOrg, settled);
     }
 
     const email = decoded.payload.email;
@@ -400,7 +400,7 @@ async function withoutOrphans(
     }
     const reason = orphanReason(provider, await known);
     if (reason !== undefined) {
-      logger.warn("identity provider's organization is gone or younger than it; it routes no token", {
+      logger.warn("federation issuer's organization is gone or younger than it; it routes no token", {
         provider: provider.metadata?.id ?? "",
         org,
         reason,
@@ -433,7 +433,7 @@ function indexRoutes(
     const id = provider.metadata?.id ?? "";
     const audience = provider.spec?.expectedAudience ?? "";
     if (audience === "") {
-      logger.warn("identity provider has no audience and routes no token; an admin must set one", {
+      logger.warn("federation issuer has no audience and routes no token; an admin must set one", {
         provider: id,
       });
       continue;
@@ -442,7 +442,7 @@ function indexRoutes(
       .map(normalizeIssuerUrl)
       .filter((issuer) => issuer !== "");
     if (issuers.some((issuer) => reservedIssuers.has(issuer))) {
-      logger.warn("identity provider names this platform's own sign-in issuer and routes no token", {
+      logger.warn("federation issuer names this platform's own sign-in issuer and routes no token", {
         provider: id,
       });
       continue;
@@ -451,7 +451,7 @@ function indexRoutes(
       const held = byIssuer.get(issuer) ?? [];
       const shared = held.find((other) => other.spec?.expectedAudience === audience);
       if (shared !== undefined) {
-        logger.warn("two identity providers share one route; tokens on it are refused", {
+        logger.warn("two federation issuers share one route; tokens on it are refused", {
           issuer,
           audience,
           providers: `${shared.metadata?.id ?? ""},${id}`,
@@ -487,7 +487,7 @@ async function provisionOrRefuse(
     // The platform must createFederatedAccount first.
     throw unauthenticated(
       `no federated account exists for subject '${externalSub}' from IdP '${org}/${slug}' ` +
-        "and the identity provider does not create accounts on sign-in",
+        "and the federation issuer does not create accounts on sign-in",
     );
   }
 
@@ -516,7 +516,7 @@ async function provisionOrRefuse(
   } catch {
     // The concurrent-provisioning race: resolve the winner, whose account
     // this request did not create and so never rolls back.
-    const winner = await deps.accounts.store.findByProviderAndIdpId(
+    const winner = await deps.accounts.store.findByIssuerAndIdpId(
       provider.metadata?.id ?? "",
       externalSub,
     );
@@ -559,7 +559,7 @@ async function resolveBoundOrg(
   if (childId === "") {
     throw unauthenticated(
       `token from IdP '${org}/${slug}' names, in its external id claim '${claimName}', ` +
-        "no child organization of this identity provider's organization",
+        "no child organization of this federation issuer's organization",
     );
   }
   return childId;
@@ -595,7 +595,7 @@ async function settleSignInGrant(
   const role = provider.spec?.signInRole ?? IamRole.iam_role_unspecified;
   if (role === IamRole.owner) {
     // The contract refuses an owner sign-in role on every write
-    // (`identity_provider.sign_in_role_not_owner`); a provider stored with
+    // (`federation_issuer.sign_in_role_not_owner`); a provider stored with
     // it before that rule must still never make anyone an owner.
     await rollBackCreated(deps, accountId, context.createdNow);
     throw unauthenticated(
@@ -658,7 +658,7 @@ async function settleSignInGrant(
  * runs, and the sign-in is refused either way (the module header says
  * what a failed undo leaves).
  */
-async function undoUnlessProviderLive(
+async function undoUnlessIssuerLive(
   deps: FederatedVerifierDeps,
   provider: FederationIssuer,
   signedIn: SignedInAccount,
@@ -677,7 +677,7 @@ async function undoUnlessProviderLive(
     try {
       await run();
     } catch (error) {
-      deps.logger.error("a sign-in through an identity provider being deleted could not undo its write", {
+      deps.logger.error("a sign-in through a federation issuer being deleted could not undo its write", {
         step,
         accountId,
         idp: `${org}/${slug}`,
@@ -698,7 +698,7 @@ async function undoUnlessProviderLive(
 }
 
 /** Whether a sign-in's provider is still live, and "unreadable" when the read faults (logged). */
-type ProviderLiveness = "live" | "not-live" | "unreadable";
+type IssuerLiveness = "live" | "not-live" | "unreadable";
 
 /**
  * The read before anything is written: one primary-key read of the
@@ -711,11 +711,11 @@ async function liveOrThrow(deps: FederatedVerifierDeps, provider: FederationIssu
   try {
     return await deps.providers.isLive(provider.metadata?.id ?? "");
   } catch (error) {
-    deps.logger.error("could not read whether a sign-in's identity provider is live", {
+    deps.logger.error("could not read whether a sign-in's federation issuer is live", {
       idp,
       error: error instanceof Error ? error.message : String(error),
     });
-    throw new Error(`could not read whether identity provider '${idp}' is live`);
+    throw new Error(`could not read whether federation issuer '${idp}' is live`);
   }
 }
 
@@ -729,11 +729,11 @@ async function livenessOf(
   deps: FederatedVerifierDeps,
   provider: FederationIssuer,
   when: string,
-): Promise<ProviderLiveness> {
+): Promise<IssuerLiveness> {
   try {
     return (await deps.providers.isLive(provider.metadata?.id ?? "")) ? "live" : "not-live";
   } catch (error) {
-    deps.logger.error("could not read whether a sign-in's identity provider is live; the sign-in is refused", {
+    deps.logger.error("could not read whether a sign-in's federation issuer is live; the sign-in is refused", {
       when,
       idp: `${provider.metadata?.org ?? ""}/${provider.metadata?.slug ?? ""}`,
       error: error instanceof Error ? error.message : String(error),
@@ -746,13 +746,13 @@ async function livenessOf(
  * The refusal for each answer but "live", keyed so the compiler holds the
  * set exhaustive: a new answer cannot reach the wire without its copy.
  */
-const NOT_LIVE_REFUSAL: Readonly<Record<Exclude<ProviderLiveness, "live">, (idp: string) => string>> = {
+const NOT_LIVE_REFUSAL: Readonly<Record<Exclude<IssuerLiveness, "live">, (idp: string) => string>> = {
   "not-live": (idp) => `IdP '${idp}' is being deleted and signs no one in`,
   unreadable: (idp) => `Failed to complete sign-in from IdP '${idp}'. Please retry authentication.`,
 };
 
 /** Refuses a sign-in through a provider that is not live, or whose liveness could not be read. */
-function refuseUnlessLive(provider: FederationIssuer, liveness: ProviderLiveness): void {
+function refuseUnlessLive(provider: FederationIssuer, liveness: IssuerLiveness): void {
   if (liveness === "live") {
     return;
   }
@@ -789,7 +789,7 @@ async function rollBackCreated(
  * would be, and the refusal above answers it. The grant never
  * re-enters this verifier: the in-process interceptor stamps the call
  * `internal` itself, and no verifier runs on it. It is made acting for the
- * identity provider whose assertion it follows, so the row and the
+ * federation issuer whose assertion it follows, so the row and the
  * permission history name the provider, the PlatformClient mint's shape.
  */
 function signInRoleGrant(
@@ -874,7 +874,7 @@ async function resolveProfileClaims(
     `Cannot resolve profile for user from IdP '${org}/${slug}': JWT does ` +
       "not contain an 'email' claim and no userinfo_endpoint is configured. " +
       "Either configure the IdP to include email in access tokens, or set " +
-      "the userinfo_endpoint in the IdentityProvider spec.",
+      "the userinfo_endpoint in the FederationIssuer spec.",
   );
 }
 

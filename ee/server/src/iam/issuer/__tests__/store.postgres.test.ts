@@ -1,5 +1,5 @@
 /**
- * The IdentityProvider row store over the real `ee.iam_identity_provider`
+ * The FederationIssuer row store over the real `ee.iam_identity_provider`
  * and route side table, through the real Enterprise schema chain (one throwaway
  * database for the file). Pins what the in-memory store the unit suites
  * use promises in its name:
@@ -21,7 +21,7 @@
  * Then the port's contract kit (../store-contract.ts) over this adapter, on
  * a database of its own with a fresh pool per case over truncated tables,
  * so the kit's outage arm can end that pool alone: the same cases the
- * in-memory store passes in in-memory-provider-store.test.ts.
+ * in-memory store passes in in-memory-issuer-store.test.ts.
  *
  * TEST_DATABASE_URL unset skips loudly by suite name (stigmer's
  * `make postgres-dev` prints the export).
@@ -40,8 +40,8 @@ import {
 } from "../../../__test-utils__/enterprise-postgres.js";
 import { federationIssuerStoreContract, type FederationIssuerStoreContractFixture } from "../store-contract.js";
 import { newFederationIssuerStore } from "../postgres-store.js";
-import type { FederationIssuerStore, ProviderSwapOutcome } from "../store.js";
-import { storedProvider } from "./in-memory-provider-store.js";
+import type { FederationIssuerStore, IssuerSwapOutcome } from "../store.js";
+import { storedIssuer } from "./in-memory-issuer-store.js";
 
 /** The audience the claim cases share, so an issuer alone decides whether routes collide. */
 const AUDIENCE = "https://api.test/stigmer";
@@ -53,7 +53,7 @@ async function listed(store: FederationIssuerStore, org: string): Promise<Federa
   );
 }
 
-describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_identity_provider", () => {
+describe.skipIf(!TEST_DATABASE_URL)("the FederationIssuer store over ee.iam_identity_provider", () => {
   let database: ProvisionedEnterpriseDatabase;
   let store: FederationIssuerStore;
 
@@ -67,45 +67,45 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_iden
   });
 
   /** The update's write: a swap on the provider's bytes as stored now; a row that is gone swaps on none. */
-  async function swapOnCurrent(next: FederationIssuer): Promise<ProviderSwapOutcome> {
+  async function swapOnCurrent(next: FederationIssuer): Promise<IssuerSwapOutcome> {
     const id = next.metadata?.id ?? "";
     const read = await store.readForWrite(id);
     return store.swap(id, read?.bytes ?? new Uint8Array(), next);
   }
 
   it("round-trips a provider and refuses a slug its organization holds, not one another holds", async () => {
-    const provider = storedProvider({
-      id: "idp_rt",
+    const provider = storedIssuer({
+      id: "fis_rt",
       org: "acme",
       slug: "rt",
       issuers: ["https://rt.test"],
       expectedAudience: AUDIENCE,
     });
     expect(await store.insert(provider)).toEqual({ kind: "inserted" });
-    expect(await store.findById("idp_rt")).toEqual(provider);
-    expect(await store.findProviderIdByRoute("https://rt.test", AUDIENCE)).toBe("idp_rt");
-    expect(await store.findProviderIdByRoute("https://rt.test", "https://another.test")).toBeUndefined();
+    expect(await store.findById("fis_rt")).toEqual(provider);
+    expect(await store.findIssuerIdByRoute("https://rt.test", AUDIENCE)).toBe("fis_rt");
+    expect(await store.findIssuerIdByRoute("https://rt.test", "https://another.test")).toBeUndefined();
 
     expect(
       await store.insert(
-        storedProvider({ id: "idp_rt2", org: "acme", slug: "rt", issuers: ["https://rt2.test"], expectedAudience: AUDIENCE }),
+        storedIssuer({ id: "fis_rt2", org: "acme", slug: "rt", issuers: ["https://rt2.test"], expectedAudience: AUDIENCE }),
       ),
     ).toEqual({ kind: "slug-taken" });
-    expect(await store.findProviderIdByRoute("https://rt2.test", AUDIENCE)).toBeUndefined();
+    expect(await store.findIssuerIdByRoute("https://rt2.test", AUDIENCE)).toBeUndefined();
     expect(
-      await store.insert(storedProvider({ id: "idp_rt3", org: "other", slug: "rt", issuers: ["https://rt3.test"] })),
+      await store.insert(storedIssuer({ id: "fis_rt3", org: "other", slug: "rt", issuers: ["https://rt3.test"] })),
     ).toEqual({ kind: "inserted" });
   });
 
   it("refuses a route another provider claims and writes nothing", async () => {
     await store.insert(
-      storedProvider({ id: "idp_i1", org: "acme", slug: "i1", issuers: ["https://shared.test"], expectedAudience: AUDIENCE }),
+      storedIssuer({ id: "fis_i1", org: "acme", slug: "i1", issuers: ["https://shared.test"], expectedAudience: AUDIENCE }),
     );
 
     expect(
       await store.insert(
-        storedProvider({
-          id: "idp_i2",
+        storedIssuer({
+          id: "fis_i2",
           org: "other",
           slug: "i2",
           issuers: ["https://own.test", "https://shared.test"],
@@ -113,18 +113,18 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_iden
         }),
       ),
     ).toEqual({ kind: "route-taken", route: { issuer: "https://shared.test", audience: AUDIENCE } });
-    expect(await store.findById("idp_i2")).toBeUndefined();
-    expect(await store.findProviderIdByRoute("https://own.test", AUDIENCE)).toBeUndefined();
+    expect(await store.findById("fis_i2")).toBeUndefined();
+    expect(await store.findIssuerIdByRoute("https://own.test", AUDIENCE)).toBeUndefined();
   });
 
   it("admits the same issuer with another audience, and claims no route for a provider with no audience", async () => {
     await store.insert(
-      storedProvider({ id: "idp_a1", org: "first", slug: "a1", issuers: ["https://common.test"], expectedAudience: AUDIENCE }),
+      storedIssuer({ id: "fis_a1", org: "first", slug: "a1", issuers: ["https://common.test"], expectedAudience: AUDIENCE }),
     );
     expect(
       await store.insert(
-        storedProvider({
-          id: "idp_a2",
+        storedIssuer({
+          id: "fis_a2",
           org: "second",
           slug: "a2",
           issuers: ["https://common.test"],
@@ -132,29 +132,29 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_iden
         }),
       ),
     ).toEqual({ kind: "inserted" });
-    expect(await store.findProviderIdByRoute("https://common.test", AUDIENCE)).toBe("idp_a1");
-    expect(await store.findProviderIdByRoute("https://common.test", "https://second.test/stigmer")).toBe("idp_a2");
+    expect(await store.findIssuerIdByRoute("https://common.test", AUDIENCE)).toBe("fis_a1");
+    expect(await store.findIssuerIdByRoute("https://common.test", "https://second.test/stigmer")).toBe("fis_a2");
 
     expect(
       await store.insert(
-        storedProvider({ id: "idp_a3", org: "third", slug: "a3", issuers: ["https://common.test"], expectedAudience: "" }),
+        storedIssuer({ id: "fis_a3", org: "third", slug: "a3", issuers: ["https://common.test"], expectedAudience: "" }),
       ),
     ).toEqual({ kind: "inserted" });
-    expect(await store.findProviderIdByRoute("https://common.test", "")).toBeUndefined();
+    expect(await store.findIssuerIdByRoute("https://common.test", "")).toBeUndefined();
   });
 
   it("fails an insert whose id is already held rather than answering a claim", async () => {
-    await store.insert(storedProvider({ id: "idp_dup", org: "acme", slug: "dup-1", issuers: [] }));
+    await store.insert(storedIssuer({ id: "fis_dup", org: "acme", slug: "dup-1", issuers: [] }));
 
     await expect(
-      store.insert(storedProvider({ id: "idp_dup", org: "acme", slug: "dup-2", issuers: [] })),
+      store.insert(storedIssuer({ id: "fis_dup", org: "acme", slug: "dup-2", issuers: [] })),
     ).rejects.toMatchObject({ code: "23505" });
     expect((await listed(store, "acme")).map((held) => held.metadata?.slug)).not.toContain("dup-2");
   });
 
   it("swaps the payload and the route claims, keeps the lookup columns, and refuses a slug change", async () => {
-    const provider = storedProvider({
-      id: "idp_rp",
+    const provider = storedIssuer({
+      id: "fis_rp",
       org: "acme",
       slug: "rp",
       issuers: ["https://before.test"],
@@ -169,22 +169,22 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_iden
     changed.spec!.allowedIssuers = ["https://after.test"];
 
     expect(await swapOnCurrent(changed)).toEqual({ kind: "replaced" });
-    expect((await store.findById("idp_rp"))?.metadata?.name).toBe("After");
+    expect((await store.findById("fis_rp"))?.metadata?.name).toBe("After");
     const columns = await database.pool.query<{ org: string; slug: string }>(
       "SELECT org, slug FROM ee.iam_identity_provider WHERE id = $1",
-      ["idp_rp"],
+      ["fis_rp"],
     );
     expect(columns.rows, "the lookup columns are kept").toEqual([{ org: "acme", slug: "rp" }]);
-    expect(await store.findProviderIdByRoute("https://after.test", AUDIENCE)).toBe("idp_rp");
-    expect(await store.findProviderIdByRoute("https://before.test", AUDIENCE)).toBeUndefined();
+    expect(await store.findIssuerIdByRoute("https://after.test", AUDIENCE)).toBe("fis_rp");
+    expect(await store.findIssuerIdByRoute("https://before.test", AUDIENCE)).toBeUndefined();
   });
 
   it("rolls a swap back when another provider claims a route", async () => {
     await store.insert(
-      storedProvider({ id: "idp_c1", org: "claims", slug: "c1", issuers: ["https://c1.test"], expectedAudience: AUDIENCE }),
+      storedIssuer({ id: "fis_c1", org: "claims", slug: "c1", issuers: ["https://c1.test"], expectedAudience: AUDIENCE }),
     );
-    const second = storedProvider({
-      id: "idp_c2",
+    const second = storedIssuer({
+      id: "fis_c2",
       org: "claims",
       slug: "c2",
       issuers: ["https://c2.test"],
@@ -199,13 +199,13 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_iden
       kind: "route-taken",
       route: { issuer: "https://c1.test", audience: AUDIENCE },
     });
-    expect((await store.findById("idp_c2"))?.metadata?.name).toBe("c2");
-    expect(await store.findProviderIdByRoute("https://c2.test", AUDIENCE)).toBe("idp_c2");
+    expect((await store.findById("fis_c2"))?.metadata?.name).toBe("c2");
+    expect(await store.findIssuerIdByRoute("https://c2.test", AUDIENCE)).toBe("fis_c2");
   });
 
   it("answers changed for a swap of a row that is gone, and claims nothing", async () => {
-    const ghost = storedProvider({
-      id: "idp_ghost",
+    const ghost = storedIssuer({
+      id: "fis_ghost",
       org: "acme",
       slug: "ghost",
       issuers: ["https://ghost.test"],
@@ -213,14 +213,14 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_iden
     });
 
     expect(await swapOnCurrent(ghost)).toEqual({ kind: "changed" });
-    expect(await store.findById("idp_ghost")).toBeUndefined();
-    expect(await store.findProviderIdByRoute("https://ghost.test", AUDIENCE)).toBeUndefined();
+    expect(await store.findById("fis_ghost")).toBeUndefined();
+    expect(await store.findIssuerIdByRoute("https://ghost.test", AUDIENCE)).toBeUndefined();
   });
 
   it("lists an organization's providers newest first, sweeps its ids, and deletes rows with their claims", async () => {
     await store.insert(
-      storedProvider({
-        id: "idp_l1",
+      storedIssuer({
+        id: "fis_l1",
         org: "listed",
         slug: "l1",
         issuers: ["https://l1.test"],
@@ -229,22 +229,22 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_iden
       }),
     );
     await store.insert(
-      storedProvider({ id: "idp_l2", org: "listed", slug: "l2", issuers: ["https://l2.test"], createdAt: new Date("2026-09-24T11:00:00Z") }),
+      storedIssuer({ id: "fis_l2", org: "listed", slug: "l2", issuers: ["https://l2.test"], createdAt: new Date("2026-09-24T11:00:00Z") }),
     );
-    await store.insert(storedProvider({ id: "idp_o1", org: "elsewhere", slug: "o1", issuers: ["https://o1.test"] }));
+    await store.insert(storedIssuer({ id: "fis_o1", org: "elsewhere", slug: "o1", issuers: ["https://o1.test"] }));
 
-    expect((await listed(store, "listed")).map((row) => row.metadata?.id)).toEqual(["idp_l2", "idp_l1"]);
-    expect([...(await store.findIdsByOrg("listed"))].sort()).toEqual(["idp_l1", "idp_l2"]);
+    expect((await listed(store, "listed")).map((row) => row.metadata?.id)).toEqual(["fis_l2", "fis_l1"]);
+    expect([...(await store.findIdsByOrg("listed"))].sort()).toEqual(["fis_l1", "fis_l2"]);
 
-    await store.deleteById("idp_l1");
-    await store.deleteById("idp_never");
-    expect(await store.findById("idp_l1")).toBeUndefined();
-    expect(await store.findProviderIdByRoute("https://l1.test", AUDIENCE)).toBeUndefined();
-    expect((await listed(store, "listed")).map((row) => row.metadata?.id)).toEqual(["idp_l2"]);
+    await store.deleteById("fis_l1");
+    await store.deleteById("fis_never");
+    expect(await store.findById("fis_l1")).toBeUndefined();
+    expect(await store.findIssuerIdByRoute("https://l1.test", AUDIENCE)).toBeUndefined();
+    expect((await listed(store, "listed")).map((row) => row.metadata?.id)).toEqual(["fis_l2"]);
   });
 });
 
-describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store holds the port's contract (real Postgres)", () => {
+describe.skipIf(!TEST_DATABASE_URL)("the FederationIssuer store holds the port's contract (real Postgres)", () => {
   let database: ProvisionedEnterpriseDatabase;
 
   beforeAll(async () => {

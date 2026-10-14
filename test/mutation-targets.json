@@ -62,10 +62,10 @@
       "concurrency": 4
     },
     "ee-provider-validation": {
-      "title": "Stigmer Enterprise's identity provider validation",
+      "title": "Stigmer Enterprise's federation issuer validation",
       "package": "ee/server",
       "mutate": [
-        "src/iam/provider/validation.ts",
+        "src/iam/issuer/validation.ts",
         "!src/**/__tests__/**",
         "!src/**/*.test.ts"
       ],

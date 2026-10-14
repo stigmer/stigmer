@@ -85,14 +85,14 @@ export function fakeIdentityAccountStore(): FakeIdentityAccountStore {
         (row) => org !== "" && row.metadata?.org === org,
       );
     },
-    async findByProviderAndIdpId(providerId, idpId) {
+    async findByIssuerAndIdpId(providerId, idpId) {
       return [...rows.values()].find(
         (row) =>
           row.spec?.federationIssuerRef?.id === providerId &&
           row.spec.idpId === idpId,
       );
     },
-    async findByProvider(providerId) {
+    async findByIssuer(providerId) {
       return [...rows.values()]
         .filter((row) => row.spec?.federationIssuerRef?.id === providerId)
         .sort((a, b) =>

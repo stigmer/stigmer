@@ -1,7 +1,7 @@
 /**
- * The IdentityProvider RPCs as extension services: the command side's
+ * The FederationIssuer RPCs as extension services: the command side's
  * create, update, apply and delete, the query side's get, getByReference
- * and list. IdentityProvider is an enterprise-tier
+ * and list. FederationIssuer is an enterprise-tier
  * kind open source registers no service for, so these are its only
  * handlers; every one runs the composition's unary chain (Authorize from
  * the proto annotation, then ValidateProto, then the lane's steps and its
@@ -24,7 +24,7 @@
  *                   when the host fills the port, iam/growth-gate.ts, so a
  *                   refused write reaches neither the matrix's live reads
  *                   nor the row; apply reaches it through the arm it runs)
- *   apply           AuthorizeResolvedTarget (`can_create_idp` on the
+ *   apply           AuthorizeResolvedTarget (`can_create_federation_issuer` on the
  *                   request's organization, create's own question and
  *                   copy) → ResolveSlug → LoadForApply decides; then
  *                   create with the original request, or update with the
@@ -122,24 +122,24 @@ import {
 import { runUnaryChain, runUpdateChain } from "../../rpc/unary-chain.js";
 import { deniedCopyOf } from "../reference-miss.js";
 import type { OrganizationLookup } from "../organization-links.js";
-import type { ProviderRemoval } from "./removal.js";
+import type { IssuerRemoval } from "./removal.js";
 import {
-  duplicateProviderError,
-  findProviderByName,
-  newRefuseRenamingDeletedProviderStep,
-  newCheckDuplicateProviderStep,
+  duplicateIssuerError,
+  findIssuerByName,
+  newRefuseRenamingDeletedIssuerStep,
+  newCheckDuplicateIssuerStep,
   providerNameHolder,
-  newLoadExistingProviderStep,
-  newLoadProviderByReferenceStep,
-  newLoadProviderForApplyStep,
-  newLoadProviderStep,
+  newLoadExistingIssuerStep,
+  newLoadIssuerByReferenceStep,
+  newLoadIssuerForApplyStep,
+  newLoadIssuerStep,
   providerAt,
   providerForApply,
-  withResolvedProviderId,
+  withResolvedIssuerId,
 } from "./steps.js";
 import { newGrowthGateStep, type GrowthGate } from "../growth-gate.js";
 import type { FederationIssuerStore } from "./store.js";
-import { normalizeIssuers, routeTakenError, validateProvider } from "./validation.js";
+import { normalizeIssuers, routeTakenError, validateIssuer } from "./validation.js";
 
 export interface FederationIssuerLaneDeps {
   readonly authorizer: Authorizer;
@@ -151,7 +151,7 @@ export interface FederationIssuerLaneDeps {
   readonly outboundFetch: OutboundFetch;
   /** The issuers the host's own sign-in lanes claim, which no provider may name. */
   readonly reservedIssuers: ReadonlyArray<string>;
-  readonly removal: Pick<ProviderRemoval, "remove">;
+  readonly removal: Pick<IssuerRemoval, "remove">;
   /** The composition's one lifecycle driver: creation grants through the grant path. */
   readonly lifecycle: Pick<ResourceAuthorizationLifecycle, "onResourceCreated">;
   /** The composition's one list read scope, the same instance the driver slot holds. */
@@ -192,24 +192,24 @@ export function providerCommands(deps: FederationIssuerLaneDeps): Commands {
   // (@stigmer/server's refuse-service-account step), on every write.
   const refuseServiceAccount = <Desc extends DescMessage>() =>
     newRefuseServiceAccountCallerStep<Desc>(
-      "create, change or delete identity providers",
+      "create, change or delete federation issuers",
       deps.accounts,
     );
   const commands: Commands = {
     create: (input, ctx) =>
       runUnaryChain(
-        { chain: "identity-provider-create", step: "CreateIdentityProvider" },
+        { chain: "federation-issuer-create", step: "CreateFederationIssuer" },
         method.create,
         input,
         ctx,
         deps,
-        (reqCtx) => createProvider(reqCtx, deps),
+        (reqCtx) => createIssuer(reqCtx, deps),
         {
           kind: KIND,
           steps: [
             refuseServiceAccount(),
             newResolveSlugStep(),
-            newCheckDuplicateProviderStep(deps.names, deps.store),
+            newCheckDuplicateIssuerStep(deps.names, deps.store),
             newBuildNewStateStep(),
             ...growthGateOf(deps),
             newClaimNameStep<typeof FederationIssuerSchema>(
@@ -226,18 +226,18 @@ export function providerCommands(deps: FederationIssuerLaneDeps): Commands {
     update: (input, ctx) =>
       runGuardedWrite(() =>
         runUpdateChain(
-          { chain: "identity-provider-update", step: "UpdateIdentityProvider" },
+          { chain: "federation-issuer-update", step: "UpdateFederationIssuer" },
           method.update,
           FederationIssuerSchema,
           input,
           ctx,
           deps,
-          (reqCtx) => updateProvider(reqCtx, deps),
+          (reqCtx) => updateIssuer(reqCtx, deps),
           {
             kind: KIND,
             steps: [
               refuseServiceAccount(),
-              newLoadExistingProviderStep(deps.store),
+              newLoadExistingIssuerStep(deps.store),
               newBuildUpdateStateStep(),
               ...growthGateOf(deps),
             ],
@@ -246,7 +246,7 @@ export function providerCommands(deps: FederationIssuerLaneDeps): Commands {
       ),
     apply: async (input, ctx) => {
       const existing = await runUnaryChain(
-        { chain: "identity-provider-apply", step: "DecideApply" },
+        { chain: "federation-issuer-apply", step: "DecideApply" },
         method.apply,
         input,
         ctx,
@@ -265,14 +265,14 @@ export function providerCommands(deps: FederationIssuerLaneDeps): Commands {
               },
             ]),
             newResolveSlugStep(),
-            newLoadProviderForApplyStep(deps.names, deps.store),
+            newLoadIssuerForApplyStep(deps.names, deps.store),
           ],
         },
       );
       return existing === undefined
         ? commands.create(input, ctx)
         : commands.update(
-            everyPathUpdate(UpdateFederationIssuerInputSchema, withResolvedProviderId(input, existing)),
+            everyPathUpdate(UpdateFederationIssuerInputSchema, withResolvedIssuerId(input, existing)),
             ctx,
           );
     },
@@ -285,7 +285,7 @@ export function providerCommands(deps: FederationIssuerLaneDeps): Commands {
           authorizer: deps.authorizer,
           logger: deps.logger,
           beforeLoad: [refuseServiceAccount()],
-          afterLoad: [newRefuseRenamingDeletedProviderStep(deps.store)],
+          afterLoad: [newRefuseRenamingDeletedIssuerStep(deps.store)],
         },
         input,
         callerIdentityOf(ctx),
@@ -296,7 +296,7 @@ export function providerCommands(deps: FederationIssuerLaneDeps): Commands {
     },
     delete: (input, ctx) =>
       runUnaryChain(
-        { chain: "identity-provider-delete", step: "DeleteIdentityProvider" },
+        { chain: "federation-issuer-delete", step: "DeleteFederationIssuer" },
         method.delete,
         input,
         ctx,
@@ -311,7 +311,7 @@ export function providerCommands(deps: FederationIssuerLaneDeps): Commands {
         },
         {
           kind: KIND,
-          steps: [refuseServiceAccount(), newLoadProviderStep(deps.store, (del) => del.resourceId)],
+          steps: [refuseServiceAccount(), newLoadIssuerStep(deps.store, (del) => del.resourceId)],
         },
       ),
   };
@@ -323,7 +323,7 @@ export function providerQueries(deps: FederationIssuerLaneDeps): Queries {
   return {
     get: (input, ctx) =>
       runUnaryChain(
-        { chain: "identity-provider-get", step: "GetIdentityProvider" },
+        { chain: "federation-issuer-get", step: "GetFederationIssuer" },
         method.get,
         input,
         ctx,
@@ -331,12 +331,12 @@ export function providerQueries(deps: FederationIssuerLaneDeps): Queries {
         (reqCtx) => Promise.resolve(providerAt(reqCtx, TARGET_RESOURCE_KEY)),
         {
           kind: KIND,
-          steps: [newLoadProviderStep(deps.store, (id) => id.value)],
+          steps: [newLoadIssuerStep(deps.store, (id) => id.value)],
         },
       ),
     getByReference: (input, ctx) =>
       runUnaryChain(
-        { chain: "identity-provider-get-by-reference", step: "GetIdentityProviderByReference" },
+        { chain: "federation-issuer-get-by-reference", step: "GetFederationIssuerByReference" },
         method.getByReference,
         input,
         ctx,
@@ -345,14 +345,14 @@ export function providerQueries(deps: FederationIssuerLaneDeps): Queries {
         {
           kind: KIND,
           steps: [
-            newLoadProviderByReferenceStep(deps.names, deps.store, deps.authorizer),
+            newLoadIssuerByReferenceStep(deps.names, deps.store, deps.authorizer),
             newAuthorizeResolvedTargetStep(deps.authorizer, loadedTargetAsMethod(method.get)),
           ],
         },
       ),
     list: (input, ctx) =>
       runUnaryChain(
-        { chain: "identity-provider-list", step: "ListIdentityProviders" },
+        { chain: "federation-issuer-list", step: "ListFederationIssuers" },
         method.list,
         input,
         ctx,
@@ -366,7 +366,7 @@ export function providerQueries(deps: FederationIssuerLaneDeps): Queries {
             decode: (data) => fromBinary(FederationIssuerSchema, data),
             scope: (rows) =>
               restrictListByReadScope(deps.listReadScope, reqCtx.callerIdentity, KIND, rows, org),
-            failure: "failed to list identity providers",
+            failure: "failed to list federation issuers",
           });
           return create(FederationIssuersSchema, {
             entries: page.entries,
@@ -384,34 +384,34 @@ export function providerQueries(deps: FederationIssuerLaneDeps): Queries {
  * route a racing create claimed first answers the copy the chain's check
  * or the matrix would have.
  */
-async function createProvider(
+async function createIssuer(
   reqCtx: RequestContext<typeof FederationIssuerCommandController.method.create.input>,
   deps: FederationIssuerLaneDeps,
 ): Promise<FederationIssuer> {
-  return insertProvider(reqCtx, deps).catch(
+  return insertIssuer(reqCtx, deps).catch(
     releaseNameOnFailure(deps.names, deps.logger, reqCtx),
   );
 }
 
-async function insertProvider(
+async function insertIssuer(
   reqCtx: RequestContext<typeof FederationIssuerCommandController.method.create.input>,
   deps: FederationIssuerLaneDeps,
 ): Promise<FederationIssuer> {
   const provider = reqCtx.newState;
   normalizeIssuers(provider);
-  await validateProvider(deps, provider, /* isUpdate */ false);
+  await validateIssuer(deps, provider, /* isUpdate */ false);
   const outcome = await deps.store.insert(provider);
   switch (outcome.kind) {
     case "inserted":
       break;
     case "slug-taken": {
-      const winner = await findProviderByName(
+      const winner = await findIssuerByName(
         deps.names,
         deps.store,
         provider.metadata?.org ?? "",
         provider.metadata?.slug ?? "",
       );
-      throw duplicateProviderError(winner ?? provider);
+      throw duplicateIssuerError(winner ?? provider);
     }
     case "route-taken":
       throw routeTakenError(outcome.route);
@@ -437,13 +437,13 @@ async function insertProvider(
  * spec, name and labels on the stored id, slug, organization, visibility
  * and status): the matrix, the row, the invalidation.
  */
-async function updateProvider(
+async function updateIssuer(
   reqCtx: RequestContext<typeof FederationIssuerSchema>,
   deps: FederationIssuerLaneDeps,
 ): Promise<FederationIssuer> {
   const provider = reqCtx.newState;
   normalizeIssuers(provider);
-  await validateProvider(deps, provider, /* isUpdate */ true);
+  await validateIssuer(deps, provider, /* isUpdate */ true);
   const outcome = await deps.store.swap(
     provider.metadata?.id ?? "",
     // LoadExisting runs first in this chain and keeps the bytes.

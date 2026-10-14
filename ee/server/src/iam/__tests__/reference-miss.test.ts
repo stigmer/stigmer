@@ -93,7 +93,7 @@ describe("the answer to a lookup that finds nothing", () => {
 describe("the refusal's copy", () => {
   it("is the method's own authorization copy", () => {
     expect(deniedCopyOf(TeamQueryController.method.get)).toBe("unauthorized to view team");
-    expect(deniedCopyOf(FederationIssuerQueryController.method.get)).toBe("unauthorized to view identity provider");
+    expect(deniedCopyOf(FederationIssuerQueryController.method.get)).toBe("unauthorized to view federation issuer");
   });
 
   it("throws for a method that carries none, rather than refusing with no sentence", () => {

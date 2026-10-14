@@ -285,21 +285,21 @@ describe("onComposed: a unit receives the composition's own instances", () => {
         }),
         provisioning: {
           mode: "federated",
-          provider: { org: providerOrg, id: "idp_01hzacmeokta0000000000000" },
+          provider: { org: providerOrg, id: "fis_01hzacmeokta0000000000000" },
         },
       },
-      serverActingFor("idp_01hzacmeokta0000000000000"),
+      serverActingFor("fis_01hzacmeokta0000000000000"),
     );
     expect(created.metadata?.id).toBe(
-      federatedAccountIdFor("idp_01hzacmeokta0000000000000", "okta|dana"),
+      federatedAccountIdFor("fis_01hzacmeokta0000000000000", "okta|dana"),
     );
     expect(created.spec?.provisioningMode).toBe(
       IdentityAccountProvisioningMode.federated,
     );
     expect(
       (
-        await accounts.store.findByProviderAndIdpId(
-          "idp_01hzacmeokta0000000000000",
+        await accounts.store.findByIssuerAndIdpId(
+          "fis_01hzacmeokta0000000000000",
           "okta|dana",
         )
       )?.metadata?.id,

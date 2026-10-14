@@ -1,5 +1,5 @@
 /**
- * Holds the in-memory IdentityProvider store the unit suites run on to the
+ * Holds the in-memory FederationIssuer store the unit suites run on to the
  * port's contract kit (../store-contract.ts), the same cases a host's
  * adapter passes in its own suites: a suite that passes over this double is
  * passing over a store proven to answer as a real driver does.
@@ -9,10 +9,10 @@
 import { describe, it } from "vitest";
 
 import { federationIssuerStoreContract, type FederationIssuerStoreContractFixture } from "../store-contract.js";
-import { InMemoryProviderStore } from "./in-memory-provider-store.js";
+import { InMemoryIssuerStore } from "./in-memory-issuer-store.js";
 
 function makeFixture(): Promise<FederationIssuerStoreContractFixture> {
-  const inner = new InMemoryProviderStore();
+  const inner = new InMemoryIssuerStore();
   let cut = false;
   const store = new Proxy(inner, {
     get: (target, member) => {
@@ -34,7 +34,7 @@ function makeFixture(): Promise<FederationIssuerStoreContractFixture> {
   });
 }
 
-describe("the in-memory IdentityProvider store holds the port's contract", () => {
+describe("the in-memory FederationIssuer store holds the port's contract", () => {
   for (const contractCase of federationIssuerStoreContract(makeFixture)) {
     it(contractCase.name, contractCase.run);
   }

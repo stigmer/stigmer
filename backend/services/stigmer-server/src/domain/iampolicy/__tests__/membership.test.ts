@@ -26,7 +26,7 @@
  *     the account already holds a row on (idempotent by construction), so
  *     a run that faulted midway converges on the next;
  *   - nothing, in the reconciliation, for a federated account, whose
- *     subject and email its identity provider chose: one asserting a
+ *     subject and email its federation issuer chose: one asserting a
  *     founder's subject and the operator's email earns neither `owner`
  *     nor `admin`, nor `member` anywhere;
  *   - `isPersonAccount` is an allow-list: a `direct` or legacy
@@ -981,7 +981,7 @@ describe("membership rules", () => {
       expect(isPersonAccount(endUser)).toBe(false);
     });
 
-    it("a federated account is not: its subject and its email are the ones its identity provider asserted", () => {
+    it("a federated account is not: its subject and its email are the ones its federation issuer asserted", () => {
       const federated = account("okta|00u1", OPERATOR_EMAIL);
       federated.spec!.provisioningMode =
         IdentityAccountProvisioningMode.federated;

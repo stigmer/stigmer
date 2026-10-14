@@ -2,7 +2,7 @@
  * Canonical issuer URLs. OIDC providers spell their `iss` inconsistently (Auth0 ends in a
  * slash, `https://tenant.us.auth0.com/`; Okta and Cognito do not,
  * `https://acme.okta.com/oauth2/default`), so every issuer comparison in
- * the IdentityProvider domain runs through this one function first:
+ * the FederationIssuer domain runs through this one function first:
  *
  *   - WRITE time: the IdP command handlers canonicalize
  *     `spec.allowed_issuers` before the uniqueness check and the store's

@@ -97,8 +97,8 @@ describe("accountIdFor — the derived account id", () => {
 });
 
 describe("federatedAccountIdFor — the address of a federated account", () => {
-  const OKTA = "idp_01hzacmeokta00000000000000";
-  const AZURE = "idp_01hzacmeazure0000000000000";
+  const OKTA = "fis_01hzacmeokta00000000000000";
+  const AZURE = "fis_01hzacmeazure0000000000000";
 
   it("pins the golden vector (a change re-addresses every federated account)", () => {
     expect(federatedAccountIdFor(OKTA, "okta|dana")).toBe("ida_7s3y6pmj0eqn8m1gf7nr48dekc");
@@ -141,7 +141,7 @@ describe("federatedAccountIdFor — the address of a federated account", () => {
       "subject 'stgm_pc|acme|user-7' uses the 'stgm_pc|' prefix reserved for accounts a platform client provisions",
     );
     expect(reservedSubjectMessage("stgm_fed|acme|okta|dana")).toBe(
-      "subject 'stgm_fed|acme|okta|dana' uses the 'stgm_fed|' prefix reserved for the addresses of accounts an identity provider vouches for",
+      "subject 'stgm_fed|acme|okta|dana' uses the 'stgm_fed|' prefix reserved for the addresses of accounts a federation issuer vouches for",
     );
   });
 });

@@ -98,7 +98,7 @@ export function newResourceIdentityAccountStore(
       }
       if (isFederated(account) && id !== federatedAddressOf(account)) {
         throw new Error(
-          "federated account id must be derived from its identity provider and idp_id",
+          "federated account id must be derived from its federation issuer and idp_id",
         );
       }
       if ((await readById(id)) !== undefined) {
@@ -179,7 +179,7 @@ export function newResourceIdentityAccountStore(
       return found;
     },
 
-    async findByProviderAndIdpId(
+    async findByIssuerAndIdpId(
       providerId,
       idpId,
     ): Promise<IdentityAccount | undefined> {
@@ -200,7 +200,7 @@ export function newResourceIdentityAccountStore(
         : undefined;
     },
 
-    async findByProvider(
+    async findByIssuer(
       providerId,
     ): Promise<ReadonlyArray<IdentityAccount>> {
       if (providerId === "") {
@@ -208,7 +208,7 @@ export function newResourceIdentityAccountStore(
       }
       const rows = await store.findAllByField(
         KIND,
-        "spec.identity_provider_ref.id",
+        "spec.federation_issuer_ref.id",
         providerId,
         IdentityAccountSchema,
       );
@@ -235,7 +235,7 @@ export function newResourceIdentityAccountStore(
 
 /**
  * The port's shape line (store.ts): an account carries an
- * identity_provider_ref if and only if its mode is `federated`. Both mixed
+ * federation_issuer_ref if and only if its mode is `federated`. Both mixed
  * shapes are refused before any write, on `save` and on `swap` alike. A ref
  * under another mode is the row that split a person's sign-in (stigmer#1190):
  * every direct lookup skipped it, so the subject looked new. Mode `federated`
@@ -244,13 +244,13 @@ export function newResourceIdentityAccountStore(
  * readings below agree on every stored row.
  */
 function refuseMixedShape(account: IdentityAccount): void {
-  const hasProviderRef = account.spec?.federationIssuerRef !== undefined;
+  const hasIssuerRef = account.spec?.federationIssuerRef !== undefined;
   const isFederatedMode =
     account.spec?.provisioningMode ===
     IdentityAccountProvisioningMode.federated;
-  if (hasProviderRef !== isFederatedMode) {
+  if (hasIssuerRef !== isFederatedMode) {
     throw new Error(
-      `identity account '${account.metadata?.id ?? ""}' mixes shapes: an identity provider ref is carried exactly by a federated account`,
+      `identity account '${account.metadata?.id ?? ""}' mixes shapes: a federation issuer ref is carried exactly by a federated account`,
     );
   }
 }
@@ -283,7 +283,7 @@ function compareIds(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
-/** A row an identity provider vouches for: its subject is the provider's, reached only by the natural key. */
+/** A row a federation issuer vouches for: its subject is the provider's, reached only by the natural key. */
 function isFederated(account: IdentityAccount): boolean {
   return (
     account.spec?.federationIssuerRef !== undefined ||
@@ -294,7 +294,7 @@ function isFederated(account: IdentityAccount): boolean {
 /**
  * The platform's own subject: neither federated, nor a platform-client end
  * user, nor an organization's service account. A federated account carries
- * its identity_provider_ref (open source never writes one, so that arm is
+ * its federation_issuer_ref (open source never writes one, so that arm is
  * the port's contract stated); a platform-client account is the mint's,
  * whose email and name the platform asserted; a service account signs in
  * through nothing, so a sign-in whose subject named one must never resolve

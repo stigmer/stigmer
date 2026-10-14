@@ -1,5 +1,5 @@
 /**
- * An identity provider's routes: the pairs (canonical issuer, audience) a
+ * A federation issuer's routes: the pairs (canonical issuer, audience) a
  * token is routed by, and which one provider on the platform holds each.
  * Pure over the provider's payload, so the validation matrix, the
  * verifier's index and every store adapter derive a provider's routes the
@@ -10,7 +10,7 @@
 import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 
 /** One route: an issuer the provider names, with the provider's audience. */
-export interface ProviderRoute {
+export interface IssuerRoute {
   readonly issuer: string;
   readonly audience: string;
 }
@@ -22,7 +22,7 @@ export interface ProviderRoute {
  * a token (the contract requires the audience on every write; only a row
  * stored before that rule can lack one).
  */
-export function routesOf(provider: FederationIssuer): ReadonlyArray<ProviderRoute> {
+export function routesOf(provider: FederationIssuer): ReadonlyArray<IssuerRoute> {
   const audience = provider.spec?.expectedAudience ?? "";
   if (audience === "") {
     return [];

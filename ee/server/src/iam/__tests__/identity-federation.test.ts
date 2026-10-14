@@ -65,7 +65,7 @@ const CALLER: CallerIdentity = {
 const REF: ApiResourceReference = create(ApiResourceReferenceSchema, {
   org: "acme",
   kind: ApiResourceKind.federation_issuer,
-  id: "idp_acme_okta",
+  id: "fis_acme_okta",
 });
 
 function federatedRow(overrides: { id: string; externalSub: string }): IdentityAccount {
@@ -222,7 +222,7 @@ function harness(
       const gone =
         (initial.goneAfterFirstRead === true || initial.recreatedAfterFirstRead === true) && providerReads > 1;
       return Promise.resolve(
-        id === "idp_acme_okta" && !gone
+        id === "fis_acme_okta" && !gone
           ? ({
               metadata: { id, org: "acme", slug: "acme-okta" },
               spec: { externalIdClaim: initial.externalIdClaim ?? "" },
@@ -235,7 +235,7 @@ function harness(
       if (answer instanceof Error) {
         return Promise.reject(answer);
       }
-      return Promise.resolve(id === "idp_acme_okta" && (answer ?? initial.deleting !== true));
+      return Promise.resolve(id === "fis_acme_okta" && (answer ?? initial.deleting !== true));
     },
   };
   const childOrganizations = {
@@ -281,7 +281,7 @@ describe("the IdentityFederation capability — createFederatedAccount", () => {
     expect(request.name).toBe("u1@acme.example");
     expect(request.spec.idpId).toBe("okta|u1");
     expect(request.spec.provisioningMode).toBe(IdentityAccountProvisioningMode.federated);
-    expect(request.spec.federationIssuerRef?.id).toBe("idp_acme_okta");
+    expect(request.spec.federationIssuerRef?.id).toBe("fis_acme_okta");
     expect(request.spec.federationIssuerRef?.org).toBe("acme");
   });
 
@@ -290,12 +290,12 @@ describe("the IdentityFederation capability — createFederatedAccount", () => {
     await expect(federation.createFederatedAccount(input, REF, CALLER)).rejects.toSatisfy(
       (error: unknown) =>
         connectCode(error) === Code.FailedPrecondition &&
-        (error as ConnectError).rawMessage === "This identity provider is being deleted. If its delete failed, delete it again to finish.",
+        (error as ConnectError).rawMessage === "This federation issuer is being deleted. If its delete failed, delete it again to finish.",
     );
     expect(recorded.created).toEqual([]);
   });
 
-  const BEING_DELETED = "This identity provider is being deleted. If its delete failed, delete it again to finish.";
+  const BEING_DELETED = "This federation issuer is being deleted. If its delete failed, delete it again to finish.";
 
   it("removes the account it made and refuses, when the provider's delete began while it wrote", async () => {
     const { federation, recorded, logged } = harness({ liveness: [true, false] });
@@ -368,7 +368,7 @@ describe("the IdentityFederation capability — createFederatedAccount", () => {
       (error: unknown) =>
         connectCode(error) === Code.AlreadyExists &&
         (error as ConnectError).rawMessage ===
-          "Federated account already exists for this identity provider and external subject (existing id: ida_held)",
+          "Federated account already exists for this federation issuer and external subject (existing id: ida_held)",
     );
     expect(recorded.created, "nothing is created after the refusal").toEqual([]);
   });
@@ -379,7 +379,7 @@ describe("the IdentityFederation capability — createFederatedAccount", () => {
     });
     const winner = await federation.createFederatedAccount(input, REF, CALLER);
     expect(winner.metadata?.id).toBe("ida_winner");
-    expect(recorded.naturalKeyLookups.at(-1)).toEqual(["idp_acme_okta", "okta|u1"]);
+    expect(recorded.naturalKeyLookups.at(-1)).toEqual(["fis_acme_okta", "okta|u1"]);
   });
 });
 
@@ -406,7 +406,7 @@ describe("the IdentityFederation capability — updateFederatedAccount", () => {
     expect(updated.spec?.pictureUrl).toBe("https://new.pic");
     expect(updated.spec?.idpId).toBe("okta|u1");
     expect(updated.spec?.provisioningMode).toBe(IdentityAccountProvisioningMode.federated);
-    expect(updated.spec?.federationIssuerRef?.id).toBe("idp_acme_okta");
+    expect(updated.spec?.federationIssuerRef?.id).toBe("fis_acme_okta");
   });
 
   it("is NOT_FOUND with the byte-pinned copy when the account is deleted between the lookup and the write", async () => {
@@ -645,23 +645,23 @@ describe("the IdentityFederation capability — getByExternalSub and providerExi
     );
   });
 
-  it("providerExists reads the IdentityProvider store by the id the resolved reference holds, in its organization — the controller's IdP-exists precondition", async () => {
+  it("providerExists reads the FederationIssuer store by the id the resolved reference holds, in its organization — the controller's IdP-exists precondition", async () => {
     const { federation } = harness();
-    expect(await federation.providerExists("acme", "idp_acme_okta")).toBe(true);
-    expect(await federation.providerExists("acme", "idp_acme_google")).toBe(false);
-    expect(await federation.providerExists("globex", "idp_acme_okta")).toBe(false);
+    expect(await federation.providerExists("acme", "fis_acme_okta")).toBe(true);
+    expect(await federation.providerExists("acme", "fis_acme_google")).toBe(false);
+    expect(await federation.providerExists("globex", "fis_acme_okta")).toBe(false);
     expect(await federation.providerExists("acme", "")).toBe(false);
   });
 
   it("still answers that a provider being deleted exists, so its admins can deprovision and look up its accounts", async () => {
     const { federation } = harness({ deleting: true });
-    expect(await federation.providerExists("acme", "idp_acme_okta")).toBe(true);
+    expect(await federation.providerExists("acme", "fis_acme_okta")).toBe(true);
   });
 });
 
 describe("the IdentityFederation capability — every arm is scoped to its own provider", () => {
   type Federation = ReturnType<typeof harness>["federation"];
-  const key = { org: "acme", identityProviderRef: REF, externalSub: "okta|u1" };
+  const key = { org: "acme", federationIssuerRef: REF, externalSub: "okta|u1" };
   const arms: ReadonlyArray<{
     arm: string;
     /** The row the natural key holds when the arm runs: none for a create. */
@@ -705,7 +705,7 @@ describe("the IdentityFederation capability — every arm is scoped to its own p
     for (const { arm, held, call } of arms) {
       const { federation, recorded } = harness({ byNaturalKey: held });
       await call(federation);
-      expect(recorded.naturalKeyLookups, arm).toEqual([["idp_acme_okta", "okta|u1"]]);
+      expect(recorded.naturalKeyLookups, arm).toEqual([["fis_acme_okta", "okta|u1"]]);
     }
   });
 });

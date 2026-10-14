@@ -5,7 +5,7 @@
  * failure, never a throw: unreachable with its cause, an error status, a
  * body that is not a JSON object, no issuer, no jwks_uri. Each caller's
  * policy over those values is pinned beside the caller (the identity
- * provider's in `iam/provider/__tests__/handlers.test.ts`, a host's own
+ * provider's in `iam/issuer/__tests__/handlers.test.ts`, a host's own
  * lanes in its own suites).
  */
 import { describe, expect, it } from "vitest";

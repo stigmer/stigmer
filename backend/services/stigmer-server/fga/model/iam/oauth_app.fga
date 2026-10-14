@@ -12,7 +12,7 @@ module iam
 # (client_secret), so they are the organization's credential, not a
 # person's. Plain members and viewer-role members of the organization see
 # nothing. `owner` is computed, never stored: it is the organization's
-# admins, as an identity provider is managed, so an app stays manageable
+# admins, as a federation issuer is managed, so an app stays manageable
 # whoever created it, and a creator who is demoted below admin or removed
 # loses control of it with the role. The creator is recorded in the audit
 # trail (kind_meta `owner_type` NONE). Public visibility is intentionally

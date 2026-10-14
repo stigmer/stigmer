@@ -87,7 +87,7 @@
  * built-in authorizer therefore still lets a person read their own
  * account (the derivation is `owner@self`), where a generic read would
  * miss and deny them their own row. A kind a unit keeps in a store of its
- * own (an identity provider, an invitation, a team, in the editions that
+ * own (a federation issuer, an invitation, a team, in the editions that
  * serve them) is read through the reader the unit registered for it
  * (`rowReaders`, extensions/resource-row-reader.ts), so a team a grant
  * names resolves its organization from the row its unit wrote. IamPolicy

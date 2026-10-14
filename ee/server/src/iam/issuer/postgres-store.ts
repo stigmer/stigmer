@@ -42,11 +42,11 @@ import { stampEtag } from "@stigmer/server";
 
 import { pageOrgRows } from "../../postgres/keyset.js";
 import { inTransaction } from "../../postgres/transaction.js";
-import { routesOf, type ProviderRoute } from "./routes.js";
+import { routesOf, type IssuerRoute } from "./routes.js";
 import type {
   FederationIssuerStore,
-  ProviderInsertOutcome,
-  ProviderSwapOutcome,
+  IssuerInsertOutcome,
+  IssuerSwapOutcome,
 } from "./store.js";
 
 const TABLE = "ee.iam_identity_provider";
@@ -60,7 +60,7 @@ const ROUTE_CONSTRAINT = "iam_identity_provider_route_pkey";
 /** Postgres unique-violation SQLSTATE. */
 const UNIQUE_VIOLATION = "23505";
 
-interface ProviderRow {
+interface IssuerRow {
   readonly data: Buffer;
 }
 
@@ -72,11 +72,11 @@ export function newFederationIssuerStore(pool: Pool): FederationIssuerStore {
     where: string,
     params: ReadonlyArray<unknown>,
   ): Promise<ReadonlyArray<FederationIssuer>> {
-    const result = await pool.query<ProviderRow>(
+    const result = await pool.query<IssuerRow>(
       `SELECT data FROM ${TABLE} ${where}`,
       [...params],
     );
-    return result.rows.map(rowToProvider);
+    return result.rows.map(rowToIssuer);
   }
 
   async function queryOne(
@@ -96,9 +96,9 @@ export function newFederationIssuerStore(pool: Pool): FederationIssuerStore {
   }
 
   return {
-    async insert(provider): Promise<ProviderInsertOutcome> {
+    async insert(provider): Promise<IssuerInsertOutcome> {
       const columns = columnsOf(provider);
-      return inTransaction<ProviderInsertOutcome>(pool, async (client) => {
+      return inTransaction<IssuerInsertOutcome>(pool, async (client) => {
         const refused = await claiming(() =>
           client.query(
             `INSERT INTO ${TABLE} (id, data, org, slug, created_at)
@@ -117,20 +117,20 @@ export function newFederationIssuerStore(pool: Pool): FederationIssuerStore {
     },
 
     async readForWrite(id): Promise<GuardedRead<FederationIssuer> | undefined> {
-      const result = await pool.query<ProviderRow>(
+      const result = await pool.query<IssuerRow>(
         `SELECT data FROM ${TABLE} WHERE id = $1`,
         [id],
       );
       const row = result.rows[0];
       return row === undefined
         ? undefined
-        : { row: rowToProvider(row), bytes: new Uint8Array(row.data) };
+        : { row: rowToIssuer(row), bytes: new Uint8Array(row.data) };
     },
 
-    async swap(id, expectedBytes, provider): Promise<ProviderSwapOutcome> {
+    async swap(id, expectedBytes, provider): Promise<IssuerSwapOutcome> {
       const columns = columnsOf(provider);
-      return inTransaction<ProviderSwapOutcome>(pool, async (client) => {
-        const locked = await client.query<ProviderRow>(
+      return inTransaction<IssuerSwapOutcome>(pool, async (client) => {
+        const locked = await client.query<IssuerRow>(
           `SELECT data FROM ${TABLE} WHERE id = $1 FOR UPDATE`,
           [id],
         );
@@ -138,7 +138,7 @@ export function newFederationIssuerStore(pool: Pool): FederationIssuerStore {
         if (held === undefined || !held.data.equals(Buffer.from(expectedBytes))) {
           return { commit: false, value: { kind: "changed" } };
         }
-        refuseSlugChange(rowToProvider(held), provider);
+        refuseSlugChange(rowToIssuer(held), provider);
         // The row is locked and held, so the UPDATE writes it.
         await client.query(`UPDATE ${TABLE} SET data = $2 WHERE id = $1`, [id, payloadOf(provider)]);
         await client.query(
@@ -154,7 +154,7 @@ export function newFederationIssuerStore(pool: Pool): FederationIssuerStore {
 
     modifyById(id, modify): Promise<FederationIssuer | undefined> {
       return inTransaction<FederationIssuer | undefined>(pool, async (client) => {
-        const locked = await client.query<ProviderRow>(
+        const locked = await client.query<IssuerRow>(
           `SELECT data FROM ${TABLE} WHERE id = $1 FOR UPDATE`,
           [id],
         );
@@ -162,7 +162,7 @@ export function newFederationIssuerStore(pool: Pool): FederationIssuerStore {
         if (held === undefined) {
           return { commit: false, value: undefined };
         }
-        const provider = rowToProvider(held);
+        const provider = rowToIssuer(held);
         const before = columnsOf(provider);
         modify(provider);
         const after = columnsOf(provider);
@@ -203,7 +203,7 @@ export function newFederationIssuerStore(pool: Pool): FederationIssuerStore {
       return result.rows.map((row) => row.id);
     },
 
-    findProviderIdByRoute(issuer, audience) {
+    findIssuerIdByRoute(issuer, audience) {
       return providerIdByRoute(issuer, audience);
     },
 
@@ -239,8 +239,8 @@ export function newFederationIssuerStore(pool: Pool): FederationIssuerStore {
 async function claimRoutes(
   client: PoolClient,
   id: string,
-  routes: ReadonlyArray<ProviderRoute>,
-): Promise<ProviderRoute | undefined> {
+  routes: ReadonlyArray<IssuerRoute>,
+): Promise<IssuerRoute | undefined> {
   for (const route of routes) {
     const refused = await claiming(() =>
       client.query(
@@ -306,8 +306,8 @@ function refuseSlugChange(held: FederationIssuer, next: FederationIssuer): void 
  * Refuses a `modifyById` that moved what only `swap` may: the
  * organization or a route claim.
  */
-function refuseClaimChange(before: ProviderColumns, after: ProviderColumns): void {
-  const routeKey = (routes: ReadonlyArray<ProviderRoute>) =>
+function refuseClaimChange(before: IssuerColumns, after: IssuerColumns): void {
+  const routeKey = (routes: ReadonlyArray<IssuerRoute>) =>
     routes.map((route) => `${route.issuer}\u0000${route.audience}`).sort().join("\u0001");
   if (
     before.org !== after.org ||
@@ -320,7 +320,7 @@ function refuseClaimChange(before: ProviderColumns, after: ProviderColumns): voi
 }
 
 /** The single column-to-proto correspondence. */
-function rowToProvider(row: ProviderRow): FederationIssuer {
+function rowToIssuer(row: IssuerRow): FederationIssuer {
   return fromBinary(FederationIssuerSchema, new Uint8Array(row.data));
 }
 
@@ -330,12 +330,12 @@ function payloadOf(provider: FederationIssuer): Buffer {
   return Buffer.from(toBinary(FederationIssuerSchema, provider));
 }
 
-interface ProviderColumns {
+interface IssuerColumns {
   readonly id: string;
   readonly org: string;
   readonly slug: string;
   readonly createdAt: Date;
-  readonly routes: ReadonlyArray<ProviderRoute>;
+  readonly routes: ReadonlyArray<IssuerRoute>;
 }
 
 /**
@@ -344,7 +344,7 @@ interface ProviderColumns {
  * the slug; the request named the organization). A missing one is a
  * programming error, not bad input, and throws as such.
  */
-function columnsOf(provider: FederationIssuer): ProviderColumns {
+function columnsOf(provider: FederationIssuer): IssuerColumns {
   const id = provider.metadata?.id ?? "";
   const org = provider.metadata?.org ?? "";
   const slug = provider.metadata?.slug ?? "";

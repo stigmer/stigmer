@@ -4,7 +4,7 @@
  * client credentials plus the vendor's OAuth endpoints, found by the
  * addresses it signs in to (addresses.ts; a sign-in at one of them uses
  * it, domain/vault/login-app.ts). The outbound counterpart to
- * IdentityProvider (inbound auth).
+ * FederationIssuer (inbound auth).
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
  * Proven by oauthapp.conformance.test.ts (CONFORMANCE_TARGET=local)

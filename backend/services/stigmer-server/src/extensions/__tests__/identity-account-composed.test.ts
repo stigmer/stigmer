@@ -151,13 +151,13 @@ function recordingStore(
       calls.push("findByOrg");
       return inner.findByOrg(org);
     },
-    findByProviderAndIdpId: (providerId, idpId) => {
-      calls.push("findByProviderAndIdpId");
-      return inner.findByProviderAndIdpId(providerId, idpId);
+    findByIssuerAndIdpId: (providerId, idpId) => {
+      calls.push("findByIssuerAndIdpId");
+      return inner.findByIssuerAndIdpId(providerId, idpId);
     },
-    findByProvider: (providerId) => {
-      calls.push("findByProvider");
-      return inner.findByProvider(providerId);
+    findByIssuer: (providerId) => {
+      calls.push("findByIssuer");
+      return inner.findByIssuer(providerId);
     },
   };
 }
@@ -235,7 +235,7 @@ describe("identity-account points (composed server, trusted-local: driver + fede
     readonly callerIdentityId: string;
   }
   const armCalls: ArmCall[] = [];
-  const OKTA_ID = "idp_01hzacmeokta0000000000000";
+  const OKTA_ID = "fis_01hzacmeokta0000000000000";
   let providerExistsCalls = 0;
   let providerExists = true;
 
@@ -314,10 +314,10 @@ describe("identity-account points (composed server, trusted-local: driver + fede
       host: "127.0.0.1",
     });
     const port = await server.start();
-    // The identity provider the federated inputs name, as an edition that
+    // The federation issuer the federated inputs name, as an edition that
     // serves providers claims its name (the OSS server has none of its own).
     await server.store.resourceNames.claim(
-      { kind: "identity_provider", org: "acme", name: "okta" },
+      { kind: "federation_issuer", org: "acme", name: "okta" },
       OKTA_ID,
       new Date().toISOString(),
     );
@@ -453,7 +453,7 @@ describe("identity-account points (composed server, trusted-local: driver + fede
       );
       expect(error.code).toBe(Code.InvalidArgument);
       expect(error.rawMessage).toBe(
-        "identity_provider_ref with a valid slug or id is required",
+        "federation_issuer_ref with a valid slug or id is required",
       );
       expect(armCalls).toEqual([]);
     });
@@ -470,12 +470,12 @@ describe("identity-account points (composed server, trusted-local: driver + fede
       );
       expect(error.code).toBe(Code.InvalidArgument);
       expect(error.rawMessage).toBe(
-        "identity_provider_ref.org 'rival' does not match input org 'acme'",
+        "federation_issuer_ref.org 'rival' does not match input org 'acme'",
       );
       expect(armCalls).toEqual([]);
     });
 
-    it("an identity provider the unit does not know is NOT_FOUND naming org/slug — the arm is never reached", async () => {
+    it("a federation issuer the unit does not know is NOT_FOUND naming org/slug — the arm is never reached", async () => {
       armCalls.length = 0;
       providerExists = false;
       try {
@@ -488,7 +488,7 @@ describe("identity-account points (composed server, trusted-local: driver + fede
         );
         expect(error.code).toBe(Code.NotFound);
         expect(error.rawMessage).toBe(
-          "IdentityProvider 'acme/unknown-idp' not found",
+          "FederationIssuer 'acme/unknown-idp' not found",
         );
         expect(armCalls).toEqual([]);
       } finally {
@@ -523,7 +523,7 @@ describe("identity-account points (composed server, trusted-local: driver + fede
 
 /**
  * A lane that vouches for accounts of its own, the shape of an
- * organization's identity provider: a JWT-shaped token whose third segment
+ * organization's federation issuer: a JWT-shaped token whose third segment
  * is `lane`, carrying `sub` (the subject the lane chose) and `acct` (the
  * account it stamps). Nothing about it is a platform sign-in.
  */
@@ -616,7 +616,7 @@ describe("identity-account points (composed server, declared posture: the verifi
       }
       // A federated row sits at the address of its provider and subject:
       // the OSS adapter under the driver refuses any other id.
-      const laneAccount = federatedAccountIdFor("idp_01hzacmeokta0000000000000", subject);
+      const laneAccount = federatedAccountIdFor("fis_01hzacmeokta0000000000000", subject);
       await driver.accounts.save(
         create(IdentityAccountSchema, {
           apiVersion: "iam.stigmer.ai/v1",
@@ -625,7 +625,7 @@ describe("identity-account points (composed server, declared posture: the verifi
           spec: {
             idpId: subject,
             provisioningMode: IdentityAccountProvisioningMode.federated,
-            federationIssuerRef: { org: "acme", id: "idp_01hzacmeokta0000000000000" },
+            federationIssuerRef: { org: "acme", id: "fis_01hzacmeokta0000000000000" },
           },
         }),
       );
