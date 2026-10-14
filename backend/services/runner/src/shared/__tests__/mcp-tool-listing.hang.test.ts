@@ -64,7 +64,7 @@ describe("a tools listing against a 4xx-then-silent-SSE endpoint (issue #239)", 
       slug: "plugin_monday_api",
       connectionType: "http",
       url,
-      pluginOrigin: { pluginId: "plg-monday", plugin: "monday", server: "api" },
+      home: { kind: "plugin", pluginId: "plg-monday", plugin: "monday", server: "api" },
     });
     // Attach the rejection expectation BEFORE advancing so the rejection is
     // never momentarily unhandled.

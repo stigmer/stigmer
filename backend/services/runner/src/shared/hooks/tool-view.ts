@@ -44,11 +44,13 @@
  * hiding matches, and its policy holds. `delete` is never bound
  * (`deepagents-profiles.ts`), so it has no row in either format.
  *
- * An MCP tool is Claude's `mcp__<server>__<tool>`: every server a hook can
- * see is a plugin's, whose name in a turn is already the segment Claude Code
- * builds (`plugin_<plugin>_<server>`, shared/plugin-servers.ts), shown to
- * a hook as `plugin:<plugin>:<server>` with `source: "plugin"`, so a
- * plugin's matchers find its tools unchanged. To Cursor's hooks it is
+ * An MCP tool is Claude's `mcp__<server>__<tool>`. A plugin's server's
+ * name in a turn is already the segment Claude Code builds
+ * (`plugin_<plugin>_<server>`, shared/plugin-servers.ts), shown to a hook
+ * as `plugin:<plugin>:<server>` with `source: "plugin"`, so a plugin's
+ * matchers find its tools unchanged; a server the agent writes itself is
+ * its own name, shown with `source: "agent"`, as Claude Code shows a
+ * server an agent defines (`hookServerNameOf`). To Cursor's hooks it is
  * `MCP:<tool>` on `preToolUse`, and the bare tool with its server's slug on
  * `beforeMCPExecution`. Stigmer's own tools (the channel, conversation and
  * memory attachments) have no view and never reach a hook: no plugin can
@@ -60,6 +62,7 @@
 
 import { isDeepStrictEqual } from "node:util";
 import { join } from "node:path";
+import type { McpServerHome, ResolvedMcpServer } from "../mcp-resolver.js";
 import type { HookFormatName } from "./hook-set.js";
 
 type Args = Record<string, unknown>;
@@ -71,7 +74,7 @@ export interface ToolView {
   /** Further names a matcher takes the call by: the Cursor engine's `Write` is Claude's `Write` and `Edit` alike. */
   readonly aliases?: readonly string[];
   /** Present for an MCP tool: Claude Code's `mcp_server` stdin field. */
-  readonly mcpServer?: { readonly name: string; readonly source: "plugin" };
+  readonly mcpServer?: HookServerName;
 }
 
 /** A call as a Cursor hook sees it. */
@@ -127,10 +130,46 @@ function asJson(value: Args): Args {
   return JSON.parse(JSON.stringify(value)) as Args;
 }
 
-/** How Claude Code names a plugin's own server: the plugin's name and the server's key in it. */
-export interface PluginServerName {
-  readonly plugin: string;
-  readonly server: string;
+/** A server as Claude Code shows it to a hook (`mcp_server`): its name, and whose it is. */
+export interface HookServerName {
+  readonly name: string;
+  readonly source: "plugin" | "agent";
+}
+
+/**
+ * The name a hook sees for a server of `home`: a plugin's as
+ * `plugin:<plugin>:<server>`, an agent's own as its name; none for the
+ * platform's, whose tools never reach a hook.
+ */
+export function hookServerNameOf(home: McpServerHome): HookServerName | undefined {
+  switch (home.kind) {
+    case "plugin":
+      return { name: `plugin:${home.plugin}:${home.server}`, source: "plugin" };
+    case "agent":
+      return { name: home.server, source: "agent" };
+    case "platform":
+      return undefined;
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
+    default: {
+      const exhaustive: never = home;
+      return exhaustive;
+    }
+  }
+}
+
+/** Each server's hook name by slug, from the turn's resolved servers (the platform's left out). */
+export function hookServerNamesOf(servers: readonly ResolvedMcpServer[]): Map<string, HookServerName> {
+  const names = new Map<string, HookServerName>();
+  for (const server of servers) {
+    const name = hookServerNameOf(server.home);
+    if (name !== undefined) names.set(server.slug, name);
+  }
+  return names;
+}
+
+/** The view of an MCP tool of server `slug`, named by `names`; an unnamed server shows its slug. */
+export function mcpServerView(names: ReadonlyMap<string, HookServerName>, slug: string): HookServerName {
+  return names.get(slug) ?? { name: slug, source: "plugin" };
 }
 
 /** What the native views read from the turn. */
@@ -141,8 +180,8 @@ export interface NativeViewContext {
   readonly toVirtualPath: (realPath: string) => string | undefined;
   /** Each bound MCP tool's server slug, by the tool's bound name. */
   readonly toolServerMap: ReadonlyMap<string, string>;
-  /** The servers a plugin brought, by slug, with the names Claude Code gives them. */
-  readonly pluginServers: ReadonlyMap<string, PluginServerName>;
+  /** The turn's servers but the platform's, by slug, with the names Claude Code gives them. */
+  readonly serverNames: ReadonlyMap<string, HookServerName>;
   /** The platform's own servers, which no hook sees. */
   readonly platformServerSlugs: ReadonlySet<string>;
 }
@@ -298,12 +337,11 @@ export class NativeToolViews implements HookToolViews {
     const slug = this.ctx.toolServerMap.get(call.name);
     if (slug !== undefined) {
       if (this.ctx.platformServerSlugs.has(slug)) return {};
-      const owned = this.ctx.pluginServers.get(slug);
       return {
         "claude-code": {
           toolName: `mcp__${slug}__${call.name}`,
           toolInput: { ...call.args },
-          mcpServer: { name: owned === undefined ? slug : `plugin:${owned.plugin}:${owned.server}`, source: "plugin" },
+          mcpServer: mcpServerView(this.ctx.serverNames, slug),
         },
         cursor: { toolName: `MCP:${call.name}`, toolInput: { ...call.args }, mcp: { tool: call.name, server: slug } },
       };

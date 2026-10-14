@@ -72,7 +72,7 @@ const pluginAgent = (name: string, agentTools: string[]): PluginSubagent => ({
   model: "",
 });
 
-const server = (slug: string): ResolvedMcpServer => ({ slug, connectionType: "http", url: `https://${slug}.example/mcp`, pluginOrigin: null });
+const server = (slug: string): ResolvedMcpServer => ({ slug, connectionType: "http", url: `https://${slug}.example/mcp`, home: { kind: "platform" } });
 
 function savedSubagent(name: string, agentTools: string[], servers: ResolvedMcpServer[]): TurnSubagent {
   return {
@@ -85,7 +85,7 @@ function savedSubagent(name: string, agentTools: string[], servers: ResolvedMcpS
     skills: [],
     hooks: [],
     values: {},
-    bringsOwn: { plugins: servers.length > 0, hooks: false, lists: agentTools.length > 0 },
+    bringsOwn: { plugins: servers.length > 0, hooks: false, lists: agentTools.length > 0, mcpServers: false },
   };
 }
 

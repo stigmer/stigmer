@@ -82,8 +82,8 @@ import type { NotViewableEntry, VisionImage } from "../shared/attachment-vision.
 import type { CloudRepo, PluginSubagent } from "../shared/blueprint-resolver.js";
 import type { CasTouchedSnapshot } from "../shared/filereview/cas-touched.js";
 import type { HookFormatName } from "../shared/hooks/hook-set.js";
-import type { PluginServerName } from "../shared/hooks/tool-view.js";
-import type { ResolvedMcpServer } from "../shared/mcp-resolver.js";
+import type { HookServerName } from "../shared/hooks/tool-view.js";
+import { platformServerSlugsOf, type ResolvedMcpServer } from "../shared/mcp-resolver.js";
 import type { McpToolListing } from "../shared/mcp-tool-listing.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
 import type { DeclaredPreferencesContent } from "../shared/declared-preferences.js";
@@ -208,13 +208,12 @@ export interface WireTurnInput {
     readonly destructive: readonly string[];
     readonly unlisted: readonly string[];
     readonly listing: McpToolListing | null;
-    readonly platformServerSlugs: readonly string[];
     readonly toolScope: ToolScopeWire;
   };
   readonly skills: { readonly root: readonly SkillMetadata[]; readonly bySubAgent: readonly (readonly [string, readonly SkillMetadata[]])[] };
   readonly hooks: {
     readonly sources: readonly WireHookSource[];
-    readonly pluginServers: readonly (readonly [string, PluginServerName])[];
+    readonly serverNames: readonly (readonly [string, HookServerName])[];
   };
   readonly subagents: readonly (Omit<TurnSubagent, "toolScope" | "hooks"> & {
     readonly toolScope: ToolScopeWire;
@@ -315,13 +314,12 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
       destructive: [...mcp.mcpDefault.destructive],
       unlisted: [...mcp.mcpDefault.unlisted],
       listing: mcp.listing ?? null,
-      platformServerSlugs: [...mcp.platformServerSlugs],
       toolScope: mcp.toolScope.toWire(),
     },
     skills: { root: input.skills.root, bySubAgent: [...input.skills.bySubAgent] },
     hooks: {
       sources: hooks.sources.map(encodeHookSource),
-      pluginServers: [...hooks.pluginServers],
+      serverNames: [...hooks.serverNames],
     },
     subagents: input.subagents.map((subagent) => ({
       ...subagent,
@@ -436,13 +434,15 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
       },
       mcpDefault: { destructive: new Set(wire.mcp.destructive), unlisted: new Set(wire.mcp.unlisted), leasedServers },
       listing: wire.mcp.listing ?? undefined,
-      platformServerSlugs: new Set(wire.mcp.platformServerSlugs),
+      // One truth with the runner's: the platform's servers are the ones
+      // whose home says so, so the set is derived here, never carried.
+      platformServerSlugs: platformServerSlugsOf(wire.mcp.servers),
       toolScope: ToolScope.fromWire(wire.mcp.toolScope),
     },
     skills: { root: wire.skills.root, bySubAgent: new Map(wire.skills.bySubAgent) },
     hooks: {
       sources: wire.hooks.sources.map((source) => decodeHookSource(source, services)),
-      pluginServers: new Map(wire.hooks.pluginServers),
+      serverNames: new Map(wire.hooks.serverNames),
     },
     subagents: wire.subagents.map((subagent): TurnSubagent => ({
       ...subagent,

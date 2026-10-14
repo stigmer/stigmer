@@ -12,6 +12,10 @@
  *  - each plugin server is named `plugin_<plugin>_<server>` and filled only
  *    from its own values group, and one whose URL moved since its values
  *    were checked is skipped;
+ *  - a server the agent writes itself comes first, by its own name, with the
+ *    agent's home, filled from the agent's group (its login header only when
+ *    a login arrived), listed and asked about like a plugin's, and never the
+ *    platform's;
  *  - an engine that does not read its tools' marks (`readsToolMarks` false)
  *    gets each plugin server listed at turn start, and the default asks for
  *    the destructive tools and every tool of an unlisted server; one that
@@ -137,12 +141,13 @@ function httpPlugin(id: string, name: string, server: string, url: string): Plug
 function valuesFor(...plugins: [id: string, url: string][]): RunValues {
   return {
     ...NO_RUN_VALUES,
-    tools: new Map(plugins.map(([id, url]) => [toolValuesKey(id, "api"), { url, values: { TOKEN: "t" } }])),
+    tools: new Map(plugins.map(([id, url]) => [toolValuesKey("plugin", id, "api"), { url, values: { TOKEN: "t" } }])),
   };
 }
 
 function args(options: {
   readonly agentLists?: { tools: string[]; disallowedTools: string[] };
+  readonly agentServers?: { name: string; url: string; headers?: Record<string, string> }[];
   readonly attachments: boolean;
   readonly plugins?: Plugin[];
   readonly values?: RunValues;
@@ -157,8 +162,8 @@ function args(options: {
     }),
     spec: create(SessionSpecSchema, {}),
   });
-  const agent: RunAgent | undefined = options.agentLists
-    ? { id: "agt_1", versionHash: "", spec: create(AgentSpecSchema, options.agentLists) }
+  const agent: RunAgent | undefined = options.agentLists || options.agentServers
+    ? { id: "agt_1", versionHash: "", spec: create(AgentSpecSchema, { ...options.agentLists, mcpServers: options.agentServers ?? [] }) }
     : undefined;
   const blueprint: ResolvedBlueprint = {
     agent,
@@ -245,8 +250,8 @@ describe("resolveMcpServersAndPolicies — the plugins' servers", () => {
   const linear = httpPlugin("plg_linear", "linear", "api", "https://linear.example/mcp");
   const github = httpPlugin("plg_github", "github", "api", "https://github.example/mcp");
   const groups = new Map<string, ToolValueGroup>([
-    [toolValuesKey("plg_linear", "api"), { url: "https://linear.example/mcp", values: { TOKEN: "linear-token" } }],
-    [toolValuesKey("plg_github", "api"), { url: "https://github.example/mcp", values: { TOKEN: "github-token" } }],
+    [toolValuesKey("plugin", "plg_linear", "api"), { url: "https://linear.example/mcp", values: { TOKEN: "linear-token" } }],
+    [toolValuesKey("plugin", "plg_github", "api"), { url: "https://github.example/mcp", values: { TOKEN: "github-token" } }],
   ]);
   const values: RunValues = { ...NO_RUN_VALUES, tools: groups };
 
@@ -263,9 +268,9 @@ describe("resolveMcpServersAndPolicies — the plugins' servers", () => {
       ["plugin_linear_api", "Bearer linear-token"],
       ["plugin_github_api", "Bearer github-token"],
     ]);
-    expect(mcp.servers.map((server) => server.pluginOrigin)).toEqual([
-      { pluginId: "plg_linear", plugin: "linear", server: "api" },
-      { pluginId: "plg_github", plugin: "github", server: "api" },
+    expect(mcp.servers.map((server) => server.home)).toEqual([
+      { kind: "plugin", pluginId: "plg_linear", plugin: "linear", server: "api" },
+      { kind: "plugin", pluginId: "plg_github", plugin: "github", server: "api" },
     ]);
     expect(mcp.platformServerSlugs.size).toBe(0);
   });
@@ -345,7 +350,7 @@ describe("callableServers — a server no tool of which can be called is never c
     slug,
     connectionType: "http",
     url: `https://${slug}.example.com/mcp`,
-    pluginOrigin: null,
+    home: { kind: "platform" },
   });
   const servers = [server("tracker"), server("orders"), server("wiki"), server(MEMORY_ATTACHMENT_SLUG)];
   const slugs = (scope: ToolScope): string[] => callableServers(servers, scope, new Set([MEMORY_ATTACHMENT_SLUG])).map((s) => s.slug);
@@ -397,7 +402,7 @@ describe("startEvalMocks — a plugin-eval try's stand-ins take their servers' p
     slug,
     connectionType: "http",
     url: `http://127.0.0.1:4000/mcp/${slug}`,
-    pluginOrigin: { pluginId: "plg_linear", plugin: "linear", server: slug.replace(/^plugin_linear_/, "") },
+    home: { kind: "plugin", pluginId: "plg_linear", plugin: "linear", server: slug.replace(/^plugin_linear_/, "") },
   });
   const frame = (): TurnFrame => ({
     primaryDir: undefined,
@@ -489,5 +494,61 @@ describe("startEvalMocks — a plugin-eval try's stand-ins take their servers' p
     const { mcp, out, into } = await standIns(undefined, false);
     expect(out).toBe(mcp);
     expect(into.evalMocks).toBeUndefined();
+  });
+});
+
+describe("resolveMcpServersAndPolicies — the servers the agent writes itself", () => {
+  const ZENDESK_URL = "https://acme-co.zendesk.com/mcp";
+  const zendesk = { name: "zendesk", url: ZENDESK_URL, headers: { "X-Api-Key": "${ZENDESK_KEY}" } };
+  const linear = httpPlugin("plg_linear", "linear", "api", "https://mcp.linear.app/mcp");
+  const values = (login: boolean): RunValues => ({
+    ...NO_RUN_VALUES,
+    tools: new Map<string, ToolValueGroup>([
+      [toolValuesKey("plugin", "plg_linear", "api"), { url: "https://mcp.linear.app/mcp", values: { TOKEN: "t" } }],
+      [
+        toolValuesKey("agent", "agt_1", "zendesk"),
+        { url: ZENDESK_URL, values: { ZENDESK_KEY: "zd-key", ...(login ? { ZENDESK_ACCESS_TOKEN: "zd-login" } : {}) } },
+      ],
+    ]),
+  });
+
+  beforeEach(() => {
+    listTurnTools.mockReset();
+  });
+
+  it("resolves them first, by their own names, with the agent's home, never as the platform's", async () => {
+    const mcp = await resolveMcpServersAndPolicies(
+      deps({ channels: false }),
+      args({ attachments: true, agentServers: [zendesk], plugins: [linear], values: values(true) }),
+    );
+    expect(mcp.servers.slice(0, 2).map((server) => [server.slug, server.home, server.headers])).toEqual([
+      ["zendesk", { kind: "agent", agentId: "agt_1", subagent: null, server: "zendesk" }, { "X-Api-Key": "zd-key", Authorization: "Bearer zd-login" }],
+      ["plugin_linear_api", { kind: "plugin", pluginId: "plg_linear", plugin: "linear", server: "api" }, { Authorization: "Bearer t" }],
+    ]);
+    expect(mcp.platformServerSlugs.has("zendesk")).toBe(false);
+    expect([...mcp.platformServerSlugs].sort()).toEqual([CONVERSATION_ATTACHMENT_SLUG, MEMORY_ATTACHMENT_SLUG].sort());
+  });
+
+  it("calls a server with no login when none arrived", async () => {
+    const mcp = await resolveMcpServersAndPolicies(
+      deps({ channels: false }),
+      args({ attachments: false, agentServers: [zendesk], values: values(false) }),
+    );
+    expect(mcp.servers.map((server) => server.headers)).toEqual([{ "X-Api-Key": "zd-key" }]);
+  });
+
+  it("lists them with the plugins' for an engine that does not read its tools' marks, so a destructive tool asks first", async () => {
+    const listing: McpToolListing = {
+      listed: [{ server: "zendesk", tools: ["echo", "echo_destructive"] }],
+      destructive: [{ server: "zendesk", tool: "echo_destructive" }],
+      unlisted: [],
+    };
+    listTurnTools.mockResolvedValue(listing);
+    const mcp = await resolveMcpServersAndPolicies(
+      deps({ channels: false }),
+      args({ attachments: false, agentServers: [zendesk], plugins: [linear], values: values(false), readsToolMarks: false }),
+    );
+    expect(listTurnTools.mock.calls[0]![0].map((server) => server.slug)).toEqual(["zendesk", "plugin_linear_api"]);
+    expect([...mcp.mcpDefault.destructive]).toEqual(["zendesk/echo_destructive"]);
   });
 });

@@ -137,7 +137,7 @@ export async function listPluginTools(
     ),
   );
 
-  const resolved = entryToResolved(entry, slug, env, { pluginId, plugin: plugin.metadata?.name ?? "", server: entry.name });
+  const resolved = entryToResolved(entry, slug, env, { kind: "plugin", pluginId, plugin: plugin.metadata?.name ?? "", server: entry.name });
   if (!resolved) {
     throw new Error(`MCP server '${slug}' names neither a command nor a URL`);
   }
@@ -180,7 +180,7 @@ async function valuesForListing(
   let group: ToolValueGroup | undefined;
   try {
     const values = await fetchRunValues(client, attemptId, token ?? undefined);
-    group = values.tools.get(toolValuesKey(pluginId, entry.name));
+    group = values.tools.get(toolValuesKey("plugin", pluginId, entry.name));
   } catch (err) {
     if (err instanceof RunValuesRefusedError) {
       throw new CredentialResolutionError(`MCP server '${slug}': ${err.message}`);
