@@ -916,7 +916,6 @@ function requireRef(ref: ApiResourceRef | undefined): ApiResourceRef {
 
 /** Boundary-validated required grant input — absence here is a contract bug. */
 function requireInputGrant(grant: GrantSpec | undefined): GrantSpec {
-  /* v8 ignore next -- @preserve: the boundary's required-field validation refuses a check input without its grant first */
   if (grant === undefined) {
     throw internalError(
       new Error("required grant missing after boundary validation"),

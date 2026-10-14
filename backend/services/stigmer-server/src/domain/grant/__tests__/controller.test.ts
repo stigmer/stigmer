@@ -31,7 +31,9 @@
  *     write; an owner is allowed each; the last owner is kept; the
  *     bootstrap twins run neither owner step.
  *   - a stored row with no spec is corrupt storage: `get` answers INTERNAL
- *     with the static load copy and asks the Authorizer nothing.
+ *     with the static load copy and asks the Authorizer nothing; a
+ *     checkAuthorization that reaches the handler without its grant (the
+ *     boundary's validation bypassed) answers INTERNAL too.
  */
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
@@ -1288,6 +1290,15 @@ describe("listAccessHistory on the controller", () => {
     expect(h.authorizer.checks.map((check) => IamPermission[check.permission])).toEqual([
       "can_view_access_history",
     ]);
+  });
+});
+
+describe("a contract bug", () => {
+  it("checkAuthorization reaching the handler without its grant is INTERNAL, never an answer", async () => {
+    const h = await harness({ caller: alice });
+    const error = await refusal(() => h.query.checkAuthorization({}));
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe("required grant missing after boundary validation");
   });
 });
 
