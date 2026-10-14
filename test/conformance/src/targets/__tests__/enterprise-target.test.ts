@@ -7,10 +7,16 @@
 // tenancy by its organization's id; tenancies are organizations deleted once
 // by id; the enforcing lane is the primary, with an issuer-minted
 // unprovisioned caller; a sibling is the same entry on its own database in
-// the env the suite names, released when its spawn fails; teardown stops
-// the server, drops its database and closes the issuer. The build, the
-// spawns, the database, the issuer and the readiness gate are stubbed;
-// nothing here starts a server.
+// the env the suite names, released when its spawn fails; the primary
+// trusts one certificate minted at setup through NODE_EXTRA_CA_CERTS, and
+// an outside issuer serves TLS with exactly that certificate; the sign-in
+// issuer is the harness's; a teams tenancy is the plain tenancy; teardown
+// stops the server, drops its database, closes the issuer and removes the
+// trusted file. The build, the spawns, the database, the issuers and the
+// readiness gate are stubbed; nothing here starts a server.
+import { existsSync, readFileSync } from "node:fs";
+import { X509Certificate } from "node:crypto";
+
 import { create } from "@bufbuild/protobuf";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -33,6 +39,9 @@ let failNextReadiness = false;
 let databases = 0;
 let failNextSpawn = false;
 let issuerClosed = false;
+// The options each issuer was started with: the target's own first, then
+// any outside issuer.
+const issuerStarts: unknown[] = [];
 
 vi.mock("@stigmer/test-support/ts-build", () => ({
   ensureEnterpriseServerEntry: async () => "/ee/server/test/conformance/licensed-server.ts",
@@ -60,7 +69,7 @@ vi.mock("../../harness/postgres", () => ({
 }));
 
 vi.mock("@stigmer/test-support/local-oidc-issuer", () => ({
-  startLocalOidcIssuer: async () => ({
+  startLocalOidcIssuer: async (options: unknown = {}) => (issuerStarts.push(options), {
     issuer: "http://127.0.0.1:9/issuer",
     audience: "https://conformance.stigmer.test/api",
     // The token names what was minted, so an arm can read it back.
@@ -162,6 +171,7 @@ beforeEach(() => {
   databases = 0;
   failNextSpawn = false;
   issuerClosed = false;
+  issuerStarts.length = 0;
   vi.restoreAllMocks();
 });
 
@@ -187,6 +197,10 @@ describe("the enterprise target", () => {
     await expect(target.enforcingLane()).rejects.toThrow(
       "EnterpriseTarget.setup() must be called before enforcingLane()",
     );
+    expect(() => target.signInIssuer()).toThrow("EnterpriseTarget.setup() must be called before signInIssuer()");
+    expect(() => target.startOutsideIssuer()).toThrow(
+      "EnterpriseTarget.setup() must be called before startOutsideIssuer()",
+    );
   });
 
   it("spawns the licensed test entry under the tsx loader on its own database, in the OIDC posture with relaxed egress, and signs the founder in", async () => {
@@ -206,6 +220,7 @@ describe("the enterprise target", () => {
           STIGMER_OIDC_ISSUER: "http://127.0.0.1:9/issuer",
           STIGMER_OIDC_AUDIENCE: "https://conformance.stigmer.test/api",
           STIGMER_OUTBOUND_EGRESS: "relaxed",
+          NODE_EXTRA_CA_CERTS: expect.stringMatching(/outside-issuers\.pem$/),
         },
         readyTimeoutMs: 45_000,
       },
@@ -221,6 +236,33 @@ describe("the enterprise target", () => {
     expect(logTails, "a failed readiness prints the primary's log").toEqual(["log of http://127.0.0.1:1"]);
     expect(target.httpBaseUrl()).toBe("http://127.0.0.1:1");
     expect(target.managedAgentsBaseUrl()).toBe("http://127.0.0.1:1");
+  });
+
+  it("trusts one certificate for 127.0.0.1 on the primary, serves the outside issuer with it, and names the harness's issuer as its sign-in issuer", async () => {
+    const target = new EnterpriseTarget();
+    stubClients(target);
+    await target.setup();
+
+    const trustFile = spawned[0]?.env.NODE_EXTRA_CA_CERTS ?? "";
+    const trusted = readFileSync(trustFile, "utf8");
+    expect(new X509Certificate(trusted).checkIP("127.0.0.1")).toBe("127.0.0.1");
+
+    await target.startOutsideIssuer();
+    expect(issuerStarts).toEqual([{}, { tls: { certPem: trusted, keyPem: expect.stringContaining("PRIVATE KEY") } }]);
+    expect(target.signInIssuer()).toBe("http://127.0.0.1:9/issuer");
+
+    await target.teardown();
+    expect(existsSync(trustFile), "teardown removes the trusted file").toBe(false);
+  });
+
+  it("gives a teams tenancy as the plain tenancy: a licensed server's organizations all have teams", async () => {
+    const target = new EnterpriseTarget();
+    const seen = stubClients(target);
+    await target.setup();
+
+    expect(await target.provisionTeamsTenancy()).toEqual({ org: ORG_ID });
+    await target.cleanupTenancy({ org: ORG_ID });
+    expect(seen.deletedOrganizations).toEqual([{ value: ORG_ID }]);
   });
 
   it("builds clients that present nothing, or exactly the bearer given, against its server", async () => {

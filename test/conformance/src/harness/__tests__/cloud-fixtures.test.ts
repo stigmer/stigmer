@@ -14,7 +14,7 @@ import {
   type CloudFixtures,
 } from "../cloud-fixtures";
 import { CLOUD_ENV } from "../cloud-env";
-import { FAKE_CARD, signStripePayload, stripeEvent, STRIPE_JAVA_API_VERSION } from "../fake-stripe";
+import { FAKE_CARD, paymentMethodAttached, signStripePayload, stripeEvent, STRIPE_JAVA_API_VERSION } from "../fake-stripe";
 import { DEFAULT_REPLY_CAPTURE_LIMIT, DEFAULT_REPLY_TEXT } from "@stigmer/test-support/fake-llm-upstream";
 import { anthropicText, openAiText } from "@stigmer/test-support/llm-wire";
 import { CloudFixturesClient } from "../../support/cloud-fixtures-client";
@@ -205,6 +205,15 @@ describe("fake Stripe API", () => {
     const signed = signStripePayload(payload, "whsec_test", 1_700_000_100);
     const expected = createHmac("sha256", "whsec_test").update(`1700000100.${payload}`).digest("hex");
     expect(signed.signature).toBe(`t=1700000100,v1=${expected}`);
+  });
+
+  it("builds payment_method.attached with the fake's card by default, and no card for a non-card method or when told none", () => {
+    const card = paymentMethodAttached("pm_1", "cus_1");
+    expect(card.type).toBe("payment_method.attached");
+    expect(card.data.object).toEqual({ id: "pm_1", object: "payment_method", type: "card", customer: "cus_1", card: FAKE_CARD });
+    const bank = paymentMethodAttached("pm_2", "cus_1", { type: "us_bank_account" });
+    expect(bank.data.object).toEqual({ id: "pm_2", object: "payment_method", type: "us_bank_account", customer: "cus_1" });
+    expect(paymentMethodAttached("pm_3", "cus_1", { card: null }).data.object).not.toHaveProperty("card");
   });
 });
 

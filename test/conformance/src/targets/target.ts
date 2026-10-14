@@ -9,6 +9,7 @@ import type { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/serve
 import type { ConformanceClients, PresentingOptions } from "../harness/clients";
 import type { FakeOtlpCollector } from "../harness/fake-otlp-collector";
 import type { McpToolFixture } from "../harness/mcp-server";
+import type { LocalOidcIssuer } from "@stigmer/test-support/local-oidc-issuer";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import type { ModelRegistryDocument } from "../harness/model-registry";
 
@@ -236,10 +237,12 @@ export interface CapabilityFlags {
   // composes the IdentityFederation capability the OSS controller
   // dispatches to.
   //
-  // True for cloud, whose cloud-iam unit provides it for real. The lane's
-  // positive behavior needs a FederationIssuer fixture no hermetic target
-  // provisions, so it stays covered by the composition's own tests — the
-  // channelMessaging coverage split.
+  // True for cloud, whose cloud-iam unit provides it for real, and for
+  // enterprise. The lane's positive behavior needs a FederationIssuer whose
+  // issuer the server can reach; the enterprise target can start one
+  // (startOutsideIssuer below), and the arms that drive the four RPCs with
+  // it are stigmer#2324's. Until then the composition's own tests cover it
+  // — the channelMessaging coverage split.
   //
   // False for the local OSS targets — BY DESIGN, not a gap: the OSS
   // controller answers UNIMPLEMENTED with the edition reason when no unit
@@ -315,6 +318,57 @@ export interface CapabilityFlags {
   // other states (expiring, lapsed, invalid) are the license suites' and
   // the composed suites' to drive.
   licenseStatus: "absent" | "licensed";
+  // How the Team service answers here (TeamCommandController,
+  // TeamQueryController; membership is an IamPolicy grant of `member` on the
+  // team, and a share with a team is a grant to the team's members).
+  //
+  // `unimplemented` for the local OSS targets BY THE EDITION BOUNDARY: open
+  // source registers no Team service, so every RPC answers Unimplemented and
+  // the team suite pins that answer. `served` for enterprise: every
+  // organization of a licensed server has teams. `plan-gated` for cloud:
+  // teams are the Team and Business plans' (the composition fills the
+  // team lane's plan port), so an organization on Free is refused a team
+  // and a member add with FAILED_PRECONDITION, reason PLAN_UPGRADE_REQUIRED,
+  // feature teams, and the suite's positive arms run on a tenancy the
+  // target moves to the Team plan (provisionTeamsTenancy below).
+  teams: "unimplemented" | "plan-gated" | "served";
+  // The Invitation service is served here: an organization's admin makes a
+  // link (create answers its token), anyone may preview it (getByToken is
+  // public), and a signed-in person who presents it is granted the link's
+  // role on the organization (redeem). No mail is sent anywhere.
+  //
+  // True for enterprise and cloud, whose identity units register it. False
+  // for the local OSS targets BY THE EDITION BOUNDARY: open source has one
+  // membership rule (a first sign-in joins every organization) and
+  // registers no Invitation service; where false, the suite pins
+  // Unimplemented on every RPC.
+  invitations: boolean;
+  // The FederationIssuer service is served here: an organization's admin
+  // registers an outside sign-in provider (its issuers, key set and
+  // audience) and the server lets that provider's people in with the role
+  // the admin chose. A save that names an issuer reads its discovery
+  // document and key set, so whether the server can reach the issuer is
+  // `outboundEgress`'s question, not this flag's.
+  //
+  // True for enterprise and cloud. False for the local OSS targets BY THE
+  // EDITION BOUNDARY: open source signs people in through its one
+  // configured issuer and registers no FederationIssuer service; where
+  // false, the suite pins Unimplemented on every RPC.
+  federationIssuers: boolean;
+  // The egress posture the PRIMARY dials user-supplied addresses under (a
+  // federation issuer's discovery document and key set, an MCP server, a
+  // login server). `relaxed` admits loopback and private addresses;
+  // `strict` refuses them before any dial, so a save naming such an
+  // address is refused with the reason "not at an address this platform
+  // can reach" (ee/server/src/iam/issuer/validation.ts).
+  //
+  // `relaxed` for the local OSS targets (the library's default) and for
+  // enterprise, whose primary runs the operator's opt-in so the shared
+  // suite's sign-in arms reach the harness's local servers (enterprise.ts).
+  // `strict` for cloud: the composition always runs strict (stigmer-cloud's
+  // own wiring test pins it), which is why its readout keeps a standing
+  // family for the shared arms that dial loopback fixtures.
+  outboundEgress: "relaxed" | "strict";
   // The billing ENGINE is served here: the 8 RPCs of BillingCommandController
   // and BillingQueryController (the organization's billing account and its
   // Stripe customer, the usage meter the run reports read, the model catalog's
@@ -684,6 +738,25 @@ export interface TargetProfile {
   enforcingLane?(): Promise<EnforcingLane>;
   enforcingLaneUnavailable?(): string;
 
+  // The issuer this target's people sign in with, exactly as the server
+  // under test was configured with it: the issuer the server reserves for
+  // itself, which no organization may register as its own federation
+  // issuer. Enterprise's is the harness's local issuer it started; the
+  // Cloud's is its tenant's (CLOUD_ENV.directLoginIssuer). Present where
+  // `federationIssuers` is true, which the issuer suite holds the target to.
+  // Valid only after setup().
+  signInIssuer?(): string;
+
+  // A real issuer OUTSIDE the server, reached over TLS, which the server
+  // under test trusts: the provider an organization's admin registers as a
+  // federation issuer. Its discovery document, key set and tokens are
+  // served on a loopback address, so only a target whose primary dials
+  // loopback (`outboundEgress: "relaxed"`) and that can make the server
+  // trust the issuer's certificate offers it: enterprise, which mints a
+  // certificate at setup and hands it to the server it spawns. The caller
+  // closes the issuer. Valid only after setup().
+  startOutsideIssuer?(): Promise<LocalOidcIssuer>;
+
   // Provision an isolated tenancy scope for a test. cleanupTenancy releases it.
   provisionTenancy(): Promise<TenancyContext>;
   cleanupTenancy(context: TenancyContext): Promise<void>;
@@ -695,6 +768,13 @@ export interface TargetProfile {
   // already bare by construction and those suites skip. cleanupTenancy
   // releases it.
   provisionKeylessTenancy?(): Promise<TenancyContext>;
+
+  // Tenancy whose organization may have teams: on a `plan-gated` target the
+  // organization is moved to a plan that includes them, the way a customer
+  // does it (a card saved, then the plan changed); on a `served` target it
+  // is the plain tenancy. Present where `teams` is not `unimplemented`.
+  // cleanupTenancy releases it.
+  provisionTeamsTenancy?(): Promise<TenancyContext>;
 
   // Save an Anthropic and an OpenAI key on the org, as an admin pastes them
   // in the console, and a Cursor key when the run supplies one
