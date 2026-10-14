@@ -34,7 +34,12 @@ import type { ConformanceClients } from "../harness/clients";
 import { managedAgentsClient } from "../support/managed-agents";
 import { makeSession } from "../support/sessions";
 import { uniqueName } from "../support/naming";
-import { createTarget, enforcingLaneOf, type EnforcingLane, type TargetProfile } from "../targets";
+import {
+  createTarget,
+  enforcingLaneOf,
+  type EnforcingLane,
+  type TargetProfile,
+} from "../targets";
 
 const capabilities = createTarget().capabilities;
 let target: TargetProfile;
@@ -61,7 +66,10 @@ function laneOrSkip(ctx: { skip: (note?: string) => never }): EnforcingLane {
 }
 
 /** A key minted by `clients` in `org`: its plaintext, as a developer pastes it. */
-async function mintKey(clients: ConformanceClients, org: string): Promise<string> {
+async function mintKey(
+  clients: ConformanceClients,
+  org: string,
+): Promise<string> {
   const key = await clients.apiKeyCommand.create({
     apiVersion: "iam.stigmer.ai/v1",
     kind: "ApiKey",
@@ -69,19 +77,30 @@ async function mintKey(clients: ConformanceClients, org: string): Promise<string
     spec: {},
   });
   const id = key.metadata?.id ?? "";
-  fixtures.defer(() => clients.apiKeyCommand.delete({ value: id }).catch(() => undefined));
+  fixtures.defer(() =>
+    clients.apiKeyCommand.delete({ value: id }).catch(() => undefined),
+  );
   return key.spec?.keyHash ?? "";
 }
 
-async function newSession(clients: ConformanceClients, org: string): Promise<string> {
-  const session = await clients.sessionCommand.create(makeSession({ org, name: uniqueName("ma-session") }));
+async function newSession(
+  clients: ConformanceClients,
+  org: string,
+): Promise<string> {
+  const session = await clients.sessionCommand.create(
+    makeSession({ org, name: uniqueName("ma-session") }),
+  );
   const id = session.metadata!.id;
-  fixtures.defer(() => clients.sessionCommand.delete({ value: id }).catch(() => undefined));
+  fixtures.defer(() =>
+    clients.sessionCommand.delete({ value: id }).catch(() => undefined),
+  );
   return id;
 }
 
 /** The SDK error a call throws, or a failure when it succeeds. */
-async function sdkError(work: Promise<unknown>): Promise<InstanceType<typeof Anthropic.APIError>> {
+async function sdkError(
+  work: Promise<unknown>,
+): Promise<InstanceType<typeof Anthropic.APIError>> {
   try {
     await work;
   } catch (error) {
@@ -108,7 +127,10 @@ describe("Anthropic's SDK against the Managed Agents lane (on the enforcing lane
     const key = await mintKey(lane.clients, org);
 
     for (const credential of [{ apiKey: key }, { authToken: key }]) {
-      const page = await managedAgentsClient(lane.managedAgentsBaseUrl(), credential).beta.sessions.events.list(sessionId);
+      const page = await managedAgentsClient(
+        lane.managedAgentsBaseUrl(),
+        credential,
+      ).beta.sessions.events.list(sessionId);
       expect(page.data, JSON.stringify(Object.keys(credential))).toEqual([]);
       expect(page.next_page).toBeNull();
       expect(page.hasNextPage()).toBe(false);
@@ -120,7 +142,9 @@ describe("Anthropic's SDK against the Managed Agents lane (on the enforcing lane
     const { org } = await lane.provisionTenancy();
     fixtures.defer(() => lane.cleanupTenancy({ org }));
     const sessionId = await newSession(lane.clients, org);
-    const sdk = managedAgentsClient(lane.managedAgentsBaseUrl(), { apiKey: `stk_${uniqueName("unknown")}` });
+    const sdk = managedAgentsClient(lane.managedAgentsBaseUrl(), {
+      apiKey: `stk_${uniqueName("unknown")}`,
+    });
     const error = await sdkError(sdk.beta.sessions.events.list(sessionId));
     expect(error).toBeInstanceOf(Anthropic.AuthenticationError);
     expect(errorTypeOf(error)).toBe("authentication_error");
@@ -134,18 +158,27 @@ describe("Anthropic's SDK against the Managed Agents lane (on the enforcing lane
     const elsewhere = await lane.provisionTenancy();
     fixtures.defer(() => lane.cleanupTenancy(elsewhere));
     const outsider = await lane.provisionMember(elsewhere);
-    const sdk = managedAgentsClient(lane.managedAgentsBaseUrl(), { apiKey: await mintKey(outsider, elsewhere.org) });
+    const sdk = managedAgentsClient(lane.managedAgentsBaseUrl(), {
+      apiKey: await mintKey(outsider, elsewhere.org),
+    });
 
     const refusals = [
       await sdkError(sdk.beta.sessions.events.list(sessionId)),
       await sdkError(sdk.beta.sessions.events.stream(sessionId)),
-      await sdkError(sdk.beta.sessions.events.send(sessionId, { events: [{ type: "user.interrupt" }] })),
+      await sdkError(
+        sdk.beta.sessions.events.send(sessionId, {
+          events: [{ type: "user.interrupt" }],
+        }),
+      ),
     ];
     for (const error of refusals) {
       expect(error).toBeInstanceOf(Anthropic.PermissionDeniedError);
       expect(errorTypeOf(error)).toBe("permission_error");
     }
-    expect((await lane.clients.sessionQuery.listEvents({ sessionId })).events, "nothing was written").toEqual([]);
+    expect(
+      (await lane.clients.sessionQuery.listEvents({ sessionId })).events,
+      "nothing was written",
+    ).toEqual([]);
   });
 
   it("a Stigmer type filter, an unserved event, an image block and a later version are each a BadRequestError with nothing applied", async (ctx) => {
@@ -153,54 +186,91 @@ describe("Anthropic's SDK against the Managed Agents lane (on the enforcing lane
     const { org } = await lane.provisionTenancy();
     fixtures.defer(() => lane.cleanupTenancy({ org }));
     const sessionId = await newSession(lane.clients, org);
-    const sdk = managedAgentsClient(lane.managedAgentsBaseUrl(), { apiKey: await mintKey(lane.clients, org) });
+    const sdk = managedAgentsClient(lane.managedAgentsBaseUrl(), {
+      apiKey: await mintKey(lane.clients, org),
+    });
 
     // The SDK's type union lists no stigmer.* type; a client that sends one anyway is refused by name.
-    const stigmerType = "stigmer.permission.asked" as BetaManagedAgentsSessionEventType;
-    const refusals: Array<[string, Promise<unknown>]> = [
-      ["a stigmer.* type filter", sdk.beta.sessions.events.list(sessionId, { types: [stigmerType] })],
+    const stigmerType =
+      "stigmer.permission.asked" as BetaManagedAgentsSessionEventType;
+    // Each call is made only when its turn comes, so no refusal goes unawaited.
+    const refusals: Array<[string, () => Promise<unknown>]> = [
+      [
+        "a stigmer.* type filter",
+        () =>
+          sdk.beta.sessions.events.list(sessionId, { types: [stigmerType] }),
+      ],
       [
         "an unserved event",
-        sdk.beta.sessions.events.send(sessionId, {
-          events: [{ type: "user.tool_result", tool_use_id: "toolu_never", content: [{ type: "text", text: "x" }] }],
-        }),
+        () =>
+          sdk.beta.sessions.events.send(sessionId, {
+            events: [
+              {
+                type: "user.tool_result",
+                tool_use_id: "toolu_never",
+                content: [{ type: "text", text: "x" }],
+              },
+            ],
+          }),
       ],
       [
         "an image block, after an event that would apply",
-        sdk.beta.sessions.events.send(sessionId, {
-          events: [
-            { type: "user.interrupt" },
-            {
-              type: "user.message",
-              content: [{ type: "image", source: { type: "url", url: "https://example.com/a.png" } }],
-            },
-          ],
-        }),
+        () =>
+          sdk.beta.sessions.events.send(sessionId, {
+            events: [
+              { type: "user.interrupt" },
+              {
+                type: "user.message",
+                content: [
+                  {
+                    type: "image",
+                    source: { type: "url", url: "https://example.com/a.png" },
+                  },
+                ],
+              },
+            ],
+          }),
       ],
-      ["a later Managed Agents version", sdk.beta.sessions.events.list(sessionId, { betas: ["managed-agents-2099-01-01"] })],
+      [
+        "a later Managed Agents version",
+        () =>
+          sdk.beta.sessions.events.list(sessionId, {
+            betas: ["managed-agents-2099-01-01"],
+          }),
+      ],
     ];
     for (const [label, work] of refusals) {
-      const error = await sdkError(work);
+      const error = await sdkError(work());
       expect(error, label).toBeInstanceOf(Anthropic.BadRequestError);
       expect(errorTypeOf(error), label).toBe("invalid_request_error");
     }
-    expect((await lane.clients.sessionQuery.listEvents({ sessionId })).events, "nothing was applied").toEqual([]);
+    expect(
+      (await lane.clients.sessionQuery.listEvents({ sessionId })).events,
+      "nothing was applied",
+    ).toEqual([]);
   });
 });
 
-describe.skipIf(capabilities.requiresAuthentication)("Anthropic's SDK against a server without sign-in", () => {
-  it("any key is the local person, and an unknown session is a NotFoundError", async () => {
-    const clients = target.clients();
-    const { org } = await target.provisionTenancy();
-    const sessionId = await newSession(clients, org);
-    const sdk = managedAgentsClient(target.managedAgentsBaseUrl(), { apiKey: "any-key-at-all" });
+describe.skipIf(capabilities.requiresAuthentication)(
+  "Anthropic's SDK against a server without sign-in",
+  () => {
+    it("any key is the local person, and an unknown session is a NotFoundError", async () => {
+      const clients = target.clients();
+      const { org } = await target.provisionTenancy();
+      const sessionId = await newSession(clients, org);
+      const sdk = managedAgentsClient(target.managedAgentsBaseUrl(), {
+        apiKey: "any-key-at-all",
+      });
 
-    const page = await sdk.beta.sessions.events.list(sessionId);
-    expect(page.data).toEqual([]);
-    expect(page.next_page).toBeNull();
+      const page = await sdk.beta.sessions.events.list(sessionId);
+      expect(page.data).toEqual([]);
+      expect(page.next_page).toBeNull();
 
-    const missing = await sdkError(sdk.beta.sessions.events.list(`ses_${uniqueName("missing")}`));
-    expect(missing).toBeInstanceOf(Anthropic.NotFoundError);
-    expect(errorTypeOf(missing)).toBe("not_found_error");
-  });
-});
+      const missing = await sdkError(
+        sdk.beta.sessions.events.list(`ses_${uniqueName("missing")}`),
+      );
+      expect(missing).toBeInstanceOf(Anthropic.NotFoundError);
+      expect(errorTypeOf(missing)).toBe("not_found_error");
+    });
+  },
+);
