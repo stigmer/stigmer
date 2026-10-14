@@ -23,6 +23,7 @@ export {
 
 export {
   useAccessHistory,
+  type AccessHistoryRetention,
   type UseAccessHistoryOptions,
   type UseAccessHistoryReturn,
 } from "./useAccessHistory.js";

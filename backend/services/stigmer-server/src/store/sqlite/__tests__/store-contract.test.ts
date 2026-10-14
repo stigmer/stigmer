@@ -61,6 +61,13 @@ describe("sqlite store contract", () => {
           ).map(permissionHistoryRowOf),
         );
       },
+      async stampPermissionHistory(org, sequence, occurredAt) {
+        withConnection((db) =>
+          db
+            .prepare(`UPDATE iam_policy_history SET occurred_at = ? WHERE org = ? AND sequence = ?`)
+            .run(occurredAt, org, sequence),
+        );
+      },
       async writeAsOlderBinary(kind, id, data) {
         // The statement this driver ran before the list index existed.
         withConnection((db) =>

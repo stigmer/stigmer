@@ -24,7 +24,11 @@
  *   - the pages: the token only while more entries exist, every entry once
  *     across a walk in either direction, the default and maximum sizes,
  *     and the refusals of a token that is not this request's;
- *   - a store fault is INTERNAL with a static message.
+ *   - a store fault is INTERNAL with a static message;
+ *   - retention: every page carries the window and the organization's
+ *     oldest kept number (its true oldest for a parent's admin too), and
+ *     a pass between the page and the oldest read never reports a
+ *     returned entry as removed.
  */
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
@@ -124,6 +128,8 @@ async function harness(options: {
   principalDisplay?: PrincipalDisplay;
   /** The answer to `can_view` on the organization: who sees what it holds (a parent's admin does not). */
   canView?: AuthzDecision;
+  /** The composition's access-history window; undefined keeps everything. */
+  retentionDays?: number;
 } = {}): Promise<Harness> {
   const policies = fakeIamPolicyStore();
   const accounts = fakeIdentityAccountStore();
@@ -170,6 +176,7 @@ async function harness(options: {
                   : [["iam-policy-list-access-history:pre-read", [options.gate]]],
               ),
               edition: options.edition ?? ServerEdition.enterprise,
+              retentionDays: options.retentionDays,
               logger: silent,
             },
             displayResolver,
@@ -299,7 +306,8 @@ describe("listAccessHistory's chain", () => {
     };
     const h = await harness({ policies });
     await h.query.listAccessHistory({ org: ACME, pageSize: 101 });
-    expect(limits).toEqual([LIST_PAGE_MAX_SIZE + 1]);
+    // The page, then the oldest kept entry.
+    expect(limits).toEqual([LIST_PAGE_MAX_SIZE + 1, 1]);
   });
 
   it("answers a fault naming the people as INTERNAL with a static message", async () => {
@@ -500,5 +508,136 @@ describe("listAccessHistory's read", () => {
       pageToken: newest.nextPageToken,
     });
     expect(sequences(resized.entries)).toEqual([2, 1]);
+  });
+});
+
+describe("listAccessHistory's retention", () => {
+  const LATER = new Date(Date.now() + 60_000);
+
+  it("says on every page how long the history is kept and the oldest number the organization holds", async () => {
+    const h = await harness({ retentionDays: 365 });
+    for (let n = 1; n <= 4; n += 1) {
+      await h.grant(orgRole(`ida_${n}`, "member", ACME));
+    }
+    await h.policies.pruneChanges(LATER, 2);
+
+    const newest = await h.query.listAccessHistory({ org: ACME, pageSize: 1 });
+    expect(sequences(newest.entries)).toEqual([4]);
+    expect(newest.oldestSequence).toBe(3n);
+    expect(newest.retentionDays).toBe(365);
+    const follow = await h.query.listAccessHistory({ org: ACME, afterSequence: 1n });
+    expect(sequences(follow.entries)).toEqual([3, 4]);
+    expect(follow.oldestSequence).toBe(3n);
+    expect(follow.retentionDays).toBe(365);
+  });
+
+  it("answers one past the last number when retention removed every entry, so a tool learns what it lost", async () => {
+    const h = await harness({ retentionDays: 365 });
+    for (let n = 1; n <= 3; n += 1) {
+      await h.grant(orgRole(`ida_${n}`, "member", ACME));
+    }
+    await h.policies.pruneChanges(LATER, 10);
+
+    const follow = await h.query.listAccessHistory({ org: ACME, afterSequence: 1n });
+    expect(follow.entries).toEqual([]);
+    expect(follow.oldestSequence).toBe(4n);
+    expect((await h.query.listAccessHistory({ org: ACME })).oldestSequence).toBe(4n);
+    await h.grant(orgRole("ida_4", "member", ACME));
+    expect((await h.query.listAccessHistory({ org: ACME, afterSequence: 1n })).oldestSequence).toBe(4n);
+  });
+
+  it("never reports a change that commits while the page reads the oldest entry as removed", async () => {
+    const base = fakeIamPolicyStore();
+    const recordOf: PolicyChangeRecord = { actor: { id: ANA, callerClass: "user" }, cause: "grant", organizationId: ACME };
+    const rowOf = (n: number) => {
+      const spec = orgRole(`ida_${n}`, "member", ACME);
+      return create(IamPolicySchema, { metadata: { id: policyIdFor(spec) }, spec });
+    };
+    let grantDuringOldestRead = true;
+    const policies: IamPolicyStore = {
+      ...base,
+      listChanges: async (org, page) => {
+        const changes = await base.listChanges(org, page);
+        if (grantDuringOldestRead && page.limit === 1 && "after" in page && page.after === 0n) {
+          grantDuringOldestRead = false;
+          await base.save(rowOf(4), recordOf);
+        }
+        return changes;
+      },
+    };
+    for (let n = 1; n <= 3; n += 1) {
+      await base.save(rowOf(n), recordOf);
+    }
+    await base.pruneChanges(LATER, 10);
+    const h = await harness({ policies, retentionDays: 365 });
+
+    const page = await h.query.listAccessHistory({ org: ACME, afterSequence: 1n });
+    expect(page.entries).toEqual([]);
+    expect(page.oldestSequence).toBe(4n);
+  });
+
+  it("says 0 for both when no window is declared and the organization holds nothing", async () => {
+    const h = await harness();
+    const page = await h.query.listAccessHistory({ org: ACME });
+    expect(page.entries).toEqual([]);
+    expect(page.oldestSequence).toBe(0n);
+    expect(page.retentionDays).toBe(0);
+  });
+
+  it("gives a parent's admin the organization's true oldest number, whatever the page leaves out", async () => {
+    const h = await harness({ canView: { kind: "deny", reason: "a parent's admin" }, retentionDays: 30 });
+    await h.grant(triple({ kind: "identity_account", id: RAJ }, "editor", { kind: "agent", id: "agt_private" }));
+    await h.grant(orgRole(RAJ, "member", ACME));
+    const page = await h.query.listAccessHistory({ org: ACME, afterSequence: 0n });
+    expect(sequences(page.entries)).toEqual([2]);
+    expect(page.oldestSequence).toBe(1n);
+  });
+
+  it("never reports an entry the page returned as removed when a pass runs between the page and the oldest read", async () => {
+    const base = fakeIamPolicyStore();
+    let pruneAfterPage = true;
+    const policies: IamPolicyStore = {
+      ...base,
+      listChanges: async (org, page) => {
+        const changes = await base.listChanges(org, page);
+        if (pruneAfterPage && page.limit > 1) {
+          pruneAfterPage = false;
+          await base.pruneChanges(LATER, 2);
+        }
+        return changes;
+      },
+    };
+    const h = await harness({ policies, retentionDays: 7 });
+    const recordOf = (organizationId: string): PolicyChangeRecord => ({
+      actor: { id: ANA, callerClass: "user" },
+      cause: "grant",
+      organizationId,
+    });
+    for (let n = 1; n <= 3; n += 1) {
+      const spec = orgRole(`ida_${n}`, "member", ACME);
+      await base.save(create(IamPolicySchema, { metadata: { id: policyIdFor(spec) }, spec }), recordOf(ACME));
+    }
+
+    const page = await h.query.listAccessHistory({ org: ACME, afterSequence: 0n });
+    expect(sequences(page.entries)).toEqual([1, 2, 3]);
+    expect(page.oldestSequence).toBe(1n);
+    expect((await base.listChanges(ACME, { limit: 1, after: 0n })).map((change) => change.sequence)).toEqual([3n]);
+    const next = await h.query.listAccessHistory({ org: ACME, afterSequence: 0n });
+    expect(next.oldestSequence).toBe(3n);
+  });
+
+  it("answers a fault reading the oldest kept entry as INTERNAL with a static message", async () => {
+    const base = fakeIamPolicyStore();
+    const policies: IamPolicyStore = {
+      ...base,
+      listChanges: (org, page) =>
+        page.limit === 1 && "after" in page && page.after === 0n
+          ? Promise.reject(new Error("connection reset by peer"))
+          : base.listChanges(org, page),
+    };
+    const h = await harness({ policies });
+    const error = await rejection(h.query.listAccessHistory({ org: ACME }));
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe("failed to read the access history");
   });
 });

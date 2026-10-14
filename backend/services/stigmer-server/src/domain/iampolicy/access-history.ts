@@ -36,6 +36,24 @@
  * and still carry a token; the numbers it shows have gaps where the left
  * out entries are.
  *
+ * Retention. Every page says how long the history is kept and the oldest
+ * number the organization still holds (`retention_days`,
+ * `oldest_sequence`), so a tool that asked after N can tell entries
+ * retention removed from entries left out for its caller. The window is
+ * the composition's declaration (`ServerExtension.accessHistoryRetentionDays`,
+ * 0 when none). The oldest number is the store's own first entry
+ * (`listChanges` after 0, one primary-key read), read after the page: two
+ * reads with no snapshot between them, so a retention pass between them
+ * could have removed entries the page just returned, and the answer is the
+ * smaller of the read and the page's lowest examined number. A page never
+ * reports an entry it returned as removed. An organization whose every
+ * entry was removed holds none, so the page answers one past the last
+ * number its history handed out (`lastChangeSequence`, which retention
+ * never lowers): a tool that held 42 of 100 still learns 43 to 100 are
+ * gone. Only an organization that never recorded an entry reads 0. The
+ * last number is read before the oldest entry, so a change that commits
+ * between the two reads is numbered past it and never reported removed.
+ *
  * Naming happens at read time, never from the stored row's audit stamp: the
  * actor and the principal through the account resolver and the composed
  * principal display, as the access list names them (access-lists.ts), an
@@ -133,6 +151,8 @@ export interface AccessHistoryDeps {
   readonly principalDisplay: PrincipalDisplay | undefined;
   readonly gateSteps: ResolvedGateSteps;
   readonly edition: ServerEdition;
+  /** The declared access-history window in days; undefined keeps every entry. */
+  readonly retentionDays: number | undefined;
   readonly logger: Logger;
 }
 
@@ -250,13 +270,45 @@ async function readAccessHistory(
     : examined.filter((change) => aboutOrganization(change, input.org));
   const entries = await nameEntries(deps, displayResolver, kept);
   const last = examined.at(-1);
+  const lowestExamined = ascending ? examined.at(0) : last;
   return create(AccessHistoryPageSchema, {
     entries,
     nextPageToken:
       more && last !== undefined
         ? encodeAccessHistoryToken(last.sequence, fingerprint)
         : "",
+    oldestSequence: await oldestKeptSequence(deps, input.org, lowestExamined?.sequence),
+    retentionDays: deps.retentionDays ?? 0,
   });
+}
+
+/**
+ * The lowest number the organization still holds, never above the lowest
+ * the page examined: read after the page, a retention pass may have
+ * removed entries in between that the page returned. When it holds none,
+ * one past the last number it handed out, or 0 when it never recorded one.
+ */
+async function oldestKeptSequence(
+  deps: AccessHistoryDeps,
+  org: string,
+  lowestExamined: bigint | undefined,
+): Promise<bigint> {
+  let held: bigint | undefined;
+  let last: bigint;
+  try {
+    // The head first: whatever commits after it is numbered above it.
+    last = await deps.policies.lastChangeSequence(org);
+    held = (await deps.policies.listChanges(org, { limit: 1, after: 0n })).at(0)?.sequence;
+  } catch (error) {
+    throw internalError(error, "failed to read the access history");
+  }
+  if (lowestExamined !== undefined && (held === undefined || lowestExamined < held)) {
+    return lowestExamined;
+  }
+  if (held !== undefined) {
+    return held;
+  }
+  return last === 0n ? 0n : last + 1n;
 }
 
 /** Whether a change is about the organization itself rather than a resource in it. */

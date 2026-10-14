@@ -114,6 +114,8 @@ export interface BootOptions {
    * suite whose providers live on the loopback issuer passes `relaxed`.
    */
   readonly egress?: EgressPosture;
+  /** Days the access history is kept; absent keeps every entry. */
+  readonly accessHistoryRetentionDays?: number;
   /** Units the suite composes after the entry's, to receive the composition's hand-over. */
   readonly extraUnits?: ReadonlyArray<ServerExtension>;
 }
@@ -149,6 +151,9 @@ export async function bootEnterprise(options: BootOptions): Promise<BootedServer
       fetchImpl: options.dialer ?? options.issuer.fetch,
       keyLoader: { env: {}, homeDir: dir },
       ...(options.egress === undefined ? {} : { egress: options.egress }),
+      ...(options.accessHistoryRetentionDays === undefined
+        ? {}
+        : { accessHistoryRetentionDays: options.accessHistoryRetentionDays }),
     },
   );
   const server = await composeServer({

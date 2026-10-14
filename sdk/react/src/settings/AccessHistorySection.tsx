@@ -14,6 +14,10 @@
  *     admins for a child, `can_view_access_history`) read it; anyone else
  *     is told who does.
  *
+ * Above the rows, one line says how long the server keeps the history
+ * ("Entries older than 365 days are removed", or "Kept for good"): its
+ * operator decides, and the oldest entries go first.
+ *
  * Each row names people as the access list does, as they are called today
  * (the server names them at read time). A change the server made on a
  * person's behalf (an invitation's redemption, a departure's sweep) reads
@@ -140,7 +144,8 @@ function AccessHistoryList({ org }: { readonly org: string }) {
 
   return (
     <div className="stg:space-y-3">
-      <div className="stg:flex stg:items-center stg:justify-end">
+      <div className="stg:flex stg:items-center stg:justify-between stg:gap-3">
+        <p className="stg:text-muted-foreground stg:text-xs">{retentionWords(history.retention?.days ?? 0)}</p>
         <button
           type="button"
           onClick={download.run}
@@ -207,6 +212,14 @@ function AccessHistoryRow({ entry }: { readonly entry: AccessHistoryEntry }) {
       </p>
     </li>
   );
+}
+
+/** How long the server keeps the history, in a person's words. */
+function retentionWords(days: number): string {
+  if (days <= 0) {
+    return "Kept for good";
+  }
+  return `Entries older than ${days} ${days === 1 ? "day" : "days"} are removed`;
 }
 
 const WHEN = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });

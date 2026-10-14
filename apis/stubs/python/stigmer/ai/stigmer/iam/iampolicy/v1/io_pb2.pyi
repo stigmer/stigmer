@@ -272,12 +272,16 @@ class ListAccessHistoryInput(_message.Message):
     def __init__(self, org: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., after_sequence: _Optional[int] = ...) -> None: ...
 
 class AccessHistoryPage(_message.Message):
-    __slots__ = ("entries", "next_page_token")
+    __slots__ = ("entries", "next_page_token", "oldest_sequence", "retention_days")
     ENTRIES_FIELD_NUMBER: _ClassVar[int]
     NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    OLDEST_SEQUENCE_FIELD_NUMBER: _ClassVar[int]
+    RETENTION_DAYS_FIELD_NUMBER: _ClassVar[int]
     entries: _containers.RepeatedCompositeFieldContainer[AccessHistoryEntry]
     next_page_token: str
-    def __init__(self, entries: _Optional[_Iterable[_Union[AccessHistoryEntry, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
+    oldest_sequence: int
+    retention_days: int
+    def __init__(self, entries: _Optional[_Iterable[_Union[AccessHistoryEntry, _Mapping]]] = ..., next_page_token: _Optional[str] = ..., oldest_sequence: _Optional[int] = ..., retention_days: _Optional[int] = ...) -> None: ...
 
 class AccessHistoryEntry(_message.Message):
     __slots__ = ("sequence", "occurred_at", "change", "cause", "actor", "actor_class", "principal", "role", "resource")

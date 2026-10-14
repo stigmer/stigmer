@@ -22,6 +22,7 @@ The package's process entry is `main.js` at the root of its build output, a one-
 |---|---|
 | `STIGMER_LICENSE_KEY` | The license key. Unset or blank: the server runs as open source. |
 | `STIGMER_OUTBOUND_EGRESS` | Which addresses a licensed server may dial when it reaches a URL a person wrote (a federation issuer's documents, an MCP or plugin install probe, a vault sign-in). Unset, blank or `strict`: public addresses only, the default. `relaxed`: private and loopback addresses too, link-local still refused. Read only when a license key is set: without one the server is the open-source edition exactly and ignores this variable. With a key, any other value refuses the boot. |
+| `STIGMER_ACCESS_HISTORY_RETENTION_DAYS` | How many days a licensed server keeps the access history (who gave whom access to what). Unset or blank: every entry is kept. A whole number of days, at least 1 (for example `365`): once an hour the server removes the entries older than that, in every organization, deleted ones included; the numbering continues, and every page of the history says how long it is kept and the oldest entry it still holds. Read only when a license key is set. With a key, any other value (`0`, `365d`, `1y`) refuses the boot. |
 | `DATABASE_URL` | Required with a key: Stigmer Enterprise runs on Postgres. |
 | `STIGMER_PLATFORM_TOKEN_KEY` | The key the server signs its own tokens with. Unset, the server generates one and keeps it under its home directory; a server run as several replicas sets it so they share one key. |
 
