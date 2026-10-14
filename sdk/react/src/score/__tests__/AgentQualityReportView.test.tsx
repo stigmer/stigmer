@@ -7,7 +7,8 @@
  * still loads; the tiles with each rate beside its count and the judge's
  * per-rubric rates at its current rules; the version table labelled by
  * tag and "unversioned", with each version's latest finished eval linking
- * through onOpenEval and "no eval" where there is none; and the flagged
+ * through onOpenEval (found on whichever page of the evals holds it) and
+ * "no eval" where there is none; and the flagged
  * list naming what failed (never a reason or a comment) with links that
  * call onNavigateToRun.
  */
@@ -17,6 +18,7 @@ import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
 import { StigmerError } from "@stigmer/sdk";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import type { AgentQualityReport } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
 import { agentEvalWith } from "../../agent-eval/__tests__/agent-eval-fixture";
 import { AgentQualityTab } from "../../agent/AgentQualityTab";
@@ -38,7 +40,11 @@ const agent = create(AgentSchema, {
 
 function client(
   report: () => Promise<AgentQualityReport>,
-  opts: { readonly evals?: ReturnType<typeof agentEvalWith>[] } = {},
+  opts: {
+    readonly evals?: ReturnType<typeof agentEvalWith>[];
+    /** The evals as pages, each read by the token the one before names. */
+    readonly evalPages?: Record<string, { entries: ReturnType<typeof agentEvalWith>[]; nextPageToken: string }>;
+  } = {},
 ) {
   return {
     score: {
@@ -56,7 +62,9 @@ function client(
       })),
     },
     agenteval: {
-      listByAgent: vi.fn(async () => ({ entries: opts.evals ?? [], nextPageToken: "" })),
+      listByAgent: vi.fn(async (req: { pageToken: string }) =>
+        opts.evalPages?.[req.pageToken] ?? { entries: opts.evals ?? [], nextPageToken: "" },
+      ),
     },
     evaluator: {
       getByAgent: vi.fn(async () => {
@@ -165,6 +173,33 @@ describe("AgentQualityReportView in the Quality tab", () => {
     expect(within(unversioned).getByText("no eval")).toBeDefined();
     // The judge's current rules never graded the unversioned day.
     expect(within(unversioned).getAllByText("—").length).toBeGreaterThan(0);
+  });
+
+  it("finds a version's latest finished eval on a later page of the agent's evals", async () => {
+    const onOpenEval = vi.fn();
+    const evalPages = {
+      "": {
+        entries: [
+          agentEvalWith([{ slug: "p", cases: [{ name: "a" }] }], {
+            id: "aev_running",
+            version: VERSION_HASH,
+            phase: PluginEvalPhase.running,
+          }),
+        ],
+        nextPageToken: "page-2",
+      },
+      "page-2": {
+        entries: [agentEvalWith([{ slug: "p", cases: [{ name: "a", score: 1 }] }], { id: "aev_late", version: VERSION_HASH })],
+        nextPageToken: "",
+      },
+    };
+    render(<AgentQualityTab agent={agent} onOpenEval={onOpenEval} />, {
+      wrapper: orgWrapper(client(async () => qualityReport(), { evalPages })),
+    });
+    const table = await screen.findByRole("table", { name: "By agent version" });
+    const tagged = await within(table).findByRole("row", { name: /^v2 / });
+    fireEvent.click(await within(tagged).findByRole("button", { name: "100% of 1 case" }));
+    expect(onOpenEval).toHaveBeenCalledWith("aev_late");
   });
 
   it("lists flagged runs by what failed, and opens one through onNavigateToRun", async () => {
