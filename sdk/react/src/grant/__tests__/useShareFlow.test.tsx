@@ -1,6 +1,8 @@
 /**
- * Pins useShareFlow's two decisions that could regress unnoticed:
+ * Pins useShareFlow's decisions that could regress unnoticed:
  *
+ *   - granting sends one grant naming the grantee's wire reference, the
+ *     resource and the role's relation word;
  *   - removing a grantee revokes EVERY role it holds directly on the
  *     resource, each as the grantee's exact wire reference: a team as
  *     `team:<id>#member`, which the server's revoke matches exactly, and
@@ -23,11 +25,13 @@ import {
   type PrincipalAccess,
 } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
 import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
-import { teamGrantee, type DeploymentMode } from "@stigmer/sdk";
+import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { personGrantee, teamGrantee, type DeploymentMode } from "@stigmer/sdk";
 import { DeploymentModeContext } from "../../deployment-mode";
 
 const stubs = vi.hoisted(() => ({
   members: [] as PrincipalAccess[],
+  create: vi.fn(async (_spec: GrantSpec) => ({})),
   remove: vi.fn(async (_spec: GrantSpec) => ({})),
   refetch: vi.fn(),
 }));
@@ -43,7 +47,7 @@ vi.mock("../useResourceAccess.js", () => ({
 }));
 vi.mock("../useCreateGrant.js", () => ({
   useCreateGrant: () => ({
-    create: async () => ({}),
+    create: stubs.create,
     isCreating: false,
     error: null,
     clearError: () => {},
@@ -68,8 +72,30 @@ function wrapper(mode: DeploymentMode) {
 
 afterEach(() => {
   stubs.members = [];
+  stubs.create.mockClear();
   stubs.remove.mockClear();
   stubs.refetch.mockClear();
+});
+
+describe("useShareFlow — grant", () => {
+  it("sends one grant of the role's relation to the grantee on the resource, then refetches", async () => {
+    const { result } = renderHook(
+      () => useShareFlow({ kind: "agent", id: "agt_1", resourceKind: ApiResourceKind.agent }),
+      { wrapper: wrapper("enterprise") },
+    );
+
+    await act(() => result.current.grant(personGrantee("ida_alice"), IamRole.viewer));
+
+    const sent = stubs.create.mock.calls.map(([spec]) => [
+      spec.principal?.kind,
+      spec.principal?.id,
+      spec.resource?.kind,
+      spec.resource?.id,
+      spec.relation,
+    ]);
+    expect(sent).toEqual([["identity_account", "ida_alice", "agent", "agt_1", "viewer"]]);
+    expect(stubs.refetch).toHaveBeenCalled();
+  });
 });
 
 describe("useShareFlow — revoke", () => {

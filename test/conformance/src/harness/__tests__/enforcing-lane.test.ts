@@ -2,8 +2,10 @@
 // grant message a lane hands Grant create/delete, the steps that move a
 // member to exactly one role, and the set of organizations a newcomer is
 // revoked on. The lanes themselves boot servers and are exercised by the
-// conformance suites; what is decided without a server is decided here, and
-// the sibling lane's revoke is driven once over a stub sibling.
+// conformance suites; what is decided without a server is decided here, the
+// sibling lane's revoke is driven once over a stub sibling, and the primary
+// lane's exact-role move once over stub clients: the founder grants the role,
+// then revokes member, on the organization's id.
 import { describe, expect, it } from "vitest";
 
 import type { ConformanceClients } from "../clients";
@@ -12,6 +14,7 @@ import { ORGANIZATION_ROLES } from "../../targets/target";
 import type { SiblingServer } from "../../targets/target";
 import {
   exactRoleSteps,
+  newPrimaryEnforcingLane,
   newSiblingEnforcingLane,
   organizationRoleGrant,
   organizationsToRevoke,
@@ -109,5 +112,47 @@ describe("newSiblingEnforcingLane", () => {
       await close();
     }
     expect(revoked).toEqual([{ identityAccountId: "ida_2", org: "org_other" }]);
+  });
+});
+
+describe("newPrimaryEnforcingLane", () => {
+  it("moves a new member to exactly the role: the founder grants it, then revokes member, on the organization's id", async () => {
+    const calls: Array<{ op: string; grant: unknown }> = [];
+    const founder = {
+      grantCommand: {
+        create: async (grant: unknown) => {
+          calls.push({ op: "create", grant });
+          return {};
+        },
+        delete: async (grant: unknown) => {
+          calls.push({ op: "delete", grant });
+          return {};
+        },
+      },
+    } as unknown as ConformanceClients;
+    const member = {
+      identityAccountQuery: { whoAmI: async () => ({ metadata: { id: "ida_member" } }) },
+    } as unknown as ConformanceClients;
+    const refuse = async (): Promise<never> => {
+      throw new Error("not used by this arm");
+    };
+    const lane = newPrimaryEnforcingLane({
+      clients: founder,
+      provisionTenancy: refuse,
+      cleanupTenancy: refuse,
+      provisionIdentity: refuse,
+      provisionMember: async () => member,
+      organizationIdOf: () => "org_01acme",
+      directLoginTenant: undefined,
+      clientsPresenting: () => founder,
+      managedAgentsBaseUrl: () => "http://127.0.0.1:0",
+    });
+
+    await expect(lane.provisionWithRole({ org: "acme" }, "admin")).resolves.toBe(member);
+
+    expect(calls).toEqual([
+      { op: "create", grant: organizationRoleGrant("org_01acme", "ida_member", "admin") },
+      { op: "delete", grant: organizationRoleGrant("org_01acme", "ida_member", "member") },
+    ]);
   });
 });
