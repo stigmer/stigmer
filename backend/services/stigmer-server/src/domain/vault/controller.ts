@@ -66,10 +66,7 @@ import type { UpdateVaultInput } from "@stigmer/protos/ai/stigmer/agentic/vault/
 
 import type { Logger } from "../../boot/logger.js";
 import type { SecretService } from "../../encryption/encryption.js";
-import {
-  isCiphertextShaped,
-  REDACTED_MARKER,
-} from "../../encryption/encryption.js";
+import { isCiphertextShaped, REDACTED_MARKER } from "../../encryption/encryption.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
@@ -124,10 +121,7 @@ import {
   TARGET_RESOURCE_KEY,
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
-import {
-  newClaimNameStep,
-  releaseNameAfterFailure,
-} from "../../pipeline/steps/names.js";
+import { newClaimNameStep, releaseNameAfterFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 import { updateContext } from "../../pipeline/steps/update-input.js";
@@ -154,10 +148,7 @@ import {
   MY_VAULT_VISIBILITY_REFUSAL,
   isMyVaultSlug,
 } from "./constants.js";
-import {
-  renameResource,
-  storeRenameRows,
-} from "../../pipeline/steps/rename.js";
+import { renameResource, storeRenameRows } from "../../pipeline/steps/rename.js";
 import {
   forgedCiphertextMessage,
   markerRejectionMessage,
@@ -212,41 +203,18 @@ export function registerVaultServices(
     removeConnections: (input, ctx) => removeConnections(deps, input, ctx),
     startSignIn: async (input, ctx) => {
       const caller = callerIdentityOf(ctx);
-      await validated(
-        VaultCommandController.method.startSignIn.input,
-        input,
-        caller,
-        ctx,
-        deps,
-      );
+      await validated(VaultCommandController.method.startSignIn.input, input, caller, ctx, deps);
       return startPersonSignIn(deps.signIn, input, caller);
     },
     completeSignIn: async (input, ctx) => {
       const caller = callerIdentityOf(ctx);
-      await validated(
-        VaultCommandController.method.completeSignIn.input,
-        input,
-        caller,
-        ctx,
-        deps,
-      );
+      await validated(VaultCommandController.method.completeSignIn.input, input, caller, ctx, deps);
       return completePersonSignIn(deps.signIn, input, caller);
     },
     createConnectLink: async (input, ctx) => {
       const caller = callerIdentityOf(ctx);
-      await validated(
-        VaultCommandController.method.createConnectLink.input,
-        input,
-        caller,
-        ctx,
-        deps,
-      );
-      await authorizeDirect(
-        VaultCommandController.method.createConnectLink,
-        deps.authorizer,
-        caller,
-        input,
-      );
+      await validated(VaultCommandController.method.createConnectLink.input, input, caller, ctx, deps);
+      await authorizeDirect(VaultCommandController.method.createConnectLink, deps.authorizer, caller, input);
       return createConnectLink(deps.signIn, input, caller);
     },
   });
@@ -261,13 +229,7 @@ export function registerVaultServices(
   // is the authority (values.ts).
   router.service(VaultValueController, {
     fetchValues: async (input, ctx) => {
-      await validated(
-        VaultValueController.method.fetchValues.input,
-        input,
-        callerIdentityOf(ctx),
-        ctx,
-        deps,
-      );
+      await validated(VaultValueController.method.fetchValues.input, input, callerIdentityOf(ctx), ctx, deps);
       return fetchExecutionValues(deps.values, input, ctx);
     },
   });
@@ -342,9 +304,7 @@ async function createVault(
   );
   try {
     await newPipeline<typeof VaultSchema>("vault-create", deps.logger)
-      .addStep(
-        newAuthorizeStep(VaultCommandController.method.create, deps.authorizer),
-      )
+      .addStep(newAuthorizeStep(VaultCommandController.method.create, deps.authorizer))
       .addStep(newValidateProtoStep())
       .addStep(newValidateVisibilityStep())
       .addStep(newResolveSlugStep())
@@ -357,10 +317,7 @@ async function createVault(
       .addStep(newClaimExternalIdStep(deps.store))
       .addStep(newPersistStep(deps.store))
       .addStep(
-        newCreateAuthorizationTuplesStep(
-          deps.authorizationLifecycle,
-          deps.logger,
-        ),
+        newCreateAuthorizationTuplesStep(deps.authorizationLifecycle, deps.logger),
       )
       .build()
       .execute(reqCtx);
@@ -397,18 +354,12 @@ async function updateVault(
     );
     try {
       await newPipeline<typeof VaultSchema>("vault-update", deps.logger)
-        .addStep(
-          newAuthorizeStep(
-            VaultCommandController.method.update,
-            deps.authorizer,
-            input,
-          ),
-        )
+        .addStep(newAuthorizeStep(VaultCommandController.method.update, deps.authorizer,
+        input,
+      ))
         .addStep(newResolveSlugStep({ update: true }))
         .addStep(newLoadExistingStep(deps.store))
-        .addStep(
-          newBuildUpdateStateStep({ refused: VAULT_REFUSED_UPDATE_PATHS }),
-        )
+        .addStep(newBuildUpdateStateStep({ refused: VAULT_REFUSED_UPDATE_PATHS }))
         .addStep(newValidateProtoStep({ of: "state" }))
         .addStep(newGuardReservedLabelsStep(deps.authorizer))
         .addStep(newKeepStoredOwnerAndEntriesStep())
@@ -440,9 +391,7 @@ async function deleteVault(
   );
   reqCtx.set(RESOURCE_ID_KEY, input.resourceId);
   let pipeline = newPipeline<DeleteDesc>("vault-delete", deps.logger)
-    .addStep(
-      newAuthorizeStep(VaultCommandController.method.delete, deps.authorizer),
-    )
+    .addStep(newAuthorizeStep(VaultCommandController.method.delete, deps.authorizer))
     .addStep(newValidateProtoStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, VaultSchema));
   for (const step of vaultDeleteSteps<DeleteDesc>(deps)) {
@@ -476,15 +425,9 @@ async function updateVisibility(
     kindOf(ctx),
   );
   reqCtx.set(RESOURCE_ID_KEY, input.resourceId);
-  await newPipeline<UpdateVisibilityDesc>(
-    "vault-update-visibility",
-    deps.logger,
-  )
+  await newPipeline<UpdateVisibilityDesc>("vault-update-visibility", deps.logger)
     .addStep(
-      newAuthorizeStep(
-        VaultCommandController.method.updateVisibility,
-        deps.authorizer,
-      ),
+      newAuthorizeStep(VaultCommandController.method.updateVisibility, deps.authorizer),
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, VaultSchema))
@@ -526,15 +469,11 @@ function newSetVaultVisibilityStep(): PipelineStep<UpdateVisibilityDesc> {
       if (vault.metadata !== undefined) {
         vault.metadata.visibility = ctx.input.visibility;
       }
-      setAuditFieldsForUpdate(
-        VaultSchema,
-        vault,
-        "status_audit",
-        ctx.callerIdentity,
-      );
+      setAuditFieldsForUpdate(VaultSchema, vault, "status_audit", ctx.callerIdentity);
     },
   };
 }
+
 
 // ---------------------------------------------------------------------------
 // The entry RPCs: target resolution and authorization in the handler.
@@ -620,13 +559,7 @@ async function setSecrets(
   ctx: HandlerContext,
 ): Promise<Vault> {
   const caller = callerIdentityOf(ctx);
-  await validated(
-    VaultCommandController.method.setSecrets.input,
-    input,
-    caller,
-    ctx,
-    deps,
-  );
+  await validated(VaultCommandController.method.setSecrets.input, input, caller, ctx, deps);
   // Every entry is checked before the target is resolved: a refused first
   // write never creates My vault.
   for (const [name, secret] of Object.entries(input.secrets)) {
@@ -656,13 +589,7 @@ async function removeSecrets(
   ctx: HandlerContext,
 ): Promise<Vault> {
   const caller = callerIdentityOf(ctx);
-  await validated(
-    VaultCommandController.method.removeSecrets.input,
-    input,
-    caller,
-    ctx,
-    deps,
-  );
+  await validated(VaultCommandController.method.removeSecrets.input, input, caller, ctx, deps);
   const vault = await resolveWriteTarget(deps, input.vault, caller, false);
   if (vault === undefined) {
     throw notFoundError("vault", "My vault");
@@ -681,13 +608,7 @@ async function setConnection(
   ctx: HandlerContext,
 ): Promise<Vault> {
   const caller = callerIdentityOf(ctx);
-  await validated(
-    VaultCommandController.method.setConnection.input,
-    input,
-    caller,
-    ctx,
-    deps,
-  );
+  await validated(VaultCommandController.method.setConnection.input, input, caller, ctx, deps);
   refuseServerShapedValue("the login's token", input.token);
   return withAddressRule(async () => {
     // The address is checked before the target is resolved: a refused
@@ -714,13 +635,7 @@ async function removeConnections(
   ctx: HandlerContext,
 ): Promise<Vault> {
   const caller = callerIdentityOf(ctx);
-  await validated(
-    VaultCommandController.method.removeConnections.input,
-    input,
-    caller,
-    ctx,
-    deps,
-  );
+  await validated(VaultCommandController.method.removeConnections.input, input, caller, ctx, deps);
   return withAddressRule(async () => {
     const vault = await resolveWriteTarget(deps, input.vault, caller, false);
     if (vault === undefined) {
@@ -769,10 +684,7 @@ async function get(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof VaultQueryController.method.get.input>(
-    "vault-get",
-    deps.logger,
-  )
+  await newPipeline<typeof VaultQueryController.method.get.input>("vault-get", deps.logger)
     .addStep(newAuthorizeStep(VaultQueryController.method.get, deps.authorizer))
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetStep(deps.store, VaultSchema))
@@ -796,12 +708,7 @@ async function getByReference(
     "vault-get-by-reference",
     deps.logger,
   )
-    .addStep(
-      newAuthorizeStep(
-        VaultQueryController.method.getByReference,
-        deps.authorizer,
-      ),
-    )
+    .addStep(newAuthorizeStep(VaultQueryController.method.getByReference, deps.authorizer))
     .addStep(newValidateProtoStep())
     .addStep(newLoadByReferenceStep(deps.store, VaultSchema))
     .addStep(
@@ -823,13 +730,7 @@ async function getMine(
   ctx: HandlerContext,
 ): Promise<Vault> {
   const caller = callerIdentityOf(ctx);
-  await validated(
-    VaultQueryController.method.getMine.input,
-    input,
-    caller,
-    ctx,
-    deps,
-  );
+  await validated(VaultQueryController.method.getMine.input, input, caller, ctx, deps);
   const vault = await deps.vaults.findMine(input.org, caller.identityId);
   if (vault === undefined) {
     throw notFoundError("vault", "My vault");
@@ -853,13 +754,7 @@ async function getByExternalId(
   ctx: HandlerContext,
 ): Promise<Vault> {
   const caller = callerIdentityOf(ctx);
-  await validated(
-    VaultQueryController.method.getByExternalId.input,
-    input,
-    caller,
-    ctx,
-    deps,
-  );
+  await validated(VaultQueryController.method.getByExternalId.input, input, caller, ctx, deps);
   // The organization first: a caller who cannot see it learns nothing of
   // which external ids it holds.
   await authorizeResolvedResource(

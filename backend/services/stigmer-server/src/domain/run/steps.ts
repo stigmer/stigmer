@@ -41,7 +41,8 @@ import { agentExecutionListIndex } from "./list-index.js";
 export const EXECUTION_LIST_KEY = "execution_list";
 
 type ListDesc = typeof RunQueryController.method.list.input;
-type ListBySessionDesc = typeof RunQueryController.method.listBySession.input;
+type ListBySessionDesc =
+  typeof RunQueryController.method.listBySession.input;
 
 /** ValidateListRequest — list.go: no required fields today (a no-op). */
 export function newValidateListRequestStep(): PipelineStep<ListDesc> {
@@ -83,8 +84,8 @@ export function newQueryExecutionPageStep(
         decode: (data) => decodeExecution(data, logger),
         keep: (execution) =>
           input.phase === RunPhase.RUN_PHASE_UNSPECIFIED ||
-          (execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED) ===
-            input.phase,
+          (execution.status?.phase ??
+            RunPhase.RUN_PHASE_UNSPECIFIED) === input.phase,
         scope: (executions) =>
           restrictListByReadScope(
             listReadScope,
@@ -175,7 +176,10 @@ export function newBuildExecutionListResponseStep<
   };
 }
 
-function decodeExecution(data: Uint8Array, logger: Logger): Run | undefined {
+function decodeExecution(
+  data: Uint8Array,
+  logger: Logger,
+): Run | undefined {
   try {
     return fromBinary(RunSchema, data);
   } catch (error) {

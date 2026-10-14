@@ -109,17 +109,10 @@ import {
   newCleanupIamPoliciesStep,
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
-import {
-  newClaimNameStep,
-  newReleaseNamesStep,
-  releaseNameOnFailure,
-} from "../../pipeline/steps/names.js";
+import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
-import {
-  everyPathUpdate,
-  updateContext,
-} from "../../pipeline/steps/update-input.js";
+import { everyPathUpdate, updateContext } from "../../pipeline/steps/update-input.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
@@ -163,15 +156,12 @@ export interface AgentChannelControllerDeps {
 }
 
 /** A channel's runs have no person: each asks the account that attached each vault. */
-const CHANNEL_VAULT_ATTACHMENTS: VaultAttachmentOptions<
-  typeof AgentChannelSchema
-> = {
+const CHANNEL_VAULT_ATTACHMENTS: VaultAttachmentOptions<typeof AgentChannelSchema> = {
   surface: "a channel",
   attachers: {
     get: (row) => row.status?.vaultAttachers,
     set: (row, attachers) => {
-      (row.status ??= create(AgentChannelStatusSchema)).vaultAttachers =
-        attachers;
+      (row.status ??= create(AgentChannelStatusSchema)).vaultAttachers = attachers;
     },
   },
 };
@@ -251,13 +241,7 @@ async function createChannel(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newInitInstallStateStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-    .addStep(
-      newVaultAttachmentsStep(
-        deps.store,
-        deps.authorizer,
-        CHANNEL_VAULT_ATTACHMENTS,
-      ),
-    )
+    .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, CHANNEL_VAULT_ATTACHMENTS))
     .addStep(newClaimNameStep(deps.store, ApiResourceKind.agent_channel))
     .addStep(newPersistStep(deps.store))
     .addStep(
@@ -298,8 +282,8 @@ async function update(
         newAuthorizeStep(
           AgentChannelCommandController.method.update,
           deps.authorizer,
-          input,
-        ),
+        input,
+      ),
       )
       .addStep(newResolveSlugStep({ update: true }))
       .addStep(newLoadExistingStep(deps.store))
@@ -315,13 +299,7 @@ async function update(
       )
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-      .addStep(
-        newVaultAttachmentsStep(
-          deps.store,
-          deps.authorizer,
-          CHANNEL_VAULT_ATTACHMENTS,
-        ),
-      )
+      .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, CHANNEL_VAULT_ATTACHMENTS))
       .addStep(newPersistStep(deps.store))
       .build()
       .execute(reqCtx);
@@ -385,11 +363,7 @@ async function apply(
   const resolved = reqCtx.newState;
   return shouldCreate
     ? createChannel(deps, resolved, ctx)
-    : update(
-        deps,
-        everyPathUpdate(UpdateAgentChannelInputSchema, resolved),
-        ctx,
-      );
+    : update(deps, everyPathUpdate(UpdateAgentChannelInputSchema, resolved), ctx);
 }
 
 // ---------------------------------------------------------------------------
@@ -520,13 +494,7 @@ async function deleteChannel(
   }
   await pipeline
     .addStep(newDeleteResourceStep(deps.store))
-    .addStep(
-      newReleaseNamesStep(
-        deps.store,
-        deps.logger,
-        ApiResourceKind.agent_channel,
-      ),
-    )
+    .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.agent_channel))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     )

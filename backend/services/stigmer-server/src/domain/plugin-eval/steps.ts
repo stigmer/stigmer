@@ -140,25 +140,15 @@ const WORKFLOW_ENDED_MARGIN_MS = 60 * 60 * 1000;
  * stamp, since the eval started running). Answered from the row alone, so
  * a read needs no engine.
  */
-export function pluginEvalOutlivedItsWorkflow(
-  pluginEval: EvalPhaseRow,
-  nowMs: number,
-): boolean {
+export function pluginEvalOutlivedItsWorkflow(pluginEval: EvalPhaseRow, nowMs: number): boolean {
   if (!isActivePluginEval(pluginEval)) {
     return false;
   }
-  const since =
-    pluginEval.status?.audit?.specAudit?.createdAt ??
-    pluginEval.status?.startedAt;
+  const since = pluginEval.status?.audit?.specAudit?.createdAt ?? pluginEval.status?.startedAt;
   if (since === undefined) {
     return false;
   }
-  return (
-    timestampMs(since) +
-      PLUGIN_EVAL_EXECUTION_TIMEOUT_MS +
-      WORKFLOW_ENDED_MARGIN_MS <
-    nowMs
-  );
+  return timestampMs(since) + PLUGIN_EVAL_EXECUTION_TIMEOUT_MS + WORKFLOW_ENDED_MARGIN_MS < nowMs;
 }
 
 /**
@@ -168,19 +158,12 @@ export function pluginEvalOutlivedItsWorkflow(
  * never shows it running for ever. Any other eval, or a row gone or a
  * store fault meanwhile, is answered as read.
  */
-export async function settleEndedPluginEval(
-  store: Store,
-  pluginEval: PluginEval,
-): Promise<PluginEval> {
+export async function settleEndedPluginEval(store: Store, pluginEval: PluginEval): Promise<PluginEval> {
   if (!pluginEvalOutlivedItsWorkflow(pluginEval, Date.now())) {
     return pluginEval;
   }
   try {
-    return await settleUnlessFinished(
-      store,
-      pluginEval.metadata?.id ?? "",
-      failWorkflowEnded,
-    );
+    return await settleUnlessFinished(store, pluginEval.metadata?.id ?? "", failWorkflowEnded);
   } catch {
     return pluginEval;
   }
@@ -203,15 +186,10 @@ export function newSettleEndedPluginEvalStep(
 ): PipelineStep<typeof PluginEvalIdSchema> {
   return {
     name: "SettleEndedPluginEval",
-    async execute(
-      ctx: RequestContext<typeof PluginEvalIdSchema>,
-    ): Promise<void> {
+    async execute(ctx: RequestContext<typeof PluginEvalIdSchema>): Promise<void> {
       const target = ctx.get(TARGET_RESOURCE_KEY) as PluginEval | undefined;
       if (target !== undefined) {
-        ctx.set(
-          TARGET_RESOURCE_KEY,
-          await settleEndedPluginEval(store, target),
-        );
+        ctx.set(TARGET_RESOURCE_KEY, await settleEndedPluginEval(store, target));
       }
     },
   };
@@ -250,11 +228,7 @@ export function newLoadEvaluatedPluginStep(
       const pluginId = ctx.newState.spec?.pluginId ?? "";
       let plugin: Plugin;
       try {
-        plugin = await store.getResource(
-          ApiResourceKind.plugin,
-          pluginId,
-          PluginSchema,
-        );
+        plugin = await store.getResource(ApiResourceKind.plugin, pluginId, PluginSchema);
       } catch (error) {
         if (error instanceof ResourceNotFoundError) {
           throw notFoundError("Plugin", pluginId);
@@ -266,9 +240,7 @@ export function newLoadEvaluatedPluginStep(
   };
 }
 
-function evaluatedPluginOf(
-  ctx: RequestContext<typeof PluginEvalSchema>,
-): Plugin {
+function evaluatedPluginOf(ctx: RequestContext<typeof PluginEvalSchema>): Plugin {
   const plugin = ctx.get(EVALUATED_PLUGIN_KEY) as Plugin | undefined;
   if (plugin === undefined) {
     throw internalError(
@@ -300,9 +272,7 @@ export function newResolvePluginEvalDefaultsStep(
     async execute(ctx: RequestContext<typeof PluginEvalSchema>): Promise<void> {
       const metadata = ctx.newState.metadata;
       if (metadata === undefined || metadata.org === "") {
-        throw invalidArgumentError(
-          "metadata.org is required for a plugin eval",
-        );
+        throw invalidArgumentError("metadata.org is required for a plugin eval");
       }
       const plugin = evaluatedPluginOf(ctx);
       const pluginOrg = plugin.metadata?.org ?? "";
@@ -327,26 +297,18 @@ export function newResolvePluginEvalDefaultsStep(
         spec.pluginDigest,
       );
       if (digest !== current) {
-        throw failedPreconditionError(
-          pluginEvalNotCurrentVersionMessage(current),
-        );
+        throw failedPreconditionError(pluginEvalNotCurrentVersionMessage(current));
       }
       spec.pluginDigest = digest;
       const allowed = checkAllowTools(spec.allowTools, [
         {
           name: plugin.metadata?.name ?? "",
-          servers: (plugin.status?.mcpServers ?? []).map(
-            (server) => server.name,
-          ),
+          servers: (plugin.status?.mcpServers ?? []).map((server) => server.name),
         },
       ]);
       if (!allowed.ok) {
         throw invalidArgumentError(
-          pluginEvalOtherPluginToolMessage(
-            allowed.entry,
-            allowed.server,
-            plugin.metadata?.slug ?? "",
-          ),
+          pluginEvalOtherPluginToolMessage(allowed.entry, allowed.server, plugin.metadata?.slug ?? ""),
         );
       }
       spec.allowTools = [...allowed.tools];
@@ -409,9 +371,7 @@ export function newPlanPluginEvalStep(
       }
       const globError = caseGlobError(spec.caseGlob);
       if (globError !== undefined) {
-        throw invalidArgumentError(
-          pluginEvalCaseGlobMessage(spec.caseGlob, globError),
-        );
+        throw invalidArgumentError(pluginEvalCaseGlobMessage(spec.caseGlob, globError));
       }
       let loaded;
       try {
@@ -423,16 +383,10 @@ export function newPlanPluginEvalStep(
         throw internalError(error, "failed to read the plugin's evals");
       }
       if (loaded.suite.cases.length === 0) {
-        throw failedPreconditionError(
-          pluginEvalNoCasesMessage(loaded.suite.dir),
-        );
+        throw failedPreconditionError(pluginEvalNoCasesMessage(loaded.suite.dir));
       }
       // Counted, not planned: the workflow plans the cells of an eval that fits.
-      const { cases, tries } = sizeOfMatrix(
-        loaded.suite,
-        spec,
-        evalModelCatalogOf(catalog),
-      );
+      const { cases, tries } = sizeOfMatrix(loaded.suite, spec, evalModelCatalogOf(catalog));
       if (cases > PLUGIN_EVAL_MAX_CASES || tries > PLUGIN_EVAL_MAX_TRIES) {
         throw failedPreconditionError(pluginEvalTooLargeMessage(cases, tries));
       }
@@ -472,35 +426,20 @@ export function newEnsureEvaluatedPluginStillExistsStep(
         return;
       } catch (error) {
         if (!(error instanceof ResourceNotFoundError)) {
-          throw internalError(
-            error,
-            "failed to read the plugin to evaluate again",
-          );
+          throw internalError(error, "failed to read the plugin to evaluate again");
         }
       }
       const evalId = ctx.newState.metadata?.id ?? "";
-      logger.warn(
-        "a plugin eval's plugin was deleted while it was created; removing the eval",
-        {
-          evalId,
-          pluginId,
-        },
-      );
+      logger.warn("a plugin eval's plugin was deleted while it was created; removing the eval", {
+        evalId,
+        pluginId,
+      });
       try {
         await store.deleteResource(ApiResourceKind.plugin_eval, evalId);
       } catch (error) {
-        throw internalError(
-          error,
-          "failed to remove the plugin eval of a deleted plugin",
-        );
+        throw internalError(error, "failed to remove the plugin eval of a deleted plugin");
       }
-      await releaseNamesOfDeleted(
-        store,
-        logger,
-        ApiResourceKind.plugin_eval,
-        ctx.newState.metadata?.org ?? "",
-        evalId,
-      );
+      await releaseNamesOfDeleted(store, logger, ApiResourceKind.plugin_eval, ctx.newState.metadata?.org ?? "", evalId);
       await cleanUpDeletedResource(authorizationLifecycle, logger, {
         kind: ApiResourceKind.plugin_eval,
         resourceId: evalId,
@@ -538,13 +477,10 @@ export function newStartPluginEvalWorkflowStep(
         return;
       } catch (error) {
         const cause = error instanceof Error ? error.message : String(error);
-        logger.warn(
-          "a plugin eval's workflow could not start; marking it failed",
-          {
-            evalId,
-            cause,
-          },
-        );
+        logger.warn("a plugin eval's workflow could not start; marking it failed", {
+          evalId,
+          cause,
+        });
         const failed = await settleUnlessFinished(
           store,
           evalId,
@@ -615,9 +551,7 @@ export function newCancelPluginEvalStep(
 ): PipelineStep<typeof PluginEvalIdSchema> {
   return {
     name: "CancelPluginEval",
-    async execute(
-      ctx: RequestContext<typeof PluginEvalIdSchema>,
-    ): Promise<void> {
+    async execute(ctx: RequestContext<typeof PluginEvalIdSchema>): Promise<void> {
       const target = ctx.get(TARGET_RESOURCE_KEY) as PluginEval | undefined;
       if (target === undefined) {
         throw internalError(
@@ -631,10 +565,7 @@ export function newCancelPluginEvalStep(
         return;
       }
       if (pluginEvalOutlivedItsWorkflow(target, Date.now())) {
-        ctx.set(
-          PLUGIN_EVAL_RESULT_KEY,
-          await settleUnlessFinished(store, evalId, failWorkflowEnded),
-        );
+        ctx.set(PLUGIN_EVAL_RESULT_KEY, await settleUnlessFinished(store, evalId, failWorkflowEnded));
         return;
       }
       let outcome: "requested" | "not-found";
@@ -652,10 +583,7 @@ export function newCancelPluginEvalStep(
       }
       if (target.status?.phase === PluginEvalPhase.running) {
         // Only the workflow writes running: it ran, and closed without its end.
-        ctx.set(
-          PLUGIN_EVAL_RESULT_KEY,
-          await settleUnlessFinished(store, evalId, failWorkflowEnded),
-        );
+        ctx.set(PLUGIN_EVAL_RESULT_KEY, await settleUnlessFinished(store, evalId, failWorkflowEnded));
         return;
       }
       const cancelled = await settleUnlessFinished(store, evalId, (status) => {
@@ -708,9 +636,7 @@ export function newDeletePluginEvalTriesStep(
 ): PipelineStep<typeof PluginEvalIdSchema> {
   return {
     name: "DeletePluginEvalTries",
-    async execute(
-      ctx: RequestContext<typeof PluginEvalIdSchema>,
-    ): Promise<void> {
+    async execute(ctx: RequestContext<typeof PluginEvalIdSchema>): Promise<void> {
       const existing = ctx.get(EXISTING_RESOURCE_KEY) as PluginEval | undefined;
       await deletePluginEvalTries(
         store,

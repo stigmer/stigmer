@@ -97,10 +97,7 @@ import {
   newExtractResourceIdStep,
   newLoadExistingForDeleteStep,
 } from "../../pipeline/steps/delete.js";
-import {
-  newReleaseNamesStep,
-  releaseNameOnFailure,
-} from "../../pipeline/steps/names.js";
+import { newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newDeleteSearchIndexStep } from "../../pipeline/steps/index-search.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import {
@@ -200,10 +197,7 @@ export function registerPluginServices(
       createArtifactUploadUrl(deps, req, ctx),
     updateVisibility: (input, ctx) => updateVisibility(deps, input, ctx),
     delete: (id, ctx) => deletePlugin(deps, id, ctx),
-    listTools: (
-      input: ListPluginToolsInput,
-      ctx,
-    ): Promise<ListPluginToolsOutput> =>
+    listTools: (input: ListPluginToolsInput, ctx): Promise<ListPluginToolsOutput> =>
       listTools(deps.tools, input, callerIdentityOf(ctx)),
   });
   router.service(PluginQueryController, {
@@ -400,12 +394,7 @@ async function updateVisibility(
     .addStep(newLoadPluginByIdStep(deps.store, UPDATE_VISIBILITY_PLUGIN_KEY))
     .addStep(newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_PLUGIN_KEY))
     .addStep(newValidateVisibilityUpdateStep())
-    .addStep(
-      newRefuseChildOrgsVisibilityInChildUpdateStep(
-        deps.store,
-        UPDATE_VISIBILITY_PLUGIN_KEY,
-      ),
-    )
+    .addStep(newRefuseChildOrgsVisibilityInChildUpdateStep(deps.store, UPDATE_VISIBILITY_PLUGIN_KEY))
     .addStep(newSetPluginVisibilityStep())
     .addStep(
       newPersistPluginStep(
@@ -515,9 +504,7 @@ async function deletePlugin(
       }),
     )
     .addStep(newDeleteResourceStep(deps.store))
-    .addStep(
-      newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.plugin),
-    )
+    .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.plugin))
     .addStep(newSweepPluginEvalsAfterDeleteStep<DeleteDesc>(deps.pluginEvals))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
@@ -563,6 +550,7 @@ async function get(
 }
 
 type ListVersionsDesc = typeof PluginQueryController.method.listVersions.input;
+
 
 /**
  * GetByReference — slug + org with the version ladder, then can_view on
@@ -716,11 +704,7 @@ async function getArtifactDownloadUrl(
  */
 function pluginStorageKey(req: GetArtifactRequest): string {
   const key = req.artifactStorageKey;
-  if (
-    !key.startsWith(PLUGIN_ARTIFACT_KEY_PREFIX) ||
-    posix.normalize(key) !== key ||
-    key.split("/").includes("..")
-  ) {
+  if (!key.startsWith(PLUGIN_ARTIFACT_KEY_PREFIX) || posix.normalize(key) !== key || key.split("/").includes("..")) {
     throw new ArtifactNotFoundError(req.artifactStorageKey);
   }
   return req.artifactStorageKey;

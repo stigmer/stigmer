@@ -46,9 +46,7 @@ export const LIST_FIRES_RESULT_KEY = "listFiresResult";
  * never an empty history that reads as "exists but never fired" (Go
  * loadScheduleForRunsStep).
  */
-export function newLoadScheduleForFiresStep(
-  store: Store,
-): PipelineStep<ListFiresInput> {
+export function newLoadScheduleForFiresStep(store: Store): PipelineStep<ListFiresInput> {
   return {
     name: "LoadScheduleForRuns",
     async execute(ctx: RequestContext<ListFiresInput>): Promise<void> {
@@ -76,9 +74,7 @@ export function newLoadScheduleForFiresStep(
  * cursor: the nominal fire time in the cursor's instant and the origin in
  * its id, the two columns the ledger orders by.
  */
-export function newListFiresFromLedgerStep(
-  store: Store,
-): PipelineStep<ListFiresInput> {
+export function newListFiresFromLedgerStep(store: Store): PipelineStep<ListFiresInput> {
   return {
     name: "ListRunsFromLedger",
     async execute(ctx: RequestContext<ListFiresInput>): Promise<void> {

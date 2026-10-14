@@ -57,10 +57,7 @@ import type { Authorizer } from "../../extensions/authorizer.js";
 import { isServerComposedRequest } from "../../extensions/identity.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
-import {
-  harnessName,
-  unknownModelPinRefusal,
-} from "../../modelcatalog/pin-validation.js";
+import { harnessName, unknownModelPinRefusal } from "../../modelcatalog/pin-validation.js";
 import {
   failedPreconditionError,
   internalError,
@@ -80,10 +77,7 @@ import {
   readListPage,
 } from "../../pipeline/steps/list-page.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
-import {
-  loadVersion,
-  resolveVersionHash,
-} from "../../pipeline/steps/version-history.js";
+import { loadVersion, resolveVersionHash } from "../../pipeline/steps/version-history.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { agentVersionBinding } from "../agent/versions.js";
@@ -99,15 +93,8 @@ import {
   pluginEvalCaseGlobMessage,
   pluginEvalTooLargeMessage,
 } from "../plugin-eval/constants.js";
-import {
-  caseGlobError,
-  evalModelCatalogOf,
-  sizeOfMatrix,
-} from "../plugin-eval/matrix.js";
-import {
-  isActivePluginEval,
-  pluginEvalOutlivedItsWorkflow,
-} from "../plugin-eval/steps.js";
+import { caseGlobError, evalModelCatalogOf, sizeOfMatrix } from "../plugin-eval/matrix.js";
+import { isActivePluginEval, pluginEvalOutlivedItsWorkflow } from "../plugin-eval/steps.js";
 import type { EvalSuiteSource } from "../plugin-eval/suite.js";
 import { loadEvalSuite } from "../plugin-eval/suite.js";
 import { deletePluginEvalTries } from "../plugin-eval/tries.js";
@@ -166,20 +153,14 @@ export function resolveAgentEvalCreateTargets(
 }
 
 /** LoadEvaluatedAgent: reads the agent named in spec.agent_id into EVALUATED_AGENT_KEY. */
-export function newLoadEvaluatedAgentStep(
-  store: Store,
-): PipelineStep<typeof AgentEvalSchema> {
+export function newLoadEvaluatedAgentStep(store: Store): PipelineStep<typeof AgentEvalSchema> {
   return {
     name: "LoadEvaluatedAgent",
     async execute(ctx: RequestContext<typeof AgentEvalSchema>): Promise<void> {
       const agentId = ctx.newState.spec?.agentId ?? "";
       let agent: Agent;
       try {
-        agent = await store.getResource(
-          ApiResourceKind.agent,
-          agentId,
-          AgentSchema,
-        );
+        agent = await store.getResource(ApiResourceKind.agent, agentId, AgentSchema);
       } catch (error) {
         if (error instanceof ResourceNotFoundError) {
           throw notFoundError("Agent", agentId);
@@ -191,17 +172,10 @@ export function newLoadEvaluatedAgentStep(
   };
 }
 
-function stashed<T>(
-  ctx: RequestContext<typeof AgentEvalSchema>,
-  key: string,
-  what: string,
-): T {
+function stashed<T>(ctx: RequestContext<typeof AgentEvalSchema>, key: string, what: string): T {
   const value = ctx.get(key) as T | undefined;
   if (value === undefined) {
-    throw internalError(
-      new Error(`${what} not found in context`),
-      `${what} not found in context`,
-    );
+    throw internalError(new Error(`${what} not found in context`), `${what} not found in context`);
   }
   return value;
 }
@@ -217,17 +191,13 @@ function stashed<T>(
  * spec.allow_real_servers with spec.real_mcp_servers is refused, as a
  * plugin eval's is; the id is minted here.
  */
-export function newResolveAgentEvalDefaultsStep(
-  store: Store,
-): PipelineStep<typeof AgentEvalSchema> {
+export function newResolveAgentEvalDefaultsStep(store: Store): PipelineStep<typeof AgentEvalSchema> {
   return {
     name: "ResolveAgentEvalDefaults",
     async execute(ctx: RequestContext<typeof AgentEvalSchema>): Promise<void> {
       const metadata = ctx.newState.metadata;
       if (metadata === undefined || metadata.org === "") {
-        throw invalidArgumentError(
-          "metadata.org is required for an agent eval",
-        );
+        throw invalidArgumentError("metadata.org is required for an agent eval");
       }
       const agent = stashed<Agent>(ctx, EVALUATED_AGENT_KEY, "evaluated agent");
       const agentOrg = agent.metadata?.org ?? "";
@@ -241,21 +211,11 @@ export function newResolveAgentEvalDefaultsStep(
       if (spec.allowRealServers && spec.realMcpServers) {
         throw invalidArgumentError(PLUGIN_EVAL_REAL_SERVERS_CONFLICT_MESSAGE);
       }
-      const hash = await resolveVersionHash(
-        store,
-        agentVersionBinding,
-        agent,
-        spec.agentVersion,
-      );
+      const hash = await resolveVersionHash(store, agentVersionBinding, agent, spec.agentVersion);
       if (hash === undefined) {
         throw notFoundError("agent version", spec.agentVersion);
       }
-      const version = await loadVersion(
-        store,
-        agentVersionBinding,
-        spec.agentId,
-        hash,
-      );
+      const version = await loadVersion(store, agentVersionBinding, spec.agentId, hash);
       const versionSpec = version.resource.spec;
       const refs = versionSpec?.plugins ?? [];
       if (refs.length === 0) {
@@ -267,9 +227,7 @@ export function newResolveAgentEvalDefaultsStep(
       }
       // The version's references hold ids; a plugin is selected by the
       // name it holds now (spec.plugins, a create-time selector).
-      const attachedSlugs = new Set(
-        plugins.map((plugin) => plugin.metadata?.slug ?? ""),
-      );
+      const attachedSlugs = new Set(plugins.map((plugin) => plugin.metadata?.slug ?? ""));
       for (const slug of spec.plugins) {
         if (!attachedSlugs.has(slug)) {
           throw invalidArgumentError(agentEvalUnknownPluginMessage(slug));
@@ -279,22 +237,15 @@ export function newResolveAgentEvalDefaultsStep(
         spec.allowTools,
         plugins.map((plugin) => ({
           name: plugin.metadata?.name ?? "",
-          servers: (plugin.status?.mcpServers ?? []).map(
-            (server) => server.name,
-          ),
+          servers: (plugin.status?.mcpServers ?? []).map((server) => server.name),
         })),
       );
       if (!allowed.ok) {
-        throw invalidArgumentError(
-          agentEvalOtherPluginToolMessage(allowed.entry, allowed.server),
-        );
+        throw invalidArgumentError(agentEvalOtherPluginToolMessage(allowed.entry, allowed.server));
       }
       spec.allowTools = [...allowed.tools];
       spec.agentVersion = hash;
-      ctx.set(EVALUATED_VERSION_KEY, {
-        spec: versionSpec,
-        plugins,
-      } satisfies EvaluatedVersion);
+      ctx.set(EVALUATED_VERSION_KEY, { spec: versionSpec, plugins } satisfies EvaluatedVersion);
       assignServerId(ctx, generateId("aev"));
       if (metadata.name === "" && metadata.slug === "") {
         metadata.name = metadata.id;
@@ -349,15 +300,9 @@ export function newPlanAgentEvalStep(
       }
       const globError = caseGlobError(spec.caseGlob);
       if (globError !== undefined) {
-        throw invalidArgumentError(
-          pluginEvalCaseGlobMessage(spec.caseGlob, globError),
-        );
+        throw invalidArgumentError(pluginEvalCaseGlobMessage(spec.caseGlob, globError));
       }
-      const version = stashed<EvaluatedVersion>(
-        ctx,
-        EVALUATED_VERSION_KEY,
-        "evaluated agent version",
-      );
+      const version = stashed<EvaluatedVersion>(ctx, EVALUATED_VERSION_KEY, "evaluated agent version");
       const selected = new Set(spec.plugins);
       const agentTarget = agentTargetOf(version.spec);
       const planCatalog = evalModelCatalogOf(catalog);
@@ -380,10 +325,7 @@ export function newPlanAgentEvalStep(
         }
         let loaded;
         try {
-          loaded =
-            digest === ""
-              ? undefined
-              : await loadEvalSuite(source, pluginId, digest);
+          loaded = digest === "" ? undefined : await loadEvalSuite(source, pluginId, digest);
         } catch (error) {
           if (error instanceof ConnectError) {
             throw error;
@@ -406,9 +348,7 @@ export function newPlanAgentEvalStep(
         throw failedPreconditionError(pluginEvalTooLargeMessage(cases, tries));
       }
       if (cases === 0) {
-        throw failedPreconditionError(
-          "no eval case matches case_glob and case_tags",
-        );
+        throw failedPreconditionError("no eval case matches case_glob and case_tags");
       }
       const status = (ctx.newState.status ??= create(AgentEvalStatusSchema));
       status.phase = PluginEvalPhase.pending;
@@ -439,35 +379,20 @@ export function newEnsureEvaluatedAgentStillExistsStep(
         return;
       } catch (error) {
         if (!(error instanceof ResourceNotFoundError)) {
-          throw internalError(
-            error,
-            "failed to read the agent to evaluate again",
-          );
+          throw internalError(error, "failed to read the agent to evaluate again");
         }
       }
       const evalId = ctx.newState.metadata?.id ?? "";
-      logger.warn(
-        "an agent eval's agent was deleted while it was created; removing the eval",
-        {
-          evalId,
-          agentId,
-        },
-      );
+      logger.warn("an agent eval's agent was deleted while it was created; removing the eval", {
+        evalId,
+        agentId,
+      });
       try {
         await store.deleteResource(ApiResourceKind.agent_eval, evalId);
       } catch (error) {
-        throw internalError(
-          error,
-          "failed to remove the agent eval of a deleted agent",
-        );
+        throw internalError(error, "failed to remove the agent eval of a deleted agent");
       }
-      await releaseNamesOfDeleted(
-        store,
-        logger,
-        ApiResourceKind.agent_eval,
-        ctx.newState.metadata?.org ?? "",
-        evalId,
-      );
+      await releaseNamesOfDeleted(store, logger, ApiResourceKind.agent_eval, ctx.newState.metadata?.org ?? "", evalId);
       await cleanUpDeletedResource(authorizationLifecycle, logger, {
         kind: ApiResourceKind.agent_eval,
         resourceId: evalId,
@@ -498,13 +423,10 @@ export function newStartAgentEvalWorkflowStep(
         await workflows.start(evalId);
         return;
       } catch (error) {
-        logger.warn(
-          "an agent eval's workflow could not start; marking it failed",
-          {
-            evalId,
-            cause: error instanceof Error ? error.message : String(error),
-          },
-        );
+        logger.warn("an agent eval's workflow could not start; marking it failed", {
+          evalId,
+          cause: error instanceof Error ? error.message : String(error),
+        });
         const failed = await settleUnlessFinished(
           store,
           evalId,
@@ -529,17 +451,12 @@ async function settleUnlessFinished(
   settleable: (agentEval: AgentEval) => boolean = isActivePluginEval,
 ): Promise<AgentEval> {
   try {
-    return await store.updateResource(
-      ApiResourceKind.agent_eval,
-      evalId,
-      AgentEvalSchema,
-      (live) => {
-        if (!settleable(live)) {
-          return;
-        }
-        settle((live.status ??= create(AgentEvalStatusSchema)));
-      },
-    );
+    return await store.updateResource(ApiResourceKind.agent_eval, evalId, AgentEvalSchema, (live) => {
+      if (!settleable(live)) {
+        return;
+      }
+      settle((live.status ??= create(AgentEvalStatusSchema)));
+    });
   } catch (error) {
     if (error instanceof ResourceNotFoundError) {
       throw notFoundError("AgentEval", evalId);
@@ -555,33 +472,22 @@ function failWorkflowEnded(status: AgentEvalStatus): void {
 }
 
 /** The eval as it should be answered: one that outlived its workflow is stored and answered failed. */
-export async function settleEndedAgentEval(
-  store: Store,
-  agentEval: AgentEval,
-): Promise<AgentEval> {
+export async function settleEndedAgentEval(store: Store, agentEval: AgentEval): Promise<AgentEval> {
   if (!pluginEvalOutlivedItsWorkflow(agentEval, Date.now())) {
     return agentEval;
   }
   try {
-    return await settleUnlessFinished(
-      store,
-      agentEval.metadata?.id ?? "",
-      failWorkflowEnded,
-    );
+    return await settleUnlessFinished(store, agentEval.metadata?.id ?? "", failWorkflowEnded);
   } catch {
     return agentEval;
   }
 }
 
 /** SettleEndedAgentEval: get's answer, after the target is loaded. */
-export function newSettleEndedAgentEvalStep(
-  store: Store,
-): PipelineStep<typeof AgentEvalIdSchema> {
+export function newSettleEndedAgentEvalStep(store: Store): PipelineStep<typeof AgentEvalIdSchema> {
   return {
     name: "SettleEndedAgentEval",
-    async execute(
-      ctx: RequestContext<typeof AgentEvalIdSchema>,
-    ): Promise<void> {
+    async execute(ctx: RequestContext<typeof AgentEvalIdSchema>): Promise<void> {
       const target = ctx.get(TARGET_RESOURCE_KEY) as AgentEval | undefined;
       if (target !== undefined) {
         ctx.set(TARGET_RESOURCE_KEY, await settleEndedAgentEval(store, target));
@@ -603,9 +509,7 @@ export function newCancelAgentEvalStep(
 ): PipelineStep<typeof AgentEvalIdSchema> {
   return {
     name: "CancelAgentEval",
-    async execute(
-      ctx: RequestContext<typeof AgentEvalIdSchema>,
-    ): Promise<void> {
+    async execute(ctx: RequestContext<typeof AgentEvalIdSchema>): Promise<void> {
       const target = stashedTarget(ctx);
       const evalId = target.metadata?.id ?? "";
       if (!isActivePluginEval(target)) {
@@ -613,10 +517,7 @@ export function newCancelAgentEvalStep(
         return;
       }
       if (pluginEvalOutlivedItsWorkflow(target, Date.now())) {
-        ctx.set(
-          AGENT_EVAL_RESULT_KEY,
-          await settleUnlessFinished(store, evalId, failWorkflowEnded),
-        );
+        ctx.set(AGENT_EVAL_RESULT_KEY, await settleUnlessFinished(store, evalId, failWorkflowEnded));
         return;
       }
       let outcome: "requested" | "not-found";
@@ -633,10 +534,7 @@ export function newCancelAgentEvalStep(
         return;
       }
       if (target.status?.phase === PluginEvalPhase.running) {
-        ctx.set(
-          AGENT_EVAL_RESULT_KEY,
-          await settleUnlessFinished(store, evalId, failWorkflowEnded),
-        );
+        ctx.set(AGENT_EVAL_RESULT_KEY, await settleUnlessFinished(store, evalId, failWorkflowEnded));
         return;
       }
       ctx.set(
@@ -651,23 +549,16 @@ export function newCancelAgentEvalStep(
   };
 }
 
-function stashedTarget(
-  ctx: RequestContext<typeof AgentEvalIdSchema>,
-): AgentEval {
+function stashedTarget(ctx: RequestContext<typeof AgentEvalIdSchema>): AgentEval {
   const target = ctx.get(TARGET_RESOURCE_KEY) as AgentEval | undefined;
   if (target === undefined) {
-    throw internalError(
-      new Error("agent eval not found in context"),
-      "agent eval not found in context",
-    );
+    throw internalError(new Error("agent eval not found in context"), "agent eval not found in context");
   }
   return target;
 }
 
 /** RefuseActiveAgentEvalDelete: a pending or running eval is refused, naming cancel. */
-export function newRefuseActiveAgentEvalDeleteStep(): PipelineStep<
-  typeof AgentEvalIdSchema
-> {
+export function newRefuseActiveAgentEvalDeleteStep(): PipelineStep<typeof AgentEvalIdSchema> {
   return {
     name: "RefuseActiveAgentEvalDelete",
     execute(ctx: RequestContext<typeof AgentEvalIdSchema>): void {
@@ -679,9 +570,7 @@ export function newRefuseActiveAgentEvalDeleteStep(): PipelineStep<
         );
       }
       if (isActivePluginEval(existing)) {
-        throw failedPreconditionError(
-          agentEvalActiveDeleteMessage(existing.metadata?.id ?? ""),
-        );
+        throw failedPreconditionError(agentEvalActiveDeleteMessage(existing.metadata?.id ?? ""));
       }
     },
   };
@@ -699,16 +588,9 @@ export function newDeleteAgentEvalTriesStep(
 ): PipelineStep<typeof AgentEvalIdSchema> {
   return {
     name: "DeleteAgentEvalTries",
-    async execute(
-      ctx: RequestContext<typeof AgentEvalIdSchema>,
-    ): Promise<void> {
+    async execute(ctx: RequestContext<typeof AgentEvalIdSchema>): Promise<void> {
       const existing = ctx.get(EXISTING_RESOURCE_KEY) as AgentEval | undefined;
-      await deletePluginEvalTries(
-        store,
-        sessions(),
-        logger,
-        existing?.metadata?.id ?? ctx.input.value,
-      );
+      await deletePluginEvalTries(store, sessions(), logger, existing?.metadata?.id ?? ctx.input.value);
     },
   };
 }

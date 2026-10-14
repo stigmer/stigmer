@@ -110,17 +110,10 @@ import {
   newCleanupIamPoliciesStep,
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
-import {
-  newClaimNameStep,
-  newReleaseNamesStep,
-  releaseNameOnFailure,
-} from "../../pipeline/steps/names.js";
+import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
-import {
-  everyPathUpdate,
-  updateContext,
-} from "../../pipeline/steps/update-input.js";
+import { everyPathUpdate, updateContext } from "../../pipeline/steps/update-input.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newResolveShareAudienceStep, shareAdmitsAnyone } from "./audience.js";
@@ -157,17 +150,15 @@ export interface AgentShareControllerDeps {
 }
 
 /** A share link's runs have no person: each asks the account that attached each vault. */
-const SHARE_VAULT_ATTACHMENTS: VaultAttachmentOptions<typeof AgentShareSchema> =
-  {
-    surface: "a share link",
-    attachers: {
-      get: (row) => row.status?.vaultAttachers,
-      set: (row, attachers) => {
-        (row.status ??= create(AgentShareStatusSchema)).vaultAttachers =
-          attachers;
-      },
+const SHARE_VAULT_ATTACHMENTS: VaultAttachmentOptions<typeof AgentShareSchema> = {
+  surface: "a share link",
+  attachers: {
+    get: (row) => row.status?.vaultAttachers,
+    set: (row, attachers) => {
+      (row.status ??= create(AgentShareStatusSchema)).vaultAttachers = attachers;
     },
-  };
+  },
+};
 
 /** Registers both agentshare services on the router (routes stage). */
 export function registerAgentShareServices(
@@ -238,13 +229,7 @@ async function createShare(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newStampAgentPinStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-    .addStep(
-      newVaultAttachmentsStep(
-        deps.store,
-        deps.authorizer,
-        SHARE_VAULT_ATTACHMENTS,
-      ),
-    )
+    .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, SHARE_VAULT_ATTACHMENTS))
     .addStep(newClaimNameStep(deps.store, ApiResourceKind.agent_share))
     .addStep(newPersistStep(deps.store))
     .addStep(
@@ -278,16 +263,13 @@ async function update(
       callerIdentityOf(ctx),
       kindOf(ctx),
     );
-    await newPipeline<typeof AgentShareSchema>(
-      "agent-share-update",
-      deps.logger,
-    )
+    await newPipeline<typeof AgentShareSchema>("agent-share-update", deps.logger)
       .addStep(
         newAuthorizeStep(
           AgentShareCommandController.method.update,
           deps.authorizer,
-          input,
-        ),
+        input,
+      ),
       )
       .addStep(newResolveSlugStep({ update: true }))
       .addStep(newLoadExistingStep(deps.store))
@@ -299,13 +281,7 @@ async function update(
       .addStep(newResolveShareAudienceStep())
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-      .addStep(
-        newVaultAttachmentsStep(
-          deps.store,
-          deps.authorizer,
-          SHARE_VAULT_ATTACHMENTS,
-        ),
-      )
+      .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, SHARE_VAULT_ATTACHMENTS))
       .addStep(newPersistStep(deps.store))
       .build()
       .execute(reqCtx);
@@ -527,9 +503,7 @@ async function deleteShare(
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, AgentShareSchema))
     .addStep(newDeleteResourceStep(deps.store))
-    .addStep(
-      newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.agent_share),
-    )
+    .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.agent_share))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     )

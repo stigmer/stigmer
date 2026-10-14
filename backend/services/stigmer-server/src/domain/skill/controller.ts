@@ -102,10 +102,7 @@ import {
   newExtractResourceIdStep,
   newLoadExistingForDeleteStep,
 } from "../../pipeline/steps/delete.js";
-import {
-  newReleaseNamesStep,
-  releaseNameOnFailure,
-} from "../../pipeline/steps/names.js";
+import { newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newDeleteSearchIndexStep } from "../../pipeline/steps/index-search.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import {
@@ -476,12 +473,7 @@ async function updateVisibility(
     .addStep(newLoadSkillForVisibilityUpdateStep(deps.store))
     .addStep(newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_SKILL_KEY))
     .addStep(newValidateVisibilityUpdateStep())
-    .addStep(
-      newRefuseChildOrgsVisibilityInChildUpdateStep(
-        deps.store,
-        UPDATE_VISIBILITY_SKILL_KEY,
-      ),
-    )
+    .addStep(newRefuseChildOrgsVisibilityInChildUpdateStep(deps.store, UPDATE_VISIBILITY_SKILL_KEY))
     .addStep(newSetVisibilityStep())
     .addStep(newPersistSkillForVisibilityUpdateStep(deps.store))
     .addStep(
@@ -646,9 +638,7 @@ async function deleteSkill(
     .addStep(newLoadExistingForDeleteStep(deps.store, SkillSchema))
     .addStep(newDeleteSkillArchivesStep(deps.store, deps.logger))
     .addStep(newDeleteResourceStep(deps.store))
-    .addStep(
-      newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.skill),
-    )
+    .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.skill))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     )

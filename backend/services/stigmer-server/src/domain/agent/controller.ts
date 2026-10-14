@@ -36,10 +36,7 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { AgentStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/status_pb";
 import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type {
-  AgentId,
-  UpdateAgentInput,
-} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import type { AgentId, UpdateAgentInput } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { UpdateAgentInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import type {
   AgentVersionEntry,
@@ -128,21 +125,11 @@ import {
   newRecordVisibilityBeforeUpdateStep,
   newUpdateVisibilityTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
-import {
-  newClaimNameStep,
-  newReleaseNamesStep,
-  releaseNameOnFailure,
-} from "../../pipeline/steps/names.js";
+import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
-import {
-  everyPathUpdate,
-  updateContext,
-} from "../../pipeline/steps/update-input.js";
-import {
-  renameResource,
-  storeRenameRows,
-} from "../../pipeline/steps/rename.js";
+import { everyPathUpdate, updateContext } from "../../pipeline/steps/update-input.js";
+import { renameResource, storeRenameRows } from "../../pipeline/steps/rename.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { readOrgListPage } from "../../pipeline/steps/org-list-page.js";
@@ -335,9 +322,7 @@ async function update(
       .addStep(newPopulateAgentVersionStep())
       .addStep(newPersistStep(deps.store))
       .addStep(newSaveAgentVersionStep(deps.store, deps.logger))
-      .addStep(
-        newIndexSearchStep(deps.store, agentSearchExtractor, deps.logger),
-      )
+      .addStep(newIndexSearchStep(deps.store, agentSearchExtractor, deps.logger))
       .build()
       .execute(reqCtx);
     return reqCtx.newState;
@@ -451,9 +436,7 @@ async function deleteAgent(
       ),
     )
     .addStep(
-      newCascadeDeleteAgentEvalsStep<
-        typeof AgentCommandController.method.delete.input
-      >(deps.agentEvals),
+      newCascadeDeleteAgentEvalsStep<typeof AgentCommandController.method.delete.input>(deps.agentEvals),
     )
     .addStep(
       newCascadeDeleteSharesStep(
@@ -471,9 +454,7 @@ async function deleteAgent(
     )
     .addStep(newDeleteAgentVersionsStep(deps.store, deps.logger))
     .addStep(newDeleteResourceStep(deps.store))
-    .addStep(
-      newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.agent),
-    )
+    .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.agent))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     )
@@ -528,12 +509,7 @@ async function updateVisibility(
     .addStep(newLoadAgentForVisibilityUpdateStep(deps.store))
     .addStep(newRecordVisibilityBeforeUpdateStep(UPDATE_VISIBILITY_AGENT_KEY))
     .addStep(newValidateVisibilityUpdateStep())
-    .addStep(
-      newRefuseChildOrgsVisibilityInChildUpdateStep(
-        deps.store,
-        UPDATE_VISIBILITY_AGENT_KEY,
-      ),
-    )
+    .addStep(newRefuseChildOrgsVisibilityInChildUpdateStep(deps.store, UPDATE_VISIBILITY_AGENT_KEY))
     .addStep(
       newRequireChildOrgsAuthorityOnUpdateStep(
         deps.authorizer,
@@ -632,8 +608,7 @@ function newPersistAgentForVisibilityUpdateStep(
           AgentSchema,
           (row) => {
             if (row.metadata !== undefined) {
-              row.metadata.visibility =
-                agent.metadata?.visibility ?? row.metadata.visibility;
+              row.metadata.visibility = agent.metadata?.visibility ?? row.metadata.visibility;
             }
             const audit = ((row.status ??= create(AgentStatusSchema)).audit ??=
               create(ApiResourceAuditSchema));
@@ -846,10 +821,7 @@ async function tagVersion(
   );
   await newPipeline<TagVersionDesc>("agent-tag-version", deps.logger)
     .addStep(
-      newAuthorizeStep(
-        AgentCommandController.method.tagVersion,
-        deps.authorizer,
-      ),
+      newAuthorizeStep(AgentCommandController.method.tagVersion, deps.authorizer),
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadAgentForTagVersionStep(deps.store))

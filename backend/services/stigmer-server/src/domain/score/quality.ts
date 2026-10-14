@@ -396,12 +396,7 @@ class AgreementCounts {
       for (const grade of grades) {
         let version = versions.get(grade.version);
         if (version === undefined) {
-          version = {
-            runs: 0,
-            thumbsDownNoneFailed: 0,
-            lastSeen: grade.instant,
-            rules: new Map(),
-          };
+          version = { runs: 0, thumbsDownNoneFailed: 0, lastSeen: grade.instant, rules: new Map() };
           versions.set(grade.version, version);
         }
         if (grade.instant > version.lastSeen) {
@@ -413,25 +408,17 @@ class AgreementCounts {
         }
         for (const up of runThumbs) {
           for (const name of grade.failed) {
-            ruleOf(version, name)[up ? "failedThumbsUp" : "failedThumbsDown"] +=
-              1;
+            ruleOf(version, name)[up ? "failedThumbsUp" : "failedThumbsDown"] += 1;
           }
           for (const name of grade.passed) {
-            ruleOf(version, name)[up ? "passedThumbsUp" : "passedThumbsDown"] +=
-              1;
+            ruleOf(version, name)[up ? "passedThumbsUp" : "passedThumbsDown"] += 1;
           }
         }
       }
     }
     return [...versions.entries()]
       .sort(([a, x], [b, y]) =>
-        x.lastSeen !== y.lastSeen
-          ? x.lastSeen > y.lastSeen
-            ? -1
-            : 1
-          : a < b
-            ? -1
-            : 1,
+        x.lastSeen !== y.lastSeen ? (x.lastSeen > y.lastSeen ? -1 : 1) : a < b ? -1 : 1,
       )
       .map(([evaluatorVersion, v]) =>
         create(JudgeAgreementSchema, {
@@ -449,12 +436,7 @@ class AgreementCounts {
 function ruleOf(version: AgreementVersion, name: string): RuleCounts {
   let rule = version.rules.get(name);
   if (rule === undefined) {
-    rule = {
-      failedThumbsDown: 0,
-      failedThumbsUp: 0,
-      passedThumbsDown: 0,
-      passedThumbsUp: 0,
-    };
+    rule = { failedThumbsDown: 0, failedThumbsUp: 0, passedThumbsDown: 0, passedThumbsUp: 0 };
     version.rules.set(name, rule);
   }
   return rule;

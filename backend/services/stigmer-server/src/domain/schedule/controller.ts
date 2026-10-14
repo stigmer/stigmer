@@ -65,10 +65,7 @@ import { internalError } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
-import {
-  renameResource,
-  storeRenameRows,
-} from "../../pipeline/steps/rename.js";
+import { renameResource, storeRenameRows } from "../../pipeline/steps/rename.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import {
@@ -110,17 +107,10 @@ import {
   newCleanupIamPoliciesStep,
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
-import {
-  newClaimNameStep,
-  newReleaseNamesStep,
-  releaseNameOnFailure,
-} from "../../pipeline/steps/names.js";
+import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
-import {
-  everyPathUpdate,
-  updateContext,
-} from "../../pipeline/steps/update-input.js";
+import { everyPathUpdate, updateContext } from "../../pipeline/steps/update-input.js";
 import {
   newNormalizeReferencesStep,
   newValidateReferencesStep,
@@ -229,11 +219,7 @@ async function rename(
     {
       method: ScheduleCommandController.method.rename,
       names: deps.store,
-      rows: storeRenameRows(
-        deps.store,
-        ApiResourceKind.schedule,
-        ScheduleSchema,
-      ),
+      rows: storeRenameRows(deps.store, ApiResourceKind.schedule, ScheduleSchema),
       authorizer: deps.authorizer,
       logger: deps.logger,
     },
@@ -284,13 +270,7 @@ async function createSchedule(
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-    .addStep(
-      newVaultAttachmentsStep(
-        deps.store,
-        deps.authorizer,
-        SCHEDULE_VAULT_ATTACHMENTS,
-      ),
-    )
+    .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, SCHEDULE_VAULT_ATTACHMENTS))
     .addStep(newClaimNameStep(deps.store, ApiResourceKind.schedule))
     .addStep(newPersistStep(deps.store))
     .addStep(
@@ -324,8 +304,8 @@ async function update(
         newAuthorizeStep(
           ScheduleCommandController.method.update,
           deps.authorizer,
-          input,
-        ),
+        input,
+      ),
       )
       .addStep(newResolveSlugStep({ update: true }))
       .addStep(newLoadExistingStep(deps.store))
@@ -335,13 +315,7 @@ async function update(
       .addStep(newValidateScheduleUpdateStep(deps))
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-      .addStep(
-        newVaultAttachmentsStep(
-          deps.store,
-          deps.authorizer,
-          SCHEDULE_VAULT_ATTACHMENTS,
-        ),
-      )
+      .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, SCHEDULE_VAULT_ATTACHMENTS))
       .addStep(newPersistScheduleUpdateStep(deps.store))
       .addStep(newArmScheduleStep(deps.clock, deps.logger))
       .build()
@@ -403,11 +377,7 @@ async function apply(
     slug: resolved.metadata?.slug ?? "",
     id: resolved.metadata?.id ?? "",
   });
-  return update(
-    deps,
-    everyPathUpdate(UpdateScheduleInputSchema, resolved),
-    ctx,
-  );
+  return update(deps, everyPathUpdate(UpdateScheduleInputSchema, resolved), ctx);
 }
 
 /** Delete — chain per Go buildDeletePipeline (delete.go:57-63). */
@@ -434,9 +404,7 @@ async function deleteSchedule(
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, ScheduleSchema))
     .addStep(newDeleteResourceStep(deps.store))
-    .addStep(
-      newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.schedule),
-    )
+    .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.schedule))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     )
