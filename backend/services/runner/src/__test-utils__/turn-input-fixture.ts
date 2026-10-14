@@ -146,7 +146,7 @@ export function turnInputFixture(overrides: TurnInputFixtureOverrides = {}): Tur
       toolScope: ToolScope.unrestricted(),
     },
     skills: overrides.skills ?? { root: [], bySubAgent: new Map() },
-    hooks: overrides.hooks ?? { sources: [], pluginServers: new Map() },
+    hooks: overrides.hooks ?? { sources: [], serverNames: new Map() },
     subagents: overrides.subagents ?? [],
     attachments: overrides.attachments ?? { results: [], visionImages: [], visionNotViewable: [] },
     appliedToolCallIds: overrides.appliedToolCallIds ?? new Set(),

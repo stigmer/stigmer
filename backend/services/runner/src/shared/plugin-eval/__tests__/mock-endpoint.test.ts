@@ -105,9 +105,9 @@ const noModel: AgentMockModel = () => Promise.reject(new Error("no model in this
 describe("the mock endpoint", () => {
   it("registers each stand-in under the plugin server's own name, for its mocked tools only", async () => {
     const { connect } = await started(4, noModel);
-    expect(endpoint?.servers.map((s) => [s.slug, s.pluginOrigin])).toEqual([
-      ["plugin_kit_tracker", { pluginId: "plg_1", plugin: "kit", server: "tracker" }],
-      ["plugin_kit_orders", { pluginId: "plg_1", plugin: "kit", server: "orders" }],
+    expect(endpoint?.servers.map((s) => [s.slug, s.home])).toEqual([
+      ["plugin_kit_tracker", { kind: "plugin", pluginId: "plg_1", plugin: "kit", server: "tracker" }],
+      ["plugin_kit_orders", { kind: "plugin", pluginId: "plg_1", plugin: "kit", server: "orders" }],
     ]);
     expect(endpoint?.listed).toEqual([
       { server: "plugin_kit_tracker", tools: ["close_issue", "create_issue"] },

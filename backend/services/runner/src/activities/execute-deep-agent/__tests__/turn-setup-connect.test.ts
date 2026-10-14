@@ -28,7 +28,7 @@ import type { ResolvedMcpServer } from "../../../shared/mcp-resolver.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
 import { connectTools, toolsOf } from "../turn-setup.js";
 
-const server = (slug: string): ResolvedMcpServer => ({ slug, connectionType: "http", url: `https://${slug}.example/mcp`, pluginOrigin: null });
+const server = (slug: string): ResolvedMcpServer => ({ slug, connectionType: "http", url: `https://${slug}.example/mcp`, home: { kind: "platform" } });
 
 function subagent(name: string, servers: ResolvedMcpServer[]): TurnSubagent {
   return {
@@ -41,7 +41,7 @@ function subagent(name: string, servers: ResolvedMcpServer[]): TurnSubagent {
     skills: [],
     hooks: [],
     values: {},
-    bringsOwn: { plugins: servers.length > 0, hooks: false, lists: false },
+    bringsOwn: { plugins: servers.length > 0, hooks: false, lists: false, mcpServers: false },
   };
 }
 

@@ -15,7 +15,7 @@
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { TurnInput, TurnSink, TurnSubagent } from "../../harness/types.js";
-import type { PluginServerName } from "../../shared/hooks/tool-view.js";
+import { hookServerNamesOf } from "../../shared/hooks/tool-view.js";
 import { normalizeWorkspacePathArg } from "../../middleware/path-normalization.js";
 import type { HookEvaluator, HookPermissionMode } from "../../shared/hooks/evaluate.js";
 import { buildHookEvaluator as buildEvaluator, hookPermissionMode } from "../../shared/hooks/setup.js";
@@ -37,12 +37,7 @@ export async function buildHookEvaluator(
   subagent?: TurnSubagent,
 ): Promise<HookEvaluator | null> {
   const primaryDir = input.workspace.primaryDir;
-  const pluginServers = new Map<string, PluginServerName>(input.hooks.pluginServers);
-  for (const server of subagent?.servers ?? []) {
-    if (server.pluginOrigin !== null) {
-      pluginServers.set(server.slug, { plugin: server.pluginOrigin.plugin, server: server.pluginOrigin.server });
-    }
-  }
+  const serverNames = new Map([...input.hooks.serverNames, ...hookServerNamesOf(subagent?.servers ?? [])]);
   return buildEvaluator({
     sources: subagent === undefined
       ? input.hooks.sources
@@ -56,7 +51,7 @@ export async function buildHookEvaluator(
       workspaceRoot: primaryDir,
       toVirtualPath: (path) => normalizeWorkspacePathArg(path, primaryDir),
       toolServerMap: tools.toolServerMap,
-      pluginServers,
+      serverNames,
       platformServerSlugs: input.mcp.platformServerSlugs,
     }),
     sessionId: input.sessionId,

@@ -105,7 +105,7 @@ export function synthesizeConversationAttachment(
   // Approval-free by construction: see file header.
   return {
     slug: CONVERSATION_ATTACHMENT_SLUG,
-    pluginOrigin: null,
+    home: { kind: "platform" },
     connectionType: "http",
     url: options.bridgeEndpoint.replace(/\/+$/, "") + CONVERSATION_ROUTE,
     headers: options.credential !== null && options.credential !== ""

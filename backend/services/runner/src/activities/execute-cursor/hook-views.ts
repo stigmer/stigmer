@@ -38,7 +38,8 @@
 
 import { isAbsolute, resolve } from "node:path";
 import type { HookFormatName } from "../../shared/hooks/hook-set.js";
-import type { CallViews, CursorToolView, HookToolViews, PluginServerName, ToolView, ViewedCall } from "../../shared/hooks/tool-view.js";
+import { mcpServerView } from "../../shared/hooks/tool-view.js";
+import type { CallViews, CursorToolView, HookServerName, HookToolViews, ToolView, ViewedCall } from "../../shared/hooks/tool-view.js";
 
 type Args = Record<string, unknown>;
 
@@ -63,7 +64,7 @@ export const APPLIED_FIELDS: ReadonlyMap<string, ReadonlySet<string>> = new Map(
 export interface CursorViewContext {
   readonly workspaceRoot: string;
   /** The servers a plugin brought, by slug, with the names Claude Code gives them. */
-  readonly pluginServers: ReadonlyMap<string, PluginServerName>;
+  readonly serverNames: ReadonlyMap<string, HookServerName>;
   /** The platform's own servers, which no hook sees. */
   readonly platformServerSlugs: ReadonlySet<string>;
 }
@@ -136,11 +137,10 @@ export class CursorEngineToolViews implements HookToolViews {
   private mcpViews(call: ViewedCall): CallViews {
     const slug = call.serverSlug;
     if (this.ctx.platformServerSlugs.has(slug)) return {};
-    const owned = this.ctx.pluginServers.get(slug);
     const claude: ToolView = {
       toolName: `mcp__${slug}__${call.name}`,
       toolInput: { ...call.args },
-      mcpServer: { name: owned === undefined ? slug : `plugin:${owned.plugin}:${owned.server}`, source: "plugin" },
+      mcpServer: mcpServerView(this.ctx.serverNames, slug),
     };
     return {
       "claude-code": claude,

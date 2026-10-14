@@ -154,22 +154,35 @@ export async function buildHookEvaluator(input: HookSetupInput): Promise<HookEva
   });
 }
 
+/** The key a resolved server's values are grouped by; none for the platform's, which the fetch never answers. */
+function valuesKeyOf(server: ResolvedMcpServer): string | undefined {
+  switch (server.home.kind) {
+    case "plugin":
+      return toolValuesKey("plugin", server.home.pluginId, server.home.server);
+    case "agent":
+      return toolValuesKey("agent", server.home.agentId, server.home.server);
+    case "platform":
+      return undefined;
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
+    default: {
+      const exhaustive: never = server.home;
+      return exhaustive;
+    }
+  }
+}
+
 /**
  * The MCP server a run value belongs to, by its group in the run's values:
- * the name of the resolved server of that plugin and key, or the server's
- * own name in its plugin for a server that did not resolve this turn (the
- * group key itself holds the plugin id and a NUL, never shown). `undefined`
- * when no tool holds it.
+ * the name of the resolved server of that home and key, or the server's own
+ * name in its home for a server that did not resolve this turn (the last
+ * part of the group key; the parts before it name the home's kind and id,
+ * never shown). `undefined` when no tool holds it.
  */
 function toolHolding(input: Pick<HookSetupInput, "runValues" | "mcpServers">, key: string): string | undefined {
   for (const [groupKey, group] of input.runValues.tools) {
     if (!(key in group.values)) continue;
-    const server = input.mcpServers.find(
-      (candidate) =>
-        candidate.pluginOrigin !== null &&
-        toolValuesKey(candidate.pluginOrigin.pluginId, candidate.pluginOrigin.server) === groupKey,
-    );
-    return server?.slug ?? groupKey.slice(groupKey.indexOf("\u0000") + 1);
+    const server = input.mcpServers.find((candidate) => valuesKeyOf(candidate) === groupKey);
+    return server?.slug ?? groupKey.slice(groupKey.lastIndexOf("\u0000") + 1);
   }
   return undefined;
 }

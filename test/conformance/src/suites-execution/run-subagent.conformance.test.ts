@@ -614,7 +614,7 @@ describe("Run — the Cursor engine and a subagent's own configuration", () => {
     const final = await awaitTerminal(clients, executionId);
     expect(RunPhase[final.status?.phase ?? 0], `execution ${executionId} is refused`).toBe(RunPhase[RunPhase.RUN_FAILED]);
     expect(final.status?.error ?? "").toContain(
-      `Subagent '${name}' brings its own plugins, hooks or tool lists, which the Cursor engine cannot keep to it: ` +
+      `Subagent '${name}' brings its own plugins, hooks, MCP servers or tool lists, which the Cursor engine cannot keep to it: ` +
         "it cannot tell a subagent's tool call from the main agent's. " +
         `Run this agent on the native engine, or remove them from '${name}'.`,
     );

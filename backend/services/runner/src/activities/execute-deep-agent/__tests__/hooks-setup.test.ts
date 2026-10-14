@@ -47,7 +47,7 @@ function input(
 ): TurnInput {
   return turnInputFixture({
     ...(extra.workspaceDir !== undefined ? { workspaceDir: extra.workspaceDir } : {}),
-    hooks: { sources, pluginServers: new Map() },
+    hooks: { sources, serverNames: new Map() },
     values: {
       agent: extra.agent ?? {},
       tools: extra.tools ?? new Map(),
@@ -71,7 +71,7 @@ function subagent(hooks: TurnHookSource[], values: Record<string, string>): Turn
     skills: [],
     hooks,
     values,
-    bringsOwn: { plugins: false, hooks: hooks.length > 0, lists: false },
+    bringsOwn: { plugins: false, hooks: hooks.length > 0, lists: false, mcpServers: false },
   };
 }
 
@@ -147,15 +147,15 @@ describe("buildHookEvaluator", () => {
     // The value is in the GitHub tool's group, never the agent's.
     const base = input([{ plugin: mounted, format: "claude-code", groups: groups({ command: "check", args: ["${user_config.API_TOKEN}"] }) }], {
       tools: new Map<string, ToolValueGroup>([
-        [toolValuesKey("plg_linear", "api"), { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "l" } }],
-        [toolValuesKey("plg_github", "api"), { url: "https://api.githubcopilot.com/mcp/", values: { API_TOKEN: "t" } }],
+        [toolValuesKey("plugin", "plg_linear", "api"), { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "l" } }],
+        [toolValuesKey("plugin", "plg_github", "api"), { url: "https://api.githubcopilot.com/mcp/", values: { API_TOKEN: "t" } }],
       ]),
     });
     const server: ResolvedMcpServer = {
       slug: "plugin_github_api",
       connectionType: "http",
       url: "https://api.githubcopilot.com/mcp/",
-      pluginOrigin: { pluginId: "plg_github", plugin: "github", server: "api" },
+      home: { kind: "plugin", pluginId: "plg_github", plugin: "github", server: "api" },
     };
     const claimed: TurnInput = { ...base, mcp: { ...base.mcp, servers: [server] } };
     await expect(buildHookEvaluator(claimed, sink, tools, 180_000)).rejects.toThrow(
@@ -170,6 +170,27 @@ describe("buildHookEvaluator", () => {
     const unresolved = buildHookEvaluator(base, sink, tools, 180_000);
     await expect(unresolved).rejects.toThrow("which this run keeps for its MCP server");
     await expect(unresolved).rejects.toThrow(/keeps for its MCP server '[^'\u0000]+'/);
+  });
+
+  it("names the agent's own MCP server that keeps a variable a hook reads, resolved this turn or not", async () => {
+    const base = input([{ plugin: mounted, format: "claude-code", groups: groups({ command: "check", args: ["${user_config.ZENDESK_KEY}"] }) }], {
+      tools: new Map<string, ToolValueGroup>([
+        [toolValuesKey("agent", "agt_helper", "zendesk"), { url: "https://acme-co.zendesk.com/mcp", values: { ZENDESK_KEY: "zd" } }],
+      ]),
+    });
+    const server: ResolvedMcpServer = {
+      slug: "zendesk",
+      connectionType: "http",
+      url: "https://acme-co.zendesk.com/mcp",
+      home: { kind: "agent", agentId: "agt_helper", subagent: null, server: "zendesk" },
+    };
+    const sentence = new HookSetupError(
+      "A hook of the plugin 'safety' reads the variable ZENDESK_KEY, which this run keeps for its MCP server 'zendesk' " +
+        "and gives neither the agent's shell nor its hooks. Give the hook a variable of its own, then run again.",
+    );
+    const platform: ResolvedMcpServer = { slug: "stigmer-memory", connectionType: "http", url: "https://bridge.example/mcp", home: { kind: "platform" } };
+    await expect(buildHookEvaluator({ ...base, mcp: { ...base.mcp, servers: [platform, server] } }, sink, tools, 180_000)).rejects.toThrow(sentence);
+    await expect(buildHookEvaluator(base, sink, tools, 180_000)).rejects.toThrow(sentence);
   });
 
   it("refuses a shell-form command that reads user_config, and judges only the events it runs", async () => {
@@ -270,9 +291,9 @@ describe("buildHookEvaluator", () => {
         slug: "plugin_github_api",
         connectionType: "http",
         url: "https://api.githubcopilot.com/mcp/",
-        pluginOrigin: { pluginId: "plg_github", plugin: "github", server: "api" },
+        home: { kind: "plugin", pluginId: "plg_github", plugin: "github", server: "api" },
       };
-      const platform: ResolvedMcpServer = { slug: "notes", connectionType: "http", url: "https://notes.example.com/mcp", pluginOrigin: null };
+      const platform: ResolvedMcpServer = { slug: "notes", connectionType: "http", url: "https://notes.example.com/mcp", home: { kind: "platform" } };
       const reportsServer = [
         create(HookGroupSchema, {
           event: "PreToolUse",

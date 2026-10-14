@@ -20,7 +20,8 @@
 //   - another attached plugin's MCP server, which the case cannot mock, is
 //     never connected in a try (the harness's MCP fixture records no request
 //     while an ordinary turn on the same agent connects it), and the try's
-//     run lists it as disallowed;
+//     run lists it as disallowed; so is a server the agent writes itself,
+//     when the eval allows no real servers (the default);
 //   - two evals of two versions of one agent both complete, each recording
 //     its own agent_version_hash, each try running its own version's
 //     instructions;
@@ -451,6 +452,36 @@ describe.skipIf(!runnerServesTries)("AgentEval — each plugin's cases on the ag
       tools.metadata!.slug,
       tools.status!.digest,
     ]);
+
+    // The control: an ordinary turn on the same agent connects the server.
+    mock.enqueue(anthropicText("Hello."));
+    const ordinary = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org: tenancy.org, name: uniqueName("ordinary"), agentRef: agentRefOf(agent), autoApproveAll: true }),
+    );
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: ordinary.metadata!.id }));
+    const turn = await awaitTerminal(clients, ordinary.metadata!.id);
+    expect(turn.status?.phase).toBe(RunPhase.RUN_COMPLETED);
+    expect(mcp.capturedRequests().map((r) => r.method), "an ordinary turn connects the server").toContain("initialize");
+  }, 360_000);
+
+  it("[rpc:AgentEvalQueryController.get] a server the agent writes itself is never connected in a try by default, while an ordinary turn on the agent connects it", async () => {
+    const notes = await installed("aev-notes", () => [doneCase("notes-case")]);
+    const server = "aev-own";
+    const agent = await agentWith([notes.plugin], { mcpServers: [{ name: server, url: mcp.url([ECHO_TOOL_NAME]) }] });
+    mcp.resetCaptured();
+    mock.enqueue(anthropicText(DONE));
+
+    const created = await startEval(agent);
+    const ended = await awaitAgentEvalEnd(clients, created.metadata!.id, 180_000);
+    expect(ended.status?.phase, describeTries(ended)).toBe(PluginEvalPhase.completed);
+    const [only] = agentEvalTriesOf(ended);
+    expect(only?.attempt.state, describeTries(ended)).toBe(PluginEvalTryState.graded);
+    expect(
+      mcp.capturedRequests().map((r) => r.method),
+      "the try connected the agent's own server",
+    ).toEqual([]);
+    const run = await runOf(only!.attempt.runId);
+    expect(run.spec?.disallowedTools).toContain(`mcp__${server}`);
 
     // The control: an ordinary turn on the same agent connects the server.
     mock.enqueue(anthropicText("Hello."));

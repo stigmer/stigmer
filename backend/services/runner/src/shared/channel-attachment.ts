@@ -132,9 +132,9 @@ export function synthesizeChannelAttachment(
   }
 
   // Approval-free by construction: see file header.
-  const base = {
+  const base: Pick<ResolvedMcpServer, "slug" | "home"> = {
     slug: CHANNEL_ATTACHMENT_SLUG,
-    pluginOrigin: null,
+    home: { kind: "platform" },
   };
 
   if (options.bridgeEndpoint !== null && options.bridgeEndpoint !== "") {

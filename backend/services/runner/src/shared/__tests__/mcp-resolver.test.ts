@@ -1,7 +1,9 @@
 /**
- * Pins how a turn resolves its plugins' MCP servers: each server named as
- * Claude Code names it (`plugin_<plugin>_<server>`) and carrying its plugin
- * origin; the transport guard failing a whole resolution rather than
+ * Pins how a turn resolves its MCP servers: a plugin's named as Claude Code
+ * names it (`plugin_<plugin>_<server>`) with its plugin's home, the ones the
+ * agent writes itself by their own names with the agent's home, first, and
+ * filled from the agent's group of values, their login header only when a
+ * login arrived; the transport guard failing a whole resolution rather than
  * skipping a server; each server filled only from its own group of the
  * run's values (keyed by its plugin and its name there) and only while it
  * dials the URL that group was checked against; the platform values spread
@@ -9,6 +11,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
+import { AgentMcpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import {
   HttpMcpServerSchema,
@@ -25,11 +28,24 @@ import {
   dialedUrlOf,
   DuplicateServerNameError,
   entryToResolved,
-  resolvePluginServers,
+  describeServerHome,
+  resolveTurnServers,
+  sameServerHome,
 } from "../mcp-resolver.js";
 import { toolValuesKey, type ToolValueGroup } from "../run-values.js";
 import { McpTransportError } from "../mcp-transport-guard.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
+
+/** The servers of a turn whose agent writes none: its plugins', as the resolver reads them. */
+function resolvePluginServers(
+  plugins: Parameters<typeof resolveTurnServers>[0]["plugins"],
+  tools: Parameters<typeof resolveTurnServers>[0]["tools"],
+  platformValues: Parameters<typeof resolveTurnServers>[0]["platformValues"],
+  transportPosture: Parameters<typeof resolveTurnServers>[0]["transportPosture"],
+  platformEndpoints: Parameters<typeof resolveTurnServers>[0]["platformEndpoints"],
+): ReturnType<typeof resolveTurnServers> {
+  return resolveTurnServers({ agent: undefined, plugins, tools, platformValues, transportPosture, platformEndpoints });
+}
 
 /** A run whose fetch answered no tool values. */
 const NO_TOOLS: ReadonlyMap<string, ToolValueGroup> = new Map();
@@ -72,9 +88,9 @@ describe("resolvePluginServers: names and origins", () => {
       PLATFORM_ENDPOINTS,
     );
 
-    expect(result.resolvedServers.map((server) => [server.slug, server.pluginOrigin])).toEqual([
-      ["plugin_my_tools_issues", { pluginId: "plg_1", plugin: "my.tools", server: "issues" }],
-      ["plugin_my_tools_local_fs", { pluginId: "plg_1", plugin: "my.tools", server: "local fs" }],
+    expect(result.resolvedServers.map((server) => [server.slug, server.home])).toEqual([
+      ["plugin_my_tools_issues", { kind: "plugin", pluginId: "plg_1", plugin: "my.tools", server: "issues" }],
+      ["plugin_my_tools_local_fs", { kind: "plugin", pluginId: "plg_1", plugin: "my.tools", server: "local fs" }],
     ]);
   });
 
@@ -161,7 +177,7 @@ describe("resolvePluginServers: the transport guard", () => {
 describe("resolvePluginServers: a resolution hiccup", () => {
   it("skips the server it failed, naming it and the failure, and keeps the others", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const failingKey = toolValuesKey("plg_1", "broken");
+    const failingKey = toolValuesKey("plugin", "plg_1", "broken");
     const tools: ReadonlyMap<string, ToolValueGroup> = {
       get: (key: string) => {
         if (key === failingKey) throw new Error("values unreadable");
@@ -197,7 +213,7 @@ describe("resolvePluginServers: each server only from its own values", () => {
     // Another plugin with a server of the same name: its group is keyed by
     // its own plugin id, so the Linear login never reaches it.
     const other = plugin("plg_other", "other", [stdioEntry("api", ["LINEAR_TOKEN"])]);
-    const tools = new Map([[toolValuesKey("plg_linear", "api"), { url: LINEAR_URL, values: { LINEAR_TOKEN: "lin-login" } }]]);
+    const tools = new Map([[toolValuesKey("plugin", "plg_linear", "api"), { url: LINEAR_URL, values: { LINEAR_TOKEN: "lin-login" } }]]);
 
     const result = resolvePluginServers([linear, other], tools, {}, "stdio-allowed", PLATFORM_ENDPOINTS);
 
@@ -208,7 +224,7 @@ describe("resolvePluginServers: each server only from its own values", () => {
   });
 
   it("passes a server only the keys its entry reads", () => {
-    const tools = new Map([[toolValuesKey("plg_1", "cli"), { url: "", values: { READ: "yes", EXTRA: "no" } }]]);
+    const tools = new Map([[toolValuesKey("plugin", "plg_1", "cli"), { url: "", values: { READ: "yes", EXTRA: "no" } }]]);
     const result = resolvePluginServers([plugin("plg_1", "p", [stdioEntry("cli", ["READ"])])], tools, {}, "stdio-allowed", PLATFORM_ENDPOINTS);
     expect(result.resolvedServers[0]?.env).toEqual({ READ: "yes" });
   });
@@ -224,7 +240,7 @@ describe("resolvePluginServers: each server only from its own values", () => {
       httpEntry("api", ["LINEAR_TOKEN"], { Authorization: "Bearer ${LINEAR_TOKEN}" }, "https://attacker.example.net/mcp"),
     ]);
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const tools = new Map([[toolValuesKey("plg_linear", "api"), { url: LINEAR_URL, values: { LINEAR_TOKEN: "lin-login" } }]]);
+    const tools = new Map([[toolValuesKey("plugin", "plg_linear", "api"), { url: LINEAR_URL, values: { LINEAR_TOKEN: "lin-login" } }]]);
 
     const result = resolvePluginServers([moved], tools, {}, "stdio-forbidden", PLATFORM_ENDPOINTS);
 
@@ -235,13 +251,13 @@ describe("resolvePluginServers: each server only from its own values", () => {
 
   it("skips a local program whose group was checked against a URL", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
-    const tools = new Map([[toolValuesKey("plg_1", "cli"), { url: LINEAR_URL, values: { KEY: "v" } }]]);
+    const tools = new Map([[toolValuesKey("plugin", "plg_1", "cli"), { url: LINEAR_URL, values: { KEY: "v" } }]]);
     const result = resolvePluginServers([plugin("plg_1", "p", [stdioEntry("cli", ["KEY"])])], tools, {}, "stdio-allowed", PLATFORM_ENDPOINTS);
     expect(result.resolvedServers).toEqual([]);
   });
 
   it("spreads the platform values over the server's own, so no vault entry impersonates a caller", () => {
-    const tools = new Map([[toolValuesKey("plg_1", "who"), { url: "", values: { STIGMER_CALLER_IDENTITY_VALUE: "forged" } }]]);
+    const tools = new Map([[toolValuesKey("plugin", "plg_1", "who"), { url: "", values: { STIGMER_CALLER_IDENTITY_VALUE: "forged" } }]]);
 
     const result = resolvePluginServers(
       [plugin("plg_1", "p", [stdioEntry("who", ["STIGMER_CALLER_IDENTITY_VALUE"])])],
@@ -255,7 +271,7 @@ describe("resolvePluginServers: each server only from its own values", () => {
   });
 
   it("resolves a stdio server's arguments from its values", () => {
-    const tools = new Map([[toolValuesKey("plg_1", "cli"), { url: "", values: { DIR: "/data" } }]]);
+    const tools = new Map([[toolValuesKey("plugin", "plg_1", "cli"), { url: "", values: { DIR: "/data" } }]]);
     const result = resolvePluginServers(
       [plugin("plg_1", "p", [stdioEntry("cli", ["DIR"], ["--root", "${DIR}"])])],
       tools,
@@ -277,19 +293,19 @@ describe("an entry's own facts", () => {
     expect(declaredKeysOf(stdioEntry("s", ["A", "B"]))).toEqual({ A: true, B: true });
   });
 
-  it("maps an entry with the origin it is given, and null for none", () => {
-    expect(entryToResolved(httpEntry("h"), "slug", {}, null)).toEqual({
+  it("maps an entry with the home it is given", () => {
+    expect(entryToResolved(httpEntry("h"), "slug", {}, { kind: "platform" })).toEqual({
       slug: "slug",
       connectionType: "http",
       url: LINEAR_URL,
       headers: undefined,
-      pluginOrigin: null,
+      home: { kind: "platform" },
     });
   });
 
   it("counts the servers the agent and session declared, never the platform's own attachments", () => {
-    const declared = entryToResolved(httpEntry("h"), "plugin_linear_h", {}, { pluginId: "plg_1", plugin: "linear", server: "h" });
-    const attachment = entryToResolved(httpEntry("memory"), "stigmer-memory", {}, null);
+    const declared = entryToResolved(httpEntry("h"), "plugin_linear_h", {}, { kind: "plugin", pluginId: "plg_1", plugin: "linear", server: "h" });
+    const attachment = entryToResolved(httpEntry("memory"), "stigmer-memory", {}, { kind: "platform" });
     expect(declaredServerCount([declared, attachment].flatMap((server) => (server === null ? [] : [server])))).toBe(1);
     expect(declaredServerCount([])).toBe(0);
   });
@@ -312,7 +328,7 @@ describe("resolvePluginServers: the platform STIGMER_SERVER_ADDRESS (stigmer/sti
   it("keeps the address the server's own values carry", () => {
     const result = resolvePluginServers(
       [plugin("plg_1", "stigmer", [stdioEntry("server", ["STIGMER_SERVER_ADDRESS"])])],
-      new Map([[toolValuesKey("plg_1", "server"), { url: "", values: { STIGMER_SERVER_ADDRESS: "api.example.com:443" } }]]),
+      new Map([[toolValuesKey("plugin", "plg_1", "server"), { url: "", values: { STIGMER_SERVER_ADDRESS: "api.example.com:443" } }]]),
       {},
       "stdio-allowed",
       PLATFORM_ENDPOINTS,
@@ -347,5 +363,92 @@ describe("resolvePluginServers: the platform STIGMER_SERVER_ADDRESS (stigmer/sti
     expect(result.resolvedServers).toEqual([]);
     expect(errorLog).toHaveBeenCalledWith(expect.stringContaining("STIGMER_SERVER_ADDRESS"));
     errorLog.mockRestore();
+  });
+});
+
+describe("resolveTurnServers: the servers the agent writes itself", () => {
+  const ZENDESK_URL = "https://acme-co.zendesk.com/mcp";
+  const zendesk = create(AgentMcpServerSchema, { name: "zendesk", url: ZENDESK_URL, headers: { "X-Api-Key": "${ZENDESK_KEY}" } });
+  const resolveFor = (tools: ReadonlyMap<string, ToolValueGroup>, subagent: string | null = null) =>
+    resolveTurnServers({
+      agent: { agentId: "agt_helper", subagent, servers: [zendesk] },
+      plugins: [plugin("plg_linear", "linear", [httpEntry("api")])],
+      tools,
+      platformValues: {},
+      transportPosture: "stdio-forbidden",
+      platformEndpoints: PLATFORM_ENDPOINTS,
+    }).resolvedServers;
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("comes first, named by its own name, with the agent's home, beside the plugins'", () => {
+    const tools = new Map([[toolValuesKey("agent", "agt_helper", "zendesk"), { url: ZENDESK_URL, values: { ZENDESK_KEY: "zd-key" } }]]);
+    expect(resolveFor(tools).map((server) => [server.slug, server.home])).toEqual([
+      ["zendesk", { kind: "agent", agentId: "agt_helper", subagent: null, server: "zendesk" }],
+      ["plugin_linear_api", { kind: "plugin", pluginId: "plg_linear", plugin: "linear", server: "api" }],
+    ]);
+    expect(resolveFor(tools, "triage")[0]?.home).toEqual({ kind: "agent", agentId: "agt_helper", subagent: "triage", server: "zendesk" });
+  });
+
+  it("is filled from the agent's own group, with its login when one arrived", () => {
+    const tools = new Map([
+      [
+        toolValuesKey("agent", "agt_helper", "zendesk"),
+        { url: ZENDESK_URL, values: { ZENDESK_KEY: "zd-key", ZENDESK_ACCESS_TOKEN: "zd-login" } },
+      ],
+    ]);
+    expect(resolveFor(tools)[0]?.headers).toEqual({ "X-Api-Key": "zd-key", Authorization: "Bearer zd-login" });
+  });
+
+  it("is called with no login when none arrived", () => {
+    const tools = new Map([[toolValuesKey("agent", "agt_helper", "zendesk"), { url: ZENDESK_URL, values: { ZENDESK_KEY: "zd-key" } }]]);
+    expect(resolveFor(tools)[0]?.headers).toEqual({ "X-Api-Key": "zd-key" });
+  });
+
+  it("never takes a plugin's group of the same key", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const tools = new Map([[toolValuesKey("plugin", "agt_helper", "zendesk"), { url: ZENDESK_URL, values: { ZENDESK_KEY: "plugin-key" } }]]);
+    expect(resolveFor(tools).map((server) => server.slug)).toEqual(["plugin_linear_api"]);
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("MCP server 'zendesk'"));
+  });
+
+  it("is skipped once it dials another URL than its values were checked against", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const tools = new Map([
+      [toolValuesKey("agent", "agt_helper", "zendesk"), { url: "https://old.example.com/mcp", values: { ZENDESK_KEY: "zd-key" } }],
+    ]);
+    expect(resolveFor(tools).map((server) => server.slug)).toEqual(["plugin_linear_api"]);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("'zendesk'"));
+  });
+
+  it("counts among the servers the agent declared", () => {
+    const tools = new Map([[toolValuesKey("agent", "agt_helper", "zendesk"), { url: ZENDESK_URL, values: { ZENDESK_KEY: "zd-key" } }]]);
+    expect(declaredServerCount(resolveFor(tools))).toBe(2);
+  });
+});
+
+describe("a server's home", () => {
+  const plugin = { kind: "plugin", pluginId: "plg_1", plugin: "linear", server: "api" } as const;
+  const agent = { kind: "agent", agentId: "agt_1", subagent: null, server: "zendesk" } as const;
+  const sub = { kind: "agent", agentId: "agt_2", subagent: "triage", server: "zendesk" } as const;
+  const platform = { kind: "platform" } as const;
+
+  it("is described in a sentence for each kind", () => {
+    expect(describeServerHome(plugin, "plugin_linear_api")).toBe("plugin 'linear' server 'api'");
+    expect(describeServerHome(agent, "zendesk")).toBe("the agent's own server 'zendesk'");
+    expect(describeServerHome(sub, "zendesk")).toBe("subagent 'triage''s own server 'zendesk'");
+    expect(describeServerHome(platform, "stigmer-memory")).toBe("the platform's server 'stigmer-memory'");
+  });
+
+  it("is one only with the same holder and server, or both the platform's", () => {
+    expect(sameServerHome(plugin, { ...plugin })).toBe(true);
+    expect(sameServerHome(plugin, { ...plugin, pluginId: "plg_2" })).toBe(false);
+    expect(sameServerHome(agent, { ...agent })).toBe(true);
+    expect(sameServerHome(agent, sub)).toBe(false);
+    expect(sameServerHome(agent, plugin)).toBe(false);
+    expect(sameServerHome(platform, { kind: "platform" })).toBe(true);
+    expect(sameServerHome(platform, plugin)).toBe(false);
   });
 });
