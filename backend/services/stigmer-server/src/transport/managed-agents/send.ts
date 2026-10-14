@@ -181,6 +181,7 @@ async function apply(call: LaneCall, event: SendEvent, now: () => number): Promi
       }
       return interrupted.event;
     }
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const exhaustive: never = event;
       return exhaustive;

@@ -55,39 +55,31 @@ export function notFound(message: string): LaneError {
   return laneError(404, "not_found_error", message);
 }
 
+type StatusOfCode = { readonly status: number; readonly type: AnthropicErrorType };
+
+/** The one table (module header): keyed by every Connect code, so the compiler holds it whole. */
+const STATUS_BY_CODE: Readonly<Record<Code, StatusOfCode>> = {
+  [Code.InvalidArgument]: { status: 400, type: "invalid_request_error" },
+  [Code.FailedPrecondition]: { status: 400, type: "invalid_request_error" },
+  [Code.OutOfRange]: { status: 400, type: "invalid_request_error" },
+  [Code.Unauthenticated]: { status: 401, type: "authentication_error" },
+  [Code.PermissionDenied]: { status: 403, type: "permission_error" },
+  [Code.NotFound]: { status: 404, type: "not_found_error" },
+  [Code.AlreadyExists]: { status: 409, type: "invalid_request_error" },
+  [Code.Aborted]: { status: 409, type: "invalid_request_error" },
+  [Code.ResourceExhausted]: { status: 429, type: "rate_limit_error" },
+  [Code.DeadlineExceeded]: { status: 504, type: "timeout_error" },
+  [Code.Unavailable]: { status: 503, type: "overloaded_error" },
+  [Code.Canceled]: { status: 500, type: "api_error" },
+  [Code.Unknown]: { status: 500, type: "api_error" },
+  [Code.Unimplemented]: { status: 500, type: "api_error" },
+  [Code.Internal]: { status: 500, type: "api_error" },
+  [Code.DataLoss]: { status: 500, type: "api_error" },
+};
+
 /** The status and type a native refusal answers with. */
-export function statusOfCode(code: Code): { readonly status: number; readonly type: AnthropicErrorType } {
-  switch (code) {
-    case Code.InvalidArgument:
-    case Code.FailedPrecondition:
-    case Code.OutOfRange:
-      return { status: 400, type: "invalid_request_error" };
-    case Code.Unauthenticated:
-      return { status: 401, type: "authentication_error" };
-    case Code.PermissionDenied:
-      return { status: 403, type: "permission_error" };
-    case Code.NotFound:
-      return { status: 404, type: "not_found_error" };
-    case Code.AlreadyExists:
-    case Code.Aborted:
-      return { status: 409, type: "invalid_request_error" };
-    case Code.ResourceExhausted:
-      return { status: 429, type: "rate_limit_error" };
-    case Code.DeadlineExceeded:
-      return { status: 504, type: "timeout_error" };
-    case Code.Unavailable:
-      return { status: 503, type: "overloaded_error" };
-    case Code.Canceled:
-    case Code.Unknown:
-    case Code.Unimplemented:
-    case Code.Internal:
-    case Code.DataLoss:
-      return { status: 500, type: "api_error" };
-    default: {
-      const exhaustive: never = code;
-      return exhaustive;
-    }
-  }
+export function statusOfCode(code: Code): StatusOfCode {
+  return STATUS_BY_CODE[code];
 }
 
 /** A native method's failure as the lane's error (module header). */
