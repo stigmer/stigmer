@@ -7,7 +7,7 @@ package ai.stigmer.agentic.session.v1;
 
 /**
  * <pre>
- * SessionThreadCreatedEvent says a thread (a sub-agent) was created:
+ * SessionThreadCreatedEvent says a thread (a subagent) was created:
  * session.thread_created.
  * </pre>
  *
@@ -433,7 +433,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * SessionThreadCreatedEvent says a thread (a sub-agent) was created:
+   * SessionThreadCreatedEvent says a thread (a subagent) was created:
    * session.thread_created.
    * </pre>
    *

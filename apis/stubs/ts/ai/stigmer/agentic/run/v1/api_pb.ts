@@ -97,7 +97,7 @@ export const RunSchema: GenMessage<Run> = /*@__PURE__*/
  * RunStatus contains all run results and state.
  * Everything populated during or after the run goes here, not in spec.
  * The conversation itself (messages, tool calls, approvals, todos,
- * sub-agents, structured output and file-review decisions) is the session's
+ * subagents, structured output and file-review decisions) is the session's
  * event log (SessionEvent), not a field here.
  *
  * @generated from message ai.stigmer.agentic.run.v1.RunStatus

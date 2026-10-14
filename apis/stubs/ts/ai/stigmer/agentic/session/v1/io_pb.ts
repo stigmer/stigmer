@@ -863,7 +863,7 @@ export type BindHarnessStateInput = Message<"ai.stigmer.agentic.session.v1.BindH
   runId: string;
 
   /**
-   * The harness's conversation id (a LangGraph thread id, a Cursor agent id).
+   * The harness's own conversation id.
    *
    * @generated from field: string harness_state_id = 2;
    */

@@ -1214,7 +1214,7 @@ SessionEvent is one entry in a session's ordered event log.
     agentToolResult: { type: "AgentToolResultEventInput", description: "A built-in tool returned." },
     agentMcpToolUse: { type: "AgentMcpToolUseEventInput", description: "The agent called an MCP server's tool." },
     agentMcpToolResult: { type: "AgentMcpToolResultEventInput", description: "An MCP server's tool returned." },
-    sessionThreadCreated: { type: "SessionThreadCreatedEventInput", description: "A thread (a sub-agent) was created." },
+    sessionThreadCreated: { type: "SessionThreadCreatedEventInput", description: "A thread (a subagent) was created." },
     sessionThreadStatusRunning: { type: "SessionThreadStatusRunningEventInput", description: "A thread started working." },
     sessionThreadStatusIdle: { type: "SessionThreadStatusIdleEventInput", description: "A thread stopped working." },
     agentThreadMessageSent: { type: "AgentThreadMessageSentEventInput", description: "The agent sent a message to another thread." },
@@ -1309,7 +1309,7 @@ BindHarnessStateInput names a run and the harness's conversation id its session 
 <TypeTable
   type={{
     runId: { type: "string", description: "The run whose session the id belongs to.", required: true },
-    harnessStateId: { type: "string", description: "The harness's conversation id (a LangGraph thread id, a Cursor agent id).", required: true },
+    harnessStateId: { type: "string", description: "The harness's own conversation id.", required: true },
   }}
 />
 

@@ -1563,7 +1563,7 @@ type BindHarnessStateInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The run whose session the id belongs to.
 	RunId string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	// The harness's conversation id (a LangGraph thread id, a Cursor agent id).
+	// The harness's own conversation id.
 	HarnessStateId string `protobuf:"bytes,2,opt,name=harness_state_id,json=harnessStateId,proto3" json:"harness_state_id,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache

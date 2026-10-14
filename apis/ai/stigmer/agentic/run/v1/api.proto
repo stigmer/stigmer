@@ -45,7 +45,7 @@ message Run {
 // RunStatus contains all run results and state.
 // Everything populated during or after the run goes here, not in spec.
 // The conversation itself (messages, tool calls, approvals, todos,
-// sub-agents, structured output and file-review decisions) is the session's
+// subagents, structured output and file-review decisions) is the session's
 // event log (SessionEvent), not a field here.
 message RunStatus {
   // Standard audit information (created_at, updated_at, created_by, etc.)
@@ -87,8 +87,8 @@ message RunStatus {
 
   // Field 12 held `ResolvedExecutionContext resolved_context` — a snapshot of
   // the resources the agent had access to at run start. The contract was
-  // retired (2026-08, issue #600): its only producer was the long-deleted
-  // Python runner, so the field never carried data in any deployment. Reserved
+  // retired (2026-08, issue #600): its only producer was an earlier runner,
+  // long deleted, so the field never carried data in any deployment. Reserved
   // so a future, deliberately designed observability surface cannot collide
   // with stale clients.
   reserved 12;
@@ -149,8 +149,7 @@ message RunStatus {
   // Run Usage (DISPLAY_ONLY Trust Level)
   //
   // Provisional usage the runner accumulates from each turn's usage, on both
-  // harnesses (the Cursor SDK's turn-ended events, LangChain's usage
-  // metadata on native turns).
+  // harnesses (the provider's usage reports).
   //
   // Trust: DISPLAY_ONLY. Not metering-authoritative: the metered record of
   // each call is LlmCallUsageRecord (proxy-reported). The usage reports

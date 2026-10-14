@@ -101,12 +101,9 @@ type RunSpec struct {
 	BuildFromPlan bool `protobuf:"varint,20,opt,name=build_from_plan,json=buildFromPlan,proto3" json:"build_from_plan,omitempty"`
 	// JSON Schema that the agent's output must conform to (optional).
 	//
-	// When set, the runner enforces structured output:
-	// - Native harness: uses deepagents responseFormat/ToolStrategy
-	// - Cursor harness: prompt instruction + extraction fallback
-	//
-	// The validated structured data is the turn's
-	// stigmer.agent.structured_output session event.
+	// When set, the agent's answer is validated against this schema, and the
+	// validated structured data is the turn's stigmer.agent.structured_output
+	// session event.
 	StructuredOutputSchema *structpb.Struct `protobuf:"bytes,21,opt,name=structured_output_schema,json=structuredOutputSchema,proto3" json:"structured_output_schema,omitempty"`
 	// Tools this turn may use, in the same names as an agent's tools; empty
 	// leaves the agent's tools as they are.

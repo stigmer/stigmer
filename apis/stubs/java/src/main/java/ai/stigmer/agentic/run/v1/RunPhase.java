@@ -105,22 +105,18 @@ public enum RunPhase
    * - completed_at timestamp is set
    * - error field contains the termination reason
    *
-   * Trigger paths:
-   * - Internal (activity-level): stall timeout (agent unresponsive),
-   * tool-call budget exhausted (GraphRecursionError). LangGraph
-   * checkpoint is valid; the user can continue via follow-up message.
-   * - External (Terminate RPC): user or system force-kills the Temporal
-   * workflow. LangGraph checkpoint may be incomplete.
-   *
    * Use Cases:
-   * - Agent stalled — no events for the configured timeout
-   * - Agent exhausted its tool-call budget (recursion limit)
-   * - Force-stop stuck agents that don't respond to cancellation
+   * - Agent stalled — no events for the configured timeout; the session
+   * continues with a follow-up message
+   * - Agent exhausted its tool-call budget; the session continues with a
+   * follow-up message
+   * - Force-stop stuck agents that don't respond to cancellation (the
+   * Terminate RPC)
    * - Kill agents consuming excessive resources
    *
    * Terminated vs Cancelled vs Failed:
    * - Terminated: Platform stopped it (automated or force-kill)
-   * - Cancelled: User gracefully stopped it (checkpoint saved)
+   * - Cancelled: User gracefully stopped it (the turn ended cleanly)
    * - Failed: Something broke unexpectedly (exception, crash)
    * </pre>
    *
@@ -149,8 +145,8 @@ public enum RunPhase
    * <pre>
    * Run was paused by user and can be resumed.
    *
-   * The run was temporarily stopped at a checkpoint and can continue
-   * from where it left off. Unlike CANCELLED, the run is not terminal.
+   * The run was temporarily stopped and can continue from where it left
+   * off. Unlike CANCELLED, the run is not terminal.
    *
    * Pause flow:
    * RUN_IN_PROGRESS → RUN_PAUSED
@@ -161,14 +157,8 @@ public enum RunPhase
    * NOT a terminal state - run can be resumed.
    *
    * When this phase is reached:
-   * - Running activities are gracefully cancelled
-   * - LangGraph checkpoints are saved (thread_id preserved)
    * - No completed_at timestamp (run is not finished)
-   *
-   * Resume behavior:
-   * - Activity is re-invoked with same thread_id
-   * - LangGraph loads from checkpoint automatically
-   * - Run continues from where it was paused
+   * - The resume RPC continues the run from where it was paused
    * </pre>
    *
    * <code>RUN_PAUSED = 7;</code>
@@ -249,22 +239,18 @@ public enum RunPhase
    * - completed_at timestamp is set
    * - error field contains the termination reason
    *
-   * Trigger paths:
-   * - Internal (activity-level): stall timeout (agent unresponsive),
-   * tool-call budget exhausted (GraphRecursionError). LangGraph
-   * checkpoint is valid; the user can continue via follow-up message.
-   * - External (Terminate RPC): user or system force-kills the Temporal
-   * workflow. LangGraph checkpoint may be incomplete.
-   *
    * Use Cases:
-   * - Agent stalled — no events for the configured timeout
-   * - Agent exhausted its tool-call budget (recursion limit)
-   * - Force-stop stuck agents that don't respond to cancellation
+   * - Agent stalled — no events for the configured timeout; the session
+   * continues with a follow-up message
+   * - Agent exhausted its tool-call budget; the session continues with a
+   * follow-up message
+   * - Force-stop stuck agents that don't respond to cancellation (the
+   * Terminate RPC)
    * - Kill agents consuming excessive resources
    *
    * Terminated vs Cancelled vs Failed:
    * - Terminated: Platform stopped it (automated or force-kill)
-   * - Cancelled: User gracefully stopped it (checkpoint saved)
+   * - Cancelled: User gracefully stopped it (the turn ended cleanly)
    * - Failed: Something broke unexpectedly (exception, crash)
    * </pre>
    *
@@ -293,8 +279,8 @@ public enum RunPhase
    * <pre>
    * Run was paused by user and can be resumed.
    *
-   * The run was temporarily stopped at a checkpoint and can continue
-   * from where it left off. Unlike CANCELLED, the run is not terminal.
+   * The run was temporarily stopped and can continue from where it left
+   * off. Unlike CANCELLED, the run is not terminal.
    *
    * Pause flow:
    * RUN_IN_PROGRESS → RUN_PAUSED
@@ -305,14 +291,8 @@ public enum RunPhase
    * NOT a terminal state - run can be resumed.
    *
    * When this phase is reached:
-   * - Running activities are gracefully cancelled
-   * - LangGraph checkpoints are saved (thread_id preserved)
    * - No completed_at timestamp (run is not finished)
-   *
-   * Resume behavior:
-   * - Activity is re-invoked with same thread_id
-   * - LangGraph loads from checkpoint automatically
-   * - Run continues from where it was paused
+   * - The resume RPC continues the run from where it was paused
    * </pre>
    *
    * <code>RUN_PAUSED = 7;</code>

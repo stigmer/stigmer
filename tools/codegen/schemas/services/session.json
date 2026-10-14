@@ -590,7 +590,7 @@
             "kind": "message",
             "messageType": "SessionThreadCreatedEvent"
           },
-          "description": "A thread (a sub-agent) was created.",
+          "description": "A thread (a subagent) was created.",
           "required": false,
           "oneofGroup": "event"
         },
@@ -1045,7 +1045,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The harness's conversation id (a LangGraph thread id, a Cursor agent id).",
+          "description": "The harness's own conversation id.",
           "required": true,
           "validation": {
             "required": true
@@ -1836,7 +1836,7 @@
         "type": {
           "kind": "string"
         },
-        "description": "Harness-specific state identifier for conversation continuity.\n\n Populated after the first run completes; empty until then.\n Each harness uses this field differently:\n\n - NATIVE: LangGraph thread ID, derived deterministically as\n   \"thread-{session_id}\" by the EnsureThread activity. Stored here\n   so the immutability sentinel works uniformly across harnesses.\n\n - CURSOR: Cursor SDK agent ID (e.g., \"agent-xxx\" or \"bc-xxx\")\n   returned by Agent.create(). Used for Agent.resume() on\n   subsequent runs.",
+        "description": "Harness-specific state identifier for conversation continuity.\n\n Populated after the first run completes; empty until then. It is the\n harness's own conversation id:\n\n - NATIVE: the native harness's thread id, \"thread-{session_id}\".\n\n - CURSOR: Cursor SDK agent ID (e.g., \"agent-xxx\" or \"bc-xxx\")\n   returned by Agent.create(). Used for Agent.resume() on\n   subsequent runs.",
         "required": false
       },
       {

@@ -156,9 +156,8 @@ class RunCommandControllerServicer(object):
     def resume(self, request, context):
         """Resume a paused run.
 
-        Continues the run from the checkpoint where it was paused. The agent
-        re-invokes with the same thread_id, loading from LangGraph checkpoint
-        and continuing from where it left off.
+        Continues the run from where it was paused. How a turn's state is saved
+        is the harness's ([Harnesses](/docs/concepts/harnesses)).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

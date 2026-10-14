@@ -145,7 +145,7 @@ export type SessionEvent = Message<"ai.stigmer.agentic.session.v1.SessionEvent">
     case: "agentMcpToolResult";
   } | {
     /**
-     * A thread (a sub-agent) was created.
+     * A thread (a subagent) was created.
      *
      * @generated from field: ai.stigmer.agentic.session.v1.SessionThreadCreatedEvent session_thread_created = 20;
      */
@@ -748,7 +748,7 @@ export const AgentMcpToolResultEventSchema: GenMessage<AgentMcpToolResultEvent> 
   messageDesc(file_ai_stigmer_agentic_session_v1_event, 10);
 
 /**
- * SessionThreadCreatedEvent says a thread (a sub-agent) was created:
+ * SessionThreadCreatedEvent says a thread (a subagent) was created:
  * session.thread_created.
  *
  * @generated from message ai.stigmer.agentic.session.v1.SessionThreadCreatedEvent

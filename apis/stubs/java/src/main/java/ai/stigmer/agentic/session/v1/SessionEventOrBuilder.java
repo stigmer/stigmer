@@ -355,7 +355,7 @@ public interface SessionEventOrBuilder extends
 
   /**
    * <pre>
-   * A thread (a sub-agent) was created.
+   * A thread (a subagent) was created.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.SessionThreadCreatedEvent session_thread_created = 20 [json_name = "sessionThreadCreated", (.ai.stigmer.commons.apiresource.event_type) = "session.thread_created"];</code>
@@ -364,7 +364,7 @@ public interface SessionEventOrBuilder extends
   boolean hasSessionThreadCreated();
   /**
    * <pre>
-   * A thread (a sub-agent) was created.
+   * A thread (a subagent) was created.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.SessionThreadCreatedEvent session_thread_created = 20 [json_name = "sessionThreadCreated", (.ai.stigmer.commons.apiresource.event_type) = "session.thread_created"];</code>
@@ -373,7 +373,7 @@ public interface SessionEventOrBuilder extends
   ai.stigmer.agentic.session.v1.SessionThreadCreatedEvent getSessionThreadCreated();
   /**
    * <pre>
-   * A thread (a sub-agent) was created.
+   * A thread (a subagent) was created.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.SessionThreadCreatedEvent session_thread_created = 20 [json_name = "sessionThreadCreated", (.ai.stigmer.commons.apiresource.event_type) = "session.thread_created"];</code>
