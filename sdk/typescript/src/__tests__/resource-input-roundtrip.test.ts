@@ -340,6 +340,7 @@ describe("toAgentExecutionInput", () => {
           windowEnd: timestampFromDate(new Date("2026-08-15T10:00:00Z")),
         },
         reconcileFileReview: true,
+        excludedPluginIds: ["plg_compared"],
         pluginEvalCase: {
           pluginId: "plg_1",
           pluginDigest: "a".repeat(64),
